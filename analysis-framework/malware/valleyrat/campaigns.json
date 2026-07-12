@@ -1,0 +1,70 @@
+﻿{
+    "schema_version":  1,
+    "classification_principle":  "Classify from observed structure and behavior, never from the ValleyRAT family label alone.",
+    "patterns":  {
+                     "dll_sideload_vvas_bundle":  {
+                                                      "description":  "Signed-host style executable, LoggerCollector.dll side-loader, vvaS.bin shellcode",
+                                                      "recommended_stages":  [
+                                                                                 "Inventory",
+                                                                                 "FLOSS",
+                                                                                 "Ghidra",
+                                                                                 "Decrypt",
+                                                                                 "Decode"
+                                                                             ],
+                                                      "required_observations":  [
+                                                                                    "LoggerCollector.dll",
+                                                                                    "chgport.exe",
+                                                                                    "vvaS.bin"
+                                                                                ],
+                                                      "campaign_interpretation":  "One delivery/build configuration; do not generalize to all ValleyRAT operators."
+                                                  },
+                     "msi_embedded_cab_custom_actions":  {
+                                                             "description":  "MSI delivery with embedded CAB, signed/decoy host, and local DLL side-loading",
+                                                             "recommended_stages":  [
+                                                                                        "Inventory",
+                                                                                        "MSI",
+                                                                                        "MSIChain"
+                                                                                    ],
+                                                             "required_observations":  [
+                                                                                           "OLE/MSI",
+                                                                                           "CAB stream",
+                                                                                           "PE stream",
+                                                                                           "host imports sibling DLL"
+                                                                                       ],
+                                                             "campaign_interpretation":  "Potentially distinct builder/operator/campaign packaging."
+                                                         },
+                     "msi_unknown":  {
+                                         "description":  "MSI delivery not matching the known embedded CAB and PE combination",
+                                         "recommended_stages":  [
+                                                                    "Inventory",
+                                                                    "MSI"
+                                                                ],
+                                         "required_observations":  [
+                                                                       "OLE/MSI"
+                                                                   ],
+                                         "campaign_interpretation":  "Unknown MSI variant; require manual review before adding a handler."
+                                     },
+                     "single_pe":  {
+                                       "description":  "Single PE delivery",
+                                       "recommended_stages":  [
+                                                                  "Inventory",
+                                                                  "FLOSS",
+                                                                  "Ghidra"
+                                                              ],
+                                       "required_observations":  [
+                                                                     "single MZ member"
+                                                                 ],
+                                       "campaign_interpretation":  "Generic PE path; configuration and loader behavior remain unknown."
+                                   },
+                     "unknown_archive_chain":  {
+                                                   "description":  "No known structural pattern",
+                                                   "recommended_stages":  [
+                                                                              "Inventory"
+                                                                          ],
+                                                   "required_observations":  [
+
+                                                                             ],
+                                                   "campaign_interpretation":  "Hard stop after generic triage; create a new reviewed handler."
+                                               }
+                 }
+}

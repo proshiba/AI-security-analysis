@@ -1,0 +1,52 @@
+{
+  "selected_pattern": "dll_sideload_vvas_bundle",
+  "selected_confidence": "high",
+  "candidates": [
+    {
+      "pattern_id": "dll_sideload_vvas_bundle",
+      "confidence": "high",
+      "reasons": [
+        "signed-host style bundle names",
+        "LoggerCollector DLL",
+        "vvaS payload"
+      ]
+    }
+  ],
+  "observations": {
+    "member_count": 26,
+    "members": [
+      "LoggerCollector.dll",
+      "lpinfos.dll",
+      "msvcp140.dll",
+      "pcre.dll",
+      "SetupIcon.ico",
+      "vcruntime140.dll",
+      "vcruntime140_1.dll",
+      "vmtools.dll",
+      "vmtoolsd.exe",
+      "VV.txt",
+      "vvaS.bin",
+      "wow32.dll",
+      "图标10.ico",
+      "新建文本文档.txt",
+      "2.ico",
+      "2.txt",
+      "3.ico",
+      "4.ico",
+      "6.ico",
+      "8.ico",
+      "chgport.exe",
+      "glib-2.0.dll",
+      "gmodule-2.0.dll",
+      "gobject-2.0.dll",
+      "help.pdf",
+      "intl.dll"
+    ],
+    "contains_msi": false,
+    "contains_pe_names": true,
+    "contains_vvas": true,
+    "contains_loggercollector": true,
+    "contains_chgport": true
+  },
+  "family_label_used_for_classification": false
+}

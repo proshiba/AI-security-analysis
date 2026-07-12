@@ -1,0 +1,20 @@
+﻿{
+    "case_id":  "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+    "expected_inner_sha256":  "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+    "archive_password":  "infected",
+    "default_stages":  [
+                           "Extract",
+                           "Inventory",
+                           "MSI",
+                           "MSIChain"
+                       ],
+    "package_type":  "msi_in_zip",
+    "msi_member":  "KL-X86Gicasc.msi",
+    "floss_targets":  [
+
+                      ],
+    "ghidra_targets":  [
+
+                       ],
+    "network_evidence":  "..\\evidence\\b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c-triage.json"
+}

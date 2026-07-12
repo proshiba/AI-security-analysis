@@ -1,0 +1,5 @@
+cabarchive==0.2.5
+olefile>=0.47
+pefile>=2024.8.26
+pyzipper>=0.3.6
+capstone>=5.0.0

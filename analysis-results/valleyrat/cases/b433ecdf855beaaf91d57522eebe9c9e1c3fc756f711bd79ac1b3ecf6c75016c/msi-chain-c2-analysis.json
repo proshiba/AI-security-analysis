@@ -1,0 +1,1720 @@
+{
+  "msi_member": "KL-X86Gicasc.msi",
+  "msi_sha256": "ee1f25b74bc40c30ef3dac839257e6e75c3ef5e84e6c8b464f1984943132f166",
+  "cab_sha256": "353a58f77f2b1f85dc5a439708f153f37d94d1cb7c3fc8f830c3e11599e62d4c",
+  "elements": [
+    {
+      "name": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "size": 736368,
+      "sha256": "066c52ed8ebf63a33ab8290b7c58d0c13f79c14faa8bf12b1b41f643d3ebe281",
+      "pe": {
+        "machine": "0x14c",
+        "entry_point_rva": "0x4b53c",
+        "imports": {
+          "msi.dll": [
+            "ordinal:171",
+            "ordinal:125",
+            "ordinal:47",
+            "ordinal:70",
+            "ordinal:17",
+            "ordinal:158",
+            "ordinal:49",
+            "ordinal:52",
+            "ordinal:74",
+            "ordinal:160",
+            "ordinal:43",
+            "ordinal:190",
+            "ordinal:113",
+            "ordinal:26",
+            "ordinal:48",
+            "ordinal:121",
+            "ordinal:20",
+            "ordinal:163",
+            "ordinal:117",
+            "ordinal:165",
+            "ordinal:205",
+            "ordinal:139",
+            "ordinal:147",
+            "ordinal:34",
+            "ordinal:221",
+            "ordinal:51",
+            "ordinal:62",
+            "ordinal:58",
+            "ordinal:145",
+            "ordinal:103",
+            "ordinal:224",
+            "ordinal:116",
+            "ordinal:118",
+            "ordinal:115",
+            "ordinal:166",
+            "ordinal:159",
+            "ordinal:32",
+            "ordinal:120",
+            "ordinal:114",
+            "ordinal:8"
+          ],
+          "SHELL32.dll": [
+            "SHGetSpecialFolderLocation",
+            "SHGetPathFromIDListW",
+            "ShellExecuteExW",
+            "SHGetKnownFolderPath",
+            "SHGetFolderPathW",
+            "SHGetMalloc",
+            "ShellExecuteW"
+          ],
+          "WS2_32.dll": [
+            "WSACleanup",
+            "WSAStartup",
+            "ntohs",
+            "gethostbyname",
+            "htonl"
+          ],
+          "NETAPI32.dll": [
+            "NetGetDCName",
+            "NetUserGetInfo",
+            "NetQueryDisplayInformation",
+            "NetLocalGroupGetInfo",
+            "NetGroupGetInfo",
+            "NetUserModalsGet",
+            "NetApiBufferFree"
+          ],
+          "SHLWAPI.dll": [
+            "PathFileExistsW",
+            "ordinal:176",
+            "PathIsDirectoryW",
+            "PathIsUNCW"
+          ],
+          "IPHLPAPI.DLL": [
+            "GetTcpTable"
+          ],
+          "CRYPT32.dll": [
+            "CertGetNameStringW",
+            "CertFreeCertificateContext"
+          ],
+          "KERNEL32.dll": [
+            "HeapFree",
+            "HeapAlloc",
+            "GetProcessHeap",
+            "lstrlenW",
+            "GetCurrentThreadId",
+            "RaiseException",
+            "SetLastError",
+            "CloseHandle",
+            "CreateFileW",
+            "WriteFile",
+            "LocalFree",
+            "LocalAlloc",
+            "LoadLibraryW",
+            "WideCharToMultiByte",
+            "FormatMessageW",
+            "LockResource",
+            "FindResourceExW",
+            "FindFirstFileW",
+            "FindNextFileW",
+            "GetFileAttributesW",
+            "SetFileAttributesW",
+            "FindClose",
+            "RemoveDirectoryW",
+            "DeleteFileW",
+            "CreateDirectoryW",
+            "ReadFile",
+            "ExpandEnvironmentStringsW",
+            "WakeAllConditionVariable",
+            "SetFilePointer",
+            "GetWindowsDirectoryW",
+            "HeapSize",
+            "GetTempFileNameW",
+            "FindResourceW",
+            "GetCurrentProcess",
+            "GetSystemDirectoryW",
+            "CreateToolhelp32Snapshot",
+            "Process32FirstW",
+            "OpenProcess",
+            "Process32NextW",
+            "GetCurrentProcessId",
+            "GetExitCodeProcess",
+            "WaitForSingleObject",
+            "HeapDestroy",
+            "ReadProcessMemory",
+            "Sleep",
+            "GetTickCount",
+            "Wow64DisableWow64FsRedirection",
+            "Wow64RevertWow64FsRedirection",
+            "GetFullPathNameW",
+            "MulDiv",
+            "GetModuleFileNameW",
+            "InitializeCriticalSection",
+            "OutputDebugStringW",
+            "FlushFileBuffers",
+            "GetStringTypeW",
+            "CreateNamedPipeW",
+            "ConnectNamedPipe",
+            "PeekNamedPipe",
+            "GlobalFindAtomW",
+            "GlobalAddAtomW",
+            "GlobalDeleteAtom",
+            "lstrcpynW",
+            "lstrcpyW",
+            "DecodePointer",
+            "ExitProcess",
+            "lstrcmpW",
+            "DuplicateHandle",
+            "GetStdHandle",
+            "CreateProcessW",
+            "GetLocaleInfoW",
+            "lstrcatW",
+            "GetDiskFreeSpaceW",
+            "OpenMutexW",
+            "SetEndOfFile",
+            "LoadResource",
+            "SizeofResource",
+            "MultiByteToWideChar",
+            "lstrcmpiW",
+            "GetModuleHandleW",
+            "GetProcAddress",
+            "FreeLibrary",
+            "InitializeCriticalSectionEx",
+            "GetLastError",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "VirtualAlloc",
+            "VirtualFree",
+            "HeapReAlloc",
+            "EncodePointer",
+            "GetCPInfo",
+            "IsDebuggerPresent",
+            "InitializeSListHead",
+            "InterlockedPopEntrySList",
+            "InterlockedPushEntrySList",
+            "FlushInstructionCache",
+            "TerminateProcess",
+            "SleepConditionVariableSRW",
+            "UnhandledExceptionFilter",
+            "LoadLibraryExW",
+            "MoveFileW",
+            "AcquireSRWLockExclusive",
+            "ReleaseSRWLockExclusive",
+            "GetTempPathW",
+            "LoadLibraryExA",
+            "GetLocaleInfoEx",
+            "SetUnhandledExceptionFilter",
+            "GetStartupInfoW",
+            "QueryPerformanceCounter",
+            "GetSystemTimeAsFileTime",
+            "RtlUnwind",
+            "InterlockedFlushSList",
+            "InitializeCriticalSectionAndSpinCount",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TlsFree",
+            "GetModuleHandleExW",
+            "GetFileType",
+            "LCMapStringW",
+            "FindFirstFileExW",
+            "IsValidCodePage",
+            "GetACP",
+            "GetOEMCP",
+            "GetCommandLineA",
+            "GetCommandLineW",
+            "GetEnvironmentStringsW",
+            "FreeEnvironmentStringsW",
+            "SetFilePointerEx",
+            "SetStdHandle",
+            "GetConsoleOutputCP",
+            "GetConsoleMode",
+            "WriteConsoleW",
+            "IsProcessorFeaturePresent",
+            "FormatMessageA"
+          ],
+          "USER32.dll": [
+            "GetWindowTextW",
+            "EnumChildWindows",
+            "GetDesktopWindow",
+            "RedrawWindow",
+            "GetWindowThreadProcessId",
+            "EnumWindows",
+            "AllowSetForegroundWindow",
+            "GetForegroundWindow",
+            "LoadImageW",
+            "CallWindowProcW",
+            "DrawTextW",
+            "LoadCursorW",
+            "GetClassInfoExW",
+            "RegisterClassExW",
+            "UnregisterClassW",
+            "DestroyIcon",
+            "IsWindow",
+            "GetSystemMetrics",
+            "DefWindowProcW",
+            "DestroyMenu",
+            "EndDialog",
+            "CreateWindowExW",
+            "DeleteMenu",
+            "OffsetRect",
+            "GetDC",
+            "PostMessageW",
+            "DestroyWindow",
+            "SendMessageW",
+            "ScreenToClient",
+            "GetDlgItem",
+            "SetWindowLongW",
+            "GetWindow",
+            "GetWindowLongW",
+            "MonitorFromWindow",
+            "GetMonitorInfoW",
+            "GetWindowRect",
+            "GetParent",
+            "MapWindowPoints",
+            "SetWindowPos",
+            "SetWindowTextW",
+            "GetSystemMenu",
+            "CharNextW",
+            "GetClassNameW",
+            "wsprintfW",
+            "MessageBoxW",
+            "FillRect",
+            "DialogBoxParamW",
+            "GetClientRect"
+          ],
+          "GDI32.dll": [
+            "DeleteDC",
+            "StartDocW",
+            "StartPage",
+            "EndPage",
+            "EndDoc",
+            "GetTextExtentPoint32W",
+            "SetViewportOrgEx",
+            "SelectObject",
+            "CreateCompatibleBitmap",
+            "CreateCompatibleDC",
+            "DeleteObject",
+            "BitBlt",
+            "CreateSolidBrush",
+            "GetDeviceCaps",
+            "CreateFontW",
+            "AbortDoc"
+          ],
+          "COMDLG32.dll": [
+            "PrintDlgW",
+            "GetOpenFileNameW"
+          ],
+          "ADVAPI32.dll": [
+            "InitializeSecurityDescriptor",
+            "SetEntriesInAclW",
+            "GetSecurityDescriptorDacl",
+            "RegOverridePredefKey",
+            "RegOpenKeyW",
+            "LookupAccountNameW",
+            "LookupAccountSidW",
+            "CloseServiceHandle",
+            "OpenSCManagerW",
+            "OpenProcessToken",
+            "GetTokenInformation",
+            "AllocateAndInitializeSid",
+            "EqualSid",
+            "FreeSid",
+            "RegQueryValueExW",
+            "RegEnumValueW",
+            "ConvertStringSidToSidW",
+            "LookupPrivilegeValueW",
+            "AdjustTokenPrivileges",
+            "ConvertSidToStringSidW",
+            "ChangeServiceConfig2W",
+            "QueryServiceObjectSecurity",
+            "SetServiceObjectSecurity",
+            "QueryServiceStatus",
+            "ControlService",
+            "StartServiceW",
+            "OpenServiceW",
+            "QueryServiceStatusEx",
+            "LogonUserW",
+            "GetSidSubAuthorityCount",
+            "GetSidLengthRequired",
+            "InitializeSid",
+            "GetSidIdentifierAuthority",
+            "GetSidSubAuthority",
+            "EnumServicesStatusW",
+            "LsaOpenPolicy",
+            "LsaNtStatusToWinError",
+            "RegDeleteValueW",
+            "RegCreateKeyExW",
+            "RegSetValueExW",
+            "LsaAddAccountRights",
+            "LsaClose",
+            "SetSecurityDescriptorDacl",
+            "RegDeleteKeyW",
+            "RegCloseKey",
+            "RegQueryInfoKeyW",
+            "RegOpenKeyExW",
+            "RegEnumKeyExW"
+          ],
+          "ole32.dll": [
+            "CoTaskMemRealloc",
+            "CoTaskMemAlloc",
+            "CoInitialize",
+            "CoTaskMemFree",
+            "CoCreateInstance",
+            "CoAllowSetForegroundWindow",
+            "CLSIDFromString",
+            "CoUninitialize"
+          ],
+          "OLEAUT32.dll": [
+            "SysStringLen",
+            "LoadTypeLib",
+            "VariantClear",
+            "VariantInit",
+            "UnRegisterTypeLib",
+            "UnRegisterTypeLibForUser",
+            "RegisterTypeLib",
+            "RegisterTypeLibForUser",
+            "SysFreeString",
+            "SysAllocString",
+            "GetErrorInfo",
+            "SetErrorInfo",
+            "VarUI4FromStr"
+          ]
+        },
+        "exports": [
+          "AI_AuthorSinglePackage",
+          "AI_ResolveKnownFolders",
+          "AI_SearchOfficeAddins",
+          "AddCaspolSecurityPolicy",
+          "BrowseForFile",
+          "CheckFreeTCPPort",
+          "CheckIfUserExists",
+          "ChooseTextStyles",
+          "CloseApplication",
+          "CollectFeaturesWithoutCab",
+          "ComputeReplaceProductsList",
+          "ConfigureNonAdminServiceStart",
+          "ConfigureServFailActions",
+          "CopyFileFolder",
+          "CreateExeProcess",
+          "DeleteEmptyDirectory",
+          "DeleteFromCheckList",
+          "DeleteFromComboBox",
+          "DeleteFromListBox",
+          "DeleteFromListView",
+          "DeleteShortcuts",
+          "DetectModernWindows",
+          "DetectProcess",
+          "DetectService",
+          "DetectWindowsTheme",
+          "DisableFeatures",
+          "DoEvents",
+          "DpiContentScale",
+          "EmbeddedUIInstallHandleAccessServer",
+          "EnableDebugLog",
+          "EnumStartedServices",
+          "ExtractCheckListData",
+          "ExtractComboBoxData",
+          "ExtractListBoxData",
+          "ExtractListViewData",
+          "GetArpIconPath",
+          "GetFreeTCPPort",
+          "GetLocalizedCredentials",
+          "GetPathFreeSpace",
+          "InstanceMajorUpgrade",
+          "JoinFiles",
+          "LaunchApp",
+          "LaunchLogFile",
+          "LoadShortcutDirs",
+          "LogOnAsAService",
+          "MixedAllUsersInstallLocation",
+          "ModalDialogs",
+          "MsgBox",
+          "MsmTrialMessage",
+          "PerformRegistryEntryTypeChange",
+          "PlayAudioFile",
+          "PopulateCheckList",
+          "PopulateComboBox",
+          "PopulateListBox",
+          "PopulateListView",
+          "PrepareRegistryEntryTypeChange",
+          "PrepareUpgrade",
+          "PreserveInstallType",
+          "PreventInstancesUpgrade",
+          "PrintRTF",
+          "ProcessFailActions",
+          "RegisterAdvinstCom",
+          "RemoveCaspolSecurityPolicy",
+          "ResolveFormattedProperty",
+          "ResolveKnownFolder",
+          "ResolveServiceProperties",
+          "RestartElevated",
+          "RestoreLocation",
+          "RunAllExitActions",
+          "RunFinishActions",
+          "SendPropertyToUI",
+          "SetLatestVersionPath",
+          "StartWinService",
+          "StopProcess",
+          "StopWinService",
+          "TrialMessage",
+          "UninstallPreviousVersions",
+          "UnregisterAdvinstCom",
+          "UpdateFeatureStates",
+          "UpdateInstallMode",
+          "UpdateMsiEditControls",
+          "ValidateInstallFolder",
+          "ViewReadMe",
+          "WarningMessageBox"
+        ],
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 433152,
+            "virtual_size": 432982,
+            "entropy": 6.487
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 252416,
+            "virtual_size": 252184,
+            "entropy": 5.97
+          },
+          {
+            "name": ".data",
+            "raw_size": 4096,
+            "virtual_size": 9536,
+            "entropy": 3.373
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 2560,
+            "virtual_size": 2288,
+            "entropy": 4.094
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 28160,
+            "virtual_size": 27864,
+            "entropy": 6.641
+          }
+        ]
+      }
+    },
+    {
+      "name": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "size": 211056,
+      "sha256": "ee42c70ed98ef30a312ba31a4e2c30d400bfba3419f6fd3409d1857d73f804a9",
+      "pe": {
+        "machine": "0x14c",
+        "entry_point_rva": "0x131bf",
+        "imports": {
+          "msi.dll": [
+            "ordinal:8",
+            "ordinal:125",
+            "ordinal:103",
+            "ordinal:17",
+            "ordinal:74",
+            "ordinal:124",
+            "ordinal:165",
+            "ordinal:47",
+            "ordinal:160",
+            "ordinal:159",
+            "ordinal:32",
+            "ordinal:49",
+            "ordinal:34",
+            "ordinal:145",
+            "ordinal:118",
+            "ordinal:121",
+            "ordinal:171"
+          ],
+          "NETAPI32.dll": [
+            "NetLocalGroupGetInfo",
+            "NetApiBufferFree"
+          ],
+          "KERNEL32.dll": [
+            "WriteConsoleW",
+            "GetConsoleMode",
+            "GetConsoleOutputCP",
+            "SetStdHandle",
+            "SetFilePointerEx",
+            "GetStringTypeW",
+            "SetEnvironmentVariableW",
+            "FreeEnvironmentStringsW",
+            "GetEnvironmentStringsW",
+            "GetCommandLineW",
+            "GetCommandLineA",
+            "GetCPInfo",
+            "GetOEMCP",
+            "GetACP",
+            "IsValidCodePage",
+            "FindNextFileW",
+            "FindFirstFileExW",
+            "FindClose",
+            "GetFileType",
+            "GetStdHandle",
+            "TlsFree",
+            "TlsSetValue",
+            "TlsGetValue",
+            "TlsAlloc",
+            "InitializeCriticalSectionAndSpinCount",
+            "EncodePointer",
+            "SetLastError",
+            "InterlockedFlushSList",
+            "RtlUnwind",
+            "InitializeSListHead",
+            "GetSystemTimeAsFileTime",
+            "QueryPerformanceCounter",
+            "LocalFree",
+            "GetLastError",
+            "LocalAlloc",
+            "LoadLibraryW",
+            "GetProcAddress",
+            "FreeLibrary",
+            "GetSystemDirectoryW",
+            "SizeofResource",
+            "LockResource",
+            "LoadResource",
+            "FindResourceW",
+            "FindResourceExW",
+            "HeapDestroy",
+            "HeapSize",
+            "HeapReAlloc",
+            "HeapFree",
+            "HeapAlloc",
+            "GetProcessHeap",
+            "LoadLibraryExW",
+            "GetLocalTime",
+            "GetModuleHandleW",
+            "GetCurrentProcess",
+            "DeleteCriticalSection",
+            "CloseHandle",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "OutputDebugStringW",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "CreateFileW",
+            "WriteFile",
+            "FlushFileBuffers",
+            "GetModuleFileNameW",
+            "MultiByteToWideChar",
+            "WideCharToMultiByte",
+            "GetTimeZoneInformation",
+            "FormatMessageA",
+            "InitializeCriticalSectionEx",
+            "DecodePointer",
+            "GetStartupInfoW",
+            "IsProcessorFeaturePresent",
+            "TerminateProcess",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter",
+            "SleepConditionVariableSRW",
+            "WakeAllConditionVariable",
+            "LCMapStringW",
+            "AcquireSRWLockExclusive",
+            "ReleaseSRWLockExclusive",
+            "IsDebuggerPresent",
+            "LoadLibraryExA",
+            "CompareStringW",
+            "GetTimeFormatW",
+            "GetDateFormatW",
+            "GetModuleHandleExW",
+            "VirtualQuery",
+            "VirtualProtect",
+            "GetSystemInfo",
+            "RaiseException",
+            "ExitProcess"
+          ],
+          "ole32.dll": [
+            "CoUninitialize",
+            "CoCreateInstance",
+            "CoInitialize"
+          ],
+          "OLEAUT32.dll": [
+            "VariantInit",
+            "SysAllocString",
+            "SysFreeString",
+            "VariantTimeToSystemTime",
+            "VariantCopy",
+            "VarUdateFromDate",
+            "SystemTimeToVariantTime",
+            "VariantClear"
+          ]
+        },
+        "exports": [
+          "DeleteTasks",
+          "ProcessTasks",
+          "ScheduleTasks",
+          "UninstallTasks"
+        ],
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 143360,
+            "virtual_size": 142989,
+            "entropy": 6.481
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 38912,
+            "virtual_size": 38562,
+            "entropy": 4.792
+          },
+          {
+            "name": ".data",
+            "raw_size": 3072,
+            "virtual_size": 6028,
+            "entropy": 2.643
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 1536,
+            "virtual_size": 1400,
+            "entropy": 3.855
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 8192,
+            "virtual_size": 7744,
+            "entropy": 6.453
+          }
+        ]
+      }
+    },
+    {
+      "name": "CAB/cef_frame.dll",
+      "size": 11390976,
+      "sha256": "8ebc92ac9ddf6b7757b28cde9357a8e8e045125fa150a3bfc65932854132e157",
+      "pe": {
+        "machine": "0x14c",
+        "entry_point_rva": "0xe31848",
+        "imports": {
+          "KERNEL32.dll": [
+            "Sleep"
+          ],
+          "SHELL32.dll": [
+            "ShellExecuteA"
+          ],
+          "SHLWAPI.dll": [
+            "PathRemoveFileSpecA"
+          ],
+          "ADVAPI32.dll": [
+            "SystemFunction036"
+          ]
+        },
+        "exports": [
+          "CreateBrowser",
+          "IsNameReolveError",
+          "TbsAppInstance"
+        ],
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 0,
+            "virtual_size": 83523,
+            "entropy": 0.0
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 0,
+            "virtual_size": 27868,
+            "entropy": 0.0
+          },
+          {
+            "name": ".data",
+            "raw_size": 0,
+            "virtual_size": 4660,
+            "entropy": 0.0
+          },
+          {
+            "name": ".\\C\\",
+            "raw_size": 0,
+            "virtual_size": 6249315,
+            "entropy": 0.0
+          },
+          {
+            "name": ".x=Q",
+            "raw_size": 512,
+            "virtual_size": 60,
+            "entropy": 0.301
+          },
+          {
+            "name": ".SH\\",
+            "raw_size": 11386880,
+            "virtual_size": 11386768,
+            "entropy": 7.944
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 512,
+            "virtual_size": 469,
+            "entropy": 4.721
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 2048,
+            "virtual_size": 1892,
+            "entropy": 4.062
+          }
+        ]
+      }
+    },
+    {
+      "name": "CAB/latst.exe",
+      "size": 17488792,
+      "sha256": "796640f54bdad0f8a77fdde41ef8d15bde06cc5e1d6920159ebd8ab06a0e4bc9",
+      "pe": {
+        "machine": "0x14c",
+        "entry_point_rva": "0x351c",
+        "imports": {
+          "ADVAPI32.dll": [
+            "RegEnumValueW",
+            "RegEnumKeyW",
+            "RegQueryValueExW",
+            "RegSetValueExW",
+            "RegCloseKey",
+            "RegDeleteValueW",
+            "RegDeleteKeyW",
+            "AdjustTokenPrivileges",
+            "LookupPrivilegeValueW",
+            "OpenProcessToken",
+            "RegOpenKeyExW",
+            "RegCreateKeyExW"
+          ],
+          "SHELL32.dll": [
+            "SHGetPathFromIDListW",
+            "SHBrowseForFolderW",
+            "SHGetFileInfoW",
+            "SHFileOperationW",
+            "ShellExecuteExW"
+          ],
+          "ole32.dll": [
+            "CoCreateInstance",
+            "OleUninitialize",
+            "OleInitialize",
+            "IIDFromString",
+            "CoTaskMemFree"
+          ],
+          "COMCTL32.dll": [
+            "ImageList_Destroy",
+            "ordinal:17",
+            "ImageList_AddMasked",
+            "ImageList_Create"
+          ],
+          "USER32.dll": [
+            "MessageBoxIndirectW",
+            "GetDlgItemTextW",
+            "SetDlgItemTextW",
+            "CreatePopupMenu",
+            "AppendMenuW",
+            "TrackPopupMenu",
+            "OpenClipboard",
+            "EmptyClipboard",
+            "SetClipboardData",
+            "CloseClipboard",
+            "IsWindowVisible",
+            "CallWindowProcW",
+            "GetMessagePos",
+            "CheckDlgButton",
+            "LoadCursorW",
+            "SetCursor",
+            "GetSysColor",
+            "SetWindowPos",
+            "GetWindowLongW",
+            "IsWindowEnabled",
+            "SetClassLongW",
+            "GetSystemMenu",
+            "EnableMenuItem",
+            "GetWindowRect",
+            "ScreenToClient",
+            "EndDialog",
+            "RegisterClassW",
+            "SystemParametersInfoW",
+            "CharPrevW",
+            "GetClassInfoW",
+            "DialogBoxParamW",
+            "CharNextW",
+            "ExitWindowsEx",
+            "DestroyWindow",
+            "CreateDialogParamW",
+            "SetTimer",
+            "SetWindowTextW",
+            "PostQuitMessage",
+            "SetForegroundWindow",
+            "ShowWindow",
+            "wsprintfW",
+            "SendMessageTimeoutW",
+            "FindWindowExW",
+            "IsWindow",
+            "GetDlgItem",
+            "SetWindowLongW",
+            "LoadImageW",
+            "GetDC",
+            "ReleaseDC",
+            "EnableWindow",
+            "InvalidateRect",
+            "SendMessageW",
+            "DefWindowProcW",
+            "BeginPaint",
+            "GetClientRect",
+            "FillRect",
+            "DrawTextW",
+            "EndPaint",
+            "CharNextA",
+            "wsprintfA",
+            "DispatchMessageW",
+            "CreateWindowExW",
+            "PeekMessageW",
+            "GetSystemMetrics"
+          ],
+          "GDI32.dll": [
+            "GetDeviceCaps",
+            "SetBkColor",
+            "SelectObject",
+            "DeleteObject",
+            "CreateBrushIndirect",
+            "CreateFontIndirectW",
+            "SetBkMode",
+            "SetTextColor"
+          ],
+          "KERNEL32.dll": [
+            "lstrcmpiA",
+            "CreateFileW",
+            "GetTempFileNameW",
+            "RemoveDirectoryW",
+            "CreateProcessW",
+            "CreateDirectoryW",
+            "GetLastError",
+            "CreateThread",
+            "GlobalLock",
+            "GlobalUnlock",
+            "GetDiskFreeSpaceW",
+            "WideCharToMultiByte",
+            "lstrcpynW",
+            "lstrlenW",
+            "SetErrorMode",
+            "GetVersionExW",
+            "GetCommandLineW",
+            "GetTempPathW",
+            "GetWindowsDirectoryW",
+            "WriteFile",
+            "CopyFileW",
+            "ExitProcess",
+            "GetCurrentProcess",
+            "GetModuleFileNameW",
+            "GetFileSize",
+            "GetTickCount",
+            "Sleep",
+            "SetFileAttributesW",
+            "GetFileAttributesW",
+            "SetCurrentDirectoryW",
+            "MoveFileW",
+            "GetFullPathNameW",
+            "GetShortPathNameW",
+            "SearchPathW",
+            "CompareFileTime",
+            "SetFileTime",
+            "CloseHandle",
+            "lstrcmpiW",
+            "lstrcmpW",
+            "ExpandEnvironmentStringsW",
+            "GlobalFree",
+            "GlobalAlloc",
+            "GetModuleHandleW",
+            "LoadLibraryExW",
+            "FreeLibrary",
+            "WritePrivateProfileStringW",
+            "GetPrivateProfileStringW",
+            "lstrlenA",
+            "MultiByteToWideChar",
+            "ReadFile",
+            "SetFilePointer",
+            "FindClose",
+            "FindNextFileW",
+            "FindFirstFileW",
+            "DeleteFileW",
+            "MulDiv",
+            "lstrcpyA",
+            "MoveFileExW",
+            "lstrcatW",
+            "GetSystemDirectoryW",
+            "GetProcAddress",
+            "GetModuleHandleA",
+            "GetExitCodeProcess",
+            "WaitForSingleObject",
+            "SetEnvironmentVariableW"
+          ]
+        },
+        "exports": [],
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 26112,
+            "virtual_size": 25974,
+            "entropy": 6.461
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 5120,
+            "virtual_size": 4952,
+            "entropy": 5.102
+          },
+          {
+            "name": ".data",
+            "raw_size": 1536,
+            "virtual_size": 129848,
+            "entropy": 4.044
+          },
+          {
+            "name": ".ndata",
+            "raw_size": 0,
+            "virtual_size": 180224,
+            "entropy": 0.0
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 53760,
+            "virtual_size": 53760,
+            "entropy": 3.785
+          }
+        ]
+      }
+    },
+    {
+      "name": "CAB/mesedge.exe",
+      "size": 20072,
+      "sha256": "10e990bbbda70da62c668908d0dbb4c9b21ffe95f186795c3a5ae98b5d302881",
+      "pe": {
+        "machine": "0x14c",
+        "entry_point_rva": "0x1249",
+        "imports": {
+          "cef_frame.dll": [
+            "TbsAppInstance"
+          ],
+          "VCRUNTIME140.dll": [
+            "_except_handler4_common",
+            "memset"
+          ],
+          "api-ms-win-crt-runtime-l1-1-0.dll": [
+            "_initialize_onexit_table",
+            "_register_onexit_function",
+            "_get_wide_winmain_command_line",
+            "_cexit",
+            "_controlfp_s",
+            "terminate",
+            "_initterm",
+            "_initialize_wide_environment",
+            "_register_thread_local_exe_atexit_callback",
+            "_configure_wide_argv",
+            "_c_exit",
+            "_set_app_type",
+            "_seh_filter_exe",
+            "_initterm_e",
+            "_exit",
+            "_crt_atexit",
+            "exit"
+          ],
+          "api-ms-win-crt-math-l1-1-0.dll": [
+            "__setusermatherr"
+          ],
+          "api-ms-win-crt-stdio-l1-1-0.dll": [
+            "__p__commode",
+            "_set_fmode"
+          ],
+          "api-ms-win-crt-locale-l1-1-0.dll": [
+            "_configthreadlocale"
+          ],
+          "api-ms-win-crt-heap-l1-1-0.dll": [
+            "_set_new_mode"
+          ],
+          "KERNEL32.dll": [
+            "GetModuleHandleW",
+            "GetCurrentThreadId",
+            "GetCurrentProcessId",
+            "QueryPerformanceCounter",
+            "IsProcessorFeaturePresent",
+            "TerminateProcess",
+            "GetCurrentProcess",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter",
+            "InitializeSListHead",
+            "GetSystemTimeAsFileTime",
+            "IsDebuggerPresent",
+            "GetStartupInfoW"
+          ]
+        },
+        "exports": [],
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 3072,
+            "virtual_size": 3066,
+            "entropy": 6.31
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 3072,
+            "virtual_size": 2664,
+            "entropy": 4.311
+          },
+          {
+            "name": ".data",
+            "raw_size": 512,
+            "virtual_size": 900,
+            "entropy": 0.28
+          },
+          {
+            "name": ".gfids",
+            "raw_size": 512,
+            "virtual_size": 32,
+            "entropy": 0.159
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 1024,
+            "virtual_size": 648,
+            "entropy": 3.839
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 512,
+            "virtual_size": 316,
+            "entropy": 4.517
+          }
+        ]
+      }
+    }
+  ],
+  "sideload_edges": [
+    {
+      "host": "CAB/mesedge.exe",
+      "loaded_library": "cef_frame.dll",
+      "imported_functions": [
+        "TbsAppInstance"
+      ]
+    }
+  ],
+  "network_candidates": [
+    {
+      "value": "3.20.0.",
+      "source": "CAB/latst.exe",
+      "offset": 43196,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "1.0.0.",
+      "source": "CAB/latst.exe",
+      "offset": 86635,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "Microsoft.Windows.Com",
+      "source": "CAB/latst.exe",
+      "offset": 86837,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "6.0.0.",
+      "source": "CAB/latst.exe",
+      "offset": 86881,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "0.0.0.",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 305990,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "21.0.1.",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 346176,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "21.0.1.",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 93646,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "http://nsis.sf.net/NSIS_Error",
+      "source": "CAB/latst.exe",
+      "offset": 16342,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.globalsign.com/codesigningrootr450F",
+      "source": "CAB/latst.exe",
+      "offset": 17477633,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://secure.globalsign.com/cacert/codesigningrootr45.crt0A",
+      "source": "CAB/latst.exe",
+      "offset": 17477692,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl.globalsign.com/codesigningrootr45.crl0V",
+      "source": "CAB/latst.exe",
+      "offset": 17477769,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://secure.globalsign.com/cacert/gsgccr45codesignca2020.crt0=",
+      "source": "CAB/latst.exe",
+      "offset": 17479378,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.globalsign.com/gsgccr45codesignca20200V",
+      "source": "CAB/latst.exe",
+      "offset": 17479454,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl.globalsign.com/gsgccr45codesignca2020.crl0#",
+      "source": "CAB/latst.exe",
+      "offset": 17479621,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.globalsign.com/gsoffliner45timestampca20250O",
+      "source": "CAB/latst.exe",
+      "offset": 17482273,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://secure.globalsign.com/cacert/gsoffliner45timestampca2025.crt0J",
+      "source": "CAB/latst.exe",
+      "offset": 17482341,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl.globalsign.com/gsoffliner45timestampca2025.crl0V",
+      "source": "CAB/latst.exe",
+      "offset": 17482427,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.globalsign.com/timestamprootr450D",
+      "source": "CAB/latst.exe",
+      "offset": 17484075,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://secure.globalsign.com/cacert/timestamprootr45.crt0?",
+      "source": "CAB/latst.exe",
+      "offset": 17484132,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl.globalsign.com/timestamprootr45.crl",
+      "source": "CAB/latst.exe",
+      "offset": 17484207,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp2.globalsign.com/rootr60;",
+      "source": "CAB/latst.exe",
+      "offset": 17485751,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://secure.globalsign.com/cacert/root-r6.crt06",
+      "source": "CAB/latst.exe",
+      "offset": 17485799,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl.globalsign.com/root-r6.crl0G",
+      "source": "CAB/latst.exe",
+      "offset": 17485865,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "https://www.globalsign.com/repository/",
+      "source": "CAB/latst.exe",
+      "offset": 17485937,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://schemas.microsoft.com/SMI/2005/WindowsSettings",
+      "source": "CAB/mesedge.exe",
+      "offset": 8723,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl3.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl0S",
+      "source": "CAB/mesedge.exe",
+      "offset": 12507,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl4.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl",
+      "source": "CAB/mesedge.exe",
+      "offset": 12592,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.digicert.com/CPS",
+      "source": "CAB/mesedge.exe",
+      "offset": 12706,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.digicert.com",
+      "source": "CAB/mesedge.exe",
+      "offset": 12766,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://cacerts.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crt",
+      "source": "CAB/mesedge.exe",
+      "offset": 12804,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl3.digicert.com/DigiCertTrustedG4RSA4096SHA256TimeStampingCA.crl",
+      "source": "CAB/mesedge.exe",
+      "offset": 15287,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.digicert.com0X",
+      "source": "CAB/mesedge.exe",
+      "offset": 15393,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://cacerts.digicert.com/DigiCertTrustedG4RSA4096SHA256TimeStampingCA.crt",
+      "source": "CAB/mesedge.exe",
+      "offset": 15431,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.digicert.com0A",
+      "source": "CAB/mesedge.exe",
+      "offset": 17027,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://cacerts.digicert.com/DigiCertTrustedRootG4.crt0C",
+      "source": "CAB/mesedge.exe",
+      "offset": 17065,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl3.digicert.com/DigiCertTrustedRootG4.crl",
+      "source": "CAB/mesedge.exe",
+      "offset": 17137,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "www.digicert.com",
+      "source": "CAB/mesedge.exe",
+      "offset": 17983,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://ocsp.digicert.com0C",
+      "source": "CAB/mesedge.exe",
+      "offset": 18719,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0E",
+      "source": "CAB/mesedge.exe",
+      "offset": 18757,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl",
+      "source": "CAB/mesedge.exe",
+      "offset": 18831,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20ID%20Verified%20CS%20AOC%20CA%2001.crl",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 725653,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20ID%20Verified%20CS%20AOC%20CA%2001.crt0-",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 725772,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://oneocsp.microsoft.com/ocsp0f",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 725874,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20ID%20Verified%20Code%20Signing%20PCA%202021.crl",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 727625,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20ID%20Verified%20Code%20Signing%20PCA%202021.crt0-",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 727753,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crt0-",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 729687,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://oneocsp.microsoft.com/ocsp",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 729818,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crl",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 732628,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crt",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 732777,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20Public%20RSA%20Timestamping%20CA%202020.crl0y",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 734476,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Public%20RSA%20Timestamping%20CA%202020.crt",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 734597,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/Docs/Repository.htm",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 734787,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20ID%20Verified%20CS%20AOC%20CA%2001.crl",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 200341,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20ID%20Verified%20CS%20AOC%20CA%2001.crt0-",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 200460,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://oneocsp.microsoft.com/ocsp0f",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 200562,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20ID%20Verified%20Code%20Signing%20PCA%202021.crl",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 202313,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20ID%20Verified%20Code%20Signing%20PCA%202021.crt0-",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 202441,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crt0-",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 204375,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://oneocsp.microsoft.com/ocsp",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 204506,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crl",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 207316,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crt",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 207465,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/crl/Microsoft%20Public%20RSA%20Timestamping%20CA%202020.crl0y",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 209164,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/certs/Microsoft%20Public%20RSA%20Timestamping%20CA%202020.crt",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 209285,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    },
+    {
+      "value": "http://www.microsoft.com/pkiops/Docs/Repository.htm",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 209475,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": true
+    }
+  ],
+  "non_benign_candidates": [
+    {
+      "value": "3.20.0.",
+      "source": "CAB/latst.exe",
+      "offset": 43196,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "1.0.0.",
+      "source": "CAB/latst.exe",
+      "offset": 86635,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "Microsoft.Windows.Com",
+      "source": "CAB/latst.exe",
+      "offset": 86837,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "6.0.0.",
+      "source": "CAB/latst.exe",
+      "offset": 86881,
+      "encoding": "ascii",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "0.0.0.",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 305990,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "21.0.1.",
+      "source": "䌋䄱䜵䄾䆬䖸䄷䗦䇾䏯",
+      "offset": 346176,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    },
+    {
+      "value": "21.0.1.",
+      "source": "䌋䄱䜵䄾䖬䋦䇨䏸䕨䞂䏧䠯",
+      "offset": 93646,
+      "encoding": "utf16le_even_bytes",
+      "xor_key": null,
+      "known_benign_infrastructure": false
+    }
+  ],
+  "confirmed_c2": [
+    {
+      "domain": "www.tq8j.com",
+      "ip": null,
+      "port": 53,
+      "process": "mesedge.exe",
+      "evidence": "process-attributed dynamic observation correlated with static sideload host",
+      "confidence": "high",
+      "source": "https://tria.ge/260710-pvzs1acy91/behavioral1"
+    },
+    {
+      "domain": "www.tq8j.com",
+      "ip": "103.45.64.246",
+      "port": 443,
+      "process": "mesedge.exe",
+      "evidence": "process-attributed dynamic observation correlated with static sideload host",
+      "confidence": "high",
+      "source": "https://tria.ge/260710-pvzs1acy91/behavioral1"
+    }
+  ],
+  "external_network_evidence": {
+    "schema_version": 1,
+    "sample_sha256": "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+    "source": "https://tria.ge/260710-pvzs1acy91/behavioral1",
+    "collected_utc": "2026-07-13",
+    "observations": [
+      {
+        "kind": "dns",
+        "process": "mesedge.exe",
+        "domain": "www.tq8j.com",
+        "ip": null,
+        "port": 53,
+        "repeat_count": 2
+      },
+      {
+        "kind": "tcp",
+        "process": "mesedge.exe",
+        "domain": "www.tq8j.com",
+        "ip": "103.45.64.246",
+        "port": 443,
+        "repeat_count": 16
+      }
+    ],
+    "notes": [
+      "Triage attributes PID 2068 to mesedge.exe.",
+      "LetsVPN traffic is separately attributed to LetsPRO.exe; it is not promoted to C2.",
+      "No live contact was made by this workflow."
+    ]
+  },
+  "limitations": [
+    "Generic scanning does not unpack virtualization/protector layers.",
+    "A string candidate is not a confirmed C2 without code/config reference or network evidence."
+  ],
+  "executed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,39 @@
+﻿# Infection-chain pattern design
+
+## 原則
+
+ValleyRAT というファミリー名だけで復号器や C2 形式を選ばない。漏洩ビルダー、運用者、キャンペーン差を前提に、観測した梱包構造・実行関係から handler を選ぶ。
+
+## 既知パターン
+
+| pattern_id | 識別条件 | 実行段階 |
+|---|---|---|
+| `dll_sideload_vvas_bundle` | `chgport.exe` + `LoggerCollector.dll` + `vvaS.bin` | Inventory → FLOSS → Ghidra → Decrypt → Decode |
+| `msi_embedded_cab_custom_actions` | MSI/OLE → CAB → 複数 PE → 同梱 DLL import | Inventory → MSI → MSIChain |
+| `msi_unknown` | MSI だが既知構造に一致しない | Inventory → MSI で停止し、handler を追加 |
+| `single_pe` | 単一 PE | Inventory → FLOSS → Ghidra |
+| `unknown_archive_chain` | 未知構造 | 汎用 inventory 後に停止 |
+
+## MSI/CAB/DLL サイドロード handler
+
+1. ZIP を実行せずメモリ上で展開し、内側 ZIP と MSI の SHA-256 を固定する。
+2. MSI の OLE stream を列挙し、CAB と PE custom-action 候補を記録する。
+3. CAB をメモリ上で解析し、全 member の hash、PE import/export、署名情報を記録する。
+4. 同一 CAB 内の DLL を import する EXE を sideload host として結ぶ。
+5. DLL が高 entropy・異常 section・極小 import の場合は protected loader と分類する。汎用 XOR 総当たりで偽 IOC を量産しない。
+6. 静的文字列、復号済み config、または process 帰属付き sandbox 観測を収集する。
+7. sandbox 観測は `evidence/*.json` に保存し、sideload host と同じ process の DNS/TCP だけを C2 に昇格する。デコイ/正規アプリの通信は除外する。
+8. 出力 `msi-chain-c2-analysis.json` の `confirmed_c2`、`sideload_edges`、`limitations`、安全フラグを確認する。
+
+## 証拠強度
+
+- 高: 復号 config と参照コードが一致、または sideload host に帰属した DNS/TCP が反復観測された。
+- 中: protected loader 内の文字列候補とコード参照が一致するが通信未観測。
+- 低: 文字列・OSINT のみ。`confirmed_c2` に入れない。
+
+## 失敗時
+
+- Defender が展開物を遮断: 内側 ZIP/MSI/CAB をメモリ上で処理する。
+- DLL が virtualized: hash、entry point、section entropy、import/export を保存し、protector 専用 decoder または隔離 sandbox 証拠へ切り替える。
+- sandbox に複数アプリ通信: PID/process と sideload edge を必ず相関し、CDN、証明書、正規 VPN 通信を除く。
+- 未知構造: 既存 handler に強制せず、新 pattern と regression fixture を追加する。

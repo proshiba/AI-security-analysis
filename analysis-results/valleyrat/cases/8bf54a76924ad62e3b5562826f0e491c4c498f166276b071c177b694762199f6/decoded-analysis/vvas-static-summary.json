@@ -1,0 +1,98 @@
+{
+  "input": "C:\\Users\\Administrator\\MalwareSamples\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6\\workflow-output\\decrypted\\vvaS.xor.bin",
+  "sha256": "b2586edb216bdb27ffbf5be5c091c94c62df8d87500ceacdc519e3016f7d7e2a",
+  "architecture": "x86-32",
+  "marker": "odaktomk",
+  "marker_offset": 1140,
+  "ascii_strings": [
+    {
+      "offset": 27,
+      "value": "D$pPh"
+    },
+    {
+      "offset": 135,
+      "value": "D$\\CK"
+    },
+    {
+      "offset": 162,
+      "value": "D$dCK"
+    },
+    {
+      "offset": 179,
+      "value": "T$HCK"
+    },
+    {
+      "offset": 200,
+      "value": "T$HCK"
+    },
+    {
+      "offset": 206,
+      "value": "D$\\j@V"
+    },
+    {
+      "offset": 298,
+      "value": "SVWj"
+    },
+    {
+      "offset": 481,
+      "value": "tZSh"
+    },
+    {
+      "offset": 819,
+      "value": "Ws2_"
+    },
+    {
+      "offset": 831,
+      "value": "32.d"
+    },
+    {
+      "offset": 850,
+      "value": "ntdl"
+    },
+    {
+      "offset": 857,
+      "value": "l.dlf"
+    },
+    {
+      "offset": 1140,
+      "value": "odaktomk"
+    },
+    {
+      "offset": 1196,
+      "value": "202.95.8.27"
+    },
+    {
+      "offset": 1208,
+      "value": "202.95.8.27"
+    }
+  ],
+  "ipv4_strings": [
+    "202.95.8.27"
+  ],
+  "marker_dwords_from_0x20": [
+    12,
+    6666,
+    1,
+    12,
+    8888,
+    1
+  ],
+  "known_api_hashes": {
+    "LoadLibraryA": "0x0148be54",
+    "VirtualAlloc": "0x00293836",
+    "VirtualFree": "0x84ae6d69",
+    "CreateThread": "0x5ec13a5a",
+    "WaitForSingleObject": "0x684be3a5",
+    "RtlMoveMemory": "0xed235704",
+    "WSAStartup": "0xc18bc488",
+    "WSACleanup": "0xcc62c781",
+    "socket": "0x9816abed",
+    "getaddrinfo": "0xabce366b",
+    "htons": "0x1552cd98",
+    "connect": "0xf9b83296",
+    "send": "0x039bb598",
+    "recv": "0xf4178b7a"
+  },
+  "instruction_count_linear_sweep": 577,
+  "executed": false
+}

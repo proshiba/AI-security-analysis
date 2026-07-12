@@ -1,0 +1,29 @@
+﻿{
+    "schema_version":  1,
+    "sample_sha256":  "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+    "source":  "https://tria.ge/260710-pvzs1acy91/behavioral1",
+    "collected_utc":  "2026-07-13",
+    "observations":  [
+                         {
+                             "kind":  "dns",
+                             "process":  "mesedge.exe",
+                             "domain":  "www.tq8j.com",
+                             "ip":  null,
+                             "port":  53,
+                             "repeat_count":  2
+                         },
+                         {
+                             "kind":  "tcp",
+                             "process":  "mesedge.exe",
+                             "domain":  "www.tq8j.com",
+                             "ip":  "103.45.64.246",
+                             "port":  443,
+                             "repeat_count":  16
+                         }
+                     ],
+    "notes":  [
+                  "Triage attributes PID 2068 to mesedge.exe.",
+                  "LetsVPN traffic is separately attributed to LetsPRO.exe; it is not promoted to C2.",
+                  "No live contact was made by this workflow."
+              ]
+}
