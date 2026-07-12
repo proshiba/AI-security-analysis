@@ -202,3 +202,42 @@ condition:
 - `msi-analysis.json`: OLE/CAB/PE stream inventory。
 - `msi-chain-c2-analysis.json`: hashes、imports/exports、sideload edge、C2 evidence。
 - `file-inventory.csv`: Defender遮断を含むfilesystem inventory。
+
+## 11. 現在のC2生存確認とShodan条件
+
+確認日時: `2026-07-12T17:39:23Z`（JST 2026-07-13）。
+
+| 項目 | 結果 |
+|---|---|
+| Domain | `www.tq8j.com` |
+| 現在の解決IP | `18.166.72.101` |
+| 過去のsandbox観測IP | `103.45.64.246` |
+| TCP/443 | connection refused |
+| 現在の生存判定 | **inactive / not reachable** |
+| HTTP status/title/banner | 取得不能 |
+| TLS version/cipher | 取得不能 |
+| Certificate SHA-256 | 取得不能 |
+| JARM | 取得不能。全ゼロ値はno fingerprintとして破棄 |
+
+過去のTriage観測では`mesedge.exe`が`www.tq8j.com`解決後に`103.45.64.246:443`へ反復接続しているため、C2帰属自体は高信頼のまま。ただし現在はDNS解決先が変化し、443/TCPを拒否しているため、現在稼働中とは判定しない。
+
+Shodan候補:
+
+```text
+hostname:www.tq8j.com port:443
+ip:18.166.72.101 port:443
+ip:103.45.64.246 port:443
+```
+
+現在はbannerが得られないため`hash:`、`http.title:`、`ssl.cert.fingerprint:`、`ssl.jarm:`の実値を生成できない。将来serviceが復帰した場合、`c2_detector.py --protocol https --collect-jarm`のJSONから次の形式を追加する。
+
+```text
+hash:<signed_murmur3_banner_hash>
+http.title:"<observed title>"
+ssl.cert.fingerprint:<certificate_sha256>
+ssl.jarm:<62-character non-zero JARM>
+```
+
+これらは単独で悪性を示さない。共有hosting/CDN、再発行証明書、同一TLS stackによる誤検知があるため、`hostname + port + certificate/JARM + malware process evidence`を組み合わせる。IPは最も変化しやすいため履歴・現在値を分ける。
+
+保存結果: `c2-live/2026-07-13_www.tq8j.com_443.json`。

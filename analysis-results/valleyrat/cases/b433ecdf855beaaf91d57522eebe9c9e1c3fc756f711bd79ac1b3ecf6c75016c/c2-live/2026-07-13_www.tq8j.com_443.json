@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "timestamp_utc": "2026-07-12T17:39:23.340671+00:00",
+  "host": "www.tq8j.com",
+  "port": 443,
+  "protocol": "https",
+  "timeout_seconds": 8.0,
+  "maximum_response_bytes": 65536,
+  "alive": false,
+  "c2_confirmed": false,
+  "network_contacted": true,
+  "resolved_ips": [
+    "18.166.72.101"
+  ],
+  "status": "closed",
+  "tcp_status": "closed",
+  "error": "[WinError 10061] No connection could be made because the target machine actively refused it",
+  "shodan": {
+    "banner_hash_algorithm": "signed MurmurHash3 x86_32 of captured raw banner bytes",
+    "queries": [
+      "hostname:www.tq8j.com port:443",
+      "ip:18.166.72.101 port:443"
+    ],
+    "recommended_combination": "ip:18.166.72.101 port:443",
+    "warning": "Revalidate fields in Shodan before operational use; banner, IP, certificate and JARM can change or be shared."
+  },
+  "elapsed_ms": 3059.5
+}

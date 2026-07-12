@@ -149,3 +149,29 @@ condition:
 - `decoded-analysis/vvas-shellcode.asm`: linear disassembly。
 - `floss/*.static.txt`: loader/host文字列。
 - `file-inventory.csv`: bundle全memberのhash・署名。
+
+## 10. 現在のC2生存確認とShodan条件
+
+確認日時: `2026-07-12T17:33:34Z`～`17:33:35Z`（JST 2026-07-13）。`c2_detector.py`から`33 32 00`だけを送信し、64 bytesで受信を打ち切った。
+
+| Endpoint | TCP | Protocol confirmation | Response banner SHA-256 | Shodan MurmurHash3 |
+|---|---|---|---|---:|
+| `202.95.8.27:6666` | open | `confirmed_vvas_c2`、declared stage `307214` | `32fda28a442899190076b888be57aa09e29590549039f5e7ae8e1e158df0d531` | `-481009216` |
+| `202.95.8.27:8888` | open | `confirmed_vvas_c2`、declared stage `307214` | `32fda28a442899190076b888be57aa09e29590549039f5e7ae8e1e158df0d531` | `-481009216` |
+
+判定: **両ポートとも現在生存し、復元したvvaS protocolに一致**。TCP openだけでなく、14-byte headerとstage sizeの一致を根拠とする。
+
+Shodan候補:
+
+```text
+ip:202.95.8.27 port:6666
+ip:202.95.8.27 port:8888
+hash:-481009216
+```
+
+`hash:-481009216`はcustom check-in後に得たraw response 64 bytesのsigned MurmurHash3である。Shodanのscannerが同じprotocol payloadを送らない場合、このbannerは収集されず検索結果に現れない可能性が高い。したがってIP/port条件を主、banner hashを補助とする。このserviceはHTTP/TLSではないため、`http.title`、証明書hash、JARMは該当しない。
+
+保存結果:
+
+- `c2-live/2026-07-13_202.95.8.27_6666.json`
+- `c2-live/2026-07-13_202.95.8.27_8888.json`
