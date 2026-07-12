@@ -1,0 +1,108 @@
+# 過去に解析したマルウェア検体の履歴。
+# 検体本体・復号バイナリ・PCAPは保存せず、公開可能な結果メタデータのみを記録する。
+analyses:
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-12
+    sample_sha256: 8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6
+    analysis_level: deep_static_plus_limited_live_c2
+    campaign_type: dll_sideload_vvas_bundle
+    matched_patterns:
+      - chgport.exe、LoggerCollector.dll、vvaS.bin が同居する DLL side-loading bundle
+      - vvaS.bin の single-byte XOR 0x14 復号
+      - 復号 shellcode 内の odaktomk marker と C2/port 構造
+      - ValleyRAT vvaS check-in protocol
+    c2:
+      - 202.95.8.27:6666
+      - 202.95.8.27:8888
+    result_path: analysis-results/valleyrat/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6/
+    notes: c2_detector.py で限定 check-in を実施し、両 port の応答を確認。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-10
+    sample_sha256: b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c
+    analysis_level: deep_static_plus_sandbox_evidence_review
+    campaign_type: msi_embedded_cab_custom_actions
+    matched_patterns:
+      - ZIP 内 MSI/OLE に embedded CAB と PE streams が存在
+      - mesedge.exe と cef_frame.dll の side-loading 関係
+      - cef_frame.dll の TbsAppInstance export と protected/high-entropy DLL
+      - scheduled task と Defender exclusion の防御回避
+    c2:
+      - www.tq8j.com:443
+      - 103.45.64.246:443
+    result_path: analysis-results/valleyrat/cases/b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c/
+    notes: ローカル実行はせず、MSI/CAB 構造と sandbox の process 帰属付き通信を突合。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-12
+    sample_sha256: 942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0
+    analysis_level: static_plus_sandbox_evidence_review
+    campaign_type: installer_overlay_dropper
+    matched_patterns:
+      - 巨大 overlay を持つ x86 installer
+      - "%TEMP% と Program Files 配下への staged setup 配置"
+      - 同一 process から C2 への反復接続
+    c2:
+      - 150.158.50.175:443
+    result_path: analysis-results/valleyrat/cases/942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0/
+    notes: ローカル実行なし。Triage の process/network evidence を利用。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-12
+    sample_sha256: eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534
+    analysis_level: static_plus_sandbox_evidence_review
+    campaign_type: single_pe_direct
+    matched_patterns:
+      - Certum 署名付き小型 x86 PE
+      - WinUpdateService logon task 作成
+      - 同一 process から 2 port の C2 へ反復接続
+      - WriteProcessMemory 観測
+    c2:
+      - 154.81.37.130:4444
+      - 154.81.37.130:5555
+    result_path: analysis-results/valleyrat/cases/eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534/
+    notes: ローカル実行なし。task 作成と通信を sandbox 証跡で確認。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-12
+    sample_sha256: 15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f
+    analysis_level: static_decode
+    campaign_type: dll_sideload_vvas_bundle
+    matched_patterns:
+      - chgport.exe、LoggerCollector.dll、vvaS.bin が同居する DLL side-loading bundle
+      - vvaS.bin の decimal 20 / 0x14 XOR 復号
+      - 復号 config 内の odaktomk marker と C2/port 構造
+    c2:
+      - 134.122.128.66:6666
+      - 134.122.128.66:8888
+    result_path: analysis-results/valleyrat/cases/15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f/
+    notes: ローカル実行・ライブ接続なし。配布 IP と C2 を分離して記録。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-11
+    sample_sha256: 5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19
+    analysis_level: static_plus_sandbox_evidence_review
+    campaign_type: installer_overlay_dropper
+    matched_patterns:
+      - SysCEO/winget-style の side-load bundle 配置
+      - dwmhost.exe と AliyunWrap.dll / edgestore.dll の同居
+      - qt64.dat stage 取得と ValleyRAT S2 config
+    c2:
+      - 27.124.18.166:63016
+      - 27.124.18.166:63026
+    result_path: analysis-results/valleyrat/cases/5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19/
+    notes: Triage config と dwmhost.exe の C2 接続を高信頼 IOC として整理。
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-11
+    sample_sha256: 0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd
+    analysis_level: static_plus_sandbox_evidence_review
+    campaign_type: msi_embedded_pe_staged_download
+    matched_patterns:
+      - MSI custom action から複数 stage を取得
+      - OSS stage download と最終 host/C2 の分離
+      - Defender exclusion と SYSTEM/highest scheduled task
+    c2:
+      - 8.210.15.149:28300
+    result_path: analysis-results/valleyrat/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
+    notes: 34UXpv.exe の DNS/C2 接続と防御回避を sandbox 証跡で確認。
