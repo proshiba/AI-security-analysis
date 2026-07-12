@@ -1,0 +1,8 @@
+{
+  "outer_archive": "C:\\Users\\Administrator\\MalwareSamples\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6.zip",
+  "inner_sample": "C:\\Users\\Administrator\\MalwareSamples\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6\\workflow-output\\extracted\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6.zip",
+  "inner_sha256": "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+  "payload_directory": "C:\\Users\\Administrator\\MalwareSamples\\8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6\\workflow-output\\payload",
+  "payload_file_count": 26,
+  "executed": false
+}

@@ -1,0 +1,51 @@
+﻿# AI agent instructions: 8bf54a76
+
+## Objective
+
+Reproduce the static findings without executing any payload. Work one stage at a time and preserve prior artifacts.
+
+## Required order
+
+1. Read README.md and case-config.json.
+2. Confirm the case root and outer ZIP.
+3. Run Extract and verify the inner SHA-256.
+4. Run Inventory and identify unsigned binaries beside signed hosts.
+5. Run FLOSS. Separate URLs in signed hosts from malware-confirmed IOCs.
+6. Run Ghidra. Use explicit program selectors for every program-scoped MCP call.
+7. Run Decrypt and require the expected plaintext SHA-256.
+8. Run Decode and verify marker, API hashes, IP and ports.
+9. Do not run C2Check unless the user explicitly authorizes live interaction in the current task.
+10. Label conclusions as confirmed, inferred, or unverified.
+
+## Safety rules
+
+- Never execute chgport.exe, LoggerCollector.dll, vvaS.bin, decrypted shellcode, or stage two.
+- Never launch the sample through rundll32, regsvr32, PowerShell reflection, or a debugger.
+- Keep Ghidra MCP on localhost and filesystem access under C:\Users\Administrator.
+- Do not enable arbitrary Ghidra script execution.
+- C2Check may send only 33 32 00, read at most 64 bytes, and close.
+- Do not retrieve the full 307214-byte stage two without a new explicit request and containment review.
+
+## Evidence requirements
+
+- A hash mismatch is a hard stop.
+- TCP-open status alone does not prove C2.
+- confirmed_vvas_c2 requires header_matches=true and declared size 307214.
+- Preserve raw output beside summaries.
+- Record errors and timeouts; never promote partial data to a confirmed result.
+
+## Handoff checklist
+
+- State completed stages.
+- Link inventory, FLOSS output, Ghidra project, decrypted hash, decoded summary and reports.
+- State whether any payload was executed.
+- State whether live C2 interaction occurred.
+- List unresolved questions and the safest next step.
+
+## Multi-campaign and builder-variant rule
+
+Before selecting a handler for any additional ValleyRAT-labeled sample, read `PATTERN-DESIGN.md` and run `Classify-InfectionChain.py`. Do not infer that a new sample uses this case's infection chain, decryptor, configuration, or C2 protocol. Select processing from observed structure. Unknown patterns must stop after generic triage.
+
+## MSI/CAB variant instructions
+
+For `msi_embedded_cab_custom_actions`, run `Extract`, `Inventory`, `MSI`, then `MSIChain`; do not stop at MSI inventory. Require a static `sideload_edges` relation before correlating process-attributed sandbox evidence. Promote an endpoint to `confirmed_c2` only when the observation belongs to the sideload host or a decoded configuration is referenced by loader code. Keep legitimate decoy/application traffic separate. Store external observations under `evidence/` with source URL, date, process, domain, IP, port, and repeat count. Do not execute a sample or contact an endpoint unless the user explicitly authorizes that action in the current task.

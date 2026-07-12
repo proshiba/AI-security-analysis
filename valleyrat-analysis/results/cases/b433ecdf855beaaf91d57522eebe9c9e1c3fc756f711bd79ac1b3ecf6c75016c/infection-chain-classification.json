@@ -1,0 +1,28 @@
+{
+  "selected_pattern": "msi_embedded_cab_custom_actions",
+  "selected_confidence": "high",
+  "candidates": [
+    {
+      "pattern_id": "msi_embedded_cab_custom_actions",
+      "confidence": "high",
+      "reasons": [
+        "single MSI delivery",
+        "embedded CAB",
+        "embedded PE custom-action candidates"
+      ],
+      "msi_member": "KL-X86Gicasc.msi"
+    }
+  ],
+  "observations": {
+    "member_count": 1,
+    "members": [
+      "KL-X86Gicasc.msi"
+    ],
+    "contains_msi": true,
+    "contains_pe_names": false,
+    "contains_vvas": false,
+    "contains_loggercollector": false,
+    "contains_chgport": false
+  },
+  "family_label_used_for_classification": false
+}

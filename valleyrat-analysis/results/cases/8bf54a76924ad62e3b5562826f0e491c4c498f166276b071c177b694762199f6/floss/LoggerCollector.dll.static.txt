@@ -1,0 +1,1861 @@
+﻿!This program cannot be run in DOS mode.
+FRich
+.text
+`.rdata
+@.data
+.fptable
+.reloc
+^_[]
+<;0u
+E PW
+PQVS
+waQR
+_^[d
+@SVW3
+_^[d
+TVWj
+9=@q
+@SVW3
+_^[d
+pSV3
+_^[d
+^[_d
+^[_d
+^_[]
+wDQR
+w$QR
+wLQW
+j@j$P
+u6h 
+uAh8
+u*hT
+tFhp
+vLWj
+HHuB
+U SVW
+PQVS
+w_QR
+_^[d
+tOSW
+HSVW
+HSVW
+@t(V
+vLWj
+t%QPR
+FLu!P
+sLWj
+A,)0
+A0)0
+vvaS
+.bin
+wCQV
+~4_^
+}1T1
+PWVQ
+@s\t;
+@s\t;
+9;t3
+QQSWj
+j,VW
+^_[]
+YY^]
+PPPPPWS
+PP9E
+Y_^[
+Y_^[
+Y_^[
+9=4s
+u#SP
+uHSW
+t5SW
+Y_^[
+SVW3
+ineI
+5ntel
+5Genu
+t#=`
+j$X9E
+#=p`
+_^[3
+Y__^[
+8csm
+Y_^[
+t2VW
+>csm
+?RCC
+?MOC
+?csm
+hcsm
+QQSVWd
+;p$u
+p$^]
+oF f
+oF f
+oF f
+oV f
+o^0f
+of@f
+onPf
+ov`f
+o~pf
+FGIu
+FGIu
+j X+
+_^[]
+8_^]
+8csm
+t/hT
+t VP
+BVj(j
+YYPV
+Y_^[
+Y_^[
+u SW
+EE,P
+_^[]
+dSVW
+;csm
+;csm
+u\t9s
+;csm
+v!8E
+u QW
+uj_^[
+EE$P
+;MOC
+;RCC
+@u)j
+u Qj
+@_^[]
+9p u"
+:csm
+ft&9q
+:csm
+r49z
+@_^[]
+RVWS
+Y_^[
+>csm
+8csm
+t0QW
+Y_^[
+URPQQh
+L$,3
+UVWS
+[_^]
+SVWj
+_^[]
+Wu%j
+UQPXY]Y[
+PPPPP
+PPPPPPPP
+WWWWW
+Y_^[
+PPPPP
+Y_^[
+Y_^[
+Y_^[
+_^[]
+Y_^[
+PVVVVV
+PVVVVV
+Y_^[
+tvxi
+Y_^[
+X_^]
+t29E
+_^[]
+VVVVV
+Y_^[
+uC9u
+SVWj
+A<Au
+VWSP
+_^[]
+Y_^[
+PPPPP
+PPPPP
+Y_^[
+PPPPP
+_^[]
+Y_^[
+u#Q3
+SSSSS
+PPPPP
+PPPPP
+PPPPP
+,0<\tw
+,0<\tw
+SSSSS
+9^4t
+SSSSS
+9^4t
+SSSSS
+9^4t
+G0_^[]
+QSVW
+G0_^[
+QSVW
+G0_^[
+QQSVW
+G0_^[
+t<Sj
+G0_^[
+QQSVW
+G0_^[
+F88G
+SSSSS
+SSSSS
+PPPPP
+A-<Fu
+<Nu4
+RRRRR
+9Q(u
+<ItC<Lt3<Tt#<h
+8<6u
+A<lt'<tt
+<zu1
+SVWP
+Xt$+
+V +V4+
+;F4u
+;F4u
+Y_^[
+QQSW
+^j4Yt
+C-<at
+SWVQP
+<Gu-
+<-u\t
+G4QP
+O0_[
+PPPPP
+w0SV
+w0SV
+QSVW
+PRRRRR
+8_^[]
+;1t+;u
+Y_^[
+PSWS
+SSSSS
+"tNj
+WWWWW
+ARPRQh
+j2_;
+_^[]
+Y_^[
+>;9u
+wIPS3
+uSSSSj
+_[^]
+Y_^[
+Y_^[
+j Y+
+wGt>
+Y_^[
+Y_^[
+=csm
+PVVS
+Y[^_
+< t1<\tt-
+=t7j
+Y_^[
+PPPPP
+Y_^]
+Y_^[
+Y_^[
+Qh$}
+>_^]
+QQSV
+PPPPP
+j0Xj
+j:Xf;
+j0Xf;
+j:Yf;
+Avf;
+Avf;
+Avf;
+Avf;
+Avf;
+Avf;
+Avf;
+f;1u
+Y_^[
+Y_^[
+Y_^[
+Y_^[
+SVhd
+FLY;
+t\tiu
+Y_^[
+Y_^[
+Y_^[
+_^[]
+SSSSS
+PPPPP
+ VWh
+Af;:u
+PPPPP
+PPPPP
+SWt@jU
+PPPPP
+f90t
+f97t
+VVVVV
+QQSVW
+j.Yf;
+PVj@W
+j.Xf;
+_t^PVj@
+u>PVj
+u/j,Xf;
+SSSSS
+Wj.Y
+Y_^]
+u,f9F
+u&ht
+PSPu
+PPPPP
+_^[]
+SSSSS
+8Ou\t
+F _^[
+8Ou\t
+PPPPP
+j;Xf9
+j;Xf9
+8f;9
+PPPPP
+PPPPP
+PPPPP
+6j@W
+6jUQ
+SSSSS
+QSVW
+7jUV
+SSSSS
+6jUW
+SSSSS
+SVW3
+_^[]
+Y_^[
+QSVW
+Wu;j
+Y_^[
+SVW3
+Y_^[
+Y_^[
+xK;5
+PQQQ
+Y_^[
+Y_^[
+xE;5
+SVWP
+SS@j
+L2.;
+Y_^[
+PVVVVV
+Y_^[
+SPPP
+[_^]
+PPPPP
+Y_^[
+PWWWWW
+$SVW
+SVPQ
+uK;U
+@( t
+?VWk
+D8(Ht
+^f93u
+D8(HXtIf
+Nf9E
+Xf9E
+D8(Ht5F
+-^_[
+_f9;u
+Y_^[
+PVVVVV
+Y_^[
+_^[]
+_^[]
+M,j"^QRRRRR
+u$RV
+j0Xu3
+j0Yf
+Vj0XPW
+r"Sj
+dr'j
+jdVS
+j0Yj
+j0Yj
+M$j"^Q
+QQQQQ
+80t/
+-jd_;
+QQQQQ
+PSWV
+Wj0V
+}'9E
+ _^[
+PPPPP
+t,9F
+_^[]
+QQSVW
+SSSSS
+u0SP
+u0St:
+(_^[
+j"_3
+VPPPPP
+QSVW
+u Vh$|
+f94H
+~';Z
+Wj\tP
+Wj\tP
+{ WPV
+C VP
+w3t"
+AP_^
+AP_^
+Y_^[
+Y_^[
+Y_^[
+[PVVVVV
+j"[WVVVV
+_^[]
+PVVVVV
+f94H
+Y_^[
+_PSSSSS
+j"_VSSSS
+WVVVVV
+f90t
+VSRSQV
+VSRj
+RVVVj
+t\t9u
+f9<H}
+t5SV
+t$WW
+u<WW
+WWWWW
+@9} 
+PPPPPWV
+QQQP
+PPPSW
+PP9E u
+PPSWP
+<=upG8
+[ShT
+[Sh\
+[Shd
+_^tWh
+Y_^[
+Y_^[
+wFt&
+w=ty
+*ti-
+tL-c
+_^[]
+SSSSj
+_^[]
+*?QP
+PPPPP
+WWWWW
+<:u 
+SSSPSQ
+/<.u
+Y_^[
+_^[]
+IH;A
+9wLt\t
+;3t'
+Y_^[
+9=(}
+f9:t!V
+f9:u
+SSSS
+PVSS
+_^[]
+YY^]
+Y_^[
+C PjPW
+C$PjQW
+C(Pj
+C)Pj
+C*PjTW
+C+PjUW
+C,PjVW
+C-PjWW
+C.PjRW
+C/PjSW
+C8Pj
+C<Pj
+C@Pj
+CDPj
+CHPjPW
+CLPjQW
+ <;u
+FjPV
+C0Pj
+C4Pj
+J<;u
+Pj(W
+Pj)W
+Pj(W
+Pj)W
+Pj W
+Pj W
+Y_^[]
+BP_]
+u'_[
+u\t_f
+WWWWW
+_^[]
+9N`P
+NX9F`t1
+NXf9
+PSjUR
+NXf9
+PPPPP
+9^`X
+SSSSS
+t}hD
+tZhX
+j\tPjYV
+QQSVW
+Y9CXu>Wj@h
+j@Wh
+tjj_S
+j@Sj
+PPPPP
+8_^]
+9^`u
+_^[]
+_^[]
+9C`j
+9C`t
+9C\t
+;S\u
+9C`u99C\t4
+u2Wj
+u29K\t-
+t9Wj
+:f;>u
+:f;>u
+t9;u
+QQSV
+WHPh
+tjf9
+f98t
+tVWjU
+j@Sh
+t4j@
+SVW3
+_^[]
+_^[]
+PPPPP
+QQSVj8j@
+Y_[^]
+Y_^[
+xi;5
+Y_^[
+xg;5
+_^[]
+^PQQQQQ
+E ^PQQQQ
+sv+3
+sv+3
+sv*Q
+sv*Q
+j&Z;
+j&Z;
+E H;
+j\t_;
+PPPPP
+YY^[]
+$SVW
+r5SPV
+u$_[
+^[_]
+u\t^[3
+Y_^[
+?SVW
+hSSS
+SSSSS
+w(t!
+ux9}
+PPPPP
+PPPV
+HSVW
+2L2-
+0L2-
+w WS
+PPPPPPPP
+j-Xf
+SVRQ
+|*=2
+_^[]
+WQVS
+<$tL
+ u S
+_^[]
+Y_^[
+Y_^[
+v\tN+D$
+WVS3
+WVU3
+v\tN+D$
+Unknown exception
+bad array new length
+string too long
+wow32.dll
+l~b0R!jWW 
+lck8^
+l~b0R
+Qpe 
+lck8^
+LogCollectorGetAllLogLevel
+LogCollectorGetLogLevel
+LogCollectorInit
+OnLogCollectorTask
+iostream
+iostream stream error
+bad locale name
+false
+true
+ios_base::badbit set
+ios_base::failbit set
+ios_base::eofbit set
+Failed to open file: 
+File is empty or invalid: 
+Memory allocation failed
+Failed to read file content
+Looking for payload file: 
+Failed to read payload from file: 
+ bytes
+Successfully read payload, size: 
+kernel32.dll
+GetModuleHandle failed.
+GetModuleFileName failed.
+Using decryption key: 
+VirtualAlloc failed for local memory
+rundll32.exe
+ntdll.dll
+NtWriteVirtualMemory
+Process created and payload injected successfully
+OPSYDFT failed
+WriteProcessMemory failed
+ZXFXDE failed
+GetThreadContext failed
+CreateProcess failed
+invalid string position
+bad allocation
+success
+address family not supported
+address in use
+address not available
+already connected
+argument list too long
+argument out of domain
+bad address
+bad file descriptor
+bad message
+broken pipe
+connection aborted
+connection already in progress
+connection refused
+connection reset
+cross device link
+destination address required
+device or resource busy
+directory not empty
+executable format error
+file exists
+file too large
+filename too long
+function not supported
+host unreachable
+identifier removed
+illegal byte sequence
+inappropriate io control operation
+interrupted
+invalid argument
+invalid seek
+io error
+is a directory
+message size
+network down
+network reset
+network unreachable
+no buffer space
+no child process
+no link
+no lock available
+no message available
+no message
+no protocol option
+no space on device
+no stream resources
+no such device or address
+no such device
+no such file or directory
+no such process
+not a directory
+not a socket
+not a stream
+not connected
+not enough memory
+not supported
+operation canceled
+operation in progress
+operation not permitted
+operation not supported
+operation would block
+owner dead
+permission denied
+protocol error
+protocol not supported
+read only file system
+resource deadlock would occur
+resource unavailable try again
+result out of range
+state not recoverable
+stream timeout
+text file busy
+timed out
+too many files open in system
+too many files open
+too many links
+too many symbolic link levels
+value too large
+wrong protocol type
+unknown error
+w+bx
+0123456789abcdefghijklmnopqrstuvwxyz
+\t\t\t\t\t
+0123456789abcdefghijklmnopqrstuvwxyz
+bad exception
+__based(
+__cdecl
+__stdcall
+__thiscall
+__fastcall
+__vectorcall
+__preserve_none
+__clrcall
+__eabi
+__swift_1
+__swift_2
+__swift_3
+__ptr64
+__restrict
+__unaligned
+restrict(
+ new
+ delete
+operator
+`vftable'
+`vbtable'
+`vcall'
+`typeof'
+`local static guard'
+`string'
+`vbase destructor'
+`vector deleting destructor'
+`default constructor closure'
+`scalar deleting destructor'
+`vector constructor iterator'
+`vector destructor iterator'
+`vector vbase constructor iterator'
+`virtual displacement map'
+`eh vector constructor iterator'
+`eh vector destructor iterator'
+`eh vector vbase constructor iterator'
+`copy constructor closure'
+`udt returning'
+`RTTI
+`local vftable'
+`local vftable constructor closure'
+ new[]
+ delete[]
+`omni callsig'
+`placement delete closure'
+`placement delete[] closure'
+`managed vector constructor iterator'
+`managed vector destructor iterator'
+`eh vector copy constructor iterator'
+`eh vector vbase copy constructor iterator'
+`dynamic initializer for '
+`dynamic atexit destructor for '
+`vector copy constructor iterator'
+`vector vbase copy constructor iterator'
+`managed vector copy constructor iterator'
+`local static thread guard'
+operator "" 
+operator co_await
+operator<=>
+ Type Descriptor'
+ Base Class Descriptor at (
+ Base Class Array'
+ Class Hierarchy Descriptor'
+ Complete Object Locator'
+`anonymous namespace'
+FlsAlloc
+FlsFree
+FlsGetValue
+FlsSetValue
+InitializeCriticalSectionEx
+(null)
+ !"#$%&'()*+,-./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~
+d8L2
+[aOni*{
+@2&@
+"RP(
+eLK(w
+FEMh
+h0'D
+owM&
+~ $s%r
+@b;zO]
+$qE}
+;*xh
+["93
+iu+-,
+\lo}
+obwQ4
+&Sgw
+R\tE]
+?nz(
+=87M
+v2!L.2
+\tcQr
+X/4B
+k=yI
+^<V7w
+W&|.
+CorExitProcess
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+Sunday
+Monday
+Tuesday
+Wednesday
+Thursday
+Friday
+Saturday
+January
+February
+March
+April
+June
+July
+August
+September
+October
+November
+December
+MM/dd/yy
+dddd, MMMM dd, yyyy
+HH:mm:ss
+AreFileApisANSI
+CompareStringEx
+EnumSystemLocalesEx
+FlsGetValue2
+GetDateFormatEx
+GetLocaleInfoEx
+GetTimeFormatEx
+GetUserDefaultLocaleName
+IsValidLocaleName
+LCMapStringEx
+LCIDToLocaleName
+LocaleNameToLCID
+AppPolicyGetProcessTerminationMethod
+NAN(SNAN)
+nan(snan)
+NAN(IND)
+nan(ind)
+e+000
+log10
+sinh
+cosh
+tanh
+asin
+acos
+atan
+atan2
+sqrt
+ceil
+floor
+fabs
+modf
+ldexp
+_cabs
+_hypot
+fmod
+frexp
+_logb
+_nextafter
+UTF-8
+UTF-16LEUNICODE
+1#INF
+1#QNAN
+1#SNAN
+1#IND
+lzZ?
+log10
+\tk8=
+?5Wg4p
+Nv$^
+w(@\t
+BC .=
+(lX 
+#{ =
+`~R=
+}s"=
+%S#[k
+"B <1=
+\-!y
+#.X'=
+i9+=
+lzZ?
+GCTL
+.text$di
+.text$mn
+.text$x
+.text$yd
+.idata$5
+.00cfg
+.CRT$XCA
+.CRT$XCC
+.CRT$XCL
+.CRT$XCZ
+.CRT$XIA
+.CRT$XIC
+.CRT$XIZ
+.CRT$XPA
+.CRT$XPX
+.CRT$XPXA
+.CRT$XPZ
+.CRT$XTA
+.CRT$XTZ
+.rdata
+.rdata$r
+.rdata$sxdata
+.rdata$voltmd
+.rdata$zzzdbg
+.rtc$IAA
+.rtc$IZZ
+.rtc$TAA
+.rtc$TZZ
+.xdata$x
+.edata
+.idata$2
+.idata$3
+.idata$4
+.idata$6
+.data
+.data$r
+.data$rs
+.bss
+.fptable
+LoggerCollector-xor20.dll
+LogCollectorGetAllLogLevel
+LogCollectorGetLogLevel
+LogCollectorInit
+OnLogCollectorTask
+DecodePointer
+CloseHandle
+GetLastError
+InitializeCriticalSectionEx
+DeleteCriticalSection
+GetCurrentProcess
+GetCurrentProcessId
+ExitProcess
+TerminateProcess
+ResumeThread
+CreateProcessA
+GetThreadContext
+SetThreadContext
+GlobalMemoryStatusEx
+VirtualAlloc
+VirtualFree
+VirtualAllocEx
+DisableThreadLibraryCalls
+FreeLibrary
+GetModuleFileNameA
+GetModuleFileNameW
+GetModuleHandleA
+GetProcAddress
+LoadLibraryA
+CreateToolhelp32Snapshot
+Process32FirstW
+Process32NextW
+KERNEL32.dll
+wsprintfA
+wsprintfW
+MessageBoxW
+USER32.dll
+GetUserNameW
+ADVAPI32.dll
+StrCmpIW
+PathStripPathW
+SHLWAPI.dll
+IsDebuggerPresent
+OutputDebugStringW
+RaiseException
+EnterCriticalSection
+LeaveCriticalSection
+WideCharToMultiByte
+EncodePointer
+MultiByteToWideChar
+LCMapStringEx
+GetStringTypeW
+GetCPInfo
+IsProcessorFeaturePresent
+UnhandledExceptionFilter
+SetUnhandledExceptionFilter
+GetStartupInfoW
+GetModuleHandleW
+QueryPerformanceCounter
+GetCurrentThreadId
+GetSystemTimeAsFileTime
+InitializeSListHead
+RtlUnwind
+InterlockedFlushSList
+SetLastError
+InitializeCriticalSectionAndSpinCount
+TlsAlloc
+TlsGetValue
+TlsSetValue
+TlsFree
+LoadLibraryExW
+GetModuleHandleExW
+HeapAlloc
+HeapFree
+FlsAlloc
+FlsGetValue
+FlsSetValue
+FlsFree
+VirtualProtect
+LCMapStringW
+GetLocaleInfoW
+IsValidLocale
+GetUserDefaultLCID
+EnumSystemLocalesW
+GetStdHandle
+GetFileType
+FlushFileBuffers
+WriteFile
+GetConsoleOutputCP
+GetConsoleMode
+ReadFile
+GetFileSizeEx
+SetFilePointerEx
+ReadConsoleW
+HeapSize
+HeapReAlloc
+FindClose
+FindFirstFileExW
+FindNextFileW
+IsValidCodePage
+GetACP
+GetOEMCP
+GetCommandLineA
+GetCommandLineW
+GetEnvironmentStringsW
+FreeEnvironmentStringsW
+GetProcessHeap
+SetStdHandle
+CreateFileW
+WriteConsoleW
+SetEndOfFile
+                          
+abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                          
+abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+.?AVexception@std@@
+.?AVbad_array_new_length@std@@
+.?AVbad_alloc@std@@
+.?AVruntime_error@std@@
+.?AVsystem_error@std@@
+.?AV_System_error@std@@
+.?AVfailure@ios_base@std@@
+.?AVlogic_error@std@@
+.?AVlength_error@std@@
+.?AVout_of_range@std@@
+.?AVbad_exception@std@@
+.?AVios_base@std@@
+.?AV?$_Iosb@H@std@@
+.?AV?$basic_ios@DU?$char_traits@D@std@@@std@@
+.?AV?$basic_streambuf@DU?$char_traits@D@std@@@std@@
+.?AV?$basic_istream@DU?$char_traits@D@std@@@std@@
+.?AV?$basic_filebuf@DU?$char_traits@D@std@@@std@@
+.?AV?$basic_ifstream@DU?$char_traits@D@std@@@std@@
+.?AVerror_category@std@@
+.?AV_Iostream_error_category2@std@@
+.?AV_Facet_base@std@@
+.?AVfacet@locale@std@@
+.?AU_Crt_new_delete@std@@
+.?AVcodecvt_base@std@@
+.?AUctype_base@std@@
+.?AV?$ctype@D@std@@
+.?AV?$codecvt@DDU_Mbstatet@@@std@@
+.?AV?$num_put@DV?$ostreambuf_iterator@DU?$char_traits@D@std@@@std@@@std@@
+.?AV?$numpunct@D@std@@
+.?AV_Locimp@locale@std@@
+.?AV?$basic_ostream@DU?$char_traits@D@std@@@std@@
+.?AVtype_info@@
+0!0-090I0N0X0n0
+2c3l3q3
+=@=E=b=i=o=t=
+>.>l>
+!0&0C0J0P0U0c0
+1p1x1
+1&2S2
+3K4U4Z4z4
+5C5f5
+9S:i:
+;#;?;s;
+>">U>
+0E0b0
+0F1g2
+363T4
+5;5Y5s5
+656~6
+6L7{7
+7,8{8
+819D9N9p9v9
+>D>I>
+>8?D?a?f?w?
+6;6N6X6]6}6
+0W1a1f1
+5$5D5f5
+8#8(8H8Z8c8h8
+5%6*60666;6F6K6T6a6i6
+7%72777<7F7S7_7s7
+8 8<8X8
+:8:>:C:H:k:q:z:
+;s<y<
+=%=:=E=Q=W=\=c=k=
+>0?6?<?I?f?u?~?
+&0.0>0h0
+0.1M1h1
+2(2H2h2
+3J5m7
+:0:_:w:
+:D;R;_;g;};
+;&<@<w<
+=B=Z=u=
+2=2b2
+3#3S3n3
+5#5+515?5G5h5x5~5
+5_6|6
+: :':-:?:I:
+<N<V<
+<@=R=
+>Q>k>
+0#0)0/0D0M0[0c0
+1!1'1/141H1M1
+1 2 363
+4%4?4Q4n4
+5'5.545:5F5i5q5v5
+6!6'6.656<6C6J6Q6X6`6h6p6|6
+7#7)7/767=7D7K7R7Y7`7h7p7x7
+=1>L>Q>d?u?
+T1g1
+1A3x3
+3+4044484<4
+6`7R<
+R;V;Z;^;b;f;j;n;r;v;z;~;
+<#=W=_=q=~=
+>8>J>^>
+?$?*?;?M?W?e?
+548|8
+::;A=E=o=
+?!?S?{?
+0(070<0A0\0i0r0w0|0
+1&1+101Q1a1y1
+5&5-5
+6(6?6b6w6
+717:7
+959:9
+,:F:
+>@?Y?
+2X3p3N4Q5|8
+:Z?e?
+5#6>6W6
+8+8@8
+939z9
+9@:G:Y🅱
+;+;W;
+;'<,<t<}<h>
+0.090D0c0
+3 454@4H4S4Y4d4j4x4
+4.5V5q5
+5B6v=
+k0s0
+1+121\1j1
+22292i2}2
+3:5r5
+6,7M7
+=2>b>
+&060
+2>4v4
+8Y9 :&:R❌c:
+;-;2;7;F;W;\;a;q;
+<.<3<8<H<Y<^<c<s<
+<\t=!=W=^=q=
+>+>9>>>C>`>
+?C?X?|?
+0P0t0
+1&1+101Q1c1o1}1
+2,3c3u3
+3,4<4{4
+485N5
+546>6Y6
+6)717
+8-878
+9N9f9
+<D<n<
+<'=Y=
+=O>u>
+>8?^?
+1X2~2
+:.:y: ;
+=4>C>
+>5?I?g?
+2M2c2
+2D3\3
+5.6E6n6
+7C7_7
+8a9n9
+;!<'<N<X<
+;%;D;
+171A1c1m1
+6#7u7
+8/8G8[8
+8R9d9v9W:]:
+1U283
+8::i:
+=0=9=?=
+> >)>F?O?g?
+4[4g4q4{4
+:9:Q:
+<8=?=F=M=g=v=
+>3>[>
+1$161w1
+2%2U2
+2C3p3
+5;5n5
+6J6b6h6q6
+7[758
+9N:y:
+;-;?;Q;
+:h=5>k>|>
+2(313
+4J5C6
+7 858K8
+:1;g;
+<I=c=
+>2>H>
+? ?9?
+0K0R0
+4#4*4M4
+<9<@<
+g1&2.242
+616e6
+=/=:=
+>5>`>
+7&7,7
+9?:G:i:y:
+;G<\<e<n<
+=)=y=
+7(7;7G7Z7f7s7
+8D8M8V8_8
+9$:H:S:`:t:y:
+:u;~;
+<q<}<
+=:=B=_=o={=
+?G?d?x?
+1F2f2v2
+5A6P6m6
+9;9O9U9
+(0h0
+303`3
+4#4@4h4
+5H5p5
+6:6d6
+7C7`7q7{7
+2 2$2(2@2D2H2L2P2T2P3T3X3\3`3d3l3p3t3x3|3
+4 4$4(4x4|4
+8 8$8(8$9(9,9094989<9@9D9
+1$1,141<1D1L1T1\1d1l1t1|1
+2$2,242<2D2L2T2\2d2l2t2|2
+3$3,343<3D3L3T3\3d3l3t3
+: :$:p:t:@<D<L<P<T<p<t<x<
+= =(=0=8=@=H=P=X=`=h=p=x=
+> >(>0>8>@>H>P>X>`>h>p>x>
+? ?(?0?8?@?H?P?X?`?h?p?x?
+0@6D6H6
+? ?$?(?,?0?<?@?D?H?L?P?T?X?\?`?d?h?l?p?t?x?|?
+H3L3P3T3X3\3`3d3h3l3p3t3x3|3
+: :$:(:,:0:4:8:<:
+;$;,;4;<;D;L;T;\;d;l;l<p<t<x<
+=(=4=@=L=X=d=p=|=
+>$>0><>H>T>`>l>x>
+? ?,?8?D?P?\?h?t?
+0 0,080D0P0\0h0t0
+;$;,;4;<;D;L;T;\;d;l;t;|;
+<$<,<4<<<D<L<T<\<d<l<t<|<
+=$=,=4=<=D=L=T=\=d=l=t=|=
+>$>,>4><>D>L>T>\>d>l>t>|>
+?$?,?4?<?D?L?T?\?d?l?t?|?
+0$0,040<0D0L0T0\0d0l0t0|0
+1$1,141<1D1L1T1\1d1l1t1|1
+< <(<0<8<@<H<P<X<`<h<p<x<
+= =(=0=8=@=H=P=X=`=h=p=x=
+> >(>0>8>@>H>P>X>`>h>p>x>
+? ?(?0?8?@?H?P?X?`?h?p?x?
+0 0(00080@0H0P0X0`0h0p0x0
+1 1(10181@1H1P1X1`1h1p1x1
+2 2(20282@2H2P2X2`2h2p2x2
+6H7`7
+8(8,80848<8T8X8p8
+9$9<9L9P9`9d9h9l9t9
+:(:,:D:H:`:d:|:
+; ;0;4;D;H;L;T;l;|;
+< <$<,<D<T<X<h<l<p<x<
+=0=@=D=L=d=t=x=|=
+>$><>L>P>`>d>h>l>p>t>|>
+? ?(?@?P?T?d?h?l?p?t?|?
+000@0D0T0X0\0`0h0
+1(181<1L1P1X1p1
+1d6l6x6
+7 7(747T7`7
+8$808X8l8t8
+9(9<9H9P9h9p9
+:,:4:<:D:L:T:`:
+; ;(;0;H;X;l;x;
+<0<@<T<\<t<
+=<=D=P=p=|=
+>(>H>P>\>|>
+?4?T?\?d?l?t?|?
+00080L0T0\0d0h0l0p0t0|0
+1 1$1,1@1H1P1X1\1d1p1
+1$2(2H2h2t2
+383D3L3t3x3
+404P4p4
+505P5p5
+6@6`6|6
+7 7@7`7
+8 8@8`8
+9 9@9`9
+2H2X2h2x2
+:$;@;`;
+<$<H<d<
+<0=l=
+>8>\>|>
+><?\?
+
+
+jjjjj
+ jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+jjjjj
+AheadLib
+ %s,
+ %S,
+tSANDBOX
+MALWARE
+VIRUS
+ANALYSIS
+chgport.exe
+ERROR : Unable to initialize critical section in CAtlBaseModule
+api-ms-win-core-fibers-l1-1-1
+api-ms-win-core-synch-l1-2-0
+kernel32
+api-ms-
+(null)
+         (((((                  H
+         (((((                  H
+      (                          
+mscoree.dll
+LC_ALL
+LC_COLLATE
+LC_CTYPE
+LC_MONETARY
+LC_NUMERIC
+LC_TIME
+Sunday
+Monday
+Tuesday
+Wednesday
+Thursday
+Friday
+Saturday
+January
+February
+March
+April
+June
+July
+August
+September
+October
+November
+December
+MM/dd/yy
+dddd, MMMM dd, yyyy
+HH:mm:ss
+en-US
+api-ms-win-core-datetime-l1-1-1
+api-ms-win-core-fibers-l1-1-2
+api-ms-win-core-file-l1-2-4
+api-ms-win-core-file-l1-2-2
+api-ms-win-core-file-l2-1-4
+api-ms-win-core-localization-l1-2-1
+api-ms-win-core-localization-obsolete-l1-2-0
+api-ms-win-core-processthreads-l1-1-2
+api-ms-win-core-string-l1-1-0
+api-ms-win-core-sysinfo-l1-2-1
+api-ms-win-core-winrt-l1-1-0
+api-ms-win-core-xstate-l2-1-0
+api-ms-win-rtcore-ntuser-window-l1-1-0
+api-ms-win-security-systemfunctions-l1-1-0
+ext-ms-win-ntuser-dialogbox-l1-1-0
+ext-ms-win-ntuser-windowstation-l1-1-0
+advapi32
+kernelbase
+ntdll
+api-ms-win-appmodel-runtime-l1-1-2
+user32
+ext-ms-
+ja-JP
+zh-CN
+ko-KR
+zh-TW
+american
+american english
+american-english
+australian
+belgian
+canadian
+chinese
+chinese-hongkong
+chinese-simplified
+chinese-singapore
+chinese-traditional
+dutch-belgian
+english-american
+english-aus
+english-belize
+english-can
+english-caribbean
+english-ire
+english-jamaica
+english-nz
+english-south africa
+english-trinidad y tobago
+english-uk
+english-us
+english-usa
+french-belgian
+french-canadian
+french-luxembourg
+french-swiss
+german-austrian
+german-lichtenstein
+german-luxembourg
+german-swiss
+irish-english
+italian-swiss
+norwegian
+norwegian-bokmal
+norwegian-nynorsk
+portuguese-brazilian
+spanish-argentina
+spanish-bolivia
+spanish-chile
+spanish-colombia
+spanish-costa rica
+spanish-dominican republic
+spanish-ecuador
+spanish-el salvador
+spanish-guatemala
+spanish-honduras
+spanish-mexican
+spanish-modern
+spanish-nicaragua
+spanish-panama
+spanish-paraguay
+spanish-peru
+spanish-puerto rico
+spanish-uruguay
+spanish-venezuela
+swedish-finland
+swiss
+america
+britain
+china
+czech
+england
+great britain
+holland
+hong-kong
+new-zealand
+pr china
+pr-china
+puerto-rico
+slovak
+south africa
+south korea
+south-africa
+south-korea
+trinidad & tobago
+united-kingdom
+united-states
+utf8
+utf-8
+zh-CHS
+ar-SA
+bg-BG
+ca-ES
+cs-CZ
+da-DK
+de-DE
+el-GR
+fi-FI
+fr-FR
+he-IL
+hu-HU
+is-IS
+it-IT
+nl-NL
+nb-NO
+pl-PL
+pt-BR
+ro-RO
+ru-RU
+hr-HR
+sk-SK
+sq-AL
+sv-SE
+th-TH
+tr-TR
+ur-PK
+id-ID
+uk-UA
+be-BY
+sl-SI
+et-EE
+lv-LV
+lt-LT
+fa-IR
+vi-VN
+hy-AM
+az-AZ-Latn
+eu-ES
+mk-MK
+tn-ZA
+xh-ZA
+zu-ZA
+af-ZA
+ka-GE
+fo-FO
+hi-IN
+mt-MT
+se-NO
+ms-MY
+kk-KZ
+ky-KG
+sw-KE
+uz-UZ-Latn
+tt-RU
+bn-IN
+pa-IN
+gu-IN
+ta-IN
+te-IN
+kn-IN
+ml-IN
+mr-IN
+sa-IN
+mn-MN
+cy-GB
+gl-ES
+kok-IN
+syr-SY
+div-MV
+quz-BO
+ns-ZA
+mi-NZ
+ar-IQ
+de-CH
+en-GB
+es-MX
+fr-BE
+it-CH
+nl-BE
+nn-NO
+pt-PT
+sr-SP-Latn
+sv-FI
+az-AZ-Cyrl
+se-SE
+ms-BN
+uz-UZ-Cyrl
+quz-EC
+ar-EG
+zh-HK
+de-AT
+en-AU
+es-ES
+fr-CA
+sr-SP-Cyrl
+se-FI
+quz-PE
+ar-LY
+zh-SG
+de-LU
+en-CA
+es-GT
+fr-CH
+hr-BA
+smj-NO
+ar-DZ
+zh-MO
+de-LI
+en-NZ
+es-CR
+fr-LU
+bs-BA-Latn
+smj-SE
+ar-MA
+en-IE
+es-PA
+fr-MC
+sr-BA-Latn
+sma-NO
+ar-TN
+en-ZA
+es-DO
+sr-BA-Cyrl
+sma-SE
+ar-OM
+en-JM
+es-VE
+sms-FI
+ar-YE
+en-CB
+es-CO
+smn-FI
+ar-SY
+en-BZ
+es-PE
+ar-JO
+en-TT
+es-AR
+ar-LB
+en-ZW
+es-EC
+ar-KW
+en-PH
+es-CL
+ar-AE
+es-UY
+ar-BH
+es-PY
+ar-QA
+es-BO
+es-SV
+es-HN
+es-NI
+es-PR
+zh-CHT
+af-za
+ar-ae
+ar-bh
+ar-dz
+ar-eg
+ar-iq
+ar-jo
+ar-kw
+ar-lb
+ar-ly
+ar-ma
+ar-om
+ar-qa
+ar-sa
+ar-sy
+ar-tn
+ar-ye
+az-az-cyrl
+az-az-latn
+be-by
+bg-bg
+bn-in
+bs-ba-latn
+ca-es
+cs-cz
+cy-gb
+da-dk
+de-at
+de-ch
+de-de
+de-li
+de-lu
+div-mv
+el-gr
+en-au
+en-bz
+en-ca
+en-cb
+en-gb
+en-ie
+en-jm
+en-nz
+en-ph
+en-tt
+en-us
+en-za
+en-zw
+es-ar
+es-bo
+es-cl
+es-co
+es-cr
+es-do
+es-ec
+es-es
+es-gt
+es-hn
+es-mx
+es-ni
+es-pa
+es-pe
+es-pr
+es-py
+es-sv
+es-uy
+es-ve
+et-ee
+eu-es
+fa-ir
+fi-fi
+fo-fo
+fr-be
+fr-ca
+fr-ch
+fr-fr
+fr-lu
+fr-mc
+gl-es
+gu-in
+he-il
+hi-in
+hr-ba
+hr-hr
+hu-hu
+hy-am
+id-id
+is-is
+it-ch
+it-it
+ja-jp
+ka-ge
+kk-kz
+kn-in
+kok-in
+ko-kr
+ky-kg
+lt-lt
+lv-lv
+mi-nz
+mk-mk
+ml-in
+mn-mn
+mr-in
+ms-bn
+ms-my
+mt-mt
+nb-no
+nl-be
+nl-nl
+nn-no
+ns-za
+pa-in
+pl-pl
+pt-br
+pt-pt
+quz-bo
+quz-ec
+quz-pe
+ro-ro
+ru-ru
+sa-in
+se-fi
+se-no
+se-se
+sk-sk
+sl-si
+sma-no
+sma-se
+smj-no
+smj-se
+smn-fi
+sms-fi
+sq-al
+sr-ba-cyrl
+sr-ba-latn
+sr-sp-cyrl
+sr-sp-latn
+sv-fi
+sv-se
+sw-ke
+syr-sy
+ta-in
+te-in
+th-th
+tn-za
+tr-tr
+tt-ru
+uk-ua
+ur-pk
+uz-uz-cyrl
+uz-uz-latn
+vi-vn
+xh-za
+zh-chs
+zh-cht
+zh-cn
+zh-hk
+zh-mo
+zh-sg
+zh-tw
+zu-za
+CONOUT$
+
+
+

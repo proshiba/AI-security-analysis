@@ -1,0 +1,23 @@
+{
+  "case_id": "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+  "expected_inner_sha256": "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+  "archive_password": "infected",
+  "default_stages": ["Extract", "Inventory", "FLOSS", "Ghidra", "Decrypt", "Decode"],
+  "pattern_id": "dll_sideload_vvas_bundle",
+  "package_type": "loose_bundle",
+  "floss_targets": ["LoggerCollector.dll", "chgport.exe"],
+  "ghidra_targets": ["LoggerCollector.dll", "chgport.exe"],
+  "vvas": {
+    "input": "vvaS.bin",
+    "xor_key": 20,
+    "expected_plain_sha256": "b2586edb216bdb27ffbf5be5c091c94c62df8d87500ceacdc519e3016f7d7e2a",
+    "marker": "odaktomk",
+    "primary_ip": "202.95.8.27",
+    "primary_port": 6666,
+    "secondary_port": 8888,
+    "checkin_hex": "333200",
+    "stage2_size": 307214,
+    "stage2_xor_key": 157,
+    "stage2_header_size": 14
+  }
+}

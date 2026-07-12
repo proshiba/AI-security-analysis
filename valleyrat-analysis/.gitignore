@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+samples/
+quarantine/
+**/payload/
+**/decrypted/*.bin
+**/cab-payload/
+**/ghidra-projects/
+*.zip
+*.7z
+*.msi
+*.exe
+*.dll
+*.bin
+*.pcap
+*.pcapng
