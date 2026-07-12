@@ -1,0 +1,307 @@
+{
+  "outer_zip": "C:\\Users\\Administrator\\MalwareSamples\\eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534\\eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534.zip",
+  "outer_sha256": "ce6bfebf9b8e660784095df0c4cd4399568c78270f9113f59aea73e03795e8ec",
+  "members": [
+    {
+      "name": "eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534.exe",
+      "size": 89040,
+      "sha256": "eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534",
+      "magic": "4d5a90000300000004000000ffff0000",
+      "entropy": 6.5558,
+      "type": "pe",
+      "pe": {
+        "machine": "0x14c",
+        "timestamp": 1780971307,
+        "entry_point_rva": "0x196c",
+        "image_base": "0x400000",
+        "imphash": "eda3c04f4ddf95c5e3607d886ff699c3",
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 45056,
+            "virtual_size": 44552,
+            "entropy": 6.5584
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 23552,
+            "virtual_size": 23390,
+            "entropy": 4.8214
+          },
+          {
+            "name": ".data",
+            "raw_size": 5120,
+            "virtual_size": 7244,
+            "entropy": 4.7042
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 3584,
+            "virtual_size": 3548,
+            "entropy": 6.4805
+          }
+        ],
+        "imports": {
+          "KERNEL32.dll": [
+            "CreateProcessW",
+            "GlobalMemoryStatusEx",
+            "GetSystemInfo",
+            "GetCurrentProcess",
+            "WriteConsoleW",
+            "CreateFileW",
+            "WaitForSingleObject",
+            "GetModuleFileNameW",
+            "CloseHandle",
+            "SetFilePointerEx",
+            "QueryPerformanceCounter",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetSystemTimeAsFileTime",
+            "InitializeSListHead",
+            "IsDebuggerPresent",
+            "UnhandledExceptionFilter",
+            "SetUnhandledExceptionFilter",
+            "GetStartupInfoW",
+            "IsProcessorFeaturePresent",
+            "GetModuleHandleW",
+            "TerminateProcess",
+            "RtlUnwind",
+            "GetLastError",
+            "SetLastError",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "InitializeCriticalSectionAndSpinCount",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TlsFree",
+            "FreeLibrary",
+            "GetProcAddress",
+            "LoadLibraryExW",
+            "RaiseException",
+            "GetStdHandle",
+            "WriteFile",
+            "ExitProcess",
+            "GetModuleHandleExW",
+            "HeapAlloc",
+            "HeapFree",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
+            "IsValidCodePage",
+            "GetACP",
+            "GetOEMCP",
+            "GetCPInfo",
+            "GetCommandLineA",
+            "GetCommandLineW",
+            "MultiByteToWideChar",
+            "WideCharToMultiByte",
+            "GetEnvironmentStringsW",
+            "FreeEnvironmentStringsW",
+            "SetStdHandle",
+            "GetFileType",
+            "GetStringTypeW",
+            "LCMapStringW",
+            "GetProcessHeap",
+            "HeapSize",
+            "HeapReAlloc",
+            "FlushFileBuffers",
+            "GetConsoleOutputCP",
+            "GetConsoleMode",
+            "DecodePointer"
+          ],
+          "USER32.dll": [
+            "wsprintfW"
+          ],
+          "ADVAPI32.dll": [
+            "OpenProcessToken",
+            "GetTokenInformation"
+          ],
+          "SHELL32.dll": [
+            "ShellExecuteExW"
+          ]
+        },
+        "exports": [],
+        "overlay": {
+          "size": 10704,
+          "sha256": "13cf8adb78c0f855a0c4efb4bad2bb4ccafaf014dcc6ff5a3be0181588ace78a",
+          "entropy": 7.6465
+        },
+        "authenticode_blob": {
+          "size": 10704,
+          "sha256": "13cf8adb78c0f855a0c4efb4bad2bb4ccafaf014dcc6ff5a3be0181588ace78a"
+        },
+        "network_strings": [
+          {
+            "offset": 1167,
+            "value": "j.Xf"
+          },
+          {
+            "offset": 68236,
+            "value": "KERNEL32.dll"
+          },
+          {
+            "offset": 68262,
+            "value": "USER32.dll"
+          },
+          {
+            "offset": 68316,
+            "value": "ADVAPI32.dll"
+          },
+          {
+            "offset": 68348,
+            "value": "SHELL32.dll"
+          },
+          {
+            "offset": 79498,
+            "value": "http://crl.certum.pl/ctnca2.crl0l"
+          },
+          {
+            "offset": 79559,
+            "value": "http://subca.ocsp-certum.com02"
+          },
+          {
+            "offset": 79601,
+            "value": "http://repository.certum.pl/ctnca2.cer09"
+          },
+          {
+            "offset": 79674,
+            "value": "http://www.certum.pl/CPS0"
+          },
+          {
+            "offset": 80857,
+            "value": "1.bo"
+          },
+          {
+            "offset": 81337,
+            "value": "http://cevcsca2021.crl.certum.pl/cevcsca2021.crl0w"
+          },
+          {
+            "offset": 81415,
+            "value": "http://cevcsca2021.ocsp-certum.com07"
+          },
+          {
+            "offset": 81463,
+            "value": "http://repository.certum.pl/cevcsca2021.cer0"
+          },
+          {
+            "offset": 81621,
+            "value": "https://www.certum.pl/CPS0"
+          },
+          {
+            "offset": 83977,
+            "value": "u.OX"
+          },
+          {
+            "offset": 84213,
+            "value": "http://ocsp.digicert.com0]"
+          },
+          {
+            "offset": 84251,
+            "value": "http://cacerts.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crt0_"
+          },
+          {
+            "offset": 84351,
+            "value": "http://crl3.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crl0"
+          },
+          {
+            "offset": 86945,
+            "value": "www.digicert.com"
+          },
+          {
+            "offset": 85989,
+            "value": "http://ocsp.digicert.com0A"
+          },
+          {
+            "offset": 86027,
+            "value": "http://cacerts.digicert.com/DigiCertTrustedRootG4.crt0C"
+          },
+          {
+            "offset": 86099,
+            "value": "http://crl3.digicert.com/DigiCertTrustedRootG4.crl0"
+          },
+          {
+            "offset": 87681,
+            "value": "http://ocsp.digicert.com0C"
+          },
+          {
+            "offset": 87719,
+            "value": "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0E"
+          },
+          {
+            "offset": 87793,
+            "value": "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0"
+          },
+          {
+            "offset": 46656,
+            "value": "schtasks.exe",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 49596,
+            "value": "mscoree.dll",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 79506,
+            "value": "r.etmp",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 81470,
+            "value": "rpstr.etmp",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 81630,
+            "value": "w.etmp",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 81344,
+            "value": "cvsa01clcru.lcvsa",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 84220,
+            "value": "os.iietcm",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 84358,
+            "value": "cl.iietcmDgCrTutd",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 85996,
+            "value": "os.iietcmA",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 86106,
+            "value": "cl.iietcmDgCrTutdot",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 86946,
+            "value": "w.iietcm",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 87688,
+            "value": "os.iietcmC",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 87800,
+            "value": "cl.iietcmDgCrAsrdDotAcl",
+            "encoding": "utf16le_even"
+          }
+        ]
+      }
+    }
+  ],
+  "executed": false,
+  "network_contacted": false
+}
