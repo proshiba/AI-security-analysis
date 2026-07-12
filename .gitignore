@@ -216,3 +216,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Malware analysis safety
+samples/
+quarantine/
+**/payload/
+**/decrypted/*.bin
+**/cab-payload/
+**/ghidra-projects/
+*.zip
+*.7z
+*.msi
+*.exe
+*.dll
+*.bin
+*.pcap
+*.pcapng

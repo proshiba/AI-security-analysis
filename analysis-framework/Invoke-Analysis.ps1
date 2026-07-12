@@ -19,9 +19,9 @@ function Invoke-Python {
 }
 
 $classifyArgs = @(
-    (Join-Path $root 'analysis\classifiers\classify_sample.py'),
+    (Join-Path $root 'classifiers\classify_sample.py'),
     '--sample', $Sample,
-    '--registry', (Join-Path $root 'analysis\registry\malware_types.json'),
+    '--registry', (Join-Path $root 'registry\malware_types.json'),
     '--output', $classification
 )
 Invoke-Python @classifyArgs
@@ -32,7 +32,7 @@ if ($selected.malware_type -ne 'valleyrat') {
 }
 if ($ProfilePath) {
     $validateArgs = @(
-        (Join-Path $root 'analysis\malware\valleyrat\common\validate_profile.py'),
+        (Join-Path $root 'malware\valleyrat\common\validate_profile.py'),
         '--sample', $Sample, '--profile', $ProfilePath
     )
     Invoke-Python @validateArgs
@@ -44,16 +44,16 @@ switch ($selected.campaign_type) {
         $profile = Get-Content -Raw -Encoding UTF8 $ProfilePath | ConvertFrom-Json
         if (-not $profile.vvas) { throw 'Profile has no vvas configuration.' }
         $payload = Join-Path $OutputDirectory 'payload'
-        Invoke-Python (Join-Path $root 'analysis\common\safe_extract_zip.py') '--archive' $Sample '--output' $payload
+        Invoke-Python (Join-Path $root 'common\safe_extract_zip.py') '--archive' $Sample '--output' $payload
         $plain = Join-Path $OutputDirectory 'decrypted\vvaS.xor.bin'
         $decryptArgs = @(
-            (Join-Path $root 'analysis\malware\valleyrat\campaigns\dll_sideload_vvas_bundle\decrypt_vvas.py'),
+            (Join-Path $root 'malware\valleyrat\campaigns\dll_sideload_vvas_bundle\decrypt_vvas.py'),
             (Join-Path $payload $profile.vvas.input), $plain, '--key', ([string]$profile.vvas.xor_key),
             '--expected-sha256', $profile.vvas.expected_plain_sha256
         )
         Invoke-Python @decryptArgs
         $decodeArgs = @(
-            (Join-Path $root 'analysis\malware\valleyrat\campaigns\dll_sideload_vvas_bundle\analyze_vvas.py'),
+            (Join-Path $root 'malware\valleyrat\campaigns\dll_sideload_vvas_bundle\analyze_vvas.py'),
             $plain, '--output-dir', (Join-Path $OutputDirectory 'decoded-analysis'), '--marker', $profile.vvas.marker
         )
         Invoke-Python @decodeArgs
@@ -62,12 +62,12 @@ switch ($selected.campaign_type) {
         $msiMember = $selected.candidates[0].msi_member
         if (-not $msiMember) { throw 'Classifier did not return the MSI member.' }
         $msiArgs = @(
-            (Join-Path $root 'analysis\malware\valleyrat\campaigns\msi_embedded_cab_custom_actions\analyze_msi.py'),
+            (Join-Path $root 'malware\valleyrat\campaigns\msi_embedded_cab_custom_actions\analyze_msi.py'),
             '--inner-zip', $Sample, '--member', $msiMember, '--output', (Join-Path $OutputDirectory 'msi-analysis.json')
         )
         Invoke-Python @msiArgs
         $chainArgs = @(
-            (Join-Path $root 'analysis\malware\valleyrat\campaigns\msi_embedded_cab_custom_actions\analyze_chain_c2.py'),
+            (Join-Path $root 'malware\valleyrat\campaigns\msi_embedded_cab_custom_actions\analyze_chain_c2.py'),
             '--inner-zip', $Sample, '--msi-member', $msiMember,
             '--output', (Join-Path $OutputDirectory 'msi-chain-c2-analysis.json')
         )
@@ -86,5 +86,6 @@ switch ($selected.campaign_type) {
 } | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'run-summary.json')
 
 Write-Host "Analysis completed without sample execution: $OutputDirectory" -ForegroundColor Green
+
 
 
