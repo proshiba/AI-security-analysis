@@ -1,0 +1,2241 @@
+{
+  "outer_zip": "C:\\Users\\Administrator\\MalwareSamples\\5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19\\5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19.zip",
+  "outer_sha256": "0cf868184788dbfcb484743d301996f5c31b70d6d87c998c5c3bbb85ddb11c8f",
+  "members": [
+    {
+      "name": "5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19.exe",
+      "size": 25704127,
+      "sha256": "5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19",
+      "magic": "4d5a90000300000004000000ffff0000",
+      "entropy": 7.9871,
+      "type": "pe",
+      "pe": {
+        "machine": "0x8664",
+        "timestamp": 1783707112,
+        "entry_point_rva": "0x30b0",
+        "image_base": "0x140000000",
+        "imphash": "94184592e4150dd6cb6610037032ac80",
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 401408,
+            "virtual_size": 400608,
+            "entropy": 6.4581
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 101376,
+            "virtual_size": 100766,
+            "entropy": 5.8536
+          },
+          {
+            "name": ".data",
+            "raw_size": 10240,
+            "virtual_size": 9672,
+            "entropy": 0.8736
+          },
+          {
+            "name": ".pdata",
+            "raw_size": 19456,
+            "virtual_size": 19164,
+            "entropy": 5.7673
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 230400,
+            "virtual_size": 229980,
+            "entropy": 7.2813
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 3072,
+            "virtual_size": 2060,
+            "entropy": 4.3891
+          }
+        ],
+        "imports": {
+          "KERNEL32.dll": [
+            "SetFilePointer",
+            "WriteFile",
+            "CloseHandle",
+            "GetLastError",
+            "QueryPerformanceCounter",
+            "QueryPerformanceFrequency",
+            "GetProcessHeap",
+            "HeapCompact",
+            "Sleep",
+            "GetCurrentProcessId",
+            "ExitProcess",
+            "OpenProcess",
+            "GetTickCount",
+            "GetTickCount64",
+            "VirtualAlloc",
+            "VirtualFree",
+            "GetModuleFileNameW",
+            "lstrlenW",
+            "QueryFullProcessImageNameW",
+            "MoveFileW",
+            "MoveFileExW",
+            "CreateToolhelp32Snapshot",
+            "Process32FirstW",
+            "Process32NextW",
+            "FindNextFileW",
+            "ReadConsoleW",
+            "ReadFile",
+            "GetFileSizeEx",
+            "GetConsoleMode",
+            "GetConsoleOutputCP",
+            "FlushFileBuffers",
+            "HeapReAlloc",
+            "HeapSize",
+            "SetConsoleCtrlHandler",
+            "LCMapStringW",
+            "FindFirstFileW",
+            "FindClose",
+            "DeleteFileW",
+            "CreateFileW",
+            "GetCommandLineW",
+            "CompareStringW",
+            "GetTimeFormatW",
+            "GetDateFormatW",
+            "VirtualProtect",
+            "InitializeCriticalSectionEx",
+            "IsThreadAFiber",
+            "FlsFree",
+            "FlsSetValue",
+            "FlsGetValue",
+            "FlsAlloc",
+            "GetTempPathW",
+            "EnumSystemLocalesW",
+            "GetUserDefaultLCID",
+            "SetFilePointerEx",
+            "GetFileSize",
+            "IsValidLocale",
+            "GetLocaleInfoW",
+            "WriteConsoleW",
+            "DeviceIoControl",
+            "GetStringTypeW",
+            "GetFileType",
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlVirtualUnwind",
+            "UnhandledExceptionFilter",
+            "SetUnhandledExceptionFilter",
+            "GetCurrentProcess",
+            "TerminateProcess",
+            "IsProcessorFeaturePresent",
+            "GetCurrentThreadId",
+            "GetSystemTimeAsFileTime",
+            "InitializeSListHead",
+            "IsDebuggerPresent",
+            "GetStartupInfoW",
+            "GetModuleHandleW",
+            "RtlUnwindEx",
+            "InterlockedPushEntrySList",
+            "InterlockedFlushSList",
+            "SetLastError",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "InitializeCriticalSectionAndSpinCount",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TlsFree",
+            "FreeLibrary",
+            "GetProcAddress",
+            "LoadLibraryExW",
+            "EncodePointer",
+            "RaiseException",
+            "RtlPcToFileHeader",
+            "GetStdHandle",
+            "GetModuleHandleExW",
+            "GetCurrentThread",
+            "OutputDebugStringW",
+            "HeapAlloc",
+            "HeapFree",
+            "FindFirstFileExW",
+            "IsValidCodePage",
+            "GetACP",
+            "GetOEMCP",
+            "GetCPInfo",
+            "GetCommandLineA",
+            "MultiByteToWideChar",
+            "WideCharToMultiByte",
+            "GetEnvironmentStringsW",
+            "FreeEnvironmentStringsW",
+            "SetEnvironmentVariableW",
+            "SetStdHandle",
+            "RtlUnwind"
+          ],
+          "USER32.dll": [
+            "SystemParametersInfoW",
+            "LoadStringW",
+            "wsprintfW",
+            "PeekMessageW",
+            "GetMessagePos",
+            "ReleaseDC",
+            "GetDC",
+            "GetSystemMetrics",
+            "GetLastInputInfo"
+          ],
+          "ADVAPI32.dll": [
+            "RegOpenKeyExW",
+            "RegQueryValueExW",
+            "RegCloseKey",
+            "RegDeleteKeyW"
+          ],
+          "ole32.dll": [
+            "CoInitialize",
+            "CoCreateInstance",
+            "CoUninitialize"
+          ],
+          "OLEAUT32.dll": [
+            "SysFreeString",
+            "SysAllocString",
+            "VariantInit"
+          ],
+          "SHELL32.dll": [
+            "ShellExecuteExW",
+            "SHGetFileInfoW",
+            "SHCreateDirectoryExW",
+            "CommandLineToArgvW"
+          ],
+          "GDI32.dll": [
+            "GetDeviceCaps"
+          ],
+          "VERSION.dll": [
+            "GetFileVersionInfoSizeW"
+          ],
+          "COMCTL32.dll": [
+            "InitCommonControlsEx"
+          ],
+          "PROPSYS.dll": [
+            "PSGetPropertyFromPropertyStorage"
+          ]
+        },
+        "exports": [],
+        "overlay": {
+          "size": 24937151,
+          "sha256": "4127a42ebd59e145f873fa8b6ab54f0558f76e1dd45023af5470c0d42aba9720",
+          "entropy": 7.995
+        },
+        "authenticode_blob": {
+          "size": 23744,
+          "sha256": "fad8fb73d5c313098b2db1f06a373ab47688a45e3abf9f7375bd5104cbc3e203"
+        },
+        "network_strings": [
+          {
+            "offset": 422255,
+            "value": "qR.Rd"
+          },
+          {
+            "offset": 404456,
+            "value": "kernel32.dll",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 501282,
+            "value": "USER32.dll"
+          },
+          {
+            "offset": 501360,
+            "value": "ADVAPI32.dll"
+          },
+          {
+            "offset": 501428,
+            "value": "ole32.dll"
+          },
+          {
+            "offset": 501438,
+            "value": "OLEAUT32.dll"
+          },
+          {
+            "offset": 501534,
+            "value": "SHELL32.dll"
+          },
+          {
+            "offset": 501562,
+            "value": "GDI32.dll"
+          },
+          {
+            "offset": 501598,
+            "value": "VERSION.dll"
+          },
+          {
+            "offset": 501634,
+            "value": "COMCTL32.dll"
+          },
+          {
+            "offset": 501684,
+            "value": "PROPSYS.dll"
+          },
+          {
+            "offset": 625662,
+            "value": "S.el"
+          },
+          {
+            "offset": 644242,
+            "value": "k.rM"
+          },
+          {
+            "offset": 649931,
+            "value": "Q.Rw"
+          },
+          {
+            "offset": 714240,
+            "value": "g.ATZ"
+          },
+          {
+            "offset": 716611,
+            "value": "ja.ctn"
+          },
+          {
+            "offset": 727389,
+            "value": "m.cF"
+          },
+          {
+            "offset": 732924,
+            "value": "q.ztON"
+          },
+          {
+            "offset": 746596,
+            "value": "k.LEb"
+          },
+          {
+            "offset": 829143,
+            "value": "L.kc"
+          },
+          {
+            "offset": 851992,
+            "value": "M.Qk"
+          },
+          {
+            "offset": 883274,
+            "value": "D.nI"
+          },
+          {
+            "offset": 939238,
+            "value": "2.Rw"
+          },
+          {
+            "offset": 953011,
+            "value": "PY.Pm"
+          },
+          {
+            "offset": 1059167,
+            "value": "w.FkCA"
+          },
+          {
+            "offset": 1081088,
+            "value": "Rxy.vM"
+          },
+          {
+            "offset": 1106234,
+            "value": "C.Ds"
+          },
+          {
+            "offset": 1183078,
+            "value": "1a.IIj"
+          },
+          {
+            "offset": 1183380,
+            "value": "0hg.tc"
+          },
+          {
+            "offset": 1396500,
+            "value": "bz.bc",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 1197425,
+            "value": "-.iK"
+          },
+          {
+            "offset": 1241765,
+            "value": "X.kq"
+          },
+          {
+            "offset": 1265371,
+            "value": "RIX6.Ma"
+          },
+          {
+            "offset": 1323812,
+            "value": "t.iRg"
+          },
+          {
+            "offset": 1333294,
+            "value": "2.sA"
+          },
+          {
+            "offset": 1392756,
+            "value": "I.kF"
+          },
+          {
+            "offset": 1396413,
+            "value": "r.JM"
+          },
+          {
+            "offset": 1441871,
+            "value": "vB.ON"
+          },
+          {
+            "offset": 1484347,
+            "value": "o.Nz"
+          },
+          {
+            "offset": 1490568,
+            "value": "c.HU"
+          },
+          {
+            "offset": 1569130,
+            "value": "g.wJU"
+          },
+          {
+            "offset": 1605658,
+            "value": "gxn.ag"
+          },
+          {
+            "offset": 1648770,
+            "value": "C.ox"
+          },
+          {
+            "offset": 1675581,
+            "value": "7S.pN"
+          },
+          {
+            "offset": 11902360,
+            "value": "U.tY"
+          },
+          {
+            "offset": 1707781,
+            "value": "FR.wS"
+          },
+          {
+            "offset": 1746063,
+            "value": "m.TE"
+          },
+          {
+            "offset": 18016027,
+            "value": "X.Wa"
+          },
+          {
+            "offset": 1801073,
+            "value": "s.I.pO"
+          },
+          {
+            "offset": 1809868,
+            "value": "b.dkz"
+          },
+          {
+            "offset": 1815764,
+            "value": "oq.Umkj"
+          },
+          {
+            "offset": 1822179,
+            "value": "u.Bs"
+          },
+          {
+            "offset": 1854569,
+            "value": "W.Dq"
+          },
+          {
+            "offset": 1910334,
+            "value": "h.cobd"
+          },
+          {
+            "offset": 1920802,
+            "value": "e.NZ"
+          },
+          {
+            "offset": 1939069,
+            "value": "W.FB"
+          },
+          {
+            "offset": 1976292,
+            "value": "j4.Uv"
+          },
+          {
+            "offset": 1992787,
+            "value": "p.OC"
+          },
+          {
+            "offset": 2077143,
+            "value": "s.Er"
+          },
+          {
+            "offset": 2109244,
+            "value": "Z.fi"
+          },
+          {
+            "offset": 2190887,
+            "value": "0O.Qug"
+          },
+          {
+            "offset": 2193224,
+            "value": "a.bM"
+          },
+          {
+            "offset": 2248303,
+            "value": "P.Sa"
+          },
+          {
+            "offset": 2260566,
+            "value": "gY.HB"
+          },
+          {
+            "offset": 2278354,
+            "value": "R.Xy"
+          },
+          {
+            "offset": 2290637,
+            "value": "2.oT"
+          },
+          {
+            "offset": 2291260,
+            "value": "N.lp"
+          },
+          {
+            "offset": 2321514,
+            "value": "uy.nU"
+          },
+          {
+            "offset": 2368600,
+            "value": "u.cMI"
+          },
+          {
+            "offset": 14115868,
+            "value": "K.Lc",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 2387909,
+            "value": "E.wn"
+          },
+          {
+            "offset": 2410408,
+            "value": "j.Xd"
+          },
+          {
+            "offset": 2426223,
+            "value": "u.YC"
+          },
+          {
+            "offset": 2428716,
+            "value": "s.li"
+          },
+          {
+            "offset": 2434498,
+            "value": "8c.Zt"
+          },
+          {
+            "offset": 2483837,
+            "value": "Ht.APr"
+          },
+          {
+            "offset": 2485809,
+            "value": "B1.efH"
+          },
+          {
+            "offset": 2504554,
+            "value": "t.lT"
+          },
+          {
+            "offset": 2588393,
+            "value": "b.UZv"
+          },
+          {
+            "offset": 2592082,
+            "value": "flt.TL"
+          },
+          {
+            "offset": 2614310,
+            "value": "G.jN"
+          },
+          {
+            "offset": 2632764,
+            "value": "o.fmV"
+          },
+          {
+            "offset": 2701031,
+            "value": "M.rjB"
+          },
+          {
+            "offset": 2747487,
+            "value": "I.ASy"
+          },
+          {
+            "offset": 2758902,
+            "value": "M.Ur"
+          },
+          {
+            "offset": 2799044,
+            "value": "B.hs"
+          },
+          {
+            "offset": 2830435,
+            "value": "F.Mz"
+          },
+          {
+            "offset": 2863850,
+            "value": "x.tE"
+          },
+          {
+            "offset": 2975208,
+            "value": "k.Yd"
+          },
+          {
+            "offset": 2999388,
+            "value": "Y.rPO"
+          },
+          {
+            "offset": 3003462,
+            "value": "p.CV"
+          },
+          {
+            "offset": 3018371,
+            "value": "BLG.VkU"
+          },
+          {
+            "offset": 3122188,
+            "value": "v.Wi"
+          },
+          {
+            "offset": 3126479,
+            "value": "c.vA"
+          },
+          {
+            "offset": 3149828,
+            "value": "-.Tq"
+          },
+          {
+            "offset": 3165855,
+            "value": "V.ZNqS"
+          },
+          {
+            "offset": 3229855,
+            "value": "0.tZ"
+          },
+          {
+            "offset": 3238489,
+            "value": "x.pp"
+          },
+          {
+            "offset": 3257695,
+            "value": "C.bP"
+          },
+          {
+            "offset": 3272241,
+            "value": "s.cq"
+          },
+          {
+            "offset": 3318871,
+            "value": "m.xAmU"
+          },
+          {
+            "offset": 3357036,
+            "value": "0.bcvW"
+          },
+          {
+            "offset": 3381184,
+            "value": "B.pX"
+          },
+          {
+            "offset": 3388983,
+            "value": "P.PK"
+          },
+          {
+            "offset": 3396466,
+            "value": "B.Fg"
+          },
+          {
+            "offset": 3445765,
+            "value": "F.Sf"
+          },
+          {
+            "offset": 3447619,
+            "value": "E.tC"
+          },
+          {
+            "offset": 3455464,
+            "value": "X.Pq"
+          },
+          {
+            "offset": 3468215,
+            "value": "7-.Lt"
+          },
+          {
+            "offset": 3469072,
+            "value": "Z.ae"
+          },
+          {
+            "offset": 3606633,
+            "value": "d.uI"
+          },
+          {
+            "offset": 3661335,
+            "value": "a.sd"
+          },
+          {
+            "offset": 3687384,
+            "value": "1.GG"
+          },
+          {
+            "offset": 3705537,
+            "value": "goj.AL"
+          },
+          {
+            "offset": 3715384,
+            "value": "t.Dj"
+          },
+          {
+            "offset": 3754415,
+            "value": "K.Ur"
+          },
+          {
+            "offset": 3787327,
+            "value": "D.uW"
+          },
+          {
+            "offset": 3794302,
+            "value": "s.kB"
+          },
+          {
+            "offset": 3797102,
+            "value": "0.WK"
+          },
+          {
+            "offset": 3803853,
+            "value": "N.URL"
+          },
+          {
+            "offset": 3858508,
+            "value": "dYR.ZS"
+          },
+          {
+            "offset": 3877694,
+            "value": "n.BZ"
+          },
+          {
+            "offset": 3878497,
+            "value": "h.Zi"
+          },
+          {
+            "offset": 3964584,
+            "value": "Bxo.fR"
+          },
+          {
+            "offset": 4063149,
+            "value": "Y.WQR"
+          },
+          {
+            "offset": 4109945,
+            "value": "l.Yg"
+          },
+          {
+            "offset": 4127287,
+            "value": "5.Fw"
+          },
+          {
+            "offset": 4151113,
+            "value": "u.dh"
+          },
+          {
+            "offset": 4153609,
+            "value": "-.Jd"
+          },
+          {
+            "offset": 4173670,
+            "value": "C.HjB"
+          },
+          {
+            "offset": 4184220,
+            "value": "am.Vz"
+          },
+          {
+            "offset": 4265257,
+            "value": "l.AXz"
+          },
+          {
+            "offset": 4295337,
+            "value": "L.nW"
+          },
+          {
+            "offset": 4320513,
+            "value": "W.XZ"
+          },
+          {
+            "offset": 4322085,
+            "value": "X.dQ"
+          },
+          {
+            "offset": 4346289,
+            "value": "h.BL"
+          },
+          {
+            "offset": 4354565,
+            "value": "7.Gx"
+          },
+          {
+            "offset": 4382150,
+            "value": "S.PS"
+          },
+          {
+            "offset": 4409409,
+            "value": "dl.eN"
+          },
+          {
+            "offset": 4454957,
+            "value": "OHf4.Lt"
+          },
+          {
+            "offset": 4618766,
+            "value": "P.mi"
+          },
+          {
+            "offset": 4630622,
+            "value": "Q.iN"
+          },
+          {
+            "offset": 4634085,
+            "value": "-.zu"
+          },
+          {
+            "offset": 4657279,
+            "value": "a.iHG"
+          },
+          {
+            "offset": 4665497,
+            "value": "W.Jd"
+          },
+          {
+            "offset": 4707165,
+            "value": "3.Qbj"
+          },
+          {
+            "offset": 4712501,
+            "value": "7.pb"
+          },
+          {
+            "offset": 4719296,
+            "value": "2Nn.Lzd"
+          },
+          {
+            "offset": 4729389,
+            "value": "f.Bj"
+          },
+          {
+            "offset": 4757572,
+            "value": "R.No"
+          },
+          {
+            "offset": 4771208,
+            "value": "h.aca"
+          },
+          {
+            "offset": 4798044,
+            "value": "p.GV"
+          },
+          {
+            "offset": 4798287,
+            "value": "K.zi"
+          },
+          {
+            "offset": 4810270,
+            "value": "Y.JP"
+          },
+          {
+            "offset": 4871883,
+            "value": "PL2.AF"
+          },
+          {
+            "offset": 4888285,
+            "value": "V.gE"
+          },
+          {
+            "offset": 4905585,
+            "value": "h.vu"
+          },
+          {
+            "offset": 4910281,
+            "value": "2.Fi"
+          },
+          {
+            "offset": 4915627,
+            "value": "C.vQG"
+          },
+          {
+            "offset": 4918391,
+            "value": "Z.sh"
+          },
+          {
+            "offset": 4983688,
+            "value": "91.pA"
+          },
+          {
+            "offset": 5034614,
+            "value": "6.YF"
+          },
+          {
+            "offset": 5058272,
+            "value": "1D.ct"
+          },
+          {
+            "offset": 5098719,
+            "value": "o.nlU"
+          },
+          {
+            "offset": 5172032,
+            "value": "p.tQ"
+          },
+          {
+            "offset": 5198004,
+            "value": "oMr.Oi"
+          },
+          {
+            "offset": 5200105,
+            "value": "pl.sJ"
+          },
+          {
+            "offset": 5234364,
+            "value": "a.ls"
+          },
+          {
+            "offset": 5249547,
+            "value": "R.Uo"
+          },
+          {
+            "offset": 5288318,
+            "value": "g0.hwR"
+          },
+          {
+            "offset": 5299838,
+            "value": "S.ti"
+          },
+          {
+            "offset": 5307727,
+            "value": "m.oi"
+          },
+          {
+            "offset": 5374629,
+            "value": "M.ZSO"
+          },
+          {
+            "offset": 5438120,
+            "value": "lO.nd"
+          },
+          {
+            "offset": 5467984,
+            "value": "a4D.PD"
+          },
+          {
+            "offset": 5528739,
+            "value": "R.Do"
+          },
+          {
+            "offset": 5529689,
+            "value": "8.Eq"
+          },
+          {
+            "offset": 5530371,
+            "value": "O.cI"
+          },
+          {
+            "offset": 5594699,
+            "value": "A.HL"
+          },
+          {
+            "offset": 5622781,
+            "value": "P.cfz"
+          },
+          {
+            "offset": 5627936,
+            "value": "XK.xOP"
+          },
+          {
+            "offset": 5644501,
+            "value": "M.lgB"
+          },
+          {
+            "offset": 5687425,
+            "value": "c.AvY"
+          },
+          {
+            "offset": 5719981,
+            "value": "9.Qt"
+          },
+          {
+            "offset": 5748694,
+            "value": "W.Jp"
+          },
+          {
+            "offset": 5754658,
+            "value": "Q.tL"
+          },
+          {
+            "offset": 5756957,
+            "value": "2x.CQ"
+          },
+          {
+            "offset": 17850996,
+            "value": "Q.sB",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 5798015,
+            "value": "g.aJ"
+          },
+          {
+            "offset": 5804341,
+            "value": "N.YE"
+          },
+          {
+            "offset": 5808893,
+            "value": "H6WT.ec"
+          },
+          {
+            "offset": 5813070,
+            "value": "T.Ry"
+          },
+          {
+            "offset": 5824031,
+            "value": "qI.VMG"
+          },
+          {
+            "offset": 5830897,
+            "value": "o.iG"
+          },
+          {
+            "offset": 5841180,
+            "value": "kySm.sRF"
+          },
+          {
+            "offset": 16748524,
+            "value": "t.Tp"
+          },
+          {
+            "offset": 5926499,
+            "value": "e.rNE"
+          },
+          {
+            "offset": 5932626,
+            "value": "4g.iR"
+          },
+          {
+            "offset": 5951860,
+            "value": "DI.mD"
+          },
+          {
+            "offset": 5980535,
+            "value": "a.VS"
+          },
+          {
+            "offset": 5983675,
+            "value": "Z.jo"
+          },
+          {
+            "offset": 6027421,
+            "value": "O.qJO"
+          },
+          {
+            "offset": 6037354,
+            "value": "H.dS"
+          },
+          {
+            "offset": 6069803,
+            "value": "f.rf"
+          },
+          {
+            "offset": 6077929,
+            "value": "j.IEu"
+          },
+          {
+            "offset": 6119059,
+            "value": "b-r.zm"
+          },
+          {
+            "offset": 6126923,
+            "value": "b.ue"
+          },
+          {
+            "offset": 6180965,
+            "value": "Z.yx"
+          },
+          {
+            "offset": 6183928,
+            "value": "o.Nv"
+          },
+          {
+            "offset": 6193555,
+            "value": "x.cmb"
+          },
+          {
+            "offset": 6250377,
+            "value": "J.Ix"
+          },
+          {
+            "offset": 6261374,
+            "value": "J.Ow"
+          },
+          {
+            "offset": 6355428,
+            "value": "5C.FC"
+          },
+          {
+            "offset": 6403725,
+            "value": "w.IH"
+          },
+          {
+            "offset": 6438203,
+            "value": "ar.TFE"
+          },
+          {
+            "offset": 6440135,
+            "value": "2nn.FO"
+          },
+          {
+            "offset": 6465327,
+            "value": "LX.PC"
+          },
+          {
+            "offset": 6480122,
+            "value": "2gzc.xD"
+          },
+          {
+            "offset": 6533379,
+            "value": "0h.wy"
+          },
+          {
+            "offset": 6536606,
+            "value": "v.AB"
+          },
+          {
+            "offset": 6648568,
+            "value": "k.fF"
+          },
+          {
+            "offset": 6684586,
+            "value": "iT.iA"
+          },
+          {
+            "offset": 6721605,
+            "value": "5d.wY"
+          },
+          {
+            "offset": 6722039,
+            "value": "a.fA"
+          },
+          {
+            "offset": 6738262,
+            "value": "G.oyL"
+          },
+          {
+            "offset": 6796767,
+            "value": "40.dX"
+          },
+          {
+            "offset": 6800744,
+            "value": "Ihk3.jS"
+          },
+          {
+            "offset": 6862076,
+            "value": "IU3.zS"
+          },
+          {
+            "offset": 6867171,
+            "value": "cS.kH"
+          },
+          {
+            "offset": 6888598,
+            "value": "h.Nwm"
+          },
+          {
+            "offset": 6904058,
+            "value": "s.pq"
+          },
+          {
+            "offset": 6913968,
+            "value": "i.Mm"
+          },
+          {
+            "offset": 6929439,
+            "value": "Z.rG"
+          },
+          {
+            "offset": 6936043,
+            "value": "p.no"
+          },
+          {
+            "offset": 6955344,
+            "value": "l.vFe"
+          },
+          {
+            "offset": 6956864,
+            "value": "e.gy"
+          },
+          {
+            "offset": 7041251,
+            "value": "VQ.Ib"
+          },
+          {
+            "offset": 7060277,
+            "value": "sA.lt"
+          },
+          {
+            "offset": 7068727,
+            "value": "w.Ag"
+          },
+          {
+            "offset": 7207804,
+            "value": "Y.MN"
+          },
+          {
+            "offset": 7229973,
+            "value": "k.XR"
+          },
+          {
+            "offset": 7240108,
+            "value": "K.OOk"
+          },
+          {
+            "offset": 7240238,
+            "value": "N.Lx"
+          },
+          {
+            "offset": 7240974,
+            "value": "d.Qj"
+          },
+          {
+            "offset": 7257151,
+            "value": "U.bx"
+          },
+          {
+            "offset": 7266394,
+            "value": "N.wC"
+          },
+          {
+            "offset": 7305091,
+            "value": "z.Jb"
+          },
+          {
+            "offset": 7323739,
+            "value": "M.PX"
+          },
+          {
+            "offset": 7327512,
+            "value": "gI.kS"
+          },
+          {
+            "offset": 7342612,
+            "value": "Xo.kF"
+          },
+          {
+            "offset": 7391073,
+            "value": "q.ZK"
+          },
+          {
+            "offset": 7391628,
+            "value": "N.wJ"
+          },
+          {
+            "offset": 7416291,
+            "value": "b.rF"
+          },
+          {
+            "offset": 7423633,
+            "value": "r.RY"
+          },
+          {
+            "offset": 7429727,
+            "value": "b.vcb"
+          },
+          {
+            "offset": 7456040,
+            "value": "W.DZQ"
+          },
+          {
+            "offset": 7458170,
+            "value": "BL.zv"
+          },
+          {
+            "offset": 7460398,
+            "value": "Q.Mk"
+          },
+          {
+            "offset": 7494359,
+            "value": "7.wU"
+          },
+          {
+            "offset": 7530607,
+            "value": "u.jN"
+          },
+          {
+            "offset": 7543582,
+            "value": "c.JSyT"
+          },
+          {
+            "offset": 7543589,
+            "value": "M.CJ"
+          },
+          {
+            "offset": 7643264,
+            "value": "a.oT"
+          },
+          {
+            "offset": 7726406,
+            "value": "K.mz"
+          },
+          {
+            "offset": 7732860,
+            "value": "7.Gv"
+          },
+          {
+            "offset": 22743000,
+            "value": "0.ab"
+          },
+          {
+            "offset": 7807915,
+            "value": "ym.mx"
+          },
+          {
+            "offset": 7870004,
+            "value": "K.Xd"
+          },
+          {
+            "offset": 7888180,
+            "value": "R.JQ"
+          },
+          {
+            "offset": 7893739,
+            "value": "n.sn"
+          },
+          {
+            "offset": 7937780,
+            "value": "i.bz"
+          },
+          {
+            "offset": 22401208,
+            "value": "g.rF",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 8094637,
+            "value": "v.Vf"
+          },
+          {
+            "offset": 8094816,
+            "value": "C.DsV"
+          },
+          {
+            "offset": 8137551,
+            "value": "T.eH"
+          },
+          {
+            "offset": 8140891,
+            "value": "k.Mo"
+          },
+          {
+            "offset": 8172840,
+            "value": "Y.is"
+          },
+          {
+            "offset": 8176754,
+            "value": "Kd.OS"
+          },
+          {
+            "offset": 8180170,
+            "value": "9.op"
+          },
+          {
+            "offset": 15343815,
+            "value": "V.xj"
+          },
+          {
+            "offset": 8199887,
+            "value": "t6.rE"
+          },
+          {
+            "offset": 8210340,
+            "value": "0.XV"
+          },
+          {
+            "offset": 8342241,
+            "value": "W.Dk"
+          },
+          {
+            "offset": 8467150,
+            "value": "I.TJ"
+          },
+          {
+            "offset": 8545047,
+            "value": "b.Wc"
+          },
+          {
+            "offset": 8591783,
+            "value": "0.tO"
+          },
+          {
+            "offset": 8608773,
+            "value": "l.vI"
+          },
+          {
+            "offset": 8609073,
+            "value": "-.br"
+          },
+          {
+            "offset": 8614314,
+            "value": "5.El"
+          },
+          {
+            "offset": 8627028,
+            "value": "oF.ez"
+          },
+          {
+            "offset": 8685716,
+            "value": "L.CR"
+          },
+          {
+            "offset": 8699590,
+            "value": "y.TrI"
+          },
+          {
+            "offset": 8747504,
+            "value": "Q.Qh"
+          },
+          {
+            "offset": 8778500,
+            "value": "r.hV"
+          },
+          {
+            "offset": 8814935,
+            "value": "a.aS"
+          },
+          {
+            "offset": 8815669,
+            "value": "P1n.yx"
+          },
+          {
+            "offset": 8826881,
+            "value": "S.kC"
+          },
+          {
+            "offset": 8832181,
+            "value": "c.SB"
+          },
+          {
+            "offset": 8913037,
+            "value": "JW.nd"
+          },
+          {
+            "offset": 8922134,
+            "value": "6.Fq"
+          },
+          {
+            "offset": 8953145,
+            "value": "R.CU"
+          },
+          {
+            "offset": 8954136,
+            "value": "Uac.el"
+          },
+          {
+            "offset": 8954458,
+            "value": "R.EP"
+          },
+          {
+            "offset": 8963443,
+            "value": "w.skfix"
+          },
+          {
+            "offset": 8970425,
+            "value": "A.VP"
+          },
+          {
+            "offset": 8982379,
+            "value": "cF.uB"
+          },
+          {
+            "offset": 9003888,
+            "value": "P.pt"
+          },
+          {
+            "offset": 24107678,
+            "value": "q.At",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 9021358,
+            "value": "S.AY"
+          },
+          {
+            "offset": 9022163,
+            "value": "Q.jXD"
+          },
+          {
+            "offset": 9031299,
+            "value": "m.TC"
+          },
+          {
+            "offset": 9090983,
+            "value": "1f5.GY"
+          },
+          {
+            "offset": 9099439,
+            "value": "z.ZDb"
+          },
+          {
+            "offset": 9141305,
+            "value": "L.OZ"
+          },
+          {
+            "offset": 9144050,
+            "value": "-.Ud"
+          },
+          {
+            "offset": 9188402,
+            "value": "pC.sO"
+          },
+          {
+            "offset": 9245343,
+            "value": "H.Tw"
+          },
+          {
+            "offset": 9246894,
+            "value": "0.kL"
+          },
+          {
+            "offset": 9255760,
+            "value": "r.BT"
+          },
+          {
+            "offset": 9262500,
+            "value": "v.piE"
+          },
+          {
+            "offset": 9290448,
+            "value": "Q.eE"
+          },
+          {
+            "offset": 9296289,
+            "value": "1.Nf"
+          },
+          {
+            "offset": 9306418,
+            "value": "j.cv"
+          },
+          {
+            "offset": 9311701,
+            "value": "At.Vp"
+          },
+          {
+            "offset": 9312160,
+            "value": "m.ssk"
+          },
+          {
+            "offset": 9409458,
+            "value": "rH.Zi"
+          },
+          {
+            "offset": 9446966,
+            "value": "c0.CK"
+          },
+          {
+            "offset": 9485849,
+            "value": "f.Cx"
+          },
+          {
+            "offset": 9517024,
+            "value": "8.Pf"
+          },
+          {
+            "offset": 9530336,
+            "value": "s.DZ"
+          },
+          {
+            "offset": 9543891,
+            "value": "e.pR"
+          },
+          {
+            "offset": 9571973,
+            "value": "4.NT"
+          },
+          {
+            "offset": 9606456,
+            "value": "7.aB"
+          },
+          {
+            "offset": 9620493,
+            "value": "H.BPK"
+          },
+          {
+            "offset": 9656368,
+            "value": "S.Qa"
+          },
+          {
+            "offset": 9657344,
+            "value": "B.qQi"
+          },
+          {
+            "offset": 9672709,
+            "value": "XR.yN"
+          },
+          {
+            "offset": 9673088,
+            "value": "B.Hd"
+          },
+          {
+            "offset": 9766012,
+            "value": "-.cw"
+          },
+          {
+            "offset": 9774361,
+            "value": "82k2.yzb"
+          },
+          {
+            "offset": 9779748,
+            "value": "K.zl"
+          },
+          {
+            "offset": 9812164,
+            "value": "a.UDo"
+          },
+          {
+            "offset": 9814224,
+            "value": "K8.jt"
+          },
+          {
+            "offset": 9830947,
+            "value": "w.jy"
+          },
+          {
+            "offset": 9832089,
+            "value": "9F.EQ"
+          },
+          {
+            "offset": 9889635,
+            "value": "bF.UJ"
+          },
+          {
+            "offset": 9897965,
+            "value": "o.nybeL"
+          },
+          {
+            "offset": 9945470,
+            "value": "4lmY.ai"
+          },
+          {
+            "offset": 9974257,
+            "value": "k.Op"
+          },
+          {
+            "offset": 10013495,
+            "value": "T.sY"
+          },
+          {
+            "offset": 10097205,
+            "value": "0.mK"
+          },
+          {
+            "offset": 10097946,
+            "value": "o8.Bk"
+          },
+          {
+            "offset": 10111472,
+            "value": "4.ap"
+          },
+          {
+            "offset": 10115134,
+            "value": "eH.EX"
+          },
+          {
+            "offset": 10176959,
+            "value": "QnM.nOZ"
+          },
+          {
+            "offset": 10193514,
+            "value": "VZ.yI"
+          },
+          {
+            "offset": 10286125,
+            "value": "l.Xt"
+          },
+          {
+            "offset": 10303590,
+            "value": "cl.nI"
+          },
+          {
+            "offset": 10308199,
+            "value": "6.uP"
+          },
+          {
+            "offset": 10319653,
+            "value": "yv.RsBC"
+          },
+          {
+            "offset": 10339554,
+            "value": "JC.yA"
+          },
+          {
+            "offset": 10383686,
+            "value": "p.nID"
+          },
+          {
+            "offset": 10384199,
+            "value": "r.Uf"
+          },
+          {
+            "offset": 10413542,
+            "value": "QQ.Ml"
+          },
+          {
+            "offset": 10469638,
+            "value": "e.nU"
+          },
+          {
+            "offset": 10473804,
+            "value": "Z.vw"
+          },
+          {
+            "offset": 10474483,
+            "value": "-.BOTj"
+          },
+          {
+            "offset": 10494679,
+            "value": "H.fSW"
+          },
+          {
+            "offset": 10572105,
+            "value": "U.SJX"
+          },
+          {
+            "offset": 10583920,
+            "value": "4.cA"
+          },
+          {
+            "offset": 10587974,
+            "value": "8.KtQ"
+          },
+          {
+            "offset": 10649457,
+            "value": "J.to"
+          },
+          {
+            "offset": 10681293,
+            "value": "m.qo"
+          },
+          {
+            "offset": 10688719,
+            "value": "0.Yy"
+          },
+          {
+            "offset": 10690572,
+            "value": "Z.IC"
+          },
+          {
+            "offset": 10719674,
+            "value": "7F.JDE"
+          },
+          {
+            "offset": 10777356,
+            "value": "L.ARd"
+          },
+          {
+            "offset": 10781157,
+            "value": "T.iR"
+          },
+          {
+            "offset": 10819759,
+            "value": "Vb.oi"
+          },
+          {
+            "offset": 10850574,
+            "value": "2.gs"
+          },
+          {
+            "offset": 10884361,
+            "value": "-M.Gj"
+          },
+          {
+            "offset": 10935361,
+            "value": "1.mTS"
+          },
+          {
+            "offset": 10971267,
+            "value": "W.HmGs"
+          },
+          {
+            "offset": 11005976,
+            "value": "Y.eS"
+          },
+          {
+            "offset": 11008805,
+            "value": "dK.PtAtZ"
+          },
+          {
+            "offset": 11013741,
+            "value": "oP.Cb"
+          },
+          {
+            "offset": 11027299,
+            "value": "M.Juw"
+          },
+          {
+            "offset": 11052176,
+            "value": "-.Dstk"
+          },
+          {
+            "offset": 11068082,
+            "value": "9.pp"
+          },
+          {
+            "offset": 11079699,
+            "value": "HWH.Xf"
+          },
+          {
+            "offset": 25168955,
+            "value": "C.PK"
+          },
+          {
+            "offset": 11098976,
+            "value": "IWc.zH"
+          },
+          {
+            "offset": 11119375,
+            "value": "5.xa"
+          },
+          {
+            "offset": 11123165,
+            "value": "X.WU"
+          },
+          {
+            "offset": 11226851,
+            "value": "k.CS"
+          },
+          {
+            "offset": 11236698,
+            "value": "2.dZ"
+          },
+          {
+            "offset": 11288604,
+            "value": "-.gNL"
+          },
+          {
+            "offset": 11289172,
+            "value": "X.Tq"
+          },
+          {
+            "offset": 11347342,
+            "value": "7.RC"
+          },
+          {
+            "offset": 11349898,
+            "value": "d.sBV"
+          },
+          {
+            "offset": 11422571,
+            "value": "g.Hr"
+          },
+          {
+            "offset": 11426667,
+            "value": "p.xA"
+          },
+          {
+            "offset": 11458643,
+            "value": "v.zI"
+          },
+          {
+            "offset": 11459898,
+            "value": "N.KO"
+          },
+          {
+            "offset": 11546911,
+            "value": "K.Pd"
+          },
+          {
+            "offset": 11556291,
+            "value": "A.rX"
+          },
+          {
+            "offset": 11624072,
+            "value": "X.eh"
+          },
+          {
+            "offset": 9714088,
+            "value": "m.eg",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 11656609,
+            "value": "a.orJ"
+          },
+          {
+            "offset": 11661128,
+            "value": "7.yIL"
+          },
+          {
+            "offset": 11673612,
+            "value": "C.QL"
+          },
+          {
+            "offset": 11685568,
+            "value": "r.gH"
+          },
+          {
+            "offset": 11707222,
+            "value": "g.tw"
+          },
+          {
+            "offset": 11794540,
+            "value": "y.YL"
+          },
+          {
+            "offset": 11862611,
+            "value": "Z.rpE"
+          },
+          {
+            "offset": 11906152,
+            "value": "I.oi"
+          },
+          {
+            "offset": 11912349,
+            "value": "a.ag"
+          },
+          {
+            "offset": 11930737,
+            "value": "5.YJX"
+          },
+          {
+            "offset": 11941127,
+            "value": "ZL.uMLF"
+          },
+          {
+            "offset": 12007382,
+            "value": "d.iL"
+          },
+          {
+            "offset": 12019889,
+            "value": "o.MSE"
+          },
+          {
+            "offset": 12022119,
+            "value": "S.vq"
+          },
+          {
+            "offset": 12040583,
+            "value": "w.xJ"
+          },
+          {
+            "offset": 12068915,
+            "value": "pT.GW"
+          },
+          {
+            "offset": 12069687,
+            "value": "p.DS"
+          },
+          {
+            "offset": 12117097,
+            "value": "z.fO"
+          },
+          {
+            "offset": 12276339,
+            "value": "N.ad"
+          },
+          {
+            "offset": 12315546,
+            "value": "2J.ej"
+          },
+          {
+            "offset": 12320699,
+            "value": "CfW.nR"
+          },
+          {
+            "offset": 12352822,
+            "value": "v.TD"
+          },
+          {
+            "offset": 12390141,
+            "value": "7.nZ"
+          },
+          {
+            "offset": 12423851,
+            "value": "H.ei"
+          },
+          {
+            "offset": 12479677,
+            "value": "h.lV"
+          },
+          {
+            "offset": 12524773,
+            "value": "RW.kX"
+          },
+          {
+            "offset": 12557407,
+            "value": "E.KZco"
+          },
+          {
+            "offset": 12566932,
+            "value": "O.YL"
+          },
+          {
+            "offset": 12575605,
+            "value": "u.Dl"
+          },
+          {
+            "offset": 12580225,
+            "value": "I.Pe"
+          },
+          {
+            "offset": 12584159,
+            "value": "q.JQ"
+          },
+          {
+            "offset": 12610880,
+            "value": "E2.JF"
+          },
+          {
+            "offset": 12629307,
+            "value": "e.od"
+          },
+          {
+            "offset": 12669624,
+            "value": "E.MV"
+          },
+          {
+            "offset": 12779247,
+            "value": "R.oQ"
+          },
+          {
+            "offset": 12790928,
+            "value": "Y.sZAb"
+          },
+          {
+            "offset": 12816832,
+            "value": "5.CP"
+          },
+          {
+            "offset": 12855119,
+            "value": "pI.Tp"
+          },
+          {
+            "offset": 12873047,
+            "value": "A.Kr"
+          },
+          {
+            "offset": 12896708,
+            "value": "y.Ww"
+          },
+          {
+            "offset": 12897115,
+            "value": "c.SW"
+          },
+          {
+            "offset": 12915007,
+            "value": "5.GX"
+          },
+          {
+            "offset": 12925562,
+            "value": "Ql.BE"
+          },
+          {
+            "offset": 12953837,
+            "value": "Y.xqF"
+          },
+          {
+            "offset": 12953942,
+            "value": "i.OEP"
+          },
+          {
+            "offset": 12957783,
+            "value": "P.GnI"
+          },
+          {
+            "offset": 12961883,
+            "value": "Bz.SMdm"
+          },
+          {
+            "offset": 12962197,
+            "value": "N.Ug"
+          },
+          {
+            "offset": 12962537,
+            "value": "e.ww"
+          },
+          {
+            "offset": 12979230,
+            "value": "B.df"
+          },
+          {
+            "offset": 12990461,
+            "value": "J.uc"
+          },
+          {
+            "offset": 13034066,
+            "value": "L.HO"
+          },
+          {
+            "offset": 13038929,
+            "value": "4Z.KG"
+          },
+          {
+            "offset": 13053082,
+            "value": "yz.dL"
+          },
+          {
+            "offset": 13108153,
+            "value": "a.veq"
+          },
+          {
+            "offset": 13140296,
+            "value": "c6.Qr"
+          },
+          {
+            "offset": 13154142,
+            "value": "3.jp"
+          },
+          {
+            "offset": 13162241,
+            "value": "k.AP"
+          },
+          {
+            "offset": 13166581,
+            "value": "0.Gi"
+          },
+          {
+            "offset": 13193577,
+            "value": "9ubO.NO"
+          },
+          {
+            "offset": 13250925,
+            "value": "T.Do"
+          },
+          {
+            "offset": 13262115,
+            "value": "j.JY"
+          },
+          {
+            "offset": 13274579,
+            "value": "m.kP"
+          },
+          {
+            "offset": 13336698,
+            "value": "T.oK"
+          },
+          {
+            "offset": 13378340,
+            "value": "f.xV"
+          },
+          {
+            "offset": 13421707,
+            "value": "F.qf"
+          },
+          {
+            "offset": 13478102,
+            "value": "8S.CbOE"
+          },
+          {
+            "offset": 13481092,
+            "value": "6X.Dj"
+          },
+          {
+            "offset": 13556447,
+            "value": "f.zbc"
+          },
+          {
+            "offset": 13563715,
+            "value": "d.wD"
+          },
+          {
+            "offset": 13586790,
+            "value": "q.jX"
+          },
+          {
+            "offset": 13601200,
+            "value": "eH.xLX"
+          },
+          {
+            "offset": 13617944,
+            "value": "EN.vx"
+          },
+          {
+            "offset": 13639381,
+            "value": "sR.sG"
+          },
+          {
+            "offset": 13643887,
+            "value": "Tof2.AP"
+          },
+          {
+            "offset": 13667058,
+            "value": "r.aGPT"
+          },
+          {
+            "offset": 13726335,
+            "value": "9.aj"
+          },
+          {
+            "offset": 13746576,
+            "value": "r.Gnq"
+          },
+          {
+            "offset": 13767000,
+            "value": "I.XXp"
+          },
+          {
+            "offset": 13786340,
+            "value": "C.iFp"
+          },
+          {
+            "offset": 13875950,
+            "value": "Wm.ce"
+          },
+          {
+            "offset": 13952422,
+            "value": "U3.Dc"
+          },
+          {
+            "offset": 13991919,
+            "value": "9.ED"
+          },
+          {
+            "offset": 14003972,
+            "value": "6fo.mV"
+          },
+          {
+            "offset": 14010980,
+            "value": "Po.kV"
+          },
+          {
+            "offset": 24504132,
+            "value": "L.ax"
+          },
+          {
+            "offset": 14047266,
+            "value": "c.ZVK"
+          },
+          {
+            "offset": 14065997,
+            "value": "91.SL"
+          },
+          {
+            "offset": 14069708,
+            "value": "C.tO"
+          },
+          {
+            "offset": 14093416,
+            "value": "l.Wz"
+          },
+          {
+            "offset": 14139131,
+            "value": "K.xm"
+          },
+          {
+            "offset": 14163755,
+            "value": "D.Q.pY"
+          }
+        ]
+      }
+    }
+  ],
+  "executed": false,
+  "network_contacted": false
+}

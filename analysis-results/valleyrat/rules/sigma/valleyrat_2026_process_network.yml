@@ -1,0 +1,41 @@
+title: ValleyRAT July 2026 Campaign Process And Network Correlation
+id: 7ab2e54d-3ee7-4a51-a9cd-3cd03129f965
+status: experimental
+description: Detects high-confidence process/path and network combinations observed in five ValleyRAT samples.
+references:
+  - https://tria.ge/reports/260712-t422yadt7k/
+  - https://tria.ge/reports/260712-t4gq1adt6l/
+  - https://tria.ge/reports/260711-23a6tsa16l/
+  - https://tria.ge/reports/260711-21dh6sa14k/
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  setup_chain:
+    Image|endswith: '\setup.exe'
+    DestinationIp: '150.158.50.175'
+    DestinationPort: 443
+  direct_chain:
+    Image|endswith: '\Open the latest report on the computer.exe'
+    DestinationIp: '154.81.37.130'
+    DestinationPort:
+      - 4444
+      - 5555
+  dwmhost_chain:
+    Image|contains: '\winget\'
+    Image|endswith: '\dwmhost.exe'
+    DestinationIp: '27.124.18.166'
+    DestinationPort:
+      - 63016
+      - 63026
+  msi_chain:
+    Image|endswith: '\34UXpv.exe'
+    DestinationIp: '8.210.15.149'
+    DestinationPort: 28300
+  condition: 1 of *_chain
+falsepositives:
+  - IP reassignment or legitimate software using a colliding filename; retain path/hash/process ancestry context.
+level: high
+tags:
+  - attack.command-and-control
+  - attack.t1071

@@ -1,0 +1,13 @@
+{
+  "input_sha256": "3b5d6976a3901d21c12ca596651d8c4b0b900dee6db23509d8cf660678bb96ef",
+  "xor_key_decimal": 20,
+  "xor_key_hex": "0x14",
+  "decoded_sha256": "c1adf2fe58ff47af8adbd3e6e6310fa33ca00926f28c33c30d249f4a70846c4c",
+  "architecture": "x86-32",
+  "marker": "odaktomk",
+  "marker_offset": 1140,
+  "c2": ["134.122.128.66:6666", "134.122.128.66:8888"],
+  "marker_dwords_from_0x20": [15, 6666, 1, 15, 8888, 1],
+  "executed": false,
+  "network_contacted": false
+}

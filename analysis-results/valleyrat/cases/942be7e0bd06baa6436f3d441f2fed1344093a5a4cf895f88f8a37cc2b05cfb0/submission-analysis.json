@@ -1,0 +1,2271 @@
+{
+  "outer_zip": "C:\\Users\\Administrator\\MalwareSamples\\942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0\\942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0.zip",
+  "outer_sha256": "ae0dbfa0a3fd33e9ba9faf9f78d34f8031918ffa1c483264f748f013b3685fd8",
+  "members": [
+    {
+      "name": "942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0.exe",
+      "size": 26274982,
+      "sha256": "942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0",
+      "magic": "4d5a50000200000004000f00ffff0000",
+      "entropy": 7.9837,
+      "type": "pe",
+      "pe": {
+        "machine": "0x14c",
+        "timestamp": 1779452278,
+        "entry_point_rva": "0xb1e60",
+        "image_base": "0x400000",
+        "imphash": "88016fcdef7f227c62171d0afad9aae4",
+        "sections": [
+          {
+            "name": ".text",
+            "raw_size": 719360,
+            "virtual_size": 718860,
+            "entropy": 6.3836
+          },
+          {
+            "name": ".itext",
+            "raw_size": 6656,
+            "virtual_size": 6348,
+            "entropy": 6.0422
+          },
+          {
+            "name": ".data",
+            "raw_size": 16384,
+            "virtual_size": 16188,
+            "entropy": 5.1841
+          },
+          {
+            "name": ".bss",
+            "raw_size": 0,
+            "virtual_size": 29516,
+            "entropy": 0.0
+          },
+          {
+            "name": ".idata",
+            "raw_size": 4608,
+            "virtual_size": 4200,
+            "entropy": 4.823
+          },
+          {
+            "name": ".didata",
+            "raw_size": 512,
+            "virtual_size": 420,
+            "entropy": 2.7642
+          },
+          {
+            "name": ".edata",
+            "raw_size": 512,
+            "virtual_size": 113,
+            "entropy": 1.335
+          },
+          {
+            "name": ".tls",
+            "raw_size": 0,
+            "virtual_size": 24,
+            "entropy": 0.0
+          },
+          {
+            "name": ".rdata",
+            "raw_size": 512,
+            "virtual_size": 93,
+            "entropy": 1.3815
+          },
+          {
+            "name": ".reloc",
+            "raw_size": 73728,
+            "virtual_size": 73708,
+            "entropy": 6.7017
+          },
+          {
+            "name": ".rsrc",
+            "raw_size": 285184,
+            "virtual_size": 284932,
+            "entropy": 2.1586
+          }
+        ],
+        "imports": {
+          "kernel32.dll": [
+            "GetACP",
+            "GetExitCodeProcess",
+            "CloseHandle",
+            "LocalFree",
+            "SizeofResource",
+            "VirtualProtect",
+            "QueryPerformanceFrequency",
+            "VirtualFree",
+            "GetFullPathNameW",
+            "GetProcessHeap",
+            "ExitProcess",
+            "HeapAlloc",
+            "GetCPInfoExW",
+            "CompareStringOrdinal",
+            "RtlUnwind",
+            "SetFilePointerEx",
+            "GetCPInfo",
+            "GetStdHandle",
+            "GetModuleHandleW",
+            "FreeLibrary",
+            "HeapDestroy",
+            "ReadFile",
+            "CreateProcessW",
+            "GetLastError",
+            "GetModuleFileNameW",
+            "SetLastError",
+            "FindResourceW",
+            "CreateThread",
+            "CompareStringW",
+            "GetFileSizeEx",
+            "LoadLibraryA",
+            "ResetEvent",
+            "GetVolumeInformationW",
+            "GetVersion",
+            "GetDriveTypeW",
+            "RaiseException",
+            "FormatMessageW",
+            "SwitchToThread",
+            "GetExitCodeThread",
+            "GetCurrentThread",
+            "LoadLibraryExW",
+            "LockResource",
+            "GetCurrentThreadId",
+            "UnhandledExceptionFilter",
+            "VirtualQuery",
+            "VirtualQueryEx",
+            "Sleep",
+            "EnterCriticalSection",
+            "LoadResource",
+            "SuspendThread",
+            "GetTickCount",
+            "GetStartupInfoW",
+            "GetFileAttributesW",
+            "GetCurrentDirectoryW",
+            "InitializeCriticalSection",
+            "GetSystemWindowsDirectoryW",
+            "GetThreadPriority",
+            "SetThreadPriority",
+            "GetCurrentProcess",
+            "VirtualAlloc",
+            "GetCommandLineW",
+            "GetSystemInfo",
+            "GetTempPathW",
+            "LeaveCriticalSection",
+            "GetProcAddress",
+            "ResumeThread",
+            "GetVersionExW",
+            "VerifyVersionInfoW",
+            "HeapCreate",
+            "LCMapStringW",
+            "VerSetConditionMask",
+            "GetDiskFreeSpaceW",
+            "FindFirstFileW",
+            "GetUserDefaultUILanguage",
+            "lstrlenW",
+            "SetEndOfFile",
+            "QueryPerformanceCounter",
+            "HeapFree",
+            "WideCharToMultiByte",
+            "FindClose",
+            "MultiByteToWideChar",
+            "LoadLibraryW",
+            "SetEvent",
+            "CreateFileW",
+            "GetLocaleInfoW",
+            "GetSystemDirectoryW",
+            "DeleteFileW",
+            "GetLocalTime",
+            "WaitForSingleObject",
+            "WriteFile",
+            "ExitThread",
+            "DeleteCriticalSection",
+            "TlsGetValue",
+            "GetDateFormatW",
+            "IsValidLocale",
+            "TlsSetValue",
+            "CreateDirectoryW",
+            "GetSystemDefaultUILanguage",
+            "EnumCalendarInfoW",
+            "LocalAlloc",
+            "GetUserDefaultLangID",
+            "RemoveDirectoryW",
+            "CreateEventW",
+            "SetThreadLocale",
+            "GetThreadLocale"
+          ],
+          "comctl32.dll": [
+            "InitCommonControls"
+          ],
+          "user32.dll": [
+            "CreateWindowExW",
+            "TranslateMessage",
+            "CharLowerBuffW",
+            "CallWindowProcW",
+            "CharUpperW",
+            "PeekMessageW",
+            "GetSystemMetrics",
+            "SetWindowLongW",
+            "MessageBoxW",
+            "DestroyWindow",
+            "CharUpperBuffW",
+            "CharNextW",
+            "MsgWaitForMultipleObjects",
+            "LoadStringW",
+            "ExitWindowsEx",
+            "DispatchMessageW"
+          ],
+          "oleaut32.dll": [
+            "SafeArrayPutElement",
+            "VariantInit",
+            "VariantClear",
+            "SysFreeString",
+            "SafeArrayAccessData",
+            "SysReAllocStringLen",
+            "SafeArrayCreate",
+            "SafeArrayGetElement",
+            "SysAllocStringLen",
+            "SafeArrayUnaccessData",
+            "SafeArrayPtrOfIndex",
+            "VariantCopy",
+            "SafeArrayGetUBound",
+            "SafeArrayGetLBound",
+            "VariantChangeType"
+          ],
+          "advapi32.dll": [
+            "ConvertStringSecurityDescriptorToSecurityDescriptorW",
+            "OpenThreadToken",
+            "AdjustTokenPrivileges",
+            "LookupPrivilegeValueW",
+            "RegOpenKeyExW",
+            "OpenProcessToken",
+            "FreeSid",
+            "AllocateAndInitializeSid",
+            "EqualSid",
+            "RegQueryValueExW",
+            "GetTokenInformation",
+            "ConvertSidToStringSidW",
+            "RegCloseKey"
+          ]
+        },
+        "exports": [
+          "__dbk_fcall_wrapper",
+          "dbkFCallWrapperAddr"
+        ],
+        "overlay": {
+          "size": 25166502,
+          "sha256": "cbc0e52dca94ddbd62910b4dca5f709483c1bb14f7f9ffa837357b45f37d43ec",
+          "entropy": 7.9999
+        },
+        "authenticode_blob": null,
+        "network_strings": [
+          {
+            "offset": 903,
+            "value": "B.rsrc"
+          },
+          {
+            "offset": 5994,
+            "value": "TMonitor.PWaitingThread"
+          },
+          {
+            "offset": 6030,
+            "value": "TMonitor.TWaitingThread"
+          },
+          {
+            "offset": 6134,
+            "value": "TMonitor.TSpinLock"
+          },
+          {
+            "offset": 9953,
+            "value": "System.Byte"
+          },
+          {
+            "offset": 10009,
+            "value": "System.Char"
+          },
+          {
+            "offset": 511414,
+            "value": "System.Integer"
+          },
+          {
+            "offset": 27333,
+            "value": "t.Ht"
+          },
+          {
+            "offset": 48862,
+            "value": "TInstItem.TBucketArray"
+          },
+          {
+            "offset": 50353,
+            "value": "System.PPointer"
+          },
+          {
+            "offset": 50413,
+            "value": "System.PInstItem"
+          },
+          {
+            "offset": 556116,
+            "value": "System.Cardinal"
+          },
+          {
+            "offset": 556102,
+            "value": "System.string"
+          },
+          {
+            "offset": 1103719,
+            "value": "System.Types"
+          },
+          {
+            "offset": 57922,
+            "value": "TMultiWaitEvent.TWaiterFlag"
+          },
+          {
+            "offset": 58002,
+            "value": "TMultiWaitEvent.TWaiterFlags"
+          },
+          {
+            "offset": 58334,
+            "value": "TMultiWaitEvent.TMultiWaiter"
+          },
+          {
+            "offset": 58446,
+            "value": "TMultiWaitEvent.TMultiWaitert"
+          },
+          {
+            "offset": 58514,
+            "value": "TMultiWaitEvent.TWaitInfo"
+          },
+          {
+            "offset": 1103734,
+            "value": "System.SysUtils"
+          },
+          {
+            "offset": 98294,
+            "value": "TFormatSettings.TEraInfo"
+          },
+          {
+            "offset": 121021,
+            "value": "System.SysUtilsL"
+          },
+          {
+            "offset": 143261,
+            "value": "System.SysUtils.TUnitHashEntry"
+          },
+          {
+            "offset": 1103968,
+            "value": "System.Variants"
+          },
+          {
+            "offset": 1104059,
+            "value": "System.TypInfo"
+          },
+          {
+            "offset": 205457,
+            "value": "System.TypInfo.TElementAlias"
+          },
+          {
+            "offset": 205529,
+            "value": "System.TypInfo.TEnumAliasEntry"
+          },
+          {
+            "offset": 210015,
+            "value": "System.RawByteString"
+          },
+          {
+            "offset": 210779,
+            "value": "System.WideString"
+          },
+          {
+            "offset": 211147,
+            "value": "System.Single"
+          },
+          {
+            "offset": 211511,
+            "value": "System.Double"
+          },
+          {
+            "offset": 211879,
+            "value": "System.Extended"
+          },
+          {
+            "offset": 212243,
+            "value": "System.Comp"
+          },
+          {
+            "offset": 212607,
+            "value": "System.Currency"
+          },
+          {
+            "offset": 485806,
+            "value": "System.IInterface"
+          },
+          {
+            "offset": 719112,
+            "value": "System.Hash"
+          },
+          {
+            "offset": 1104032,
+            "value": "System.Generics.Defaults"
+          },
+          {
+            "offset": 405044,
+            "value": "System.Pointer"
+          },
+          {
+            "offset": 1104112,
+            "value": "System.Generics.Collections"
+          },
+          {
+            "offset": 230818,
+            "value": "TListHelper.TInternalNotifyProc"
+          },
+          {
+            "offset": 230910,
+            "value": "TListHelper.TInternalCompareFunc"
+          },
+          {
+            "offset": 1104076,
+            "value": "System.SyncObjs"
+          },
+          {
+            "offset": 242845,
+            "value": "System.Types.TMultiWaitEvent.TWaitInfo"
+          },
+          {
+            "offset": 719259,
+            "value": "System.Rtti"
+          },
+          {
+            "offset": 253958,
+            "value": "TMethodImplementation.TFloatReg"
+          },
+          {
+            "offset": 254254,
+            "value": "TMethodImplementation.TInterceptFrame"
+          },
+          {
+            "offset": 254458,
+            "value": "TMethodImplementation.TFirstStageIntercept"
+          },
+          {
+            "offset": 254682,
+            "value": "TMethodImplementation.PInterceptFrame"
+          },
+          {
+            "offset": 254734,
+            "value": "TMethodImplementation.PFirstStageIntercept"
+          },
+          {
+            "offset": 255190,
+            "value": "TMethodImplementation.TRuntimeTypeInfos"
+          },
+          {
+            "offset": 275234,
+            "value": "TMethodImplementation.TParamLoc"
+          },
+          {
+            "offset": 256214,
+            "value": "TMethodImplementation.TInvokeInfoK"
+          },
+          {
+            "offset": 256718,
+            "value": "TMethodImplementation.TInvokeInfo"
+          },
+          {
+            "offset": 267865,
+            "value": "System.Rtti.TValue"
+          },
+          {
+            "offset": 342144,
+            "value": "System.TCustomAttribute"
+          },
+          {
+            "offset": 433545,
+            "value": "System.TArray"
+          },
+          {
+            "offset": 433475,
+            "value": "System.Rtti.TRttiMethod"
+          },
+          {
+            "offset": 433303,
+            "value": "System.Rtti.TRttiField"
+          },
+          {
+            "offset": 433559,
+            "value": "System.Rtti.TRttiProperty"
+          },
+          {
+            "offset": 433383,
+            "value": "System.Rtti.TRttiIndexedProperty"
+          },
+          {
+            "offset": 391252,
+            "value": "System.Rtti.TRttiManagedField"
+          },
+          {
+            "offset": 279852,
+            "value": "System.Rtti.TMethodImplementation.TParamLoc"
+          },
+          {
+            "offset": 280253,
+            "value": "System.Rtti.TRttiParameter"
+          },
+          {
+            "offset": 280325,
+            "value": "System.Rtti.TRttiInterfaceType"
+          },
+          {
+            "offset": 405059,
+            "value": "System.Rtti.TRttiObject"
+          },
+          {
+            "offset": 557738,
+            "value": "System.Generics.Collections.TPair"
+          },
+          {
+            "offset": 287841,
+            "value": "System.Rtti.TRttiType"
+          },
+          {
+            "offset": 287905,
+            "value": "System.Rtti.TRttiPackage"
+          },
+          {
+            "offset": 289757,
+            "value": "TPrivateHeap.THeapItem"
+          },
+          {
+            "offset": 294312,
+            "value": "System.Rtti.TPrivateHeap.THeapItem"
+          },
+          {
+            "offset": 330768,
+            "value": "System.TypInfo.PTypeInfo"
+          },
+          {
+            "offset": 331746,
+            "value": "TRttiPool.GetPackageList.DoUpdate"
+          },
+          {
+            "offset": 342834,
+            "value": "LazyLoadAttributes.MakeClosure"
+          },
+          {
+            "offset": 345288,
+            "value": "Uh.QE"
+          },
+          {
+            "offset": 365602,
+            "value": "System.Generics.CollectionsT"
+          },
+          {
+            "offset": 1103651,
+            "value": "System.Classes"
+          },
+          {
+            "offset": 467454,
+            "value": "TThread.TSynchronizeRecord"
+          },
+          {
+            "offset": 467742,
+            "value": "TThread.TSystemTimes"
+          },
+          {
+            "offset": 472118,
+            "value": "TObservers.TCanObserveEvent"
+          },
+          {
+            "offset": 472194,
+            "value": "TObservers.TObserverAddedEvent"
+          },
+          {
+            "offset": 491472,
+            "value": "System.Classes.TCollectionItem"
+          },
+          {
+            "offset": 497172,
+            "value": "System.TObject"
+          },
+          {
+            "offset": 492629,
+            "value": "System.Generics.Collectionsd"
+          },
+          {
+            "offset": 625325,
+            "value": "System.Classes.TComponent"
+          },
+          {
+            "offset": 511429,
+            "value": "System.Classes.IInterfaceList"
+          },
+          {
+            "offset": 511957,
+            "value": "System.Classes.TBasicAction"
+          },
+          {
+            "offset": 517584,
+            "value": "System.Classes.TBasicActionLink"
+          },
+          {
+            "offset": 662814,
+            "value": "System.Classes.TPersistentClass"
+          },
+          {
+            "offset": 539378,
+            "value": "System.Classes.TRegGroup"
+          },
+          {
+            "offset": 548158,
+            "value": "System.Classes.TIntConst"
+          },
+          {
+            "offset": 558502,
+            "value": "TFieldsCache.TFields"
+          },
+          {
+            "offset": 571976,
+            "value": "System.TClass"
+          },
+          {
+            "offset": 565862,
+            "value": "System.Classes.TFieldsCache.TFields"
+          },
+          {
+            "offset": 588414,
+            "value": "System.Classes.TPropFixup"
+          },
+          {
+            "offset": 618098,
+            "value": "System.Classes.TThread"
+          },
+          {
+            "offset": 625614,
+            "value": "TComponent.Create"
+          },
+          {
+            "offset": 662401,
+            "value": "8.TList"
+          },
+          {
+            "offset": 662797,
+            "value": "1.Pack"
+          },
+          {
+            "offset": 1104522,
+            "value": "Shared.FileClass"
+          },
+          {
+            "offset": 1104476,
+            "value": "Shared.Struct"
+          },
+          {
+            "offset": 719342,
+            "value": "Shared.EncryptionFunc"
+          },
+          {
+            "offset": 719773,
+            "value": "Compression.Base"
+          },
+          {
+            "offset": 1104694,
+            "value": "Compression.LZMA"
+          },
+          {
+            "offset": 718897,
+            "value": "System.Internal.ExcUtils"
+          },
+          {
+            "offset": 718922,
+            "value": "System.SysConst"
+          },
+          {
+            "offset": 1103779,
+            "value": "System.Character"
+          },
+          {
+            "offset": 1103798,
+            "value": "System.RTLConsts"
+          },
+          {
+            "offset": 1103817,
+            "value": "Winapi.Windows"
+          },
+          {
+            "offset": 1103834,
+            "value": "Winapi.Windows.PkgHelper"
+          },
+          {
+            "offset": 1103861,
+            "value": "System.UITypes"
+          },
+          {
+            "offset": 719048,
+            "value": "Winapi.PsAPI"
+          },
+          {
+            "offset": 1103893,
+            "value": "Winapi.SHFolder"
+          },
+          {
+            "offset": 719077,
+            "value": "Winapi.ImageHlp"
+          },
+          {
+            "offset": 1103668,
+            "value": "System.Math"
+          },
+          {
+            "offset": 1103929,
+            "value": "System.Diagnostics"
+          },
+          {
+            "offset": 1103950,
+            "value": "System.TimeSpan"
+          },
+          {
+            "offset": 1103986,
+            "value": "System.VarUtils"
+          },
+          {
+            "offset": 1104094,
+            "value": "Winapi.Messages"
+          },
+          {
+            "offset": 1104142,
+            "value": "Winapi.ActiveX"
+          },
+          {
+            "offset": 719385,
+            "value": "Shared.VerInfoFunc"
+          },
+          {
+            "offset": 1104541,
+            "value": "Shared.CommonFunc"
+          },
+          {
+            "offset": 719448,
+            "value": "Winapi.ShLwApi"
+          },
+          {
+            "offset": 1104384,
+            "value": "Winapi.ShlObj"
+          },
+          {
+            "offset": 1104365,
+            "value": "Winapi.MSXMLIntf"
+          },
+          {
+            "offset": 1104331,
+            "value": "Winapi.StructuredQueryCondition"
+          },
+          {
+            "offset": 1104314,
+            "value": "Winapi.PropSys"
+          },
+          {
+            "offset": 1104293,
+            "value": "Winapi.ObjectArray"
+          },
+          {
+            "offset": 719560,
+            "value": "Winapi.UrlMon"
+          },
+          {
+            "offset": 1104260,
+            "value": "Winapi.WinInet"
+          },
+          {
+            "offset": 719589,
+            "value": "Winapi.RegStr"
+          },
+          {
+            "offset": 1104226,
+            "value": "Winapi.ShellAPI"
+          },
+          {
+            "offset": 1104208,
+            "value": "Winapi.IpExport"
+          },
+          {
+            "offset": 1104190,
+            "value": "Winapi.Winsock"
+          },
+          {
+            "offset": 1104177,
+            "value": "Winapi.Qos"
+          },
+          {
+            "offset": 1104159,
+            "value": "Winapi.CommCtrl"
+          },
+          {
+            "offset": 1103629,
+            "value": "System.WideStrUtils"
+          },
+          {
+            "offset": 1104572,
+            "value": "SetupLdrAndSetup.InstFunc"
+          },
+          {
+            "offset": 1104600,
+            "value": "Shared.SetupMessageIDs"
+          },
+          {
+            "offset": 1104625,
+            "value": "SetupLdrAndSetup.Messages"
+          },
+          {
+            "offset": 719790,
+            "value": "Shared.SetupEntFunc"
+          },
+          {
+            "offset": 1104731,
+            "value": "SetupLdrAndSetup.XPTheme"
+          },
+          {
+            "offset": 720744,
+            "value": "kernel32.dll",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 1107783,
+            "value": "comctl32.dll"
+          },
+          {
+            "offset": 748344,
+            "value": "user32.dll"
+          },
+          {
+            "offset": 158580,
+            "value": "oleaut32.dll",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 667588,
+            "value": "advapi32.dll",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 1103681,
+            "value": "dSystem.SysConst"
+          },
+          {
+            "offset": 1103751,
+            "value": "ISystem.Internal.ExcUtils"
+          },
+          {
+            "offset": 1103877,
+            "value": "kWinapi.PsAPI"
+          },
+          {
+            "offset": 1103910,
+            "value": "-Winapi.ImageHlp"
+          },
+          {
+            "offset": 1104003,
+            "value": "fSystem.Rtti"
+          },
+          {
+            "offset": 1104017,
+            "value": "dSystem.Hash"
+          },
+          {
+            "offset": 1104243,
+            "value": "4Winapi.RegStr"
+          },
+          {
+            "offset": 1104276,
+            "value": "hWinapi.UrlMon"
+          },
+          {
+            "offset": 1104399,
+            "value": "yWinapi.ShLwApi"
+          },
+          {
+            "offset": 1104451,
+            "value": "AShared.EncryptionFunc"
+          },
+          {
+            "offset": 1104500,
+            "value": "6Shared.VerInfoFunc"
+          },
+          {
+            "offset": 1104652,
+            "value": "8Compression.Base"
+          },
+          {
+            "offset": 1104671,
+            "value": "oShared.SetupEntFunc"
+          },
+          {
+            "offset": 1106429,
+            "value": "JR.Inno.Setup"
+          },
+          {
+            "offset": 1106491,
+            "value": "1.0.0.0"
+          },
+          {
+            "offset": 1107194,
+            "value": "http://schemas.microsoft.com/SMI/2005/WindowsSettings"
+          },
+          {
+            "offset": 1107847,
+            "value": "mpr.dll"
+          },
+          {
+            "offset": 1107906,
+            "value": "netapi32.dll"
+          },
+          {
+            "offset": 1107970,
+            "value": "netutils.dll"
+          },
+          {
+            "offset": 1108034,
+            "value": "textshaping.dll"
+          },
+          {
+            "offset": 1108101,
+            "value": "version.dll"
+          },
+          {
+            "offset": 1108164,
+            "value": "winhttp.dll"
+          },
+          {
+            "offset": 1109040,
+            "value": "2ha.Nc"
+          },
+          {
+            "offset": 1204082,
+            "value": "hm.GuH"
+          },
+          {
+            "offset": 1206571,
+            "value": "6.RB"
+          },
+          {
+            "offset": 1320056,
+            "value": "v.PV"
+          },
+          {
+            "offset": 1337830,
+            "value": "T.gp"
+          },
+          {
+            "offset": 1339512,
+            "value": "8YI.ha"
+          },
+          {
+            "offset": 1344918,
+            "value": "W.qV"
+          },
+          {
+            "offset": 4527540,
+            "value": "1.NW"
+          },
+          {
+            "offset": 1369637,
+            "value": "8.zUBPMiI"
+          },
+          {
+            "offset": 1412855,
+            "value": "fs.hI"
+          },
+          {
+            "offset": 1414747,
+            "value": "5.ehQz"
+          },
+          {
+            "offset": 1427774,
+            "value": "N.aX"
+          },
+          {
+            "offset": 1490222,
+            "value": "i.bWh"
+          },
+          {
+            "offset": 1491607,
+            "value": "H.NQ"
+          },
+          {
+            "offset": 1500203,
+            "value": "AK.Zo"
+          },
+          {
+            "offset": 1534876,
+            "value": "I.Wm"
+          },
+          {
+            "offset": 1536544,
+            "value": "e.Xa"
+          },
+          {
+            "offset": 1574921,
+            "value": "N.fS"
+          },
+          {
+            "offset": 1654830,
+            "value": "H.kk"
+          },
+          {
+            "offset": 1665581,
+            "value": "G.vE"
+          },
+          {
+            "offset": 1675183,
+            "value": "R.qe"
+          },
+          {
+            "offset": 1690460,
+            "value": "pM.Pg"
+          },
+          {
+            "offset": 1721085,
+            "value": "I.qE"
+          },
+          {
+            "offset": 1867533,
+            "value": "cu.yBA"
+          },
+          {
+            "offset": 2027730,
+            "value": "4.YQ"
+          },
+          {
+            "offset": 2036491,
+            "value": "Q.hCK"
+          },
+          {
+            "offset": 2048969,
+            "value": "h.ha"
+          },
+          {
+            "offset": 2053895,
+            "value": "5Z.dA"
+          },
+          {
+            "offset": 2055755,
+            "value": "iE.pj"
+          },
+          {
+            "offset": 2070791,
+            "value": "4c.Shh"
+          },
+          {
+            "offset": 2081104,
+            "value": "9.rE"
+          },
+          {
+            "offset": 2089109,
+            "value": "c.wef"
+          },
+          {
+            "offset": 2092271,
+            "value": "Ow.Hcp"
+          },
+          {
+            "offset": 2113892,
+            "value": "j.GT"
+          },
+          {
+            "offset": 2165632,
+            "value": "X.iq"
+          },
+          {
+            "offset": 2202726,
+            "value": "b.ov"
+          },
+          {
+            "offset": 2208423,
+            "value": "V7.Et"
+          },
+          {
+            "offset": 2210155,
+            "value": "-.uNIlE"
+          },
+          {
+            "offset": 2256703,
+            "value": "G.xn"
+          },
+          {
+            "offset": 2279198,
+            "value": "1.DF"
+          },
+          {
+            "offset": 2281570,
+            "value": "9.Pk"
+          },
+          {
+            "offset": 2292409,
+            "value": "F.Ft"
+          },
+          {
+            "offset": 2318820,
+            "value": "W.yxf"
+          },
+          {
+            "offset": 2381005,
+            "value": "4.UX"
+          },
+          {
+            "offset": 2387686,
+            "value": "p9.lw"
+          },
+          {
+            "offset": 2410719,
+            "value": "D.Va"
+          },
+          {
+            "offset": 2471607,
+            "value": "tm.Fy"
+          },
+          {
+            "offset": 2492295,
+            "value": "O.GI"
+          },
+          {
+            "offset": 2522989,
+            "value": "R.kwm"
+          },
+          {
+            "offset": 2683375,
+            "value": "l.LPi"
+          },
+          {
+            "offset": 2731632,
+            "value": "w.dd"
+          },
+          {
+            "offset": 2751536,
+            "value": "0.cpk"
+          },
+          {
+            "offset": 2830075,
+            "value": "G.Xa"
+          },
+          {
+            "offset": 16826256,
+            "value": "T.xZ",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 2837574,
+            "value": "X.Aw"
+          },
+          {
+            "offset": 2849598,
+            "value": "o.Ofx"
+          },
+          {
+            "offset": 2850850,
+            "value": "V.Mf"
+          },
+          {
+            "offset": 2883001,
+            "value": "h.XM"
+          },
+          {
+            "offset": 2912290,
+            "value": "s.Ysh"
+          },
+          {
+            "offset": 2923401,
+            "value": "jX.FJ"
+          },
+          {
+            "offset": 3062199,
+            "value": "R.AO"
+          },
+          {
+            "offset": 3086285,
+            "value": "s.rL"
+          },
+          {
+            "offset": 3096817,
+            "value": "nC.hM"
+          },
+          {
+            "offset": 3097940,
+            "value": "I.GU"
+          },
+          {
+            "offset": 3127836,
+            "value": "n.gm"
+          },
+          {
+            "offset": 3129655,
+            "value": "RNt.fB"
+          },
+          {
+            "offset": 3135183,
+            "value": "Gz.Vt"
+          },
+          {
+            "offset": 3138156,
+            "value": "K.ux"
+          },
+          {
+            "offset": 3215506,
+            "value": "G.lQ"
+          },
+          {
+            "offset": 3233060,
+            "value": "M.DO"
+          },
+          {
+            "offset": 3264020,
+            "value": "l.Vm"
+          },
+          {
+            "offset": 3300244,
+            "value": "b.eR"
+          },
+          {
+            "offset": 3300490,
+            "value": "j.mX"
+          },
+          {
+            "offset": 3389212,
+            "value": "X.Nu"
+          },
+          {
+            "offset": 3412499,
+            "value": "6.XG"
+          },
+          {
+            "offset": 3412985,
+            "value": "0.pU"
+          },
+          {
+            "offset": 3419704,
+            "value": "1B.sk"
+          },
+          {
+            "offset": 3420916,
+            "value": "2.YHE"
+          },
+          {
+            "offset": 3426859,
+            "value": "u.Yk"
+          },
+          {
+            "offset": 3441130,
+            "value": "H.EqH"
+          },
+          {
+            "offset": 3449444,
+            "value": "YH.oA"
+          },
+          {
+            "offset": 3516308,
+            "value": "O.zW"
+          },
+          {
+            "offset": 3521828,
+            "value": "s.Xrq"
+          },
+          {
+            "offset": 3559787,
+            "value": "WO.kF"
+          },
+          {
+            "offset": 3578601,
+            "value": "D.So"
+          },
+          {
+            "offset": 3583106,
+            "value": "w.Pf"
+          },
+          {
+            "offset": 3588770,
+            "value": "N.Du"
+          },
+          {
+            "offset": 3590946,
+            "value": "W.TF"
+          },
+          {
+            "offset": 3613083,
+            "value": "k.uD"
+          },
+          {
+            "offset": 3647384,
+            "value": "s.hm"
+          },
+          {
+            "offset": 3677801,
+            "value": "89.qk"
+          },
+          {
+            "offset": 3681998,
+            "value": "h.Mpn"
+          },
+          {
+            "offset": 3697352,
+            "value": "HHj.yx"
+          },
+          {
+            "offset": 3699073,
+            "value": "a9.JD"
+          },
+          {
+            "offset": 3709584,
+            "value": "I.aQ"
+          },
+          {
+            "offset": 3729371,
+            "value": "0.zsU"
+          },
+          {
+            "offset": 3734326,
+            "value": "P.Xk"
+          },
+          {
+            "offset": 3746523,
+            "value": "B.pA"
+          },
+          {
+            "offset": 3754702,
+            "value": "A.am"
+          },
+          {
+            "offset": 3781806,
+            "value": "K.Px"
+          },
+          {
+            "offset": 3802174,
+            "value": "S.EC"
+          },
+          {
+            "offset": 3931331,
+            "value": "rJ.mGn"
+          },
+          {
+            "offset": 3932055,
+            "value": "tt.HJAfF"
+          },
+          {
+            "offset": 3952087,
+            "value": "N.iK"
+          },
+          {
+            "offset": 3953751,
+            "value": "v.RS"
+          },
+          {
+            "offset": 3957749,
+            "value": "o.Ou"
+          },
+          {
+            "offset": 3957765,
+            "value": "d.sQM"
+          },
+          {
+            "offset": 3977361,
+            "value": "4.aS"
+          },
+          {
+            "offset": 3998697,
+            "value": "g.oj"
+          },
+          {
+            "offset": 4014518,
+            "value": "0.Bq"
+          },
+          {
+            "offset": 4021194,
+            "value": "V.Ui"
+          },
+          {
+            "offset": 4034675,
+            "value": "D.OA"
+          },
+          {
+            "offset": 21352607,
+            "value": "R.Xy"
+          },
+          {
+            "offset": 4074637,
+            "value": "k.Yb"
+          },
+          {
+            "offset": 4104037,
+            "value": "3.kK"
+          },
+          {
+            "offset": 4112414,
+            "value": "U.oQ"
+          },
+          {
+            "offset": 4136442,
+            "value": "T.VK"
+          },
+          {
+            "offset": 4156572,
+            "value": "w.Im"
+          },
+          {
+            "offset": 4194412,
+            "value": "gY.syyi"
+          },
+          {
+            "offset": 4230590,
+            "value": "A.YqR"
+          },
+          {
+            "offset": 4250252,
+            "value": "S.MW"
+          },
+          {
+            "offset": 4285868,
+            "value": "G.oy"
+          },
+          {
+            "offset": 16704574,
+            "value": "D.nf"
+          },
+          {
+            "offset": 4379351,
+            "value": "N.Wo"
+          },
+          {
+            "offset": 4384840,
+            "value": "Dm.gm"
+          },
+          {
+            "offset": 21118000,
+            "value": "Z.HD",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 4397767,
+            "value": "N.ed"
+          },
+          {
+            "offset": 4423560,
+            "value": "t.whlq"
+          },
+          {
+            "offset": 4432198,
+            "value": "c5.IU"
+          },
+          {
+            "offset": 4433566,
+            "value": "Q.vh"
+          },
+          {
+            "offset": 4439437,
+            "value": "e.bN"
+          },
+          {
+            "offset": 4453425,
+            "value": "wM2.AA"
+          },
+          {
+            "offset": 4518995,
+            "value": "P.Oe"
+          },
+          {
+            "offset": 4524491,
+            "value": "j.ib"
+          },
+          {
+            "offset": 4651441,
+            "value": "x.lV"
+          },
+          {
+            "offset": 4678524,
+            "value": "m.Mc"
+          },
+          {
+            "offset": 4679593,
+            "value": "b.Iz"
+          },
+          {
+            "offset": 4756408,
+            "value": "p.Cw"
+          },
+          {
+            "offset": 4804883,
+            "value": "e.wk"
+          },
+          {
+            "offset": 4877958,
+            "value": "7vT.dl"
+          },
+          {
+            "offset": 4884772,
+            "value": "Q.MQ"
+          },
+          {
+            "offset": 4906436,
+            "value": "l.ST"
+          },
+          {
+            "offset": 4922232,
+            "value": "R.SB"
+          },
+          {
+            "offset": 4940702,
+            "value": "I.Ye"
+          },
+          {
+            "offset": 4949658,
+            "value": "nc.AWD"
+          },
+          {
+            "offset": 4952387,
+            "value": "E.hn"
+          },
+          {
+            "offset": 5072592,
+            "value": "3.EW"
+          },
+          {
+            "offset": 5106391,
+            "value": "z.If"
+          },
+          {
+            "offset": 5129430,
+            "value": "Mj.Mz"
+          },
+          {
+            "offset": 5129579,
+            "value": "B.nt"
+          },
+          {
+            "offset": 5250668,
+            "value": "Jv.yp"
+          },
+          {
+            "offset": 5268462,
+            "value": "j.pXV"
+          },
+          {
+            "offset": 5292258,
+            "value": "W9r.nwX"
+          },
+          {
+            "offset": 5315825,
+            "value": "uX.Xt"
+          },
+          {
+            "offset": 5341211,
+            "value": "Pe.Wm"
+          },
+          {
+            "offset": 5380219,
+            "value": "L.vg"
+          },
+          {
+            "offset": 5389036,
+            "value": "a.BW"
+          },
+          {
+            "offset": 5397224,
+            "value": "z.Am"
+          },
+          {
+            "offset": 5407284,
+            "value": "H.iO"
+          },
+          {
+            "offset": 5415857,
+            "value": "2.gu"
+          },
+          {
+            "offset": 5478594,
+            "value": "Cw.Hp"
+          },
+          {
+            "offset": 5491168,
+            "value": "w.lN"
+          },
+          {
+            "offset": 5501745,
+            "value": "5.Pt"
+          },
+          {
+            "offset": 5526410,
+            "value": "U.SL"
+          },
+          {
+            "offset": 5531559,
+            "value": "xX.bs"
+          },
+          {
+            "offset": 5536778,
+            "value": "Jl.AQ"
+          },
+          {
+            "offset": 5563178,
+            "value": "c.vs"
+          },
+          {
+            "offset": 5629371,
+            "value": "m.hVL"
+          },
+          {
+            "offset": 5655058,
+            "value": "G.or"
+          },
+          {
+            "offset": 5685325,
+            "value": "x.KC"
+          },
+          {
+            "offset": 5696238,
+            "value": "q3.AU"
+          },
+          {
+            "offset": 5696406,
+            "value": "q.CY"
+          },
+          {
+            "offset": 5702864,
+            "value": "p.pT"
+          },
+          {
+            "offset": 5706668,
+            "value": "S.JW"
+          },
+          {
+            "offset": 5725669,
+            "value": "CK.si"
+          },
+          {
+            "offset": 5735331,
+            "value": "yP.aW"
+          },
+          {
+            "offset": 5750198,
+            "value": "k.zL"
+          },
+          {
+            "offset": 5754869,
+            "value": "s.DN"
+          },
+          {
+            "offset": 5771049,
+            "value": "xeG.kb"
+          },
+          {
+            "offset": 5776580,
+            "value": "G.NBPZv"
+          },
+          {
+            "offset": 5793256,
+            "value": "J.uV"
+          },
+          {
+            "offset": 5834140,
+            "value": "o.aiD"
+          },
+          {
+            "offset": 5852396,
+            "value": "SX.PPITXhV"
+          },
+          {
+            "offset": 5855596,
+            "value": "9.eCN"
+          },
+          {
+            "offset": 5888085,
+            "value": "q.VWH"
+          },
+          {
+            "offset": 5891211,
+            "value": "X.vRP"
+          },
+          {
+            "offset": 5892795,
+            "value": "J.ad"
+          },
+          {
+            "offset": 5910363,
+            "value": "i.tq"
+          },
+          {
+            "offset": 6009548,
+            "value": "6.ewek"
+          },
+          {
+            "offset": 6081127,
+            "value": "B.nS"
+          },
+          {
+            "offset": 6114988,
+            "value": "nL.RH"
+          },
+          {
+            "offset": 6145629,
+            "value": "u.GBm"
+          },
+          {
+            "offset": 6146714,
+            "value": "2.DF"
+          },
+          {
+            "offset": 6153717,
+            "value": "d.ja"
+          },
+          {
+            "offset": 6161743,
+            "value": "EL.RA"
+          },
+          {
+            "offset": 6197826,
+            "value": "q.bUY"
+          },
+          {
+            "offset": 6208465,
+            "value": "1.ise"
+          },
+          {
+            "offset": 6210291,
+            "value": "y.nG"
+          },
+          {
+            "offset": 6217391,
+            "value": "L.umy"
+          },
+          {
+            "offset": 6239417,
+            "value": "7.XC"
+          },
+          {
+            "offset": 6256472,
+            "value": "F.yJ"
+          },
+          {
+            "offset": 6269572,
+            "value": "T.Zh"
+          },
+          {
+            "offset": 6274456,
+            "value": "K.jC"
+          },
+          {
+            "offset": 6299029,
+            "value": "l.Ew"
+          },
+          {
+            "offset": 6329173,
+            "value": "u.GCaR"
+          },
+          {
+            "offset": 6343475,
+            "value": "Q.qSx"
+          },
+          {
+            "offset": 6364845,
+            "value": "5.NQ"
+          },
+          {
+            "offset": 6382694,
+            "value": "mfX.gLE"
+          },
+          {
+            "offset": 6409716,
+            "value": "T.ks"
+          },
+          {
+            "offset": 22412252,
+            "value": "Q.Cs",
+            "encoding": "utf16le_even"
+          },
+          {
+            "offset": 6524873,
+            "value": "z.AU"
+          },
+          {
+            "offset": 6639789,
+            "value": "1z.GV"
+          },
+          {
+            "offset": 6665067,
+            "value": "lLR.FM"
+          },
+          {
+            "offset": 6689623,
+            "value": "X.Lo"
+          },
+          {
+            "offset": 6739549,
+            "value": "5L.sx"
+          },
+          {
+            "offset": 6747755,
+            "value": "lZ.Ns"
+          },
+          {
+            "offset": 6772981,
+            "value": "o.Em"
+          },
+          {
+            "offset": 6792705,
+            "value": "nV.So"
+          },
+          {
+            "offset": 6845440,
+            "value": "H.mpe"
+          },
+          {
+            "offset": 6886064,
+            "value": "v.Hg"
+          },
+          {
+            "offset": 6910618,
+            "value": "c.ci"
+          },
+          {
+            "offset": 6910625,
+            "value": "S.UAZ"
+          },
+          {
+            "offset": 6917797,
+            "value": "N.Cz"
+          },
+          {
+            "offset": 6924696,
+            "value": "B.SY"
+          },
+          {
+            "offset": 6985480,
+            "value": "u.HI"
+          },
+          {
+            "offset": 6985681,
+            "value": "7q.En"
+          },
+          {
+            "offset": 7026607,
+            "value": "-.IMNs"
+          },
+          {
+            "offset": 7027064,
+            "value": "D.RSZ"
+          },
+          {
+            "offset": 7044543,
+            "value": "a.ee"
+          },
+          {
+            "offset": 7099090,
+            "value": "3.gC"
+          },
+          {
+            "offset": 7102668,
+            "value": "-.gD"
+          },
+          {
+            "offset": 7112246,
+            "value": "F.Nu"
+          },
+          {
+            "offset": 7195120,
+            "value": "K.Mib"
+          },
+          {
+            "offset": 7306055,
+            "value": "bO.YY"
+          },
+          {
+            "offset": 7363521,
+            "value": "x.Sd"
+          },
+          {
+            "offset": 7377773,
+            "value": "D.bE"
+          },
+          {
+            "offset": 7380459,
+            "value": "fZ.lrqKT"
+          },
+          {
+            "offset": 7426653,
+            "value": "F.Wy"
+          },
+          {
+            "offset": 7428496,
+            "value": "x.Xf"
+          },
+          {
+            "offset": 7457312,
+            "value": "2.jP"
+          },
+          {
+            "offset": 7460865,
+            "value": "m.Sg"
+          },
+          {
+            "offset": 7547376,
+            "value": "UQ.Jn"
+          },
+          {
+            "offset": 7569114,
+            "value": "J.SR"
+          },
+          {
+            "offset": 7587650,
+            "value": "z.QX"
+          },
+          {
+            "offset": 7605026,
+            "value": "N.ld"
+          },
+          {
+            "offset": 7634433,
+            "value": "k.an"
+          },
+          {
+            "offset": 7655959,
+            "value": "P.Qy"
+          },
+          {
+            "offset": 7657162,
+            "value": "nq.fM"
+          },
+          {
+            "offset": 7666586,
+            "value": "e6.Kja"
+          },
+          {
+            "offset": 7747076,
+            "value": "QT.jU"
+          },
+          {
+            "offset": 7792858,
+            "value": "yN.Gt"
+          },
+          {
+            "offset": 7797757,
+            "value": "X.miN"
+          },
+          {
+            "offset": 7802975,
+            "value": "-.EWs"
+          },
+          {
+            "offset": 7831660,
+            "value": "mu.xW"
+          },
+          {
+            "offset": 7846766,
+            "value": "dgI.ld"
+          },
+          {
+            "offset": 7847243,
+            "value": "L.DY"
+          },
+          {
+            "offset": 7872315,
+            "value": "q.LB"
+          },
+          {
+            "offset": 7902525,
+            "value": "E.rr"
+          },
+          {
+            "offset": 7922090,
+            "value": "1.Lh"
+          },
+          {
+            "offset": 7928764,
+            "value": "e.ts"
+          },
+          {
+            "offset": 7935389,
+            "value": "Po.vV"
+          },
+          {
+            "offset": 7941136,
+            "value": "fz.im"
+          },
+          {
+            "offset": 7957291,
+            "value": "L.za"
+          },
+          {
+            "offset": 7964003,
+            "value": "6.il"
+          },
+          {
+            "offset": 8079746,
+            "value": "T.Ms"
+          },
+          {
+            "offset": 8095445,
+            "value": "a.Ou"
+          },
+          {
+            "offset": 8101374,
+            "value": "r8.lS"
+          },
+          {
+            "offset": 8131448,
+            "value": "9e.ZR"
+          },
+          {
+            "offset": 8132646,
+            "value": "c.wIgs"
+          },
+          {
+            "offset": 8155272,
+            "value": "wA.qY"
+          },
+          {
+            "offset": 8172178,
+            "value": "U.cSi"
+          },
+          {
+            "offset": 8185212,
+            "value": "X.YI"
+          },
+          {
+            "offset": 8249798,
+            "value": "7.yAe"
+          },
+          {
+            "offset": 8387866,
+            "value": "Y.wD"
+          },
+          {
+            "offset": 8406250,
+            "value": "Z.Ej"
+          },
+          {
+            "offset": 8423260,
+            "value": "PMa.LJ"
+          },
+          {
+            "offset": 8443122,
+            "value": "p0k.Sr"
+          },
+          {
+            "offset": 8454647,
+            "value": "q.DYgaD"
+          },
+          {
+            "offset": 8483128,
+            "value": "7.Aj"
+          },
+          {
+            "offset": 8509336,
+            "value": "d.AU"
+          },
+          {
+            "offset": 8554431,
+            "value": "U.Ya"
+          },
+          {
+            "offset": 8595270,
+            "value": "B-H.UW"
+          },
+          {
+            "offset": 8632808,
+            "value": "z.Ch"
+          },
+          {
+            "offset": 8636120,
+            "value": "r.Vp"
+          },
+          {
+            "offset": 8644518,
+            "value": "0P.fR"
+          },
+          {
+            "offset": 8673342,
+            "value": "E.pe"
+          },
+          {
+            "offset": 8677584,
+            "value": "L.cM"
+          },
+          {
+            "offset": 8699311,
+            "value": "p.tO"
+          },
+          {
+            "offset": 8730932,
+            "value": "Yd.fC"
+          },
+          {
+            "offset": 8746919,
+            "value": "c.vc"
+          },
+          {
+            "offset": 8748391,
+            "value": "s.rR"
+          },
+          {
+            "offset": 8781927,
+            "value": "x.iC"
+          },
+          {
+            "offset": 8788752,
+            "value": "p.if"
+          },
+          {
+            "offset": 8824407,
+            "value": "M.WJ"
+          },
+          {
+            "offset": 8831007,
+            "value": "w.UpN"
+          },
+          {
+            "offset": 8846424,
+            "value": "x.ZP"
+          },
+          {
+            "offset": 8849005,
+            "value": "exY.Tt"
+          },
+          {
+            "offset": 8856854,
+            "value": "W.bt"
+          },
+          {
+            "offset": 8869469,
+            "value": "ZTtD.AY"
+          },
+          {
+            "offset": 8878733,
+            "value": "4M.mU"
+          },
+          {
+            "offset": 8901086,
+            "value": "M.KH"
+          },
+          {
+            "offset": 8913157,
+            "value": "N.HH"
+          },
+          {
+            "offset": 21080327,
+            "value": "R.bA"
+          },
+          {
+            "offset": 8969944,
+            "value": "hM.uU"
+          },
+          {
+            "offset": 8974145,
+            "value": "LY.Ey"
+          },
+          {
+            "offset": 8988293,
+            "value": "a.Wu"
+          },
+          {
+            "offset": 9017364,
+            "value": "Q.Jt"
+          },
+          {
+            "offset": 9017982,
+            "value": "J.SJx"
+          },
+          {
+            "offset": 9020277,
+            "value": "9.lx"
+          },
+          {
+            "offset": 9027832,
+            "value": "a.Xcwnt"
+          },
+          {
+            "offset": 9058762,
+            "value": "6.vlG"
+          },
+          {
+            "offset": 9079690,
+            "value": "1b.Ii"
+          },
+          {
+            "offset": 9081779,
+            "value": "3.wN"
+          },
+          {
+            "offset": 9105612,
+            "value": "b.v.Lu"
+          },
+          {
+            "offset": 9124501,
+            "value": "F.yR"
+          },
+          {
+            "offset": 9125249,
+            "value": "O.pmOR"
+          },
+          {
+            "offset": 9127234,
+            "value": "Y.yYKe"
+          },
+          {
+            "offset": 9144012,
+            "value": "c.RXv"
+          },
+          {
+            "offset": 9146610,
+            "value": "wa.fDU"
+          },
+          {
+            "offset": 9190188,
+            "value": "Zh.Gl"
+          },
+          {
+            "offset": 9245075,
+            "value": "f.XK"
+          },
+          {
+            "offset": 9251201,
+            "value": "L.bhI"
+          },
+          {
+            "offset": 9262551,
+            "value": "0.Jf"
+          },
+          {
+            "offset": 9265074,
+            "value": "R.Mi"
+          },
+          {
+            "offset": 9266758,
+            "value": "k.uPFr"
+          },
+          {
+            "offset": 9323293,
+            "value": "4.qMROA"
+          },
+          {
+            "offset": 9396575,
+            "value": "c.mR"
+          },
+          {
+            "offset": 9400704,
+            "value": "0.uQE"
+          },
+          {
+            "offset": 9487912,
+            "value": "u.oX"
+          },
+          {
+            "offset": 9496350,
+            "value": "-.lJ"
+          },
+          {
+            "offset": 9512853,
+            "value": "j.ym"
+          },
+          {
+            "offset": 9556537,
+            "value": "p.wgt"
+          }
+        ]
+      }
+    }
+  ],
+  "executed": false,
+  "network_contacted": false
+}

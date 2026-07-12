@@ -1,0 +1,21 @@
+title: ValleyRAT Temporary SYSTEM Task Adds Broad Defender Exclusions
+id: b0c129bf-5a08-499c-bf22-cb50de5d08dd
+status: experimental
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains|all:
+      - '/TN "Task1"'
+      - '/RL HIGHEST'
+      - 'Windows Defender\Exclusions\Paths'
+  condition: selection
+falsepositives:
+  - Poorly designed administrative scripts; validate parent process and subsequent Task1 deletion.
+level: high
+tags:
+  - attack.defense-evasion
+  - attack.t1562.001
+  - attack.t1053.005
