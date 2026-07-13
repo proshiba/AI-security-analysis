@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from emulators.valleyrat.vvas_client import parse_vvas_header
+
+
+def test_valid_vvas_header_matches() -> None:
+    raw = (307214).to_bytes(4, "little") + b"\0" * 10 + b"prefix"
+    parsed = parse_vvas_header(raw, expected_stage_size=307214, expected_header_size=14)
+    assert parsed["header_matches"] is True
+    assert parsed["status"] == "confirmed_vvas_c2"
+
+
+def test_short_response_is_mismatch() -> None:
+    parsed = parse_vvas_header(b"\x0e", expected_stage_size=307214, expected_header_size=14)
+    assert parsed["header_matches"] is False
+    assert parsed["declared_stage2_size"] is None
+    assert parsed["status"] == "protocol_mismatch"
+
+
+def test_wrong_stage_size_is_mismatch() -> None:
+    raw = (1234).to_bytes(4, "little") + b"\0" * 10
+    parsed = parse_vvas_header(raw, expected_stage_size=307214, expected_header_size=14)
+    assert parsed["header_matches"] is False
+    assert parsed["declared_stage2_size"] == 1234
+
+
+def test_nonzero_padding_is_mismatch() -> None:
+    raw = (307214).to_bytes(4, "little") + b"\0" * 9 + b"X"
+    parsed = parse_vvas_header(raw, expected_stage_size=307214, expected_header_size=14)
+    assert parsed["header_matches"] is False
+
+
+def test_empty_response_is_connected_no_response() -> None:
+    parsed = parse_vvas_header(b"", expected_stage_size=307214, expected_header_size=14)
+    assert parsed["header_matches"] is False
+    assert parsed["status"] == "connected_no_response"
