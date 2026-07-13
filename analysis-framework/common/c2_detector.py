@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Bounded C2 liveness and Internet-scanner fingerprint collection.
 
 The probe never downloads a declared stage, follows redirects, or executes data.
@@ -24,6 +24,7 @@ from pathlib import Path
 
 
 def murmur3_32(data: bytes, seed: int = 0) -> int:
+    """Implement the murmur3 32 operation for the analysis framework."""
     c1, c2, h1 = 0xCC9E2D51, 0x1B873593, seed & 0xFFFFFFFF
     rounded = len(data) & ~3
     for offset in range(0, rounded, 4):
@@ -54,29 +55,35 @@ def murmur3_32(data: bytes, seed: int = 0) -> int:
 
 class TitleParser(html.parser.HTMLParser):
     def __init__(self) -> None:
+        """Implement the   init   operation for the analysis framework."""
         super().__init__()
         self.in_title = False
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, _attrs) -> None:
+        """Implement the handle starttag operation for the analysis framework."""
         if tag.lower() == "title":
             self.in_title = True
 
     def handle_endtag(self, tag: str) -> None:
+        """Implement the handle endtag operation for the analysis framework."""
         if tag.lower() == "title":
             self.in_title = False
 
     def handle_data(self, data: str) -> None:
+        """Implement the handle data operation for the analysis framework."""
         if self.in_title:
             self.parts.append(data)
 
     @property
     def title(self) -> str | None:
+        """Implement the title operation for the analysis framework."""
         value = " ".join(" ".join(self.parts).split())
         return value[:512] or None
 
 
 def parse_headers(raw: bytes) -> tuple[int | None, dict[str, str], bytes]:
+    """Implement the parse headers operation for the analysis framework."""
     head, separator, body = raw.partition(b"\r\n\r\n")
     lines = head.split(b"\r\n")
     status = None
@@ -92,6 +99,7 @@ def parse_headers(raw: bytes) -> tuple[int | None, dict[str, str], bytes]:
 
 
 def read_bounded(sock: socket.socket, maximum: int) -> bytes:
+    """Implement the read bounded operation for the analysis framework."""
     chunks, total = [], 0
     while total < maximum:
         try:
@@ -106,6 +114,7 @@ def read_bounded(sock: socket.socket, maximum: int) -> bytes:
 
 
 def tls_metadata(sock: ssl.SSLSocket) -> dict:
+    """Implement the tls metadata operation for the analysis framework."""
     der = sock.getpeercert(binary_form=True)
     result = {
         "version": sock.version(),
@@ -129,6 +138,7 @@ def tls_metadata(sock: ssl.SSLSocket) -> dict:
 
 
 def collect_jarm(host: str, port: int, script: Path | None, timeout: float) -> dict:
+    """Implement the collect jarm operation for the analysis framework."""
     if not script or not script.is_file():
         return {"status": "not_collected", "reason": "official Salesforce JARM script not found"}
     try:
@@ -151,6 +161,7 @@ def collect_jarm(host: str, port: int, script: Path | None, timeout: float) -> d
 
 
 def probe(args) -> dict:
+    """Implement the probe operation for the analysis framework."""
     started = time.perf_counter()
     result = {
         "schema_version": 2, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -253,6 +264,7 @@ def probe(args) -> dict:
 
 
 def main() -> int:
+    """Implement the main operation for the analysis framework."""
     parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
     parser.add_argument("host")
     parser.add_argument("port", type=int)

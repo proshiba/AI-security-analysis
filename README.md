@@ -187,3 +187,9 @@ MSI/CAB custom action 系のケース:
 - [analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md](analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md): ValleyRAT解析ワークフロー
 - [analysis-results/README.md](analysis-results/README.md): 公開可能な結果の保存方針
 - [analysis-results/valleyrat/README.md](analysis-results/valleyrat/README.md): ValleyRAT結果一覧
+
+### 新規開発メモ: マルウェア種指定とSandbox evidence
+
+- `analysis-framework/classifiers/classify_sample.py` は `--malware-type <registered-type>` を受け付け、登録済み detector のうち指定種別だけを実行できます。種別指定は handler 選択の補助であり、campaign type は引き続き構造証跡に基づいて選びます。
+- `analysis-framework/Invoke-Analysis.ps1` では `-MalwareType` で同じ指定ができます。
+- `analysis-framework/common/vt_sandbox.py` は VirusTotal の file behaviours relationship から sandbox verdict、process、domain/IP を正規化し、`virustotal-sandbox.json` として保存します。VirusTotal 情報は相関用 evidence であり、IP/domain 単独では C2 確定に使いません。

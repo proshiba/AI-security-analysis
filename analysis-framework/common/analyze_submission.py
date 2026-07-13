@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Recursively inventory MalwareBazaar ZIP, nested ZIP/MSI/CAB and PE objects in memory."""
 from __future__ import annotations
 import argparse, hashlib, io, json, math, re, zipfile
@@ -7,13 +7,17 @@ import cabarchive, olefile, pefile, pyzipper
 
 NETWORK = re.compile(rb"(?:https?://[^\x00-\x20\"'<>]{4,300}|(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,24}(?::\d{1,5})?)", re.I)
 
-def sha(data: bytes) -> str: return hashlib.sha256(data).hexdigest()
+def sha(data: bytes) -> str:
+    """Return the SHA-256 hex digest for an in-memory blob."""
+    return hashlib.sha256(data).hexdigest()
 def entropy(data: bytes) -> float:
+    """Implement the entropy operation for the analysis framework."""
     if not data: return 0.0
     counts = [0] * 256
     for value in data: counts[value] += 1
     return round(-sum((n/len(data))*math.log2(n/len(data)) for n in counts if n), 4)
 def strings(data: bytes) -> list[dict]:
+    """Implement the strings operation for the analysis framework."""
     found=[]
     for match in NETWORK.finditer(data):
         value=match.group().decode("latin1",errors="replace").rstrip(".,;)")
@@ -25,6 +29,7 @@ def strings(data: bytes) -> list[dict]:
     return list(unique.values())[:500]
 
 def pe_info(data: bytes) -> dict:
+    """Implement the pe info operation for the analysis framework."""
     pe=pefile.PE(data=data,fast_load=False)
     imports={}
     for entry in getattr(pe,"DIRECTORY_ENTRY_IMPORT",[]):
@@ -42,6 +47,7 @@ def pe_info(data: bytes) -> dict:
     return {"machine":hex(pe.FILE_HEADER.Machine),"timestamp":pe.FILE_HEADER.TimeDateStamp,"entry_point_rva":hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint),"image_base":hex(pe.OPTIONAL_HEADER.ImageBase),"imphash":pe.get_imphash(),"sections":sections,"imports":imports,"exports":exports,"overlay":{"size":len(overlay),"sha256":sha(overlay) if overlay else None,"entropy":entropy(overlay)},"authenticode_blob":cert,"network_strings":strings(data)}
 
 def analyze_blob(name: str, data: bytes, depth: int=0) -> dict:
+    """Implement the analyze blob operation for the analysis framework."""
     result={"name":name,"size":len(data),"sha256":sha(data),"magic":data[:16].hex(),"entropy":entropy(data)}
     if data.startswith(b"MZ"):
         result["type"]="pe"
@@ -64,14 +70,17 @@ def analyze_blob(name: str, data: bytes, depth: int=0) -> dict:
     return result
 
 def analyze_zip(data: bytes, depth: int) -> list[dict]:
+    """Implement the analyze zip operation for the analysis framework."""
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         return [analyze_blob(item.filename,archive.read(item),depth) for item in archive.infolist() if not item.is_dir()]
 
 def analyze_cab(data: bytes, depth: int) -> list[dict]:
+    """Implement the analyze cab operation for the analysis framework."""
     archive=cabarchive.CabArchive(data)
     return [analyze_blob(name,item.buf,depth) for name,item in archive.items()]
 
 def analyze_ole(data: bytes, depth: int) -> dict:
+    """Implement the analyze ole operation for the analysis framework."""
     ole=olefile.OleFileIO(io.BytesIO(data)); streams=[]
     for path in ole.listdir(streams=True,storages=False):
         blob=ole.openstream(path).read(); kind="data"
@@ -86,6 +95,7 @@ def analyze_ole(data: bytes, depth: int) -> dict:
     return {"stream_count":len(streams),"streams":streams}
 
 def main() -> int:
+    """Implement the main operation for the analysis framework."""
     parser=argparse.ArgumentParser()
     parser.add_argument("--outer-zip",required=True,type=Path)
     parser.add_argument("--password",default="infected")
