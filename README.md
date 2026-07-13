@@ -13,13 +13,15 @@ analysis-framework/              # 解析・分類を実行するコード
   classifiers/                   # 検体から malware_type / campaign_type を選ぶ分類器
   registry/                      # malware_type と detector の登録
   malware/<malware-type>/        # 種別固有の detector / campaign handler / config / docs / tests
+emulators/                      # 防御目的のプロトコルエミュレータ
+  <malware-type>/               # マルウェア種別ごとの安全な通信再現ツール
 analysis-results/                # 検体を含まない公開可能な解析結果
   <malware-type>/cases/<sha256>/ # 検体SHA-256ごとのレポートと成果物
 analysis_history.yaml            # 過去解析の一覧とREADME用サマリの元データ
 README.md                        # このファイル
 ```
 
-新しいマルウェア種を追加するときは、独立したトップレベルディレクトリを増やさず、解析コードを `analysis-framework/malware/<type>/`、結果を `analysis-results/<type>/` に追加します。共通化できる処理や識別器は `analysis-framework/common/` または `analysis-framework/classifiers/` へ昇格します。
+新しいマルウェア種を追加するときは、独立したトップレベルディレクトリを増やさず、解析コードを `analysis-framework/malware/<type>/`、結果を `analysis-results/<type>/`、防御目的の通信再現ツールを `emulators/<type>/` に追加します。共通化できる処理や識別器は `analysis-framework/common/` または `analysis-framework/classifiers/` へ昇格します。
 
 ## インストール方法
 
