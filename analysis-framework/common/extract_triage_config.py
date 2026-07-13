@@ -1,29 +1,61 @@
 #!/usr/bin/env python3
 """Extract normalized AgentTesla or Remcos configuration fields from Triage text."""
 from __future__ import annotations
-import argparse,json,re
+import argparse
+import re
 from pathlib import Path
-def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--text',required=True,type=Path);ap.add_argument('--output',required=True,type=Path);a=ap.parse_args();lines=[x.strip()for x in a.text.read_text(encoding='utf-8',errors='replace').splitlines()if x.strip()]
-    low=[x.lower()for x in lines];family='agenttesla' if 'agenttesla' in low else ('remcos' if 'remcos' in low else 'unknown');configs=[]
-    if family=='agenttesla':
-        for i,x in enumerate(low):
-            if x!='protocol' or i+1>=len(lines):continue
-            c={'protocol':lines[i+1]}
-            for key in ('Host','Port','Username','Password'):
-                try:j=lines.index(key,i+1,min(len(lines),i+40));c[key.lower()]=lines[j+1] if j+1<len(lines) else None
-                except ValueError:pass
-            if c not in configs:configs.append(c)
-    elif family=='remcos':
-        version=None
-        for i,x in enumerate(low):
-            if x=='version' and i+1<len(lines) and re.match(r'\d+\.\d+',lines[i+1]):version=lines[i+1];break
-        c2=[]
-        for i,x in enumerate(lines):
-            if x=='C2':
-                for v in lines[i+1:i+20]:
-                    if v in ('Attributes','audio_folder','remcos.exe','copy_folder','Signatures'):break
-                    if re.fullmatch(r'(?:[A-Za-z0-9.-]+|(?:\d{1,3}\.){3}\d{1,3}):\d{1,5}',v) and v not in c2:c2.append(v)
-        if version or c2:configs=[{'version':version,'c2':c2}]
-    result={'family':family,'configs':configs,'source':str(a.text),'executed_locally':False};a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(result,ensure_ascii=False))
-if __name__=='__main__':main()
+from malware_io import write_json
+
+def find_value(lines: list[str], key: str, start: int, window: int = 40) -> str | None:
+    try:
+        index = lines.index(key, start, min(len(lines), start + window))
+    except ValueError:
+        return None
+    return lines[index + 1] if index + 1 < len(lines) else None
+
+def agenttesla_configs(lines: list[str], lowered: list[str]) -> list[dict]:
+    configs = []
+    for index, value in enumerate(lowered):
+        if value != "protocol" or index + 1 >= len(lines):
+            continue
+        config = {"protocol": lines[index + 1]}
+        for key in ("Host", "Port", "Username", "Password"):
+            config[key.lower()] = find_value(lines, key, index + 1)
+        if config not in configs:
+            configs.append(config)
+    return configs
+
+def remcos_configs(lines: list[str], lowered: list[str]) -> list[dict]:
+    version = None
+    for index, value in enumerate(lowered):
+        if value == "version" and index + 1 < len(lines) and re.match(r"\d+\.\d+", lines[index + 1]):
+            version = lines[index + 1]
+            break
+    endpoints = []
+    stop = {"Attributes", "audio_folder", "remcos.exe", "copy_folder", "Signatures"}
+    for index, value in enumerate(lines):
+        if value != "C2":
+            continue
+        for candidate in lines[index + 1:index + 20]:
+            if candidate in stop:
+                break
+            if re.fullmatch(r"(?:[A-Za-z0-9.-]+|(?:\d{1,3}\.){3}\d{1,3}):\d{1,5}", candidate) and candidate not in endpoints:
+                endpoints.append(candidate)
+    return [{"version": version, "c2": endpoints}] if version or endpoints else []
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--text", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args()
+    lines = [line.strip() for line in args.text.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+    lowered = [line.lower() for line in lines]
+    family = "agenttesla" if "agenttesla" in lowered else ("remcos" if "remcos" in lowered else "unknown")
+    configs = agenttesla_configs(lines, lowered) if family == "agenttesla" else (remcos_configs(lines, lowered) if family == "remcos" else [])
+    result = {"schema_version": 2, "family": family, "configs": configs, "source": str(args.text), "executed_locally": False}
+    write_json(args.output, result)
+    print({"family": family, "config_count": len(configs)})
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

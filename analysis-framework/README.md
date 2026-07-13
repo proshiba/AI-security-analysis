@@ -70,3 +70,7 @@ python analysis-framework/common/vt_sandbox.py \
 
 ## 生成物
 検体の実行、ライブC2接続、認証情報の公開は既定で行いません。`c2_detector.py` のライブ確認は別途承認された場合だけ利用します。Ghidra MCPはlocalhost限定とし、任意スクリプト実行は無効のままにします。
+
+## リファクタ後の共通I/O
+
+AES-ZIP認証、パス検証、文字コード判定、batch stage、失敗時の確認点は [Safe submission I/O and batch workflow](docs/SAFE-SUBMISSION-IO.md) を参照してください。

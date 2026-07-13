@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -12,13 +13,26 @@ CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 def load_detector(framework_root: Path, relative_path: str):
     """Load and return a registered malware detector function by relative path."""
+    common = str(framework_root / "common")
+    if common not in sys.path:
+        sys.path.insert(0, common)
     path = framework_root / relative_path
-    spec = importlib.util.spec_from_file_location(f"malware_detector_{path.stem}", path)
+    spec = importlib.util.spec_from_file_location(
+        f"malware_detector_{path.parent.name}_{path.stem}", path
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load detector: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.detect
+
+
+def detection_uses_known_inner(detection: dict) -> bool:
+    """Return whether a detector matched a reviewed inner-object SHA-256."""
+    return any(
+        "known inner SHA-256" in candidate.get("reasons", [])
+        for candidate in detection.get("campaigns", [])
+    )
 
 
 def _unknown_result(
@@ -47,7 +61,7 @@ def _unknown_result(
 
 
 def classify(path: Path, registry: Path, malware_type: str | None = None) -> dict[str, Any]:
-    """Classify a sample with all detectors or a user-selected malware type.
+    """Classify using all detectors or one explicitly selected type.
 
     An explicit type limits detector routing but does not independently select a
     campaign. Detector failures are isolated so one optional family handler
@@ -72,16 +86,25 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
             detector_errors[registered_type] = f"{type(exc).__name__}: {exc}"
             detection = {"matched": False, "observations": {}, "campaigns": []}
 
-        known_hash = digest in {value.lower() for value in metadata.get("known_sample_sha256", [])}
-        if malware_type or known_hash or detection.get("matched"):
-            confidence = "high" if known_hash else ("medium" if detection.get("matched") else "low")
+        known_outer = digest in {value.lower() for value in metadata.get("known_sample_sha256", [])}
+        known_inner = detection_uses_known_inner(detection)
+        if malware_type or known_outer or detection.get("matched"):
+            confidence = (
+                "high"
+                if known_outer or known_inner
+                else ("medium" if detection.get("matched") else "low")
+            )
             basis = (
                 "known_outer_sha256"
-                if known_hash
+                if known_outer
                 else (
-                    "type_detector_structure_or_inner_hash"
-                    if detection.get("matched")
-                    else "explicit_user_type_unmatched"
+                    "known_inner_sha256"
+                    if known_inner
+                    else (
+                        "type_detector_structure"
+                        if detection.get("matched")
+                        else "explicit_user_type_unmatched"
+                    )
                 )
             )
             detections.append(
@@ -136,7 +159,9 @@ def main() -> int:
     args = parser.parse_args()
     result = classify(args.sample, args.registry, args.malware_type)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.output.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
