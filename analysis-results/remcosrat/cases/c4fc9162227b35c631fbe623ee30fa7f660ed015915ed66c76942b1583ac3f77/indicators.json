@@ -1,0 +1,15 @@
+{
+  "sha256": "c4fc9162227b35c631fbe623ee30fa7f660ed015915ed66c76942b1583ac3f77",
+  "artifact": "PE32",
+  "campaign": "direct_native_pe",
+  "stage_urls": [],
+  "c2": [],
+  "version": "not recovered",
+  "notes": [
+    "Native x86 Remcos with browser theft, keylogging, mutex and IP-geolocation strings",
+    "MalwareBazaar tag mentions 37.27.30.5, but no port/config was independently recovered; do not promote the tag pivot to confirmed C2"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

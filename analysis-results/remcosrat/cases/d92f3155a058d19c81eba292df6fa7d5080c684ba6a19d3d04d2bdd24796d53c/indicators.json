@@ -1,0 +1,17 @@
+{
+  "sha256": "d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c",
+  "artifact": "JavaScript",
+  "campaign": "js_activex_staged_loader",
+  "stage_urls": [],
+  "c2": [
+    "79.141.165.55:2404"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "Large UTF-16 JavaScript padded with plausible library comments",
+    "Instantiates ActiveXObject, writes/launches a secondary JavaScript path, and leads to PowerShell in sandbox telemetry"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

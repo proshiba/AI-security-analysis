@@ -1,0 +1,22 @@
+{
+  "sha256": "d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8",
+  "artifact": "HTA",
+  "campaign": "hta_png_stage",
+  "stage_urls": [
+    "http://010013116117/img/MSI_PRO.png"
+  ],
+  "c2": [
+    "141.98.10.150:14641",
+    "141.98.10.150:14642",
+    "141.98.10.150:14643",
+    "141.98.10.150:14644"
+  ],
+  "version": "6.0.0 Pro",
+  "notes": [
+    "The stage host is preserved as an observed literal and was not validated as routable",
+    "Final configuration contains four fallback ports"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

@@ -1,0 +1,19 @@
+{
+  "sha256": "856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643",
+  "artifact": "JavaScript",
+  "campaign": "unicode_marker_powershell_png_stage",
+  "stage_urls": [
+    "https://magsa.com.pe/sorma/MSI_PRO.png"
+  ],
+  "c2": [
+    "ftp.orangesac.com:21"
+  ],
+  "protocol": "FTP",
+  "notes": [
+    "Remote PNG container used as a stage",
+    "Decoded stage is loaded in memory"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

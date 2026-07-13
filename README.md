@@ -158,6 +158,8 @@ MSI/CAB custom action 系のケース:
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
 | ValleyRAT | 7 | 2026-07-12 | `dll_sideload_vvas_bundle`, `msi_embedded_cab_custom_actions`, `installer_overlay_dropper`, `single_pe_direct`, `msi_embedded_pe_staged_download` |
+| AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
+| RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTA loaders, direct PE, ISO double-extension delivery |
 
 ### ValleyRAT 解析履歴
 
@@ -170,6 +172,13 @@ MSI/CAB custom action 系のケース:
 | 2026-07-12 | `15015ac7` | `dll_sideload_vvas_bundle` | static decode | `134.122.128.66:6666`, `134.122.128.66:8888` |
 | 2026-07-11 | `5bdcf2d4` | `installer_overlay_dropper` | static + sandbox evidence | `27.124.18.166:63016`, `27.124.18.166:63026` |
 | 2026-07-11 | `0e4931df` | `msi_embedded_pe_staged_download` | static + sandbox evidence | `8.210.15.149:28300` |
+
+### AgentTesla / RemcosRAT 解析履歴
+
+- AgentTesla: 10検体。FTP/SMTP設定、Unicodeマーカー/画像ステージ、AES/PowerShellメモリ内.NET、RARラッパーを整理しました。
+- RemcosRAT: 10検体。VBS/JS/HTA、直接PE、ISO二重拡張子を整理し、設定またはプロセス帰属付き証跡からC2を記録しました。
+- 20検体すべてでAES認証、内側SHA-256、family/campaign分類の回帰テストに合格しています。
+- 検体本体、復号payload、FTP/SMTP認証情報は公開成果物に含めていません。
 
 `analysis_history.yaml` の各要素には、解析日、検体SHA-256、解析レベル、campaign type、マッチした解析パターン、主要C2、結果ディレクトリ、補足メモを入れます。READMEの表を更新する際は、このYAMLを先に更新してください。
 
@@ -193,3 +202,5 @@ MSI/CAB custom action 系のケース:
 - `analysis-framework/classifiers/classify_sample.py` は `--malware-type <registered-type>` を受け付け、登録済み detector のうち指定種別だけを実行できます。種別指定は handler 選択の補助であり、campaign type は引き続き構造証跡に基づいて選びます。
 - `analysis-framework/Invoke-Analysis.ps1` では `-MalwareType` で同じ指定ができます。
 - `analysis-framework/common/vt_sandbox.py` は VirusTotal の file behaviours relationship から sandbox verdict、process、domain/IP を正規化し、`virustotal-sandbox.json` として保存します。VirusTotal 情報は相関用 evidence であり、IP/domain 単独では C2 確定に使いません。
+- [analysis-results/agenttesla/README.md](analysis-results/agenttesla/README.md): AgentTesla結果一覧
+- [analysis-results/remcosrat/README.md](analysis-results/remcosrat/README.md): RemcosRAT結果一覧

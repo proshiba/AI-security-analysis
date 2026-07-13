@@ -1,20 +1,43 @@
-﻿# Analysis framework
+# Analysis framework
 
-隍・焚縺ｮ繝槭Ν繧ｦ繧ｧ繧｢遞ｮ縺ｫ蟇ｾ蠢懊☆繧玖ｧ｣譫先ｩ溯・縺ｧ縺吶ＡInvoke-Analysis.ps1` 縺悟・騾夊ｭ伜挨蝎ｨ繧貞ｮ溯｡後＠縲～malware_type` 縺ｨ `campaign_type` 縺ｫ蟇ｾ蠢懊☆繧・handler 縺ｸ蜃ｦ逅・ｒ貂｡縺励∪縺吶・
-```text
-common/                    # ZIP螳牙・螻暮幕縲；hidra騾｣謳ｺ縺ｪ縺ｩ
-classifiers/               # family/campaign隴伜挨
-registry/                  # malware type縺ｨcampaign縺ｮ逋ｻ骭ｲ
-malware/<type>/
-  common/                  # type蜀・・騾壼・逅・  campaigns/<campaign>/    # 諢滓沒繝√ぉ繝ｼ繝ｳ蛻･handler
-  config/                  # profile/evidence metadata
-  docs/
-  tests/
+複数のマルウェア種と配布キャンペーンを、検体をローカル実行せずに整理するための解析基盤です。成果物は `analysis-results/<family>/` に分離します。
+
+## 実行順
+
+1. MalwareBazaarのパスワード付きZIPを `MalwareSamples/<Family>/<SHA256>/<SHA256>.zip` に置く。
+2. `Invoke-FamilyBatch.ps1` でAES認証、内側SHA-256、形式、スクリプト層、PEメタデータを抽出する。
+3. `classifiers/classify_sample.py` がマルウェア種を決め、その種の `detect.py` が配布/ローダーパターンを選ぶ。
+4. 公開サンドボックス証跡がある場合は `parse_triage_report.py` と `extract_triage_config.py` で補完する。ローカル実行結果と混同しない。
+5. レビュー済み `config/known-cases.json` から `generate_family_reports.py` で公開用レポートを生成する。
+6. `tests/Test-KnownFamilies.ps1` で既知検体を回帰テストする。
+
+```powershell
+.\Invoke-FamilyBatch.ps1 `
+  -Family agenttesla `
+  -SampleRoot C:\Users\Administrator\MalwareSamples\AgentTesla `
+  -Python C:\Users\Administrator\Tools\GhidraMCP\.venv\Scripts\python.exe
 ```
 
-ValleyRAT蝗ｺ譛峨・蜃ｦ逅・・ [malware/valleyrat](malware/valleyrat/README.md) 縺ｫ縺ゅｊ縺ｾ縺吶・
-## C2 live checks
+## 主な出力
 
+- `family-triage.json`: 内側メンバーのSHA-256、形式、エントロピー、静的IOC
+- `classification.json`: family、campaign pattern、判定理由、信頼度
+- `script-layers.json`: 文字コード、難読化候補、反復行、Base64候補
+- `triage-evidence.json`: 外部サンドボックス由来のC2、URL、プロセス（ローカル実行ではない）
+- `analysis-results/<family>/cases/<sha256>/README.md`: 公開用の検体別結果
+
+## 失敗時の確認点
+
+- `encrypted/password`: ZIPパスワードが `infected` か、`pyzipper` が導入済みか確認する。
+- `inner hash mismatch`: 処理を停止し、URL、外側ZIP、メンバー名、期待SHA-256を再確認する。
+- `unknown`: familyを決め打ちせず、形式・文字列・サンドボックス設定をレビューして新しいhandlerを追加する。
+- 大型一行JSで時間がかかる: 汎用正規表現を増やさず、サイズ上限付き抽出とfamily固有handlerを使う。
+- Defenderが復号PEを隔離: 保護を無効化せず、メモリ内解析、パスワードZIP、公開サンドボックス証跡を使う。
+- C2未抽出: MalwareBazaarタグだけを確定C2に昇格しない。設定抽出またはプロセス帰属付き通信を根拠にする。
+
+## 安全境界
+
+### C2生存確認
 C2生存確認は `common/c2_detector.py` に統合されている。profileにレビュー済み`live_c2_targets`があり、実行時に`-AllowLiveC2Check`を指定した場合だけ自動解析の末尾で実行する。TLS対象のJARMは追加で`-CollectJarm`を指定する。詳細は [C2-LIVENESS.md](common/C2-LIVENESS.md) を参照。
 
 ## Malware type selection, detector routing, and VirusTotal sandbox evidence
@@ -44,3 +67,6 @@ python analysis-framework/common/vt_sandbox.py \
   --api-key "$VT_API_KEY" \
   --output /tmp/virustotal-sandbox.json
 ```
+
+## 生成物
+検体の実行、ライブC2接続、認証情報の公開は既定で行いません。`c2_detector.py` のライブ確認は別途承認された場合だけ利用します。Ghidra MCPはlocalhost限定とし、任意スクリプト実行は無効のままにします。

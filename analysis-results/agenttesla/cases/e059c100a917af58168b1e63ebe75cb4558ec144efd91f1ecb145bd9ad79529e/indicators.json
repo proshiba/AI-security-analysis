@@ -1,0 +1,17 @@
+{
+  "sha256": "e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e",
+  "artifact": "RAR",
+  "campaign": "rar_wrapped_javascript",
+  "stage_urls": [],
+  "c2": [
+    "ftp.4bagh.net:21"
+  ],
+  "protocol": "FTP",
+  "notes": [
+    "RAR member SHA-256 equals 7f31b2c4...74d8 exactly",
+    "C2 is inherited from the byte-identical inner payload"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

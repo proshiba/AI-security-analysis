@@ -1,0 +1,17 @@
+{
+  "sha256": "04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1",
+  "artifact": "VBS",
+  "campaign": "vbs_wmi_powershell_loader",
+  "stage_urls": [],
+  "c2": [
+    "102.220.160.21:2404"
+  ],
+  "version": "not recovered",
+  "notes": [
+    "Obfuscated VBS with WScript/WMI-oriented execution path",
+    "External sandbox observed WScript and PowerShell before Remcos configuration extraction"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

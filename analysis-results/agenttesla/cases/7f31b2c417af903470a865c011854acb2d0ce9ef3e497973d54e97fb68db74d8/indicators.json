@@ -1,0 +1,17 @@
+{
+  "sha256": "7f31b2c417af903470a865c011854acb2d0ce9ef3e497973d54e97fb68db74d8",
+  "artifact": "JavaScript",
+  "campaign": "javascript_aes_inmemory_dotnet",
+  "stage_urls": [],
+  "c2": [
+    "ftp.4bagh.net:21"
+  ],
+  "protocol": "FTP",
+  "notes": [
+    "Large one-line obfuscated JavaScript",
+    "PowerShell/AES and in-memory .NET loading behavior"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

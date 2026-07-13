@@ -1,0 +1,19 @@
+{
+  "sha256": "52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d",
+  "artifact": "PE32+",
+  "campaign": "direct_pe_aot",
+  "stage_urls": [],
+  "c2": [
+    "37.27.30.5:2404",
+    "37.27.30.5:2405",
+    "37.27.30.5:2406"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "64-bit native/AOT-like executable",
+    "Also delivered inside the b3d07e47 ISO sample"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}
