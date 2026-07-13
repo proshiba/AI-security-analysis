@@ -1,0 +1,21 @@
+title: Executable With Document Double Extension Launched From Mounted Image
+id: 2bf54b30-58d7-4c14-976a-87a351887dbf
+status: experimental
+description: Detects executable double extensions commonly used in the reviewed Remcos ISO delivery pattern.
+author: AI-security-analysis
+date: 2026-07-13
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  image:
+    Image|re: '(?i)\.(docx|pdf|xlsx|jpg|png)\.exe$'
+  removable_or_image_path:
+    Image|re: '(?i)^[D-Z]:\\'
+  condition: image and removable_or_image_path
+falsepositives:
+  - Poorly named internal utilities or self-extracting packages
+level: high
+tags:
+  - attack.execution
+  - attack.t1204.002

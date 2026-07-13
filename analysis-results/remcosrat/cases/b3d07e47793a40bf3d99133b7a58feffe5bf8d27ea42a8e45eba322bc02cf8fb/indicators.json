@@ -1,0 +1,19 @@
+{
+  "sha256": "b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb",
+  "artifact": "ISO9660",
+  "campaign": "iso_double_extension_pe",
+  "stage_urls": [],
+  "c2": [
+    "37.27.30.5:2404",
+    "37.27.30.5:2405",
+    "37.27.30.5:2406"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "ISO contains Bonifico n.1101252230290346.docx.exe",
+    "Contained PE SHA-256 equals 52bd61ba...acf5 exactly; configuration is inherited from that identical payload"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

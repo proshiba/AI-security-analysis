@@ -1,0 +1,19 @@
+{
+  "sha256": "a1391c592b986457334a361609a952d930182d892a7dd68ab17e6ea18fa4faf2",
+  "artifact": "JavaScript",
+  "campaign": "unicode_marker_powershell_stage",
+  "stage_urls": [
+    "https://misty-cherry-cea3.uploadsimg.workers.dev/pfCLO"
+  ],
+  "c2": [
+    "kesmn.com:2404"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "Unicode junk marker reconstruction",
+    "Remote stage and final C2 are distinct observables"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

@@ -1,0 +1,17 @@
+{
+  "sha256": "09cc1c77657400e803310dd7ba58a91854fb275e5b29adf53a6ee2827f848366",
+  "artifact": "VBS",
+  "campaign": "vbs_file_carving_powershell_loader",
+  "stage_urls": [],
+  "c2": [
+    "103.67.163.108:2404"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "Reads bytes from a benign Windows binary and reconstructs a PowerShell command",
+    "Launches through Shell.Application.ShellExecute"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

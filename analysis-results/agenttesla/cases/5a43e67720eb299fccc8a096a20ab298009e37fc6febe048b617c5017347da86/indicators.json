@@ -1,0 +1,19 @@
+{
+  "sha256": "5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86",
+  "artifact": "HTA",
+  "campaign": "unicode_marker_powershell_png_stage",
+  "stage_urls": [
+    "https://pub-abe8d802bc744774a9b93d3b00a23598.r2.dev/puazad.png"
+  ],
+  "c2": [
+    "ftp.dankely.org:21"
+  ],
+  "protocol": "FTP",
+  "notes": [
+    "Image-like remote stage",
+    "AgentTesla configuration extracted by external sandbox"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

@@ -4,3 +4,6 @@ pefile>=2024.8.26
 pyzipper>=0.3.6
 capstone>=5.0.0
 cryptography>=43.0.0
+PyYAML>=6.0.2
+yara-python>=4.5.0
+ruff>=0.15.21

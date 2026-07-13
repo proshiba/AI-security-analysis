@@ -106,3 +106,292 @@ analyses:
       - 8.210.15.149:28300
     result_path: analysis-results/valleyrat/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
     notes: 34UXpv.exe の DNS/C2 接続と防御回避を sandbox 証跡で確認。
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: 1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_png_stage
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Unicode junk marker removal reconstructs PowerShell'
+      - 'DownloadData, IN-/-in1 carving, character reversal, Base64 decode, in-memory .NET load'
+    c2:
+      - 'ftp.ltcresource.com.my:21'
+    result_path: analysis-results/agenttesla/cases/1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: 5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_png_stage
+    matched_patterns:
+      - 'HTA delivery artifact'
+      - 'Image-like remote stage'
+      - 'AgentTesla configuration extracted by external sandbox'
+    c2:
+      - 'ftp.dankely.org:21'
+    result_path: analysis-results/agenttesla/cases/5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: 7f31b2c417af903470a865c011854acb2d0ce9ef3e497973d54e97fb68db74d8
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: javascript_aes_inmemory_dotnet
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Large one-line obfuscated JavaScript'
+      - 'PowerShell/AES and in-memory .NET loading behavior'
+    c2:
+      - 'ftp.4bagh.net:21'
+    result_path: analysis-results/agenttesla/cases/7f31b2c417af903470a865c011854acb2d0ce9ef3e497973d54e97fb68db74d8/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: 856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_png_stage
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Remote PNG container used as a stage'
+      - 'Decoded stage is loaded in memory'
+    c2:
+      - 'ftp.orangesac.com:21'
+    result_path: analysis-results/agenttesla/cases/856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: 98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: fromcharcode_eval_loader
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'fromCharCode/eval-style JavaScript loader'
+      - 'AgentTesla SMTP exfiltration configuration'
+    c2:
+      - 'smtp.hostinger.com:587'
+    result_path: analysis-results/agenttesla/cases/98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: javascript_aes_inmemory_dotnet
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Large one-line obfuscated JavaScript'
+      - 'Shares SMTP infrastructure and loader pattern with a74a948a'
+    c2:
+      - 'server275.web-hosting.com:587'
+    result_path: analysis-results/agenttesla/cases/a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: javascript_aes_inmemory_dotnet
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Large one-line obfuscated JavaScript'
+      - 'Shares SMTP infrastructure and loader pattern with a01716c2'
+    c2:
+      - 'server275.web-hosting.com:587'
+    result_path: analysis-results/agenttesla/cases/a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: javascript_aes_inmemory_dotnet
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Same SMTP host as two peers but different extracted credential material'
+      - 'Do not equate shared infrastructure with identical operator'
+    c2:
+      - 'server275.web-hosting.com:587'
+    result_path: analysis-results/agenttesla/cases/d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: rar_wrapped_javascript
+    matched_patterns:
+      - 'RAR delivery artifact'
+      - 'RAR member SHA-256 equals 7f31b2c4...74d8 exactly'
+      - 'C2 is inherited from the byte-identical inner payload'
+    c2:
+      - 'ftp.4bagh.net:21'
+    result_path: analysis-results/agenttesla/cases/e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-13
+    sample_sha256: efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_png_stage
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Shares stage URL with 1fe1d42d but has a different final FTP endpoint'
+      - 'Illustrates why delivery and payload/config clustering must remain separate'
+    c2:
+      - 'ftp.cyberflor.co:21'
+    result_path: analysis-results/agenttesla/cases/efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: 04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: vbs_wmi_powershell_loader
+    matched_patterns:
+      - 'VBS delivery artifact'
+      - 'Obfuscated VBS with WScript/WMI-oriented execution path'
+      - 'External sandbox observed WScript and PowerShell before Remcos configuration extraction'
+    c2:
+      - '102.220.160.21:2404'
+    result_path: analysis-results/remcosrat/cases/04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: 09cc1c77657400e803310dd7ba58a91854fb275e5b29adf53a6ee2827f848366
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: vbs_file_carving_powershell_loader
+    matched_patterns:
+      - 'VBS delivery artifact'
+      - 'Reads bytes from a benign Windows binary and reconstructs a PowerShell command'
+      - 'Launches through Shell.Application.ShellExecute'
+    c2:
+      - '103.67.163.108:2404'
+    result_path: analysis-results/remcosrat/cases/09cc1c77657400e803310dd7ba58a91854fb275e5b29adf53a6ee2827f848366/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: 3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_stage
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Unicode junk marker reconstruction'
+      - 'Remote stage is transformed and loaded in memory'
+    c2:
+      - 'thrillermotion.4nmn.com:2022'
+    result_path: analysis-results/remcosrat/cases/3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: 47af1f0d9932840767920b3cb2befb3839bbc980e610c6a14327edf1b1682b2d
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: hta_png_stage
+    matched_patterns:
+      - 'HTA delivery artifact'
+      - 'HTA retrieves an image-named stage'
+      - 'One configuration contains multiple fallback ports'
+    c2:
+      - 'pavementmg.duckdns.org:4450'
+      - 'pavementmg.duckdns.org:4551'
+      - 'pavementmg.duckdns.org:4553'
+    result_path: analysis-results/remcosrat/cases/47af1f0d9932840767920b3cb2befb3839bbc980e610c6a14327edf1b1682b2d/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: 52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: direct_pe_aot
+    matched_patterns:
+      - 'PE32+ delivery artifact'
+      - '64-bit native/AOT-like executable'
+      - 'Also delivered inside the b3d07e47 ISO sample'
+    c2:
+      - '37.27.30.5:2404'
+      - '37.27.30.5:2405'
+      - '37.27.30.5:2406'
+    result_path: analysis-results/remcosrat/cases/52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: a1391c592b986457334a361609a952d930182d892a7dd68ab17e6ea18fa4faf2
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: unicode_marker_powershell_stage
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Unicode junk marker reconstruction'
+      - 'Remote stage and final C2 are distinct observables'
+    c2:
+      - 'kesmn.com:2404'
+    result_path: analysis-results/remcosrat/cases/a1391c592b986457334a361609a952d930182d892a7dd68ab17e6ea18fa4faf2/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: iso_double_extension_pe
+    matched_patterns:
+      - 'ISO9660 delivery artifact'
+      - 'ISO contains Bonifico n.1101252230290346.docx.exe'
+      - 'Contained PE SHA-256 equals 52bd61ba...acf5 exactly; configuration is inherited from that identical payload'
+    c2:
+      - '37.27.30.5:2404'
+      - '37.27.30.5:2405'
+      - '37.27.30.5:2406'
+    result_path: analysis-results/remcosrat/cases/b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: c4fc9162227b35c631fbe623ee30fa7f660ed015915ed66c76942b1583ac3f77
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: direct_native_pe
+    matched_patterns:
+      - 'PE32 delivery artifact'
+      - 'Native x86 Remcos with browser theft, keylogging, mutex and IP-geolocation strings'
+      - 'MalwareBazaar tag mentions 37.27.30.5, but no port/config was independently recovered; do not promote the tag pivot to confirmed C2'
+    c2:
+      []
+    result_path: analysis-results/remcosrat/cases/c4fc9162227b35c631fbe623ee30fa7f660ed015915ed66c76942b1583ac3f77/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: hta_png_stage
+    matched_patterns:
+      - 'HTA delivery artifact'
+      - 'The stage host is preserved as an observed literal and was not validated as routable'
+      - 'Final configuration contains four fallback ports'
+    c2:
+      - '141.98.10.150:14641'
+      - '141.98.10.150:14642'
+      - '141.98.10.150:14643'
+      - '141.98.10.150:14644'
+    result_path: analysis-results/remcosrat/cases/d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-13
+    sample_sha256: d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c
+    analysis_level: static_plus_public_sandbox_evidence_review
+    campaign_type: js_activex_staged_loader
+    matched_patterns:
+      - 'JavaScript delivery artifact'
+      - 'Large UTF-16 JavaScript padded with plausible library comments'
+      - 'Instantiates ActiveXObject, writes/launches a secondary JavaScript path, and leads to PowerShell in sandbox telemetry'
+    c2:
+      - '79.141.165.55:2404'
+    result_path: analysis-results/remcosrat/cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/
+    notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'

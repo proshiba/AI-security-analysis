@@ -1,0 +1,19 @@
+{
+  "sha256": "3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac",
+  "artifact": "JavaScript",
+  "campaign": "unicode_marker_powershell_stage",
+  "stage_urls": [
+    "https://misty-cherry-cea3.uploadsimg.workers.dev/mNHLb"
+  ],
+  "c2": [
+    "thrillermotion.4nmn.com:2022"
+  ],
+  "version": "7.2.6 Pro",
+  "notes": [
+    "Unicode junk marker reconstruction",
+    "Remote stage is transformed and loaded in memory"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

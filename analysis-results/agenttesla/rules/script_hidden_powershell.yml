@@ -1,0 +1,32 @@
+title: Script Host Spawning Hidden PowerShell With Remote Image Stage
+id: 8f89473f-bd1e-4eeb-a495-04da076149bf
+status: experimental
+description: Detects a reviewed AgentTesla/Remcos delivery behavior; correlate with network and file telemetry.
+author: AI-security-analysis
+date: 2026-07-13
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  parent:
+    ParentImage|endswith:
+      - '\\wscript.exe'
+      - '\\cscript.exe'
+      - '\\mshta.exe'
+  child:
+    Image|endswith: '\\powershell.exe'
+  suspicious_cli:
+    CommandLine|contains:
+      - 'DownloadData'
+      - 'FromBase64String'
+      - 'WindowStyle Hidden'
+      - '-w hidden'
+  condition: parent and child and suspicious_cli
+falsepositives:
+  - Administrative automation using Windows Script Host and hidden PowerShell
+  - Software deployment or logon scripts
+level: high
+tags:
+  - attack.execution
+  - attack.t1059.001
+  - attack.t1059.005

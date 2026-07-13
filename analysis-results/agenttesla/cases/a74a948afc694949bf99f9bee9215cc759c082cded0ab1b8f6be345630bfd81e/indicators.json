@@ -1,0 +1,17 @@
+{
+  "sha256": "a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e",
+  "artifact": "JavaScript",
+  "campaign": "javascript_aes_inmemory_dotnet",
+  "stage_urls": [],
+  "c2": [
+    "server275.web-hosting.com:587"
+  ],
+  "protocol": "SMTP",
+  "notes": [
+    "Large one-line obfuscated JavaScript",
+    "Shares SMTP infrastructure and loader pattern with a01716c2"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

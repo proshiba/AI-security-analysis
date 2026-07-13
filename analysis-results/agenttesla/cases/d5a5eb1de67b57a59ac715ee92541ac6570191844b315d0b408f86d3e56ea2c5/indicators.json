@@ -1,0 +1,17 @@
+{
+  "sha256": "d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5",
+  "artifact": "JavaScript",
+  "campaign": "javascript_aes_inmemory_dotnet",
+  "stage_urls": [],
+  "c2": [
+    "server275.web-hosting.com:587"
+  ],
+  "protocol": "SMTP",
+  "notes": [
+    "Same SMTP host as two peers but different extracted credential material",
+    "Do not equate shared infrastructure with identical operator"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

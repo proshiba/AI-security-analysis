@@ -1,0 +1,17 @@
+{
+  "sha256": "98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce",
+  "artifact": "JavaScript",
+  "campaign": "fromcharcode_eval_loader",
+  "stage_urls": [],
+  "c2": [
+    "smtp.hostinger.com:587"
+  ],
+  "protocol": "SMTP",
+  "notes": [
+    "fromCharCode/eval-style JavaScript loader",
+    "AgentTesla SMTP exfiltration configuration"
+  ],
+  "executed_locally": false,
+  "network_contacted": false,
+  "credentials_published": false
+}

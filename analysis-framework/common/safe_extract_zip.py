@@ -1,26 +1,25 @@
 from __future__ import annotations
-
 import argparse
 import zipfile
 from pathlib import Path
-
+from malware_io import validate_member_name
 
 def main() -> int:
-    """Implement the main operation for the analysis framework."""
-    parser = argparse.ArgumentParser(description="Extract a ZIP after path traversal checks; never execute members.")
+    parser = argparse.ArgumentParser(description="Extract an ordinary ZIP after member-path checks; never execute members.")
     parser.add_argument("--archive", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
+    args.output.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.archive) as archive:
-        for item in archive.infolist():
-            member = Path(item.filename)
-            if member.is_absolute() or ".." in member.parts:
-                raise ValueError(f"unsafe archive member: {item.filename}")
-        args.output.mkdir(parents=True, exist_ok=True)
-        archive.extractall(args.output)
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            name = validate_member_name(info.filename)
+            target = args.output.joinpath(*Path(name).parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(info))
     print(f"Extracted safely to {args.output}; no member was executed.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
