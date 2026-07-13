@@ -1,9 +1,11 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $Sample,
     [Parameter(Mandatory)] [string] $OutputDirectory,
     [string] $ProfilePath,
     [string] $NetworkEvidence,
+    [string] $MalwareType,
+    [string] $VirusTotalApiKey = $env:VT_API_KEY,
     [switch] $AllowLiveC2Check,
     [switch] $CollectJarm,
     [string] $Python = 'C:\Users\Administrator\Tools\GhidraMCP\.venv\Scripts\python.exe'
@@ -26,9 +28,17 @@ $classifyArgs = @(
     '--registry', (Join-Path $root 'registry\malware_types.json'),
     '--output', $classification
 )
+if ($MalwareType) { $classifyArgs += @('--malware-type', $MalwareType) }
 Invoke-Python @classifyArgs
 
 $selected = Get-Content -Raw -Encoding UTF8 $classification | ConvertFrom-Json
+$vtSandboxEvidence = $null
+if ($VirusTotalApiKey) {
+    $vtSandboxEvidence = Join-Path $OutputDirectory 'virustotal-sandbox.json'
+    $sampleHash = $selected.observations.sha256
+    Invoke-Python (Join-Path $root 'common\vt_sandbox.py') '--sha256' $sampleHash '--api-key' $VirusTotalApiKey '--output' $vtSandboxEvidence
+}
+
 if ($selected.malware_type -ne 'valleyrat') {
     throw "No malware handler is registered for: $($selected.malware_type)"
 }
@@ -111,7 +121,8 @@ if ($AllowLiveC2Check) {
     campaign_type = $selected.campaign_type
     output_directory = $OutputDirectory
     executed = $false
-    network_contacted = [bool]$AllowLiveC2Check
+    network_contacted = [bool]($AllowLiveC2Check -or $VirusTotalApiKey)
+    vt_sandbox_evidence = $vtSandboxEvidence
     live_c2_results = $liveResults
 } | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'run-summary.json')
 

@@ -4,6 +4,7 @@ from pathlib import Path
 import pyzipper
 
 def sha256(path: Path) -> str:
+    """Implement the sha256 operation for the analysis framework."""
     h = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -11,12 +12,14 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 def safe_members(names: list[str]) -> None:
+    """Implement the safe members operation for the analysis framework."""
     for name in names:
         candidate = Path(name)
         if candidate.is_absolute() or ".." in candidate.parts:
             raise ValueError(f"unsafe archive member: {name}")
 
 def main() -> int:
+    """Implement the main operation for the analysis framework."""
     parser = argparse.ArgumentParser(description="Safely extract the MalwareBazaar and nested ZIP archives.")
     parser.add_argument("--archive", required=True, type=Path)
     parser.add_argument("--case-root", required=True, type=Path)

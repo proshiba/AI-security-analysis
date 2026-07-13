@@ -16,3 +16,31 @@ ValleyRAT蝗ｺ譛峨・蜃ｦ逅・・ [malware/valleyrat](malware/valleyrat/RE
 ## C2 live checks
 
 C2生存確認は `common/c2_detector.py` に統合されている。profileにレビュー済み`live_c2_targets`があり、実行時に`-AllowLiveC2Check`を指定した場合だけ自動解析の末尾で実行する。TLS対象のJARMは追加で`-CollectJarm`を指定する。詳細は [C2-LIVENESS.md](common/C2-LIVENESS.md) を参照。
+
+## Malware type selection, detector routing, and VirusTotal sandbox evidence
+
+`classifiers/classify_sample.py` supports two modes:
+
+- Default mode runs every detector registered in `registry/malware_types.json` and selects the malware type from observed structure or known SHA-256.
+- `--malware-type <registered-type>` restricts detection to one registered type. This is useful when starting a new analysis with analyst context, but campaign selection still requires detector observations; an explicit family value alone produces `campaign_type: unknown` when structure does not match.
+
+Example:
+
+```bash
+python analysis-framework/classifiers/classify_sample.py \
+  --sample /path/to/sample.zip \
+  --registry analysis-framework/registry/malware_types.json \
+  --malware-type valleyrat \
+  --output /tmp/classification.json
+```
+
+`Invoke-Analysis.ps1` forwards the same selection through `-MalwareType`. It can also collect VirusTotal sandbox behaviour summaries with `-VirusTotalApiKey` (or `VT_API_KEY`). The fetched `virustotal-sandbox.json` is intended as correlation evidence only: process-attributed sandbox network activity must still be correlated with decoded configuration, loader chains, or other static evidence before promoting an endpoint to confirmed C2.
+
+Standalone VirusTotal sandbox fetch:
+
+```bash
+python analysis-framework/common/vt_sandbox.py \
+  --sha256 <sample-sha256> \
+  --api-key "$VT_API_KEY" \
+  --output /tmp/virustotal-sandbox.json
+```
