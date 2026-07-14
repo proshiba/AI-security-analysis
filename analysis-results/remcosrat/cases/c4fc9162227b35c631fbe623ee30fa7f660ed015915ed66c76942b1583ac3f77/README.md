@@ -13,6 +13,15 @@
 - Native x86 Remcos with browser theft, keylogging, mutex and IP-geolocation strings
 - MalwareBazaar tag mentions 37.27.30.5, but no port/config was independently recovered; do not promote the tag pivot to confirmed C2
 
+## Behavior and C2 assessment
+
+- Observed in this case: Native x86 Remcos with browser theft, keylogging, mutex and IP-geolocation strings; MalwareBazaar tag mentions 37.27.30.5, but no port/config was independently recovered; do not promote the tag pivot to confirmed C2.
+- Expected payload behavior: After the payload is loaded, Remcos is expected to provide interactive remote administration such as command execution, file/process control, surveillance and persistence. These are family capabilities; the case report lists only behavior actually observed in its delivery/sandbox evidence.
+- C2 role assumption: interactive C2 is expected for Remcos, but no defensible host/port was recovered for this case.
+- Endpoint provenance: not recovered; family tags or infrastructure pivots were not promoted to confirmed C2.
+- Liveness: no live C2 check was performed for this case; current availability and server ownership remain unknown.
+- Confidence labels: delivery behavior is `confirmed` from static code/container structure; payload capability is `inferred` from family/config; listed final endpoints are `confirmed` only to the provenance stated above.
+
 ## Network observables
 
 - No independently confirmed final C2 endpoint was recovered.

@@ -2,6 +2,12 @@
 
 Ten MalwareBazaar submissions were triaged without local sample execution. Delivery patterns are kept separate from payload/config clusters because builders and infrastructure may be reused by different operators.
 
+## Family behavior and C2 model
+
+RemcosRAT is an interactive remote-administration implant. Its configured host/port values are expected to carry outbound tasking and result traffic; multiple ports in one configuration are treated as fallback candidates. Delivery URLs remain separate from final C2.
+
+Case reports separate observed delivery behavior, inferred family capability, endpoint provenance, and current liveness. No current case was executed locally or live-probed.
+
 | SHA-256 | Artifact | Pattern | Confirmed C2/config endpoint |
 |---|---|---|---|
 | [`04052c109be7…`](cases/04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1/README.md) | VBS | `vbs_wmi_powershell_loader` | `102.220.160.21:2404` |

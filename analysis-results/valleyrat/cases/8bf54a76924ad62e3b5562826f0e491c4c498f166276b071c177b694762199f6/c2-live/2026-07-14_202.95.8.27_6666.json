@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "timestamp_utc": "2026-07-14T12:49:11.874504+00:00",
+  "host": "202.95.8.27",
+  "port": 6666,
+  "protocol": "vvas",
+  "timeout_seconds": 8.0,
+  "maximum_response_bytes": 64,
+  "alive": false,
+  "c2_confirmed": false,
+  "network_contacted": true,
+  "resolved_ips": [
+    "202.95.8.27"
+  ],
+  "status": "closed",
+  "tcp_status": "closed",
+  "error": "[WinError 10061] No connection could be made because the target machine actively refused it",
+  "shodan": {
+    "banner_hash_algorithm": "signed MurmurHash3 x86_32 of captured raw banner bytes",
+    "queries": [
+      "ip:202.95.8.27 port:6666"
+    ],
+    "recommended_combination": "ip:202.95.8.27 port:6666",
+    "warning": "Revalidate fields in Shodan before operational use; banner, IP, certificate and JARM can change or be shared."
+  },
+  "elapsed_ms": 3129.41
+}

@@ -30,3 +30,13 @@ PID 3028 `34UXpv.exe`がdomainを反復照会しendpointへ接続したため高
 - YARA: final hashes、filenames、stage names、MSI embedded PE構造。
 - 誤検知: 一連のtask＋広範除外は低、OSS domainのみ中～高、msiexec単独は高。
 - Shodan: `ip:8.210.15.149 port:28300`。custom TCPでbanner未取得。`hostname:tlhcoz.net`はDNS pivotに限定。
+
+## Behavior and C2 assessment
+
+- Observed chain: MSI custom actions launch multiple stages, retrieve content from object storage, create a SYSTEM or highest-privilege task, weaken Defender, and execute 34UXpv.exe with XPSPLOG.dll.
+- Expected implant behavior: persistent staged ValleyRAT execution and remote tasking.
+- C2 role: object-storage URLs are distribution only; 8.210.15.149:28300 is the final process-attributed C2. tlhcoz.net is a related DNS pivot.
+- Evidence: sandbox process, DNS, and network attribution.
+- Confidence: confirmed.
+- Detection: correlate MSI actions, distribution-to-final-host transition, task and Defender changes, host/DLL relationship, and final endpoint. Object-storage-only detection is noisy.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

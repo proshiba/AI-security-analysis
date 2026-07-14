@@ -13,6 +13,15 @@
 - ISO contains Bonifico n.1101252230290346.docx.exe
 - Contained PE SHA-256 equals 52bd61ba...acf5 exactly; configuration is inherited from that identical payload
 
+## Behavior and C2 assessment
+
+- Observed in this case: ISO contains Bonifico n.1101252230290346.docx.exe; Contained PE SHA-256 equals 52bd61ba...acf5 exactly; configuration is inherited from that identical payload.
+- Expected payload behavior: After the payload is loaded, Remcos is expected to provide interactive remote administration such as command execution, file/process control, surveillance and persistence. These are family capabilities; the case report lists only behavior actually observed in its delivery/sandbox evidence.
+- C2 role assumption: long-lived outbound Remcos command-and-control channel; multiple host/port entries in one recovered configuration are treated as ordered fallback candidates, not separate malware families.
+- Endpoint provenance: inherited from a byte-identical inner payload; no independent endpoint extraction was claimed for the wrapper.
+- Liveness: no live C2 check was performed for this case; current availability and server ownership remain unknown.
+- Confidence labels: delivery behavior is `confirmed` from static code/container structure; payload capability is `inferred` from family/config; listed final endpoints are `confirmed` only to the provenance stated above.
+
 ## Network observables
 
 - Confirmed configuration/sandbox endpoint: `37.27.30.5:2404`

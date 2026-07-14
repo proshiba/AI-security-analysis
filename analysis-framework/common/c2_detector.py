@@ -22,6 +22,12 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from n520_protocol import build_packet as build_n520_packet
+from n520_protocol import decode_stream as decode_n520_stream
+from n520_protocol import derive_session_key as derive_n520_session_key
+from n520_protocol import extract_plugin as extract_n520_plugin
+from n520_protocol import parse_handshake as parse_n520_handshake
+
 
 def murmur3_32(data: bytes, seed: int = 0) -> int:
     """Implement the murmur3 32 operation for the analysis framework."""
@@ -113,6 +119,40 @@ def read_bounded(sock: socket.socket, maximum: int) -> bytes:
     return b"".join(chunks)
 
 
+def read_for_duration(sock: socket.socket, maximum: int, duration: float) -> bytes:
+    """Read a bounded N520 response window and stop cleanly on idle timeout."""
+    chunks, total = [], 0
+    deadline = time.monotonic() + duration
+    while total < maximum and time.monotonic() < deadline:
+        sock.settimeout(max(0.1, min(1.0, deadline - time.monotonic())))
+        try:
+            chunk = sock.recv(min(65536, maximum - total))
+        except socket.timeout:
+            continue
+        if not chunk:
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    return b"".join(chunks)
+
+
+def write_n520_archive(path: Path, password: str, frames: list[dict], plugins: list[dict]) -> None:
+    """Store encrypted frames and recovered plugin bytes only in an AES ZIP."""
+    import pyzipper
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with pyzipper.AESZipFile(
+        path, "w", compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES,
+    ) as archive:
+        archive.setpassword(password.encode())
+        archive.setencryption(pyzipper.WZ_AES, nbits=256)
+        for index, frame in enumerate(frames, 1):
+            archive.writestr(f"frames/{index:03d}-{frame['raw_sha256']}.bin", frame["raw"])
+        for plugin in plugins:
+            suffix = ".dll" if plugin["pe_magic"] else ".bin"
+            archive.writestr(f"payloads/{plugin['artifact_sha256']}{suffix}", plugin["artifact"])
+
+
 def tls_metadata(sock: ssl.SSLSocket) -> dict:
     """Implement the tls metadata operation for the analysis framework."""
     der = sock.getpeercert(binary_form=True)
@@ -166,7 +206,8 @@ def probe(args) -> dict:
     result = {
         "schema_version": 2, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "host": args.host, "port": args.port, "protocol": args.protocol,
-        "timeout_seconds": args.timeout, "maximum_response_bytes": 64 if args.protocol == "vvas" else args.max_bytes,
+        "timeout_seconds": args.timeout,
+        "maximum_response_bytes": 64 if args.protocol == "vvas" else (44 if args.protocol == "n520" else args.max_bytes),
         "alive": False, "c2_confirmed": False, "network_contacted": True,
     }
     try:
@@ -181,14 +222,70 @@ def probe(args) -> dict:
             result["tcp_status"] = "open"
             result["alive"] = True
             connection: socket.socket = base
-            if args.protocol in {"https", "tls"}:
+            if args.protocol in {"https", "tls", "n520"}:
                 context = ssl.create_default_context()
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE
-                connection = context.wrap_socket(base, server_hostname=args.sni or args.host)
+                sni = args.sni or ("update.microsoft.com" if args.protocol == "n520" else args.host)
+                connection = context.wrap_socket(base, server_hostname=sni)
                 tls = tls_metadata(connection)
                 result["tls"] = tls
-            if args.protocol == "vvas":
+            if args.protocol == "n520":
+                raw = read_bounded(connection, 44)
+                handshake = parse_n520_handshake(raw)
+                result.update({
+                    "n520_handshake": handshake,
+                    "status": "confirmed_n520_c2" if handshake["header_matches"] else (
+                        "protocol_mismatch" if raw else "connected_no_response"
+                    ),
+                    "c2_confirmed": handshake["header_matches"],
+                    "application_data_sent": False,
+                })
+                if handshake["header_matches"] and args.n520_checkin:
+                    session_id = handshake["session_id"]
+                    session_key = derive_n520_session_key(raw)
+                    checkin = build_n520_packet(session_id, 1, 1, b"", session_key)
+                    connection.sendall(checkin)
+                    result["application_data_sent"] = True
+                    response = read_for_duration(connection, args.n520_max_bytes, args.n520_wait)
+                    frames, remainder = decode_n520_stream(response, session_id, session_key, args.n520_max_frames)
+                    plugins = []
+                    for frame in frames:
+                        if frame.get("authenticated"):
+                            plugin = extract_n520_plugin(frame.get("command", -1), frame.get("payload", b""))
+                            if plugin:
+                                plugins.append(plugin)
+                    if args.artifact_zip:
+                        write_n520_archive(args.artifact_zip, args.archive_password, frames, plugins)
+                    frame_metadata = []
+                    for frame in frames:
+                        frame_metadata.append({
+                            key: value for key, value in frame.items()
+                            if key not in {"raw", "payload"}
+                        })
+                    plugin_metadata = []
+                    for plugin in plugins:
+                        plugin_metadata.append({
+                            key: value for key, value in plugin.items() if key != "artifact"
+                        })
+                    result["n520_collection"] = {
+                        "checkin_command": 1,
+                        "checkin_payload_size": 0,
+                        "checkin_packet_sha256": hashlib.sha256(checkin).hexdigest(),
+                        "application_data_sent": True,
+                        "station_id_sent": False,
+                        "response_bytes": len(response),
+                        "maximum_response_bytes": args.n520_max_bytes,
+                        "collection_window_seconds": args.n520_wait,
+                        "response_sha256": hashlib.sha256(response).hexdigest(),
+                        "frame_count": len(frames),
+                        "frames": frame_metadata,
+                        "trailing_unparsed_bytes": len(remainder),
+                        "plugins": plugin_metadata,
+                        "artifact_archive": str(args.artifact_zip) if args.artifact_zip else None,
+                        "payload_executed": False,
+                    }
+            elif args.protocol == "vvas":
                 payload = bytes.fromhex(args.send_hex or "333200")
                 connection.sendall(payload)
                 raw = read_bounded(connection, min(args.max_bytes, 64))
@@ -229,7 +326,7 @@ def probe(args) -> dict:
             "shodan_mmh3": murmur3_32(raw),
             "prefix_base64": base64.b64encode(raw[:512]).decode(),
         }
-    if args.collect_jarm and args.protocol in {"https", "tls"}:
+    if args.collect_jarm and args.protocol in {"https", "tls", "n520"}:
         result["jarm"] = collect_jarm(args.sni or args.host, args.port, args.jarm_script, args.timeout)
 
     try:
@@ -268,7 +365,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
     parser.add_argument("host")
     parser.add_argument("port", type=int)
-    parser.add_argument("--protocol", choices=["tcp", "vvas", "http", "https", "tls"], default="tcp")
+    parser.add_argument("--protocol", choices=["tcp", "vvas", "n520", "http", "https", "tls"], default="tcp")
     parser.add_argument("--timeout", type=float, default=5.0)
     parser.add_argument("--max-bytes", type=int, default=65536)
     parser.add_argument("--send-hex")
@@ -277,12 +374,24 @@ def main() -> int:
     parser.add_argument("--http-path", default="/")
     parser.add_argument("--http-host")
     parser.add_argument("--sni")
+    parser.add_argument("--n520-checkin", action="store_true", help="send one empty command-1 registration after a confirmed N520 handshake")
+    parser.add_argument("--n520-wait", type=float, default=15.0)
+    parser.add_argument("--n520-max-bytes", type=int, default=16 * 1024 * 1024)
+    parser.add_argument("--n520-max-frames", type=int, default=16)
+    parser.add_argument("--artifact-zip", type=Path)
+    parser.add_argument("--archive-password", default="infected")
     parser.add_argument("--collect-jarm", action="store_true")
     parser.add_argument("--jarm-script", type=Path, default=Path(r"C:\Users\Administrator\Tools\Salesforce-JARM\jarm.py"))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if not 1 <= args.port <= 65535 or not 0.1 <= args.timeout <= 30 or not 1 <= args.max_bytes <= 1048576:
         parser.error("port, timeout, or max-bytes is outside the allowed range")
+    if not 1 <= args.n520_wait <= 30 or not 1 <= args.n520_max_bytes <= 16 * 1024 * 1024 or not 1 <= args.n520_max_frames <= 64:
+        parser.error("N520 collection bounds are outside the allowed range")
+    if args.n520_checkin and args.protocol != "n520":
+        parser.error("--n520-checkin requires --protocol n520")
+    if args.n520_checkin and not args.artifact_zip:
+        parser.error("--n520-checkin requires --artifact-zip for contained evidence storage")
     try:
         ipaddress.ip_address(args.host)
     except ValueError:

@@ -12,6 +12,15 @@
 - Same SMTP host as two peers but different extracted credential material
 - Do not equate shared infrastructure with identical operator
 
+## Behavior and C2 assessment
+
+- Observed in this case: Same SMTP host as two peers but different extracted credential material; Do not equate shared infrastructure with identical operator.
+- Expected payload behavior: After the .NET payload is loaded, AgentTesla is expected to collect credentials and host/application data and exfiltrate them through its configured channel. This is family/config-derived capability unless process-attributed evidence says otherwise.
+- C2 role assumption: SMTP exfiltration/configuration endpoint used to upload stolen information; it is not assumed to be an interactive tasking server.
+- Endpoint provenance: external sandbox configuration or process-attributed evidence; the submitted loader alone did not establish the final endpoint.
+- Liveness: no live C2 check was performed for this case; current availability and server ownership remain unknown.
+- Confidence labels: delivery behavior is `confirmed` from static code/container structure; payload capability is `inferred` from family/config; listed final endpoints are `confirmed` only to the provenance stated above.
+
 ## Network observables
 
 - Confirmed configuration/sandbox endpoint: `server275.web-hosting.com:587`

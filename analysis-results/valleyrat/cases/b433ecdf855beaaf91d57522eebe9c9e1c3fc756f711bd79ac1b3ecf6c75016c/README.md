@@ -1,4 +1,4 @@
-﻿# ValleyRAT case: b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c
+# ValleyRAT case: b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c
 
 ## 1. 概要と判定
 
@@ -241,3 +241,13 @@ ssl.jarm:<62-character non-zero JARM>
 これらは単独で悪性を示さない。共有hosting/CDN、再発行証明書、同一TLS stackによる誤検知があるため、`hostname + port + certificate/JARM + malware process evidence`を組み合わせる。IPは最も変化しやすいため履歴・現在値を分ける。
 
 保存結果: `c2-live/2026-07-13_www.tq8j.com_443.json`。
+
+## Behavior and C2 assessment
+
+- Observed chain: MSI/OLE with embedded CAB and PE streams, mesedge.exe and cef_frame.dll side-loading, scheduled task creation, and Defender exclusion.
+- Expected implant behavior: persistent ValleyRAT execution and remote tasking from the side-loaded process.
+- C2 role: www.tq8j.com:443 is the primary endpoint; 103.45.64.246 is sandbox-associated resolution evidence.
+- Evidence: structural side-load analysis plus process-attributed sandbox communication.
+- Confidence: confirmed for the endpoint attribution; current liveness is time-dependent.
+- Detection: correlate MSI custom actions, the host/DLL pair, task and Defender changes, and network process attribution. Domain-only matching has high false-positive risk.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

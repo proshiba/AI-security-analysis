@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "analyzed_at": "2026-07-15T00:17:18+09:00",
+  "sample_sha256": "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae",
+  "config_distribution": {
+    "url": "http://118.107.21.88:9000/config.enc",
+    "http_status": 200,
+    "ciphertext_sha256": "26ab29657cbe2b9a48b687f583406467c4cda4ae9d3482392ec0b8be99ac9de"
+  },
+  "c2": {
+    "host": "118.107.21.88",
+    "port": 9999,
+    "protocol": "N520 over TLS 1.2",
+    "confirmed": true,
+    "sni": "update.microsoft.com",
+    "certificate_sha256": "263540c848347505671f444a551c087d94483d10a95672317b5bad99c5a4e184",
+    "handshake_length": 44,
+    "crc_matches": true,
+    "magic_matches": true
+  },
+  "collection": {
+    "checkin_command": 1,
+    "checkin_payload_size": 0,
+    "station_id_sent": false,
+    "window_seconds": 20,
+    "maximum_response_bytes": 16777216,
+    "response_bytes": 0,
+    "frames": 0,
+    "plugins": 0,
+    "fallback_c2": []
+  },
+  "payload_executed": false,
+  "arbitrary_commands_sent": false,
+  "notes": [
+    "Raw live evidence remains in restricted local analysis storage and is not committed."
+  ]
+}

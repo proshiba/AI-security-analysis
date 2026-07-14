@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "sha256": "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae",
+  "configuration_style": "N520 managed external/runtime configuration",
+  "config_key_ascii": "N520CfgKey!@#2026",
+  "config_key_sha256": "49613656c33c2693b03f48609ae8e2d90d20e0a4040f8377f278742c43cf4aa0",
+  "recovered_values": [
+    {
+      "source": "managed user string",
+      "ciphertext_base64": "I1Y9qQuau1uAmjUUc4oEGOVY3HMLfwFfs3XVQOoWnunKFCMmvxtETQ8ryexTkMRVXUIsq6zey00Wx1z8vuOnJA==",
+      "plaintext": "http://118.107.21.88:9000/config.enc",
+      "role": "cloud configuration endpoint; not confirmed final C2"
+    }
+  ],
+  "transport": {
+    "default_port": 8443,
+    "tls_server_name": "update.microsoft.com",
+    "handshake_size": 44,
+    "handshake_magic_hex": "0xA5A50000",
+    "integrity": "CRC32"
+  },
+  "executed": false,
+  "network_contacted": false
+}

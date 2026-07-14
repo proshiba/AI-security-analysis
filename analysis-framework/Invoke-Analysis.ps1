@@ -108,7 +108,7 @@ if ($AllowLiveC2Check) {
         if ($target.expected_stage_size) { $liveArgs += @('--expected-stage-size', ([string]$target.expected_stage_size)) }
         if ($target.http_host) { $liveArgs += @('--http-host', $target.http_host) }
         if ($target.sni) { $liveArgs += @('--sni', $target.sni) }
-        if ($CollectJarm -and $target.protocol -in @('https','tls')) { $liveArgs += '--collect-jarm' }
+        if ($CollectJarm -and $target.protocol -in @('https','tls','n520')) { $liveArgs += '--collect-jarm' }
         & $Python @liveArgs
         $probeExit = $LASTEXITCODE
         if ($probeExit -notin @(0,1)) { throw "C2 probe failed unexpectedly: $liveOutput" }

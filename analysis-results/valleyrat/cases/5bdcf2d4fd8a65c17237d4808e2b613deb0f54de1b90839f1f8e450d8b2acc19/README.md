@@ -28,3 +28,13 @@ Triage configとPID 5136 `dwmhost.exe`の63016反復接続により2つの630xx 
 - YARA: hashes、DLL名同居、stage URL、S2 config。Tencent COS単独は誤検知が高い。
 - 誤検知: path＋hash/C2は低、dwmhost名のみ中～高、COS通信のみ高。
 - Shodan: `ip:27.124.18.166 (port:63016 or port:63026)`。関連候補は `ip:27.124.18.142 port:443`。
+
+## Behavior and C2 assessment
+
+- Observed chain: a SysCEO or winget-style bundle uses dwmhost.exe with AliyunWrap.dll or edgestore.dll side-loading and retrieves or decodes qt64.dat.
+- Expected implant behavior: the side-loaded host starts the ValleyRAT second stage and accepts remote tasking.
+- C2 role: 27.124.18.166:63016 and 27.124.18.166:63026 are final configuration endpoints.
+- Evidence: Triage configuration and process-attributed communication.
+- Confidence: confirmed.
+- Detection: correlate the host/DLL pair, qt64.dat, process ancestry, and both ports. Endpoint-only matching has high false-positive risk.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

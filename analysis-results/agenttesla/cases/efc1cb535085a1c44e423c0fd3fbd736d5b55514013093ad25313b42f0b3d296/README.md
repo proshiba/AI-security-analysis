@@ -12,6 +12,16 @@
 - Shares stage URL with 1fe1d42d but has a different final FTP endpoint
 - Illustrates why delivery and payload/config clustering must remain separate
 
+## Behavior and C2 assessment
+
+- Observed in this case: Shares stage URL with 1fe1d42d but has a different final FTP endpoint; Illustrates why delivery and payload/config clustering must remain separate.
+- Expected payload behavior: After the .NET payload is loaded, AgentTesla is expected to collect credentials and host/application data and exfiltrate them through its configured channel. This is family/config-derived capability unless process-attributed evidence says otherwise.
+- C2 role assumption: FTP exfiltration/configuration endpoint used to upload stolen information; it is not assumed to be an interactive tasking server.
+- Endpoint provenance: external sandbox configuration or process-attributed evidence; the submitted loader alone did not establish the final endpoint.
+- Distribution separation: `https://misty-cherry-cea3.uploadsimg.workers.dev/yIPUi` are loader/stage locations and are not final C2 unless separately correlated.
+- Liveness: no live C2 check was performed for this case; current availability and server ownership remain unknown.
+- Confidence labels: delivery behavior is `confirmed` from static code/container structure; payload capability is `inferred` from family/config; listed final endpoints are `confirmed` only to the provenance stated above.
+
 ## Network observables
 
 - Confirmed configuration/sandbox endpoint: `ftp.cyberflor.co:21`

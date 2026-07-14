@@ -157,7 +157,7 @@ MSI/CAB custom action 系のケース:
 
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
-| ValleyRAT | 7 | 2026-07-12 | `dll_sideload_vvas_bundle`, `msi_embedded_cab_custom_actions`, `installer_overlay_dropper`, `single_pe_direct`, `msi_embedded_pe_staged_download` |
+| ValleyRAT | 11 | 2026-07-15 | `dll_sideload_vvas_bundle`, `msi_embedded_cab_custom_actions`, `installer_overlay_dropper`, `single_pe_direct`, `msi_embedded_pe_staged_download`, `single_pe_n520_managed`, `inno_installer_silverfox_unresolved`, `upx_nrv2e_silverfox_http_bundle`, `qt_static_obfuscated_silverfox` |
 | AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTA loaders, direct PE, ISO double-extension delivery |
 
@@ -172,6 +172,10 @@ MSI/CAB custom action 系のケース:
 | 2026-07-12 | `15015ac7` | `dll_sideload_vvas_bundle` | static decode | `134.122.128.66:6666`, `134.122.128.66:8888` |
 | 2026-07-11 | `5bdcf2d4` | `installer_overlay_dropper` | static + sandbox evidence | `27.124.18.166:63016`, `27.124.18.166:63026` |
 | 2026-07-11 | `0e4931df` | `msi_embedded_pe_staged_download` | static + sandbox evidence | `8.210.15.149:28300` |
+| 2026-07-15 | `d11e7931` | `single_pe_n520_managed` | deep static + bounded protocol validation | config `118.107.21.88:9000`; C2 `118.107.21.88:9999` |
+| 2026-07-15 | `df603ed5` | `inno_installer_silverfox_unresolved` | static + public evidence correlation | inferred `oidng2.duoshit.com:443` / `51.79.18.52:443` |
+| 2026-07-15 | `6546aad6` | `upx_nrv2e_silverfox_http_bundle` | deep static recovery | distribution `43.198.235.91:80`; final C2 unresolved |
+| 2026-07-15 | `32146526` | `qt_static_obfuscated_silverfox` | static + DNS correlation | `cqbxbkj.cn` / `18.167.91.239`; port `8880` unverified |
 
 ### AgentTesla / RemcosRAT 解析履歴
 
@@ -196,6 +200,7 @@ MSI/CAB custom action 系のケース:
 - [analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md](analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md): ValleyRAT解析ワークフロー
 - [analysis-results/README.md](analysis-results/README.md): 公開可能な結果の保存方針
 - [analysis-results/valleyrat/README.md](analysis-results/valleyrat/README.md): ValleyRAT結果一覧
+- [analysis-results/valleyrat/BEHAVIOR-C2.md](analysis-results/valleyrat/BEHAVIOR-C2.md): 感染チェーン別の挙動、C2役割、確度、N520 protocol
 
 ### 新規開発メモ: マルウェア種指定とSandbox evidence
 

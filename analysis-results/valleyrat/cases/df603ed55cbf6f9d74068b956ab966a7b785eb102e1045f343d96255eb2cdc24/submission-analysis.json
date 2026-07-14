@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "sha256": "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+  "size": 5487909,
+  "architecture": "x86",
+  "container": "Inno Setup installer",
+  "overlay": {
+    "size": 4559653,
+    "entropy": 8.0,
+    "sha256": "49a65fec8729f35c0df1a50f064a007a33ca22bcc409bea216d2fe5e0311dee7"
+  },
+  "confirmed_c2": [],
+  "attribution": "MalwareBazaar labels conflict (Gh0stRAT signature; ValleyRAT/SilverFox tags); payload unresolved",
+  "executed": false,
+  "network_contacted": false
+}

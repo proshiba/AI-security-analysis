@@ -17,6 +17,7 @@ $tools = @{
     Marker = Join-Path $framework 'common\strip_unicode_marker.py'
     VbsTrace = Join-Path $framework 'common\trace_vbs_variables.py'
     Iso = Join-Path $framework 'common\analyze_iso9660.py'
+    AgentTeslaRecover = Join-Path $framework 'malware\agenttesla\agenttesla_recover.py'
     Classifier = Join-Path $framework 'classifiers\classify_sample.py'
 }
 
@@ -56,6 +57,9 @@ foreach ($case in $cases) {
         if ($classification.campaign_type -match 'unicode_marker|png_stage') {
             Invoke-PythonStage 'unicode-marker' @($tools.Marker,'--outer-zip',$zip,'--output-dir',(Join-Path $out 'deobfuscated'),'--password',$Password) $completed
         }
+    }
+    if ($Family -eq 'agenttesla') {
+        Invoke-PythonStage 'agenttesla-static-recovery' @($tools.AgentTeslaRecover,'--outer-zip',$zip,'--output-dir',(Join-Path $out 'agenttesla-static-recovery'),'--password',$Password) $completed
     }
     if ($extension -in @('.iso','.img')) {
         Invoke-PythonStage 'iso9660' @($tools.Iso,'--outer-zip',$zip,'--output',(Join-Path $out 'iso9660.json'),'--password',$Password) $completed

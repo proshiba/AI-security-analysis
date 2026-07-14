@@ -107,6 +107,63 @@ analyses:
     result_path: analysis-results/valleyrat/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
     notes: 34UXpv.exe の DNS/C2 接続と防御回避を sandbox 証跡で確認。
 
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae
+    analysis_level: deep_static_plus_bounded_protocol_validation
+    campaign_type: single_pe_n520_managed
+    matched_patterns:
+      - N520 managed loader and encrypted config distribution
+      - TLS with update.microsoft.com SNI and Windows Update-themed certificate
+      - server-first 44-byte handshake and bounded empty command-1 collection
+    c2:
+      - 118.107.21.88:9999
+    result_path: analysis-results/valleyrat/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/
+    notes: 'Config distribution was 118.107.21.88:9000/config.enc. No station ID, plugin, fallback C2, or operator command was received during the bounded 2026-07-15 validation.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24
+    analysis_level: static_plus_public_evidence_correlation
+    campaign_type: inno_installer_silverfox_unresolved
+    matched_patterns:
+      - Inno installer and SilverFox-style delivery chain
+      - child payload recovery blocked locally by Defender quarantine
+      - public IOC correlation to domain and port 443
+    c2:
+      - oidng2.duoshit.com:443
+      - 51.79.18.52:443
+    result_path: analysis-results/valleyrat/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/
+    notes: 'Endpoint is inferred from external evidence; final local payload/config was not recovered.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1
+    analysis_level: deep_static_recovery
+    campaign_type: upx_nrv2e_silverfox_http_bundle
+    matched_patterns:
+      - UPX NRV2E unpacking and modified-RC4 recovery
+      - Tencent-signed host with nvml.dll side-loading bundle
+      - HTTP stage distribution separated from final C2
+    c2:
+      []
+    result_path: analysis-results/valleyrat/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1/
+    notes: 'Confirmed distribution URL was http://43.198.235.91/getinstall64; final ValleyRAT C2 remained unresolved.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab
+    analysis_level: static_plus_dns_correlation
+    campaign_type: qt_static_obfuscated_silverfox
+    matched_patterns:
+      - Qt-linked statically obfuscated SilverFox-style artifact
+      - domain resolution correlation without protocol confirmation
+      - similar-campaign port candidate kept unverified
+    c2:
+      - cqbxbkj.cn
+      - 18.167.91.239
+    result_path: analysis-results/valleyrat/cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/
+    notes: 'Port 8880 is an unverified similar-campaign lead and refused connection during the prior bounded check; it is not recorded as confirmed C2.'
   - malware_type: AgentTesla
     analyzed_at: 2026-07-13
     sample_sha256: 1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed
