@@ -1,0 +1,21 @@
+{
+    "sha256":  "6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955",
+    "artifact":  "libfilezilla-43.dll",
+    "campaign":  "direct_dotnet_quasar_module",
+    "source":  "https://bazaar.abuse.ch/sample/6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955/",
+    "c2_candidates":  [
+                          "sznftk1.it.com:1002",
+                          "eeee456.it.com:1002",
+                          "xelamnces.online:1002"
+                      ],
+    "c2_confidence":  "static_config_candidate",
+    "markers":  [
+                    "Quasar.Client",
+                    "xClient.Core",
+                    "RECONNECTDELAY",
+                    "INSTALLNAME",
+                    "browser login SQL"
+                ],
+    "executed_locally":  false,
+    "network_contacted":  false
+}

@@ -104,6 +104,28 @@ def parse_headers(raw: bytes) -> tuple[int | None, dict[str, str], bytes]:
     return status, headers, body if separator else b""
 
 
+def mxgo_loopback_target(host: str) -> bool:
+    """Restrict active MX-Go protocol emulation to the local lab."""
+    return host.lower() in {"localhost", "127.0.0.1", "::1"}
+
+
+def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
+    """Build a synthetic heartbeat without collecting host identifiers."""
+    return {
+        "client_id": client_id[:128],
+        "mxc_id": "LAB-MXC-000000000000",
+        "app_version": "2.0.0-go-portable",
+        "license_key": "LAB_ONLY",
+        "go_version": "lab",
+        "is_running": False,
+        "is_sending": False,
+        "sent_total": 0,
+        "sent_today": 0,
+        "fail_today": 0,
+        "lab_emulator": True,
+    }
+
+
 def read_bounded(sock: socket.socket, maximum: int) -> bytes:
     """Implement the read bounded operation for the analysis framework."""
     chunks, total = [], 0
@@ -210,6 +232,23 @@ def probe(args) -> dict:
         "maximum_response_bytes": 64 if args.protocol == "vvas" else (44 if args.protocol == "n520" else args.max_bytes),
         "alive": False, "c2_confirmed": False, "network_contacted": True,
     }
+    if args.protocol == "mxgo" and args.mxgo_mode == "preview":
+        body = json.dumps(build_mxgo_heartbeat(args.mxgo_client_id), separators=(",", ":")).encode()
+        result.update({
+            "status": "dry_run",
+            "network_contacted": False,
+            "application_data_sent": False,
+            "mxgo_request_preview": {
+                "method": "POST",
+                "path": "/api/v1/heartbeat_direct",
+                "content_type": "application/json",
+                "body_length": len(body),
+                "body_sha256": hashlib.sha256(body).hexdigest(),
+                "fields": sorted(build_mxgo_heartbeat(args.mxgo_client_id)),
+                "uses_real_machine_identity": False,
+            },
+        })
+        return result
     try:
         result["resolved_ips"] = sorted({item[4][0] for item in socket.getaddrinfo(args.host, args.port, type=socket.SOCK_STREAM)})
     except OSError as exc:
@@ -298,6 +337,59 @@ def probe(args) -> dict:
                     "status": "confirmed_vvas_c2" if header_matches else ("protocol_mismatch" if raw else "connected_no_response"),
                     "c2_confirmed": header_matches,
                 })
+            elif args.protocol == "mxgo":
+                host_header = f"{args.host}:{args.port}"
+                if args.mxgo_mode == "checkin":
+                    request_body = json.dumps(
+                        build_mxgo_heartbeat(args.mxgo_client_id), separators=(",", ":"),
+                    ).encode()
+                    request = (
+                        f"POST /api/v1/heartbeat_direct HTTP/1.1\r\nHost: {host_header}\r\n"
+                        f"User-Agent: MX-Go-Lab-Detector/1\r\nContent-Type: application/json\r\n"
+                        f"Content-Length: {len(request_body)}\r\nConnection: close\r\n\r\n"
+                    ).encode() + request_body
+                else:
+                    request_body = b""
+                    request = (
+                        f"GET {args.mxgo_recipient_path} HTTP/1.1\r\nHost: {host_header}\r\n"
+                        "User-Agent: MX-Go-Lab-Detector/1\r\nConnection: close\r\n\r\n"
+                    ).encode()
+                connection.sendall(request)
+                raw = read_bounded(connection, args.max_bytes)
+                status, headers, response_body = parse_headers(raw)
+                result.update({
+                    "status": "mxgo_lab_response" if status else ("protocol_mismatch" if raw else "connected_no_response"),
+                    "application_data_sent": True,
+                    "mxgo_mode": args.mxgo_mode,
+                    "http": {"status": status, "headers": headers, "path": (
+                        "/api/v1/heartbeat_direct" if args.mxgo_mode == "checkin" else args.mxgo_recipient_path
+                    )},
+                })
+                if args.mxgo_mode == "checkin":
+                    try:
+                        decoded = json.loads(response_body)
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        decoded = {}
+                    lab_marker = isinstance(decoded, dict) and decoded.get("lab_emulator") is True
+                    result["c2_confirmed"] = lab_marker
+                    result["mxgo_checkin"] = {
+                        "synthetic_identity_sent": True,
+                        "real_machine_identity_sent": False,
+                        "response_is_lab_emulator": lab_marker,
+                        "response_keys": sorted(decoded) if isinstance(decoded, dict) else [],
+                        "command_values_returned": False,
+                    }
+                else:
+                    lines = [line.strip() for line in response_body.decode("utf-8", errors="replace").splitlines() if line.strip()]
+                    address_like = [line for line in lines if re.fullmatch(r"[^@\s]+@[^@\s]+", line)]
+                    result["mxgo_recipients"] = {
+                        "count": len(address_like),
+                        "response_sha256": hashlib.sha256(response_body).hexdigest(),
+                        "values_redacted": True,
+                        "all_addresses_use_invalid_tld": bool(address_like) and all(
+                            value.rsplit("@", 1)[-1].endswith(".invalid") for value in address_like
+                        ),
+                    }
             elif args.protocol in {"http", "https"}:
                 host_header = args.http_host or args.sni or args.host
                 request = f"GET {args.http_path} HTTP/1.1\r\nHost: {host_header}\r\nUser-Agent: c2-detector/2\r\nAccept: text/html,*/*;q=0.1\r\nConnection: close\r\n\r\n".encode()
@@ -365,7 +457,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
     parser.add_argument("host")
     parser.add_argument("port", type=int)
-    parser.add_argument("--protocol", choices=["tcp", "vvas", "n520", "http", "https", "tls"], default="tcp")
+    parser.add_argument("--protocol", choices=["tcp", "vvas", "n520", "http", "https", "tls", "mxgo"], default="tcp")
     parser.add_argument("--timeout", type=float, default=5.0)
     parser.add_argument("--max-bytes", type=int, default=65536)
     parser.add_argument("--send-hex")
@@ -374,6 +466,10 @@ def main() -> int:
     parser.add_argument("--http-path", default="/")
     parser.add_argument("--http-host")
     parser.add_argument("--sni")
+    parser.add_argument("--mxgo-mode", choices=["preview", "checkin", "recipients"], default="preview")
+    parser.add_argument("--mxgo-client-id", default="LAB-MXGO-000000000000")
+    parser.add_argument("--mxgo-recipient-path", default="/jp01.txt")
+    parser.add_argument("--mxgo-allow-loopback-network", action="store_true")
     parser.add_argument("--n520-checkin", action="store_true", help="send one empty command-1 registration after a confirmed N520 handshake")
     parser.add_argument("--n520-wait", type=float, default=15.0)
     parser.add_argument("--n520-max-bytes", type=int, default=16 * 1024 * 1024)
@@ -388,6 +484,13 @@ def main() -> int:
         parser.error("port, timeout, or max-bytes is outside the allowed range")
     if not 1 <= args.n520_wait <= 30 or not 1 <= args.n520_max_bytes <= 16 * 1024 * 1024 or not 1 <= args.n520_max_frames <= 64:
         parser.error("N520 collection bounds are outside the allowed range")
+    if args.protocol == "mxgo" and args.mxgo_mode != "preview":
+        if not mxgo_loopback_target(args.host):
+            parser.error("active MX-Go emulation is loopback-only")
+        if not args.mxgo_allow_loopback_network:
+            parser.error("active MX-Go emulation requires --mxgo-allow-loopback-network")
+        if not re.fullmatch(r"/[A-Za-z0-9._/-]{1,200}", args.mxgo_recipient_path):
+            parser.error("invalid MX-Go recipient fixture path")
     if args.n520_checkin and args.protocol != "n520":
         parser.error("--n520-checkin requires --protocol n520")
     if args.n520_checkin and not args.artifact_zip:
@@ -402,7 +505,7 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if result.get("alive") else 1
+    return 0 if result.get("alive") or result.get("status") == "dry_run" else 1
 
 
 if __name__ == "__main__":

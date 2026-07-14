@@ -1,0 +1,19 @@
+title: MX-Go Content and Configuration Host DNS Query
+id: 355910c6-d033-4349-bd65-890b84077f8e
+status: experimental
+description: Detects DNS resolution of the host observed in both MX-Go sandbox runs and embedded configuration URLs.
+author: AI-security-analysis
+date: 2026-07-15
+logsource:
+  category: dns_query
+  product: windows
+detection:
+  selection:
+    QueryName: 'www.iainglespa.com'
+  condition: selection
+falsepositives:
+  - Unrelated content served from the domain after compromise or ownership change
+level: high
+tags:
+  - attack.command-and-control
+  - attack.t1071.004

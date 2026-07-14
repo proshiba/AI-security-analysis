@@ -52,3 +52,9 @@ Outputs are written below `<OutputDirectory>/c2-live/`. `-CollectJarm` causes te
 - An all-zero JARM represents no fingerprint and must never become a Shodan query.
 - A custom-protocol banner hash is useful in Shodan only if Shodan used a compatible probe payload.
 - Store timestamped results and do not overwrite historical DNS/IP/certificate observations.
+
+## MX-Go local-only protocol mode
+
+`mxgo` is a containment-first lab mode. `preview` renders a synthetic heartbeat description without DNS or network activity. `checkin` and `recipients` are accepted only for `localhost`, `127.0.0.1`, or `::1` and require `--mxgo-allow-loopback-network`. The recipient result contains count/hash only. See `emulators/unclassified/mx_go/README.md`.
+
+This mode intentionally cannot check in to a live third-party MX-Go server or retrieve real recipient data.

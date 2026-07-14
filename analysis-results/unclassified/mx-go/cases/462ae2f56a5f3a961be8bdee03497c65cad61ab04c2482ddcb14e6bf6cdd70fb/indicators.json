@@ -1,0 +1,17 @@
+{
+  "submission_sha256": "462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb",
+  "payload_sha256": "e25053585ac5e4f411f954fe7bedc8cb62672a3f9ae96b6022a7b7116700228e",
+  "cluster": "MX-Go",
+  "classification": "remotely_controlled_bulk_email_spam_bot",
+  "classification_confidence": "high",
+  "control_server_candidates": [{"endpoint": "43.165.179.173:5000", "source": "embedded_config", "sandbox_observed_connected": false, "live_tcp_open_2026_07_15": true, "matching_api_routes_confirmed": true}],
+  "content_config_hosts": [{"domain": "www.iainglespa.com", "sandbox_observed_connected": true, "live_tls_open_2026_07_15": true, "known_paths_appear_gated_or_disabled": true}],
+  "cloudflare_edge_ips": ["104.21.4.118", "172.67.132.11"],
+  "mutexes": ["Local\\MX_Go_SingleInstance_v1"],
+  "ja3": ["e69402f870ecf542b4f017b0ed32936a"],
+  "ja3s": ["eb1d94daa7e0344597e756a1fb6e7054"],
+  "deployment_path": "%USERPROFILE%\\Documents\\mx\\mx-go.exe",
+  "executed_locally": false,
+  "sample_execution_network_contacted": false,
+  "bounded_live_infrastructure_check_performed": true
+}

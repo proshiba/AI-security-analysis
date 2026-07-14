@@ -1,0 +1,20 @@
+title: MX-Go Embedded HTTP Control Server Connection
+id: 29c23495-13dd-44cb-a482-a37773a6b19a
+status: experimental
+description: Detects a connection to the statically configured MX-Go control server; the public sandbox did not observe this flow.
+author: AI-security-analysis
+date: 2026-07-15
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    DestinationIp: '43.165.179.173'
+    DestinationPort: 5000
+  condition: selection
+falsepositives:
+  - IP reassignment or unrelated services on the same address and port
+level: medium
+tags:
+  - attack.command-and-control
+  - attack.t1071.001

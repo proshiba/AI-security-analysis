@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "checked_at_utc": "2026-07-14T21:03:37Z",
+  "checked_at_jst": "2026-07-15T06:03:37+09:00",
+  "scope": "bounded TCP, HTTP root, HTTP OPTIONS, TLS metadata, HEAD-only content checks",
+  "control_server": {
+    "endpoint": "43.165.179.173:5000",
+    "tcp_open": true,
+    "http_root_status": 404,
+    "server": "Werkzeug/3.1.8 Python/3.14.3",
+    "root_banner_sha256": "b31ad76cca159ac5782beb3c33799c28eae70e191f1d853c329e9bfb7960c6cc",
+    "root_banner_shodan_mmh3": -1999552396,
+    "confirmed_routes": {
+      "/api/v1/heartbeat_direct": ["POST", "OPTIONS"],
+      "/api/v1/activate": ["POST", "OPTIONS"],
+      "/api/v1/shutdown": ["POST", "OPTIONS"],
+      "/api/v1/selftest_result": ["POST", "OPTIONS"]
+    },
+    "legacy_or_unavailable_routes": ["/api/heartbeat", "/api/client_command/"],
+    "association_assessment": "high_confidence_active_mx_go_control_backend",
+    "application_checkin_sent": false,
+    "state_changing_request_sent": false
+  },
+  "content_host": {
+    "host": "www.iainglespa.com:443",
+    "tcp_tls_open": true,
+    "resolved_cloudflare_edges": ["104.21.4.118", "172.67.132.11"],
+    "tls_version": "TLSv1.3",
+    "cipher": "TLS_AES_256_GCM_SHA384",
+    "certificate_sha256": "66c472500a03b1e27f672e13d6c81053f2e584ae13b48aa5cc1b13327a965deb",
+    "certificate_subject": "CN=iainglespa.com",
+    "certificate_issuer": "CN=WE1,O=Google Trust Services,C=US",
+    "certificate_not_before": "2026-06-23T05:48:11Z",
+    "certificate_not_after": "2026-09-21T06:46:46Z",
+    "jarm": "27d40d40d00040d1dc42d43d00041d6183ff1bfae51ebd88d70384363d525c",
+    "http_server": "cloudflare",
+    "root_http_status": 200,
+    "root_body_title": "403 Forbidden",
+    "known_paths_head_status": 200,
+    "negative_control_head_status": 200,
+    "known_and_nonexistent_header_profile_matches": true,
+    "assessment": "host_alive_but_known_content_paths_appear_gated_placeholder_or_disabled",
+    "content_body_collected": false
+  },
+  "shodan_queries": [
+    "ip:43.165.179.173 port:5000",
+    "ip:43.165.179.173 port:5000 hash:-1999552396",
+    "hostname:www.iainglespa.com port:443",
+    "ssl.cert.fingerprint:66c472500a03b1e27f672e13d6c81053f2e584ae13b48aa5cc1b13327a965deb",
+    "ssl.jarm:27d40d40d00040d1dc42d43d00041d6183ff1bfae51ebd88d70384363d525c"
+  ],
+  "warnings": [
+    "The control-server banner and API routes may change.",
+    "Cloudflare edge IPs, certificate and JARM can be shared and must not be used alone.",
+    "No malware check-in, command retrieval, recipient-list download or email transmission was performed."
+  ],
+  "network_contacted": true
+}

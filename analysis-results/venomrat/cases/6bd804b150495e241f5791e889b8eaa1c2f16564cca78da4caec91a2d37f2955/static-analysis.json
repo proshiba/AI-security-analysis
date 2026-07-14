@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "sha256": "6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955",
+  "size": 12989312,
+  "format": "PE",
+  "machine": "0x8664",
+  "is_dotnet": true,
+  "campaign_type": "direct_dotnet_quasar_module",
+  "classification_confidence": "high",
+  "classification_markers": [
+    "Quasar.Client namespace",
+    "xClient.Core namespace",
+    "Quasar-style settings fields",
+    "reviewed hash"
+  ],
+  "endpoint_candidates": [
+    "eeee456.it.com:1002",
+    "sznftk1.it.com:1002",
+    "xelamnces.online:1002"
+  ],
+  "url_candidates": [
+    "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0E",
+    "http://cacerts.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crt0",
+    "http://cacerts.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crt0_",
+    "http://cacerts.digicert.com/DigiCertTrustedRootG4.crt0C",
+    "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0",
+    "http://crl3.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl0S",
+    "http://crl3.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crl0",
+    "http://crl3.digicert.com/DigiCertTrustedRootG4.crl0",
+    "http://crl4.digicert.com/DigiCertTrustedG4CodeSigningRSA4096SHA3842021CA1.crl0",
+    "http://ocsp.digicert.com0",
+    "http://ocsp.digicert.com0A",
+    "http://ocsp.digicert.com0C",
+    "http://ocsp.digicert.com0]",
+    "http://www.digicert.com/CPS0"
+  ],
+  "capability_terms": [
+    "CryptoStream",
+    "INSTALLNAME",
+    "MUTEX",
+    "Password",
+    "RECONNECTDELAY",
+    "SetWindowsHookEx"
+  ],
+  "resources": [
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "Quasar.Client.Formularios.SC.hbox01.resources",
+      "size": 180,
+      "embedded_entries": []
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "Quasar.Client.Formularios.NT01.resources",
+      "size": 180,
+      "embedded_entries": []
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "xClient.Formularios.SC.RECORTE_FLASH.resources",
+      "size": 180,
+      "embedded_entries": []
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "xClient.Properties.Resources.resources",
+      "size": 168984,
+      "embedded_entries": [
+        {
+          "name": "desigualdade",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "entropy": 0.0
+        },
+        {
+          "name": "360_F_106433697_6WFm70lWZERPZ3y0F8ka4iih0xzoQqjN",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "entropy": 0.0
+        },
+        {
+          "name": "information",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "entropy": 0.0
+        },
+        {
+          "name": "360_F_53897468_wvpQw0xC4Xn1j7H9jYpH4tbj1k8UxHMj",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "entropy": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "xClient.FormAtendimentoN1.resources",
+      "size": 180,
+      "embedded_entries": []
+    },
+    {
+      "kind": "pe_resource",
+      "type": "16",
+      "name": "1",
+      "language": 0,
+      "size": 1024,
+      "sha256": "91d65a4bdd9c428b622e72f87c3478c236fa249d6c082246cd096a5d51696fb2",
+      "entropy": 3.442
+    }
+  ],
+  "executed": false,
+  "network_contacted": false,
+  "limitations": [
+    "Endpoint candidates are literal static strings and require role validation.",
+    "High-entropy embedded resources are inventoried but are not assumed to be recovered payloads."
+  ]
+}

@@ -160,6 +160,7 @@ MSI/CAB custom action 系のケース:
 | ValleyRAT | 11 | 2026-07-15 | `dll_sideload_vvas_bundle`, `msi_embedded_cab_custom_actions`, `installer_overlay_dropper`, `single_pe_direct`, `msi_embedded_pe_staged_download`, `single_pe_n520_managed`, `inno_installer_silverfox_unresolved`, `upx_nrv2e_silverfox_http_bundle`, `qt_static_obfuscated_silverfox` |
 | AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTA loaders, direct PE, ISO double-extension delivery |
+| MX-Go (unclassified) | 1 | 2026-07-15 | Go bulk-mail engine, remote content/config, HTTP campaign control, Japan environment gate |
 
 ### ValleyRAT 解析履歴
 
@@ -209,3 +210,11 @@ MSI/CAB custom action 系のケース:
 - `analysis-framework/common/vt_sandbox.py` は VirusTotal の file behaviours relationship から sandbox verdict、process、domain/IP を正規化し、`virustotal-sandbox.json` として保存します。VirusTotal 情報は相関用 evidence であり、IP/domain 単独では C2 確定に使いません。
 - [analysis-results/agenttesla/README.md](analysis-results/agenttesla/README.md): AgentTesla結果一覧
 - [analysis-results/remcosrat/README.md](analysis-results/remcosrat/README.md): RemcosRAT結果一覧
+
+## VenomRAT (2026-07-15)
+
+Seven reviewed cases are documented under `analysis-results/venomrat`: four user-provided Japan-observed Triage submissions and three MalwareBazaar static-analysis samples. The reusable detector and resource/configuration triage tool are under `analysis-framework/malware/venomrat`.
+
+## MX-Go unclassified cluster (2026-07-15)
+
+One Triage submission was recovered and statically analyzed. The payload is a Go 1.26.1 remotely controlled bulk-email spam bot, not a general-purpose RAT. Analysis tools are under `analysis-framework/malware/unclassified/mx_go`; normalized results, C2/content infrastructure, and Sigma/YARA material are under `analysis-results/unclassified/mx-go`. A loopback-only C2/content server and client emulator are under `emulators/unclassified/mx_go`; active MX-Go modes in `c2_detector.py` are also loopback-only.

@@ -452,3 +452,89 @@ analyses:
       - '79.141.165.55:2404'
     result_path: analysis-results/remcosrat/cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'VBS and BITSAdmin staging', 'RuntimeBroker persistence and UAC-policy modification']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'RunOnce persistence']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'Run persistence and token/hook activity']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_disk_image
+    matched_patterns: ['IMG delivery', 'DLL hijacking', 'Run-key and process/token/hook behavior']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083/
+    notes: 'Japan observation is requester-supplied; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955
+    analysis_level: deep_static
+    campaign_type: direct_dotnet_quasar_module
+    matched_patterns: ['Quasar.Client and xClient.Core namespaces', 'Quasar-style configuration fields', 'Three literal port-1002 endpoint candidates']
+    c2: ['sznftk1.it.com:1002', 'eeee456.it.com:1002', 'xelamnces.online:1002']
+    result_path: analysis-results/venomrat/cases/6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955/
+    notes: 'C2 entries are static configuration candidates, not live-confirmed; sample not executed.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b
+    analysis_level: deep_static_unresolved_payload
+    campaign_type: dotnet_encrypted_resource_loader
+    matched_patterns: ['Image-extension masquerading .NET PE', 'AES/GZip/resource loading', '332036-byte entropy-7.999 embedded resource']
+    c2: []
+    result_path: analysis-results/venomrat/cases/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b/
+    notes: 'Final payload/configuration not recovered; absence of C2 is not evidence of no C2.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8
+    analysis_level: deep_static_unresolved_payload
+    campaign_type: native_resource_loader
+    matched_patterns: ['Native x64 loader', '24 PE resources', '956928-byte EXPAND/2499 recovery target']
+    c2: []
+    result_path: analysis-results/venomrat/cases/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8/
+    notes: 'Final payload/configuration not recovered; certificate URLs excluded from infrastructure.'
+
+  - malware_type: Unclassified-MX-Go
+    analyzed_at: 2026-07-15
+    sample_sha256: 462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb
+    analysis_level: deep_static_plus_public_sandbox_evidence_review
+    campaign_type: japan_remote_bulk_mailer
+    matched_patterns:
+      - 'Go 1.26.1 module mx-go with retained internal package and function symbols'
+      - 'Embedded control_server, recipient/template/domain configuration URLs'
+      - 'Japanese locale/timezone gate, MX direct delivery, DKIM/SPF automation'
+      - 'Self-copy to Documents\\mx, unique mutex, stable TLS flow in two Japanese sandboxes'
+    c2:
+      - '43.165.179.173:5000 (embedded control server; live TCP/API routes confirmed 2026-07-15, no check-in)'
+      - 'www.iainglespa.com:443 (content/config host; sandbox connected, live TLS open but paths gated/disabled)'
+    result_path: analysis-results/unclassified/mx-go/cases/462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb/
+    notes: 'Classified as an unclassified remotely controlled bulk-email spam bot, not a general RAT. Sample was not executed. Bounded 2026-07-15 live check found the control port open and four exact API routes; no POST/check-in or content bodies were sent/retrieved. Added a loopback-only C2/content emulator and synthetic client/recipient validation.'

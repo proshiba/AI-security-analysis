@@ -1,0 +1,18 @@
+{
+    "sha256":  "3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b",
+    "artifact":  "imagetxt0074751.png",
+    "campaign":  "dotnet_encrypted_resource_loader",
+    "source":  "https://bazaar.abuse.ch/sample/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b/",
+    "embedded_payload_candidate":  {
+                                       "name":  "Osddmqvmi",
+                                       "sha256":  "56885090885afb11b855bbdd9cc67eb18fb11dea98559951053d1ce69a1b7dd1",
+                                       "size":  332036,
+                                       "entropy":  7.999,
+                                       "status":  "encrypted_or_opaque_not_recovered"
+                                   },
+    "c2_candidates":  [
+
+                      ],
+    "executed_locally":  false,
+    "network_contacted":  false
+}

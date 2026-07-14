@@ -1,0 +1,22 @@
+title: MX-Go Bulk Mailer Self Deployment
+id: 96ba9736-a2a8-4ca7-905e-fcaed7143bb0
+status: experimental
+description: Detects the reviewed MX-Go bulk mailer self-deployment path or its distinctive pause child.
+author: AI-security-analysis
+date: 2026-07-15
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  installed_image:
+    Image|endswith: '\Documents\mx\mx-go.exe'
+  child_pause:
+    ParentImage|endswith: '\Documents\mx\mx-go.exe'
+    CommandLine|contains: 'cmd /c pause'
+  condition: installed_image or child_pause
+falsepositives:
+  - Internal software deliberately deployed under the exact same path and filename
+level: high
+tags:
+  - attack.execution
+  - attack.t1106
