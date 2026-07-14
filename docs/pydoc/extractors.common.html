@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.common</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.common</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Ccommon.py">c:\users\administrator\ai-security-analysis\extractors\common.py</a></td></tr></table>
+    <p><span class="code">Shared,&nbsp;non-executing&nbsp;primitives&nbsp;for&nbsp;family&nbsp;configuration&nbsp;extractors.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_result"><strong>build_result</strong></a>(family: 'str', data: 'bytes', config: 'dict[str, Any]', findings: 'list[dict]', limitations: 'list[str]') -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;the&nbsp;common&nbsp;publish-safe&nbsp;extractor&nbsp;result.</span></dd></dl>
+ <dl><dt><a name="-endpoint_candidates"><strong>endpoint_candidates</strong></a>(strings: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;validated&nbsp;host:port&nbsp;candidates&nbsp;from&nbsp;static&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-extract_strings"><strong>extract_strings</strong></a>(data: 'bytes', minimum: 'int' = 4) -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;unique&nbsp;ordered&nbsp;ASCII&nbsp;and&nbsp;UTF-16LE&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-ipv4_candidates"><strong>ipv4_candidates</strong></a>(strings: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;validated&nbsp;standalone&nbsp;IPv4&nbsp;literals&nbsp;from&nbsp;static&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
+ <dl><dt><a name="-url_candidates"><strong>url_candidates</strong></a>(strings: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;unique&nbsp;HTTP(S)&nbsp;URL&nbsp;candidates.</span></dd></dl>
+ <dl><dt><a name="-valid_host"><strong>valid_host</strong></a>(host: 'str') -&gt; 'bool'</dt><dd><span class="code">Reject&nbsp;malformed&nbsp;IP&nbsp;literals&nbsp;while&nbsp;allowing&nbsp;syntactically&nbsp;valid&nbsp;domains.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ASCII</strong> = re.compile(b'[\\x20-\\x7e]{4,}')<br>
+<strong>ENDPOINT</strong> = re.compile('(?&lt;![\\w.-])((?:[a-z0-9-]+\\.)+[a-z]....){3}\\d{1,3}):(\\d{1,5})(?!\\d)', re.IGNORECASE)<br>
+<strong>URL</strong> = re.compile('(?:https?|ftp)://[^\\s\\"\'&lt;&gt;]{4,500}', re.IGNORECASE)<br>
+<strong>WIDE</strong> = re.compile(b'(?:[\\x20-\\x7e]\\x00){4,}')</td></tr></table>
+</body></html>

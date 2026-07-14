@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.unclassified.mx_go.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.unclassified.html" class="white">unclassified</a>.<a href="extractors.unclassified.mx_go.html" class="white">mx_go</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cunclassified%5Cmx_go%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\unclassified\mx_go\extractor.py</a></td></tr></table>
+    <p><span class="code">Recover&nbsp;the&nbsp;embedded&nbsp;JSON&nbsp;configuration&nbsp;used&nbsp;by&nbsp;MX-Go&nbsp;builds.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-embedded_config"><strong>embedded_config</strong></a>(data: 'bytes') -&gt; 'tuple[dict, int | None]'</dt><dd><span class="code">Find&nbsp;the&nbsp;bounded&nbsp;JSON&nbsp;object&nbsp;containing&nbsp;`control_server`.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;and&nbsp;redact&nbsp;MX-Go&nbsp;embedded&nbsp;JSON&nbsp;configuration.</span></dd></dl>
+ <dl><dt><a name="-public_config"><strong>public_config</strong></a>(value: 'dict') -&gt; 'dict'</dt><dd><span class="code">Keep&nbsp;operational&nbsp;settings&nbsp;while&nbsp;removing&nbsp;fields&nbsp;whose&nbsp;names&nbsp;imply&nbsp;secrets.</span></dd></dl>
+</td></tr></table>
+</body></html>

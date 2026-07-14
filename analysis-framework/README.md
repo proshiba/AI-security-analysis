@@ -74,3 +74,12 @@ python analysis-framework/common/vt_sandbox.py \
 ## リファクタ後の共通I/O
 
 AES-ZIP認証、パス検証、文字コード判定、batch stage、失敗時の確認点は [Safe submission I/O and batch workflow](docs/SAFE-SUBMISSION-IO.md) を参照してください。
+## 次期宣言型解析基盤の設計
+
+ファミリー識別、campaign識別、必要ツール、解析DAGをYAMLで定義し、解析実装を共通step catalogへ
+集約した構成は [analysis framework documentation](docs/README.md) を参照してください。
+
+
+## Declarative offline engine
+
+The `src/asa` package validates `definitions/`, evaluates family/campaign rules, enforces the allowlisted step catalog and `offline-default` policy, compiles a deterministic DAG, and executes supported static steps without launching samples or contacting external infrastructure. Use `python -m asa.runtime_cli`; see [implementation notes](docs/DECLARATIVE-ENGINE-IMPLEMENTATION.md).

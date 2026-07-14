@@ -1,0 +1,10 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: mx-go.config, display_name: MX-Go config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: pe, uses: "static.pe.inspect@^1", needs: [intake]}
+  - {id: go, uses: "static.go.inspect@^1", needs: [pe]}
+  - {id: config, uses: "family.mx_go.config@^1", needs: [go]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

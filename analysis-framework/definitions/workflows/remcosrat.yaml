@@ -1,0 +1,10 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: remcosrat.config, display_name: RemcosRAT config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: layers, uses: "scripts.layers@^1", needs: [inventory], on_error: partial}
+  - {id: config, uses: "family.remcosrat.config@^1", needs: [inventory, layers]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

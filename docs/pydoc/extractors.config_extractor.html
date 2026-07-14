@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.config_extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.config_extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cconfig_extractor.py">c:\users\administrator\ai-security-analysis\extractors\config_extractor.py</a></td></tr></table>
+    <p><span class="code">Unified&nbsp;CLI&nbsp;and&nbsp;dispatcher&nbsp;for&nbsp;all&nbsp;supported&nbsp;malware&nbsp;config&nbsp;extractors.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;unified&nbsp;extractor&nbsp;CLI&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-extract_file"><strong>extract_file</strong></a>(family: 'str', sample: 'Path') -&gt; 'dict'</dt><dd><span class="code">Read&nbsp;a&nbsp;sample&nbsp;once&nbsp;and&nbsp;run&nbsp;its&nbsp;offline&nbsp;family&nbsp;extractor.</span></dd></dl>
+ <dl><dt><a name="-get_extractor"><strong>get_extractor</strong></a>(family: 'str') -&gt; 'Extractor'</dt><dd><span class="code">Return&nbsp;a&nbsp;supported&nbsp;extractor&nbsp;or&nbsp;raise&nbsp;a&nbsp;clear&nbsp;error.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;one&nbsp;extractor&nbsp;and&nbsp;write&nbsp;deterministic&nbsp;JSON.</span></dd></dl>
+ <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;accepted&nbsp;family&nbsp;aliases&nbsp;to&nbsp;definition&nbsp;IDs.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ALIASES</strong> = {'mx_go': 'mx-go', 'remcos': 'remcosrat', 'venom': 'venomrat'}<br>
+<strong>Callable</strong> = typing.Callable<br>
+<strong>EXTRACTORS</strong> = {'agenttesla': &lt;function extract&gt;, 'mx-go': &lt;function extract&gt;, 'remcosrat': &lt;function extract&gt;, 'valleyrat': &lt;function extract&gt;, 'venomrat': &lt;function extract&gt;}<br>
+<strong>Extractor</strong> = typing.Callable[[bytes, str], dict]<br>
+<strong>__annotations__</strong> = {'EXTRACTORS': 'dict[str, Extractor]'}</td></tr></table>
+</body></html>

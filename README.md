@@ -218,3 +218,16 @@ Seven reviewed cases are documented under `analysis-results/venomrat`: four user
 ## MX-Go unclassified cluster (2026-07-15)
 
 One Triage submission was recovered and statically analyzed. The payload is a Go 1.26.1 remotely controlled bulk-email spam bot, not a general-purpose RAT. Analysis tools are under `analysis-framework/malware/unclassified/mx_go`; normalized results, C2/content infrastructure, and Sigma/YARA material are under `analysis-results/unclassified/mx-go`. A loopback-only C2/content server and client emulator are under `emulators/unclassified/mx_go`; active MX-Go modes in `c2_detector.py` are also loopback-only.
+
+## Declarative analysis design
+
+- [次期宣言型解析基盤の設計・スキーマ・移行計画](analysis-framework/docs/README.md)
+
+## Declarative engine and config extractors
+
+- `analysis-framework/src/asa/`: strict YAML validation, condition DSL, family/campaign scoring, DAG compilation, and offline policy enforcement
+- `analysis-framework/definitions/`: five malware definitions, seven pipelines, and the default offline policy
+- `extractors/`: common-contract config extractors for ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, and MX-Go
+- `docs/pydoc/`: generated Python API documentation
+
+The current engine validates and compiles plans, then executes allowlisted offline static-analysis steps. It never launches samples or contacts external infrastructure; FLOSS and Ghidra MCP integrations are preflight-only.

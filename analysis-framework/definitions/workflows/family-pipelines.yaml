@@ -1,0 +1,11 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: common.family_static, display_name: Common family static analysis, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: strings, uses: "static.strings.extract@^1", needs: [inventory]}
+  - {id: pe, uses: "static.pe.inspect@^1", needs: [inventory], on_error: partial}
+  - {id: iocs, uses: "static.ioc.extract@^1", needs: [strings]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [iocs, pe], on_error: partial}

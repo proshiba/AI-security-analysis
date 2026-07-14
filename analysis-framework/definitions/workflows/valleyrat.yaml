@@ -1,0 +1,12 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: valleyrat.config, display_name: ValleyRAT static config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read, external.floss, external.ghidra_mcp]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: strings, uses: "static.strings.extract@^1", needs: [inventory]}
+  - {id: floss, uses: "external.floss.analyze@^1", needs: [inventory], on_error: partial}
+  - {id: ghidra, uses: "external.ghidra_mcp.import_analyze@^1", needs: [inventory], on_error: partial}
+  - {id: config, uses: "family.valleyrat.config@^1", needs: [strings]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config, floss, ghidra], on_error: partial}
