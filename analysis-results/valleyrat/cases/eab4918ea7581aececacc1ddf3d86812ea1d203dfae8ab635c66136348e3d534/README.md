@@ -23,3 +23,13 @@ C2は元PE PID 3908から両portへの反復接続として観測され、高信
 - YARA: exact hash/imphash、campaign strings、importsを補助条件化。署名subjectだけでは判定しない。
 - 誤検知: task＋path＋C2は低、task名のみ中、署名/WriteProcessMemory単独は高。
 - Shodan: `ip:154.81.37.130 (port:4444 or port:5555)`。custom TCPでbanner未取得。
+
+## Behavior and C2 assessment
+
+- Observed chain: a signed x86 PE creates the WinUpdateService logon task and exhibits WriteProcessMemory behavior.
+- Expected implant behavior: direct ValleyRAT execution with persistence and remote tasking.
+- C2 role: 154.81.37.130:4444 and 154.81.37.130:5555 are interactive endpoints, potentially primary and fallback.
+- Evidence: process-attributed sandbox communication.
+- Confidence: confirmed.
+- Detection: correlate signer context, task creation, memory-write activity, and both endpoints. IP-only detection has high false-positive and short-lifetime risk.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

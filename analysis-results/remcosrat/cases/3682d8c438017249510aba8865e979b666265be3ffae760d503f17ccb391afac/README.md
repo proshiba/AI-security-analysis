@@ -13,6 +13,16 @@
 - Unicode junk marker reconstruction
 - Remote stage is transformed and loaded in memory
 
+## Behavior and C2 assessment
+
+- Observed in this case: Unicode junk marker reconstruction; Remote stage is transformed and loaded in memory.
+- Expected payload behavior: After the payload is loaded, Remcos is expected to provide interactive remote administration such as command execution, file/process control, surveillance and persistence. These are family capabilities; the case report lists only behavior actually observed in its delivery/sandbox evidence.
+- C2 role assumption: long-lived outbound Remcos command-and-control channel; multiple host/port entries in one recovered configuration are treated as ordered fallback candidates, not separate malware families.
+- Endpoint provenance: external sandbox configuration or process-attributed evidence; the submitted loader alone did not establish the final endpoint.
+- Distribution separation: `https://misty-cherry-cea3.uploadsimg.workers.dev/mNHLb` are loader/stage locations and are not final C2 unless separately correlated.
+- Liveness: no live C2 check was performed for this case; current availability and server ownership remain unknown.
+- Confidence labels: delivery behavior is `confirmed` from static code/container structure; payload capability is `inferred` from family/config; listed final endpoints are `confirmed` only to the provenance stated above.
+
 ## Network observables
 
 - Confirmed configuration/sandbox endpoint: `thrillermotion.4nmn.com:2022`

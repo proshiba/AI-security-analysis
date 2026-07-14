@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "sha256": "6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+  "size": 3321712,
+  "architecture": "x64",
+  "entry_point_rva": "0x723050",
+  "sections": [".dosx", ".fish", ".rsrc"],
+  "protection": "high-entropy virtualized/packed native PE; exact protector not asserted",
+  "overlay_sha256": "834594d13279ffd55fe1dc2f1cfed060f2d3bcc3f133052363853a3ecd1ac714",
+  "confirmed_c2": [],
+  "executed": false,
+  "network_contacted": false
+}

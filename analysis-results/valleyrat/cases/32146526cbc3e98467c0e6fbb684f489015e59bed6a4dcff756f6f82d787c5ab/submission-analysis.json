@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "sha256": "32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab",
+  "size": 21395784,
+  "architecture": "x64",
+  "framework": "statically linked Qt/QML application",
+  "entry_point_rva": "0xD81A98",
+  "imphash": "7ed4944b661ec154c19c430f88aacd75",
+  "internal_name": "JZdTpbZejZb.exe",
+  "file_version": "3.4.9372.107",
+  "tls_callbacks": ["0x1000"],
+  "resource_assessment": "multiple high-entropy resources; embedded stage not recovered",
+  "confirmed_c2": [],
+  "executed": false,
+  "network_contacted": false
+}

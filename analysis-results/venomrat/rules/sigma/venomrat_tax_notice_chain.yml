@@ -1,0 +1,26 @@
+title: VenomRAT Tax Notice Delivery and RuntimeBroker Persistence
+id: 3c981b92-6e84-4d65-8ef5-b93ddde41379
+status: experimental
+description: Detects reviewed July 2026 VenomRAT tax-notice delivery and persistence artifacts.
+author: AI-security-analysis
+date: 2026-07-15
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  tax_notice:
+    Image|contains: '\\Tax_Notice_'
+  script_or_bits:
+    Image|endswith:
+      - '\\wscript.exe'
+      - '\\bitsadmin.exe'
+  runtime_path:
+    CommandLine|contains: '\\Microsoft\\Crypto\\RuntimeBroker\\RuntimeBroker.exe'
+  condition: tax_notice or (script_or_bits and runtime_path)
+falsepositives:
+  - Internal testing that reuses the exact lure and RuntimeBroker path
+level: high
+tags:
+  - attack.execution
+  - attack.persistence
+  - attack.t1060

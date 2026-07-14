@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "validated_at": "2026-07-15",
+  "scope": "localhost-only MX-Go protocol lab",
+  "request_preview": {
+    "target_label": "reviewed IOC",
+    "network_contacted": false,
+    "status": "dry_run"
+  },
+  "local_checkin": {
+    "endpoint": "http://127.0.0.1:5010/api/v1/heartbeat_direct",
+    "synthetic_identity_sent": true,
+    "real_machine_identity_sent": false,
+    "lab_emulator_confirmed": true,
+    "commands_returned": false
+  },
+  "local_recipients": {
+    "count": 2,
+    "sha256": "ccd671b329aed0e1232a1170d2d5a009934d1bcd28bb50b122fbaae38411bbb1",
+    "values_redacted": true,
+    "all_addresses_use_invalid_tld": true
+  },
+  "external_c2_checkin_performed": false,
+  "external_recipient_content_retrieved": false
+}

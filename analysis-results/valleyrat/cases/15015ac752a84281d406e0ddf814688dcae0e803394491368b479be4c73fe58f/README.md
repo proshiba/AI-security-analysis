@@ -30,3 +30,13 @@ HUIYIJIYAO.zip -> chgport.exe + LoggerCollector.dll
 - Shodan: `ip:134.122.128.66 port:6666` / `port:8888`。banner未取得。TCP-openだけではC2稼働を確定しない。
 
 注意: XORキーは16進`0x20`ではなく10進20 (`0x14`)。ローカル実行・ライブ接続はしていない。
+
+## Behavior and C2 assessment
+
+- Observed chain: chgport.exe, LoggerCollector.dll, and vvaS.bin form a DLL side-load bundle; decimal 20 or XOR 0x14 decoding recovers configuration.
+- Expected implant behavior: ValleyRAT staged execution and remote tasking.
+- C2 role: 134.122.128.66:6666 and 134.122.128.66:8888 are recovered configuration endpoints.
+- Evidence: statically decoded configuration; no current protocol validation.
+- Confidence: confirmed_config.
+- Detection: correlate bundle co-location, DLL load relationship, vvaS marker and XOR routine, and endpoint pair. IP-only matching has high false-positive risk.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

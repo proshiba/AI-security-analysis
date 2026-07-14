@@ -1,0 +1,27 @@
+{
+    "sha256":  "6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8",
+    "artifact":  "198805306d17118fa6bd5f8444007622.exe",
+    "campaign":  "native_resource_loader",
+    "source":  "https://bazaar.abuse.ch/sample/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8/",
+    "embedded_payload_candidates":  [
+                                        {
+                                            "resource":  "EXPAND/2499",
+                                            "sha256":  "375a5738ea0b982b542ca17d129e0c936cc55203cac206fea28f17b8757b804b",
+                                            "size":  956928,
+                                            "entropy":  6.541,
+                                            "status":  "opaque_not_recovered"
+                                        },
+                                        {
+                                            "resource":  "3/16",
+                                            "sha256":  "f0c70a4fcbf551e7169cb3c5206d3370eda38669935c81eb25cb34b9201cbec0",
+                                            "size":  61849,
+                                            "entropy":  7.945,
+                                            "status":  "opaque_not_recovered"
+                                        }
+                                    ],
+    "c2_candidates":  [
+
+                      ],
+    "executed_locally":  false,
+    "network_contacted":  false
+}

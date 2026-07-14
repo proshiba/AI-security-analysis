@@ -107,6 +107,63 @@ analyses:
     result_path: analysis-results/valleyrat/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
     notes: 34UXpv.exe の DNS/C2 接続と防御回避を sandbox 証跡で確認。
 
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae
+    analysis_level: deep_static_plus_bounded_protocol_validation
+    campaign_type: single_pe_n520_managed
+    matched_patterns:
+      - N520 managed loader and encrypted config distribution
+      - TLS with update.microsoft.com SNI and Windows Update-themed certificate
+      - server-first 44-byte handshake and bounded empty command-1 collection
+    c2:
+      - 118.107.21.88:9999
+    result_path: analysis-results/valleyrat/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/
+    notes: 'Config distribution was 118.107.21.88:9000/config.enc. No station ID, plugin, fallback C2, or operator command was received during the bounded 2026-07-15 validation.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24
+    analysis_level: static_plus_public_evidence_correlation
+    campaign_type: inno_installer_silverfox_unresolved
+    matched_patterns:
+      - Inno installer and SilverFox-style delivery chain
+      - child payload recovery blocked locally by Defender quarantine
+      - public IOC correlation to domain and port 443
+    c2:
+      - oidng2.duoshit.com:443
+      - 51.79.18.52:443
+    result_path: analysis-results/valleyrat/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/
+    notes: 'Endpoint is inferred from external evidence; final local payload/config was not recovered.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1
+    analysis_level: deep_static_recovery
+    campaign_type: upx_nrv2e_silverfox_http_bundle
+    matched_patterns:
+      - UPX NRV2E unpacking and modified-RC4 recovery
+      - Tencent-signed host with nvml.dll side-loading bundle
+      - HTTP stage distribution separated from final C2
+    c2:
+      []
+    result_path: analysis-results/valleyrat/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1/
+    notes: 'Confirmed distribution URL was http://43.198.235.91/getinstall64; final ValleyRAT C2 remained unresolved.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab
+    analysis_level: static_plus_dns_correlation
+    campaign_type: qt_static_obfuscated_silverfox
+    matched_patterns:
+      - Qt-linked statically obfuscated SilverFox-style artifact
+      - domain resolution correlation without protocol confirmation
+      - similar-campaign port candidate kept unverified
+    c2:
+      - cqbxbkj.cn
+      - 18.167.91.239
+    result_path: analysis-results/valleyrat/cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/
+    notes: 'Port 8880 is an unverified similar-campaign lead and refused connection during the prior bounded check; it is not recorded as confirmed C2.'
   - malware_type: AgentTesla
     analyzed_at: 2026-07-13
     sample_sha256: 1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed
@@ -395,3 +452,89 @@ analyses:
       - '79.141.165.55:2404'
     result_path: analysis-results/remcosrat/cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'VBS and BITSAdmin staging', 'RuntimeBroker persistence and UAC-policy modification']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'RunOnce persistence']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_runtimebroker
+    matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'Run persistence and token/hook activity']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386/
+    notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083
+    analysis_level: public_sandbox_evidence_review
+    campaign_type: japan_tax_notice_disk_image
+    matched_patterns: ['IMG delivery', 'DLL hijacking', 'Run-key and process/token/hook behavior']
+    c2: ['192.252.180.45:4449']
+    result_path: analysis-results/venomrat/cases/5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083/
+    notes: 'Japan observation is requester-supplied; no local execution or live C2 contact.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955
+    analysis_level: deep_static
+    campaign_type: direct_dotnet_quasar_module
+    matched_patterns: ['Quasar.Client and xClient.Core namespaces', 'Quasar-style configuration fields', 'Three literal port-1002 endpoint candidates']
+    c2: ['sznftk1.it.com:1002', 'eeee456.it.com:1002', 'xelamnces.online:1002']
+    result_path: analysis-results/venomrat/cases/6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955/
+    notes: 'C2 entries are static configuration candidates, not live-confirmed; sample not executed.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b
+    analysis_level: deep_static_unresolved_payload
+    campaign_type: dotnet_encrypted_resource_loader
+    matched_patterns: ['Image-extension masquerading .NET PE', 'AES/GZip/resource loading', '332036-byte entropy-7.999 embedded resource']
+    c2: []
+    result_path: analysis-results/venomrat/cases/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b/
+    notes: 'Final payload/configuration not recovered; absence of C2 is not evidence of no C2.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8
+    analysis_level: deep_static_unresolved_payload
+    campaign_type: native_resource_loader
+    matched_patterns: ['Native x64 loader', '24 PE resources', '956928-byte EXPAND/2499 recovery target']
+    c2: []
+    result_path: analysis-results/venomrat/cases/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8/
+    notes: 'Final payload/configuration not recovered; certificate URLs excluded from infrastructure.'
+
+  - malware_type: Unclassified-MX-Go
+    analyzed_at: 2026-07-15
+    sample_sha256: 462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb
+    analysis_level: deep_static_plus_public_sandbox_evidence_review
+    campaign_type: japan_remote_bulk_mailer
+    matched_patterns:
+      - 'Go 1.26.1 module mx-go with retained internal package and function symbols'
+      - 'Embedded control_server, recipient/template/domain configuration URLs'
+      - 'Japanese locale/timezone gate, MX direct delivery, DKIM/SPF automation'
+      - 'Self-copy to Documents\\mx, unique mutex, stable TLS flow in two Japanese sandboxes'
+    c2:
+      - '43.165.179.173:5000 (embedded control server; live TCP/API routes confirmed 2026-07-15, no check-in)'
+      - 'www.iainglespa.com:443 (content/config host; sandbox connected, live TLS open but paths gated/disabled)'
+    result_path: analysis-results/unclassified/mx-go/cases/462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb/
+    notes: 'Classified as an unclassified remotely controlled bulk-email spam bot, not a general RAT. Sample was not executed. Bounded 2026-07-15 live check found the control port open and four exact API routes; no POST/check-in or content bodies were sent/retrieved. Added a loopback-only C2/content emulator and synthetic client/recipient validation.'

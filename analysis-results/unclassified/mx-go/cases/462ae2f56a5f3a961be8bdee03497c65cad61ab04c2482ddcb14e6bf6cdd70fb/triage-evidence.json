@@ -1,0 +1,351 @@
+{
+  "schema_version": 1,
+  "cluster": "mx-go",
+  "classification": "remotely_controlled_bulk_email_spam_bot",
+  "classification_confidence": "high",
+  "domains": [
+    "www.iainglespa.com"
+  ],
+  "observed_domains": [
+    "ctldl.windowsupdate.com",
+    "www.iainglespa.com"
+  ],
+  "c2_candidates": [
+    "www.iainglespa.com"
+  ],
+  "resolved_ips": [
+    "104.21.4.118",
+    "172.67.132.11"
+  ],
+  "cloudflare_edge_warning": true,
+  "mutexes": [
+    "Local\\MX_Go_SingleInstance_v1"
+  ],
+  "observed_mutexes": [
+    "Local\\MX_Go_SingleInstance_v1",
+    "Local\\SM0:2252:304:WilStaging_02",
+    "Local\\SM0:3012:304:WilStaging_02",
+    "Local\\SM0:6072:304:WilStaging_02",
+    "Local\\SM0:916:304:WilStaging_02"
+  ],
+  "tls_fingerprints": [
+    {
+      "ja3": "e69402f870ecf542b4f017b0ed32936a",
+      "ja3s": "eb1d94daa7e0344597e756a1fb6e7054"
+    }
+  ],
+  "tasks": [
+    {
+      "source": "unknown-behavioral1-analog.jsonl",
+      "task": "260713-kdg5eafz7v-behavioral1",
+      "resource": "win10v2004-20260513-ja",
+      "platform": "windows10-2004_x64",
+      "target_processes": [
+        {
+          "proc": 83,
+          "time": 141,
+          "kind": "Create",
+          "image": "C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe",
+          "cmd": "\"C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe\"",
+          "pid": 2252,
+          "parent_proc": 56,
+          "status": 0
+        },
+        {
+          "proc": 84,
+          "time": 219,
+          "kind": "Create",
+          "image": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+          "cmd": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+          "pid": 916,
+          "parent_proc": 83,
+          "status": 0
+        },
+        {
+          "proc": 85,
+          "time": 219,
+          "kind": "Ignore",
+          "image": "C:\\Windows\\System32\\Conhost.exe",
+          "cmd": "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+          "pid": 4364,
+          "parent_proc": 83,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 86,
+          "time": 235,
+          "kind": "Ignore",
+          "image": "C:\\Windows\\System32\\Conhost.exe",
+          "cmd": "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+          "pid": 1964,
+          "parent_proc": 84,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 87,
+          "time": 531,
+          "kind": "Create",
+          "image": "C:\\Windows\\system32\\cmd.exe",
+          "cmd": "cmd /c cls",
+          "pid": 4268,
+          "parent_proc": 83,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 88,
+          "time": 1500,
+          "kind": "Create",
+          "image": "C:\\Windows\\system32\\cmd.exe",
+          "cmd": "cmd /c pause",
+          "pid": 3848,
+          "parent_proc": 84,
+          "orig": true,
+          "status": 0
+        }
+      ],
+      "commands": [
+        "\"C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe\"",
+        "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+        "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+        "cmd /c cls",
+        "cmd /c pause"
+      ],
+      "created_mutexes": [
+        "Local\\MX_Go_SingleInstance_v1",
+        "Local\\SM0:2252:304:WilStaging_02",
+        "Local\\SM0:916:304:WilStaging_02"
+      ],
+      "file_writes": [
+        "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe.tmp",
+        "\\??\\CONIN$",
+        "\\??\\CONOUT$",
+        "\\??\\NUL",
+        "\\Device\\Afd\\Endpoint",
+        "\\Device\\KsecDD",
+        "\\Device\\RasAcd"
+      ],
+      "file_renames": [
+        {
+          "source": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe.tmp",
+          "destination": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe"
+        }
+      ],
+      "network_flows": [
+        {
+          "flow": 3,
+          "proto": "udp",
+          "local_addr": "10.127.0.36",
+          "local_port": "52875",
+          "remote_addr": "8.8.8.8",
+          "remote_port": "53",
+          "time": 3233,
+          "dns_queries": [
+            "www.iainglespa.com"
+          ],
+          "dns_answers": [
+            {
+              "domain": "www.iainglespa.com",
+              "answer": "172.67.132.11"
+            },
+            {
+              "domain": "www.iainglespa.com",
+              "answer": "104.21.4.118"
+            }
+          ],
+          "proc": 84,
+          "rx_bytes": 96,
+          "rx_packets": 1,
+          "tx_bytes": 64,
+          "tx_packets": 1
+        },
+        {
+          "flow": 4,
+          "proto": "tcp",
+          "local_addr": "10.127.0.36",
+          "local_port": "49886",
+          "remote_addr": "172.67.132.11",
+          "remote_port": "443",
+          "time": 94090,
+          "sni": "www.iainglespa.com",
+          "ja3": "e69402f870ecf542b4f017b0ed32936a",
+          "ja3_s": "eb1d94daa7e0344597e756a1fb6e7054",
+          "proc": 84,
+          "rx_bytes": 5465,
+          "rx_packets": 20,
+          "tx_bytes": 4324,
+          "tx_packets": 22
+        }
+      ]
+    },
+    {
+      "source": "unknown-behavioral2-analog.jsonl",
+      "task": "260713-kdg5eafz7v-behavioral2",
+      "resource": "win11ltsc2024-20260709-ja",
+      "platform": "windows11-ltsc_2024_x64",
+      "target_processes": [
+        {
+          "proc": 86,
+          "time": 391,
+          "kind": "Create",
+          "image": "C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe",
+          "cmd": "\"C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe\"",
+          "pid": 3012,
+          "parent_proc": 80,
+          "status": 0
+        },
+        {
+          "proc": 87,
+          "time": 610,
+          "kind": "Create",
+          "image": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+          "cmd": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+          "pid": 6072,
+          "parent_proc": 86,
+          "status": 0
+        },
+        {
+          "proc": 88,
+          "time": 625,
+          "kind": "Ignore",
+          "image": "C:\\Windows\\System32\\Conhost.exe",
+          "cmd": "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+          "pid": 5872,
+          "parent_proc": 86,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 89,
+          "time": 657,
+          "kind": "Ignore",
+          "image": "C:\\Windows\\System32\\Conhost.exe",
+          "cmd": "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+          "pid": 5868,
+          "parent_proc": 87,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 90,
+          "time": 860,
+          "kind": "Create",
+          "image": "C:\\Windows\\system32\\cmd.exe",
+          "cmd": "cmd /c cls",
+          "pid": 1624,
+          "parent_proc": 86,
+          "orig": true,
+          "status": 0
+        },
+        {
+          "proc": 91,
+          "time": 23141,
+          "kind": "Create",
+          "image": "C:\\Windows\\system32\\cmd.exe",
+          "cmd": "cmd /c pause",
+          "pid": 2756,
+          "parent_proc": 87,
+          "orig": true,
+          "status": 0
+        }
+      ],
+      "commands": [
+        "\"C:\\Users\\Admin\\AppData\\Local\\Temp\\mx-go.exe\"",
+        "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe",
+        "\\??\\C:\\Windows\\system32\\conhost.exe 0xffffffff -ForceV1",
+        "cmd /c cls",
+        "cmd /c pause"
+      ],
+      "created_mutexes": [
+        "Local\\MX_Go_SingleInstance_v1",
+        "Local\\SM0:3012:304:WilStaging_02",
+        "Local\\SM0:6072:304:WilStaging_02"
+      ],
+      "file_writes": [
+        "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe.tmp",
+        "\\??\\CONIN$",
+        "\\??\\CONOUT$",
+        "\\??\\NUL",
+        "\\Device\\Afd\\Endpoint",
+        "\\Device\\KsecDD",
+        "\\Device\\RasAcd"
+      ],
+      "file_renames": [
+        {
+          "source": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe.tmp",
+          "destination": "C:\\Users\\Admin\\Documents\\mx\\mx-go.exe"
+        }
+      ],
+      "network_flows": [
+        {
+          "flow": 1,
+          "proto": "udp",
+          "local_addr": "10.127.0.35",
+          "local_port": "61282",
+          "remote_addr": "8.8.8.8",
+          "remote_port": "53",
+          "time": 340727,
+          "dns_queries": [
+            "ctldl.windowsupdate.com"
+          ],
+          "dns_answers": [
+            {
+              "domain": "ctldl.windowsupdate.com",
+              "answer": "ctldl.windowsupdate.com.delivery.microsoft.com"
+            },
+            {
+              "domain": "ctldl.windowsupdate.com.delivery.microsoft.com",
+              "answer": "wu-b-net.trafficmanager.net"
+            },
+            {
+              "domain": "wu-b-net.trafficmanager.net",
+              "answer": "cl-glcb907925.gcdn.co"
+            },
+            {
+              "domain": "cl-glcb907925.gcdn.co",
+              "answer": "93.123.17.252"
+            }
+          ],
+          "proc": 87,
+          "rx_bytes": 1636,
+          "rx_packets": 8,
+          "tx_bytes": 555,
+          "tx_packets": 8
+        },
+        {
+          "flow": 2,
+          "proto": "tcp",
+          "local_addr": "10.127.0.35",
+          "local_port": "49829",
+          "remote_addr": "104.21.4.118",
+          "remote_port": "443",
+          "time": 19929,
+          "proc": 87,
+          "tx_bytes": 260,
+          "tx_packets": 5
+        },
+        {
+          "flow": 4,
+          "proto": "tcp",
+          "local_addr": "10.127.0.35",
+          "local_port": "49831",
+          "remote_addr": "172.67.132.11",
+          "remote_port": "443",
+          "time": 116714,
+          "sni": "www.iainglespa.com",
+          "ja3": "e69402f870ecf542b4f017b0ed32936a",
+          "ja3_s": "eb1d94daa7e0344597e756a1fb6e7054",
+          "proc": 87,
+          "rx_bytes": 5586,
+          "rx_packets": 23,
+          "tx_bytes": 4272,
+          "tx_packets": 21
+        }
+      ]
+    }
+  ],
+  "executed_locally": false,
+  "network_contacted": false
+}

@@ -1,0 +1,18 @@
+{
+    "sha256":  "5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083",
+    "artifact":  "Tax_Notice_36758.img",
+    "campaign":  "japan_tax_notice_disk_image",
+    "source":  "https://tria.ge/260709-sasqqsdt2x/behavioral1",
+    "observation_scope":  "user-provided Japan-observed",
+    "family":  "VenomRAT",
+    "version":  "6.0.3",
+    "c2":  [
+               {
+                   "endpoint":  "192.252.180.45:4449",
+                   "role":  "final_rat_c2",
+                   "confidence":  "confirmed_public_sandbox"
+               }
+           ],
+    "executed_locally":  false,
+    "network_contacted":  false
+}

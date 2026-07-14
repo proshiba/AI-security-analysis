@@ -1,4 +1,4 @@
-﻿# ValleyRAT case: 8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6
+# ValleyRAT case: 8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6
 
 ## 1. 概要と判定
 
@@ -175,3 +175,13 @@ hash:-481009216
 
 - `c2-live/2026-07-13_202.95.8.27_6666.json`
 - `c2-live/2026-07-13_202.95.8.27_8888.json`
+
+## Behavior and C2 assessment
+
+- Observed chain: chgport.exe loads LoggerCollector.dll; XOR 0x14 decoding recovers the vvaS stager with odaktomk marker, API hashes, and endpoint data.
+- Expected implant behavior: ValleyRAT registration, staged payload retrieval, remote tasking, and result upload over the recovered protocol.
+- C2 role: 202.95.8.27:6666 and 202.95.8.27:8888 are protocol-bearing endpoints.
+- Evidence: recovered configuration and bounded ValleyRAT check-in response.
+- Confidence: confirmed.
+- Detection: correlate the signed host, unexpected DLL, vvaS.bin, XOR routine, marker, and protocol frame. IP-only matching has high false-positive risk.
+- Family model: [BEHAVIOR-C2.md](../../BEHAVIOR-C2.md)

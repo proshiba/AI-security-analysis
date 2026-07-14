@@ -2,6 +2,18 @@
 
 Ten MalwareBazaar submissions were triaged without local sample execution. Delivery patterns are kept separate from payload/config clusters because builders and infrastructure may be reused by different operators.
 
+## Evidence provenance
+
+The FTP/SMTP endpoints in the current ten-case table came from external sandbox configuration output or, for the RAR wrapper, inheritance from its byte-identical inner sample. They were not recovered from the submitted scripts alone. Offline analysis recovered stage URLs in four cases, but no final .NET payload in the ten original containers because those stages must be separately acquired.
+
+`agenttesla_recover.py` records loader-derived stage URLs, recovers bounded encoded .NET candidates, and extracts redacted CLR configuration. `agenttesla_payload_fetch.py` provides explicit, bounded stage retrieval. New results must label endpoint provenance as `static_recovered_dotnet_payload`, `external_sandbox`, or `inherited_external_sandbox`.
+
+## Family behavior and C2 model
+
+AgentTesla is primarily an information stealer. In these cases the submitted scripts/HTA/RAR files are delivery layers; after the .NET payload is loaded, recovered FTP or SMTP settings are best understood as stolen-data exfiltration channels rather than interactive operator consoles.
+
+Case reports separate observed delivery behavior, inferred family capability, endpoint provenance, and current liveness. No current case was executed locally or live-probed.
+
 | SHA-256 | Artifact | Pattern | Confirmed C2/config endpoint |
 |---|---|---|---|
 | [`1fe1d42d2936…`](cases/1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed/README.md) | JavaScript | `unicode_marker_powershell_png_stage` | `ftp.ltcresource.com.my:21` |

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "sha256": "3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b",
+  "size": 643584,
+  "format": "PE",
+  "machine": "0x14c",
+  "is_dotnet": true,
+  "campaign_type": "dotnet_encrypted_resource_loader",
+  "classification_confidence": "high",
+  "classification_markers": [
+    "reviewed hash"
+  ],
+  "endpoint_candidates": [],
+  "url_candidates": [],
+  "capability_terms": [
+    "AesCryptoServiceProvider",
+    "CryptoStream",
+    "GZipStream",
+    "GetManifestResourceStream"
+  ],
+  "resources": [
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "DdPpYyTNHj1eHMXIey.McDO6IoJFHbsbl6EJg",
+      "size": 228,
+      "embedded_entries": [],
+      "sha256": "a28a92b871e8773abe11baedbb4668af8d5b180f0bf1d26c6234f99a656ee701",
+      "entropy": 7.062
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "tGy4FQdxsm88TUxX7p.9vlSwoDhhDaMKJIlwa",
+      "size": 10755,
+      "embedded_entries": [],
+      "sha256": "9dfc4d35828a0bee7d68a34acd4d526c47270f74d6652f43b8bfb1217bb55b0e",
+      "entropy": 6.087
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "aRJWhEmnrPVP5WjBbc.ap1ElF0P4iZ5wvFPa5",
+      "size": 2208,
+      "embedded_entries": [],
+      "sha256": "ca9b203b639bfa42d9587aa5109945efff6c52569d8250a8aa44abf54b5f868a",
+      "entropy": 7.916
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "Uehar.g.resources",
+      "size": 180,
+      "embedded_entries": []
+    },
+    {
+      "kind": "dotnet_manifest_resource",
+      "name": "Vbbtcicza.Properties.Resources.resources",
+      "size": 332248,
+      "embedded_entries": [
+        {
+          "name": "Osddmqvmi",
+          "size": 332036,
+          "sha256": "56885090885afb11b855bbdd9cc67eb18fb11dea98559951053d1ce69a1b7dd1",
+          "entropy": 7.999
+        }
+      ]
+    },
+    {
+      "kind": "pe_resource",
+      "type": "16",
+      "name": "1",
+      "language": 0,
+      "size": 732,
+      "sha256": "431179a9a7de7dd4fbc24109a35eb0a3f4f8e9428c63ebc664d7e913ca3a47ab",
+      "entropy": 3.18
+    },
+    {
+      "kind": "pe_resource",
+      "type": "24",
+      "name": "1",
+      "language": 0,
+      "size": 490,
+      "sha256": "539dc26a14b6277e87348594ab7d6e932d16aabb18612d77f29fe421a9f1d46a",
+      "entropy": 5.001
+    }
+  ],
+  "executed": false,
+  "network_contacted": false,
+  "limitations": [
+    "Endpoint candidates are literal static strings and require role validation.",
+    "High-entropy embedded resources are inventoried but are not assumed to be recovered payloads."
+  ]
+}
