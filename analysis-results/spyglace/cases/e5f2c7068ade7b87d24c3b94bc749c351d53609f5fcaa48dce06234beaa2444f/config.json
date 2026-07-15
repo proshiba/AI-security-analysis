@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "family": "spyglace",
+  "sample_sha256": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f",
+  "config": {
+    "variant": "spyglace",
+    "version": "3.1.15",
+    "c2_ip": "185.18.222.241",
+    "userid": "SAPPHIRE",
+    "request_paths": [
+      "1l8kad.asp",
+      "vdlhtr.asp",
+      "7m3yv3.asp",
+      "fp4v2i.asp"
+    ],
+    "c2_urls_inferred": [
+      "http://185.18.222.241/1l8kad.asp",
+      "http://185.18.222.241/vdlhtr.asp",
+      "http://185.18.222.241/7m3yv3.asp",
+      "http://185.18.222.241/fp4v2i.asp"
+    ],
+    "transport": "HTTP POST via WinHTTP",
+    "connectivity_probe": "api.ipify.org",
+    "mutex": "K31610KIO9834PG79A471",
+    "commands": [
+      "procspawn",
+      "prockill",
+      "proclist",
+      "diskinfo",
+      "download",
+      "downfree",
+      "upload",
+      "cancel",
+      "screenupload",
+      "screenauto",
+      "turn on",
+      "turn off",
+      "extension",
+      "stopextension",
+      "cmd.exe /c ",
+      "ddir",
+      "ddel",
+      "attach",
+      "detach"
+    ],
+    "dynamic_apis": [
+      "WinHttpCloseHandle",
+      "WinHttpConnect",
+      "WinHttpGetIEProxyConfigForCurrentUser",
+      "WinHttpOpen",
+      "WinHttpOpenRequest",
+      "WinHttpQueryDataAvailable",
+      "WinHttpReadData",
+      "WinHttpReceiveResponse",
+      "WinHttpSendRequest",
+      "WinHttpSetOption",
+      "WinHttpWriteData"
+    ],
+    "custom_rc4_key_hex": "90b149c69b149c4b99c04d1dc9b940b9",
+    "download_aes_key_hex": null,
+    "download_aes_iv_hex": null,
+    "persistence_strings": [
+      "%appdata%\\Microsoft\\Temp",
+      "%appdata%\\Microsoft\\Windows\\Recent",
+      "SOFTWARE\\MICROSOFT\\WINDOWS NT\\CurrentVersion"
+    ],
+    "source_name": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f.tmp",
+    "envelope_method": "xor:sgznqhtgnghvmzxponum",
+    "payload_sha256": "7ab9c634216798d50ce3e19bf1650d6b7c2386150340e48ec3af8b38fd30ae4c",
+    "payload_role": "spyglace"
+  },
+  "findings": [
+    {
+      "type": "c2",
+      "value": "185.18.222.241",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "campaign_identifier",
+      "value": "SAPPHIRE",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "1l8kad.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "vdlhtr.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "7m3yv3.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "fp4v2i.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    }
+  ],
+  "limitations": [
+    "Inferred C2 URLs combine the statically confirmed IP and request paths; the scheme was not actively verified.",
+    "No C2 connection, payload execution, or dynamic debugging was performed."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

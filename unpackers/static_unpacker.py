@@ -1,0 +1,1242 @@
+#!/usr/bin/env python3
+"""Bounded static unpacking and artifact recovery without sample execution."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import binascii
+import hashlib
+import io
+import json
+import math
+from pathlib import Path, PurePosixPath
+import re
+import struct
+import subprocess
+import sys
+import tempfile
+import zipfile
+
+import dnfile
+import pefile
+import pyzipper
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
+from unpackers.javascript_obfuscator import decode_script_text, deobfuscate_string_array
+from unpackers.nsis_unpacker import recover_nsis_scripted_layers
+
+MAX_ARTIFACT = 256 * 1024 * 1024
+MAX_EXTRACTED_TOTAL = 768 * 1024 * 1024
+MAX_ARCHIVE_MEMBERS = 512
+MAX_RETAINED_MEMBERS = 128
+MACHO_MAGICS = {
+    b"\xcf\xfa\xed\xfe",
+    b"\xfe\xed\xfa\xcf",
+    b"\xca\xfe\xba\xbe",
+    b"\xbe\xba\xfe\xca",
+}
+SCRIPT_SUFFIXES = {
+    ".js",
+    ".nsi",
+    ".jse",
+    ".vbs",
+    ".vbe",
+    ".ps1",
+    ".hta",
+    ".osascript",
+    ".applescript",
+    ".vba",
+    ".bat",
+    ".cmd",
+    ".sh",
+}
+RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
+    ".exe",
+    ".dll",
+    ".sys",
+    ".bin",
+    ".dat",
+    ".json",
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".a3x",
+    ".sum",
+    ".zip",
+    ".7z",
+    ".cab",
+}
+
+
+def sha256_bytes(data: bytes) -> str:
+    """Return the lowercase SHA-256 digest for bytes."""
+    return hashlib.sha256(data).hexdigest()
+
+
+def entropy(data: bytes) -> float:
+    """Return Shannon entropy rounded to four decimals."""
+    if not data:
+        return 0.0
+    counts = [0] * 256
+    for value in data:
+        counts[value] += 1
+    return round(
+        -sum(
+            (count / len(data)) * math.log2(count / len(data))
+            for count in counts
+            if count
+        ),
+        4,
+    )
+
+
+def detect_format(data: bytes, name: str = "sample") -> str:
+    """Identify formats supported by the static recovery pipeline."""
+    suffix = Path(name).suffix.lower()
+    if data.startswith(b"MZ"):
+        return "pe"
+    if data[:4] in MACHO_MAGICS:
+        return "macho"
+    if data.startswith(b"7z\xbc\xaf'\x1c"):
+        return "7z"
+    if data.startswith(b"MSCF"):
+        return "cab"
+    if data.startswith((b"Rar!\x1a\x07\x00", b"Rar!\x1a\x07\x01\x00")):
+        return "rar"
+    if suffix == ".a3x" or "autoit-a3x" in name.lower():
+        return "autoit-a3x"
+    if zipfile.is_zipfile(io.BytesIO(data)):
+        return "zip"
+    if data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "ole"
+    if suffix in SCRIPT_SUFFIXES or data[:256].lstrip().lower().startswith(
+        (b"function ", b"var ", b"$", b"on error", b"tell application", b"#!/bin/")
+    ):
+        return "script"
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")) or data[:512].count(b"\x00") >= 64:
+        text_probe = decode_script_text(data[:4096]).lstrip().lower()
+        if text_probe.startswith(
+            ("//", "/*", "function ", "var ", "let ", "const ", "@echo", "set ")
+        ):
+            return "script"
+    return "data"
+
+
+def safe_member_name(name: str) -> str:
+    """Reject archive traversal and absolute or drive-qualified member names."""
+    normalized = name.replace("\\", "/")
+    path = PurePosixPath(normalized)
+    if (
+        not normalized
+        or normalized.startswith("/")
+        or re.match(r"^[A-Za-z]:", normalized)
+    ):
+        raise ValueError(f"unsafe member name: {name}")
+    if any(part in {"", ".", ".."} for part in path.parts):
+        raise ValueError(f"unsafe member name: {name}")
+    return normalized
+
+
+def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
+    """Return the bounded on-disk PE extent at *offset*, or ``None``."""
+    if offset < 0 or offset + 0x40 > len(data) or data[offset : offset + 2] != b"MZ":
+        return None
+    try:
+        image = pefile.PE(data=data[offset:], fast_load=True)
+        if not 1 <= image.FILE_HEADER.NumberOfSections <= 96:
+            return None
+        extent = int(image.OPTIONAL_HEADER.SizeOfHeaders)
+        for section in image.sections:
+            extent = max(extent, int(section.PointerToRawData + section.SizeOfRawData))
+        security = image.OPTIONAL_HEADER.DATA_DIRECTORY[4]
+        if security.VirtualAddress and security.Size:
+            extent = max(extent, int(security.VirtualAddress + security.Size))
+        if extent <= 0 or offset + extent > len(data) or extent > MAX_ARTIFACT:
+            return None
+        return extent
+    except (AttributeError, IndexError, pefile.PEFormatError, ValueError):
+        return None
+
+
+def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
+    """Carve validated non-leading PE images without executing their stubs."""
+    artifacts: list[tuple[str, bytes]] = []
+    seen: set[str] = set()
+    cursor = 1
+    while len(artifacts) < limit:
+        offset = data.find(b"MZ", cursor)
+        if offset < 0:
+            break
+        extent = valid_pe_extent(data, offset)
+        if extent:
+            blob = data[offset : offset + extent]
+            digest = sha256_bytes(blob)
+            if digest not in seen:
+                artifacts.append(("embedded-pe", blob))
+                seen.add(digest)
+            cursor = offset + extent
+        else:
+            cursor = offset + 2
+    return artifacts
+
+
+def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Classify PE packing evidence and recover bounded embedded artifacts."""
+    pe = pefile.PE(data=data, fast_load=False)
+    sections = []
+    for section in pe.sections:
+        sections.append(
+            {
+                "name": section.Name.rstrip(b"\0").decode(errors="replace"),
+                "raw_size": section.SizeOfRawData,
+                "virtual_size": section.Misc_VirtualSize,
+                "entropy": round(section.get_entropy(), 4),
+                "characteristics": hex(section.Characteristics),
+            }
+        )
+    imports = sum(
+        len(entry.imports) for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])
+    )
+    markers = sorted(
+        marker.decode()
+        for marker in (
+            b"UPX!",
+            b"MPRESS1",
+            b"MPRESS2",
+            b"Themida",
+            b"VMProtect",
+            b"Nullsoft",
+        )
+        if marker.lower() in data.lower()
+    )
+    artifacts: list[tuple[str, bytes]] = []
+    overlay_offset = pe.get_overlay_data_start_offset()
+    overlay = data[overlay_offset:] if overlay_offset is not None else b""
+    overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
+    if overlay and overlay_format != "data":
+        artifacts.append((f"pe-overlay-{overlay_format}", overlay))
+    artifacts.extend(carve_embedded_pes(overlay))
+    resource_count = 0
+    opaque_resources = 0
+    archive_resources = 0
+    if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
+        for type_entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
+            for name_entry in getattr(type_entry.directory, "entries", []):
+                for lang_entry in getattr(name_entry.directory, "entries", []):
+                    resource_count += 1
+                    item = lang_entry.data.struct
+                    blob = pe.get_data(item.OffsetToData, item.Size)
+                    if not 0 < len(blob) <= MAX_ARTIFACT:
+                        continue
+                    resource_format = detect_format(blob, "resource.bin")
+                    if resource_format != "data":
+                        artifacts.append((f"pe-resource-{resource_format}", blob))
+                        archive_resources += int(
+                            resource_format in {"7z", "cab", "zip"}
+                        )
+                    carved = carve_embedded_pes(blob)
+                    artifacts.extend(carved)
+                    if (
+                        resource_format == "data"
+                        and not carved
+                        and len(blob) >= 4096
+                        and entropy(blob) >= 7.2
+                        and opaque_resources < 32
+                    ):
+                        artifacts.append(("pe-resource-opaque", blob))
+                        opaque_resources += 1
+    high_entropy = [
+        item["name"]
+        for item in sections
+        if item["entropy"] >= 7.2 and item["raw_size"] >= 4096
+    ]
+    is_dotnet = bool(pe.OPTIONAL_HEADER.DATA_DIRECTORY[14].VirtualAddress)
+    lowered = data[: min(len(data), 16 * 1024 * 1024)].lower()
+    is_go = b"go build id" in lowered or b"runtime.main" in lowered
+    section_names = {item["name"].lower() for item in sections}
+    entrypoint_rva = pe.OPTIONAL_HEADER.AddressOfEntryPoint
+    entrypoint_section = next(
+        (
+            item["name"]
+            for item, raw_section in zip(sections, pe.sections, strict=True)
+            if raw_section.VirtualAddress
+            <= entrypoint_rva
+            < raw_section.VirtualAddress
+            + max(raw_section.Misc_VirtualSize, raw_section.SizeOfRawData)
+        ),
+        None,
+    )
+    zero_raw_virtual_sections = [
+        item["name"]
+        for item in sections
+        if item["raw_size"] == 0 and item["virtual_size"] >= 4096
+    ]
+    strong_section_marker = any(
+        token in name
+        for name in section_names
+        for token in ("upx", "mpress", "vmp", "themida")
+    )
+    strong_string_markers = [
+        marker for marker in markers if marker in {"Themida", "VMProtect"}
+    ]
+    code_entropy = [
+        item["name"]
+        for item in sections
+        if item["entropy"] >= 7.2
+        and item["raw_size"] >= 4096
+        and item["name"].lower() not in {".rsrc", ".reloc"}
+    ]
+    containerized = "Nullsoft" in markers or archive_resources > 0
+    virtualized_shape = (
+        imports <= 2
+        and len(zero_raw_virtual_sections) >= 4
+        and bool(code_entropy)
+        and entrypoint_section in code_entropy
+    )
+    if containerized:
+        classification = "self_extracting_container"
+    elif is_dotnet and code_entropy:
+        classification = "managed_loader_or_obfuscated"
+    elif virtualized_shape:
+        classification = "virtualized_or_packed"
+    elif strong_section_marker or strong_string_markers:
+        classification = "packed_or_protected"
+    elif not is_dotnet and not is_go and code_entropy and imports <= 8:
+        classification = "suspected_packed"
+    else:
+        classification = "not_packed"
+    packed = classification in {
+        "packed_or_protected",
+        "suspected_packed",
+        "virtualized_or_packed",
+    }
+    return (
+        {
+            "machine": hex(pe.FILE_HEADER.Machine),
+            "is_dotnet": is_dotnet,
+            "is_go": is_go,
+            "imports": imports,
+            "sections": sections,
+            "high_entropy_sections": high_entropy,
+            "code_entropy_sections": code_entropy,
+            "packer_markers": markers,
+            "classification": classification,
+            "containerized": containerized,
+            "entrypoint_section": entrypoint_section,
+            "zero_raw_virtual_sections": zero_raw_virtual_sections,
+            "virtualized_shape": virtualized_shape,
+            "packing_suspected": packed,
+            "overlay_size": len(overlay),
+            "overlay_format": overlay_format,
+            "resource_count": resource_count,
+            "opaque_resources_recovered": opaque_resources,
+            "archive_resources_recovered": archive_resources,
+        },
+        artifacts,
+    )
+
+
+def recover_dotnet_resources(
+    data: bytes,
+) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Inventory .NET manifest resources and retain opaque encoded payload material."""
+    try:
+        image = dnfile.dnPE(data=data)
+    except Exception as exc:  # dnfile raises several parser-specific exceptions
+        return {"status": "parse_failed", "error": type(exc).__name__}, []
+    resources = getattr(getattr(image, "net", None), "resources", []) or []
+    inventory, artifacts = [], []
+    for resource in resources[:MAX_ARCHIVE_MEMBERS]:
+        name = str(getattr(resource, "name", "unnamed.resources"))
+        size = int(getattr(resource, "size", 0) or 0)
+        rva = int(getattr(resource, "rva", 0) or 0)
+        if not 0 < size <= MAX_ARTIFACT or not rva:
+            inventory.append(
+                {"name": name, "size": size, "status": "size_or_rva_blocked"}
+            )
+            continue
+        blob = image.get_data(rva, size)
+        if not blob:
+            inventory.append({"name": name, "size": size, "status": "empty"})
+            continue
+        resource_set = getattr(resource, "data", None)
+        entries = []
+        for entry in (getattr(resource_set, "entries", []) or [])[:MAX_ARCHIVE_MEMBERS]:
+            entries.append(
+                {
+                    "name": str(getattr(entry, "name", "")),
+                    "type": str(getattr(entry, "type_name", "")),
+                }
+            )
+        kind = detect_format(blob, name)
+        item = {
+            "name": name,
+            "size": len(blob),
+            "sha256": sha256_bytes(blob),
+            "entropy": entropy(blob),
+            "format": kind,
+            "entries": entries,
+            "status": "extracted",
+        }
+        inventory.append(item)
+        if kind != "data":
+            artifacts.append((f"dotnet-resource-{kind}", blob))
+        artifacts.extend(carve_embedded_pes(blob))
+        if kind == "data" and len(blob) >= 4096 and entropy(blob) >= 7.0:
+            artifacts.append(("dotnet-resource-opaque", blob))
+        bitmap_report, bitmap_artifacts = recover_dotnet_bitmap_payloads(resource_set)
+        if bitmap_report["status"] != "no_bitmap_entries":
+            item["bitmap_payloads"] = bitmap_report
+            artifacts.extend(bitmap_artifacts)
+    return {
+        "status": "resources_recovered" if inventory else "no_manifest_resources",
+        "count": len(inventory),
+        "inventory": inventory,
+    }, artifacts
+
+
+def _resource_entry_bounds(resource_set: object, index: int) -> tuple[int, int]:
+    """Return one ResourceSet entry's bounded serialized-data interval."""
+    entries = list(getattr(resource_set, "entries", []) or [])
+    raw = getattr(resource_set, "_data", b"")
+    header = getattr(resource_set, "struct", None)
+    base = int(getattr(header, "DataSectionOffset", 0) or 0)
+    start = base + int(getattr(entries[index].struct, "DataOffset", 0) or 0)
+    offsets = sorted(
+        base + int(getattr(entry.struct, "DataOffset", 0) or 0) for entry in entries
+    )
+    later = [offset for offset in offsets if offset > start]
+    end = min(later) if later else len(raw)
+    if not (0 <= start < end <= len(raw)):
+        raise ValueError("invalid ResourceSet entry bounds")
+    return start, end
+
+
+def _decode_bmp_rgb_columns(data: bytes) -> bytes:
+    """Mirror Bitmap.GetPixel column-major RGB extraction for an embedded BMP."""
+    if len(data) < 54 or data[:2] != b"BM":
+        raise ValueError("not a BMP")
+    declared_size = struct.unpack_from("<I", data, 2)[0]
+    pixel_offset = struct.unpack_from("<I", data, 10)[0]
+    dib_size = struct.unpack_from("<I", data, 14)[0]
+    width, height = struct.unpack_from("<ii", data, 18)
+    planes, bits = struct.unpack_from("<HH", data, 26)
+    compression = struct.unpack_from("<I", data, 30)[0]
+    if (
+        declared_size > len(data)
+        or dib_size < 40
+        or not 0 < width <= 16384
+        or not 0 < abs(height) <= 16384
+        or planes != 1
+        or bits not in {24, 32}
+        or compression != 0
+    ):
+        raise ValueError("unsupported or malformed BMP")
+    bytes_per_pixel = bits // 8
+    stride = ((width * bits + 31) // 32) * 4
+    if pixel_offset + stride * abs(height) > declared_size:
+        raise ValueError("truncated BMP pixels")
+    output = bytearray()
+    for x in range(width):
+        for y in range(abs(height)):
+            stored_y = abs(height) - 1 - y if height > 0 else y
+            offset = pixel_offset + stored_y * stride + x * bytes_per_pixel
+            blue, green, red = data[offset : offset + 3]
+            output.extend((red, green, blue))
+    return bytes(output)
+
+
+def recover_dotnet_bitmap_payloads(
+    resource_set: object,
+) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Recover PE streams hidden in serialized .NET Bitmap resource RGB pixels."""
+    entries = list(getattr(resource_set, "entries", []) or [])
+    raw = getattr(resource_set, "_data", b"")
+    bitmap_entries = [
+        (index, entry)
+        for index, entry in enumerate(entries)
+        if "System.Drawing.Bitmap" in str(getattr(entry, "type_name", ""))
+    ]
+    if not bitmap_entries:
+        return {"status": "no_bitmap_entries", "entries": []}, []
+    inventory, artifacts = [], []
+    for index, entry in bitmap_entries:
+        item = {"name": str(getattr(entry, "name", "unnamed"))}
+        try:
+            start, end = _resource_entry_bounds(resource_set, index)
+        except ValueError as exc:
+            item.update(status="invalid_bounds", error=str(exc))
+            inventory.append(item)
+            continue
+        bmp_offset = raw.find(b"BM", start, min(end, start + 4096))
+        if bmp_offset < 0 or bmp_offset + 6 > end:
+            item["status"] = "unsupported_bitmap_serialization"
+            inventory.append(item)
+            continue
+        size = struct.unpack_from("<I", raw, bmp_offset + 2)[0]
+        try:
+            rgb = _decode_bmp_rgb_columns(raw[bmp_offset : min(end, bmp_offset + size)])
+        except ValueError as exc:
+            item.update(status="unsupported_bitmap", error=str(exc))
+            inventory.append(item)
+            continue
+        extent = valid_pe_extent(rgb, 0) if rgb.startswith(b"MZ") else None
+        item.update(
+            status="pe_recovered" if extent else "rgb_recovered_no_pe",
+            bitmap_size=size,
+            rgb_size=len(rgb),
+            rgb_sha256=sha256_bytes(rgb),
+        )
+        if extent:
+            payload = rgb[:extent]
+            item.update(payload_size=extent, payload_sha256=sha256_bytes(payload))
+            artifacts.append(("dotnet-bitmap-rgb-pe", payload))
+        inventory.append(item)
+    status = "pe_recovered" if artifacts else "bitmap_entries_processed"
+    return {"status": status, "entries": inventory}, artifacts
+
+
+def macho_summary(data: bytes) -> dict:
+    """Parse bounded Mach-O or universal-binary header metadata."""
+    magic = data[:4]
+    if magic not in MACHO_MAGICS:
+        raise ValueError("not a Mach-O image")
+    if magic in {b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"}:
+        endian = ">" if magic == b"\xca\xfe\xba\xbe" else "<"
+        return {
+            "kind": "universal",
+            "architectures": struct.unpack_from(endian + "I", data, 4)[0],
+        }
+    endian = "<" if magic == b"\xcf\xfa\xed\xfe" else ">"
+    if len(data) < 32:
+        raise ValueError("truncated Mach-O header")
+    cpu_type, cpu_subtype, file_type, commands, command_size, flags = (
+        struct.unpack_from(endian + "IIIIII", data, 4)
+    )
+    return {
+        "kind": "macho64",
+        "cpu_type": hex(cpu_type),
+        "cpu_subtype": hex(cpu_subtype),
+        "file_type": file_type,
+        "load_commands": commands,
+        "load_command_bytes": command_size,
+        "flags": hex(flags),
+    }
+
+
+def _encoded_blob_kind(blob: bytes) -> str | None:
+    """Return a supported kind only when decoded bytes are structurally useful."""
+    kind = detect_format(blob)
+    if kind == "pe" and valid_pe_extent(blob) is None:
+        return None
+    return kind if kind != "data" else None
+
+
+def recover_encoded_blobs(data: bytes) -> list[tuple[str, bytes]]:
+    """Recover bounded, structurally meaningful base64 blobs from scripts.
+
+    Command files often emit one payload through many echo lines before using
+    certutil -decode. Those chunks are reassembled by redirection target.
+    Random high-entropy arguments are not retained individually.
+    """
+    text = decode_script_text(data)
+    artifacts: list[tuple[str, bytes]] = []
+    seen: set[str] = set()
+    emitted_chunks: set[str] = set()
+    streams: dict[str, list[str]] = {}
+    echo_pattern = re.compile(
+        r"(?im)^[ \t]*@?echo[ \t]+([A-Za-z0-9+/]{4,}={0,2})"
+        r"[ \t]*(>>|>)[ \t]*([^\r\n]+?)[ \t]*\r?$"
+    )
+    for match in echo_pattern.finditer(text):
+        chunk, operator, target = match.groups()
+        target = target.strip().lower()
+        emitted_chunks.add(chunk)
+        if operator == ">" or target not in streams:
+            streams[target] = []
+        streams[target].append(chunk)
+    for chunks in streams.values():
+        encoded = "".join(chunks)
+        if len(encoded) > (MAX_ARTIFACT * 4 // 3) + 4:
+            continue
+        try:
+            blob = base64.b64decode(encoded, validate=True)
+        except (ValueError, binascii.Error):
+            continue
+        kind = _encoded_blob_kind(blob)
+        digest = sha256_bytes(blob)
+        if 64 <= len(blob) <= MAX_ARTIFACT and kind and digest not in seen:
+            seen.add(digest)
+            artifacts.append((f"base64-echo-reassembled-{kind}", blob))
+    for match in re.finditer(
+        r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{128,}={0,2}(?![A-Za-z0-9+/])", text
+    ):
+        encoded = match.group()
+        if encoded in emitted_chunks:
+            continue
+        try:
+            blob = base64.b64decode(encoded, validate=True)
+        except (ValueError, binascii.Error):
+            continue
+        kind = _encoded_blob_kind(blob)
+        digest = sha256_bytes(blob)
+        if 64 <= len(blob) <= MAX_ARTIFACT and kind and digest not in seen:
+            seen.add(digest)
+            artifacts.append((f"base64-{kind}", blob))
+    return artifacts[:128]
+
+
+def recover_zip(data: bytes) -> tuple[list[dict], list[tuple[str, bytes]]]:
+    """Inventory a bounded ZIP and retain recognized or script-like members."""
+    inventory, artifacts = [], []
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        infos = [item for item in archive.infolist() if not item.is_dir()]
+        selected = infos
+        if len(infos) > 512:
+            suffixes = {
+                ".exe",
+                ".dll",
+                ".bin",
+                ".dat",
+                ".js",
+                ".vbs",
+                ".ps1",
+                ".hta",
+                ".macho",
+                ".dylib",
+                ".zip",
+            }
+            selected = [
+                item for item in infos if Path(item.filename).suffix.lower() in suffixes
+            ][:128]
+            inventory.append(
+                {
+                    "name": "__archive__",
+                    "status": "member_limit_applied",
+                    "total_members": len(infos),
+                    "selected_members": len(selected),
+                }
+            )
+        for info in selected:
+            name = safe_member_name(info.filename)
+            if info.file_size > MAX_ARTIFACT:
+                inventory.append(
+                    {"name": name, "size": info.file_size, "status": "size_blocked"}
+                )
+                continue
+            if info.compress_size and info.file_size / info.compress_size > 200:
+                inventory.append(
+                    {"name": name, "size": info.file_size, "status": "ratio_blocked"}
+                )
+                continue
+            try:
+                blob = archive.read(info)
+            except RuntimeError:
+                inventory.append(
+                    {"name": name, "size": info.file_size, "status": "encrypted"}
+                )
+                continue
+            kind = detect_format(blob, name)
+            inventory.append(
+                {
+                    "name": name,
+                    "size": len(blob),
+                    "sha256": sha256_bytes(blob),
+                    "format": kind,
+                }
+            )
+            if kind != "data":
+                artifacts.append((f"zip-{kind}", blob))
+    return inventory, artifacts
+
+
+def run_upx(
+    data: bytes, executable: Path, timeout: float = 120.0
+) -> tuple[dict, bytes | None]:
+    """Invoke UPX decompression as a data transform and validate the output PE."""
+    if not executable.is_file():
+        return {"status": "unavailable", "path": str(executable)}, None
+    with tempfile.TemporaryDirectory(prefix="asa-upx-") as temp:
+        source, output = Path(temp) / "input.bin", Path(temp) / "unpacked.bin"
+        source.write_bytes(data)
+        completed = subprocess.run(
+            [str(executable), "-d", "-o", str(output), str(source)],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        if completed.returncode or not output.is_file():
+            return {
+                "status": "not_upx_or_failed",
+                "exit_code": completed.returncode,
+            }, None
+        blob = output.read_bytes()
+        if not blob.startswith(b"MZ"):
+            return {"status": "invalid_output", "exit_code": completed.returncode}, None
+        return {
+            "status": "recovered",
+            "size": len(blob),
+            "sha256": sha256_bytes(blob),
+        }, blob
+
+
+def decode_autoit_xor_literals(script: bytes) -> list[str]:
+    """Decode repeated-key XOR string calls in decompiled AutoIt source."""
+    text = script.decode("utf-8", errors="ignore")
+    pattern = re.compile(
+        r"[A-Za-z_][A-Za-z0-9_]*\(\"0x([0-9A-Fa-f]+)\",\s*\"([^\"]+)\"\)"
+    )
+    decoded, seen = [], set()
+    for match in pattern.finditer(text):
+        if len(decoded) >= 20000 or len(match.group(1)) > 2 * 1024 * 1024:
+            continue
+        raw, key = bytes.fromhex(match.group(1)), match.group(2).encode()
+        if not key:
+            continue
+        value = bytes(byte ^ key[index % len(key)] for index, byte in enumerate(raw))
+        rendered = value.decode("latin1")
+        printable = sum(character.isprintable() for character in rendered)
+        if rendered and printable / len(rendered) >= 0.8 and rendered not in seen:
+            decoded.append(rendered)
+            seen.add(rendered)
+    return decoded
+
+
+def recover_autoit_rc4_lznt1(
+    script: bytes,
+) -> tuple[list[dict], list[tuple[str, bytes]]]:
+    """Recover PE payloads from AutoIt RC4 then LZNT1 loader expressions."""
+    from Cryptodome.Cipher import ARC4
+    from refinery.units.compression.lznt1 import lznt1
+
+    text = script.decode("utf-8", errors="ignore")
+    pattern = re.compile(
+        r"[A-Za-z_][A-Za-z0-9_]*\(Binary\(\$([A-Za-z_][A-Za-z0-9_]*)\),\s*"
+        r"Binary\([A-Za-z_][A-Za-z0-9_]*\(\"0x([0-9A-Fa-f]+)\",\s*\"([^\"]+)\"\)\)\)"
+    )
+    reports, artifacts, seen = [], [], set()
+    for match in pattern.finditer(text):
+        variable, key_hex, key_text = match.groups()
+        key_raw, xor_key = bytes.fromhex(key_hex), key_text.encode()
+        if not xor_key:
+            continue
+        key = bytes(
+            byte ^ xor_key[index % len(xor_key)] for index, byte in enumerate(key_raw)
+        )
+        segment_pattern = re.compile(
+            rf"\${re.escape(variable)}\s*=\s*(?:\${re.escape(variable)}\s*&\s*)?"
+            r"\"(?:0x)?([0-9A-Fa-f]+)\""
+        )
+        segments = segment_pattern.findall(text)
+        total_hex = sum(len(segment) for segment in segments)
+        if not segments or total_hex % 2 or total_hex // 2 > MAX_ARTIFACT:
+            continue
+        ciphertext = bytes.fromhex("".join(segments))
+        candidate_id = (sha256_bytes(ciphertext), sha256_bytes(key))
+        if candidate_id in seen:
+            continue
+        seen.add(candidate_id)
+        try:
+            compressed = ARC4.new(key).decrypt(ciphertext)
+            payload = bytes(lznt1()(compressed))
+        except Exception as exc:
+            reports.append(
+                {
+                    "variable": variable,
+                    "status": "decode_failed",
+                    "error": type(exc).__name__,
+                }
+            )
+            continue
+        if not payload.startswith(b"MZ") or valid_pe_extent(payload, 0) is None:
+            reports.append(
+                {
+                    "variable": variable,
+                    "status": "decoded_non_pe",
+                    "size": len(payload),
+                    "sha256": sha256_bytes(payload),
+                }
+            )
+            continue
+        reports.append(
+            {
+                "variable": variable,
+                "status": "pe_recovered",
+                "segments": len(segments),
+                "ciphertext_size": len(ciphertext),
+                "ciphertext_sha256": sha256_bytes(ciphertext),
+                "rc4_key": key.decode("ascii", errors="replace"),
+                "compressed_sha256": sha256_bytes(compressed),
+                "payload_size": len(payload),
+                "payload_sha256": sha256_bytes(payload),
+            }
+        )
+        artifacts.append(("autoit-rc4-lznt1-pe", payload))
+    return reports, artifacts
+
+
+def recover_autoit_script(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Decompile AutoIt A3X and statically recover XOR/RC4/LZNT1 layers."""
+    try:
+        from refinery.units.formats.a3xs import a3xs
+
+        script = bytes(a3xs()(data))
+    except Exception as exc:  # refinery exposes multiple format/parser failures
+        return {"status": "decompile_failed", "error": type(exc).__name__}, []
+    if not script or len(script) > MAX_ARTIFACT:
+        return {"status": "invalid_or_oversized_output", "size": len(script)}, []
+    decoded_strings = decode_autoit_xor_literals(script)
+    behavior_tokens = (
+        "http",
+        ".dll",
+        "process",
+        "virtualalloc",
+        "writeprocessmemory",
+        "createthread",
+        "ntwritevirtualmemory",
+        "rtl decompress",
+        "socket",
+        "powershell",
+    )
+    behavior_strings = [
+        value
+        for value in decoded_strings
+        if len(value) <= 512
+        and any(token in value.lower() for token in behavior_tokens)
+    ][:256]
+    payloads, recovered = recover_autoit_rc4_lznt1(script)
+    return (
+        {
+            "status": "decompiled",
+            "size": len(script),
+            "sha256": sha256_bytes(script),
+            "decoded_xor_strings": len(decoded_strings),
+            "behavior_strings": behavior_strings,
+            "payloads": payloads,
+            "sample_executed": False,
+        },
+        [("autoit-decompiled-script", script), *recovered],
+    )
+
+
+def run_die(
+    data: bytes,
+    executable: Path,
+    name: str = "sample.bin",
+    timeout: float = 120.0,
+) -> dict:
+    """Run Detect It Easy as a static classifier and parse its JSON evidence."""
+    if not executable.is_file():
+        return {"status": "unavailable", "path": str(executable)}
+    with tempfile.TemporaryDirectory(prefix="asa-die-") as temp:
+        suffix = Path(name).suffix or ".bin"
+        source = Path(temp) / f"sample{suffix}"
+        source.write_bytes(data)
+        try:
+            completed = subprocess.run(
+                [str(executable), "-j", "-d", "-u", str(source)],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return {"status": "timeout"}
+        if completed.returncode:
+            return {"status": "failed", "exit_code": completed.returncode}
+        try:
+            document = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            return {"status": "invalid_json", "exit_code": completed.returncode}
+        values = []
+        for detection in document.get("detects", []):
+            for value in detection.get("values", []):
+                if value.get("string"):
+                    values.append(value["string"])
+        return {
+            "status": "detected",
+            "values": values,
+            "raw": document,
+            "sample_executed": False,
+        }
+
+
+def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
+    """Use 7-Zip only to identify and list a possible archive container."""
+    if not executable.is_file():
+        return {"status": "unavailable", "path": str(executable)}
+    with tempfile.TemporaryDirectory(prefix="asa-7z-list-") as temp:
+        source = Path(temp) / "input.bin"
+        source.write_bytes(data)
+        command = [str(executable), "l", "-slt"]
+        if password:
+            command.append(f"-p{password}")
+        command.extend(["--", str(source)])
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        paths, types, declared_sizes = [], [], []
+        for line in completed.stdout.splitlines():
+            if line.startswith("Path = "):
+                value = line[7:]
+                if value != str(source):
+                    paths.append(value)
+            elif line.startswith("Type = "):
+                types.append(line[7:])
+            elif line.startswith("Size = ") and line[7:].strip().isdigit():
+                declared_sizes.append(int(line[7:].strip()))
+        return {
+            "status": "listed"
+            if completed.returncode == 0
+            else "encrypted_or_unsupported",
+            "exit_code": completed.returncode,
+            "archive_types": sorted(set(types)),
+            "members": paths[:MAX_ARCHIVE_MEMBERS],
+            "total_members": len(paths),
+            "declared_total_size": sum(declared_sizes),
+            "password_attempted": bool(password),
+        }
+
+
+def reassemble_split_parts(
+    files: dict[str, bytes],
+) -> tuple[list[dict], list[tuple[str, bytes]]]:
+    """Reassemble Jadoo-style split files after validating offsets and lengths."""
+    reports: list[dict] = []
+    artifacts: list[tuple[str, bytes]] = []
+    by_basename: dict[str, list[tuple[str, bytes]]] = {}
+    for name, blob in files.items():
+        by_basename.setdefault(PurePosixPath(name).name, []).append((name, blob))
+    for manifest_name, manifest_blob in files.items():
+        if not manifest_name.lower().endswith("_info.json"):
+            continue
+        try:
+            manifest = json.loads(manifest_blob.decode("utf-8"))
+            parts = manifest["parts"]
+            expected_size = int(manifest["file_size"])
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+        ):
+            reports.append({"manifest": manifest_name, "status": "invalid_manifest"})
+            continue
+        if not isinstance(parts, list) or not 1 <= len(parts) <= MAX_ARCHIVE_MEMBERS:
+            reports.append({"manifest": manifest_name, "status": "invalid_part_count"})
+            continue
+        if not 0 < expected_size <= MAX_ARTIFACT:
+            reports.append({"manifest": manifest_name, "status": "size_blocked"})
+            continue
+        chunks, cursor, failure = [], 0, None
+        for part in sorted(parts, key=lambda item: int(item.get("start", -1))):
+            try:
+                basename = PurePosixPath(str(part["original_name"])).name
+                expected_part_size = int(part["size"])
+                start, end = int(part["start"]), int(part["end"])
+            except (KeyError, TypeError, ValueError):
+                failure = "invalid_part_metadata"
+                break
+            candidates = by_basename.get(basename, [])
+            if len(candidates) != 1:
+                failure = "missing_or_ambiguous_part"
+                break
+            blob = candidates[0][1]
+            if start != cursor or end != start + expected_part_size - 1:
+                failure = "non_contiguous_offsets"
+                break
+            if len(blob) != expected_part_size:
+                failure = "part_size_mismatch"
+                break
+            chunks.append(blob)
+            cursor += len(blob)
+        if failure or cursor != expected_size:
+            reports.append(
+                {
+                    "manifest": manifest_name,
+                    "status": failure or "final_size_mismatch",
+                    "expected_size": expected_size,
+                    "observed_size": cursor,
+                }
+            )
+            continue
+        rebuilt = b"".join(chunks)
+        output_name = str(manifest.get("file_name", "reassembled.bin"))
+        output_kind = detect_format(rebuilt, output_name)
+        reports.append(
+            {
+                "manifest": manifest_name,
+                "status": "reassembled",
+                "output_name": output_name,
+                "format": output_kind,
+                "size": len(rebuilt),
+                "sha256": sha256_bytes(rebuilt),
+            }
+        )
+        artifacts.append((f"split-reassembled-{output_kind}", rebuilt))
+    return reports, artifacts
+
+
+def sevenzip_extract(
+    data: bytes,
+    executable: Path,
+    name: str = "input.bin",
+    password: str = "",
+) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Extract a recognized container with path, count, and byte-count bounds."""
+    listing = sevenzip_inventory(data, executable, password)
+    if listing["status"] == "unavailable":
+        return listing, []
+    extractable_types = {"7z", "cab", "nsis", "rar", "zip"}
+    archive_types = {value.lower() for value in listing.get("archive_types", [])}
+    supported_archive = archive_types.intersection(extractable_types) or any(
+        value.startswith("rar") for value in archive_types
+    )
+    if not supported_archive:
+        return {**listing, "status": "not_archive_container"}, []
+    if listing.get("total_members", 0) > MAX_ARCHIVE_MEMBERS:
+        return {**listing, "status": "member_limit_blocked"}, []
+    if listing.get("declared_total_size", 0) > MAX_EXTRACTED_TOTAL:
+        return {**listing, "status": "declared_size_blocked"}, []
+    with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
+        root = Path(temp)
+        suffix = Path(name).suffix or ".bin"
+        source, output = root / f"input{suffix}", root / "out"
+        source.write_bytes(data)
+        command = [str(executable), "x", "-y", "-bd", "-bb0"]
+        if password:
+            command.append(f"-p{password}")
+        command.extend([f"-o{output}", "--", str(source)])
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return {**listing, "status": "extract_timeout"}, []
+        inventory, candidates = [], []
+        extracted_total = 0
+        output_resolved = output.resolve()
+        for entry in sorted(output.rglob("*")) if output.is_dir() else []:
+            if not entry.is_file() or entry.is_symlink():
+                continue
+            resolved = entry.resolve()
+            try:
+                resolved.relative_to(output_resolved)
+            except ValueError:
+                inventory.append({"name": str(entry), "status": "path_blocked"})
+                continue
+            attributes = getattr(entry.stat(), "st_file_attributes", 0)
+            if attributes & 0x400:
+                inventory.append({"name": str(entry), "status": "reparse_blocked"})
+                continue
+            relative = entry.relative_to(output).as_posix()
+            try:
+                safe_member_name(relative)
+            except ValueError:
+                inventory.append({"name": relative, "status": "path_blocked"})
+                continue
+            size = entry.stat().st_size
+            extracted_total += size
+            if size > MAX_ARTIFACT:
+                inventory.append(
+                    {"name": relative, "size": size, "status": "size_blocked"}
+                )
+                continue
+            if extracted_total > MAX_EXTRACTED_TOTAL:
+                inventory.append(
+                    {"name": relative, "size": size, "status": "total_size_blocked"}
+                )
+                continue
+            blob = entry.read_bytes()
+            kind = detect_format(blob, relative)
+            item = {
+                "name": relative,
+                "size": len(blob),
+                "sha256": sha256_bytes(blob),
+                "format": kind,
+                "status": "extracted",
+            }
+            inventory.append(item)
+            suffix = entry.suffix.lower()
+            keep = kind != "data" or suffix in RECOVERY_SUFFIXES
+            keep = keep or ".part-" in entry.name.lower()
+            keep = keep or (not suffix and len(blob) <= 16 * 1024 * 1024)
+            if keep:
+                priority = 0 if kind != "data" else 1
+                candidates.append((priority, relative, blob, kind))
+        candidates.sort(key=lambda item: (item[0], item[1].lower()))
+        selected = candidates[:MAX_RETAINED_MEMBERS]
+        file_map = {name: blob for _, name, blob, _ in selected}
+        split_reports, split_artifacts = reassemble_split_parts(file_map)
+        nsis_report, nsis_artifacts = ({"status": "not_nsis"}, [])
+        if "nsis" in archive_types:
+            nsis_report, nsis_artifacts = recover_nsis_scripted_layers(file_map)
+        artifacts = [(f"7z-{kind}", blob) for _, _, blob, kind in selected]
+        artifacts.extend(split_artifacts)
+        artifacts.extend(nsis_artifacts)
+        status = "extracted" if completed.returncode == 0 else "partially_extracted"
+        return (
+            {
+                **listing,
+                "status": status,
+                "extract_exit_code": completed.returncode,
+                "inventory": inventory[:MAX_ARCHIVE_MEMBERS],
+                "extracted_total_size": extracted_total,
+                "retained_members": len(selected),
+                "split_reassembly": split_reports,
+                "nsis_script_recovery": nsis_report,
+            },
+            artifacts,
+        )
+
+
+def unpack_bytes(
+    data: bytes,
+    name: str = "sample",
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+) -> tuple[dict, list[tuple[str, bytes]]]:
+    """Run the bounded static recovery pipeline and return metadata plus artifacts."""
+    kind = detect_format(data, name)
+    report = {
+        "schema_version": 2,
+        "name": name,
+        "sha256": sha256_bytes(data),
+        "size": len(data),
+        "entropy": entropy(data),
+        "format": kind,
+        "executed": False,
+        "network_contacted": False,
+    }
+    artifacts: list[tuple[str, bytes]] = []
+    if diec and kind in {"pe", "macho"}:
+        report["die"] = run_die(data, diec, name)
+    if kind == "pe":
+        try:
+            report["pe"], recovered = pe_summary(data)
+        except pefile.PEFormatError as exc:
+            report["pe"] = {
+                "status": "parse_failed",
+                "error": str(exc),
+                "classification": "corrupt_or_truncated",
+                "packing_suspected": False,
+            }
+            report["unpack_status"] = "corrupt_or_truncated"
+            return report, []
+        artifacts.extend(recovered)
+        if report["pe"]["is_dotnet"]:
+            report["dotnet_resources"], recovered = recover_dotnet_resources(data)
+            artifacts.extend(recovered)
+        section_names = {item["name"].lower() for item in report["pe"]["sections"]}
+        likely_upx = "UPX!" in report["pe"]["packer_markers"] or any(
+            "upx" in value for value in section_names
+        )
+        if upx and likely_upx:
+            report["upx"], blob = run_upx(data, upx)
+            if blob:
+                artifacts.append(("upx", blob))
+        elif upx:
+            report["upx"] = {"status": "skipped_no_upx_evidence"}
+        if sevenzip and report["pe"]["containerized"]:
+            report["sevenzip"], recovered = sevenzip_extract(data, sevenzip, name)
+            artifacts.extend(recovered)
+    elif kind == "macho":
+        report["macho"] = macho_summary(data)
+    elif kind == "zip":
+        try:
+            report["zip"], recovered = recover_zip(data)
+            artifacts.extend(recovered)
+        except ValueError as exc:
+            report["zip_error"] = str(exc)
+            report["unpack_status"] = "bounded_limit"
+    elif kind in {"7z", "cab", "rar"} and sevenzip:
+        report["sevenzip"], recovered = sevenzip_extract(data, sevenzip, name)
+        artifacts.extend(recovered)
+    elif kind == "autoit-a3x":
+        report["autoit"], recovered = recover_autoit_script(data)
+        artifacts.extend(recovered)
+    elif kind == "script":
+        artifacts.extend(recover_encoded_blobs(data))
+        report["javascript_dropper"], recovered = recover_javascript_dropper(data)
+        artifacts.extend(recovered)
+        report["javascript_string_array"], transformed = deobfuscate_string_array(data)
+        if transformed:
+            artifacts.append(("javascript-string-array-deobfuscated", transformed))
+    artifacts.extend(carve_embedded_pes(data))
+    deduplicated: list[tuple[str, bytes]] = []
+    seen: set[str] = set()
+    for artifact_kind, blob in artifacts:
+        digest = sha256_bytes(blob)
+        if digest == report["sha256"] or digest in seen:
+            continue
+        seen.add(digest)
+        deduplicated.append((artifact_kind, blob))
+    report["recovered"] = [
+        {"kind": artifact_kind, "size": len(blob), "sha256": sha256_bytes(blob)}
+        for artifact_kind, blob in deduplicated
+    ]
+    report["unpack_status"] = (
+        "artifacts_recovered" if deduplicated else "no_artifact_recovered"
+    )
+    return report, deduplicated
+
+
+def write_artifacts(
+    path: Path, artifacts: list[tuple[str, bytes]], password: str = "infected"
+) -> None:
+    """Store recovered bytes only in an AES-encrypted quarantine archive."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with pyzipper.AESZipFile(
+        path, "w", compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES
+    ) as archive:
+        archive.setpassword(password.encode())
+        archive.setencryption(pyzipper.WZ_AES, nbits=256)
+        for kind, blob in artifacts:
+            archive.writestr(f"{kind}/{sha256_bytes(blob)}.quarantine.bin", blob)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the static unpacker command-line parser."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--artifact-zip", type=Path)
+    parser.add_argument("--upx", type=Path)
+    parser.add_argument("--sevenzip", type=Path)
+    parser.add_argument("--diec", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Analyze one raw artifact and optionally archive recovered layers."""
+    args = build_parser().parse_args(argv)
+    report, artifacts = unpack_bytes(
+        args.input.read_bytes(), args.input.name, args.upx, args.sevenzip, args.diec
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    if args.artifact_zip and artifacts:
+        write_artifacts(args.artifact_zip, artifacts)
+    print(json.dumps({"output": str(args.output), "recovered": len(artifacts)}))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

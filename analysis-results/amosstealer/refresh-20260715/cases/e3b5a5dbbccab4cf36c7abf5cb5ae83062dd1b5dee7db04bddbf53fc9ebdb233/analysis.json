@@ -1,0 +1,100 @@
+{
+  "case": {
+    "sha256": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
+    "name": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233.sh",
+    "family": "amosstealer",
+    "campaign": "script_delivery",
+    "format": "data",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 1,
+    "c2_assessment": "candidate",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
+    "config": {
+      "source_name": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233.sh",
+      "campaign_shape": "sh_script_delivery",
+      "family_markers": [],
+      "features": {
+        "keychain_collection": false,
+        "browser_collection": false,
+        "wallet_collection": false,
+        "apple_script": false,
+        "user_prompt": false
+      },
+      "urls": [
+        "http://91.92.242.30/dx2w5j5bka6qkwxi"
+      ],
+      "endpoints": [],
+      "static_config_recovered": true
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "http://91.92.242.30/dx2w5j5bka6qkwxi",
+        "role": "candidate_infrastructure",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "candidate",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "http://91.92.242.30/dx2w5j5bka6qkwxi",
+          "role": "candidate_infrastructure",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "91.92.242.30",
+        "port": null,
+        "passive_queries": [
+          "ip:91.92.242.30"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233.sh",
+    "sha256": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
+    "size": 138,
+    "entropy": 4.8289,
+    "format": "data",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

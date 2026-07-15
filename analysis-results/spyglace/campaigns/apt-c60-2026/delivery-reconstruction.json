@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "carrier_sha256": "e98e3e9e9f900611ff1aaaae02a4728d93b5fdf15561ad12deec5e84c38f3336",
+  "tar_sha256": "ce3d5f4d9cd6012f34f378258406f70f0530319507e8abd48bf76e212b456f6b",
+  "script": "MsMpEng/mingw64/bin/msdic.log",
+  "script_sha256": "d567af55c97b7a595fcde5082e37a752718044230c16704e24efb43025bed0c2",
+  "fragment_names": [
+    "TMI003.db",
+    "TMI100.db",
+    "TMI210.db",
+    "TMI320.db",
+    "TMI400.db"
+  ],
+  "fragment_sha256": [
+    "d14214e95c9d1ea850e508dfe27928494f2155a7597e4ea0bad9f70690abb397",
+    "deba513e2dc52a2931e61f5ac6d550a7938c1f7f63f661867c09d6141ee98560",
+    "18683bba19695d325372d195634afd2f76b14896ba68225ba51ea5a039f2f76d",
+    "555360fb918b959176d669ef0ed40ec0b5ee57005fc625109891a16d02952462",
+    "a8bee6c4a5860b0ae08a984d2a6d62c13d3e91d9514262998924d2e0cef88f7c"
+  ],
+  "destination": "%LocalAppData%\\Microsoft\\Windows\\Explorer\\iconcache.dat",
+  "payload_sha256": "866564bb455bb3c9f3e15cbbc1dcaf75c533a224eb96c4b6d6739e114ee1d065",
+  "payload_size": 149504,
+  "member_count": 8,
+  "executed": false,
+  "network_contacted": false
+}

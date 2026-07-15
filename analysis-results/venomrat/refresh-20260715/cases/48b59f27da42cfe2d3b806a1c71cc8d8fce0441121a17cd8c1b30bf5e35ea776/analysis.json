@@ -1,0 +1,63 @@
+{
+  "case": {
+    "sha256": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776",
+    "name": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776.rar",
+    "family": "venomrat",
+    "campaign": "unknown_or_nested_delivery",
+    "format": "data",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "sample_sha256": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776",
+    "config": {
+      "source_name": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776.rar",
+      "markers": [],
+      "endpoints": [],
+      "urls": []
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776.rar",
+    "sha256": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776",
+    "size": 167177,
+    "entropy": 7.9976,
+    "format": "data",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

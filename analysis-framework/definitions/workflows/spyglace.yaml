@@ -1,0 +1,11 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: spyglace.config, display_name: SpyGlace offline config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: container, uses: "containers.inventory@^1", needs: [intake], on_error: partial}
+  - {id: unpack, uses: "static.unpack.inspect@^1", needs: [container], on_error: partial}
+  - {id: pe, uses: "static.pe.inspect@^1", needs: [unpack], on_error: partial}
+  - {id: config, uses: "family.spyglace.config@^1", needs: [pe]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

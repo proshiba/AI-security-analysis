@@ -1,0 +1,157 @@
+{
+  "case": {
+    "sha256": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a",
+    "name": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a.exe",
+    "family": "remusstealer",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 1,
+    "c2_assessment": "candidate",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "sample_sha256": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a",
+    "config": {
+      "source_name": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "go_runtime": false,
+        "archive_delivery": true
+      },
+      "urls": [
+        "http://31.77.168.180:5000/piva.exe"
+      ],
+      "endpoints": [],
+      "static_config_recovered": true
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "http://31.77.168.180:5000/piva.exe",
+        "role": "payload_or_dependency_url",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "assessment": "candidate",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "http://31.77.168.180:5000/piva.exe",
+          "role": "payload_or_dependency_url",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "31.77.168.180",
+        "port": 5000,
+        "passive_queries": [
+          "ip:31.77.168.180 port:5000"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a.exe",
+    "sha256": "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a",
+    "size": 153600,
+    "entropy": 6.0858,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 82,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 81408,
+          "virtual_size": 81322,
+          "entropy": 6.4398
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 58368,
+          "virtual_size": 58258,
+          "entropy": 4.983
+        },
+        {
+          "name": ".data",
+          "raw_size": 3584,
+          "virtual_size": 12028,
+          "entropy": 2.3278
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 5632,
+          "virtual_size": 5592,
+          "entropy": 5.0611
+        },
+        {
+          "name": ".fptable",
+          "raw_size": 512,
+          "virtual_size": 256,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1024,
+          "virtual_size": 688,
+          "entropy": 4.0228
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 2048,
+          "virtual_size": 1908,
+          "entropy": 5.3126
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "resource_count": 1
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.stealer_common</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.stealer_common</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cstealer_common.py">c:\users\administrator\ai-security-analysis\extractors\stealer_common.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;filtering&nbsp;and&nbsp;configuration&nbsp;primitives&nbsp;for&nbsp;information&nbsp;stealers.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-campaign_shape"><strong>campaign_shape</strong></a>(name: 'str', data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Describe&nbsp;the&nbsp;delivery/container&nbsp;shape&nbsp;without&nbsp;asserting&nbsp;operator&nbsp;identity.</span></dd></dl>
+ <dl><dt><a name="-clean_url"><strong>clean_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;literal&nbsp;URL&nbsp;and&nbsp;reject&nbsp;malformed&nbsp;or&nbsp;known&nbsp;reference-only&nbsp;hosts.</span></dd></dl>
+ <dl><dt><a name="-extract_stealer"><strong>extract_stealer</strong></a>(
+    family: 'str',
+    data: 'bytes',
+    name: 'str',
+    markers: 'tuple[str, ...]',
+    features: 'dict[str, tuple[str, ...]]',
+    limitations: 'list[str]'
+) -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;one&nbsp;conservative&nbsp;stealer&nbsp;configuration&nbsp;result&nbsp;from&nbsp;static&nbsp;literals.</span></dd></dl>
+ <dl><dt><a name="-feature_hits"><strong>feature_hits</strong></a>(strings: 'list[str]', features: 'dict[str, tuple[str, ...]]') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Match&nbsp;reviewed&nbsp;case-insensitive&nbsp;feature&nbsp;groups&nbsp;against&nbsp;extracted&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-infrastructure_urls"><strong>infrastructure_urls</strong></a>(strings: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;normalized&nbsp;non-reference&nbsp;infrastructure&nbsp;URL&nbsp;candidates.</span></dd></dl>
+ <dl><dt><a name="-url_role"><strong>url_role</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Classify&nbsp;an&nbsp;embedded&nbsp;URL&nbsp;by&nbsp;conservative&nbsp;infrastructure&nbsp;role.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BENIGN_SUFFIXES</strong> = ('apple.com', 'digicert.com', 'globalsign.com', 'microsoft.com', 'microsoftonline.com', 'go.dev', 'nsis.sf.net', 'w3.org', 'certum.pl', 'ocsp-certum.com', 'thawte.com', 'usertrust.com', 'adobe.com', 'purl.org', 'curl.se', 'docs.rs', 'github.com', 'ip-api.com', 'ipinfo.io', 'ipify.org', ...)</td></tr></table>
+</body></html>

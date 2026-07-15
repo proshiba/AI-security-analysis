@@ -22,3 +22,7 @@ The first three reports used Japanese Windows sandbox resources. The fourth is c
 | `6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8` | Native x64 resource loader | Final payload/C2 not recovered; 956,928-byte `EXPAND/2499` resource prioritized |
 
 No sample was executed and no extracted infrastructure was contacted.
+
+## Latest refresh
+
+- [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)

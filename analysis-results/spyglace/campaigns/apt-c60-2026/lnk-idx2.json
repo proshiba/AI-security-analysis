@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "sha256": "899ce01e7313f4c1cfcf07cb2456282ded1d6b6c57286762f2914a9d60de0146",
+  "urls": [
+    "https://cdn.jsdelivr.net/gh/mei1990789/class125/help.js",
+    "https://cdn.jsdelivr.net/gh/mei1990789/class125/megaw64.txt"
+  ],
+  "actions": [
+    "mshta"
+  ],
+  "embedded_script_count": 2,
+  "embedded_script_sha256": [
+    "b6f944b16c689edad22acb1b14c21e768634bf9caa28f66de2f2464dbb99e2f6",
+    "f327b23e9ef70a8b36dd1f1a6a3b1c658d9a56c50da60e03cf03904e8ef420c0"
+  ],
+  "executed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,721 @@
+{
+  "case": {
+    "sha256": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff",
+    "name": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff.zip",
+    "family": "vidar",
+    "campaign": "nested_zip_delivery",
+    "format": "zip",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff",
+    "config": {
+      "source_name": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff.zip",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_collection": true,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff.zip",
+    "sha256": "8aa914b8fa0f9cf953f3cd9a9bcbfa27c43a7b7be8ba39d780fb80eaaf3766ff",
+    "size": 57264082,
+    "entropy": 7.9997,
+    "format": "zip",
+    "executed": false,
+    "network_contacted": false,
+    "zip": [
+      {
+        "name": "__archive__",
+        "status": "member_limit_applied",
+        "total_members": 1239,
+        "selected_members": 128
+      },
+      {
+        "name": "bin/lab/ImBatchContextMenuHandler-X64.dll",
+        "size": 522240,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/IMService.dll",
+        "size": 458392,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/kvno.exe",
+        "size": 22608,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/libschroedinger_plugin.dll",
+        "size": 1458304,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/Microsoft.WebTools.Languages.LanguageServer.Server.dll",
+        "size": 201144,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/Microsoft.Win32.Registry.dll",
+        "size": 23112,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/MSODCW.DLL",
+        "size": 687968,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/msvcr120_clr0400.dll",
+        "size": 993632,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/NAudio.Asio.dll",
+        "size": 46440,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/Qt5Positioning.dll",
+        "size": 315888,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/sqloledb.dll",
+        "size": 869888,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/lab/VGX.dll",
+        "size": 1024000,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/libtheora_plugin.dll",
+        "size": 335488,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/libvlc.dll",
+        "size": 191104,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/libvorbis_plugin.dll",
+        "size": 784512,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/LocalPortableDeviceService.dll",
+        "size": 316568,
+        "status": "encrypted"
+      },
+      {
+        "name": "bin/Microsoft.SqlServer.Management.UserSettings.dll",
+        "size": 204192,
+        "status": "encrypted"
+      },
+      {
+        "name": "Mso20win32client.dll",
+        "size": 3142848,
+        "status": "encrypted"
+      },
+      {
+        "name": "msvcp140.dll",
+        "size": 620008,
+        "status": "encrypted"
+      },
+      {
+        "name": "msvcp_win.dll",
+        "size": 642000,
+        "status": "encrypted"
+      },
+      {
+        "name": "OLMAPI32.DLL",
+        "size": 6542016,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/ACEREP.DLL",
+        "size": 691616,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/afcdpapi.dll",
+        "size": 142800,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/bigtest.js",
+        "size": 135,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/bunzip2.exe",
+        "size": 68276,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/compress_unsup1.zip",
+        "size": 105,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/dxil.dll",
+        "size": 1370048,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/CommandLine.dll",
+        "size": 199168,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/DropboxService.dll",
+        "size": 352920,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ISP.exe",
+        "size": 2955296,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/libvorbis_plugin.dll",
+        "size": 784512,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/libxml2-2.dll",
+        "size": 1231516,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/Microsoft.TeamFoundation.VersionControl.Common.dll",
+        "size": 263056,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/Microsoft.VisualStudio.Commenting.Presentation.dll",
+        "size": 524224,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/Microsoft.VisualStudio.Interactive.Editor.dll",
+        "size": 316464,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/Microsoft.VisualStudio.TestTools.UITest.Extension.IE64.Communication.dll",
+        "size": 205240,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/Microsoft.XmlEditorNeutralUI.dll",
+        "size": 394648,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/msvcr100.dll",
+        "size": 827728,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/EntityPicker.dll",
+        "size": 268672,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/IMService.dll",
+        "size": 458392,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/Microsoft.AspNetCore.Http.dll",
+        "size": 264464,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/Microsoft.ProgramSynthesis.Transformation.Tree.dll",
+        "size": 473464,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/Microsoft.VisualStudio.CMake.CMakeSettings.dll",
+        "size": 265248,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/msdaps.dll",
+        "size": 377344,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/VBoxHeadless.dll",
+        "size": 354400,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/websocket-sharp.dll",
+        "size": 255336,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/ogi/WzWXFmfire64.dll",
+        "size": 656536,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/System.Threading.dll",
+        "size": 394128,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/gerka/XIMAGE3B.DLL",
+        "size": 1174936,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/msvcr120_clr0400.dll",
+        "size": 993632,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/pythoncom311.dll",
+        "size": 669696,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/bings/WinPixTimingCapturer.dll",
+        "size": 407304,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/concrt140d.dll",
+        "size": 740216,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/ContactPicker.dll",
+        "size": 222592,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/cpfecl.Clang.Windows.x64.dll",
+        "size": 447408,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/ExtendedTools.dll",
+        "size": 200736,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/7za.dll",
+        "size": 395080,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/ACEOLEDB.DLL",
+        "size": 536992,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/ACEWSTR.DLL",
+        "size": 862608,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/AdbePM.dll",
+        "size": 727240,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/adobe_caps.dll",
+        "size": 681672,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/atlprov.dll",
+        "size": 210864,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/AudioSupport.dll",
+        "size": 405704,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/BCSRuntime.dll",
+        "size": 613760,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/boost_python-vc90-mt-1_47.dll",
+        "size": 303696,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/BvLsaEx.dll",
+        "size": 391784,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/chrome_elf.dll",
+        "size": 1359888,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/clang_rt.asan_dbg_dynamic-i386.dll",
+        "size": 1185712,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/cpfecl.Linux.arm.dll",
+        "size": 460320,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/cygdokanfuse1.dll",
+        "size": 243304,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/declarative_multimedia.dll",
+        "size": 276464,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/hostfxr.dll",
+        "size": 470392,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/iTunesAdmin.dll",
+        "size": 1189728,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/libarchive_plugin.dll",
+        "size": 481920,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/libflac_plugin.dll",
+        "size": 244352,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/libgnutls-26.dll",
+        "size": 682224,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/libsmi-2.dll",
+        "size": 731675,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/libssl-1_1.dll",
+        "size": 704792,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Metadata.dll",
+        "size": 392704,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.Azure.Management.ContainerService.Fluent.dll",
+        "size": 598408,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.Azure.Management.ServiceBus.Fluent.dll",
+        "size": 448904,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.Build.Utilities.Core.dll",
+        "size": 731400,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.CodeAnalysis.EditorFeatures.dll",
+        "size": 1356048,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.ProgramSynthesis.Extraction.Text.dll",
+        "size": 234872,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.SqlServer.Management.Sdk.Sfc.dll",
+        "size": 512920,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.SqlServer.Management.UserSettings.dll",
+        "size": 204192,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.TeamFoundation.Git.Controls.resources.dll",
+        "size": 672288,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.TemplateEngine.Cli.dll",
+        "size": 1059080,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualC.ProjectStore.Implementation.dll",
+        "size": 1132576,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Editors.WCF.dll",
+        "size": 711608,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.IdentityService.Wpf.dll",
+        "size": 217120,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.JavaScript.ProjectSystem.dll",
+        "size": 1324464,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.LanguageServer.Protocol.dll",
+        "size": 268152,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.LanguageServices.VisualBasic.dll",
+        "size": 444704,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.QualityTools.Common.dll",
+        "size": 1301816,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.QualityTools.LoadTest.dll",
+        "size": 1198472,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.QualityTools.TMI.dll",
+        "size": 371592,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Shell.15.0.resources.dll",
+        "size": 230832,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Shell.Styles.dll",
+        "size": 381872,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.TeamFoundation.dll",
+        "size": 928288,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.TestPlatform.Common.dll",
+        "size": 501920,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Text.Core.Implementation.dll",
+        "size": 371080,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Web.HTML.Implementation.dll",
+        "size": 425912,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.VisualStudio.Workspace.ExternalBuildFramework.Impl.dll",
+        "size": 401328,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.Web.XmlTransform.dll",
+        "size": 203016,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.WebTools.Languages.Json.Editor.dll",
+        "size": 264120,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.WebTools.Languages.LanguageServer.Delegation.dll",
+        "size": 259512,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Microsoft.WindowsAPICodePack.Shell.dll",
+        "size": 1245184,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/mozglue.dll",
+        "size": 1045568,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/MSSP7EN.DLL",
+        "size": 974208,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/msvcdis120.dll",
+        "size": 1019048,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/msvcr120_clr0400.dll",
+        "size": 993632,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/msys-p11-kit-0.dll",
+        "size": 1041480,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/msys-pcre2-8-0.dll",
+        "size": 635056,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/NuGet.Packaging.Extraction.dll",
+        "size": 836984,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/NuGet.Protocol.dll",
+        "size": 886704,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/NuGet.VisualStudio.Implementation.dll",
+        "size": 279432,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/ogalegit.dll",
+        "size": 637744,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/OutlookChangeNotifierAddIn.dll",
+        "size": 268640,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/perf_nt.dll",
+        "size": 1397432,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/PpiAmdRadeonPlugin-x64.dll",
+        "size": 826880,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/pythoncom26.dll",
+        "size": 489472,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Qt5LabsTemplates.dll",
+        "size": 497552,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/Qt5Xml.dll",
+        "size": 213488,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/qtiff4.dll",
+        "size": 309760,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/SbieDll.dll",
+        "size": 887760,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/scintilla.dll",
+        "size": 632320,
+        "status": "encrypted"
+      },
+      {
+        "name": "release/gentr/SecurityTransparencyRules.dll",
+        "size": 271048,
+        "status": "encrypted"
+      }
+    ],
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

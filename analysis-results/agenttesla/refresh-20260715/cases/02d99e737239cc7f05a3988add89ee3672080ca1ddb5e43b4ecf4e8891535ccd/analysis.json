@@ -1,0 +1,62 @@
+{
+  "case": {
+    "sha256": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd",
+    "name": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd.js",
+    "family": "agenttesla",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "agenttesla",
+    "sample_sha256": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd",
+    "config": {
+      "source_name": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd.js",
+      "config_endpoints": [],
+      "credentials_present": false
+    },
+    "findings": [],
+    "limitations": [
+      "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "agenttesla",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd.js",
+    "sha256": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd",
+    "size": 3293663,
+    "entropy": 6.1814,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

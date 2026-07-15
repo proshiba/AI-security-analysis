@@ -1,0 +1,18 @@
+title: Archive Utility Followed by Browser Credential Store Access
+id: 1789398d-d621-47c8-860a-27f9007f7eb1
+status: experimental
+description: Behavioral building block for encrypted Remus Stealer deliveries; correlate archive extraction with subsequent credential access.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+      - '\7z.exe'
+      - '\WinRAR.exe'
+      - '\explorer.exe'
+    Image|endswith: '.exe'
+  condition: selection
+falsepositives:
+  - Normal user execution of software distributed in archives
+level: low

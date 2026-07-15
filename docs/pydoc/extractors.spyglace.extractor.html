@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.spyglace.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.spyglace.html" class="white">spyglace</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cspyglace%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\spyglace\extractor.py</a></td></tr></table>
+    <p><span class="code">Extract&nbsp;SpyGlace&nbsp;configuration&nbsp;and&nbsp;protocol&nbsp;constants&nbsp;without&nbsp;execution.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-decode_add_xor_sub"><strong>decode_add_xor_sub</strong></a>(value: 'str', xor_key: 'int', subtract: 'int' = 1) -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;SpyGlace's&nbsp;inverse&nbsp;of&nbsp;``(plain&nbsp;+&nbsp;subtract)&nbsp;XOR&nbsp;key``.</span></dd></dl>
+ <dl><dt><a name="-decoded_strings"><strong>decoded_strings</strong></a>(data: 'bytes', xor_key: 'int') -&gt; 'list[str]'</dt><dd><span class="code">Decode&nbsp;every&nbsp;static&nbsp;printable&nbsp;string&nbsp;with&nbsp;one&nbsp;SpyGlace&nbsp;transform&nbsp;key.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Recover&nbsp;an&nbsp;optional&nbsp;repository&nbsp;envelope&nbsp;and&nbsp;extract&nbsp;SpyGlace&nbsp;config.</span></dd></dl>
+ <dl><dt><a name="-extract_config"><strong>extract_config</strong></a>(payload: 'bytes', identity_hashes: 'tuple[str, ...]' = ()) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;family&nbsp;role,&nbsp;C2,&nbsp;command,&nbsp;crypto,&nbsp;and&nbsp;persistence&nbsp;configuration.</span></dd></dl>
+ <dl><dt><a name="-printable_strings"><strong>printable_strings</strong></a>(data: 'bytes', minimum: 'int' = 4) -&gt; 'list[tuple[int, str, str]]'</dt><dd><span class="code">Return&nbsp;offset,&nbsp;encoding,&nbsp;and&nbsp;value&nbsp;for&nbsp;ASCII&nbsp;and&nbsp;UTF-16LE&nbsp;strings.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>AES_IV</strong> = b'!\xa4G\x12hZ\x8b\xa4)\x85x;g\x889\x99'<br>
+<strong>AES_KEY</strong> = b'\xb0t|\x82\xc23Y\xd14+G\xa6iyi\x89'<br>
+<strong>COMMAND_XOR</strong> = 3<br>
+<strong>CONFIG_XOR</strong> = 2<br>
+<strong>KNOWN_COMMANDS</strong> = ('procspawn', 'prockill', 'proclist', 'diskinfo', 'download', 'downfree', 'upload', 'cancel', 'screenupload', 'screenauto', 'turn on', 'turn off', 'extension', 'stopextension', 'cmd.exe /c ', 'ddir', 'ddel', 'uld', 'attach', 'detach')<br>
+<strong>KNOWN_VERSIONS</strong> = {'7621e4eff855b2679188b33fe4c71c377f6e2d0b9c25d939452e18992c52e067': '3.1.15', '7ab9c634216798d50ce3e19bf1650d6b7c2386150340e48ec3af8b38fd30ae4c': '3.1.15', '88f58087fc7e7a74455d19c0476954c3bd77d36d0683ab57a6598eb72c4ae37c': '3.1.15', '9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502': '3.1.15', 'add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c': '3.1.15', 'af24d54d56cbdffe5081c133dae8e8cd54a0d0e2f3059599bc388ef27cf19aa5': '3.1.15', 'c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52': '3.1.15', 'e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f': '3.1.15'}<br>
+<strong>SUBTRACT</strong> = 1</td></tr></table>
+</body></html>

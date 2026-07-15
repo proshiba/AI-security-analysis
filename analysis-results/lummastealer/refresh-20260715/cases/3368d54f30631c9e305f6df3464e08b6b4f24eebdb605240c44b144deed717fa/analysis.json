@@ -1,0 +1,129 @@
+{
+  "case": {
+    "sha256": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa",
+    "name": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa.exe",
+    "family": "lummastealer",
+    "campaign": "go_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+      "Literal infrastructure remains candidate until family config use is established."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "lummastealer",
+    "sample_sha256": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa",
+    "config": {
+      "source_name": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [
+        "hwid"
+      ],
+      "features": {
+        "browser_collection": true,
+        "wallet_collection": true,
+        "loader_or_packer": true,
+        "c2_api": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+      "Literal infrastructure remains candidate until family config use is established."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "lummastealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa.exe",
+    "sha256": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa",
+    "size": 12573184,
+    "entropy": 6.4282,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "imports": 44,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 5248000,
+          "virtual_size": 5247781,
+          "entropy": 6.0298
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 6636544,
+          "virtual_size": 6636160,
+          "entropy": 6.077
+        },
+        {
+          "name": ".data",
+          "raw_size": 433152,
+          "virtual_size": 635308,
+          "entropy": 5.9997
+        },
+        {
+          "name": ".idata",
+          "raw_size": 1536,
+          "virtual_size": 1100,
+          "entropy": 3.8499
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 252416,
+          "virtual_size": 252280,
+          "entropy": 6.6425
+        },
+        {
+          "name": ".symtab",
+          "raw_size": 512,
+          "virtual_size": 4,
+          "entropy": 0.0204
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [
+        "MPRESS1"
+      ],
+      "packing_suspected": true,
+      "overlay_size": 0,
+      "resource_count": 0
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "case": {
+    "sha256": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad",
+    "name": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad.js",
+    "family": "formbook",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad",
+    "config": {
+      "source_name": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad.js",
+      "campaign_shape": "js_script_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad.js",
+    "sha256": "7d9512cf29b9d9792a1018f41eaa156902a16e2f20e4da4f1c308501822b39ad",
+    "size": 2127266,
+    "entropy": 5.7777,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": [
+      {
+        "kind": "base64",
+        "size": 1498457,
+        "sha256": "6629058b3662787ef1749452e4254654202fcdd9b334e3f35f983393270d06a6"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "6629058b3662787ef1749452e4254654202fcdd9b334e3f35f983393270d06a6",
+        "size": 1498457,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "6629058b3662787ef1749452e4254654202fcdd9b334e3f35f983393270d06a6",
+          "size": 1498457,
+          "entropy": 6.027,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

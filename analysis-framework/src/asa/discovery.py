@@ -13,6 +13,7 @@ import pyzipper
 from extractors.common import extract_strings
 
 MAX_MEMBER = 256 * 1024 * 1024
+SCRIPT_SUFFIXES = {".js", ".jse", ".vbs", ".vbe", ".ps1", ".hta", ".osascript", ".applescript", ".vba"}
 
 
 def safe_member_name(name: str) -> str:
@@ -50,10 +51,24 @@ def read_submission(path: Path, password: str = "infected") -> tuple[bytes, str,
 def infer_family(strings_ci: list[str]) -> str | None:
     """Infer only families with sufficiently distinctive static markers."""
     text = "\n".join(strings_ci)
+    if sum(marker in text for marker in ("rpsgwra{l", "[iljvvrsrel", "tvdqhg''''")) >= 3:
+        return "spyglace"
     if all(item in text for item in ("mx-go/internal/mail", "mx-go/internal/control", "mx-go/internal/remote")):
         return "mx-go"
     if any(item in text for item in ("quasar.client", "xclient.core")) and "reconnectdelay" in text:
         return "venomrat"
+    if any(item in text for item in ("ledger/live/", "security dump-keychain")) and any(
+        item in text for item in ("keychain", "osascript", "login data")
+    ):
+        return "amosstealer"
+    if any(item in text for item in ("lummac2", "lumma stealer")):
+        return "lummastealer"
+    if any(item in text for item in ("remusstealer", "remus stealer")):
+        return "remusstealer"
+    if any(item in text for item in ("information.txt", "passwords.txt")) and "wallet" in text:
+        return "vidar"
+    if any(item in text for item in ("formbook", "xloader")):
+        return "formbook"
     if any(item in text for item in ("remcos agent", "rmc-")):
         return "remcosrat"
     if any(item in text for item in ("agenttesla", "otnmpxnddvnptbn")):
@@ -66,12 +81,36 @@ def infer_family(strings_ci: list[str]) -> str | None:
 def infer_campaign(family: str | None, strings_ci: list[str], member_names: list[str]) -> str | None:
     """Infer reviewed campaign shapes while preserving unknown variants."""
     text, names = "\n".join(strings_ci), {item.lower() for item in member_names}
+    name = next(iter(names), "")
+    suffix = Path(name).suffix.lower()
+    if family == "spyglace":
+        if "sgznqhtgnghvmzxponum" in text:
+            return "apt_c60_repository_xor"
+        if suffix == ".lnk" and any(item in text for item in ("mshta", "cdn.jsdelivr.net", "certutil")):
+            return "apt_c60_lnk_mshta"
+        return "direct_spyglace_pe"
     if family == "valleyrat" and {"chgport.exe", "loggercollector.dll", "vvas.bin"} <= names:
         return "dll_sideload_vvas_bundle"
     if family == "mx-go" and "/api/v1/heartbeat_direct" in text:
         return "remotely_controlled_bulk_email_spam_bot"
     if family == "venomrat" and "quasar.client" in text:
         return "direct_dotnet_quasar_module"
+    if family in {"formbook", "amosstealer"} and suffix in SCRIPT_SUFFIXES:
+        return "script_delivery"
+    if family in {"formbook", "amosstealer"} and suffix in {".xlsm", ".docm"}:
+        return "macro_office_delivery"
+    if family == "amosstealer" and suffix in {".macho", ".dylib"}:
+        return "direct_macho"
+    if family == "vidar" and suffix == ".zip":
+        return "nested_zip_delivery"
+    if family == "lummastealer":
+        return "go_pe_loader" if "go build id" in text or "runtime.main" in text else "packed_native_pe"
+    if family == "remusstealer" and suffix == ".7z":
+        return "encrypted_7z_delivery"
+    if family == "remusstealer" and ("go build id" in text or "runtime.main" in text):
+        return "go_pe_loader"
+    if family in {"formbook", "vidar", "remusstealer"} and suffix in {".exe", ".dll"}:
+        return "direct_pe_or_pe_loader"
     return None
 
 

@@ -42,3 +42,30 @@ python -m pytest -q extractors/tests
 ```
 
 生成済みAPI文書は `docs/pydoc/` を参照する。
+
+
+## Additional stealer families
+
+- ormbook: delivery shape, injection/credential markers, and recursively recovered infrastructure literals
+- idar: unpacked collection/dependency/dead-drop candidates
+- lummastealer: loader/packer, build, browser/wallet, and API candidates
+- emusstealer: encrypted-archive, Go/native loader, browser/wallet, and infrastructure candidates
+- mosstealer: Mach-O/script shape, keychain/browser/wallet features, and /ledger/ exfiltration candidates
+
+All five use stealer_common.py; known certificate/vendor URLs and uncorroborated bare endpoints are suppressed to reduce false positives.
+
+## PureHVNC, PureRAT, and DonutLoader
+
+- `purehvnc` supports a native `10FX` profile and managed Base64/GZip/protobuf PureRAT configuration, including public certificate fingerprints without publishing the embedded private key.
+
+## SpyGlace
+
+The spyglace extractor accepts either the encoded APT-C-60 repository artifact or a decoded PE. It recovers known repeating-XOR envelopes in memory, decodes the separate API/command and configuration string domains, and returns the C2 IP, campaign user ID, ASP paths, mutex, commands, APIs, custom-RC4 key and persistence strings. It never sends the inferred HTTP requests.
+
+    python -m extractors.config_extractor --family spyglace --input C:\analysis\encoded.tmp --output C:\analysis\config.json
+
+Detailed execution order and failure handling are in docs/APT-C60-2026-WORKFLOW.md.
+- `donutloader` records delivery-layer markers and delegates terminal configuration extraction after static unpacking.
+- Aliases: `pure`, `purerat`, and `donut`.
+
+The family extractor accepts recovered payload bytes. It never executes the sample and never connects to configured infrastructure.

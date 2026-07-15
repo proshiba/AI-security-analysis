@@ -1,0 +1,73 @@
+{
+  "case": {
+    "sha256": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3",
+    "name": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3.hta",
+    "family": "formbook",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3",
+    "config": {
+      "source_name": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3.hta",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3.hta",
+    "sha256": "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3",
+    "size": 7494,
+    "entropy": 4.6895,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

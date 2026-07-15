@@ -1,0 +1,22 @@
+title: Multiple Browser Credential Stores Staged by an Unusual Process
+id: 2b73c87a-d031-4b21-b86d-c11d92108131
+status: experimental
+description: Detects unusual file creation using browser credential database names often staged by Vidar-like stealers.
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection:
+    TargetFilename|endswith:
+      - '\Login Data'
+      - '\Web Data'
+      - '\Cookies'
+  filter_browser:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\brave.exe'
+  condition: selection and not filter_browser
+falsepositives:
+  - Browser migration, backup, forensics, and enterprise profile-management tools
+level: medium

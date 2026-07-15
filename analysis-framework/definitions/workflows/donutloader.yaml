@@ -1,0 +1,10 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: donutloader.layers, display_name: DonutLoader static layer workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: pe, uses: "static.pe.inspect@^1", needs: [intake]}
+  - {id: layers, uses: "family.donutloader.layers@^1", needs: [pe]}
+  - {id: dotnet, uses: "static.dotnet.inspect@^1", needs: [layers], on_error: partial}
+  - {id: report, uses: "reporting.case_report@^1", needs: [layers, dotnet], on_error: partial}

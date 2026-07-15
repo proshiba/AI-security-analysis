@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module c2_detector</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">c2_detector</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Cmalware%5Cpurehvnc%5Cc2_detector.py">c:\users\administrator\ai-security-analysis\analysis-framework\malware\purehvnc\c2_detector.py</a></td></tr></table>
+    <p><span class="code">Build&nbsp;passive&nbsp;search&nbsp;and&nbsp;validation&nbsp;plans&nbsp;from&nbsp;static&nbsp;PureHVNC&nbsp;configuration.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static&nbsp;detector&nbsp;CLI&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-build_report"><strong>build_report</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;static&nbsp;C2&nbsp;indicators&nbsp;and&nbsp;passive-search&nbsp;queries&nbsp;without&nbsp;connecting.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;payload&nbsp;and&nbsp;optionally&nbsp;persist&nbsp;its&nbsp;passive&nbsp;C2&nbsp;plan.</span></dd></dl>
+ <dl><dt><a name="-shodan_queries"><strong>shodan_queries</strong></a>(config: 'dict[str, Any]') -&gt; 'list[str]'</dt><dd><span class="code">Build&nbsp;conservative&nbsp;Shodan&nbsp;filters&nbsp;from&nbsp;configured&nbsp;host&nbsp;and&nbsp;certificate&nbsp;data.</span></dd></dl>
+</td></tr></table>
+</body></html>

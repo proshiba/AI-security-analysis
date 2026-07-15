@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.static_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.static_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cstatic_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\static_unpacker.py</a></td></tr></table>
+    <p><span class="code">Bounded&nbsp;static&nbsp;unpacking&nbsp;and&nbsp;artifact&nbsp;recovery&nbsp;without&nbsp;sample&nbsp;execution.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="base64.html">base64</a><br>
+<a href="binascii.html">binascii</a><br>
+<a href="dnfile.html">dnfile</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="io.html">io</a><br>
+<a href="json.html">json</a><br>
+<a href="math.html">math</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+<a href="pyzipper.html">pyzipper</a><br>
+<a href="re.html">re</a><br>
+<a href="struct.html">struct</a><br>
+</td><td class="multicolumn"><a href="subprocess.html">subprocess</a><br>
+<a href="sys.html">sys</a><br>
+<a href="tempfile.html">tempfile</a><br>
+<a href="zipfile.html">zipfile</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static&nbsp;unpacker&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-carve_embedded_pes"><strong>carve_embedded_pes</strong></a>(data: 'bytes', limit: 'int' = 16) -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">Carve&nbsp;validated&nbsp;non-leading&nbsp;PE&nbsp;images&nbsp;without&nbsp;executing&nbsp;their&nbsp;stubs.</span></dd></dl>
+ <dl><dt><a name="-decode_autoit_xor_literals"><strong>decode_autoit_xor_literals</strong></a>(script: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Decode&nbsp;repeated-key&nbsp;XOR&nbsp;string&nbsp;calls&nbsp;in&nbsp;decompiled&nbsp;AutoIt&nbsp;source.</span></dd></dl>
+ <dl><dt><a name="-detect_format"><strong>detect_format</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'str'</dt><dd><span class="code">Identify&nbsp;formats&nbsp;supported&nbsp;by&nbsp;the&nbsp;static&nbsp;recovery&nbsp;pipeline.</span></dd></dl>
+ <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">Return&nbsp;Shannon&nbsp;entropy&nbsp;rounded&nbsp;to&nbsp;four&nbsp;decimals.</span></dd></dl>
+ <dl><dt><a name="-macho_summary"><strong>macho_summary</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;bounded&nbsp;Mach-O&nbsp;or&nbsp;universal-binary&nbsp;header&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;raw&nbsp;artifact&nbsp;and&nbsp;optionally&nbsp;archive&nbsp;recovered&nbsp;layers.</span></dd></dl>
+ <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Classify&nbsp;PE&nbsp;packing&nbsp;evidence&nbsp;and&nbsp;recover&nbsp;bounded&nbsp;embedded&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Reassemble&nbsp;Jadoo-style&nbsp;split&nbsp;files&nbsp;after&nbsp;validating&nbsp;offsets&nbsp;and&nbsp;lengths.</span></dd></dl>
+ <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;PE&nbsp;payloads&nbsp;from&nbsp;AutoIt&nbsp;RC4&nbsp;then&nbsp;LZNT1&nbsp;loader&nbsp;expressions.</span></dd></dl>
+ <dl><dt><a name="-recover_autoit_script"><strong>recover_autoit_script</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Decompile&nbsp;AutoIt&nbsp;A3X&nbsp;and&nbsp;statically&nbsp;recover&nbsp;XOR/RC4/LZNT1&nbsp;layers.</span></dd></dl>
+ <dl><dt><a name="-recover_dotnet_bitmap_payloads"><strong>recover_dotnet_bitmap_payloads</strong></a>(resource_set: 'object') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;PE&nbsp;streams&nbsp;hidden&nbsp;in&nbsp;serialized&nbsp;.NET&nbsp;Bitmap&nbsp;resource&nbsp;RGB&nbsp;pixels.</span></dd></dl>
+ <dl><dt><a name="-recover_dotnet_resources"><strong>recover_dotnet_resources</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;.NET&nbsp;manifest&nbsp;resources&nbsp;and&nbsp;retain&nbsp;opaque&nbsp;encoded&nbsp;payload&nbsp;material.</span></dd></dl>
+ <dl><dt><a name="-recover_encoded_blobs"><strong>recover_encoded_blobs</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">Recover&nbsp;bounded,&nbsp;structurally&nbsp;meaningful&nbsp;base64&nbsp;blobs&nbsp;from&nbsp;scripts.<br>
+&nbsp;<br>
+Command&nbsp;files&nbsp;often&nbsp;emit&nbsp;one&nbsp;payload&nbsp;through&nbsp;many&nbsp;echo&nbsp;lines&nbsp;before&nbsp;using<br>
+certutil&nbsp;-decode.&nbsp;Those&nbsp;chunks&nbsp;are&nbsp;reassembled&nbsp;by&nbsp;redirection&nbsp;target.<br>
+Random&nbsp;high-entropy&nbsp;arguments&nbsp;are&nbsp;not&nbsp;retained&nbsp;individually.</span></dd></dl>
+ <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;a&nbsp;bounded&nbsp;ZIP&nbsp;and&nbsp;retain&nbsp;recognized&nbsp;or&nbsp;script-like&nbsp;members.</span></dd></dl>
+ <dl><dt><a name="-run_die"><strong>run_die</strong></a>(
+    data: 'bytes',
+    executable: 'Path',
+    name: 'str' = 'sample.bin',
+    timeout: 'float' = 120.0
+) -&gt; 'dict'</dt><dd><span class="code">Run&nbsp;Detect&nbsp;It&nbsp;Easy&nbsp;as&nbsp;a&nbsp;static&nbsp;classifier&nbsp;and&nbsp;parse&nbsp;its&nbsp;JSON&nbsp;evidence.</span></dd></dl>
+ <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Invoke&nbsp;UPX&nbsp;decompression&nbsp;as&nbsp;a&nbsp;data&nbsp;transform&nbsp;and&nbsp;validate&nbsp;the&nbsp;output&nbsp;PE.</span></dd></dl>
+ <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal&nbsp;and&nbsp;absolute&nbsp;or&nbsp;drive-qualified&nbsp;member&nbsp;names.</span></dd></dl>
+ <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
+    data: 'bytes',
+    executable: 'Path',
+    name: 'str' = 'input.bin',
+    password: 'str' = ''
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;recognized&nbsp;container&nbsp;with&nbsp;path,&nbsp;count,&nbsp;and&nbsp;byte-count&nbsp;bounds.</span></dd></dl>
+ <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">Use&nbsp;7-Zip&nbsp;only&nbsp;to&nbsp;identify&nbsp;and&nbsp;list&nbsp;a&nbsp;possible&nbsp;archive&nbsp;container.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;lowercase&nbsp;SHA-256&nbsp;digest&nbsp;for&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(
+    data: 'bytes',
+    name: 'str' = 'sample',
+    upx: 'Path | None' = None,
+    sevenzip: 'Path | None' = None,
+    diec: 'Path | None' = None
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;the&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;pipeline&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;bounded&nbsp;on-disk&nbsp;PE&nbsp;extent&nbsp;at&nbsp;*offset*,&nbsp;or&nbsp;``None``.</span></dd></dl>
+ <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(
+    path: 'Path',
+    artifacts: 'list[tuple[str, bytes]]',
+    password: 'str' = 'infected'
+) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;recovered&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES-encrypted&nbsp;quarantine&nbsp;archive.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MACHO_MAGICS</strong> = {b'\xbe\xba\xfe\xca', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'}<br>
+<strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
+<strong>MAX_ARTIFACT</strong> = 268435456<br>
+<strong>MAX_EXTRACTED_TOTAL</strong> = 805306368<br>
+<strong>MAX_RETAINED_MEMBERS</strong> = 128<br>
+<strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.bat', '.bin', '.cab', ...}<br>
+<strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.bat', '.cmd', '.hta', '.js', '.jse', ...}</td></tr></table>
+</body></html>

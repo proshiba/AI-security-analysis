@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.nsis_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.nsis_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cnsis_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\nsis_unpacker.py</a></td></tr></table>
+    <p><span class="code">Static&nbsp;recovery&nbsp;helpers&nbsp;for&nbsp;NSIS&nbsp;installers&nbsp;with&nbsp;script-driven&nbsp;byte&nbsp;decoders.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;never&nbsp;launches&nbsp;an&nbsp;installer&nbsp;or&nbsp;a&nbsp;recovered&nbsp;artifact.&nbsp;&nbsp;It&nbsp;reconstructs<br>
+only&nbsp;transformations&nbsp;that&nbsp;are&nbsp;explicit&nbsp;in&nbsp;the&nbsp;decompiled&nbsp;NSIS&nbsp;script&nbsp;and&nbsp;in&nbsp;a<br>
+bounded,&nbsp;statically&nbsp;inspected&nbsp;decoder&nbsp;stub.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-apply_dword_xor"><strong>apply_dword_xor</strong></a>(data: 'bytes', key: 'int', length: 'int') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;a&nbsp;bounded&nbsp;little-endian&nbsp;dword&nbsp;XOR,&nbsp;zero-padding&nbsp;a&nbsp;short&nbsp;final&nbsp;page.</span></dd></dl>
+ <dl><dt><a name="-decode_nsis_hex_xor_words"><strong>decode_nsis_hex_xor_words</strong></a>(
+    data: 'bytes',
+    *,
+    offset: 'int' = 12,
+    read_chars: 'int' = 2048,
+    key: 'int' = 399936311,
+    terminator: 'int' = 81
+) -&gt; 'tuple[dict[str, Any], bytes]'</dt><dd><span class="code">Reproduce&nbsp;an&nbsp;NSIS&nbsp;``IntOp``/``IntFmt``&nbsp;32-bit&nbsp;XOR&nbsp;text&nbsp;decoder.<br>
+&nbsp;<br>
+The&nbsp;source&nbsp;is&nbsp;ASCII&nbsp;hexadecimal.&nbsp;&nbsp;Each&nbsp;eight-character&nbsp;word&nbsp;is&nbsp;XORed&nbsp;as&nbsp;an<br>
+unsigned&nbsp;32-bit&nbsp;integer&nbsp;and&nbsp;then&nbsp;emitted&nbsp;in&nbsp;the&nbsp;left-to-right&nbsp;byte&nbsp;order&nbsp;of<br>
+NSIS&nbsp;``IntFmt&nbsp;%08X``&nbsp;followed&nbsp;by&nbsp;two-character&nbsp;``%C``&nbsp;conversions.</span></dd></dl>
+ <dl><dt><a name="-extract_system_call_fragments"><strong>extract_system_call_fragments</strong></a>(decoded: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;printable&nbsp;NSIS&nbsp;System-plugin&nbsp;call&nbsp;expressions&nbsp;from&nbsp;decoded&nbsp;data.</span></dd></dl>
+ <dl><dt><a name="-find_static_dword_xor_loop"><strong>find_static_dword_xor_loop</strong></a>(data: 'bytes', scan_limit: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Find&nbsp;a&nbsp;constant-key&nbsp;dword&nbsp;XOR&nbsp;loop&nbsp;by&nbsp;linear&nbsp;static&nbsp;propagation.<br>
+&nbsp;<br>
+This&nbsp;intentionally&nbsp;handles&nbsp;only&nbsp;register/immediate&nbsp;arithmetic&nbsp;and&nbsp;does&nbsp;not<br>
+emulate&nbsp;instructions,&nbsp;memory,&nbsp;calls,&nbsp;or&nbsp;branches.&nbsp;&nbsp;It&nbsp;is&nbsp;therefore&nbsp;suitable<br>
+for&nbsp;recognizing&nbsp;an&nbsp;explicit&nbsp;decoder&nbsp;loop&nbsp;while&nbsp;refusing&nbsp;ambiguous&nbsp;stubs.</span></dd></dl>
+ <dl><dt><a name="-recover_nsis_scripted_layers"><strong>recover_nsis_scripted_layers</strong></a>(files: 'dict[str, bytes]') -&gt; 'tuple[dict[str, Any], list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;recognized&nbsp;NSIS-script&nbsp;XOR&nbsp;layers&nbsp;from&nbsp;an&nbsp;extracted&nbsp;file&nbsp;map.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_TERMINATOR</strong> = 81<br>
+<strong>DEFAULT_WORD_XOR_KEY</strong> = 399936311<br>
+<strong>MAX_STATIC_STAGE</strong> = 67108864</td></tr></table>
+</body></html>

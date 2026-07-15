@@ -1,0 +1,20 @@
+title: AppleScript Credential Prompt and Collection Chain
+id: 7932fd40-26c8-4aaa-9ffc-704cd05895c6
+status: experimental
+description: Detects osascript invoking security or upload tooling in a pattern associated with AMOS delivery scripts.
+logsource:
+  category: process_creation
+  product: macos
+detection:
+  parent:
+    ParentImage|endswith: '/osascript'
+  child:
+    Image|endswith:
+      - '/security'
+      - '/curl'
+      - '/ditto'
+      - '/zip'
+  condition: parent and child
+falsepositives:
+  - Administrative AppleScript, backup, onboarding, and software deployment workflows
+level: medium

@@ -1,0 +1,125 @@
+{
+  "case": {
+    "sha256": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301",
+    "name": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301.osascript",
+    "family": "amosstealer",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 2,
+    "c2_assessment": "probable",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301",
+    "config": {
+      "source_name": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301.osascript",
+      "campaign_shape": "osascript_script_delivery",
+      "family_markers": [
+        "Atomic",
+        "Login Data",
+        "keychain",
+        "ledger"
+      ],
+      "features": {
+        "keychain_collection": true,
+        "browser_collection": true,
+        "wallet_collection": true,
+        "apple_script": true,
+        "user_prompt": true
+      },
+      "urls": [
+        "https://flwoagent.com/ledger/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140",
+        "https://flwoagent.com/ledger/live/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140"
+      ],
+      "endpoints": [],
+      "static_config_recovered": true
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "https://flwoagent.com/ledger/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140",
+        "role": "c2_or_exfil_candidate",
+        "confidence": "probable",
+        "source": "embedded_literal"
+      },
+      {
+        "kind": "network.url",
+        "value": "https://flwoagent.com/ledger/live/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140",
+        "role": "c2_or_exfil_candidate",
+        "confidence": "probable",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "probable",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://flwoagent.com/ledger/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140",
+          "role": "c2_or_exfil_candidate",
+          "confidence": "probable",
+          "source": "embedded_literal"
+        },
+        "host": "flwoagent.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:flwoagent.com"
+        ],
+        "active_probe_performed": false
+      },
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://flwoagent.com/ledger/live/484e513fdf967e35d2e21b8b88df0a2867c1abf6045e4ec41974ae927abb2140",
+          "role": "c2_or_exfil_candidate",
+          "confidence": "probable",
+          "source": "embedded_literal"
+        },
+        "host": "flwoagent.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:flwoagent.com"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301.osascript",
+    "sha256": "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301",
+    "size": 35814,
+    "entropy": 4.5798,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": []
+  }
+}

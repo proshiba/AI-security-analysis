@@ -64,7 +64,21 @@ def test_loader_functions_and_indexes(tmp_path: Path) -> None:
         parse_definition({"kind": "Other"})
     definitions = load_definition_tree(DEFINITIONS)
     malware = index_definitions(definitions, MalwareDefinition)
-    assert set(malware) == {"agenttesla", "mx-go", "remcosrat", "valleyrat", "venomrat"}
+    assert set(malware) == {
+        "agenttesla",
+        "amosstealer",
+        "formbook",
+        "lummastealer",
+        "donutloader",
+        "purehvnc",
+        "mx-go",
+        "remcosrat",
+        "remusstealer",
+        "spyglace",
+        "valleyrat",
+        "venomrat",
+        "vidar",
+    }
     with pytest.raises(ValueError, match="duplicate"):
         index_definitions([malware["agenttesla"], malware["agenttesla"]], MalwareDefinition)
 
@@ -130,7 +144,7 @@ def test_topology_errors() -> None:
 
 def test_cli_functions(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.build_parser().parse_args(["validate", "--definitions", str(DEFINITIONS)]).command == "validate"
-    assert cli.validate_definitions(DEFINITIONS) == {"malware": 5, "pipelines": 7, "policies": 1}
+    assert cli.validate_definitions(DEFINITIONS) == {"malware": 13, "pipelines": 15, "policies": 1}
     facts = tmp_path / "facts.json"
     facts.write_text(
         json.dumps(
@@ -145,7 +159,7 @@ def test_cli_functions(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     with pytest.raises(ValueError, match="unknown policy"):
         cli.create_plan(DEFINITIONS, facts, "missing")
     assert cli.main(["validate", "--definitions", str(DEFINITIONS)]) == 0
-    assert '"malware": 5' in capsys.readouterr().out
+    assert '"malware": 13' in capsys.readouterr().out
     output = tmp_path / "plan.json"
     assert cli.main(["plan", "--definitions", str(DEFINITIONS), "--facts", str(facts), "--output", str(output)]) == 0
     assert output.exists()

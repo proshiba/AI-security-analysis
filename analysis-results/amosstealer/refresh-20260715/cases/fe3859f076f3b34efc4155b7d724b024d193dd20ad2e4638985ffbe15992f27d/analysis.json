@@ -1,0 +1,78 @@
+{
+  "case": {
+    "sha256": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d",
+    "name": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d.macho",
+    "family": "amosstealer",
+    "campaign": "direct_macho",
+    "format": "macho",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d",
+    "config": {
+      "source_name": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d.macho",
+      "campaign_shape": "direct_macho",
+      "family_markers": [],
+      "features": {
+        "keychain_collection": false,
+        "browser_collection": false,
+        "wallet_collection": false,
+        "apple_script": false,
+        "user_prompt": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d.macho",
+    "sha256": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d",
+    "size": 521440,
+    "entropy": 6.1193,
+    "format": "macho",
+    "executed": false,
+    "network_contacted": false,
+    "macho": {
+      "kind": "universal",
+      "architectures": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

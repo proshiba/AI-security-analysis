@@ -28,3 +28,7 @@ Case reports separate observed delivery behavior, inferred family capability, en
 | [`efc1cb535085…`](cases/efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296/README.md) | JavaScript | `unicode_marker_powershell_png_stage` | `ftp.cyberflor.co:21` |
 
 See `rules/` for family-oriented YARA and Sigma starting points. Rules are hypotheses that require validation against local benign software and telemetry.
+
+## Latest refresh
+
+- [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)

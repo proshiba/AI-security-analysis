@@ -1,0 +1,2022 @@
+{
+  "case": {
+    "sha256": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d",
+    "name": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d.vbs",
+    "family": "formbook",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 95,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d",
+    "config": {
+      "source_name": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d.vbs",
+      "campaign_shape": "vbs_script_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 64
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d.vbs",
+    "sha256": "f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d",
+    "size": 233649,
+    "entropy": 6.019,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": [
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "26fb83e012165059d1987670faba124aea51929cb152c11d18e63ba21469ac0b"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "a6e9e04c04b32debf85844dbfd642093f1fbf17b893cb15d61bc18130388f563"
+      },
+      {
+        "kind": "base64",
+        "size": 360,
+        "sha256": "049ebbe3546330e3aff0ab0380c35ad8ae36363fbc04e738d5adc75126a51656"
+      },
+      {
+        "kind": "base64",
+        "size": 336,
+        "sha256": "35432f418f67f57a6869cf6cf694cd12ce700fe2a5621b754cdd8d78341036f0"
+      },
+      {
+        "kind": "base64",
+        "size": 354,
+        "sha256": "a522ecbe8cd9bdbad2e6317ed9c1d4f54d166892936d3c416c3788e9d4336b8b"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "9386b7453455b9bf2aff8b0d5b51dbb1390f046a0a777ef7241cf3eb2d795663"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "3df4ba9dbe22bc6f4fa83a30f6449539812728e6dc250774f4f4b230a7663f93"
+      },
+      {
+        "kind": "base64",
+        "size": 339,
+        "sha256": "709b0fc73271fa844e8a364ef9471470d82c490c5bbe483287433b970f25e7de"
+      },
+      {
+        "kind": "base64",
+        "size": 360,
+        "sha256": "ed6ab59aeef7b9a9103d34781733c3fc7738d037da2c28ee40981df788d5c1a8"
+      },
+      {
+        "kind": "base64",
+        "size": 324,
+        "sha256": "0f8dc989a4a644fcd955dbf593e7c140bfd90376745698d779fad885cafa91c4"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "3ed48216aa342b9461415eeb95df267aea4dcfe8f187df274bec1864ecad129b"
+      },
+      {
+        "kind": "base64",
+        "size": 336,
+        "sha256": "44202f4a1d00b5dd6dd530f5dc8ebeaff1525fa30998615bb77f3bd5fcdcdda5"
+      },
+      {
+        "kind": "base64",
+        "size": 309,
+        "sha256": "88855cffe74fc3e056597c83088bd4b0e47a80727f9a03ef97587ea56d1491fd"
+      },
+      {
+        "kind": "base64",
+        "size": 336,
+        "sha256": "0a65dd12301a1f7c3cc2c125c0e37507dffc8aa833676ced7d8d6ccfa74c5040"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "495d0ba19bbf43c6e4a531e1d926129208ceef9aebe5d4b007602f18a3fa55a1"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "c5f6a8f2c0c39afe7d58eadab8a9b3354cadbda084ac9f4b9e06346ed48ce660"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "f7ca200ab5510c5dd1b2106c3c703f3c964856b9d69f37d85f8ae676b1aff7e0"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "ba1e2bb8a7b462e773e083a18d53241fcab43fae5df07880aa5510e30ff15a97"
+      },
+      {
+        "kind": "base64",
+        "size": 360,
+        "sha256": "e9356cced0ef1d07613d2818800128f1ca34fe6fe1a0b1a71bfbff61b18f8671"
+      },
+      {
+        "kind": "base64",
+        "size": 354,
+        "sha256": "221a5901082d56d079e00cafcfb29c1492659ad9ac56d72eabca5e70b4dc563a"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "ad159051d274a27b9019a24a37be1fcc242bc057a048e040ac662a9773a4e5a0"
+      },
+      {
+        "kind": "base64",
+        "size": 354,
+        "sha256": "a9b59fdcc8be73c9651422edd889187acda682b3f717744705f3905e11490193"
+      },
+      {
+        "kind": "base64",
+        "size": 345,
+        "sha256": "4528f6fc8ca49967832e6d87496a7d04b233db568a29379b8418230fd379e342"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "401158ed8e2b3f218dfa92ec3ea5a65be9176fe7787516350dde1d647a0554ab"
+      },
+      {
+        "kind": "base64",
+        "size": 351,
+        "sha256": "4a6a58bed0c2157caf4911227e12abc86a36b18c046cb8d5352b5ea2726228b4"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "adaf24fbc6fd8d5041fa9952d484c81a8dd5adce8819172fb8f2839d6bdb0025"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "322c6b4a1c68ab460aeb9f0c74dc1627779443f02011360eefb4b1f4999db216"
+      },
+      {
+        "kind": "base64",
+        "size": 321,
+        "sha256": "d2e6e89c2430ceb2659631a522eee0eafe0ed5d76c9d1d0c1430409eec80d7a7"
+      },
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "b74da80932021f567711f0f5827277855270726ba4498b8c710e5b5b6d768106"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "3b93e0a5a22168a4403c8bb9e04f5d72c01cfb8284df6e8cab9d70fb037bc9e2"
+      },
+      {
+        "kind": "base64",
+        "size": 303,
+        "sha256": "3cbc11933417a01c37e27db96375d7a7b19e203568414477b8bbf98f3a0008cc"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "ed4b473c985d5fc6b8dc74f0491ec24f1ab7de32f56b2ef681f45bf5e84d5467"
+      },
+      {
+        "kind": "base64",
+        "size": 336,
+        "sha256": "beab50fd945f3400255b8dd0950f2e3a703584e7d1a3a2d119130bf8a5680971"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "35b86269a87fbcb74c3fb7a69c4b7583bbb899a247167a7b72f7264a6a0b6de4"
+      },
+      {
+        "kind": "base64",
+        "size": 330,
+        "sha256": "bcfd674abb1f37c5c6e2325bcafd64b2d6bbadaee857fc083142e988a6cafac3"
+      },
+      {
+        "kind": "base64",
+        "size": 354,
+        "sha256": "5723eda337ca2103827844fa0dcc4afe5aedc8f700f9e69da0cf4e4930b6ede2"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "b1a1edcf4ce894ad05649e9f93618edd190dff8374eebeb84fe440d3c52e024f"
+      },
+      {
+        "kind": "base64",
+        "size": 333,
+        "sha256": "7877397b0e947e06c7497f61a011cb2581e7713b3ec985754314c02e10b56c07"
+      },
+      {
+        "kind": "base64",
+        "size": 303,
+        "sha256": "323f7fc233cdb6a6c3419a5277ec368c6be6490c56e248e4932ea71a0a404ea1"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "bbf4dab3825fef1b1699cc4d91e462199ddcd80674e5f2204f4dcaff23a79156"
+      },
+      {
+        "kind": "base64",
+        "size": 342,
+        "sha256": "daef107a8378bd57387d43af785806775ecbf35db978daadb545a3344a632ed0"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "eef58da345c29c16bcea3ee677e03a48f9a3e4425c3caba4f1bb613e4779a9cc"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "7f4f1054ca4100ce10ad4b61ec574909c72aac8581a9b2af49c554b8dbcaafe3"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "4a74293c3be853bc8376f8514867b2ae22913df718fee4a89915ae077d36e38c"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "99add67b1f6838f1e708d260d521759da8966c4debe9918bdbf4a99a995ee055"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "0fbbab33a334b09c3e6f66815e97be256befa75c8fdc70b4b2ab4f14e714bb9c"
+      },
+      {
+        "kind": "base64",
+        "size": 300,
+        "sha256": "b625cc67c510b1988508b827abdc42896d2fc5ea656646c86d38e7ee2f90300b"
+      },
+      {
+        "kind": "base64",
+        "size": 333,
+        "sha256": "776511cb7f9effa2f255f316fe637c47e4704c283b87e88963d70c8ab577228d"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "a4ec28eed0c81763d539a6d38f6d38a8f9c71dc846c9a01a59cb11203244704b"
+      },
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "2186afcaf9a47c225fbbe45e9f2d12a379cd61efc0db33f37549a875588130b4"
+      },
+      {
+        "kind": "base64",
+        "size": 327,
+        "sha256": "6ddef3e3a43b6c4a95ece6e5985588826f7cbb23461f09a9cda55bf4bfc5b8b8"
+      },
+      {
+        "kind": "base64",
+        "size": 342,
+        "sha256": "d6df9868f4dd4772a89fafbdcbe63e918c352e462f38221add6a2be4b63b7aa1"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "78e43f420be9f4fd8579e8ce67269a68fce770335f94a43e537cd441aeb016d0"
+      },
+      {
+        "kind": "base64",
+        "size": 327,
+        "sha256": "ed7849595fc338d1c920a780d1f2bc7917a23e3ee53864be028c1f425cdeff03"
+      },
+      {
+        "kind": "base64",
+        "size": 309,
+        "sha256": "ba55dbff98c9b12687b572d58f33ef7e86f5a633052683be87eb0c55595b6976"
+      },
+      {
+        "kind": "base64",
+        "size": 324,
+        "sha256": "2418a41b3e229b04068431ebf7864a4ec194ac6e3ecf1f8024419e013d5e2b22"
+      },
+      {
+        "kind": "base64",
+        "size": 336,
+        "sha256": "94afdfb12428a9545bacfa02c2b6939a19f69cc59ec7ce11e6f0573a93fd79f0"
+      },
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "1066785eb31b67faec5c31f989cef64d182b21b0117059c868b78e6691910a1c"
+      },
+      {
+        "kind": "base64",
+        "size": 321,
+        "sha256": "0e04942f4e1aec8db6c1d1ce9060ac865e57e21e3d67c50f9d94d57288076653"
+      },
+      {
+        "kind": "base64",
+        "size": 327,
+        "sha256": "ef19c8b673cd4fcccd11f58ec6b79d95838317b4e9e5885801fba3866401561f"
+      },
+      {
+        "kind": "base64",
+        "size": 321,
+        "sha256": "ae132c25df854f47fa4c31106d5c576570ae1278d59f8eae23d6b8a2ec36b131"
+      },
+      {
+        "kind": "base64",
+        "size": 312,
+        "sha256": "49a6a52f3ffb60947a757eb653ee309d31c65dca3410bcdf49851395ebbab1ee"
+      },
+      {
+        "kind": "base64",
+        "size": 303,
+        "sha256": "b66317cc8a5cfbcd9bd5fe2530eff6ed23a8b29c3cbac224508fb97efb9118cb"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "4c4b96e4985cf02f0676348672937e9337bc3d9973090293b10c751b56f22f72"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "5d32f34a9aa2ec036ae784171d601936befa4b6f500a5a8f377aac9be0c5096f"
+      },
+      {
+        "kind": "base64",
+        "size": 309,
+        "sha256": "15245115e32e9c95c23f130293332ac33db92b70949fd5827922e94209d05d4e"
+      },
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "96c2a453981fb88f69a95ea4c9ea96eed4c52e8f33db98fb2e1fdb1163ec161c"
+      },
+      {
+        "kind": "base64",
+        "size": 321,
+        "sha256": "0447ad8a46615975b4cc65db43f488cf6f25b689c8199186ccddd1d601c7dc61"
+      },
+      {
+        "kind": "base64",
+        "size": 333,
+        "sha256": "171b72544511ba4cf7577574be8783c8aa390fcf7078b28cc7a0da6b651cbdf6"
+      },
+      {
+        "kind": "base64",
+        "size": 339,
+        "sha256": "31ab7bb6bf0ba92a746fc6fac08e05f0bb3ebe7b8c92920c6b2f6d096575ea90"
+      },
+      {
+        "kind": "base64",
+        "size": 312,
+        "sha256": "9a84daca2d4a1fc59d01ef97357a9a6736e081ff5364d96b7e5f7633c8cefbb6"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "b9194529d933107ababcc022dea0f08d4b7f5ab2d8b604252119274293b2f384"
+      },
+      {
+        "kind": "base64",
+        "size": 330,
+        "sha256": "ae6675690505985b7ff14bacfe5299a0e46ecc6b90ab7cddb6c32d31e9f3535b"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "6603a38113388964373f1196c7ae10909e005e6d8552f8a70c1341c199ac5eb1"
+      },
+      {
+        "kind": "base64",
+        "size": 360,
+        "sha256": "2bdb7c36d5696bb4d93abd1b7e009353c9501ebc37c0b9053575537578b86705"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "272c6e50c72dca79395ff57c08e3675713e76a069c5c09e3f6a7ae8ec544828f"
+      },
+      {
+        "kind": "base64",
+        "size": 348,
+        "sha256": "23776c035121be25c33daf5e59d253ad2898a9286b26bae4513ba0bcbca7ba6f"
+      },
+      {
+        "kind": "base64",
+        "size": 321,
+        "sha256": "2229431a5640ff72fc7650022a821dba758ea4c10c6ba76fb5e9f63b3e0640f7"
+      },
+      {
+        "kind": "base64",
+        "size": 354,
+        "sha256": "ff2289bbba5765cd47961c0dc64ad39c987d51a821fa865b11a5b50ed75fc04e"
+      },
+      {
+        "kind": "base64",
+        "size": 351,
+        "sha256": "a976f6b2063fd0b0b265533d6863d5986c51d612989eef84a4b96ea96ded3d91"
+      },
+      {
+        "kind": "base64",
+        "size": 330,
+        "sha256": "87097da0154ba2961d64b5d40dd3fd6068744855559dd9d896e3c1fa18936abf"
+      },
+      {
+        "kind": "base64",
+        "size": 345,
+        "sha256": "a38d352353638a97124a3d1a10703b67c79dd4bb1e65b79c4edf5cf07fc9a8cc"
+      },
+      {
+        "kind": "base64",
+        "size": 357,
+        "sha256": "3cc81e8c77b5afad01ed31f4ef8f4e0d18ca9bb484c536efe1035b5c35fa1f87"
+      },
+      {
+        "kind": "base64",
+        "size": 333,
+        "sha256": "e174637e3738d3042b72178bf0b48d66ea585d0dfaebab237590dc1a29390b4d"
+      },
+      {
+        "kind": "base64",
+        "size": 324,
+        "sha256": "b2d6e53efb44fdfb37e8924043d28d5079e995962b5c5cbf6816aa6171881b4e"
+      },
+      {
+        "kind": "base64",
+        "size": 342,
+        "sha256": "1e47cecac9550678246794ed2f138b085d0d07fb3e9569a1b1694ed3e06c7be9"
+      },
+      {
+        "kind": "base64",
+        "size": 318,
+        "sha256": "235dff6e11446eca77ee620870d42141d09e0761fc92d9933ce2e73de978410d"
+      },
+      {
+        "kind": "base64",
+        "size": 306,
+        "sha256": "74926a76ba290fe26b86b95902a4ca0d0f4ac60a84ee1de2323414aab9280707"
+      },
+      {
+        "kind": "base64",
+        "size": 324,
+        "sha256": "68777b36f97dc714159da4c883b77d53e06468d0daf961255b11629d9ce620f0"
+      },
+      {
+        "kind": "base64",
+        "size": 345,
+        "sha256": "70a3edfacfe194c59e60c64b9f27bb94c1ec159596f35f520ce5f97e1b8ebe27"
+      },
+      {
+        "kind": "base64",
+        "size": 339,
+        "sha256": "46ddd69874821078482a6173d39080d5e75b2fc20192421a84143864c789c115"
+      },
+      {
+        "kind": "base64",
+        "size": 342,
+        "sha256": "a1ce8c8c10d3c88397184bf5c3c1ef76d29bff619f86c6c08abe5d4bb76ce735"
+      },
+      {
+        "kind": "base64",
+        "size": 312,
+        "sha256": "35419d120f5535261db6be704c115bfaf3bc7ba11c8fc3d1b4afb7f4ac702fab"
+      },
+      {
+        "kind": "base64",
+        "size": 315,
+        "sha256": "acd37c7f1dd030af03578dac8769ee82b00a47f39ff08000e92729490541b63c"
+      },
+      {
+        "kind": "base64",
+        "size": 332,
+        "sha256": "a0c0f347fb023dcb91b2a8e04c59d66faf256bab26b028365c61a450ddd16600"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "26fb83e012165059d1987670faba124aea51929cb152c11d18e63ba21469ac0b",
+        "size": 318,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "26fb83e012165059d1987670faba124aea51929cb152c11d18e63ba21469ac0b",
+          "size": 318,
+          "entropy": 7.2565,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "a6e9e04c04b32debf85844dbfd642093f1fbf17b893cb15d61bc18130388f563",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "a6e9e04c04b32debf85844dbfd642093f1fbf17b893cb15d61bc18130388f563",
+          "size": 357,
+          "entropy": 7.2544,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "049ebbe3546330e3aff0ab0380c35ad8ae36363fbc04e738d5adc75126a51656",
+        "size": 360,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "049ebbe3546330e3aff0ab0380c35ad8ae36363fbc04e738d5adc75126a51656",
+          "size": 360,
+          "entropy": 7.0634,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "35432f418f67f57a6869cf6cf694cd12ce700fe2a5621b754cdd8d78341036f0",
+        "size": 336,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "35432f418f67f57a6869cf6cf694cd12ce700fe2a5621b754cdd8d78341036f0",
+          "size": 336,
+          "entropy": 6.9904,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "a522ecbe8cd9bdbad2e6317ed9c1d4f54d166892936d3c416c3788e9d4336b8b",
+        "size": 354,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "a522ecbe8cd9bdbad2e6317ed9c1d4f54d166892936d3c416c3788e9d4336b8b",
+          "size": 354,
+          "entropy": 7.0852,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "9386b7453455b9bf2aff8b0d5b51dbb1390f046a0a777ef7241cf3eb2d795663",
+        "size": 306,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "9386b7453455b9bf2aff8b0d5b51dbb1390f046a0a777ef7241cf3eb2d795663",
+          "size": 306,
+          "entropy": 7.112,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "3df4ba9dbe22bc6f4fa83a30f6449539812728e6dc250774f4f4b230a7663f93",
+        "size": 315,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "3df4ba9dbe22bc6f4fa83a30f6449539812728e6dc250774f4f4b230a7663f93",
+          "size": 315,
+          "entropy": 7.1812,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "709b0fc73271fa844e8a364ef9471470d82c490c5bbe483287433b970f25e7de",
+        "size": 339,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "709b0fc73271fa844e8a364ef9471470d82c490c5bbe483287433b970f25e7de",
+          "size": 339,
+          "entropy": 7.253,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ed6ab59aeef7b9a9103d34781733c3fc7738d037da2c28ee40981df788d5c1a8",
+        "size": 360,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ed6ab59aeef7b9a9103d34781733c3fc7738d037da2c28ee40981df788d5c1a8",
+          "size": 360,
+          "entropy": 6.5987,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "0f8dc989a4a644fcd955dbf593e7c140bfd90376745698d779fad885cafa91c4",
+        "size": 324,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "0f8dc989a4a644fcd955dbf593e7c140bfd90376745698d779fad885cafa91c4",
+          "size": 324,
+          "entropy": 6.9942,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "3ed48216aa342b9461415eeb95df267aea4dcfe8f187df274bec1864ecad129b",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "3ed48216aa342b9461415eeb95df267aea4dcfe8f187df274bec1864ecad129b",
+          "size": 357,
+          "entropy": 6.9757,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "44202f4a1d00b5dd6dd530f5dc8ebeaff1525fa30998615bb77f3bd5fcdcdda5",
+        "size": 336,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "44202f4a1d00b5dd6dd530f5dc8ebeaff1525fa30998615bb77f3bd5fcdcdda5",
+          "size": 336,
+          "entropy": 6.4069,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "88855cffe74fc3e056597c83088bd4b0e47a80727f9a03ef97587ea56d1491fd",
+        "size": 309,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "88855cffe74fc3e056597c83088bd4b0e47a80727f9a03ef97587ea56d1491fd",
+          "size": 309,
+          "entropy": 6.2379,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "0a65dd12301a1f7c3cc2c125c0e37507dffc8aa833676ced7d8d6ccfa74c5040",
+        "size": 336,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "0a65dd12301a1f7c3cc2c125c0e37507dffc8aa833676ced7d8d6ccfa74c5040",
+          "size": 336,
+          "entropy": 7.0401,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "495d0ba19bbf43c6e4a531e1d926129208ceef9aebe5d4b007602f18a3fa55a1",
+        "size": 348,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "495d0ba19bbf43c6e4a531e1d926129208ceef9aebe5d4b007602f18a3fa55a1",
+          "size": 348,
+          "entropy": 7.1697,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "c5f6a8f2c0c39afe7d58eadab8a9b3354cadbda084ac9f4b9e06346ed48ce660",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "c5f6a8f2c0c39afe7d58eadab8a9b3354cadbda084ac9f4b9e06346ed48ce660",
+          "size": 357,
+          "entropy": 6.5125,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "f7ca200ab5510c5dd1b2106c3c703f3c964856b9d69f37d85f8ae676b1aff7e0",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "f7ca200ab5510c5dd1b2106c3c703f3c964856b9d69f37d85f8ae676b1aff7e0",
+          "size": 357,
+          "entropy": 7.1888,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ba1e2bb8a7b462e773e083a18d53241fcab43fae5df07880aa5510e30ff15a97",
+        "size": 306,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ba1e2bb8a7b462e773e083a18d53241fcab43fae5df07880aa5510e30ff15a97",
+          "size": 306,
+          "entropy": 6.9361,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "e9356cced0ef1d07613d2818800128f1ca34fe6fe1a0b1a71bfbff61b18f8671",
+        "size": 360,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "e9356cced0ef1d07613d2818800128f1ca34fe6fe1a0b1a71bfbff61b18f8671",
+          "size": 360,
+          "entropy": 7.1596,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "221a5901082d56d079e00cafcfb29c1492659ad9ac56d72eabca5e70b4dc563a",
+        "size": 354,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "221a5901082d56d079e00cafcfb29c1492659ad9ac56d72eabca5e70b4dc563a",
+          "size": 354,
+          "entropy": 7.0213,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ad159051d274a27b9019a24a37be1fcc242bc057a048e040ac662a9773a4e5a0",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ad159051d274a27b9019a24a37be1fcc242bc057a048e040ac662a9773a4e5a0",
+          "size": 300,
+          "entropy": 7.063,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "a9b59fdcc8be73c9651422edd889187acda682b3f717744705f3905e11490193",
+        "size": 354,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "a9b59fdcc8be73c9651422edd889187acda682b3f717744705f3905e11490193",
+          "size": 354,
+          "entropy": 7.129,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "4528f6fc8ca49967832e6d87496a7d04b233db568a29379b8418230fd379e342",
+        "size": 345,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "4528f6fc8ca49967832e6d87496a7d04b233db568a29379b8418230fd379e342",
+          "size": 345,
+          "entropy": 7.2202,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "401158ed8e2b3f218dfa92ec3ea5a65be9176fe7787516350dde1d647a0554ab",
+        "size": 315,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "401158ed8e2b3f218dfa92ec3ea5a65be9176fe7787516350dde1d647a0554ab",
+          "size": 315,
+          "entropy": 7.1276,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "4a6a58bed0c2157caf4911227e12abc86a36b18c046cb8d5352b5ea2726228b4",
+        "size": 351,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "4a6a58bed0c2157caf4911227e12abc86a36b18c046cb8d5352b5ea2726228b4",
+          "size": 351,
+          "entropy": 7.2343,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "adaf24fbc6fd8d5041fa9952d484c81a8dd5adce8819172fb8f2839d6bdb0025",
+        "size": 306,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "adaf24fbc6fd8d5041fa9952d484c81a8dd5adce8819172fb8f2839d6bdb0025",
+          "size": 306,
+          "entropy": 7.1282,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "322c6b4a1c68ab460aeb9f0c74dc1627779443f02011360eefb4b1f4999db216",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "322c6b4a1c68ab460aeb9f0c74dc1627779443f02011360eefb4b1f4999db216",
+          "size": 300,
+          "entropy": 7.0539,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "d2e6e89c2430ceb2659631a522eee0eafe0ed5d76c9d1d0c1430409eec80d7a7",
+        "size": 321,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "d2e6e89c2430ceb2659631a522eee0eafe0ed5d76c9d1d0c1430409eec80d7a7",
+          "size": 321,
+          "entropy": 7.1528,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "b74da80932021f567711f0f5827277855270726ba4498b8c710e5b5b6d768106",
+        "size": 318,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "b74da80932021f567711f0f5827277855270726ba4498b8c710e5b5b6d768106",
+          "size": 318,
+          "entropy": 7.1881,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "3b93e0a5a22168a4403c8bb9e04f5d72c01cfb8284df6e8cab9d70fb037bc9e2",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "3b93e0a5a22168a4403c8bb9e04f5d72c01cfb8284df6e8cab9d70fb037bc9e2",
+          "size": 357,
+          "entropy": 7.2685,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "3cbc11933417a01c37e27db96375d7a7b19e203568414477b8bbf98f3a0008cc",
+        "size": 303,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "3cbc11933417a01c37e27db96375d7a7b19e203568414477b8bbf98f3a0008cc",
+          "size": 303,
+          "entropy": 6.8634,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ed4b473c985d5fc6b8dc74f0491ec24f1ab7de32f56b2ef681f45bf5e84d5467",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ed4b473c985d5fc6b8dc74f0491ec24f1ab7de32f56b2ef681f45bf5e84d5467",
+          "size": 300,
+          "entropy": 6.9913,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "beab50fd945f3400255b8dd0950f2e3a703584e7d1a3a2d119130bf8a5680971",
+        "size": 336,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "beab50fd945f3400255b8dd0950f2e3a703584e7d1a3a2d119130bf8a5680971",
+          "size": 336,
+          "entropy": 6.5818,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "35b86269a87fbcb74c3fb7a69c4b7583bbb899a247167a7b72f7264a6a0b6de4",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "35b86269a87fbcb74c3fb7a69c4b7583bbb899a247167a7b72f7264a6a0b6de4",
+          "size": 357,
+          "entropy": 7.2248,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "bcfd674abb1f37c5c6e2325bcafd64b2d6bbadaee857fc083142e988a6cafac3",
+        "size": 330,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "bcfd674abb1f37c5c6e2325bcafd64b2d6bbadaee857fc083142e988a6cafac3",
+          "size": 330,
+          "entropy": 7.1294,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "5723eda337ca2103827844fa0dcc4afe5aedc8f700f9e69da0cf4e4930b6ede2",
+        "size": 354,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "5723eda337ca2103827844fa0dcc4afe5aedc8f700f9e69da0cf4e4930b6ede2",
+          "size": 354,
+          "entropy": 6.8671,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "b1a1edcf4ce894ad05649e9f93618edd190dff8374eebeb84fe440d3c52e024f",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "b1a1edcf4ce894ad05649e9f93618edd190dff8374eebeb84fe440d3c52e024f",
+          "size": 300,
+          "entropy": 7.1699,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "7877397b0e947e06c7497f61a011cb2581e7713b3ec985754314c02e10b56c07",
+        "size": 333,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "7877397b0e947e06c7497f61a011cb2581e7713b3ec985754314c02e10b56c07",
+          "size": 333,
+          "entropy": 6.4894,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "323f7fc233cdb6a6c3419a5277ec368c6be6490c56e248e4932ea71a0a404ea1",
+        "size": 303,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "323f7fc233cdb6a6c3419a5277ec368c6be6490c56e248e4932ea71a0a404ea1",
+          "size": 303,
+          "entropy": 7.014,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "bbf4dab3825fef1b1699cc4d91e462199ddcd80674e5f2204f4dcaff23a79156",
+        "size": 306,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "bbf4dab3825fef1b1699cc4d91e462199ddcd80674e5f2204f4dcaff23a79156",
+          "size": 306,
+          "entropy": 6.9188,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "daef107a8378bd57387d43af785806775ecbf35db978daadb545a3344a632ed0",
+        "size": 342,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "daef107a8378bd57387d43af785806775ecbf35db978daadb545a3344a632ed0",
+          "size": 342,
+          "entropy": 7.3321,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "eef58da345c29c16bcea3ee677e03a48f9a3e4425c3caba4f1bb613e4779a9cc",
+        "size": 315,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "eef58da345c29c16bcea3ee677e03a48f9a3e4425c3caba4f1bb613e4779a9cc",
+          "size": 315,
+          "entropy": 7.0859,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "7f4f1054ca4100ce10ad4b61ec574909c72aac8581a9b2af49c554b8dbcaafe3",
+        "size": 357,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "7f4f1054ca4100ce10ad4b61ec574909c72aac8581a9b2af49c554b8dbcaafe3",
+          "size": 357,
+          "entropy": 7.3115,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "4a74293c3be853bc8376f8514867b2ae22913df718fee4a89915ae077d36e38c",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "4a74293c3be853bc8376f8514867b2ae22913df718fee4a89915ae077d36e38c",
+          "size": 300,
+          "entropy": 7.1776,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "99add67b1f6838f1e708d260d521759da8966c4debe9918bdbf4a99a995ee055",
+        "size": 315,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "99add67b1f6838f1e708d260d521759da8966c4debe9918bdbf4a99a995ee055",
+          "size": 315,
+          "entropy": 7.2737,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "0fbbab33a334b09c3e6f66815e97be256befa75c8fdc70b4b2ab4f14e714bb9c",
+        "size": 348,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "0fbbab33a334b09c3e6f66815e97be256befa75c8fdc70b4b2ab4f14e714bb9c",
+          "size": 348,
+          "entropy": 7.2912,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "b625cc67c510b1988508b827abdc42896d2fc5ea656646c86d38e7ee2f90300b",
+        "size": 300,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "b625cc67c510b1988508b827abdc42896d2fc5ea656646c86d38e7ee2f90300b",
+          "size": 300,
+          "entropy": 7.2177,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "776511cb7f9effa2f255f316fe637c47e4704c283b87e88963d70c8ab577228d",
+        "size": 333,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "776511cb7f9effa2f255f316fe637c47e4704c283b87e88963d70c8ab577228d",
+          "size": 333,
+          "entropy": 7.2734,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "a4ec28eed0c81763d539a6d38f6d38a8f9c71dc846c9a01a59cb11203244704b",
+        "size": 348,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "a4ec28eed0c81763d539a6d38f6d38a8f9c71dc846c9a01a59cb11203244704b",
+          "size": 348,
+          "entropy": 7.2457,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "2186afcaf9a47c225fbbe45e9f2d12a379cd61efc0db33f37549a875588130b4",
+        "size": 318,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "2186afcaf9a47c225fbbe45e9f2d12a379cd61efc0db33f37549a875588130b4",
+          "size": 318,
+          "entropy": 7.1701,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "6ddef3e3a43b6c4a95ece6e5985588826f7cbb23461f09a9cda55bf4bfc5b8b8",
+        "size": 327,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "6ddef3e3a43b6c4a95ece6e5985588826f7cbb23461f09a9cda55bf4bfc5b8b8",
+          "size": 327,
+          "entropy": 6.4968,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "d6df9868f4dd4772a89fafbdcbe63e918c352e462f38221add6a2be4b63b7aa1",
+        "size": 342,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "d6df9868f4dd4772a89fafbdcbe63e918c352e462f38221add6a2be4b63b7aa1",
+          "size": 342,
+          "entropy": 7.2358,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "78e43f420be9f4fd8579e8ce67269a68fce770335f94a43e537cd441aeb016d0",
+        "size": 348,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "78e43f420be9f4fd8579e8ce67269a68fce770335f94a43e537cd441aeb016d0",
+          "size": 348,
+          "entropy": 7.278,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ed7849595fc338d1c920a780d1f2bc7917a23e3ee53864be028c1f425cdeff03",
+        "size": 327,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ed7849595fc338d1c920a780d1f2bc7917a23e3ee53864be028c1f425cdeff03",
+          "size": 327,
+          "entropy": 7.2458,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ba55dbff98c9b12687b572d58f33ef7e86f5a633052683be87eb0c55595b6976",
+        "size": 309,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ba55dbff98c9b12687b572d58f33ef7e86f5a633052683be87eb0c55595b6976",
+          "size": 309,
+          "entropy": 7.2008,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "2418a41b3e229b04068431ebf7864a4ec194ac6e3ecf1f8024419e013d5e2b22",
+        "size": 324,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "2418a41b3e229b04068431ebf7864a4ec194ac6e3ecf1f8024419e013d5e2b22",
+          "size": 324,
+          "entropy": 7.3056,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "94afdfb12428a9545bacfa02c2b6939a19f69cc59ec7ce11e6f0573a93fd79f0",
+        "size": 336,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "94afdfb12428a9545bacfa02c2b6939a19f69cc59ec7ce11e6f0573a93fd79f0",
+          "size": 336,
+          "entropy": 7.2525,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "1066785eb31b67faec5c31f989cef64d182b21b0117059c868b78e6691910a1c",
+        "size": 318,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "1066785eb31b67faec5c31f989cef64d182b21b0117059c868b78e6691910a1c",
+          "size": 318,
+          "entropy": 7.1322,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "0e04942f4e1aec8db6c1d1ce9060ac865e57e21e3d67c50f9d94d57288076653",
+        "size": 321,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "0e04942f4e1aec8db6c1d1ce9060ac865e57e21e3d67c50f9d94d57288076653",
+          "size": 321,
+          "entropy": 7.2169,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ef19c8b673cd4fcccd11f58ec6b79d95838317b4e9e5885801fba3866401561f",
+        "size": 327,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ef19c8b673cd4fcccd11f58ec6b79d95838317b4e9e5885801fba3866401561f",
+          "size": 327,
+          "entropy": 7.2013,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "ae132c25df854f47fa4c31106d5c576570ae1278d59f8eae23d6b8a2ec36b131",
+        "size": 321,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "ae132c25df854f47fa4c31106d5c576570ae1278d59f8eae23d6b8a2ec36b131",
+          "size": 321,
+          "entropy": 7.2532,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "49a6a52f3ffb60947a757eb653ee309d31c65dca3410bcdf49851395ebbab1ee",
+        "size": 312,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "49a6a52f3ffb60947a757eb653ee309d31c65dca3410bcdf49851395ebbab1ee",
+          "size": 312,
+          "entropy": 7.2439,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "b66317cc8a5cfbcd9bd5fe2530eff6ed23a8b29c3cbac224508fb97efb9118cb",
+        "size": 303,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "b66317cc8a5cfbcd9bd5fe2530eff6ed23a8b29c3cbac224508fb97efb9118cb",
+          "size": 303,
+          "entropy": 7.2176,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "4c4b96e4985cf02f0676348672937e9337bc3d9973090293b10c751b56f22f72",
+        "size": 348,
+        "format": "script",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "4c4b96e4985cf02f0676348672937e9337bc3d9973090293b10c751b56f22f72",
+          "size": 348,
+          "entropy": 7.3106,
+          "format": "script",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

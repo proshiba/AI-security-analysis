@@ -226,8 +226,26 @@ One Triage submission was recovered and statically analyzed. The payload is a Go
 ## Declarative engine and config extractors
 
 - `analysis-framework/src/asa/`: strict YAML validation, condition DSL, family/campaign scoring, DAG compilation, and offline policy enforcement
-- `analysis-framework/definitions/`: five malware definitions, seven pipelines, and the default offline policy
-- `extractors/`: common-contract config extractors for ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, and MX-Go
+- `analysis-framework/definitions/`: thirteen malware definitions, fifteen pipelines, and the default offline policy
+- `extractors/`: common-contract config extractors including SpyGlace/APT-C-60, ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, MX-Go, Formbook, Vidar, LummaStealer, RemusStealer, AMOS, PureHVNC, and DonutLoader
 - `docs/pydoc/`: generated Python API documentation
 
 The current engine validates and compiles plans, then executes allowlisted offline static-analysis steps. It never launches samples or contacts external infrastructure; FLOSS and Ghidra MCP integrations are preflight-only.
+
+
+## Stealer batch analysis (2026-07-15)
+
+Fifty recent MalwareBazaar submissions were statically analyzed: ten each for Formbook, Vidar, LummaStealer, RemusStealer, and Atomic macOS Stealer (AMOS). Results are under analysis-results/<family>/; shared static unpacking is under unpackers/; offline C2 assessment is in analysis-framework/common/c2_candidate_detector.py; the synthetic protocol lab is loopback-only under emulators/stealers/.
+## MalwareBazaar refresh (2026-07-15)
+
+Ninety previously uncollected MalwareBazaar submissions were statically analyzed: ten each for ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, Formbook, Vidar, LummaStealer, RemusStealer, and AMOS. All 90 declarative runs completed with `ready`; no sample or extracted infrastructure was contacted. See [the cross-family refresh report](analysis-results/REFRESH-2026-07-15.md) and the family-specific `refresh-20260715/` directories.
+
+The acquisition tool now excludes hashes from prior result trees, and the common pipeline covers all nine named families. Public manifests omit local sample paths.
+
+## PureHVNC and DonutLoader support
+
+The repository now includes declarative family/workflow definitions, static unpackers, configuration extractors, a passive C2 search-plan generator, a loopback-only protocol lab, pydoc, tests, and case reports for native PureHVNC and CHRD/WAV DonutLoader-to-PureRAT chains. No raw or recovered executable is stored in the repository.
+
+## APT-C-60 / SpyGlace 2026
+
+The JPCERT/CC 2026 delivery chain is covered end to end with repository-history inventory, safe LNK/Base64/TAR reconstruction, repeating-XOR PE recovery, a v3.1.15 config extractor, passive C2 pivots, a loopback-only protocol lab, declarative YAML, tests, pydoc, Sigma/YARA and publish-safe results. See [the campaign report](analysis-results/spyglace/campaigns/apt-c60-2026/README.md) and [offline workflow](docs/APT-C60-2026-WORKFLOW.md). Four v3.1.15 artifacts were config-extracted; no malware or C2 was executed or contacted.

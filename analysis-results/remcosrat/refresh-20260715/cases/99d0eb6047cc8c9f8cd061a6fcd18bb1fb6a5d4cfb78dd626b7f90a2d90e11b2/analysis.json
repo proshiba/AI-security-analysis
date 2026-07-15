@@ -1,0 +1,221 @@
+{
+  "case": {
+    "sha256": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2",
+    "name": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2.ps1",
+    "family": "remcosrat",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 2,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "sample_sha256": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2",
+    "config": {
+      "source_name": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2.ps1",
+      "marker_score": 0,
+      "markers": [],
+      "endpoints": []
+    },
+    "findings": [],
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 2
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2.ps1",
+    "sha256": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2",
+    "size": 308942,
+    "entropy": 5.8962,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": [
+      {
+        "kind": "base64",
+        "size": 231424,
+        "sha256": "8e7c4479c8530a2bab847c5e2edcec8c3162c22dbb3c3cc20f12f8b028e92cb8"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "8e7c4479c8530a2bab847c5e2edcec8c3162c22dbb3c3cc20f12f8b028e92cb8",
+        "size": 231424,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "8e7c4479c8530a2bab847c5e2edcec8c3162c22dbb3c3cc20f12f8b028e92cb8",
+          "size": 231424,
+          "entropy": 7.77,
+          "format": "pe",
+          "executed": false,
+          "network_contacted": false,
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "imports": 13,
+            "sections": [
+              {
+                "name": "UPX0",
+                "raw_size": 0,
+                "virtual_size": 327680,
+                "entropy": 0.0
+              },
+              {
+                "name": "UPX1",
+                "raw_size": 211456,
+                "virtual_size": 212992,
+                "entropy": 7.9364
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 18944,
+                "virtual_size": 20480,
+                "entropy": 3.5058
+              }
+            ],
+            "high_entropy_sections": [
+              "UPX1"
+            ],
+            "packer_markers": [
+              "UPX!"
+            ],
+            "packing_suspected": true,
+            "overlay_size": 0,
+            "resource_count": 6
+          },
+          "upx": {
+            "status": "recovered",
+            "size": 472064,
+            "sha256": "956c7f542d6124cbde7fe7d50bff60837d21686502a12ae4fc187554f4c19aea"
+          },
+          "recovered": [
+            {
+              "kind": "upx",
+              "size": 472064,
+              "sha256": "956c7f542d6124cbde7fe7d50bff60837d21686502a12ae4fc187554f4c19aea"
+            }
+          ]
+        },
+        "findings": [],
+        "limitations": [
+          "Remcos configuration may be encrypted or resource-backed.",
+          "Literal endpoints require config-reference or process-attributed validation."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "upx",
+        "sha256": "956c7f542d6124cbde7fe7d50bff60837d21686502a12ae4fc187554f4c19aea",
+        "size": 472064,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 1,
+          "name": "upx.bin",
+          "sha256": "956c7f542d6124cbde7fe7d50bff60837d21686502a12ae4fc187554f4c19aea",
+          "size": 472064,
+          "entropy": 6.395,
+          "format": "pe",
+          "executed": false,
+          "network_contacted": false,
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "imports": 247,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 340992,
+                "virtual_size": 340868,
+                "entropy": 6.5966
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 91136,
+                "virtual_size": 90642,
+                "entropy": 5.8693
+              },
+              {
+                "name": ".data",
+                "raw_size": 3584,
+                "virtual_size": 42652,
+                "entropy": 2.9328
+              },
+              {
+                "name": ".tls",
+                "raw_size": 512,
+                "virtual_size": 9,
+                "entropy": 0.0204
+              },
+              {
+                "name": ".gfids",
+                "raw_size": 1024,
+                "virtual_size": 560,
+                "entropy": 2.3971
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 19456,
+                "virtual_size": 19044,
+                "entropy": 3.8012
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 14336,
+                "virtual_size": 14044,
+                "entropy": 0.0
+              }
+            ],
+            "high_entropy_sections": [],
+            "packer_markers": [],
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "resource_count": 6
+          },
+          "upx": {
+            "status": "not_upx_or_failed",
+            "exit_code": 2
+          },
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Remcos configuration may be encrypted or resource-backed.",
+          "Literal endpoints require config-reference or process-attributed validation."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

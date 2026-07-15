@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module emulators.spyglace.lab</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="emulators.html" class="white">emulators</a>.<a href="emulators.spyglace.html" class="white">spyglace</a>.lab</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cemulators%5Cspyglace%5Clab.py">c:\users\administrator\ai-security-analysis\emulators\spyglace\lab.py</a></td></tr></table>
+    <p><span class="code">Offline&nbsp;and&nbsp;loopback-only&nbsp;helpers&nbsp;for&nbsp;the&nbsp;documented&nbsp;SpyGlace&nbsp;protocol.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+<a href="socket.html">socket</a><br>
+</td><td class="multicolumn"><a href="threading.html">threading</a><br>
+<a href="urllib.html">urllib</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="emulators.spyglace.lab.html#LoopbackCollector">LoopbackCollector</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LoopbackCollector">class <strong>LoopbackCollector</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LoopbackCollector">LoopbackCollector</a>(host:&nbsp;'str'&nbsp;=&nbsp;'127.0.0.1',&nbsp;port:&nbsp;'int'&nbsp;=&nbsp;0)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+Collect&nbsp;one&nbsp;local&nbsp;request&nbsp;and&nbsp;never&nbsp;return&nbsp;tasks&nbsp;or&nbsp;commands.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LoopbackCollector-__init__"><strong>__init__</strong></a>(self, host: 'str' = '127.0.0.1', port: 'int' = 0) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;a&nbsp;stopped&nbsp;collector.</span></dd></dl>
+
+<dl><dt><a name="LoopbackCollector-start"><strong>start</strong></a>(self) -&gt; 'int'</dt><dd><span class="code">Start&nbsp;one&nbsp;loopback&nbsp;listener&nbsp;and&nbsp;return&nbsp;its&nbsp;selected&nbsp;port.</span></dd></dl>
+
+<dl><dt><a name="LoopbackCollector-stop"><strong>stop</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Close&nbsp;the&nbsp;listener&nbsp;and&nbsp;briefly&nbsp;join&nbsp;its&nbsp;worker.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_initial_form"><strong>build_initial_form</strong></a>(
+    userid: 'str',
+    system_info: 'str',
+    mode: 'str',
+    system_profile: 'str',
+    key: 'bytes' = b'\x90\xb1I\xc6\x9b\x14\x9cK\x99\xc0M\x1d\xc9\xb9@\xb9'
+) -&gt; 'bytes'</dt><dd><span class="code">Build&nbsp;the&nbsp;documented&nbsp;four-field&nbsp;initial&nbsp;request&nbsp;body&nbsp;without&nbsp;sending&nbsp;it.</span></dd></dl>
+ <dl><dt><a name="-custom_rc4"><strong>custom_rc4</strong></a>(key: 'bytes', data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;SpyGlace's&nbsp;three-round&nbsp;KSA&nbsp;and&nbsp;modified&nbsp;PRGA&nbsp;symmetrically.</span></dd></dl>
+ <dl><dt><a name="-decode_a004"><strong>decode_a004</strong></a>(
+    value: 'str',
+    key: 'bytes' = b'\x90\xb1I\xc6\x9b\x14\x9cK\x99\xc0M\x1d\xc9\xb9@\xb9'
+) -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;one&nbsp;Base64/custom-RC4&nbsp;system-profile&nbsp;fixture.</span></dd></dl>
+ <dl><dt><a name="-encode_a004"><strong>encode_a004</strong></a>(
+    system_profile: 'str',
+    key: 'bytes' = b'\x90\xb1I\xc6\x9b\x14\x9cK\x99\xc0M\x1d\xc9\xb9@\xb9'
+) -&gt; 'str'</dt><dd><span class="code">Encode&nbsp;one&nbsp;semicolon-delimited&nbsp;system&nbsp;profile&nbsp;for&nbsp;a&nbsp;local&nbsp;fixture.</span></dd></dl>
+ <dl><dt><a name="-parse_initial_form"><strong>parse_initial_form</strong></a>(
+    body: 'bytes',
+    key: 'bytes' = b'\x90\xb1I\xc6\x9b\x14\x9cK\x99\xc0M\x1d\xc9\xb9@\xb9'
+) -&gt; 'dict[str, str]'</dt><dd><span class="code">Parse&nbsp;and&nbsp;decode&nbsp;a&nbsp;local&nbsp;four-field&nbsp;SpyGlace&nbsp;request&nbsp;fixture.</span></dd></dl>
+ <dl><dt><a name="-require_loopback"><strong>require_loopback</strong></a>(host: 'str') -&gt; 'str'</dt><dd><span class="code">Resolve&nbsp;and&nbsp;require&nbsp;an&nbsp;IPv4/IPv6&nbsp;loopback&nbsp;address.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_RC4_KEY</strong> = b'\x90\xb1I\xc6\x9b\x14\x9cK\x99\xc0M\x1d\xc9\xb9@\xb9'</td></tr></table>
+</body></html>

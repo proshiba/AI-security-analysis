@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "family": "venomrat",
+  "signature": "VenomRAT",
+  "case_count": 10,
+  "campaigns": {
+    "direct_pe_or_pe_loader": 6,
+    "script_delivery": 2,
+    "unknown_or_nested_delivery": 2
+  },
+  "formats": {
+    "data": 2,
+    "pe": 6,
+    "script": 2
+  },
+  "features": {},
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e",
+      "name": "579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e.js",
+      "family": "venomrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776",
+      "name": "48b59f27da42cfe2d3b806a1c71cc8d8fce0441121a17cd8c1b30bf5e35ea776.rar",
+      "family": "venomrat",
+      "campaign": "unknown_or_nested_delivery",
+      "format": "data",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26",
+      "name": "d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26.js",
+      "family": "venomrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "d6d876c7327482a6293fb5014393ace99e14aa7e0638bbda9fc602d35b8a72c9",
+      "name": "d6d876c7327482a6293fb5014393ace99e14aa7e0638bbda9fc602d35b8a72c9.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "9100e92ceb94455d3159c4273b47a4d635f1d6b8add68e7c775e1849d3d1a9da",
+      "name": "9100e92ceb94455d3159c4273b47a4d635f1d6b8add68e7c775e1849d3d1a9da.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "7215cbe8e5dfed7b22c8bbe8c5f7f35a7848e545d1cdeb60a378baf0be32cb0e",
+      "name": "7215cbe8e5dfed7b22c8bbe8c5f7f35a7848e545d1cdeb60a378baf0be32cb0e.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+      "name": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "651859b30c796cf59166ca018a2b4f18c996af4e688d302466ae56a5712b72a7",
+      "name": "651859b30c796cf59166ca018a2b4f18c996af4e688d302466ae56a5712b72a7.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e",
+      "name": "165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e.exe",
+      "family": "venomrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    },
+    {
+      "sha256": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8",
+      "name": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8.cmd",
+      "family": "venomrat",
+      "campaign": "unknown_or_nested_delivery",
+      "format": "data",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

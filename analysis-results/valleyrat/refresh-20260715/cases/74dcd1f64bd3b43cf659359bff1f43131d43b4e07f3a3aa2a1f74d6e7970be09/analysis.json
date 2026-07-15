@@ -1,0 +1,179 @@
+{
+  "case": {
+    "sha256": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+    "name": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09.exe",
+    "family": "valleyrat",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "sample_sha256": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+    "config": {
+      "variant": "unresolved_variant",
+      "decoded_vvas": {},
+      "source_name": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09.exe",
+      "endpoints": [],
+      "ipv4": [],
+      "urls": []
+    },
+    "findings": [],
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09.exe",
+    "sha256": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+    "size": 2351968,
+    "entropy": 6.1649,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 202,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 1604608,
+          "virtual_size": 1604572,
+          "entropy": 5.7423
+        },
+        {
+          "name": ".data",
+          "raw_size": 163840,
+          "virtual_size": 163544,
+          "entropy": 4.7517
+        },
+        {
+          "name": ".bss",
+          "raw_size": 0,
+          "virtual_size": 51676,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 7680,
+          "virtual_size": 7260,
+          "entropy": 4.1429
+        },
+        {
+          "name": ".didata",
+          "raw_size": 1024,
+          "virtual_size": 882,
+          "entropy": 2.4964
+        },
+        {
+          "name": ".edata",
+          "raw_size": 512,
+          "virtual_size": 113,
+          "entropy": 1.3485
+        },
+        {
+          "name": ".tls",
+          "raw_size": 0,
+          "virtual_size": 584,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 512,
+          "virtual_size": 109,
+          "entropy": 1.3799
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 84992,
+          "virtual_size": 84928,
+          "entropy": 6.4674
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 100864,
+          "virtual_size": 100656,
+          "entropy": 6.1508
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 380928,
+          "virtual_size": 380916,
+          "entropy": 5.4821
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": false,
+      "overlay_size": 5984,
+      "resource_count": 25
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource",
+        "size": 1148,
+        "sha256": "41d304ea3a05c3e46ea0f64702bd86aca3ada876295628bc52c5306f087b25c5"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource",
+        "sha256": "41d304ea3a05c3e46ea0f64702bd86aca3ada876295628bc52c5306f087b25c5",
+        "size": 1148,
+        "format": "script",
+        "unpack": {
+          "schema_version": 1,
+          "name": "pe-resource.bin",
+          "sha256": "41d304ea3a05c3e46ea0f64702bd86aca3ada876295628bc52c5306f087b25c5",
+          "size": 1148,
+          "entropy": 3.2111,
+          "format": "script",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Static strings alone do not prove an endpoint is C2.",
+          "Campaign-specific decoded config should supersede candidates when available."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

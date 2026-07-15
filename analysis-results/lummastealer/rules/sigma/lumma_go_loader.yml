@@ -1,0 +1,22 @@
+title: Go Loader Accessing Browser Credential Stores
+id: e4e3f107-140f-46c8-afd5-9ab6ddf48566
+status: experimental
+description: Detects a non-browser executable accessing Chromium credential stores; correlate with Go build evidence and Lumma config.
+logsource:
+  category: file_access
+  product: windows
+detection:
+  selection:
+    FileName|endswith:
+      - '\Login Data'
+      - '\Local State'
+      - '\Web Data'
+  filter_browser:
+    Image|endswith:
+      - '\chrome.exe'
+      - '\msedge.exe'
+      - '\brave.exe'
+  condition: selection and not filter_browser
+falsepositives:
+  - Password managers, migration, backup, and digital-forensics tools
+level: medium

@@ -1,0 +1,113 @@
+{
+  "case": {
+    "sha256": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da",
+    "name": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da.exe",
+    "family": "valleyrat",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "sample_sha256": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da",
+    "config": {
+      "variant": "unresolved_variant",
+      "decoded_vvas": {},
+      "source_name": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da.exe",
+      "endpoints": [],
+      "ipv4": [],
+      "urls": []
+    },
+    "findings": [],
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da.exe",
+    "sha256": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da",
+    "size": 92160,
+    "entropy": 6.3295,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "imports": 77,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 55296,
+          "virtual_size": 54805,
+          "entropy": 6.5232
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28672,
+          "virtual_size": 28482,
+          "entropy": 5.4187
+        },
+        {
+          "name": ".data",
+          "raw_size": 2560,
+          "virtual_size": 3952,
+          "entropy": 2.0536
+        },
+        {
+          "name": ".fptable",
+          "raw_size": 512,
+          "virtual_size": 128,
+          "entropy": 0.0
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 4096,
+          "virtual_size": 3960,
+          "entropy": 6.4723
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "resource_count": 0
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "case": {
+    "sha256": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2",
+    "name": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2.js",
+    "family": "remcosrat",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "sample_sha256": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2",
+    "config": {
+      "source_name": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2.js",
+      "marker_score": 0,
+      "markers": [],
+      "endpoints": []
+    },
+    "findings": [],
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2.js",
+    "sha256": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2",
+    "size": 4700869,
+    "entropy": 6.0834,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}
