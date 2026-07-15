@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.spyglace_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.spyglace_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cspyglace_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\spyglace_unpacker.py</a></td></tr></table>
+    <p><span class="code">Recover&nbsp;APT-C-60&nbsp;downloader,&nbsp;loader,&nbsp;and&nbsp;SpyGlace&nbsp;repository&nbsp;envelopes.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;only&nbsp;applies&nbsp;deterministic&nbsp;repeating-XOR&nbsp;transforms&nbsp;and&nbsp;validates<br>
+the&nbsp;resulting&nbsp;Portable&nbsp;Executable.&nbsp;&nbsp;Recovered&nbsp;files&nbsp;are&nbsp;never&nbsp;loaded&nbsp;or&nbsp;run.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="unpackers.spyglace_unpacker.html#RecoveredPayload">RecoveredPayload</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RecoveredPayload">class <strong>RecoveredPayload</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RecoveredPayload">RecoveredPayload</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data:&nbsp;'bytes',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;method:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;input_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;payload_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;role:&nbsp;'str'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;validated&nbsp;PE&nbsp;and&nbsp;the&nbsp;transform&nbsp;used&nbsp;to&nbsp;recover&nbsp;it.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RecoveredPayload-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RecoveredPayload-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="RecoveredPayload-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="RecoveredPayload-__init__"><strong>__init__</strong></a>(
+    self,
+    data: 'bytes',
+    method: 'str',
+    input_sha256: 'str',
+    payload_sha256: 'str',
+    role: 'str'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="RecoveredPayload-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="RecoveredPayload-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RecoveredPayload-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'data': 'bytes', 'input_sha256': 'str', 'method': 'str', 'payload_sha256': 'str', 'role': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'input_sha256': Field(name='input_sha256',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'method': Field(name='method',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'payload_sha256': Field(name='payload_sha256',type='str',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'role': Field(name='role',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('data', 'method', 'input_sha256', 'payload_sha256', 'role')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;non-executing&nbsp;recovery&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-classify_payload"><strong>classify_payload</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Classify&nbsp;a&nbsp;recovered&nbsp;APT-C-60&nbsp;PE&nbsp;by&nbsp;high-specificity&nbsp;static&nbsp;markers.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Recover&nbsp;one&nbsp;artifact&nbsp;and&nbsp;optionally&nbsp;write&nbsp;bytes&nbsp;and&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-recover_payload"><strong>recover_payload</strong></a>(data: 'bytes') -&gt; 'RecoveredPayload | None'</dt><dd><span class="code">Recover&nbsp;a&nbsp;literal&nbsp;or&nbsp;known&nbsp;repeating-XOR-wrapped&nbsp;PE,&nbsp;if&nbsp;present.</span></dd></dl>
+ <dl><dt><a name="-repeating_xor"><strong>repeating_xor</strong></a>(data: 'bytes', key: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;a&nbsp;symmetric&nbsp;repeating-key&nbsp;XOR&nbsp;transform.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
+ <dl><dt><a name="-valid_pe"><strong>valid_pe</strong></a>(data: 'bytes') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;whether&nbsp;bytes&nbsp;form&nbsp;a&nbsp;bounded,&nbsp;structurally&nbsp;valid&nbsp;PE&nbsp;image.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DOWNLOADER2_XOR_KEY</strong> = b'AadDDRTaSPtyAG57er#$ad!lDKTOPLTEL78pE'<br>
+<strong>REPOSITORY_XOR_KEY</strong> = b'sgznqhtgnghvmzxponum'</td></tr></table>
+</body></html>

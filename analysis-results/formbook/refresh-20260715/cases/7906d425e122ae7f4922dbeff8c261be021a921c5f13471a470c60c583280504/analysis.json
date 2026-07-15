@@ -1,0 +1,110 @@
+{
+  "case": {
+    "sha256": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504",
+    "name": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504.exe",
+    "family": "formbook",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504",
+    "config": {
+      "source_name": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504.exe",
+    "sha256": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504",
+    "size": 1097216,
+    "entropy": 7.8647,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": true,
+      "imports": 1,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 1029120,
+          "virtual_size": 1028768,
+          "entropy": 7.892
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 67072,
+          "virtual_size": 66932,
+          "entropy": 7.2965
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.1019
+        }
+      ],
+      "high_entropy_sections": [
+        ".text",
+        ".rsrc"
+      ],
+      "packer_markers": [],
+      "packing_suspected": true,
+      "overlay_size": 0,
+      "resource_count": 12
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

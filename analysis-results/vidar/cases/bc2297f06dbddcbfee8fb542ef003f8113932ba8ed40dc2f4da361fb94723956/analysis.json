@@ -1,0 +1,137 @@
+{
+  "case": {
+    "sha256": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956",
+    "name": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956.exe",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956",
+    "config": {
+      "source_name": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": true,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956.exe",
+    "sha256": "bc2297f06dbddcbfee8fb542ef003f8113932ba8ed40dc2f4da361fb94723956",
+    "size": 3018616,
+    "entropy": 7.0364,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 46,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 832512,
+          "virtual_size": 832177,
+          "entropy": 6.3326
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 1980416,
+          "virtual_size": 1980120,
+          "entropy": 7.153
+        },
+        {
+          "name": ".data",
+          "raw_size": 54784,
+          "virtual_size": 354728,
+          "entropy": 4.131
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 19456,
+          "virtual_size": 19380,
+          "entropy": 5.2279
+        },
+        {
+          "name": ".xdata",
+          "raw_size": 512,
+          "virtual_size": 180,
+          "entropy": 1.7832
+        },
+        {
+          "name": ".idata",
+          "raw_size": 1536,
+          "virtual_size": 1342,
+          "entropy": 4.0139
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 15360,
+          "virtual_size": 15252,
+          "entropy": 5.4224
+        },
+        {
+          "name": ".symtab",
+          "raw_size": 110080,
+          "virtual_size": 109940,
+          "entropy": 5.0642
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": false,
+      "overlay_size": 2424,
+      "resource_count": 0
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

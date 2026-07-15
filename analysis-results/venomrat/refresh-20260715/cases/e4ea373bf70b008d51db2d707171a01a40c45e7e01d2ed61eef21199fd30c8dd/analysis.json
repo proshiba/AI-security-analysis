@@ -1,0 +1,102 @@
+{
+  "case": {
+    "sha256": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+    "name": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd.exe",
+    "family": "venomrat",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "sample_sha256": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+    "config": {
+      "source_name": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd.exe",
+      "markers": [
+        "mutex"
+      ],
+      "endpoints": [],
+      "urls": [
+        "http://schemas.microsoft.com/SMI/2005/WindowsSettings",
+        "http://schemas.microsoft.com/SMI/2016/WindowsSettings"
+      ]
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd.exe",
+    "sha256": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+    "size": 75776,
+    "entropy": 5.8022,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": true,
+      "imports": 1,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 71168,
+          "virtual_size": 70740,
+          "entropy": 5.8293
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 3584,
+          "virtual_size": 3575,
+          "entropy": 5.114
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.1019
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": true,
+      "overlay_size": 0,
+      "resource_count": 2
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

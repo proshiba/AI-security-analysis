@@ -1,0 +1,63 @@
+{
+  "case": {
+    "sha256": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8",
+    "name": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8.cmd",
+    "family": "venomrat",
+    "campaign": "unknown_or_nested_delivery",
+    "format": "data",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "sample_sha256": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8",
+    "config": {
+      "source_name": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8.cmd",
+      "markers": [],
+      "endpoints": [],
+      "urls": []
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted resource loaders require a recovered final payload before config can be confirmed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "venomrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8.cmd",
+    "sha256": "ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8",
+    "size": 1668183,
+    "entropy": 5.549,
+    "format": "data",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

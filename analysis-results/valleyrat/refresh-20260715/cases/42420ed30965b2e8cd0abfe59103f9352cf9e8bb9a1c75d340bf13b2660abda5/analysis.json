@@ -1,0 +1,145 @@
+{
+  "case": {
+    "sha256": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5",
+    "name": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5.exe",
+    "family": "valleyrat",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 1,
+    "c2_assessment": "confirmed",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "sample_sha256": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5",
+    "config": {
+      "variant": "unresolved_variant",
+      "decoded_vvas": {
+        "endpoint_1": "103.43.11.40:1443",
+        "endpoint_2": "103.43.11.40:1443",
+        "endpoint_3": "103.43.11.40:1443"
+      },
+      "source_name": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5.exe",
+      "endpoints": [
+        "103.43.11.40:1443"
+      ],
+      "ipv4": [
+        "103.43.11.40"
+      ],
+      "urls": []
+    },
+    "findings": [
+      {
+        "kind": "network.endpoint",
+        "value": "103.43.11.40:1443",
+        "role": "candidate_c2",
+        "confidence": "confirmed",
+        "source": "decoded_vvas_config"
+      }
+    ],
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "assessment": "confirmed",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.endpoint",
+          "value": "103.43.11.40:1443",
+          "role": "candidate_c2",
+          "confidence": "confirmed",
+          "source": "decoded_vvas_config"
+        },
+        "host": "103.43.11.40",
+        "port": 1443,
+        "passive_queries": [
+          "ip:103.43.11.40 port:1443"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5.exe",
+    "sha256": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5",
+    "size": 111104,
+    "entropy": 6.2889,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "imports": 131,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 78848,
+          "virtual_size": 78601,
+          "entropy": 6.6059
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 15872,
+          "virtual_size": 15518,
+          "entropy": 4.9109
+        },
+        {
+          "name": ".data",
+          "raw_size": 7168,
+          "virtual_size": 23528,
+          "entropy": 2.9311
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 436,
+          "entropy": 5.105
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 7680,
+          "virtual_size": 7634,
+          "entropy": 4.5508
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [],
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "resource_count": 1
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

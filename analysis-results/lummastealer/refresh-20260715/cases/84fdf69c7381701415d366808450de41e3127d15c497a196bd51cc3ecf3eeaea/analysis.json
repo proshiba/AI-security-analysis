@@ -1,0 +1,165 @@
+{
+  "case": {
+    "sha256": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea",
+    "name": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea.zip",
+    "family": "lummastealer",
+    "campaign": "packed_native_pe",
+    "format": "zip",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+      "Literal infrastructure remains candidate until family config use is established."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "lummastealer",
+    "sample_sha256": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea",
+    "config": {
+      "source_name": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea.zip",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "loader_or_packer": false,
+        "c2_api": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+      "Literal infrastructure remains candidate until family config use is established."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "lummastealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea.zip",
+    "sha256": "84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea",
+    "size": 2758961,
+    "entropy": 7.9704,
+    "format": "zip",
+    "executed": false,
+    "network_contacted": false,
+    "zip": [
+      {
+        "name": "NEET-UG Paper leak legal documents/document.exe",
+        "size": 56461824,
+        "sha256": "f6abb5e95075026a50c33797b48ef69f4a87e4029565b4476901175494a96cac",
+        "format": "pe"
+      }
+    ],
+    "recovered": [
+      {
+        "kind": "zip-pe",
+        "size": 56461824,
+        "sha256": "f6abb5e95075026a50c33797b48ef69f4a87e4029565b4476901175494a96cac"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "zip-pe",
+        "sha256": "f6abb5e95075026a50c33797b48ef69f4a87e4029565b4476901175494a96cac",
+        "size": 56461824,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 1,
+          "name": "zip-pe.bin",
+          "sha256": "f6abb5e95075026a50c33797b48ef69f4a87e4029565b4476901175494a96cac",
+          "size": 56461824,
+          "entropy": 1.0778,
+          "format": "pe",
+          "executed": false,
+          "network_contacted": false,
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "imports": 44,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 3141632,
+                "virtual_size": 3141147,
+                "entropy": 6.092
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 2802688,
+                "virtual_size": 2802472,
+                "entropy": 5.7561
+              },
+              {
+                "name": ".data",
+                "raw_size": 50370560,
+                "virtual_size": 78880064,
+                "entropy": 0.075
+              },
+              {
+                "name": ".idata",
+                "raw_size": 1536,
+                "virtual_size": 1100,
+                "entropy": 3.9665
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 143872,
+                "virtual_size": 143480,
+                "entropy": 6.6378
+              },
+              {
+                "name": ".symtab",
+                "raw_size": 512,
+                "virtual_size": 4,
+                "entropy": 0.0204
+              }
+            ],
+            "high_entropy_sections": [],
+            "packer_markers": [
+              "MPRESS1"
+            ],
+            "packing_suspected": true,
+            "overlay_size": 0,
+            "resource_count": 0
+          },
+          "upx": {
+            "status": "not_upx_or_failed",
+            "exit_code": 2
+          },
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+          "Literal infrastructure remains candidate until family config use is established."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

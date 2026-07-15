@@ -1,0 +1,79 @@
+{
+  "case": {
+    "sha256": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e",
+    "name": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e.7z",
+    "family": "remusstealer",
+    "campaign": "encrypted_7z_delivery",
+    "format": "7z",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "sample_sha256": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e",
+    "config": {
+      "source_name": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e.7z",
+      "campaign_shape": "encrypted_7z_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "go_runtime": false,
+        "archive_delivery": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e.7z",
+    "sha256": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e",
+    "size": 17857891,
+    "entropy": 8.0,
+    "format": "7z",
+    "executed": false,
+    "network_contacted": false,
+    "sevenzip": {
+      "status": "encrypted_or_unsupported",
+      "exit_code": 2,
+      "members": [],
+      "password_attempted": false
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

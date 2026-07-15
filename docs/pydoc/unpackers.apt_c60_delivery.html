@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.apt_c60_delivery</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.apt_c60_delivery</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Capt_c60_delivery.py">c:\users\administrator\ai-security-analysis\unpackers\apt_c60_delivery.py</a></td></tr></table>
+    <p><span class="code">Statically&nbsp;reconstruct&nbsp;the&nbsp;APT-C-60&nbsp;LNK/Base64/TAR&nbsp;downloader&nbsp;chain.<br>
+&nbsp;<br>
+No&nbsp;JavaScript,&nbsp;LNK,&nbsp;Git&nbsp;executable,&nbsp;or&nbsp;reconstructed&nbsp;payload&nbsp;is&nbsp;executed.<br>
+Tar&nbsp;members&nbsp;are&nbsp;read&nbsp;in&nbsp;memory&nbsp;with&nbsp;traversal&nbsp;and&nbsp;size&nbsp;checks.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="base64.html">base64</a><br>
+</td><td class="multicolumn"><a href="binascii.html">binascii</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="io.html">io</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="tarfile.html">tarfile</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static&nbsp;delivery-chain&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-decode_base64_tar"><strong>decode_base64_tar</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Strictly&nbsp;decode&nbsp;a&nbsp;whitespace-wrapped&nbsp;Base64&nbsp;TAR&nbsp;payload.</span></dd></dl>
+ <dl><dt><a name="-extract_printable_strings"><strong>extract_printable_strings</strong></a>(data: 'bytes', minimum: 'int' = 4) -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;ordered&nbsp;ASCII&nbsp;and&nbsp;UTF-16LE&nbsp;strings&nbsp;from&nbsp;a&nbsp;delivery&nbsp;artifact.</span></dd></dl>
+ <dl><dt><a name="-inspect_lnk"><strong>inspect_lnk</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;embedded&nbsp;script&nbsp;URLs&nbsp;and&nbsp;high-signal&nbsp;actions&nbsp;from&nbsp;LNK&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Inspect&nbsp;one&nbsp;carrier&nbsp;and&nbsp;optionally&nbsp;persist&nbsp;a&nbsp;reconstructed&nbsp;payload.</span></dd></dl>
+ <dl><dt><a name="-parse_copy_b_script"><strong>parse_copy_b_script</strong></a>(text: 'str') -&gt; 'tuple[list[str], str]'</dt><dd><span class="code">Parse&nbsp;the&nbsp;binary-concatenation&nbsp;command&nbsp;from&nbsp;an&nbsp;APT-C-60&nbsp;install&nbsp;script.</span></dd></dl>
+ <dl><dt><a name="-read_tar_members"><strong>read_tar_members</strong></a>(tar_data: 'bytes') -&gt; 'dict[str, bytes]'</dt><dd><span class="code">Return&nbsp;regular&nbsp;TAR&nbsp;members&nbsp;in&nbsp;memory&nbsp;after&nbsp;link,&nbsp;path,&nbsp;and&nbsp;size&nbsp;checks.</span></dd></dl>
+ <dl><dt><a name="-reconstruct_fragmented_payload"><strong>reconstruct_fragmented_payload</strong></a>(carrier: 'bytes') -&gt; 'tuple[dict, bytes]'</dt><dd><span class="code">Decode&nbsp;a&nbsp;Base64&nbsp;TAR&nbsp;and&nbsp;reconstruct&nbsp;the&nbsp;payload&nbsp;named&nbsp;by&nbsp;its&nbsp;script.</span></dd></dl>
+ <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;one&nbsp;TAR&nbsp;member&nbsp;and&nbsp;reject&nbsp;unsafe&nbsp;path&nbsp;forms.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_ARCHIVE</strong> = 268435456<br>
+<strong>MAX_MEMBER</strong> = 134217728</td></tr></table>
+</body></html>

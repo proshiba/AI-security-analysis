@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.purehvnc.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.purehvnc.html" class="white">purehvnc</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cpurehvnc%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\purehvnc\extractor.py</a></td></tr></table>
+    <p><span class="code">Extract&nbsp;native&nbsp;PureHVNC&nbsp;and&nbsp;managed&nbsp;PureRAT&nbsp;configuration&nbsp;without&nbsp;execution.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
+<a href="dnfile.html">dnfile</a><br>
+</td><td class="multicolumn"><a href="gzip.html">gzip</a><br>
+<a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-certificate_metadata"><strong>certificate_metadata</strong></a>(value: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;public&nbsp;PKCS#12&nbsp;certificate&nbsp;metadata&nbsp;without&nbsp;exposing&nbsp;its&nbsp;private&nbsp;key.</span></dd></dl>
+ <dl><dt><a name="-decode_config_blob"><strong>decode_config_blob</strong></a>(strings: 'list[str]') -&gt; 'tuple[bytes, dict[int, list[Any]]]'</dt><dd><span class="code">Locate&nbsp;Base64/GZip&nbsp;protobuf&nbsp;data&nbsp;and&nbsp;return&nbsp;its&nbsp;nested&nbsp;PureRAT&nbsp;message.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;PureRAT/PureHVNC&nbsp;config,&nbsp;preferring&nbsp;the&nbsp;managed&nbsp;protobuf&nbsp;profile.</span></dd></dl>
+ <dl><dt><a name="-extract_managed_config"><strong>extract_managed_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;the&nbsp;managed&nbsp;PureRAT&nbsp;protobuf&nbsp;config&nbsp;and&nbsp;certificate&nbsp;fingerprints.</span></dd></dl>
+ <dl><dt><a name="-extract_native_config"><strong>extract_native_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;conservative&nbsp;native&nbsp;10FX-framed&nbsp;PureHVNC&nbsp;endpoint&nbsp;profile.</span></dd></dl>
+ <dl><dt><a name="-iter_dotnet_user_strings"><strong>iter_dotnet_user_strings</strong></a>(data: 'bytes') -&gt; 'Iterator[str]'</dt><dd><span class="code">Yield&nbsp;managed&nbsp;#US&nbsp;values&nbsp;when&nbsp;*data*&nbsp;is&nbsp;a&nbsp;valid&nbsp;.NET&nbsp;PE&nbsp;image.</span></dd></dl>
+ <dl><dt><a name="-parse_protobuf"><strong>parse_protobuf</strong></a>(data: 'bytes') -&gt; 'dict[int, list[Any]]'</dt><dd><span class="code">Parse&nbsp;protobuf&nbsp;wire&nbsp;types&nbsp;used&nbsp;by&nbsp;the&nbsp;reviewed&nbsp;PureRAT&nbsp;configuration.</span></dd></dl>
+ <dl><dt><a name="-read_varint"><strong>read_varint</strong></a>(data: 'bytes', offset: 'int') -&gt; 'tuple[int, int]'</dt><dd><span class="code">Read&nbsp;one&nbsp;protobuf&nbsp;varint&nbsp;and&nbsp;return&nbsp;its&nbsp;value&nbsp;and&nbsp;next&nbsp;offset.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>Iterator</strong> = typing.Iterator</td></tr></table>
+</body></html>

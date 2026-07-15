@@ -1,0 +1,145 @@
+{
+  "case": {
+    "sha256": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047",
+    "name": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047.exe",
+    "family": "remusstealer",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "sample_sha256": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047",
+    "config": {
+      "source_name": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "go_runtime": false,
+        "archive_delivery": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047.exe",
+    "sha256": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047",
+    "size": 437760,
+    "entropy": 6.9786,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 0,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 18944,
+          "virtual_size": 18692,
+          "entropy": 6.3248
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 230912,
+          "virtual_size": 230664,
+          "entropy": 7.9895
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 512,
+          "virtual_size": 144,
+          "entropy": 1.4279
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 186368,
+          "virtual_size": 185968,
+          "entropy": 4.4121
+        }
+      ],
+      "high_entropy_sections": [
+        ".rdata"
+      ],
+      "packer_markers": [],
+      "packing_suspected": true,
+      "overlay_size": 0,
+      "resource_count": 24
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource",
+        "size": 934,
+        "sha256": "37ddd449a10d392b7280d373c2283f1c9a7970f59a14d4a6a1394e3ca09d0c38"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource",
+        "sha256": "37ddd449a10d392b7280d373c2283f1c9a7970f59a14d4a6a1394e3ca09d0c38",
+        "size": 934,
+        "format": "script",
+        "unpack": {
+          "schema_version": 1,
+          "name": "pe-resource.bin",
+          "sha256": "37ddd449a10d392b7280d373c2283f1c9a7970f59a14d4a6a1394e3ca09d0c38",
+          "size": 934,
+          "entropy": 3.5384,
+          "format": "script",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+          "Remus attribution and infrastructure require recovered payload-level corroboration."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

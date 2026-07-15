@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "family": "lummastealer",
+  "signature": "LummaStealer",
+  "case_count": 10,
+  "campaigns": {
+    "go_pe_loader": 10
+  },
+  "formats": {
+    "pe": 10
+  },
+  "features": {
+    "loader_or_packer": 10
+  },
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "b871f50abbd7e06e6dbede78f499c2efc426d7f8ba08943f06e104f82d8ecc0c",
+      "name": "b871f50abbd7e06e6dbede78f499c2efc426d7f8ba08943f06e104f82d8ecc0c.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "b9b7602e0b929dd2bae9e87b53d5ab1e0a236fe466ea4628c3b8fc32cc2ed899",
+      "name": "b9b7602e0b929dd2bae9e87b53d5ab1e0a236fe466ea4628c3b8fc32cc2ed899.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "009b2025c43202f2c643e46d27b30ca5e0f33b7da37841a661838aa07ac34938",
+      "name": "009b2025c43202f2c643e46d27b30ca5e0f33b7da37841a661838aa07ac34938.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "a8760de45ed2bdda90fea6b136b5a3c5afdfdce4c1b05d3c4ab76e92f308ae36",
+      "name": "a8760de45ed2bdda90fea6b136b5a3c5afdfdce4c1b05d3c4ab76e92f308ae36.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "b2930dcb9a593f79105aa4fecc4f67d3db99273858c42845a553585975307408",
+      "name": "b2930dcb9a593f79105aa4fecc4f67d3db99273858c42845a553585975307408.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "4e732364c5335ed8b999528110f954bf88717fbfe865639d8daa4485d9d82410",
+      "name": "4e732364c5335ed8b999528110f954bf88717fbfe865639d8daa4485d9d82410.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "89c66cb60337dd2f0901bed8919fe22ad88ae1874e92977cba2f9b37cf79dd5a",
+      "name": "89c66cb60337dd2f0901bed8919fe22ad88ae1874e92977cba2f9b37cf79dd5a.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "56970a928b7e73504022d0e856ab131d262247b03b3cc082dc950a8e8d2e276b",
+      "name": "56970a928b7e73504022d0e856ab131d262247b03b3cc082dc950a8e8d2e276b.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "9817c80e1108f291efd2eb04a7b5abc8ca5895788b8a3934d1c3dded97d4b124",
+      "name": "9817c80e1108f291efd2eb04a7b5abc8ca5895788b8a3934d1c3dded97d4b124.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    },
+    {
+      "sha256": "18768e002f6f953ad6b9f3265d6e438ec19d0ffa05afaf28a72a04417c35528c",
+      "name": "18768e002f6f953ad6b9f3265d6e438ec19d0ffa05afaf28a72a04417c35528c.exe",
+      "family": "lummastealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
+        "Literal infrastructure remains candidate until family config use is established."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

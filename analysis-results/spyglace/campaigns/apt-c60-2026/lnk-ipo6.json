@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sha256": "44a4ac119349f525d877728b53fe38453a516881d577679caf08ab69312a695f",
+  "urls": [
+    "https://cdn.jsdelivr.net/gh/mei1990789/class125/megaw64.txt"
+  ],
+  "actions": [
+    "mshta",
+    "CopyFile",
+    "WScript.Shell"
+  ],
+  "embedded_script_count": 2,
+  "embedded_script_sha256": [
+    "20230c2b7eb784006620774182d364972f6cb9d503cd148d8dc5d960273aed69",
+    "f327b23e9ef70a8b36dd1f1a6a3b1c658d9a56c50da60e03cf03904e8ef420c0"
+  ],
+  "executed": false,
+  "network_contacted": false
+}

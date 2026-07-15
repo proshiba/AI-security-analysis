@@ -1,0 +1,73 @@
+{
+  "case": {
+    "sha256": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531",
+    "name": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531.bat",
+    "family": "formbook",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "data",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531",
+    "config": {
+      "source_name": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531.bat",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531.bat",
+    "sha256": "09a78d4ca618d275809fa2af5f6f1b9b40d5ed2e552ba6ff1ef66b59ccaa1531",
+    "size": 1266395,
+    "entropy": 6.0057,
+    "format": "data",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "family": "purehvnc",
+  "variant": "native_10fx",
+  "primary_sha256": "e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37",
+  "terminal_sha256": "7c76e0e234b8700ba041e444547883bf681284076a02b2045a6a746c6387e4e0",
+  "configured_c2": ["154.82.93.206:8080"],
+  "protocol": {"header": "<III", "magic": "0x58463031", "ascii": "10FX"},
+  "confidence": "high",
+  "executed": false,
+  "network_contacted": false
+}

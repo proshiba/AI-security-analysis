@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "family": "vidar",
+  "signature": "Vidar",
+  "case_count": 10,
+  "campaigns": {
+    "direct_pe_or_pe_loader": 10
+  },
+  "formats": {
+    "pe": 10
+  },
+  "features": {
+    "wallet_collection": 7
+  },
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "71911c8f6eacf5ba5414bc8a66ac83a981aaf4d1141f5117ed6c2ad196c558fc",
+      "name": "71911c8f6eacf5ba5414bc8a66ac83a981aaf4d1141f5117ed6c2ad196c558fc.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "1e13c2c9eac72daf63fd00a9946878949e159ae6ec51b54ec64f942d79d61913",
+      "name": "1e13c2c9eac72daf63fd00a9946878949e159ae6ec51b54ec64f942d79d61913.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5",
+      "name": "398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "8d90853120d18cea4a8a1fa72116fb93db3887f98c330cee9519bc78f87eebf6",
+      "name": "8d90853120d18cea4a8a1fa72116fb93db3887f98c330cee9519bc78f87eebf6.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "5bcc428f37655c7bc16110cc2127c510f66827a382cb1c9fa251b15a7d2c214b",
+      "name": "5bcc428f37655c7bc16110cc2127c510f66827a382cb1c9fa251b15a7d2c214b.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "ee1bddda91c3a8a3ca8b3fcc077c373dc80da17b94ae6dc7f4219116a49fd7ac",
+      "name": "ee1bddda91c3a8a3ca8b3fcc077c373dc80da17b94ae6dc7f4219116a49fd7ac.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "0a8f1fa93f96182e78f5b95abd940d98bf53f06dc1fbe172bb913f821a3647d3",
+      "name": "0a8f1fa93f96182e78f5b95abd940d98bf53f06dc1fbe172bb913f821a3647d3.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "4c958205aa4c56b148377b2bd984a7b3b6525bbc914cf8e5aaa34ce91f71d4cc",
+      "name": "4c958205aa4c56b148377b2bd984a7b3b6525bbc914cf8e5aaa34ce91f71d4cc.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "4992cb5f29594ae1cea78e028a2e6a51d571a610ceeb4442b605953b916dd1c4",
+      "name": "4992cb5f29594ae1cea78e028a2e6a51d571a610ceeb4442b605953b916dd1c4.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    },
+    {
+      "sha256": "526efbd526d1e0fa9ac6b9def17f1925774e3696595232e8e8d6801a8a302e36",
+      "name": "526efbd526d1e0fa9ac6b9def17f1925774e3696595232e8e8d6801a8a302e36.exe",
+      "family": "vidar",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+        "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,65 @@
+{
+  "case": {
+    "sha256": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1",
+    "name": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1.js",
+    "family": "remcosrat",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "sample_sha256": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1",
+    "config": {
+      "source_name": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1.js",
+      "marker_score": 0,
+      "markers": [],
+      "endpoints": []
+    },
+    "findings": [],
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1.js",
+    "sha256": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1",
+    "size": 15906870,
+    "entropy": 5.2418,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

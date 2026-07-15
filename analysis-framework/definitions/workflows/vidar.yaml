@@ -1,0 +1,11 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: vidar.config, display_name: Vidar static config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: unpack, uses: "static.unpack.inspect@^1", needs: [inventory], on_error: partial}
+  - {id: strings, uses: "static.strings.extract@^1", needs: [inventory]}
+  - {id: config, uses: "family.vidar.config@^1", needs: [strings, unpack]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

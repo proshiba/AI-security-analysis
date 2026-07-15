@@ -22,3 +22,7 @@ This index covers all 11 analyzed ValleyRAT or ValleyRAT-linked campaign cases. 
 | [32146526cbc3](cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/README.md) | qt_static_obfuscated_silverfox | cqbxbkj.cn to 18.167.91.239; port 8880 remains unverified | mixed_inferred_unverified |
 
 Shared Sigma and YARA candidates are under rules/sigma and rules/yara. Endpoint-only detection should be combined with process ancestry, image-load relationships, persistence, recovered configuration, or protocol structure.
+
+## Latest refresh
+
+- [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)

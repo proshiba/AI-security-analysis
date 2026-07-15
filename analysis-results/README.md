@@ -1,19 +1,41 @@
 # Analysis results
 
-解析機能から分離した、公開可能なマルウェア種別・検体別の結果です。
+静的解析・設定抽出・IOC評価の公開用結果です。検体本体、復元バイナリ、資格情報、ローカル解析パスは含めません。
+
+標準配置は次のとおりです。
 
 ```text
-analysis-results/<malware-type>/cases/<sample-sha256>/
+analysis-results/<malware-family>/cases/<sample-sha256>/
+analysis-results/<malware-family>/refresh-YYYYMMDD/cases/<sample-sha256>/
 ```
 
-- [ValleyRAT](valleyrat/README.md)（[ファミリ挙動・C2モデル](valleyrat/BEHAVIOR-C2.md)）
+## Families
+
+- [ValleyRAT](valleyrat/README.md) / [behavior and C2 model](valleyrat/BEHAVIOR-C2.md)
 - [AgentTesla](agenttesla/README.md)
 - [RemcosRAT](remcosrat/README.md)
+- [VenomRAT](venomrat/README.md) / [behavior and C2 model](venomrat/BEHAVIOR-C2.md)
+- [Formbook](formbook/README.md) / [behavior and C2 model](formbook/BEHAVIOR-C2.md)
+- [Vidar](vidar/README.md) / [behavior and C2 model](vidar/BEHAVIOR-C2.md)
+- [LummaStealer](lummastealer/README.md) / [behavior and C2 model](lummastealer/BEHAVIOR-C2.md)
+- [RemusStealer](remusstealer/README.md) / [behavior and C2 model](remusstealer/BEHAVIOR-C2.md)
+- [Atomic macOS Stealer (AMOS)](amosstealer/README.md) / [behavior and C2 model](amosstealer/BEHAVIOR-C2.md)
+- [Unclassified malware](unclassified/README.md)
 
-各ファミリREADMEは全解析ケースの索引とファミリ共通の挙動/C2モデルを、各case READMEはその検体で観測した配布・実行チェーン、想定される機能、C2の役割、根拠、確度を記録します。配布URL、ステージ取得先、資格情報送信先、対話型C2は混同せず、confirmed、inferred、unverifiedで確度を明示します。
+## Latest refresh
 
-検体本体、復号済み実行ファイル、PCAP、Ghidra project、認証情報は保存しません。各種別の `manifest.sha256` でREADME、IOCメタデータ、Sigma/YARAの整合性を確認できます。C2の生存状態は静的IOCとは別の時点依存情報であり、明示的な許可なしにライブ確認しません。
+- [2026-07-15: 9 families / 90 new samples](REFRESH-2026-07-15.md)
+- [2026-07-15: unpacking reassessment and remaining blockers](UNPACKING-REASSESSMENT-2026-07-15.md)
 
-- [VenomRAT](venomrat/README.md) — Japan-observed delivery cluster, static payload/configuration analysis, and detection material.
+各レポートでは、MalwareBazaarの署名ラベル、静的に確認したファミリーマーカー、配布・ローダー形態、復号済み設定、候補IOCを区別します。埋め込みURLやIPは、それだけでは稼働中C2や当該ファミリー専用インフラを意味しません。
 
-- [MX-Go](unclassified/mx-go/README.md) — unclassified Japan-targeted remotely controlled bulk-email spam bot.
+すべてのrefresh解析は検体をローカル実行せず、実インフラへの接続も行いません。Sigma/YARAは検知仮説であり、正規ソフトウェアとの重複、署名・普及度、親子プロセス、通信先を組み合わせて環境別に検証してください。
+
+## PureHVNC and DonutLoader cases
+
+
+- [SpyGlace / APT-C-60 2026](spyglace/README.md) / [campaign analysis and IOC set](spyglace/campaigns/apt-c60-2026/README.md)
+- [PureHVNC / PureRAT](purehvnc/README.md)
+- [DonutLoader](donutloader/README.md)
+
+The DonutLoader result preserves both delivery classification and terminal PureRAT identity; configured C2 is not attributed to the delivery host or intermediate loader.

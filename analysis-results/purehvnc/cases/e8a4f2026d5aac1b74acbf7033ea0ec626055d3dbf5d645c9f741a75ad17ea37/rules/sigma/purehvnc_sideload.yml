@@ -1,0 +1,19 @@
+title: PureHVNC Tax Notice Easinvoker Netutils Side Loading
+id: 640d5f39-dd4e-4faf-a069-076f87f85f50
+status: experimental
+description: Detects the reviewed signed host and adjacent netutils.dll load chain.
+date: 2026-07-15
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\Notice from Tax Department.exe'
+    ImageLoaded|endswith: '\netutils.dll'
+  condition: selection
+falsepositives:
+  - Renamed administrative utilities legitimately loading a colocated netutils.dll
+level: high
+tags:
+  - attack.defense-evasion
+  - attack.t1574.002

@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "family": "remusstealer",
+  "signature": "RemusStealer",
+  "case_count": 10,
+  "campaigns": {
+    "direct_pe_or_pe_loader": 2,
+    "encrypted_7z_delivery": 3,
+    "go_pe_loader": 5
+  },
+  "formats": {
+    "7z": 3,
+    "pe": 7
+  },
+  "features": {
+    "archive_delivery": 8,
+    "go_runtime": 5
+  },
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "abc81d4d4b22d8388e829f3fedeb35cb3d3a7e50a108ba1ac779161b21a5bad3",
+      "name": "abc81d4d4b22d8388e829f3fedeb35cb3d3a7e50a108ba1ac779161b21a5bad3.exe",
+      "family": "remusstealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "5e5f0122c172b364cb32ddefc79b381113a04ed48bf194a6a975cc7f564fa07b",
+      "name": "5e5f0122c172b364cb32ddefc79b381113a04ed48bf194a6a975cc7f564fa07b.exe",
+      "family": "remusstealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047",
+      "name": "cd362b63aa5130a6290d1326abc883309aa218a5869e82ecd2c106a80de61047.exe",
+      "family": "remusstealer",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 1,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "fa38f6539af74b5b355c532a3c71c588960d34abd825442fea98c2177375d010",
+      "name": "fa38f6539af74b5b355c532a3c71c588960d34abd825442fea98c2177375d010.exe",
+      "family": "remusstealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "aec2007bddf386d7659b60f712334d7f277f65edfd9f11a61c711b7b4b7119e2",
+      "name": "aec2007bddf386d7659b60f712334d7f277f65edfd9f11a61c711b7b4b7119e2.exe",
+      "family": "remusstealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d",
+      "name": "d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d.exe",
+      "family": "remusstealer",
+      "campaign": "go_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "ed38c22c7385998f5182bfae0a235faee616ed19fb34b945b1b8e211e3001e96",
+      "name": "ed38c22c7385998f5182bfae0a235faee616ed19fb34b945b1b8e211e3001e96.7z",
+      "family": "remusstealer",
+      "campaign": "encrypted_7z_delivery",
+      "format": "7z",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e",
+      "name": "16a1260ae199d83c537b65ca558b33c7a783d28c5547b5fcb35dee4cceb5f12e.7z",
+      "family": "remusstealer",
+      "campaign": "encrypted_7z_delivery",
+      "format": "7z",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "d871b4706e6410c4170a03a86629822e046d81e15f6a50d905059d7f2383f1de",
+      "name": "d871b4706e6410c4170a03a86629822e046d81e15f6a50d905059d7f2383f1de.7z",
+      "family": "remusstealer",
+      "campaign": "encrypted_7z_delivery",
+      "format": "7z",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    },
+    {
+      "sha256": "c20a551057c10e699156ebeb57677cb51625534d8256a3dd3cd8b3efbca5235c",
+      "name": "c20a551057c10e699156ebeb57677cb51625534d8256a3dd3cd8b3efbca5235c.exe",
+      "family": "remusstealer",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+        "Remus attribution and infrastructure require recovered payload-level corroboration."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

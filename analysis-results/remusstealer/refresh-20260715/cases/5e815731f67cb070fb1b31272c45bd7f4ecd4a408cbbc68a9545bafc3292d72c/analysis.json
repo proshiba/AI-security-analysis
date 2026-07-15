@@ -1,0 +1,115 @@
+{
+  "case": {
+    "sha256": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c",
+    "name": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c.exe",
+    "family": "remusstealer",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "sample_sha256": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c",
+    "config": {
+      "source_name": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c.exe",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "go_runtime": false,
+        "archive_delivery": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Encrypted inner 7z deliveries require the campaign password; password guessing is not performed.",
+      "Remus attribution and infrastructure require recovered payload-level corroboration."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remusstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c.exe",
+    "sha256": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c",
+    "size": 431104,
+    "entropy": 7.002,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 0,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 18944,
+          "virtual_size": 18676,
+          "entropy": 6.3231
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 228352,
+          "virtual_size": 228080,
+          "entropy": 7.9942
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 512,
+          "virtual_size": 144,
+          "entropy": 1.4385
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 182272,
+          "virtual_size": 181984,
+          "entropy": 4.4695
+        }
+      ],
+      "high_entropy_sections": [
+        ".rdata"
+      ],
+      "packer_markers": [],
+      "packing_suspected": true,
+      "overlay_size": 0,
+      "resource_count": 19
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

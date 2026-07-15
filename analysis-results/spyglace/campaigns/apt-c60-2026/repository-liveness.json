@@ -1,0 +1,224 @@
+﻿{
+    "schema_version":  1,
+    "sampled_at":  "2026-07-15",
+    "source":  "JPCERT/CC Appendix E plus public unauthenticated provider APIs",
+    "summary":  {
+                    "total":  29,
+                    "live":  16,
+                    "live_with_history":  10,
+                    "live_empty":  6,
+                    "unavailable":  13
+                },
+    "repositories":  [
+                         {
+                             "commit_count":  122,
+                             "provider":  "github",
+                             "notes":  "delivery archives, JavaScript, downloader fragments and deleted history recovered",
+                             "status":  "live_with_history",
+                             "repository":  "mei1990789/class125"
+                         },
+                         {
+                             "commit_count":  112,
+                             "provider":  "github",
+                             "notes":  "encoded downloaders, loaders, SpyGlace and per-device task files recovered",
+                             "status":  "live_with_history",
+                             "repository":  "sapphire679/tblsesarol"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "repository existed but no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "sapphire689/dnaluakxit"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "github",
+                             "notes":  "not found at sampling time",
+                             "status":  "unavailable",
+                             "repository":  "wanib11399/zjeqopmfit"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "created 2026-07-13; no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "cafes39636/ngwtaepesf"
+                         },
+                         {
+                             "commit_count":  30,
+                             "provider":  "github",
+                             "notes":  "historical encoded downloader content recovered",
+                             "status":  "live_with_history",
+                             "repository":  "rapefo2905/rncprjmauw"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "repository existed but no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "hexif45133/yedkatinrc"
+                         },
+                         {
+                             "commit_count":  40,
+                             "provider":  "github",
+                             "notes":  "historical encoded downloader content recovered",
+                             "status":  "live_with_history",
+                             "repository":  "jewexo9791/archibkyof"
+                         },
+                         {
+                             "commit_count":  2,
+                             "provider":  "github",
+                             "notes":  "small historical artifact set recovered",
+                             "status":  "live_with_history",
+                             "repository":  "lowege1212/izrtysherg"
+                         },
+                         {
+                             "commit_count":  6,
+                             "provider":  "github",
+                             "notes":  "historical encoded downloader content recovered",
+                             "status":  "live_with_history",
+                             "repository":  "gixop88415/glfhvhtzih"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "repository existed but no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "kapap40675/fpqtzyofdl"
+                         },
+                         {
+                             "commit_count":  26,
+                             "provider":  "github",
+                             "notes":  "historical encoded downloader content recovered",
+                             "status":  "live_with_history",
+                             "repository":  "cefobe3574/kojyyvtkqo"
+                         },
+                         {
+                             "commit_count":  2,
+                             "provider":  "github",
+                             "notes":  "one small historical artifact set recovered",
+                             "status":  "live_with_history",
+                             "repository":  "vogenoc114/qlofnsayvl"
+                         },
+                         {
+                             "commit_count":  14,
+                             "provider":  "github",
+                             "notes":  "historical encoded downloader content recovered",
+                             "status":  "live_with_history",
+                             "repository":  "bohihef411/tuikfwoveb"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "repository existed but no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "waxiyes819/dymcdbqqen"
+                         },
+                         {
+                             "commit_count":  1,
+                             "provider":  "github",
+                             "notes":  "only trivial historical content observed",
+                             "status":  "live_with_history",
+                             "repository":  "fehijow850/uywcrcvlnb"
+                         },
+                         {
+                             "commit_count":  0,
+                             "provider":  "github",
+                             "notes":  "repository existed but no reachable content",
+                             "status":  "live_empty",
+                             "repository":  "yefixi3890/krbgqbmlho"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "github",
+                             "notes":  "not found at sampling time",
+                             "status":  "unavailable",
+                             "repository":  "williams250666/bluenote554"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "sapphire689/dnaluakxit"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "cafes39636/ngwtaepesf"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "rapefo2905/yedkatinrc"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "lowege1212/eboralfotj"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "kapap40675/fpqtzyofdl"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "vogenoc114/qlofnsayvl"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "waxiyes819/dymcdbqqen"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "gitlab",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "yefixi3890/krbgqbmlho"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "codeberg",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "ochi_ma992/3tv9239irfn83"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "codeberg",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "meca922199/ertlokefgpokjper2359"
+                         },
+                         {
+                             "commit_count":  null,
+                             "provider":  "codeberg",
+                             "notes":  "not found through public API",
+                             "status":  "unavailable",
+                             "repository":  "Hamilton385673/eff88e889w33456"
+                         }
+                     ],
+    "limitations":  [
+                        "Status is a point-in-time observation and may change.",
+                        "Unavailable does not prove permanent deletion or attribution.",
+                        "No repository content was executed."
+                    ],
+    "executed":  false,
+    "network_contacted":  true
+}

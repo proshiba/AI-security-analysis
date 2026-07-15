@@ -15,7 +15,7 @@ The `asa/v1alpha1` implementation now includes strict definition validation, det
 - offline implementations for intake, inventory, strings, IOCs, PE, .NET, Go, scripts, ISO, family config, and reporting
 - FLOSS and Ghidra MCP availability checks without automatic invocation
 - `validate`, `plan`, and `asa-analyze` CLIs
-- five malware definitions and seven pipelines
+- ten malware definitions and twelve pipelines
 
 ## Run an offline analysis
 

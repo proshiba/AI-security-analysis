@@ -13,6 +13,7 @@ import pefile
 
 from extractors.common import endpoint_candidates, extract_strings, url_candidates
 from extractors.config_extractor import get_extractor
+from unpackers.static_unpacker import unpack_bytes
 
 from .catalog import parse_step_reference
 from .compiler import compile_plan
@@ -93,6 +94,12 @@ def step_go(context: dict) -> dict:
     return {"version": versions[-1] if versions else None, "modules": modules}
 
 
+def step_unpack(context: dict) -> dict:
+    """Run bounded static unpacking metadata without persisting recovered bytes."""
+    report, _ = unpack_bytes(context["data"], context["facts"]["submission"]["name"])
+    return report
+
+
 def step_scripts(context: dict) -> dict:
     """Summarize common script-loader features without interpretation or execution."""
     text = "\n".join(context.get("strings") or extract_strings(context["data"])).lower()
@@ -141,6 +148,7 @@ def execute_step(reference: str, context: dict) -> dict:
         "static.pe.inspect": step_pe,
         "static.dotnet.inspect": step_dotnet,
         "static.go.inspect": step_go,
+        "static.unpack.inspect": step_unpack,
         "scripts.layers": step_scripts,
         "containers.iso": step_iso,
         "reporting.case_report": step_report,

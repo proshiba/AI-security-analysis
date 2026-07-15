@@ -1,0 +1,75 @@
+{
+  "case": {
+    "sha256": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b",
+    "name": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b.macho",
+    "family": "amosstealer",
+    "campaign": "direct_macho",
+    "format": "macho",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b",
+    "config": {
+      "source_name": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b.macho",
+      "campaign_shape": "direct_macho",
+      "family_markers": [],
+      "features": {
+        "keychain_collection": false,
+        "browser_collection": false,
+        "wallet_collection": false,
+        "apple_script": false,
+        "user_prompt": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b.macho",
+    "sha256": "a91d954fa5a9a1f167625e7ac8314a481e32a9dbee4635533b52be21be4e508b",
+    "size": 723072,
+    "entropy": 6.5728,
+    "format": "macho",
+    "executed": false,
+    "network_contacted": false,
+    "macho": {
+      "kind": "universal",
+      "architectures": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": []
+  }
+}

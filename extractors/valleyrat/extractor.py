@@ -7,9 +7,10 @@ from extractors.common import (
     endpoint_candidates,
     extract_strings,
     ipv4_candidates,
-    url_candidates,
 )
 
+
+from extractors.stealer_common import infrastructure_urls
 
 def identify_variant(strings: list[str]) -> str:
     """Identify a config representation without assuming all ValleyRAT builds match."""
@@ -49,9 +50,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
     strings = extract_strings(data)
     variant = identify_variant(strings)
     decoded = decode_vvas_reversed_config(strings)
-    endpoints, urls = endpoint_candidates(strings), url_candidates(strings)
+    endpoints, urls = endpoint_candidates(strings), infrastructure_urls(strings)
     if decoded:
-        endpoints = sorted(decoded.values())
+        endpoints = sorted(set(decoded.values()))
     ips = (
         sorted({item.split(":", 1)[0] for item in endpoints})
         if decoded

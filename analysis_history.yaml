@@ -538,3 +538,149 @@ analyses:
       - 'www.iainglespa.com:443 (content/config host; sandbox connected, live TLS open but paths gated/disabled)'
     result_path: analysis-results/unclassified/mx-go/cases/462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb/
     notes: 'Classified as an unclassified remotely controlled bulk-email spam bot, not a general RAT. Sample was not executed. Bounded 2026-07-15 live check found the control port open and four exact API routes; no POST/check-in or content bodies were sent/retrieved. Added a loopback-only C2/content emulator and synthetic client/recipient validation.'
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e
+    analysis_level: deep_static_full_unpack
+    campaign_type: utf16_js_unicode_environment_loader
+    matched_patterns: ['numeric-array repeating-key XOR', 'PowerShell environment-chunk reconstruction', 'Unicode minus 19968', 'terminal x64 .NET PE']
+    c2: []
+    result_path: analysis-results/venomrat/refresh-20260715/cases/579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e/
+    notes: 'Recovered terminal PE 4246bf9121476cc6fb8d2f69c6263a7b4d31a331bd02dd9a7603e6200fb9725b without execution or networking.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26
+    analysis_level: deep_static_full_unpack
+    campaign_type: utf16_js_aes_gzip_loader
+    matched_patterns: ['numeric-array repeating subtraction', 'Unicode environment chunks', 'embedded AES-CBC key and IV', 'GZip', 'terminal x64 .NET PE']
+    c2: []
+    result_path: analysis-results/venomrat/refresh-20260715/cases/d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26/
+    notes: 'Recovered terminal PE 16109f93bcddf8dec5e21057f35b3da437d94976f503f45b217232c26b65515e without executing JavaScript or PowerShell.'
+
+  - malware_type: VenomRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8
+    analysis_level: deep_static_full_unpack
+    campaign_type: cmd_chunked_base64_loader
+    matched_patterns: ['CMD echo redirection stream', 'certutil decode recipe', 'structurally validated terminal x86 PE']
+    c2: []
+    result_path: analysis-results/venomrat/refresh-20260715/cases/ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8/
+    notes: 'Reassembled terminal PE d6bb84d31d68519e201370f8ccb60d373412573d125f30c5b3090c1ad206d5fd and suppressed 128 false fragment artifacts.'
+
+  - malware_type: RemusStealer
+    analyzed_at: 2026-07-15
+    sample_sha256: 5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c
+    analysis_level: deep_static_unresolved_native_protector
+    campaign_type: custom_native_memory_loader
+    matched_patterns: ['zero imports', 'API hash resolution', 'high-entropy .rdata', 'RWX allocation', 'bespoke state machine']
+    c2: []
+    result_path: analysis-results/remusstealer/refresh-20260715/cases/5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c/
+    notes: 'Blocker native_control_flow_obfuscation; no sample execution, loader execution, memory dumping, or emulation.'
+
+  - malware_type: RemcosRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db
+    analysis_level: deep_static_partial_unpack
+    campaign_type: nsis_scripted_native_loader
+    matched_patterns: ['NSIS word XOR 0x17d68b37', 'System-plugin command stream', 'dword XOR 0xe7c94882', '435824-byte native loader']
+    c2: []
+    result_path: analysis-results/remcosrat/refresh-20260715/cases/78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db/
+    notes: 'Recovered intermediate e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a; final payload remains control-flow obfuscated.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de
+    analysis_level: deep_static_unresolved_virtualized_pe
+    campaign_type: ole_embedded_virtualized_pe
+    matched_patterns: ['OLE embedded PE', 'single imported API', 'zero-raw normal sections', 'high-entropy RX entry section', 'opaque control flow']
+    c2: []
+    result_path: analysis-results/valleyrat/refresh-20260715/cases/fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de/
+    notes: 'Recovered protected PE db720e674a25318cd09e35d8fae5b43faaa3acf9dfe04f5b6ea23d8c0c414779; blocker native_control_flow_obfuscation.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d
+    analysis_level: deep_static_unresolved_virtualized_pe
+    campaign_type: ole_embedded_virtualized_pe
+    matched_patterns: ['OLE embedded PE', 'single imported API', 'overlapping instructions', 'opaque predicates', 'rdtsc and stack-state manipulation']
+    c2: []
+    result_path: analysis-results/valleyrat/refresh-20260715/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/
+    notes: 'Recovered protected PE 136bdce277b8c810656eccc0b0e4b47f0fde81e1d5aba86a475a08d96b7a22a9; blocker native_control_flow_obfuscation.'
+
+  - malware_type: ValleyRAT
+    analyzed_at: 2026-07-15
+    sample_sha256: 81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9
+    analysis_level: deep_static_unresolved_virtualized_pe
+    campaign_type: ole_embedded_virtualized_pe
+    matched_patterns: ['OLE embedded PE', 'single imported API', 'zero-raw normal sections', 'high-entropy RX entry section']
+    c2: []
+    result_path: analysis-results/valleyrat/refresh-20260715/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9/
+    notes: 'Recovered protected PE 1982d5168c430ee373e6bcbd99322b844bdb5942f778bc9d4b141e7c27182105; blocker native_control_flow_obfuscation.'
+  - malware_type: PureHVNC
+    analyzed_at: 2026-07-15
+    sample_sha256: e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37
+    analysis_level: deep_static_full_unpack
+    campaign_type: tax_notice_img_easinvoker_netutils
+    matched_patterns:
+      - 'IMG delivery and signed Microsoft easinvoker.exe side-loading hidden netutils.dll'
+      - 'first-byte/index-XOR and sparse Donut recovery'
+      - 'native 10FX frame and remote-control capability cluster'
+    c2:
+      - '154.82.93.206:8080'
+    result_path: analysis-results/purehvnc/cases/e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37/
+    notes: 'Terminal native core recovered statically; sample and payload were not executed and C2 was not contacted.'
+
+  - malware_type: DonutLoader
+    analyzed_at: 2026-07-15
+    sample_sha256: e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0
+    analysis_level: deep_static_full_unpack_and_config_extract
+    campaign_type: chrd_wave_donut
+    matched_patterns:
+      - '175 low-nibble resources and CHRD inverse-transform config'
+      - 'WAV carrier, Jacobi and affine numeric segments, and Chaskey Donut instance'
+      - 'TripleDES-CBC/GZip managed resource loader'
+      - 'terminal managed PureRAT 4.4.1 protobuf config'
+    c2:
+      - 'tirakian.com:56001'
+      - 'tirakian.com:56002'
+      - 'tirakian.com:56003'
+    result_path: analysis-results/donutloader/cases/e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0/
+    notes: 'Terminal c1a2b48d...2ffe8 was fully recovered from embedded data; no additional download, execution, or C2 contact was needed.'
+
+  - malware_type: SpyGlace
+    analyzed_at: 2026-07-15
+    sample_sha256: e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f
+    analysis_level: deep_static_full_unpack_and_config_extract
+    campaign_type: apt_c60_2026_repository_delivery_sapphire
+    matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid SAPPHIRE', 'four ASP paths']
+    c2: ['185.18.222.241']
+    result_path: analysis-results/spyglace/cases/e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f/
+    notes: 'Recovered PE 7ab9c634...ae4c; no execution or C2 contact.'
+  - malware_type: SpyGlace
+    analyzed_at: 2026-07-15
+    sample_sha256: 9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502
+    analysis_level: deep_static_full_unpack_and_config_extract
+    campaign_type: apt_c60_2026_repository_delivery_eve
+    matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'four ASP paths']
+    c2: ['31.58.136.207']
+    result_path: analysis-results/spyglace/cases/9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502/
+    notes: 'Recovered PE af24d54d...9aa5; no execution or C2 contact.'
+  - malware_type: SpyGlace
+    analyzed_at: 2026-07-15
+    sample_sha256: add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c
+    analysis_level: deep_static_full_unpack_and_config_extract
+    campaign_type: apt_c60_2026_repository_delivery_eve
+    matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'mutex build variant']
+    c2: ['31.58.136.207']
+    result_path: analysis-results/spyglace/cases/add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c/
+    notes: 'Recovered PE 88f58087...e37c; no execution or C2 contact.'
+  - malware_type: SpyGlace
+    analyzed_at: 2026-07-15
+    sample_sha256: c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52
+    analysis_level: deep_static_full_unpack_and_config_extract
+    campaign_type: apt_c60_2026_repository_delivery_eve
+    matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'mutex build variant']
+    c2: ['31.58.136.207']
+    result_path: analysis-results/spyglace/cases/c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52/
+    notes: 'Recovered PE 7621e4ef...e067; no execution or C2 contact.'

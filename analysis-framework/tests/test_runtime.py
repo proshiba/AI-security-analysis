@@ -27,10 +27,14 @@ def test_discovery_functions(tmp_path: Path) -> None:
         handle.writestr("inner.bin", b"Remcos Agent")
     assert discovery.read_submission(archive)[1] == "inner.bin"
     assert discovery.infer_family(["remcos agent"]) == "remcosrat"
+    assert discovery.infer_family(["lummac2"]) == "lummastealer"
+    assert discovery.infer_family(["rpsgwra{l", "[iljvvrsrel", "tvdqhg''''"]) == "spyglace"
     assert discovery.infer_family(["none"]) is None
     assert (
         discovery.infer_campaign("mx-go", ["/api/v1/heartbeat_direct"], []) == "remotely_controlled_bulk_email_spam_bot"
     )
+    assert discovery.infer_campaign("amosstealer", [], ["sample.macho"]) == "direct_macho"
+    assert discovery.infer_campaign("spyglace", [], ["payload.bin"]) == "direct_spyglace_pe"
     assert discovery.infer_campaign(None, [], []) is None
     _, facts = discovery.discover(raw)
     assert facts["classification"]["family_hint"] == "mx-go"
@@ -57,6 +61,7 @@ def test_runner_step_functions(monkeypatch: pytest.MonkeyPatch) -> None:
     context["results"]["pe"] = {"is_dotnet": True}
     assert runner.step_dotnet(context)["is_dotnet"]
     assert runner.step_go(make_context(b"go1.26.1 mx-go/internal/mail.Send"))["version"] == "go1.26.1"
+    assert runner.step_unpack(make_context(b"var x = 1"))["format"] == "script"
     assert runner.step_scripts(make_context(b"PowerShell WScript.Shell"))["powershell"]
     assert not runner.step_iso(make_context())["iso9660"]
     monkeypatch.setattr(runner.shutil, "which", lambda name: "C:/tool" if name == "floss.exe" else None)

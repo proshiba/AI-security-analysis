@@ -1,0 +1,177 @@
+{
+  "case": {
+    "sha256": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6",
+    "name": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6.xlsm",
+    "family": "formbook",
+    "campaign": "macro_office_delivery",
+    "format": "zip",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6",
+    "config": {
+      "source_name": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6.xlsm",
+      "campaign_shape": "macro_office_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6.xlsm",
+    "sha256": "42255ff1914882e20ddb9116b521287dccd2bee944e056bc8f1bd1c2970299a6",
+    "size": 2215144,
+    "entropy": 7.9051,
+    "format": "zip",
+    "executed": false,
+    "network_contacted": false,
+    "zip": [
+      {
+        "name": "[Content_Types].xml",
+        "size": 1359,
+        "sha256": "5771f36c1c365b8aa37dc4cad5383627cae5f37c62f381d8e3f96e33fc99af03",
+        "format": "data"
+      },
+      {
+        "name": "_rels/.rels",
+        "size": 588,
+        "sha256": "73e5a29f48d5ab979eeda062493bc7e679265c1344ef936978b8becec5549497",
+        "format": "data"
+      },
+      {
+        "name": "xl/workbook.xml",
+        "size": 2607,
+        "sha256": "2deb4db1c3852dfcd6289a2b657314fa751ba4fc0e7495b70e4fab4c62288e5a",
+        "format": "data"
+      },
+      {
+        "name": "xl/_rels/workbook.xml.rels",
+        "size": 961,
+        "sha256": "c52ac72ff30727e74377ee424f01fed72a00b218991e31a651c0e8344edc533d",
+        "format": "data"
+      },
+      {
+        "name": "xl/worksheets/sheet1.xml",
+        "size": 4706,
+        "sha256": "d9cad9f4574ee9066b198abb3c5eaa4813fd1d7d4b0cc8a1dff092225242a4ec",
+        "format": "data"
+      },
+      {
+        "name": "xl/worksheets/sheet2.xml",
+        "size": 1283396,
+        "sha256": "422e736d7119e4bc261b32bbc23902b61d39b8594c23ddf85f8eb29bba68bd97",
+        "format": "data"
+      },
+      {
+        "name": "xl/theme/theme1.xml",
+        "size": 8721,
+        "sha256": "0c8f48efbaa9f9470fd12aea56b8b7f992d43343c84808b46a0d1738ca46c7ab",
+        "format": "data"
+      },
+      {
+        "name": "xl/styles.xml",
+        "size": 2171,
+        "sha256": "ed4d4459acb928f6958245371c787598adcf78a96b2280ed29f9e946c0700c64",
+        "format": "data"
+      },
+      {
+        "name": "xl/sharedStrings.xml",
+        "size": 3089065,
+        "sha256": "d536024f28db74587de7e62cbecfa2f164edc1ac87f46514dd29d37c68bdbcd4",
+        "format": "data"
+      },
+      {
+        "name": "xl/vbaProject.bin",
+        "size": 20992,
+        "sha256": "fa92984c632f21cc8aa474d79167168d50162b4e7edbadd2eee04348d0de8921",
+        "format": "ole"
+      },
+      {
+        "name": "docProps/core.xml",
+        "size": 609,
+        "sha256": "e9151eb6f80ed8a19854e7503c6df67bfe4c4f3d1edbd20a2254610f43cd99c6",
+        "format": "data"
+      },
+      {
+        "name": "docProps/app.xml",
+        "size": 787,
+        "sha256": "66621ced058372e20f770002ed8182008292e81e1fed1d340ff7ea125f6e6f43",
+        "format": "data"
+      }
+    ],
+    "recovered": [
+      {
+        "kind": "zip-ole",
+        "size": 20992,
+        "sha256": "fa92984c632f21cc8aa474d79167168d50162b4e7edbadd2eee04348d0de8921"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "zip-ole",
+        "sha256": "fa92984c632f21cc8aa474d79167168d50162b4e7edbadd2eee04348d0de8921",
+        "size": 20992,
+        "format": "ole",
+        "unpack": {
+          "schema_version": 1,
+          "name": "zip-ole.bin",
+          "sha256": "fa92984c632f21cc8aa474d79167168d50162b4e7edbadd2eee04348d0de8921",
+          "size": 20992,
+          "entropy": 3.9864,
+          "format": "ole",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

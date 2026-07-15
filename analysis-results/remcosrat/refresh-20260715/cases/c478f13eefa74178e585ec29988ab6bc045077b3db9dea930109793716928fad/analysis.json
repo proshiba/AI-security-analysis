@@ -1,0 +1,95 @@
+{
+  "case": {
+    "sha256": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad",
+    "name": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad.hta",
+    "family": "remcosrat",
+    "campaign": "unknown_or_nested_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "sample_sha256": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad",
+    "config": {
+      "source_name": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad.hta",
+      "marker_score": 0,
+      "markers": [],
+      "endpoints": []
+    },
+    "findings": [],
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad.hta",
+    "sha256": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad",
+    "size": 38562,
+    "entropy": 2.2381,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": [
+      {
+        "kind": "base64",
+        "size": 634,
+        "sha256": "6f63ca622a52e6cb667a107df0885538011a03e4830510542e1574b1c0a3fd23"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "6f63ca622a52e6cb667a107df0885538011a03e4830510542e1574b1c0a3fd23",
+        "size": 634,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "6f63ca622a52e6cb667a107df0885538011a03e4830510542e1574b1c0a3fd23",
+          "size": 634,
+          "entropy": 3.2502,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [],
+        "limitations": [
+          "Remcos configuration may be encrypted or resource-backed.",
+          "Literal endpoints require config-reference or process-attributed validation."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

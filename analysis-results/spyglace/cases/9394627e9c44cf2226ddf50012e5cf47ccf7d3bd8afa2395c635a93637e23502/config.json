@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "family": "spyglace",
+  "sample_sha256": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502",
+  "config": {
+    "variant": "spyglace",
+    "version": "3.1.15",
+    "c2_ip": "31.58.136.207",
+    "userid": "EVE",
+    "request_paths": [
+      "x66hjl.asp",
+      "fx72rf.asp",
+      "guehry.asp",
+      "dmd4n2.asp"
+    ],
+    "c2_urls_inferred": [
+      "http://31.58.136.207/x66hjl.asp",
+      "http://31.58.136.207/fx72rf.asp",
+      "http://31.58.136.207/guehry.asp",
+      "http://31.58.136.207/dmd4n2.asp"
+    ],
+    "transport": "HTTP POST via WinHTTP",
+    "connectivity_probe": "api.ipify.org",
+    "mutex": "K31610KIO9834PG79A471",
+    "commands": [
+      "procspawn",
+      "prockill",
+      "proclist",
+      "diskinfo",
+      "download",
+      "downfree",
+      "upload",
+      "cancel",
+      "screenupload",
+      "screenauto",
+      "turn on",
+      "turn off",
+      "extension",
+      "stopextension",
+      "cmd.exe /c ",
+      "ddir",
+      "ddel",
+      "attach",
+      "detach"
+    ],
+    "dynamic_apis": [
+      "WinHttpCloseHandle",
+      "WinHttpConnect",
+      "WinHttpGetIEProxyConfigForCurrentUser",
+      "WinHttpOpen",
+      "WinHttpOpenRequest",
+      "WinHttpQueryDataAvailable",
+      "WinHttpReadData",
+      "WinHttpReceiveResponse",
+      "WinHttpSendRequest",
+      "WinHttpSetOption",
+      "WinHttpWriteData"
+    ],
+    "custom_rc4_key_hex": "90b149c69b149c4b99c04d1dc9b940b9",
+    "download_aes_key_hex": null,
+    "download_aes_iv_hex": null,
+    "persistence_strings": [
+      "%appdata%\\Microsoft\\Temp",
+      "%appdata%\\Microsoft\\Windows\\Recent",
+      "SOFTWARE\\MICROSOFT\\WINDOWS NT\\CurrentVersion"
+    ],
+    "source_name": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502.tmp",
+    "envelope_method": "xor:sgznqhtgnghvmzxponum",
+    "payload_sha256": "af24d54d56cbdffe5081c133dae8e8cd54a0d0e2f3059599bc388ef27cf19aa5",
+    "payload_role": "spyglace"
+  },
+  "findings": [
+    {
+      "type": "c2",
+      "value": "31.58.136.207",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "campaign_identifier",
+      "value": "EVE",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "x66hjl.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "fx72rf.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "guehry.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    },
+    {
+      "type": "c2_path",
+      "value": "dmd4n2.asp",
+      "confidence": "confirmed",
+      "source": "decoded_static_config"
+    }
+  ],
+  "limitations": [
+    "Inferred C2 URLs combine the statically confirmed IP and request paths; the scheme was not actively verified.",
+    "No C2 connection, payload execution, or dynamic debugging was performed."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "family": "agenttesla",
+  "signature": "AgentTesla",
+  "case_count": 10,
+  "campaigns": {
+    "script_delivery": 10
+  },
+  "formats": {
+    "script": 10
+  },
+  "features": {},
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "8a1326b0bee029dd4470ab53bddc3202de54614ba58a54ee1dc4d60928b812e1",
+      "name": "8a1326b0bee029dd4470ab53bddc3202de54614ba58a54ee1dc4d60928b812e1.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 1,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "58274a188cad3b137585a3135b5d7044b84996c6e2d656fb533a14d229777959",
+      "name": "58274a188cad3b137585a3135b5d7044b84996c6e2d656fb533a14d229777959.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "58a54ec5f73f0c32963ff751050dc2ccb3148a27d8b9c7f1bfe1bf03d1cda13d",
+      "name": "58a54ec5f73f0c32963ff751050dc2ccb3148a27d8b9c7f1bfe1bf03d1cda13d.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3",
+      "name": "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "6be55e959aff450d4778e873773ca17ce470e5f1434c75aa1e8603f32fbfa058",
+      "name": "6be55e959aff450d4778e873773ca17ce470e5f1434c75aa1e8603f32fbfa058.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "7388727a3ff77ec25b2b858b7b357032dc543061b6cf8367ca4aa6e77bc3c8d2",
+      "name": "7388727a3ff77ec25b2b858b7b357032dc543061b6cf8367ca4aa6e77bc3c8d2.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "9fd781d549aec0e884a9d90541e8d7e5802d0de0cc36fc9d3c8533deb44846ed",
+      "name": "9fd781d549aec0e884a9d90541e8d7e5802d0de0cc36fc9d3c8533deb44846ed.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611",
+      "name": "e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "46055195777c8088c7800715c4561af2da0b7dd088cb12f5473af5281aec537c",
+      "name": "46055195777c8088c7800715c4561af2da0b7dd088cb12f5473af5281aec537c.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    },
+    {
+      "sha256": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd",
+      "name": "02d99e737239cc7f05a3988add89ee3672080ca1ddb5e43b4ecf4e8891535ccd.js",
+      "family": "agenttesla",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Recovered .NET #US ordering is needed to promote inferred string candidates to confirmed config."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

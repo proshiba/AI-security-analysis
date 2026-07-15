@@ -8,20 +8,48 @@ from pathlib import Path
 from typing import Callable
 
 from extractors.agenttesla import extract as extract_agenttesla
+from extractors.amosstealer import extract as extract_amosstealer
+from extractors.formbook import extract as extract_formbook
+from extractors.lummastealer import extract as extract_lummastealer
+from extractors.donutloader import extract as extract_donutloader
+from extractors.purehvnc import extract as extract_purehvnc
 from extractors.remcosrat import extract as extract_remcosrat
+from extractors.remusstealer import extract as extract_remusstealer
+from extractors.spyglace import extract as extract_spyglace
 from extractors.unclassified.mx_go import extract as extract_mx_go
 from extractors.valleyrat import extract as extract_valleyrat
 from extractors.venomrat import extract as extract_venomrat
+from extractors.vidar import extract as extract_vidar
 
 Extractor = Callable[[bytes, str], dict]
 EXTRACTORS: dict[str, Extractor] = {
     "agenttesla": extract_agenttesla,
+    "amosstealer": extract_amosstealer,
+    "formbook": extract_formbook,
+    "lummastealer": extract_lummastealer,
+    "donutloader": extract_donutloader,
+    "purehvnc": extract_purehvnc,
     "remcosrat": extract_remcosrat,
+    "remusstealer": extract_remusstealer,
+    "spyglace": extract_spyglace,
     "valleyrat": extract_valleyrat,
     "venomrat": extract_venomrat,
+    "vidar": extract_vidar,
     "mx-go": extract_mx_go,
 }
-ALIASES = {"remcos": "remcosrat", "venom": "venomrat", "mx_go": "mx-go"}
+ALIASES = {
+    "amos": "amosstealer",
+    "atomicstealer": "amosstealer",
+    "lumma": "lummastealer",
+    "donut": "donutloader",
+    "purerat": "purehvnc",
+    "pure": "purehvnc",
+    "remcos": "remcosrat",
+    "remus": "remusstealer",
+    "spygrace": "spyglace",
+    "venom": "venomrat",
+    "mx_go": "mx-go",
+}
 
 
 def normalize_family(value: str) -> str:

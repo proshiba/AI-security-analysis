@@ -63,6 +63,13 @@ def test_valleyrat_functions() -> None:
     }
     result = valley_extract(b"LoggerCollector.dll vvaS.bin 1.2.3.4:6666", "x")
     assert result["config"]["endpoints"] == ["1.2.3.4:6666"]
+    duplicate = valley_extract(
+        b"|3441:3o|04.11.34.301:3p|3441:2o|04.11.34.301:2p|3441:1o|04.11.34.301:1p|",
+        "x",
+    )
+    assert duplicate["config"]["endpoints"] == ["103.43.11.40:1443"]
+    filtered = valley_extract(b"http://ocsp.digicert.com0A https://evil.example/stage.zip", "x")
+    assert filtered["config"]["urls"] == ["https://evil.example/stage.zip"]
 
 
 def test_agenttesla_functions() -> None:
@@ -93,6 +100,7 @@ def test_venom_functions() -> None:
 
 
 def test_mx_go_functions() -> None:
+    assert normalize_family("spygrace") == "spyglace"
     data = (
         b'prefix {"control_server":"http://127.0.0.1:5000","api_token":"secret"} suffix'
     )

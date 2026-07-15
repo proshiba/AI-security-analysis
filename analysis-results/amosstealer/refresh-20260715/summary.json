@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "family": "amosstealer",
+  "signature": "AmosStealer",
+  "case_count": 10,
+  "campaigns": {
+    "direct_macho": 9,
+    "script_delivery": 1
+  },
+  "formats": {
+    "data": 1,
+    "macho": 9
+  },
+  "features": {},
+  "findings": [
+    {
+      "kind": "network.url",
+      "value": "http://91.92.242.30/dx2w5j5bka6qkwxi",
+      "role": "candidate_infrastructure",
+      "confidence": "candidate",
+      "source": "embedded_literal"
+    }
+  ],
+  "cases": [
+    {
+      "sha256": "998c38b430097479b015a68d9435dc5b98684119739572a4dff11e085881187e",
+      "name": "998c38b430097479b015a68d9435dc5b98684119739572a4dff11e085881187e.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d",
+      "name": "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "0e52566ccff4830e30ef45d2ad804eefba4ffe42062919398bf1334aab74dd65",
+      "name": "0e52566ccff4830e30ef45d2ad804eefba4ffe42062919398bf1334aab74dd65.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "f0a54f2b44e557854b0a5001c4e10185884af945814786f78b86539014f78a16",
+      "name": "f0a54f2b44e557854b0a5001c4e10185884af945814786f78b86539014f78a16.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
+      "name": "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233.sh",
+      "family": "amosstealer",
+      "campaign": "script_delivery",
+      "format": "data",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 1,
+      "c2_assessment": "candidate",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "a0e66f3067e4aaf5b83e45b7845cc43b2fc96032a4398cab7cc9d11f4f962e91",
+      "name": "a0e66f3067e4aaf5b83e45b7845cc43b2fc96032a4398cab7cc9d11f4f962e91.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "77d3ccb2ed3d0dd7cda49a0aed4da7c46278e70995d8e6768b2188fedcb78703",
+      "name": "77d3ccb2ed3d0dd7cda49a0aed4da7c46278e70995d8e6768b2188fedcb78703.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "ab267488d2c0a6300b61b5c9046cb86fe4a9ac3fe9a615acd374465b3a4b26c2",
+      "name": "ab267488d2c0a6300b61b5c9046cb86fe4a9ac3fe9a615acd374465b3a4b26c2.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "d3ad6c9325b71044134c77b1e0c97c392a1f8d27f0af041d48325815dc1516db",
+      "name": "d3ad6c9325b71044134c77b1e0c97c392a1f8d27f0af041d48325815dc1516db.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    },
+    {
+      "sha256": "84a71a9dde6b087613f3036eefaf8ae53c575e0d067b3b5a8a68896438df3f6b",
+      "name": "84a71a9dde6b087613f3036eefaf8ae53c575e0d067b3b5a8a68896438df3f6b.macho",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

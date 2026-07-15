@@ -1,0 +1,73 @@
+{
+  "case": {
+    "sha256": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9",
+    "name": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9.js",
+    "family": "formbook",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9",
+    "config": {
+      "source_name": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9.js",
+      "campaign_shape": "js_script_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9.js",
+    "sha256": "5baa58fbd2a9309d6853cf1cd5be83adbced95bbdc1a7471c11ee5455f85bfa9",
+    "size": 25154,
+    "entropy": 5.3412,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

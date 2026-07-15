@@ -1,0 +1,125 @@
+{
+  "case": {
+    "sha256": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644",
+    "name": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644.vba",
+    "family": "amosstealer",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 2,
+    "c2_assessment": "probable",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644",
+    "config": {
+      "source_name": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644.vba",
+      "campaign_shape": "vba_script_delivery",
+      "family_markers": [
+        "Atomic",
+        "Login Data",
+        "keychain",
+        "ledger"
+      ],
+      "features": {
+        "keychain_collection": true,
+        "browser_collection": true,
+        "wallet_collection": true,
+        "apple_script": true,
+        "user_prompt": true
+      },
+      "urls": [
+        "https://nvoaagent.com/ledger/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89",
+        "https://nvoaagent.com/ledger/live/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89"
+      ],
+      "endpoints": [],
+      "static_config_recovered": true
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "https://nvoaagent.com/ledger/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89",
+        "role": "c2_or_exfil_candidate",
+        "confidence": "probable",
+        "source": "embedded_literal"
+      },
+      {
+        "kind": "network.url",
+        "value": "https://nvoaagent.com/ledger/live/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89",
+        "role": "c2_or_exfil_candidate",
+        "confidence": "probable",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "probable",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://nvoaagent.com/ledger/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89",
+          "role": "c2_or_exfil_candidate",
+          "confidence": "probable",
+          "source": "embedded_literal"
+        },
+        "host": "nvoaagent.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:nvoaagent.com"
+        ],
+        "active_probe_performed": false
+      },
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://nvoaagent.com/ledger/live/93ea36a257de15f2fe3f9d5d32fb19ee6e040fa3cd57131dedc33c740d868a89",
+          "role": "c2_or_exfil_candidate",
+          "confidence": "probable",
+          "source": "embedded_literal"
+        },
+        "host": "nvoaagent.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:nvoaagent.com"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644.vba",
+    "sha256": "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644",
+    "size": 35607,
+    "entropy": 4.5745,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": []
+  }
+}

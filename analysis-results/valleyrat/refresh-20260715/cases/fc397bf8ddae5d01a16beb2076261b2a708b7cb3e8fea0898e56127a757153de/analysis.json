@@ -1,0 +1,67 @@
+{
+  "case": {
+    "sha256": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+    "name": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de.msi",
+    "family": "valleyrat",
+    "campaign": "macro_office_delivery",
+    "format": "ole",
+    "packing_suspected": false,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "sample_sha256": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+    "config": {
+      "variant": "unresolved_variant",
+      "decoded_vvas": {},
+      "source_name": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de.msi",
+      "endpoints": [],
+      "ipv4": [],
+      "urls": []
+    },
+    "findings": [],
+    "limitations": [
+      "Static strings alone do not prove an endpoint is C2.",
+      "Campaign-specific decoded config should supersede candidates when available."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "valleyrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de.msi",
+    "sha256": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+    "size": 7114752,
+    "entropy": 7.9843,
+    "format": "ole",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

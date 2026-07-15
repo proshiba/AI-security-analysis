@@ -1,0 +1,135 @@
+{
+  "case": {
+    "sha256": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8",
+    "name": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8.js",
+    "family": "formbook",
+    "campaign": "script_delivery",
+    "format": "script",
+    "packing_suspected": false,
+    "recovered_artifacts": 1,
+    "config_findings": 1,
+    "c2_assessment": "candidate",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "formbook",
+    "sample_sha256": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8",
+    "config": {
+      "source_name": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8.js",
+      "campaign_shape": "js_script_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_credential_theft": false,
+        "mail_credential_theft": false,
+        "process_injection": false,
+        "script_loader": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/EzUaK",
+        "role": "candidate_infrastructure",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+      "Loader URLs and certificate references are not promoted to confirmed C2."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "formbook",
+    "assessment": "candidate",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/EzUaK",
+          "role": "candidate_infrastructure",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "misty-cherry-cea3.uploadsimg.workers.dev",
+        "port": null,
+        "passive_queries": [
+          "hostname:misty-cherry-cea3.uploadsimg.workers.dev"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8.js",
+    "sha256": "f0ab3929c25ab32c608a62d39a831f21edcb356cc3b55e3839071c14dacc1ac8",
+    "size": 1741514,
+    "entropy": 5.3556,
+    "format": "script",
+    "executed": false,
+    "network_contacted": false,
+    "recovered": [
+      {
+        "kind": "base64",
+        "size": 108,
+        "sha256": "5c672ed874b3e850c32afc2c4291d4bd777339841db7150f702ea63a0b25c2e4"
+      }
+    ]
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "base64",
+        "sha256": "5c672ed874b3e850c32afc2c4291d4bd777339841db7150f702ea63a0b25c2e4",
+        "size": 108,
+        "format": "data",
+        "unpack": {
+          "schema_version": 1,
+          "name": "base64.bin",
+          "sha256": "5c672ed874b3e850c32afc2c4291d4bd777339841db7150f702ea63a0b25c2e4",
+          "size": 108,
+          "entropy": 3.3124,
+          "format": "data",
+          "executed": false,
+          "network_contacted": false,
+          "recovered": []
+        },
+        "findings": [
+          {
+            "kind": "network.url",
+            "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/EzUaK",
+            "role": "candidate_infrastructure",
+            "confidence": "candidate",
+            "source": "embedded_literal"
+          }
+        ],
+        "limitations": [
+          "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
+          "Loader URLs and certificate references are not promoted to confirmed C2."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

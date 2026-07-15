@@ -22,3 +22,7 @@ Case reports separate observed delivery behavior, inferred family capability, en
 | [`d92f3155a058…`](cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/README.md) | JavaScript | `js_activex_staged_loader` | `79.141.165.55:2404` |
 
 See `rules/` for family-oriented YARA and Sigma starting points. Rules are hypotheses that require validation against local benign software and telemetry.
+
+## Latest refresh
+
+- [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)

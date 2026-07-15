@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "artifact_count": 27,
+  "role_counts": {
+    "downloader1": 4,
+    "downloader2": 9,
+    "spyglace": 4,
+    "spyglace_loader": 7,
+    "unknown_pe": 3
+  },
+  "artifacts": [
+    {
+      "source_repository": "github/bohihef411/tuikfwoveb",
+      "source_filename": "6b84eab2aac7754b99d04365a83ec374e3cea99cc3223118a5f8fd545a8483e5.tmp",
+      "encoded_sha256": "6b84eab2aac7754b99d04365a83ec374e3cea99cc3223118a5f8fd545a8483e5",
+      "decoded_sha256": "31d22a6f831e9da8b8cbf6293a29d58fc73703c4ed251aae4ed31b3ad1a1b765",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/cefobe3574/kojyyvtkqo",
+      "source_filename": "c4768d99445128c670a6f848bc69371872e4d6a2160dbe0073e62ffd786c94ee.tmp",
+      "encoded_sha256": "c4768d99445128c670a6f848bc69371872e4d6a2160dbe0073e62ffd786c94ee",
+      "decoded_sha256": "7e2836cf797b0671bb5af024309a4207404873d60f5de10baca1041e39423e4f",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/cefobe3574/kojyyvtkqo",
+      "source_filename": "f0af281623b422c1d45e7006d78678762341288c05abcb62648ce55c6b63acb6.db",
+      "encoded_sha256": "f0af281623b422c1d45e7006d78678762341288c05abcb62648ce55c6b63acb6",
+      "decoded_sha256": "b95010000bb0b2ef48045abc3b9e31c85249b1f9f3ec4edad6566c1de33bcc7d",
+      "method": "xor-sgzn",
+      "size": 123904,
+      "role": "unknown_pe"
+    },
+    {
+      "source_repository": "github/gixop88415/glfhvhtzih",
+      "source_filename": "1b25c3d56fdb195b427a9c3bfc1f0e98e77a15322e8d3fc53a18edcc4891847f.dat",
+      "encoded_sha256": "1b25c3d56fdb195b427a9c3bfc1f0e98e77a15322e8d3fc53a18edcc4891847f",
+      "decoded_sha256": "1b25c3d56fdb195b427a9c3bfc1f0e98e77a15322e8d3fc53a18edcc4891847f",
+      "method": "literal",
+      "size": 208896,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/gixop88415/glfhvhtzih",
+      "source_filename": "e82523cc69e9a93b7f0df076938e07150d6a624f3c328609500b8a788e7acb2f.tmp",
+      "encoded_sha256": "e82523cc69e9a93b7f0df076938e07150d6a624f3c328609500b8a788e7acb2f",
+      "decoded_sha256": "de9f66ed75382f449f15025b1ab5a46d4cafab48bea86fc1465e9f5ffb70f8aa",
+      "method": "xor-sgzn",
+      "size": 149504,
+      "role": "downloader1"
+    },
+    {
+      "source_repository": "github/jewexo9791/archibkyof",
+      "source_filename": "0420fd9e5f9961458604909391fb0f1a353c17c986b55fc5722c1b68e41865df.tmp",
+      "encoded_sha256": "0420fd9e5f9961458604909391fb0f1a353c17c986b55fc5722c1b68e41865df",
+      "decoded_sha256": "3c15dbfd04b4910bdfc2a4230fff9da66d7efab7ae9e1a75232f52acdffb252f",
+      "method": "xor-sgzn",
+      "size": 149504,
+      "role": "downloader1"
+    },
+    {
+      "source_repository": "github/jewexo9791/archibkyof",
+      "source_filename": "7c91c4dc4faf99da2b9608cd7076a7e96ccada3c441fdc99ff5f1e2d83d85b22.tmp",
+      "encoded_sha256": "7c91c4dc4faf99da2b9608cd7076a7e96ccada3c441fdc99ff5f1e2d83d85b22",
+      "decoded_sha256": "6dbf3c1adb8a5aa153c3cb0dfa83a1d6dfda98e24d425e37cb3daf930f5d27b1",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/jewexo9791/archibkyof",
+      "source_filename": "a4c8a56070fe6f613e79a14554d0a1dba2f70ce2b93319e72972943cc66edf4a.tmp",
+      "encoded_sha256": "a4c8a56070fe6f613e79a14554d0a1dba2f70ce2b93319e72972943cc66edf4a",
+      "decoded_sha256": "6473ee41ecfb88bf18f23875d6d07dfcecda55e78451f0cb1e41dd9fd9389e6f",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/rapefo2905/rncprjmauw",
+      "source_filename": "26db47d19c90a6b6bce5c638fb0b22079612de7f3156aa27b3598f37d05693cf.tmp",
+      "encoded_sha256": "26db47d19c90a6b6bce5c638fb0b22079612de7f3156aa27b3598f37d05693cf",
+      "decoded_sha256": "41532a0748731f7b96ac628d803e7ae0c43042f8c2b975036835c67a26887350",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/rapefo2905/rncprjmauw",
+      "source_filename": "2952d72ad1d44f3d424600b8fa4076794e2e072ab46936012a5fb872c67ce189.tmp",
+      "encoded_sha256": "2952d72ad1d44f3d424600b8fa4076794e2e072ab46936012a5fb872c67ce189",
+      "decoded_sha256": "83a22d4f61b054bda53a2ea4f506e97d818c7c961d8cd3975c1f2a51443cf95c",
+      "method": "xor-sgzn",
+      "size": 149504,
+      "role": "downloader1"
+    },
+    {
+      "source_repository": "github/rapefo2905/rncprjmauw",
+      "source_filename": "7205dbbefaae525baacf59630345b9bef488da9af5c2ccb677860f3f530265f3.log",
+      "encoded_sha256": "7205dbbefaae525baacf59630345b9bef488da9af5c2ccb677860f3f530265f3",
+      "decoded_sha256": "3959f5372c75d173c20e185505152b17268ed9e1497d189eaf148181fee8c0ca",
+      "method": "xor-sgzn",
+      "size": 224768,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "248ded4723e9f5da793e5e42d1ba7c2293dd704718f149b84b3b9b818a1f51db.tmp",
+      "encoded_sha256": "248ded4723e9f5da793e5e42d1ba7c2293dd704718f149b84b3b9b818a1f51db",
+      "decoded_sha256": "fed61debf38ad75e27682589ef27e176a9ca7fabfa34a3fae183e8a839f7756d",
+      "method": "xor-sgzn",
+      "size": 49664,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "3c509ec732979d8c91009d2c9f898bea81f3fc4064c3c56576257f61f9bfaaee.tmp",
+      "encoded_sha256": "3c509ec732979d8c91009d2c9f898bea81f3fc4064c3c56576257f61f9bfaaee",
+      "decoded_sha256": "19baf038b2a2f850c2a83e79210b6bbd3a5052a574f5c76e099ace7eff8f98a0",
+      "method": "xor-sgzn",
+      "size": 58368,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "42654f384b726a5f5bda1050f4ec366e68d19bdd34d1d3fb9e04df196ff26bd3.tmp",
+      "encoded_sha256": "42654f384b726a5f5bda1050f4ec366e68d19bdd34d1d3fb9e04df196ff26bd3",
+      "decoded_sha256": "01294463911807bf6be54668fda4d7d7a8c72f4ac681603a23dea33afa526b9b",
+      "method": "xor-sgzn",
+      "size": 19456,
+      "role": "downloader1"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "55640ad319208915593db8ad43724dddf6e6e17fc6b0014affa69c90f5cd1eb4.tmp",
+      "encoded_sha256": "55640ad319208915593db8ad43724dddf6e6e17fc6b0014affa69c90f5cd1eb4",
+      "decoded_sha256": "b5293eb535f5edca9df571e7a81404432f77e04f483b3e26d0f2ddcd92ad8548",
+      "method": "xor-sgzn",
+      "size": 58368,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "843c4dc402e96ed72d7716d980c99e5dfa222a2a322250b7c3755a00d142bc1f.tmp",
+      "encoded_sha256": "843c4dc402e96ed72d7716d980c99e5dfa222a2a322250b7c3755a00d142bc1f",
+      "decoded_sha256": "a866a3e4c34e369e2a197d494578c9ba8b13ff3d49d26c7202898b9879672989",
+      "method": "xor-sgzn",
+      "size": 57344,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "8a8cabe5f94e7f4c0ccca97f0c361618ec944df03d8b3bfcfdd76a25dd8f7a5a.tmp",
+      "encoded_sha256": "8a8cabe5f94e7f4c0ccca97f0c361618ec944df03d8b3bfcfdd76a25dd8f7a5a",
+      "decoded_sha256": "2d8fba56f94ee461260dcf83b6d969d1420ff2664bbc5198910863af3de6a58f",
+      "method": "xor-sgzn",
+      "size": 123904,
+      "role": "unknown_pe"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502.tmp",
+      "encoded_sha256": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502",
+      "decoded_sha256": "af24d54d56cbdffe5081c133dae8e8cd54a0d0e2f3059599bc388ef27cf19aa5",
+      "method": "xor-sgzn",
+      "size": 340992,
+      "role": "spyglace"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "9a19598ea286d5f6fa0b7ff981ba21aff503fb217757f4dfbd496ead01805543.tmp",
+      "encoded_sha256": "9a19598ea286d5f6fa0b7ff981ba21aff503fb217757f4dfbd496ead01805543",
+      "decoded_sha256": "a9a1d3aaa5b46628015486f23dbaeb7561798e99fa494bc5e7955785afee8c99",
+      "method": "xor-sgzn",
+      "size": 35328,
+      "role": "unknown_pe"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "a7981dfccd8e4bdc00133dc15b22472c1677d6270826863caa36e7d58ef50de0.tmp",
+      "encoded_sha256": "a7981dfccd8e4bdc00133dc15b22472c1677d6270826863caa36e7d58ef50de0",
+      "decoded_sha256": "735e88770fbde6b00fde4e50e4eb373c62367d50fe53e33518f8a91111c19fd6",
+      "method": "xor-sgzn",
+      "size": 210944,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c.tmp",
+      "encoded_sha256": "add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c",
+      "decoded_sha256": "88f58087fc7e7a74455d19c0476954c3bd77d36d0683ab57a6598eb72c4ae37c",
+      "method": "xor-sgzn",
+      "size": 339968,
+      "role": "spyglace"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "c1faaff24d58af798c77d34405379df0a9e883e5bd1100a86d4c3e001414acd8.tmp",
+      "encoded_sha256": "c1faaff24d58af798c77d34405379df0a9e883e5bd1100a86d4c3e001414acd8",
+      "decoded_sha256": "59c3004d1b9577cf32c6b679aa9d1c3ee88435f9074e38df070507f926fca765",
+      "method": "xor-sgzn",
+      "size": 57344,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52.tmp",
+      "encoded_sha256": "c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52",
+      "decoded_sha256": "7621e4eff855b2679188b33fe4c71c377f6e2d0b9c25d939452e18992c52e067",
+      "method": "xor-sgzn",
+      "size": 340992,
+      "role": "spyglace"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "cbfeb454be9bbff7cbf24ae6ed39c9659a79f6b60ab6f147ae524784ef95b4d9.tmp",
+      "encoded_sha256": "cbfeb454be9bbff7cbf24ae6ed39c9659a79f6b60ab6f147ae524784ef95b4d9",
+      "decoded_sha256": "82372093c843493ddb722beddaf148c1466cc80c4c047f95fe7b4bc48799de3e",
+      "method": "xor-sgzn",
+      "size": 210432,
+      "role": "downloader2"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f.tmp",
+      "encoded_sha256": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f",
+      "decoded_sha256": "7ab9c634216798d50ce3e19bf1650d6b7c2386150340e48ec3af8b38fd30ae4c",
+      "method": "xor-sgzn",
+      "size": 339456,
+      "role": "spyglace"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "e8514a2372172b4975f77bf69d5e8b7708cfa60157b064fcab13d7a62a99cc55.tmp",
+      "encoded_sha256": "e8514a2372172b4975f77bf69d5e8b7708cfa60157b064fcab13d7a62a99cc55",
+      "decoded_sha256": "0a968592e7e7dc43fca5e537fba8344aeaa115493f62f867cb4ea1ba1cc3616f",
+      "method": "xor-sgzn",
+      "size": 57856,
+      "role": "spyglace_loader"
+    },
+    {
+      "source_repository": "github/sapphire679/tblsesarol",
+      "source_filename": "f50a01ae446adfcaaddffe215abd94b5643211e83d52acf5de540abf9fb26045.tmp",
+      "encoded_sha256": "f50a01ae446adfcaaddffe215abd94b5643211e83d52acf5de540abf9fb26045",
+      "decoded_sha256": "ae822c8a6df835a1d37cf637b1174f6b78d260be37ac156e2e42d58ad372011d",
+      "method": "xor-sgzn",
+      "size": 59392,
+      "role": "spyglace_loader"
+    }
+  ],
+  "executed": false,
+  "network_contacted": false
+}

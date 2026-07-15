@@ -1,0 +1,137 @@
+{
+  "case": {
+    "sha256": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db",
+    "name": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db.exe",
+    "family": "remcosrat",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": true,
+    "recovered_artifacts": 0,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ]
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "sample_sha256": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db",
+    "config": {
+      "source_name": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db.exe",
+      "marker_score": 0,
+      "markers": [],
+      "endpoints": []
+    },
+    "findings": [],
+    "limitations": [
+      "Remcos configuration may be encrypted or resource-backed.",
+      "Literal endpoints require config-reference or process-attributed validation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "remcosrat",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 1,
+    "name": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db.exe",
+    "sha256": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db",
+    "size": 564424,
+    "entropy": 7.8037,
+    "format": "pe",
+    "executed": false,
+    "network_contacted": false,
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "imports": 166,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 36352,
+          "virtual_size": 36288,
+          "entropy": 6.2544
+        },
+        {
+          "name": ".data",
+          "raw_size": 512,
+          "virtual_size": 352,
+          "entropy": 1.6058
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 35840,
+          "virtual_size": 35808,
+          "entropy": 6.8774
+        },
+        {
+          "name": ".xdata",
+          "raw_size": 1536,
+          "virtual_size": 1196,
+          "entropy": 3.7377
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 1536,
+          "virtual_size": 1284,
+          "entropy": 4.0937
+        },
+        {
+          "name": ".bss",
+          "raw_size": 0,
+          "virtual_size": 246560,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 6656,
+          "virtual_size": 6552,
+          "entropy": 4.5988
+        },
+        {
+          "name": ".ndata",
+          "raw_size": 512,
+          "virtual_size": 729088,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 33280,
+          "virtual_size": 33040,
+          "entropy": 4.8232
+        }
+      ],
+      "high_entropy_sections": [],
+      "packer_markers": [
+        "Nullsoft"
+      ],
+      "packing_suspected": true,
+      "overlay_size": 447176,
+      "resource_count": 18
+    },
+    "upx": {
+      "status": "not_upx_or_failed",
+      "exit_code": 2
+    },
+    "recovered": []
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

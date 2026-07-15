@@ -58,3 +58,8 @@ Outputs are written below `<OutputDirectory>/c2-live/`. `-CollectJarm` causes te
 `mxgo` is a containment-first lab mode. `preview` renders a synthetic heartbeat description without DNS or network activity. `checkin` and `recipients` are accepted only for `localhost`, `127.0.0.1`, or `::1` and require `--mxgo-allow-loopback-network`. The recipient result contains count/hash only. See `emulators/unclassified/mx_go/README.md`.
 
 This mode intentionally cannot check in to a live third-party MX-Go server or retrieve real recipient data.
+
+
+## Offline stealer candidate mode
+
+c2_candidate_detector.py consumes config-extractor JSON and creates passive Shodan pivots without DNS, TCP, HTTP, or Shodan access. The five newly added stealer families use this offline mode by default. Their active protocol behavior is represented only by the loopback-only synthetic lab in emulators/stealers/.

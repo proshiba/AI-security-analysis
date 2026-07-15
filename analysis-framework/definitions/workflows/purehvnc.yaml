@@ -1,0 +1,10 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: purehvnc.config, display_name: PureHVNC / PureRAT config workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: pe, uses: "static.pe.inspect@^1", needs: [intake]}
+  - {id: dotnet, uses: "static.dotnet.inspect@^1", needs: [pe], on_error: partial}
+  - {id: config, uses: "family.purehvnc.config@^1", needs: [pe, dotnet]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

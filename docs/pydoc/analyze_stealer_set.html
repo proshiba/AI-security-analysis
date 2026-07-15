@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analyze_stealer_set</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analyze_stealer_set</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Canalyze_stealer_set.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\analyze_stealer_set.py</a></td></tr></table>
+    <p><span class="code">Run&nbsp;the&nbsp;offline&nbsp;declarative/unpack/config/C2&nbsp;pipeline&nbsp;for&nbsp;one&nbsp;supported&nbsp;family&nbsp;manifest.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_item"><strong>analyze_item</strong></a>(
+    family: 'str',
+    archive: 'Path',
+    output: 'Path',
+    definitions: 'Path',
+    upx: 'Path | None' = None,
+    sevenzip: 'Path | None' = None
+) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;authenticated&nbsp;archive&nbsp;without&nbsp;executing&nbsp;or&nbsp;networking&nbsp;the&nbsp;sample.</span></dd></dl>
+ <dl><dt><a name="-analyze_layers"><strong>analyze_layers</strong></a>(
+    family: 'str',
+    artifacts: 'list[tuple[str, bytes]]',
+    upx: 'Path | None' = None,
+    sevenzip: 'Path | None' = None,
+    max_depth: 'int' = 2
+) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Recursively&nbsp;analyze&nbsp;bounded&nbsp;recovered&nbsp;layers&nbsp;and&nbsp;deduplicate&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-analyze_manifest"><strong>analyze_manifest</strong></a>(
+    manifest_path: 'Path',
+    output: 'Path',
+    definitions: 'Path',
+    upx: 'Path | None' = None,
+    sevenzip: 'Path | None' = None
+) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;every&nbsp;item&nbsp;in&nbsp;one&nbsp;bounded&nbsp;MalwareBazaar&nbsp;family&nbsp;manifest.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;family-manifest&nbsp;analysis&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-campaign_hint"><strong>campaign_hint</strong></a>(family: 'str', name: 'str', data: 'bytes', unpack_report: 'dict') -&gt; 'str'</dt><dd><span class="code">Select&nbsp;a&nbsp;delivery/packing&nbsp;campaign&nbsp;shape&nbsp;without&nbsp;asserting&nbsp;operator&nbsp;identity.</span></dd></dl>
+ <dl><dt><a name="-family_id"><strong>family_id</strong></a>(signature: 'str') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;exact&nbsp;MalwareBazaar&nbsp;signatures&nbsp;to&nbsp;declarative&nbsp;family&nbsp;IDs.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;one&nbsp;manifest&nbsp;and&nbsp;print&nbsp;its&nbsp;aggregate&nbsp;counts.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>SIGNATURE_IDS</strong> = {'AgentTesla': 'agenttesla', 'AmosStealer': 'amosstealer', 'Formbook': 'formbook', 'LummaStealer': 'lummastealer', 'RemcosRAT': 'remcosrat', 'RemusStealer': 'remusstealer', 'ValleyRAT': 'valleyrat', 'VenomRAT': 'venomrat', 'Vidar': 'vidar'}<br>
+<strong>SRC</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')<br>
+<strong>location</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')</td></tr></table>
+</body></html>

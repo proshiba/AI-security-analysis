@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "family": "remcosrat",
+  "signature": "RemcosRAT",
+  "case_count": 10,
+  "campaigns": {
+    "direct_pe_or_pe_loader": 1,
+    "script_delivery": 7,
+    "unknown_or_nested_delivery": 2
+  },
+  "formats": {
+    "pe": 1,
+    "script": 9
+  },
+  "features": {},
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2",
+      "name": "99d0eb6047cc8c9f8cd061a6fcd18bb1fb6a5d4cfb78dd626b7f90a2d90e11b2.ps1",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 2,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "76aae8a3bf9207f51b4b0cadb7133e0fddd50306cf7030614c383040e9513721",
+      "name": "76aae8a3bf9207f51b4b0cadb7133e0fddd50306cf7030614c383040e9513721.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "ae41ff70e01087351812394f34575d4f5debac0e76888c16ebaf1c3ed7267bd6",
+      "name": "ae41ff70e01087351812394f34575d4f5debac0e76888c16ebaf1c3ed7267bd6.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "2eabe71b18863d2044945eb371da1dbd5d12bc973538755b6177a235712db361",
+      "name": "2eabe71b18863d2044945eb371da1dbd5d12bc973538755b6177a235712db361.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 2,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "6cd42e6eb75c0bb98e9846b9faf9bdf66856658bae7209106ed8041d54f6cc2e",
+      "name": "6cd42e6eb75c0bb98e9846b9faf9bdf66856658bae7209106ed8041d54f6cc2e.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1",
+      "name": "888625bb2887f6965cf6d46b7888f73d9d55c0f0caf0abe54221bc455e5534d1.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2",
+      "name": "55504df33a0196066494d26d6f8c0533391b220630a9c800c7f1eb0cbc776ce2.js",
+      "family": "remcosrat",
+      "campaign": "script_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db",
+      "name": "78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db.exe",
+      "family": "remcosrat",
+      "campaign": "direct_pe_or_pe_loader",
+      "format": "pe",
+      "packing_suspected": true,
+      "recovered_artifacts": 0,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "ae593f0773938ade4a4dfdd2f49d47b66482cd4090f269ef39549f12a90ee80c",
+      "name": "ae593f0773938ade4a4dfdd2f49d47b66482cd4090f269ef39549f12a90ee80c.hta",
+      "family": "remcosrat",
+      "campaign": "unknown_or_nested_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 1,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    },
+    {
+      "sha256": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad",
+      "name": "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad.hta",
+      "family": "remcosrat",
+      "campaign": "unknown_or_nested_delivery",
+      "format": "script",
+      "packing_suspected": false,
+      "recovered_artifacts": 1,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Remcos configuration may be encrypted or resource-backed.",
+        "Literal endpoints require config-reference or process-attributed validation."
+      ]
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

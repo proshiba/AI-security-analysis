@@ -1,0 +1,22 @@
+title: Formbook-Labeled Script Loader Spawning a LOLBin
+id: b35b9b54-7f0c-46de-b5cc-d9f29c04f71d
+status: experimental
+description: Detects a script host spawning a commonly abused loader; correlate with Formbook delivery evidence.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  parent:
+    ParentImage|endswith:
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\powershell.exe'
+  child:
+    Image|endswith:
+      - '\rundll32.exe'
+      - '\regsvr32.exe'
+      - '\mshta.exe'
+  condition: parent and child
+falsepositives:
+  - Administrative scripts and software deployment systems
+level: medium
