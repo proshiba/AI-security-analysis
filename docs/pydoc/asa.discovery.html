@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module asa.discovery</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="asa.html" class="white">asa</a>.discovery</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Csrc%5Casa%5Cdiscovery.py">c:\users\administrator\ai-security-analysis\analysis-framework\src\asa\discovery.py</a></td></tr></table>
+    <p><span class="code">Offline&nbsp;discovery&nbsp;that&nbsp;emits&nbsp;normalized&nbsp;facts&nbsp;before&nbsp;family&nbsp;selection.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="io.html">io</a><br>
+</td><td class="multicolumn"><a href="pyzipper.html">pyzipper</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="zipfile.html">zipfile</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-discover"><strong>discover</strong></a>(path: 'Path', password: 'str' = 'infected', family_hint: 'str | None' = None, campaign_hint: 'str | None' = None) -&gt; 'tuple[bytes, dict]'</dt><dd><span class="code">Return&nbsp;normalized&nbsp;discovery&nbsp;facts&nbsp;and&nbsp;retained&nbsp;in-memory&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-infer_campaign"><strong>infer_campaign</strong></a>(family: 'str | None', strings_ci: 'list[str]', member_names: 'list[str]') -&gt; 'str | None'</dt><dd><span class="code">Infer&nbsp;reviewed&nbsp;campaign&nbsp;shapes&nbsp;while&nbsp;preserving&nbsp;unknown&nbsp;variants.</span></dd></dl>
+ <dl><dt><a name="-infer_family"><strong>infer_family</strong></a>(strings_ci: 'list[str]') -&gt; 'str | None'</dt><dd><span class="code">Infer&nbsp;only&nbsp;families&nbsp;with&nbsp;sufficiently&nbsp;distinctive&nbsp;static&nbsp;markers.</span></dd></dl>
+ <dl><dt><a name="-read_submission"><strong>read_submission</strong></a>(path: 'Path', password: 'str' = 'infected') -&gt; 'tuple[bytes, str, dict]'</dt><dd><span class="code">Read&nbsp;a&nbsp;raw&nbsp;file&nbsp;or&nbsp;one&nbsp;authenticated&nbsp;single-member&nbsp;ZIP&nbsp;without&nbsp;extraction.</span></dd></dl>
+ <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal,&nbsp;absolute,&nbsp;drive-qualified,&nbsp;and&nbsp;empty&nbsp;names.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_MEMBER</strong> = 268435456</td></tr></table>
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module asa.compiler</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="asa.html" class="white">asa</a>.compiler</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Csrc%5Casa%5Ccompiler.py">c:\users\administrator\ai-security-analysis\analysis-framework\src\asa\compiler.py</a></td></tr></table>
+    <p><span class="code">Compile&nbsp;facts&nbsp;and&nbsp;declarative&nbsp;definitions&nbsp;into&nbsp;a&nbsp;safe&nbsp;dry-run&nbsp;plan.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-compile_plan"><strong>compile_plan</strong></a>(malware: 'list[MalwareDefinition]', pipelines: 'dict[str, PipelineDefinition]', policy: 'PolicyDefinition', facts: 'dict') -&gt; 'AnalysisPlan'</dt><dd><span class="code">Compile&nbsp;a&nbsp;non-executing&nbsp;plan&nbsp;and&nbsp;enforce&nbsp;the&nbsp;policy&nbsp;capability&nbsp;ceiling.</span></dd></dl>
+ <dl><dt><a name="-rank_families"><strong>rank_families</strong></a>(definitions: 'list[MalwareDefinition]', facts: 'dict') -&gt; 'list[Candidate]'</dt><dd><span class="code">Score&nbsp;every&nbsp;malware&nbsp;definition&nbsp;using&nbsp;the&nbsp;same&nbsp;discovery&nbsp;facts.</span></dd></dl>
+ <dl><dt><a name="-select_campaign"><strong>select_campaign</strong></a>(definition: 'MalwareDefinition', facts: 'dict') -&gt; 'tuple[str, str, list[Candidate]]'</dt><dd><span class="code">Select&nbsp;an&nbsp;above-threshold&nbsp;campaign&nbsp;or&nbsp;the&nbsp;family&nbsp;fallback&nbsp;pipeline.</span></dd></dl>
+ <dl><dt><a name="-select_family"><strong>select_family</strong></a>(definitions: 'list[MalwareDefinition]', facts: 'dict') -&gt; 'tuple[MalwareDefinition | None, list[Candidate]]'</dt><dd><span class="code">Select&nbsp;one&nbsp;above-threshold&nbsp;family,&nbsp;returning&nbsp;unknown&nbsp;on&nbsp;a&nbsp;top-score&nbsp;tie.</span></dd></dl>
+ <dl><dt><a name="-topological_steps"><strong>topological_steps</strong></a>(pipeline: 'PipelineDefinition') -&gt; 'list[CompiledStep]'</dt><dd><span class="code">Validate&nbsp;dependencies&nbsp;and&nbsp;return&nbsp;deterministic&nbsp;topological&nbsp;step&nbsp;order.</span></dd></dl>
+</td></tr></table>
+</body></html>

@@ -1,0 +1,14 @@
+api_version: asa/v1alpha1
+kind: ExecutionPolicy
+metadata: {id: offline-default, display_name: Offline default, version: 1.0.0}
+allow:
+  - filesystem.sample.read
+  - filesystem.quarantine.write
+  - external.floss
+  - external.ghidra_mcp
+deny:
+  - network.passive_api
+  - network.active_target
+  - sample.execute
+  - ghidra.arbitrary_scripts
+  - sensitive.config.publish

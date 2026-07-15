@@ -1,0 +1,11 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: agenttesla.config, display_name: AgentTesla recovery and config, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: layers, uses: "scripts.layers@^1", needs: [inventory], on_error: partial}
+  - {id: dotnet, uses: "static.dotnet.inspect@^1", needs: [inventory], on_error: partial}
+  - {id: config, uses: "family.agenttesla.config@^1", needs: [layers, dotnet]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

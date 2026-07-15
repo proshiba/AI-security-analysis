@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module asa.loader</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="asa.html" class="white">asa</a>.loader</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Csrc%5Casa%5Cloader.py">c:\users\administrator\ai-security-analysis\analysis-framework\src\asa\loader.py</a></td></tr></table>
+    <p><span class="code">Load&nbsp;and&nbsp;validate&nbsp;versioned&nbsp;YAML&nbsp;definitions.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-index_definitions"><strong>index_definitions</strong></a>(definitions: 'list[Definition]', model: 'type[T]') -&gt; 'dict[str, T]'</dt><dd><span class="code">Index&nbsp;one&nbsp;definition&nbsp;kind&nbsp;by&nbsp;metadata&nbsp;ID&nbsp;and&nbsp;reject&nbsp;duplicates.</span></dd></dl>
+ <dl><dt><a name="-load_definition_tree"><strong>load_definition_tree</strong></a>(root: 'Path') -&gt; 'list[Definition]'</dt><dd><span class="code">Load&nbsp;every&nbsp;YAML&nbsp;definition&nbsp;below&nbsp;a&nbsp;directory&nbsp;in&nbsp;deterministic&nbsp;order.</span></dd></dl>
+ <dl><dt><a name="-load_yaml"><strong>load_yaml</strong></a>(path: 'Path') -&gt; 'dict'</dt><dd><span class="code">Load&nbsp;one&nbsp;YAML&nbsp;mapping&nbsp;with&nbsp;strict&nbsp;model&nbsp;validation&nbsp;downstream.</span></dd></dl>
+ <dl><dt><a name="-parse_definition"><strong>parse_definition</strong></a>(value: 'dict') -&gt; 'Definition'</dt><dd><span class="code">Dispatch&nbsp;a&nbsp;raw&nbsp;mapping&nbsp;to&nbsp;its&nbsp;strict&nbsp;typed&nbsp;model.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>Definition</strong> = asa.models.MalwareDefinition | asa.models.PipelineDefinition | asa.models.PolicyDefinition<br>
+<strong>T</strong> = ~T</td></tr></table>
+</body></html>
