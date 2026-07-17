@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+  "config": {
+    "source_name": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "themida_protected",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 1814528,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 90624,
+          "virtual_size": 2396160,
+          "entropy": 7.9781
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 496,
+          "entropy": 5.0482
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.8647
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2781184,
+          "entropy": 0.2608
+        },
+        {
+          "name": "esdzurwm",
+          "raw_size": 1708032,
+          "virtual_size": 1708032,
+          "entropy": 7.953
+        },
+        {
+          "name": "gpsgltzd",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.7931
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.0196
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(10.00.30319)",
+      "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2010)",
+      "Protector: Themida/Winlicense(~2.XX)"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

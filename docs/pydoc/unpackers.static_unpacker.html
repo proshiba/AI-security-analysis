@@ -42,7 +42,7 @@
  <dl><dt><a name="-carve_embedded_pes"><strong>carve_embedded_pes</strong></a>(data: 'bytes', limit: 'int' = 16) -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">Carve&nbsp;validated&nbsp;non-leading&nbsp;PE&nbsp;images&nbsp;without&nbsp;executing&nbsp;their&nbsp;stubs.</span></dd></dl>
  <dl><dt><a name="-decode_autoit_xor_literals"><strong>decode_autoit_xor_literals</strong></a>(script: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Decode&nbsp;repeated-key&nbsp;XOR&nbsp;string&nbsp;calls&nbsp;in&nbsp;decompiled&nbsp;AutoIt&nbsp;source.</span></dd></dl>
  <dl><dt><a name="-detect_format"><strong>detect_format</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'str'</dt><dd><span class="code">Identify&nbsp;formats&nbsp;supported&nbsp;by&nbsp;the&nbsp;static&nbsp;recovery&nbsp;pipeline.</span></dd></dl>
- <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">Return&nbsp;Shannon&nbsp;entropy&nbsp;rounded&nbsp;to&nbsp;four&nbsp;decimals.</span></dd></dl>
+ <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;deterministic&nbsp;Shannon&nbsp;entropy&nbsp;rounded&nbsp;to&nbsp;four&nbsp;decimals.</span></dd></dl>
  <dl><dt><a name="-macho_summary"><strong>macho_summary</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;bounded&nbsp;Mach-O&nbsp;or&nbsp;universal-binary&nbsp;header&nbsp;metadata.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;raw&nbsp;artifact&nbsp;and&nbsp;optionally&nbsp;archive&nbsp;recovered&nbsp;layers.</span></dd></dl>
  <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Classify&nbsp;PE&nbsp;packing&nbsp;evidence&nbsp;and&nbsp;recover&nbsp;bounded&nbsp;embedded&nbsp;artifacts.</span></dd></dl>
@@ -57,46 +57,28 @@ Command&nbsp;files&nbsp;often&nbsp;emit&nbsp;one&nbsp;payload&nbsp;through&nbsp;
 certutil&nbsp;-decode.&nbsp;Those&nbsp;chunks&nbsp;are&nbsp;reassembled&nbsp;by&nbsp;redirection&nbsp;target.<br>
 Random&nbsp;high-entropy&nbsp;arguments&nbsp;are&nbsp;not&nbsp;retained&nbsp;individually.</span></dd></dl>
  <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;a&nbsp;bounded&nbsp;ZIP&nbsp;and&nbsp;retain&nbsp;recognized&nbsp;or&nbsp;script-like&nbsp;members.</span></dd></dl>
- <dl><dt><a name="-run_die"><strong>run_die</strong></a>(
-    data: 'bytes',
-    executable: 'Path',
-    name: 'str' = 'sample.bin',
-    timeout: 'float' = 120.0
-) -&gt; 'dict'</dt><dd><span class="code">Run&nbsp;Detect&nbsp;It&nbsp;Easy&nbsp;as&nbsp;a&nbsp;static&nbsp;classifier&nbsp;and&nbsp;parse&nbsp;its&nbsp;JSON&nbsp;evidence.</span></dd></dl>
+ <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Run&nbsp;Detect&nbsp;It&nbsp;Easy&nbsp;as&nbsp;a&nbsp;static&nbsp;classifier&nbsp;and&nbsp;parse&nbsp;its&nbsp;JSON&nbsp;evidence.</span></dd></dl>
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Invoke&nbsp;UPX&nbsp;decompression&nbsp;as&nbsp;a&nbsp;data&nbsp;transform&nbsp;and&nbsp;validate&nbsp;the&nbsp;output&nbsp;PE.</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal&nbsp;and&nbsp;absolute&nbsp;or&nbsp;drive-qualified&nbsp;member&nbsp;names.</span></dd></dl>
- <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
-    data: 'bytes',
-    executable: 'Path',
-    name: 'str' = 'input.bin',
-    password: 'str' = ''
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;recognized&nbsp;container&nbsp;with&nbsp;path,&nbsp;count,&nbsp;and&nbsp;byte-count&nbsp;bounds.</span></dd></dl>
+ <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;recognized&nbsp;container&nbsp;with&nbsp;path,&nbsp;count,&nbsp;and&nbsp;byte-count&nbsp;bounds.</span></dd></dl>
  <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">Use&nbsp;7-Zip&nbsp;only&nbsp;to&nbsp;identify&nbsp;and&nbsp;list&nbsp;a&nbsp;possible&nbsp;archive&nbsp;container.</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;lowercase&nbsp;SHA-256&nbsp;digest&nbsp;for&nbsp;bytes.</span></dd></dl>
- <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(
-    data: 'bytes',
-    name: 'str' = 'sample',
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;the&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;pipeline&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;the&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;pipeline&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.</span></dd></dl>
  <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;bounded&nbsp;on-disk&nbsp;PE&nbsp;extent&nbsp;at&nbsp;*offset*,&nbsp;or&nbsp;``None``.</span></dd></dl>
- <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(
-    path: 'Path',
-    artifacts: 'list[tuple[str, bytes]]',
-    password: 'str' = 'infected'
-) -&gt; 'None'</dt><dd><span class="code">Store&nbsp;recovered&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES-encrypted&nbsp;quarantine&nbsp;archive.</span></dd></dl>
+ <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;recovered&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES-encrypted&nbsp;quarantine&nbsp;archive.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>MACHO_MAGICS</strong> = {b'\xbe\xba\xfe\xca', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'}<br>
+<td class="singlecolumn"><strong>ENTROPY_FULL_LIMIT</strong> = 8388608<br>
+<strong>ENTROPY_SAMPLE_WINDOW</strong> = 1048576<br>
+<strong>MACHO_MAGICS</strong> = {b'\xbe\xba\xfe\xca', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'}<br>
 <strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
 <strong>MAX_ARTIFACT</strong> = 268435456<br>
 <strong>MAX_EXTRACTED_TOTAL</strong> = 805306368<br>
 <strong>MAX_RETAINED_MEMBERS</strong> = 128<br>
-<strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.bat', '.bin', '.cab', ...}<br>
+<strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.bat', '.bin', ...}<br>
 <strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.bat', '.cmd', '.hta', '.js', '.jse', ...}</td></tr></table>
 </body></html>

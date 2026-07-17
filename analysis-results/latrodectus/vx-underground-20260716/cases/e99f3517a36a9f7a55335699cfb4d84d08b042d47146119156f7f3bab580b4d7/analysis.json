@@ -1,0 +1,175 @@
+{
+  "case": {
+    "sha256": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+    "name": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+    "family": "latrodectus",
+    "campaign": "direct_dll_or_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+    "config": {
+      "source_name": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+      "static_config_recovered": false,
+      "features": {
+        "host_discovery": false,
+        "domain_discovery": false,
+        "security_discovery": false,
+        "scheduled_task_persistence": false,
+        "payload_download": false,
+        "rundll32_execution": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+    "sha256": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
+    "size": 1475072,
+    "entropy": 5.4933,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 1475072,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 33,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 837632,
+          "virtual_size": 837582,
+          "entropy": 4.9352,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 432128,
+          "virtual_size": 431780,
+          "entropy": 4.5761,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 9216,
+          "virtual_size": 16601,
+          "entropy": 3.9083,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 55296,
+          "virtual_size": 54864,
+          "entropy": 5.5971,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".idata",
+          "raw_size": 75264,
+          "virtual_size": 74760,
+          "entropy": 4.9758,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".00cfg",
+          "raw_size": 512,
+          "virtual_size": 283,
+          "entropy": 0.1552,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 49152,
+          "virtual_size": 45622,
+          "entropy": 7.3831,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 14848,
+          "virtual_size": 14753,
+          "entropy": 4.5005,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rsrc"
+      ],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 2,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

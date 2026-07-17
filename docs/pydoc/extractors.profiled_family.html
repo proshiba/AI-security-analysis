@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.profiled_family</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.profiled_family</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cprofiled_family.py">c:\users\administrator\ai-security-analysis\extractors\profiled_family.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;bounded&nbsp;static&nbsp;extractor&nbsp;for&nbsp;profile-defined&nbsp;Windows&nbsp;malware&nbsp;families.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;intentionally&nbsp;separates&nbsp;conservative&nbsp;literal&nbsp;recovery&nbsp;from&nbsp;family-<br>
+specific&nbsp;cryptographic&nbsp;decoders.&nbsp;&nbsp;Findings&nbsp;are&nbsp;candidates&nbsp;unless&nbsp;a&nbsp;complete<br>
+family-specific&nbsp;config&nbsp;structure&nbsp;is&nbsp;available;&nbsp;no&nbsp;endpoint&nbsp;is&nbsp;contacted.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-bounded_strings"><strong>bounded_strings</strong></a>(data: 'bytes', limit: 'int' = 50000) -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;ordered&nbsp;unique&nbsp;ASCII/UTF-16LE&nbsp;strings&nbsp;from&nbsp;deterministic&nbsp;windows.</span></dd></dl>
+ <dl><dt><a name="-extract_family"><strong>extract_family</strong></a>(family: 'str', data: 'bytes', source_name: 'str' = 'sample.bin') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;bounded&nbsp;candidate&nbsp;config&nbsp;and&nbsp;network&nbsp;indicators&nbsp;for&nbsp;one&nbsp;profile.</span></dd></dl>
+ <dl><dt><a name="-extractor_for"><strong>extractor_for</strong></a>(family: 'str') -&gt; 'Callable[[bytes, str], dict]'</dt><dd><span class="code">Return&nbsp;a&nbsp;two-argument&nbsp;extractor&nbsp;callable&nbsp;bound&nbsp;to&nbsp;one&nbsp;profile.</span></dd></dl>
+ <dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis/extractors/profiles/windows_family_profiles.json')) -&gt; 'dict[str, dict]'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;the&nbsp;profile&nbsp;map&nbsp;used&nbsp;by&nbsp;extractors&nbsp;and&nbsp;detectors.</span></dd></dl>
+ <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str', profiles: 'dict[str, dict] | None' = None) -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;family&nbsp;ID&nbsp;or&nbsp;declared&nbsp;alias&nbsp;to&nbsp;one&nbsp;profile&nbsp;key.</span></dd></dl>
+ <dl><dt><a name="-profile_for"><strong>profile_for</strong></a>(family: 'str') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;one&nbsp;normalized&nbsp;immutable-by-convention&nbsp;profile&nbsp;copy.</span></dd></dl>
+ <dl><dt><a name="-sanitize_network_url"><strong>sanitize_network_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Remove&nbsp;URL&nbsp;secrets&nbsp;and&nbsp;reject&nbsp;local,&nbsp;malformed,&nbsp;certificate,&nbsp;and&nbsp;documentation&nbsp;hosts.</span></dd></dl>
+ <dl><dt><a name="-url_role"><strong>url_role</strong></a>(default_role: 'str', value: 'str') -&gt; 'str'</dt><dd><span class="code">Classify&nbsp;sanitized&nbsp;URLs&nbsp;as&nbsp;discovery,&nbsp;delivery-stage,&nbsp;or&nbsp;profile-default&nbsp;roles.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ASCII</strong> = re.compile(b'[\\x20-\\x7e]{4,}')<br>
+<strong>BENIGN_HOSTS</strong> = {'aka.ms', 'api.ipify.org', 'docs.microsoft.com', 'freegeoip.net', 'go.microsoft.com', 'google.com', ...}<br>
+<strong>BENIGN_HOST_PARTS</strong> = ('cacerts.digicert.com', 'crl.digicert.com', 'crl3.digicert.com', 'crl4.digicert.com', 'ocsp.digicert.com', 'crl.microsoft.com', 'ocsp.sectigo.com', 'crl.sectigo.com', 'ocsp.usertrust.com', 'comodoca.com', 'usertrust.com', 'sectigo.com', 'digicert.com', 'symcb.com', 'verisign.com', 'globalsign.com', 'symauth.com', 'contoso.com')<br>
+<strong>COMMON_PUBLIC_TLDS</strong> = {'app', 'at', 'biz', 'cc', 'cfd', 'ch', ...}<br>
+<strong>Callable</strong> = typing.Callable<br>
+<strong>DELIVERY_HOSTS</strong> = {'bitbucket.org', 'dropbox.com', 'github.com', 'onedrive.live.com', 'raw.githubusercontent.com', 'www.dropbox.com'}<br>
+<strong>DISCOVERY_HOSTS</strong> = {'api.my-ip.io', 'geolocation-db.com', 'ipinfo.io', 'ipwhois.app'}<br>
+<strong>FULL_SCAN_LIMIT</strong> = 8388608<br>
+<strong>MAX_FINDINGS</strong> = 64<br>
+<strong>MAX_STRINGS</strong> = 50000<br>
+<strong>PROFILE_PATH</strong> = WindowsPath('C:/Users/Administrator/AI-security-...xtractors/profiles/windows_family_profiles.json')<br>
+<strong>SAMPLE_WINDOW</strong> = 2097152<br>
+<strong>STAGE_SUFFIXES</strong> = ('.bat', '.cab', '.dll', '.exe', '.hta', '.img', '.iso', '.js', '.msi', '.png', '.ps1', '.rar', '.vbs', '.zip')<br>
+<strong>WIDE</strong> = re.compile(b'(?:[\\x20-\\x7e]\\x00){4,}')</td></tr></table>
+</body></html>

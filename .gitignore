@@ -233,3 +233,9 @@ quarantine/
 *.bin
 *.pcap
 *.pcapng
+
+# Ephemeral malware-analysis safety checks must never be committed
+analysis-safety-*.json
+analysis-safety-*.txt
+safety-check-*.json
+safety-check-*.txt

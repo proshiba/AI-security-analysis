@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module osint_hash_enricher</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">osint_hash_enricher</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cosint_hash_enricher.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\osint_hash_enricher.py</a></td></tr></table>
+    <p><span class="code">Enrich&nbsp;low-confidence&nbsp;malware&nbsp;cases&nbsp;with&nbsp;auditable&nbsp;hash-only&nbsp;OSINT.<br>
+&nbsp;<br>
+The&nbsp;collector&nbsp;never&nbsp;uploads&nbsp;a&nbsp;sample&nbsp;and&nbsp;never&nbsp;contacts&nbsp;infrastructure&nbsp;found<br>
+inside&nbsp;a&nbsp;sample.&nbsp;Raw&nbsp;API&nbsp;responses&nbsp;are&nbsp;restricted&nbsp;to&nbsp;an&nbsp;ignored&nbsp;private&nbsp;cache;<br>
+repository&nbsp;output&nbsp;contains&nbsp;only&nbsp;normalized&nbsp;provider&nbsp;evidence,&nbsp;source&nbsp;status,<br>
+references,&nbsp;and&nbsp;a&nbsp;conservative&nbsp;combined&nbsp;attribution.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+<a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;hash-only&nbsp;OSINT&nbsp;enrichment&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-build_public_evidence"><strong>build_public_evidence</strong></a>(sha256: 'str', static: 'dict', collected: 'dict', collected_at: 'str') -&gt; 'dict'</dt><dd><span class="code">Normalize&nbsp;private&nbsp;source&nbsp;responses&nbsp;into&nbsp;a&nbsp;publish-safe&nbsp;evidence&nbsp;record.</span></dd></dl>
+ <dl><dt><a name="-collect_case"><strong>collect_case</strong></a>(sha256: 'str', registry: 'dict', *, offline_metadata: 'dict | None' = None, enabled_sources: 'set[str] | None' = None, network: 'bool' = True, timeout: 'float' = 30.0) -&gt; 'dict'</dt><dd><span class="code">Collect&nbsp;raw&nbsp;hash&nbsp;evidence&nbsp;for&nbsp;one&nbsp;case&nbsp;without&nbsp;sample&nbsp;submission.</span></dd></dl>
+ <dl><dt><a name="-collect_network_source"><strong>collect_network_source</strong></a>(source_id: 'str', sha256: 'str', config: 'dict', *, timeout: 'float' = 30.0) -&gt; 'dict'</dt><dd><span class="code">Perform&nbsp;a&nbsp;hash-only&nbsp;lookup&nbsp;for&nbsp;one&nbsp;configured&nbsp;network&nbsp;source.</span></dd></dl>
+ <dl><dt><a name="-combine_attribution"><strong>combine_attribution</strong></a>(static: 'dict', evidence: 'Iterable[dict]') -&gt; 'dict'</dt><dd><span class="code">Combine&nbsp;independent&nbsp;provider&nbsp;votes&nbsp;without&nbsp;double-counting&nbsp;transport&nbsp;layers.</span></dd></dl>
+ <dl><dt><a name="-deduplicate_evidence"><strong>deduplicate_evidence</strong></a>(items: 'Iterable[dict]') -&gt; 'list[dict]'</dt><dd><span class="code">De-duplicate&nbsp;normalized&nbsp;evidence&nbsp;while&nbsp;preserving&nbsp;deterministic&nbsp;order.</span></dd></dl>
+ <dl><dt><a name="-enrich_batch"><strong>enrich_batch</strong></a>(summary_path: 'Path', output_root: 'Path', registry_path: 'Path', cache_root: 'Path', *, private_manifest: 'Path | None' = None, enabled_sources: 'set[str] | None' = None, network: 'bool' = True, refresh: 'bool' = False, delay: 'float' = 0.0, history_path: 'Path | None' = None, curated_evidence_path: 'Path | None' = None) -&gt; 'dict'</dt><dd><span class="code">Collect,&nbsp;normalize,&nbsp;publish,&nbsp;and&nbsp;summarize&nbsp;one&nbsp;low-confidence&nbsp;batch.</span></dd></dl>
+ <dl><dt><a name="-family_from_label"><strong>family_from_label</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Map&nbsp;reviewed&nbsp;family&nbsp;tokens&nbsp;while&nbsp;rejecting&nbsp;generic&nbsp;vendor&nbsp;terminology.</span></dd></dl>
+ <dl><dt><a name="-fetch_json"><strong>fetch_json</strong></a>(url: 'str', *, headers: 'dict[str, str] | None' = None, fields: 'dict[str, str] | None' = None, timeout: 'float' = 30.0) -&gt; 'tuple[int, Any]'</dt><dd><span class="code">Fetch&nbsp;one&nbsp;JSON&nbsp;resource&nbsp;and&nbsp;return&nbsp;its&nbsp;HTTP&nbsp;status&nbsp;and&nbsp;decoded&nbsp;body.</span></dd></dl>
+ <dl><dt><a name="-load_curated_evidence"><strong>load_curated_evidence</strong></a>(path: 'Path | None') -&gt; 'dict[str, dict]'</dt><dd><span class="code">Load&nbsp;analyst-reviewed,&nbsp;hash-keyed&nbsp;research&nbsp;evidence&nbsp;for&nbsp;offline&nbsp;replay.</span></dd></dl>
+ <dl><dt><a name="-load_source_registry"><strong>load_source_registry</strong></a>(path: 'Path') -&gt; 'dict'</dt><dd><span class="code">Load&nbsp;and&nbsp;minimally&nbsp;validate&nbsp;the&nbsp;hash-OSINT&nbsp;source&nbsp;registry.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;hash-only&nbsp;OSINT&nbsp;enrichment&nbsp;and&nbsp;print&nbsp;aggregate&nbsp;counts.</span></dd></dl>
+ <dl><dt><a name="-normalize_circl"><strong>normalize_circl</strong></a>(payload: 'dict') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;known-file&nbsp;context&nbsp;from&nbsp;a&nbsp;CIRCL&nbsp;hashlookup&nbsp;match.</span></dd></dl>
+ <dl><dt><a name="-normalize_curated_evidence"><strong>normalize_curated_evidence</strong></a>(payload: 'dict') -&gt; 'dict'</dt><dd><span class="code">Normalize&nbsp;reviewed&nbsp;research&nbsp;and&nbsp;local-static&nbsp;correlations.</span></dd></dl>
+ <dl><dt><a name="-normalize_malwarebazaar"><strong>normalize_malwarebazaar</strong></a>(metadata: 'dict') -&gt; 'dict'</dt><dd><span class="code">Normalize&nbsp;MalwareBazaar&nbsp;catalog,&nbsp;YARA,&nbsp;and&nbsp;named-provider&nbsp;evidence.</span></dd></dl>
+ <dl><dt><a name="-normalize_otx"><strong>normalize_otx</strong></a>(payload: 'dict', reference: 'str | None' = None) -&gt; 'dict'</dt><dd><span class="code">Normalize&nbsp;OTX&nbsp;pulse&nbsp;names&nbsp;and&nbsp;tags&nbsp;as&nbsp;one&nbsp;community-provider&nbsp;vote.</span></dd></dl>
+ <dl><dt><a name="-normalize_virustotal"><strong>normalize_virustotal</strong></a>(payload: 'dict', reference: 'str | None' = None) -&gt; 'dict'</dt><dd><span class="code">Normalize&nbsp;VirusTotal&nbsp;popular&nbsp;and&nbsp;sandbox&nbsp;family&nbsp;labels&nbsp;without&nbsp;raw&nbsp;AV&nbsp;output.</span></dd></dl>
+ <dl><dt><a name="-public_failure_reason"><strong>public_failure_reason</strong></a>(status: 'str', reason: 'str | None' = None) -&gt; 'str | None'</dt><dd><span class="code">Return&nbsp;a&nbsp;bounded&nbsp;public&nbsp;reason&nbsp;without&nbsp;API-key&nbsp;names&nbsp;or&nbsp;backend&nbsp;details.</span></dd></dl>
+ <dl><dt><a name="-render_case_osint"><strong>render_case_osint</strong></a>(record: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;auditable&nbsp;case-level&nbsp;OSINT&nbsp;section.</span></dd></dl>
+ <dl><dt><a name="-render_osint_summary"><strong>render_osint_summary</strong></a>(records: 'list[dict]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;aggregate&nbsp;enrichment&nbsp;coverage,&nbsp;upgrades,&nbsp;and&nbsp;remaining&nbsp;unknowns.</span></dd></dl>
+ <dl><dt><a name="-sanitize_label"><strong>sanitize_label</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;bounded&nbsp;public&nbsp;label&nbsp;with&nbsp;URLs,&nbsp;emails,&nbsp;and&nbsp;long&nbsp;tokens&nbsp;redacted.</span></dd></dl>
+ <dl><dt><a name="-sanitize_reference"><strong>sanitize_reference</strong></a>(value: 'str | None') -&gt; 'str | None'</dt><dd><span class="code">Remove&nbsp;URL&nbsp;user&nbsp;information,&nbsp;query&nbsp;strings,&nbsp;and&nbsp;fragments&nbsp;from&nbsp;references.</span></dd></dl>
+ <dl><dt><a name="-select_targets"><strong>select_targets</strong></a>(summary: 'dict') -&gt; 'list[dict]'</dt><dd><span class="code">Return&nbsp;low-confidence&nbsp;or&nbsp;unknown&nbsp;cases&nbsp;in&nbsp;their&nbsp;existing&nbsp;order.</span></dd></dl>
+ <dl><dt><a name="-update_history_from_enrichment"><strong>update_history_from_enrichment</strong></a>(history_path: 'Path', records: 'Iterable[dict]') -&gt; 'int'</dt><dd><span class="code">Update&nbsp;existing&nbsp;case&nbsp;history&nbsp;blocks&nbsp;with&nbsp;conservative&nbsp;combined&nbsp;attribution.</span></dd></dl>
+ <dl><dt><a name="-upsert_marked_section"><strong>upsert_marked_section</strong></a>(text: 'str', section: 'str') -&gt; 'str'</dt><dd><span class="code">Insert&nbsp;or&nbsp;replace&nbsp;a&nbsp;hash-OSINT&nbsp;Markdown&nbsp;section&nbsp;idempotently.</span></dd></dl>
+ <dl><dt><a name="-validate_sha256"><strong>validate_sha256</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;normalized&nbsp;SHA-256&nbsp;or&nbsp;raise&nbsp;``ValueError``.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FAMILY_ALIASES</strong> = {'acr stealer': 'acrstealer', 'acrstealer': 'acrstealer', 'agent tesla': 'agenttesla', 'agenttesla': 'agenttesla', 'amadey': 'amadey', 'amos': 'amosstealer', 'amosstealer': 'amosstealer', 'atomic stealer': 'amosstealer', 'atomicstealer': 'amosstealer', 'beavertail': 'beavertail', ...}<br>
+<strong>GENERIC_LABELS</strong> = {'adware', 'backdoor', 'banker', 'dropper', 'generic', 'hacktool', ...}<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>OSINT_END</strong> = '&lt;!-- hash-osint:end --&gt;'<br>
+<strong>OSINT_START</strong> = '&lt;!-- hash-osint:start --&gt;'<br>
+<strong>SHA256</strong> = re.compile('^[0-9a-f]{64}$')</td></tr></table>
+</body></html>

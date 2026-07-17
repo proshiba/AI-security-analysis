@@ -1,6 +1,6 @@
 # ValleyRAT analysis results
 
-This index covers all 11 analyzed ValleyRAT or ValleyRAT-linked campaign cases. Each case separates observed behavior from expected family capability and separates distribution infrastructure from final command-and-control infrastructure.
+This index covers all 12 analyzed ValleyRAT or ValleyRAT-linked campaign cases. Each case separates observed behavior from expected family capability and separates distribution infrastructure from final command-and-control infrastructure.
 
 - Detailed behavior and C2 model: [BEHAVIOR-C2.md](BEHAVIOR-C2.md)
 - Confidence labels: confirmed, confirmed_config, confirmed_distribution_only, inferred_external, and unverified
@@ -20,6 +20,7 @@ This index covers all 11 analyzed ValleyRAT or ValleyRAT-linked campaign cases. 
 | [df603ed55cbf](cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/README.md) | inno_installer_silverfox_unresolved | oidng2.duoshit.com to 51.79.18.52:443 | inferred_external |
 | [6546aad60371](cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1/README.md) | upx_nrv2e_silverfox_http_bundle | http://43.198.235.91/getinstall64 is distribution only | confirmed_distribution_only |
 | [32146526cbc3](cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/README.md) | qt_static_obfuscated_silverfox | cqbxbkj.cn to 18.167.91.239; port 8880 remains unverified | mixed_inferred_unverified |
+| [f543dcf4f178](cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/README.md) | cefclient_libcef_sideload_malspam | ljowqjd.cn; final config unavailable | confirmed_chain_unverified_config |
 
 Shared Sigma and YARA candidates are under rules/sigma and rules/yara. Endpoint-only detection should be combined with process ancestry, image-load relationships, persistence, recovered configuration, or protocol structure.
 

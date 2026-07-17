@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module update_unknown_analysis_history</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">update_unknown_analysis_history</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cupdate_unknown_analysis_history.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\update_unknown_analysis_history.py</a></td></tr></table>
+    <p><span class="code">Append&nbsp;idempotent&nbsp;static&nbsp;unknown-batch&nbsp;entries&nbsp;to&nbsp;``analysis_history.yaml``.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-append_missing_entries"><strong>append_missing_entries</strong></a>(history_path: 'Path', entries: 'list[tuple[str, str]]') -&gt; 'int'</dt><dd><span class="code">Append&nbsp;only&nbsp;hashes&nbsp;not&nbsp;already&nbsp;recorded&nbsp;and&nbsp;return&nbsp;the&nbsp;appended&nbsp;count.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;analysis-history&nbsp;update&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Append&nbsp;missing&nbsp;summary&nbsp;cases&nbsp;to&nbsp;the&nbsp;requested&nbsp;history&nbsp;file.</span></dd></dl>
+ <dl><dt><a name="-render_history_entries"><strong>render_history_entries</strong></a>(summary: 'dict', result_root: 'str', analyzed_at: 'str') -&gt; 'list[tuple[str, str]]'</dt><dd><span class="code">Render&nbsp;one&nbsp;conservative&nbsp;history&nbsp;entry&nbsp;for&nbsp;every&nbsp;successful&nbsp;batch&nbsp;case.</span></dd></dl>
+ <dl><dt><a name="-yaml_scalar"><strong>yaml_scalar</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Encode&nbsp;a&nbsp;string&nbsp;as&nbsp;a&nbsp;YAML-compatible&nbsp;JSON&nbsp;double-quoted&nbsp;scalar.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>SHA256</strong> = re.compile('^[0-9a-f]{64}$')</td></tr></table>
+</body></html>

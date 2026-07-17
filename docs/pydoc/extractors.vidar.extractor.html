@@ -12,10 +12,39 @@
     <p><span class="code">Static&nbsp;Vidar&nbsp;configuration&nbsp;and&nbsp;infrastructure&nbsp;candidate&nbsp;extractor.</span></p>
 <p>
 <table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="itertools.html">itertools</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;literal&nbsp;Vidar&nbsp;config&nbsp;candidates&nbsp;from&nbsp;payloads&nbsp;and&nbsp;loaders.</span></dd></dl>
-</td></tr></table>
+<td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;decrypted&nbsp;Vidar&nbsp;config&nbsp;first,&nbsp;then&nbsp;conservative&nbsp;literals.</span></dd></dl>
+ <dl><dt><a name="-recover_xor_config"><strong>recover_xor_config</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Locate&nbsp;Vidar's&nbsp;repeated-XOR&nbsp;config&nbsp;without&nbsp;NumPy&nbsp;or&nbsp;sample&nbsp;execution.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BUILD_LENGTH_OFFSET</strong> = 113<br>
+<strong>BUILD_OFFSET</strong> = 49<br>
+<strong>KEY_LENGTH</strong> = 16<br>
+<strong>MAX_CONFIG_SCAN</strong> = 67108864<br>
+<strong>MAX_RECORDS</strong> = 32<br>
+<strong>RECORDS_OFFSET</strong> = 114<br>
+<strong>RECORD_STRIDE</strong> = 579<br>
+<strong>TAG_LENGTH_OFFSET</strong> = 321<br>
+<strong>TAG_OFFSET</strong> = 257<br>
+<strong>URL_LENGTH_OFFSET</strong> = 256<br>
+<strong>USER_AGENT_LENGTH_OFFSET</strong> = 578<br>
+<strong>USER_AGENT_OFFSET</strong> = 322<br>
+<strong>VERSION_LENGTH_OFFSET</strong> = 48<br>
+<strong>VERSION_OFFSET</strong> = 16<br>
+<strong>VERSION_PATTERN</strong> = re.compile(b'^[0-9]{1,3}(?:\\.[0-9]{1,3}){1,3}$')</td></tr></table>
 </body></html>

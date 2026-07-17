@@ -1,0 +1,146 @@
+{
+  "case": {
+    "sha256": "532bc078a68683ce70cb765191a128fadee2a23180b1a8e8a16b72f1a8ee291a",
+    "name": "532BC078A68683CE70CB765191A128FADEE2A23180B1A8E8A16B72F1A8EE291A",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "532bc078a68683ce70cb765191a128fadee2a23180b1a8e8a16b72f1a8ee291a",
+    "config": {
+      "source_name": "532BC078A68683CE70CB765191A128FADEE2A23180B1A8E8A16B72F1A8EE291A",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [
+        "Autofill",
+        "information.txt",
+        "passwords.txt",
+        "wallets"
+      ],
+      "features": {
+        "browser_collection": true,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": true
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "complete_input",
+      "original_size": 879104,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "532BC078A68683CE70CB765191A128FADEE2A23180B1A8E8A16B72F1A8EE291A",
+    "sha256": "532bc078a68683ce70cb765191a128fadee2a23180b1a8e8a16b72f1a8ee291a",
+    "size": 879104,
+    "entropy": 6.6896,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 879104,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 179,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 762368,
+          "virtual_size": 762309,
+          "entropy": 6.6629,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 104448,
+          "virtual_size": 104002,
+          "entropy": 5.928,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 11264,
+          "virtual_size": 22980,
+          "entropy": 3.7845,
+          "characteristics": "0xc0000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 0,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646", "role": "submitted_nspack_shadowpad_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "www.pneword.net", "role": "c2_domain_exact_hash_primary_source", "confidence": "confirmed_public_exact_hash"},
+    {"value": "www.pneword.net:80", "role": "c2_endpoint_http_tcp_udp", "confidence": "confirmed_public_exact_hash"},
+    {"value": "www.pneword.net:443", "role": "c2_endpoint_http_tcp_udp", "confidence": "confirmed_public_exact_hash"},
+    {"value": "www.pneword.net:53", "role": "c2_endpoint_http_tcp_udp", "confidence": "confirmed_public_exact_hash"}
+  ],
+  "network_contacted": false
+}

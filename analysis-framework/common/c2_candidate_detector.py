@@ -7,8 +7,38 @@ import argparse
 import ipaddress
 import json
 from pathlib import Path
+import sys
 from urllib.parse import urlsplit
 
+REPO = Path(__file__).parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from extractors.profiled_family import profile_for  # noqa: E402
+
+NON_C2_ROLES = {
+    "certificate_service",
+    "documentation_reference",
+    "host_discovery_service",
+    "stage_url_candidate",
+}
+
+def protocol_profile(family: str | None) -> dict | None:
+    """Return offline confirmation and emulator guidance for a profiled family."""
+    if not family:
+        return None
+    try:
+        profile = profile_for(family)
+    except ValueError:
+        return None
+    return {
+        "category": profile["category"],
+        "transport": profile["transport"],
+        "endpoint_role": profile["endpoint_role"],
+        "confirmation_requirements": profile["confirmation"],
+        "active_confirmation_default": "disabled",
+        "emulator": "emulators/families/lab.py (loopback only)",
+    }
 
 def target_from_finding(finding: dict) -> tuple[str, int | None] | None:
     """Normalize one network finding into a host and optional port."""
@@ -44,6 +74,8 @@ def assess(result: dict) -> dict:
     """Assess extractor findings conservatively and preserve provenance."""
     rows = []
     for finding in result.get("findings", []):
+        if finding.get("role") in NON_C2_ROLES:
+            continue
         target = target_from_finding(finding)
         if not target:
             continue
@@ -65,10 +97,12 @@ def assess(result: dict) -> dict:
         confidence = "probable"
     elif rows:
         confidence = "candidate"
+    family = result.get("family")
     return {
         "schema_version": 1,
-        "family": result.get("family"),
+        "family": family,
         "assessment": confidence,
+        "protocol_profile": protocol_profile(family),
         "targets": rows,
         "network_contacted": False,
         "sample_executed": False,

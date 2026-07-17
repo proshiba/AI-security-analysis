@@ -90,3 +90,14 @@ X("a") = "{chr(19968)}";
     assert report["status"] == "powershell_recovered"
     assert report["payload"]["status"] == "aes_parameters_invalid"
     assert len(artifacts) == 1
+
+
+def test_large_unterminated_arrays_are_rejected_without_backtracking() -> None:
+    """Keep malformed large JavaScript arrays on a linear-time no-match path."""
+    script = (
+        'O["first"]=[' + '1,' * 100_000 + "\n" +
+        'O["second"]=[' + '2,' * 100_000
+    ).encode()
+    report, artifacts = dropper.recover_javascript_dropper(script)
+    assert report == {"status": "pattern_not_found", "executed": False}
+    assert artifacts == []

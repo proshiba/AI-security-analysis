@@ -1,0 +1,216 @@
+{
+  "case": {
+    "sha256": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+    "name": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "zip",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 1,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 1
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+    "config": {
+      "source_name": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": false,
+        "plugin_download": false,
+        "system_discovery": false,
+        "rc4_protected_traffic": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+    "sha256": "1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061",
+    "size": 17019,
+    "entropy": 7.4129,
+    "format": "zip",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "zip": [
+      {
+        "name": "[Content_Types].xml",
+        "size": 1461,
+        "sha256": "3d8578fd41d766740a1f1ddef972a081436a2d70ab1e9552a861e58d8bbf5321",
+        "format": "data"
+      },
+      {
+        "name": "_rels/.rels",
+        "size": 590,
+        "sha256": "e19238d7a71fa7a2490776252686f70e2de6238c87cd509b5e3a3cc07c2ea4df",
+        "format": "data"
+      },
+      {
+        "name": "word/document.xml",
+        "size": 2809,
+        "sha256": "39f0d23dd9b120a7ac5259b07f98994faa10b82e90fcb5d791607033ca54738b",
+        "format": "data"
+      },
+      {
+        "name": "word/_rels/document.xml.rels",
+        "size": 939,
+        "sha256": "49d2bc305daf1fcca84d6a282e52d1dfd2d79e9ca9f96a3a435d058ae2d8f755",
+        "format": "data"
+      },
+      {
+        "name": "word/vbaProject.bin",
+        "size": 9216,
+        "sha256": "ffdf82acd234d4c60b3a0b208ca1a034b49bbfffdf38a4d4f566eed8e60ea1a3",
+        "format": "ole"
+      },
+      {
+        "name": "word/theme/theme1.xml",
+        "size": 8393,
+        "sha256": "70a70d84494772c1855ec6c2f9a16e0fc6cc41bdb0ce3743563ed943b63e07b8",
+        "format": "data"
+      },
+      {
+        "name": "word/_rels/vbaProject.bin.rels",
+        "size": 277,
+        "sha256": "c97833e6456aa2bfe9be614f9c3ae41a8ef764b1cc3af92c6a6f273c62309122",
+        "format": "data"
+      },
+      {
+        "name": "word/vbaData.xml",
+        "size": 2520,
+        "sha256": "6413154d6d2e2e60d7d3fd5b7295fd19276eab318b631e43191091e514e6ac22",
+        "format": "data"
+      },
+      {
+        "name": "word/settings.xml",
+        "size": 2947,
+        "sha256": "61b037eb716d924a964b5b6168325941a24ae2b0b164aebeee59a6437fa95969",
+        "format": "data"
+      },
+      {
+        "name": "word/styles.xml",
+        "size": 29458,
+        "sha256": "047ce0fddedcc5a622cc517282e7f3c27225d245de54cfacd8dec00c1aef148a",
+        "format": "data"
+      },
+      {
+        "name": "word/webSettings.xml",
+        "size": 894,
+        "sha256": "a935be2dde349160ee390cc5b6a06aa057cfd44feac230f6eff440889f53902f",
+        "format": "data"
+      },
+      {
+        "name": "word/fontTable.xml",
+        "size": 1964,
+        "sha256": "900a3ae001fdadc0fd8eb87116dabe1db2a4b3f6e7282874c735c6861e5e5074",
+        "format": "data"
+      },
+      {
+        "name": "docProps/core.xml",
+        "size": 737,
+        "sha256": "d4b9ca03066c9d8fbe7ff36b119a8f1dca85bd9a0cf528e06ecbfb1eab7e3a6f",
+        "format": "data"
+      },
+      {
+        "name": "docProps/app.xml",
+        "size": 709,
+        "sha256": "3189776231de3ed47a23e59ec8b1acc4e04dab7b6774576fa626fdeb6f13cc39",
+        "format": "data"
+      }
+    ],
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "zip-ole",
+        "size": 9216,
+        "sha256": "ffdf82acd234d4c60b3a0b208ca1a034b49bbfffdf38a4d4f566eed8e60ea1a3"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "zip-ole",
+        "sha256": "ffdf82acd234d4c60b3a0b208ca1a034b49bbfffdf38a4d4f566eed8e60ea1a3",
+        "size": 9216,
+        "format": "ole",
+        "unpack": {
+          "schema_version": 2,
+          "name": "zip-ole.bin",
+          "sha256": "ffdf82acd234d4c60b3a0b208ca1a034b49bbfffdf38a4d4f566eed8e60ea1a3",
+          "size": 9216,
+          "entropy": 4.5145,
+          "format": "ole",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "zip-ole.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

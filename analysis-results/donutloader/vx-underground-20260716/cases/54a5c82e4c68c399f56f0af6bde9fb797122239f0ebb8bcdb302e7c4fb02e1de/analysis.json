@@ -1,0 +1,416 @@
+{
+  "case": {
+    "sha256": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+    "name": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+    "family": "donutloader",
+    "campaign": "pe_wrapper_or_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 3,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "needs_review",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static extraction only; no payload execution or C2 contact was performed.",
+      "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+    ],
+    "layer_count": 3
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "donutloader",
+    "sample_sha256": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+    "config": {
+      "layer_markers": [
+        "portable_executable"
+      ],
+      "delivery_profile": "unrecognized",
+      "donut_confirmed": false,
+      "donut_candidates": [],
+      "chain": null,
+      "recovered_pe_artifacts": [],
+      "terminal_configs": [],
+      "source_name": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+      "endpoints": [],
+      "static_config_recovered": false,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Static extraction only; no payload execution or C2 contact was performed.",
+      "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 3
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "donutloader",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+    "sha256": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+    "size": 2233856,
+    "entropy": 7.9997,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 2233856,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 16,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 5632,
+          "virtual_size": 5344,
+          "entropy": 5.3984,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 2226688,
+          "virtual_size": 2226542,
+          "entropy": 7.9999,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".bss",
+          "raw_size": 0,
+          "virtual_size": 4012,
+          "entropy": 0.0,
+          "characteristics": "0xc0000080"
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 512,
+          "virtual_size": 144,
+          "entropy": 1.2087,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rdata"
+      ],
+      "code_entropy_sections": [
+        ".rdata"
+      ],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 0,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "donut_shellcode_recovered",
+      "profile": "xor32_rdata_conhost_wrapper",
+      "key_size": 32,
+      "key_sha256": "ebec59c780e558482c49213c328638b7b817a5768aac653c704d5ad36d3381dc",
+      "decoded_strings": {
+        "0x21": "%s\\%s",
+        "0x27": "SystemRoot",
+        "0x32": "System32\\conhost.exe",
+        "0x47": "\"%s\" \"%s\""
+      },
+      "encrypted_offset": 6737,
+      "encrypted_size": 2226607,
+      "encrypted_sha256": "50ca754611834c49cfe47de9ab6a0f9edd63d10a52b38626e36a744789d3cb12",
+      "recovered_size": 2226607,
+      "recovered_sha256": "05d27b5a98c56300a35abdc42146520d35970f5d1d16a527c43555f5f8aeb465"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "xor32-donut-shellcode",
+        "size": 2226607,
+        "sha256": "05d27b5a98c56300a35abdc42146520d35970f5d1d16a527c43555f5f8aeb465"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "xor32-donut-shellcode",
+        "sha256": "05d27b5a98c56300a35abdc42146520d35970f5d1d16a527c43555f5f8aeb465",
+        "size": 2226607,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "xor32-donut-shellcode.bin",
+          "sha256": "05d27b5a98c56300a35abdc42146520d35970f5d1d16a527c43555f5f8aeb465",
+          "size": 2226607,
+          "entropy": 7.9998,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "payload_recovered",
+            "candidates": [
+              {
+                "offset": 0,
+                "stride": 1,
+                "shellcode_sha256": "ba0ab143eca76e1f8790cff97d2f3943dc92ca7deb8a994d0e323ed51290a685",
+                "status": "payload_recovered",
+                "layout": "current-0x240-array",
+                "instance_sha256": "2b2f61d1b899442008352da6bbcfe5513b30a9888a2be609b2b6d1f6ea2c81ff",
+                "payloads": [
+                  {
+                    "sha256": "c54f5ece85d890e5a3d51109fe0488ef4a8fbd81c1844afdddfc6c03a296a8e8",
+                    "size": 2210304
+                  }
+                ]
+              }
+            ]
+          },
+          "recovered": [
+            {
+              "kind": "donut-terminal-payload",
+              "size": 2210304,
+              "sha256": "c54f5ece85d890e5a3d51109fe0488ef4a8fbd81c1844afdddfc6c03a296a8e8"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "layer_markers": [
+            "portable_executable",
+            "strict_donut_shellcode"
+          ],
+          "delivery_profile": "embedded_donut",
+          "donut_confirmed": true,
+          "donut_candidates": [
+            {
+              "offset": 0,
+              "stride": 1,
+              "shellcode_sha256": "ba0ab143eca76e1f8790cff97d2f3943dc92ca7deb8a994d0e323ed51290a685",
+              "shellcode_size": 2215306,
+              "layout": "current-0x240-array",
+              "instance_sha256": "2b2f61d1b899442008352da6bbcfe5513b30a9888a2be609b2b6d1f6ea2c81ff",
+              "payloads": [
+                {
+                  "sha256": "c54f5ece85d890e5a3d51109fe0488ef4a8fbd81c1844afdddfc6c03a296a8e8",
+                  "size": 2210304
+                }
+              ]
+            }
+          ],
+          "chain": null,
+          "recovered_pe_artifacts": [],
+          "terminal_configs": [],
+          "source_name": "xor32-donut-shellcode.bin",
+          "endpoints": []
+        },
+        "findings": [],
+        "limitations": [
+          "Static extraction only; no payload execution or C2 contact was performed."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "donut-terminal-payload",
+        "sha256": "c54f5ece85d890e5a3d51109fe0488ef4a8fbd81c1844afdddfc6c03a296a8e8",
+        "size": 2210304,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "donut-terminal-payload.bin",
+          "sha256": "c54f5ece85d890e5a3d51109fe0488ef4a8fbd81c1844afdddfc6c03a296a8e8",
+          "size": 2210304,
+          "entropy": 7.9992,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 2210304,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x8664",
+            "is_dotnet": true,
+            "is_go": false,
+            "imports": 0,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 2208256,
+                "virtual_size": 2208132,
+                "entropy": 7.9995,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 1536,
+                "virtual_size": 1272,
+                "entropy": 3.7716,
+                "characteristics": "0x40000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".text"
+            ],
+            "code_entropy_sections": [
+              ".text"
+            ],
+            "packer_markers": [],
+            "classification": "managed_loader_or_obfuscated",
+            "containerized": false,
+            "entrypoint_section": null,
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 2,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "dotnet_resources": {
+            "status": "resources_recovered",
+            "count": 1,
+            "inventory": [
+              {
+                "name": "wurzxllruqmyfqpabttjttvn.Resources",
+                "size": 2197362,
+                "sha256": "3142061dfd56a4d407744b3d54928842f9e2154d4a43cbdf981046667215c870",
+                "entropy": 7.9999,
+                "format": "data",
+                "entries": [
+                  {
+                    "name": "ininciybvwzzwqsvttahlgjarkkj",
+                    "type": "System.ByteArray"
+                  },
+                  {
+                    "name": "wsivvzewtypcvuvjxfxtxutduleyukiqlbeqqf",
+                    "type": "System.ByteArray"
+                  },
+                  {
+                    "name": "oaorjebubntsmotuha",
+                    "type": "System.ByteArray"
+                  }
+                ],
+                "status": "extracted"
+              }
+            ]
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "dotnet-resource-opaque",
+              "size": 2197362,
+              "sha256": "3142061dfd56a4d407744b3d54928842f9e2154d4a43cbdf981046667215c870"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "layer_markers": [
+            "portable_executable"
+          ],
+          "delivery_profile": "unrecognized",
+          "donut_confirmed": false,
+          "donut_candidates": [],
+          "chain": null,
+          "recovered_pe_artifacts": [],
+          "terminal_configs": [],
+          "source_name": "donut-terminal-payload.bin",
+          "endpoints": []
+        },
+        "findings": [],
+        "limitations": [
+          "Static extraction only; no payload execution or C2 contact was performed.",
+          "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+        ]
+      },
+      {
+        "depth": 3,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "3142061dfd56a4d407744b3d54928842f9e2154d4a43cbdf981046667215c870",
+        "size": 2197362,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "3142061dfd56a4d407744b3d54928842f9e2154d4a43cbdf981046667215c870",
+          "size": 2197362,
+          "entropy": 7.9999,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "layer_markers": [
+            "portable_executable"
+          ],
+          "delivery_profile": "unrecognized",
+          "donut_confirmed": false,
+          "donut_candidates": [],
+          "chain": null,
+          "recovered_pe_artifacts": [],
+          "terminal_configs": [],
+          "source_name": "dotnet-resource-opaque.bin",
+          "endpoints": []
+        },
+        "findings": [],
+        "limitations": [
+          "Static extraction only; no payload execution or C2 contact was performed.",
+          "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

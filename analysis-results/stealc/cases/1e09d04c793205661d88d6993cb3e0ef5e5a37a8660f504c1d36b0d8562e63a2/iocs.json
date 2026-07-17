@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "sha256": "1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2",
+      "role": "reviewed_stealc_sample",
+      "confidence": "confirmed"
+    }
+  ],
+  "network": [
+    {
+      "value": "http://fff-ttt.com/984dd96064cb23d7.php",
+      "role": "c2_url_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "http://fff-ttt.com/a02fc2187db8cd88/",
+      "role": "dependency_directory_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "fff-ttt.com",
+      "role": "c2_domain_from_static_config",
+      "confidence": "confirmed_static_config"
+    }
+  ],
+  "network_contacted": false
+}

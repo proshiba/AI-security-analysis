@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "88a60c235a2fbf9b681d9b67daf8f67e9a21edd53fc84b8babfa8f286c38e6b8", "role": "submitted_casper_x64_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "https://gfsg.chickenkiller.com", "role": "c2_url_from_config", "confidence": "confirmed_static_config"},
+    {"value": "gfsg.chickenkiller.com", "role": "c2_domain_from_config", "confidence": "confirmed_static_config"}
+  ],
+  "network_contacted": false
+}
+

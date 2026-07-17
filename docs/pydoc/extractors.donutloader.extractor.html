@@ -9,14 +9,22 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.donutloader.html" class="white">donutloader</a>.extractor</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cdonutloader%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\donutloader\extractor.py</a></td></tr></table>
-    <p><span class="code">Identify&nbsp;Donut/CHRD&nbsp;layers&nbsp;and&nbsp;delegate&nbsp;terminal&nbsp;PureRAT&nbsp;config&nbsp;extraction.</span></p>
+    <p><span class="code">Identify&nbsp;Donut&nbsp;delivery&nbsp;layers&nbsp;and&nbsp;separate&nbsp;them&nbsp;from&nbsp;terminal-family&nbsp;config.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;delivery-layer&nbsp;markers&nbsp;or&nbsp;terminal&nbsp;PureRAT&nbsp;configuration.</span></dd></dl>
- <dl><dt><a name="-layer_markers"><strong>layer_markers</strong></a>(data: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;deterministic&nbsp;DonutLoader&nbsp;layer&nbsp;markers&nbsp;present&nbsp;in&nbsp;static&nbsp;bytes.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample', deep: 'bool' = True) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;delivery&nbsp;evidence&nbsp;and&nbsp;preserve&nbsp;terminal-family&nbsp;boundaries.</span></dd></dl>
+ <dl><dt><a name="-inspect_chain"><strong>inspect_chain</strong></a>(data: 'bytes', deep: 'bool' = True) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Inspect&nbsp;Donut&nbsp;evidence,&nbsp;generic&nbsp;wrappers,&nbsp;and&nbsp;terminal&nbsp;configs&nbsp;separately.</span></dd></dl>
+ <dl><dt><a name="-layer_markers"><strong>layer_markers</strong></a>(data: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;deterministic&nbsp;delivery-layer&nbsp;markers&nbsp;present&nbsp;in&nbsp;static&nbsp;bytes.</span></dd></dl>
 </td></tr></table>
 </body></html>

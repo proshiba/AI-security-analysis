@@ -53,3 +53,9 @@ Detection rules under `rules/` are starting points and require environment tunin
 ## Latest refresh
 
 - [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)
+
+## VX-Underground batch, 2026-07-16
+
+The [25-sample static batch](vx-underground-20260716/README.md) includes
+recursive container recovery, bounded handling of very large PE files, and
+validated repeated-XOR configurations where present.

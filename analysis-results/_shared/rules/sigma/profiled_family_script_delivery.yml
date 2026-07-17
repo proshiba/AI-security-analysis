@@ -1,0 +1,36 @@
+title: Script Host With Explicit Remote Content Syntax
+id: 8a57e992-e040-4dd7-a245-2c8541d53dc2
+status: test
+description: >
+  Low-confidence correlation template for the script-delivery formats present in
+  the 2026-07-17 profiled-family batch. This is not a claim that every reviewed
+  sample produced the process event.
+references:
+  - https://github.com/proshiba/AI-security-analysis
+author: AI-security-analysis
+date: 2026-07-17
+tags:
+  - attack.execution
+  - attack.t1059
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+  selection_remote_syntax:
+    CommandLine|contains:
+      - 'http://'
+      - 'https://'
+      - 'DownloadString'
+      - 'Invoke-WebRequest'
+      - 'XMLHTTP'
+  condition: selection_image and selection_remote_syntax
+falsepositives:
+  - Software deployment, login scripts, administrative automation, and support tools
+level: medium

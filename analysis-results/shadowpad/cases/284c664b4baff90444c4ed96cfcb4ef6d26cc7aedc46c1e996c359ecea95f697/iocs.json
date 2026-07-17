@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "284c664b4baff90444c4ed96cfcb4ef6d26cc7aedc46c1e996c359ecea95f697", "role": "submitted_casper_x64_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "https://goods.kankuedu.org", "role": "c2_url_from_config", "confidence": "confirmed_static_config"},
+    {"value": "goods.kankuedu.org", "role": "c2_domain_from_config", "confidence": "confirmed_static_config"}
+  ],
+  "network_contacted": false
+}
+

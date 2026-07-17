@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.donut_wrapper_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.donut_wrapper_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cdonut_wrapper_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\donut_wrapper_unpacker.py</a></td></tr></table>
+    <p><span class="code">Recover&nbsp;a&nbsp;validated&nbsp;32-byte-XOR&nbsp;wrapper&nbsp;around&nbsp;Donut&nbsp;shellcode.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-recover_xor32_donut_wrapper"><strong>recover_xor32_donut_wrapper</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;Donut&nbsp;bytes&nbsp;only&nbsp;from&nbsp;the&nbsp;tightly&nbsp;validated&nbsp;observed&nbsp;PE&nbsp;wrapper.<br>
+&nbsp;<br>
+The&nbsp;wrapper&nbsp;is&nbsp;accepted&nbsp;only&nbsp;when&nbsp;a&nbsp;PE&nbsp;has&nbsp;a&nbsp;sufficiently&nbsp;large&nbsp;``.rdata``<br>
+section,&nbsp;the&nbsp;first&nbsp;32&nbsp;bytes&nbsp;decode&nbsp;four&nbsp;exact&nbsp;process-launch&nbsp;strings&nbsp;at<br>
+fixed&nbsp;offsets,&nbsp;and&nbsp;the&nbsp;decoded&nbsp;payload&nbsp;has&nbsp;a&nbsp;valid&nbsp;Donut&nbsp;call-over-instance<br>
+structure.&nbsp;These&nbsp;checks&nbsp;prevent&nbsp;a&nbsp;generic&nbsp;XOR&nbsp;brute-force&nbsp;path.</span></dd></dl>
+ <dl><dt><a name="-repeated_xor"><strong>repeated_xor</strong></a>(data: 'bytes', key: 'bytes', stream_offset: 'int' = 0) -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;a&nbsp;repeated&nbsp;XOR&nbsp;key&nbsp;starting&nbsp;at&nbsp;an&nbsp;explicit&nbsp;stream&nbsp;offset.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BLOB_OFFSET</strong> = 81<br>
+<strong>EXPECTED_STRINGS</strong> = {33: b'%s\\%s', 39: b'SystemRoot', 50: b'System32\\conhost.exe', 71: b'"%s" "%s"'}<br>
+<strong>KEY_SIZE</strong> = 32</td></tr></table>
+</body></html>

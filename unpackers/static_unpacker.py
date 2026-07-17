@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from unpackers.path_safety import safe_member_name as validate_member_name
 
 import dnfile
 import pefile
@@ -25,11 +26,30 @@ import pyzipper
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from unpackers.asar_unpacker import is_asar, recover_asar
 from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
-from unpackers.javascript_obfuscator import decode_script_text, deobfuscate_string_array
+from unpackers.javascript_obfuscator import (
+    decode_script_text,
+    deobfuscate_plain_string_array,
+    deobfuscate_string_array,
+)
 from unpackers.nsis_unpacker import recover_nsis_scripted_layers
+from unpackers.container_recovery import (
+    recover_inflated_pe,
+    recover_macho_slices,
+    recover_xz,
+)
+from unpackers.donut_unpacker import recover_donut_payloads
+from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
+from unpackers.managed_il_triage import (
+    _contain_parser_diagnostics,
+    analyze_managed_pe,
+)
+from unpackers.static_control_flow import analyze_pe_control_flow
 
 MAX_ARTIFACT = 256 * 1024 * 1024
+ENTROPY_FULL_LIMIT = 8 * 1024 * 1024
+ENTROPY_SAMPLE_WINDOW = 1 * 1024 * 1024
 MAX_EXTRACTED_TOTAL = 768 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 512
 MAX_RETAINED_MEMBERS = 128
@@ -66,6 +86,7 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
     ".conf",
     ".a3x",
     ".sum",
+    ".asar",
     ".zip",
     ".7z",
     ".cab",
@@ -78,15 +99,24 @@ def sha256_bytes(data: bytes) -> str:
 
 
 def entropy(data: bytes) -> float:
-    """Return Shannon entropy rounded to four decimals."""
+    """Return bounded deterministic Shannon entropy rounded to four decimals."""
     if not data:
         return 0.0
+    sample = data
+    if len(data) > ENTROPY_FULL_LIMIT:
+        middle = max(0, (len(data) - ENTROPY_SAMPLE_WINDOW) // 2)
+        sample = (
+            data[:ENTROPY_SAMPLE_WINDOW]
+            + data[middle : middle + ENTROPY_SAMPLE_WINDOW]
+            + data[-ENTROPY_SAMPLE_WINDOW:]
+        )
     counts = [0] * 256
-    for value in data:
+    for value in sample:
         counts[value] += 1
+    total = len(sample)
     return round(
         -sum(
-            (count / len(data)) * math.log2(count / len(data))
+            (count / total) * math.log2(count / total)
             for count in counts
             if count
         ),
@@ -99,10 +129,25 @@ def detect_format(data: bytes, name: str = "sample") -> str:
     suffix = Path(name).suffix.lower()
     if data.startswith(b"MZ"):
         return "pe"
+    if is_asar(data):
+        return "asar"
     if data[:4] in MACHO_MAGICS:
+        # CAFEBABE is shared by Java class files and universal Mach-O.  Treat
+        # it as Mach-O only when the bounded architecture table is plausible.
+        if data[:4] in {b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"}:
+            endian = ">" if data[:4] == b"\xca\xfe\xba\xbe" else "<"
+            if len(data) < 8:
+                return "data"
+            architecture_count = struct.unpack_from(endian + "I", data, 4)[0]
+            if not 1 <= architecture_count <= 32 or 8 + architecture_count * 20 > len(data):
+                return "java-class" if data[:4] == b"\xca\xfe\xba\xbe" else "data"
         return "macho"
     if data.startswith(b"7z\xbc\xaf'\x1c"):
         return "7z"
+    if data.startswith(b"\xfd7zXZ\x00"):
+        return "xz"
+    if data.startswith(b"ER\x02\x00"):
+        return "apple-disk-image"
     if data.startswith(b"MSCF"):
         return "cab"
     if data.startswith((b"Rar!\x1a\x07\x00", b"Rar!\x1a\x07\x01\x00")):
@@ -128,17 +173,7 @@ def detect_format(data: bytes, name: str = "sample") -> str:
 
 def safe_member_name(name: str) -> str:
     """Reject archive traversal and absolute or drive-qualified member names."""
-    normalized = name.replace("\\", "/")
-    path = PurePosixPath(normalized)
-    if (
-        not normalized
-        or normalized.startswith("/")
-        or re.match(r"^[A-Za-z]:", normalized)
-    ):
-        raise ValueError(f"unsafe member name: {name}")
-    if any(part in {"", ".", ".."} for part in path.parts):
-        raise ValueError(f"unsafe member name: {name}")
-    return normalized
+    return validate_member_name(name, "archive")
 
 
 def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
@@ -194,13 +229,16 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 "name": section.Name.rstrip(b"\0").decode(errors="replace"),
                 "raw_size": section.SizeOfRawData,
                 "virtual_size": section.Misc_VirtualSize,
-                "entropy": round(section.get_entropy(), 4),
+                "entropy": entropy(section.get_data()),
                 "characteristics": hex(section.Characteristics),
             }
         )
     imports = sum(
         len(entry.imports) for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])
     )
+    overlay_offset = pe.get_overlay_data_start_offset()
+    image_end = overlay_offset if overlay_offset is not None else len(data)
+    marker_probe = data[: min(image_end, 32 * 1024 * 1024)].lower()
     markers = sorted(
         marker.decode()
         for marker in (
@@ -211,10 +249,9 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             b"VMProtect",
             b"Nullsoft",
         )
-        if marker.lower() in data.lower()
+        if marker.lower() in marker_probe
     )
     artifacts: list[tuple[str, bytes]] = []
-    overlay_offset = pe.get_overlay_data_start_offset()
     overlay = data[overlay_offset:] if overlay_offset is not None else b""
     overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
     if overlay and overlay_format != "data":
@@ -314,6 +351,30 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "suspected_packed",
         "virtualized_or_packed",
     }
+    control_flow = None
+    if packed or classification == "managed_loader_or_obfuscated" or len(data) > 32 * 1024 * 1024:
+        control_flow = analyze_pe_control_flow(data)
+        # The full block list is useful in a private analyst workspace but is
+        # too large for recursive unpack reports.  Metrics retain every count
+        # and address needed to route a hard case to a deeper tool.
+        control_flow.pop("blocks", None)
+        control_context = control_flow.get("static_context")
+        if isinstance(control_context, dict):
+            control_context.pop("sections", None)
+            control_context.pop("import_names", None)
+    managed_il = None
+    if is_dotnet:
+        managed_il = analyze_managed_pe(data)
+        # Preserve counts, marker provenance, resource hashes, dispatcher
+        # candidates, and the method plan while avoiding tens of thousands of
+        # per-token rows in recursive public reports.  Analysts can invoke the
+        # dedicated CLI for the private full inventory.
+        managed_il.pop("types", None)
+        managed_il.pop("methods", None)
+        malformed = managed_il.get("malformed_method_bodies")
+        if isinstance(malformed, list) and len(malformed) > 128:
+            managed_il["malformed_method_bodies"] = malformed[:128]
+            managed_il["malformed_method_bodies_truncated"] = True
     return (
         {
             "machine": hex(pe.FILE_HEADER.Machine),
@@ -335,11 +396,14 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
             "archive_resources_recovered": archive_resources,
+            "control_flow_triage": control_flow,
+            "managed_il_triage": managed_il,
         },
         artifacts,
     )
 
 
+@_contain_parser_diagnostics
 def recover_dotnet_resources(
     data: bytes,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
@@ -997,7 +1061,17 @@ def sevenzip_extract(
     listing = sevenzip_inventory(data, executable, password)
     if listing["status"] == "unavailable":
         return listing, []
-    extractable_types = {"7z", "cab", "nsis", "rar", "zip"}
+    extractable_types = {
+        "7z",
+        "apm",
+        "cab",
+        "dmg",
+        "hfs",
+        "mub",
+        "nsis",
+        "rar",
+        "zip",
+    }
     archive_types = {value.lower() for value in listing.get("archive_types", [])}
     supported_archive = archive_types.intersection(extractable_types) or any(
         value.startswith("rar") for value in archive_types
@@ -1120,15 +1194,22 @@ def unpack_bytes(
         "size": len(data),
         "entropy": entropy(data),
         "format": kind,
+        "entropy_sampled": len(data) > ENTROPY_FULL_LIMIT,
         "executed": False,
         "network_contacted": False,
     }
     artifacts: list[tuple[str, bytes]] = []
+    static_data = data
+    if kind == "pe":
+        report["inflated_pe"], recovered_blob = recover_inflated_pe(data)
+        if recovered_blob:
+            static_data = recovered_blob
+            artifacts.append(("pe-inflated-gap-removed", recovered_blob))
     if diec and kind in {"pe", "macho"}:
-        report["die"] = run_die(data, diec, name)
+        report["die"] = run_die(static_data, diec, name)
     if kind == "pe":
         try:
-            report["pe"], recovered = pe_summary(data)
+            report["pe"], recovered = pe_summary(static_data)
         except pefile.PEFormatError as exc:
             report["pe"] = {
                 "status": "parse_failed",
@@ -1139,36 +1220,47 @@ def unpack_bytes(
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
         artifacts.extend(recovered)
+        report["donut_wrapper"], recovered = recover_xor32_donut_wrapper(static_data)
+        artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
-            report["dotnet_resources"], recovered = recover_dotnet_resources(data)
+            report["dotnet_resources"], recovered = recover_dotnet_resources(static_data)
             artifacts.extend(recovered)
         section_names = {item["name"].lower() for item in report["pe"]["sections"]}
         likely_upx = "UPX!" in report["pe"]["packer_markers"] or any(
             "upx" in value for value in section_names
         )
         if upx and likely_upx:
-            report["upx"], blob = run_upx(data, upx)
+            report["upx"], blob = run_upx(static_data, upx)
             if blob:
                 artifacts.append(("upx", blob))
         elif upx:
             report["upx"] = {"status": "skipped_no_upx_evidence"}
         if sevenzip and report["pe"]["containerized"]:
-            report["sevenzip"], recovered = sevenzip_extract(data, sevenzip, name)
+            report["sevenzip"], recovered = sevenzip_extract(static_data, sevenzip, name)
             artifacts.extend(recovered)
     elif kind == "macho":
         report["macho"] = macho_summary(data)
+        report["macho_slices"], recovered = recover_macho_slices(data)
+        artifacts.extend(recovered)
+    elif kind == "xz":
+        report["xz"], recovered_blob = recover_xz(data)
+        if recovered_blob:
+            artifacts.append(("xz-decompressed", recovered_blob))
     elif kind == "zip":
         try:
             report["zip"], recovered = recover_zip(data)
             artifacts.extend(recovered)
-        except ValueError as exc:
+        except (ValueError, zipfile.BadZipFile) as exc:
             report["zip_error"] = str(exc)
             report["unpack_status"] = "bounded_limit"
-    elif kind in {"7z", "cab", "rar"} and sevenzip:
+    elif kind in {"7z", "apple-disk-image", "cab", "rar"} and sevenzip:
         report["sevenzip"], recovered = sevenzip_extract(data, sevenzip, name)
         artifacts.extend(recovered)
     elif kind == "autoit-a3x":
         report["autoit"], recovered = recover_autoit_script(data)
+        artifacts.extend(recovered)
+    elif kind == "asar":
+        report["asar"], recovered = recover_asar(data)
         artifacts.extend(recovered)
     elif kind == "script":
         artifacts.extend(recover_encoded_blobs(data))
@@ -1177,7 +1269,15 @@ def unpack_bytes(
         report["javascript_string_array"], transformed = deobfuscate_string_array(data)
         if transformed:
             artifacts.append(("javascript-string-array-deobfuscated", transformed))
-    artifacts.extend(carve_embedded_pes(data))
+        report["javascript_plain_string_array"], transformed = deobfuscate_plain_string_array(data)
+        if transformed:
+            artifacts.append(
+                ("javascript-plain-string-array-deobfuscated", transformed)
+            )
+    if len(static_data) <= 32 * 1024 * 1024:
+        report["donut"], recovered = recover_donut_payloads(static_data)
+        artifacts.extend(recovered)
+    artifacts.extend(carve_embedded_pes(static_data))
     deduplicated: list[tuple[str, bytes]] = []
     seen: set[str] = set()
     for artifact_kind, blob in artifacts:
@@ -1190,8 +1290,9 @@ def unpack_bytes(
         {"kind": artifact_kind, "size": len(blob), "sha256": sha256_bytes(blob)}
         for artifact_kind, blob in deduplicated
     ]
-    report["unpack_status"] = (
-        "artifacts_recovered" if deduplicated else "no_artifact_recovered"
+    report.setdefault(
+        "unpack_status",
+        "artifacts_recovered" if deduplicated else "no_artifact_recovered",
     )
     return report, deduplicated
 
@@ -1225,6 +1326,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Analyze one raw artifact and optionally archive recovered layers."""
     args = build_parser().parse_args(argv)
+    if args.input.resolve() == args.output.resolve():
+        raise ValueError("input and output paths must differ")
     report, artifacts = unpack_bytes(
         args.input.read_bytes(), args.input.name, args.upx, args.sevenzip, args.diec
     )

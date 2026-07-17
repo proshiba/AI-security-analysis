@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "sha256": "b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf",
+      "role": "reviewed_stealc_sample",
+      "confidence": "confirmed"
+    }
+  ],
+  "network": [],
+  "network_contacted": false
+}

@@ -1,0 +1,18 @@
+title: AtlasCross RAT Persistence and Public Documents Artifacts
+id: 3be96b7a-fcb1-4e6e-b770-4590556bf63a
+status: experimental
+description: Detects AtlasCross campaign-specific configuration and persistence paths.
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_config:
+    TargetFilename|contains: '\Users\Public\Documents\'
+    TargetFilename|endswith:
+      - '\AtlasPro.ini'
+      - '\MODIf.html'
+      - '\bifa668.com'
+  condition: selection_config
+falsepositives:
+  - Public AtlasCross test fixtures
+level: high

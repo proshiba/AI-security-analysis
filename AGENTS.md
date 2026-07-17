@@ -54,6 +54,18 @@
 - ケース別READMEでは、判定とチェーン、ファイルIOC、C2/通信IOC、Sigma/YARA材料、制約を分けて記載すること。
 - IOCや検知条件は、IP単独、ファイル名単独、`rundll32.exe` 単独などの高誤検知条件を避け、hash、署名状態、親子関係、image load、process帰属付き通信と組み合わせること。
 
+## IOC-LIST.md の更新ルール
+
+- 個別のcase、campaign、incident解析には、同じディレクトリに機械可読性を意識した `IOC-LIST.md` を必ず置くこと。過去解析も例外にしないこと。
+- `IOC-LIST.md` は `python analysis-framework/common/generate_ioc_lists.py --repository .` で生成し、原則として手編集しないこと。
+- 内容は `Type`、`Value`、`Role`、`Confidence`、`Source` の表だけとし、挙動説明、検知考察、Shodan/Sigma/YARAクエリ、一般的なコマンド名を混ぜないこと。
+- 掲載対象は、証拠に紐づいた検体・payload hash、domain、IP、endpoint、URL、証明書hash、特徴的なfile path/nameとすること。配布先、stage取得先、C2、証明書などの役割を分けること。
+- URLのuserinfo、query、fragment、token、password、メールアドレスその他の資格情報を掲載しないこと。必要なURLパスだけを残して秘密値を除去すること。
+- 正規署名付きhost、decoy、共有インフラは、単独IOCとして扱える根拠がない限り除外すること。`context_only`、`not_ioc`、`not_c2`、`dual-use` と分類された値も除外すること。
+- 公開可能なIOCがない解析でも、空の標準表を持つ `IOC-LIST.md` を置き、「存在しない」ことを明示可能にすること。
+- 新規解析、README、`iocs.json`、`config.json`、`analysis_history.yaml` を変更した後は一覧を再生成し、`python analysis-framework/common/generate_ioc_lists.py --repository . --check` で同期を検証すること。
+- リポジトリ横断の索引は `analysis-results/IOC-INDEX.md` とし、個別一覧と同じgeneratorから更新すること。
+
 ## 検証ルール
 
 - YAMLを編集した場合は、利用可能なパーサで構文と期待するトップレベル構造を検証すること。
@@ -65,3 +77,79 @@
 
 - 変更したファイル、実行した検証、未検証事項を簡潔にまとめること。
 - ドキュメント変更でも、解析安全ルールや履歴サマリの整合性に影響がある場合はその点を明記すること。
+
+## Malware-analysis start/end safety gate
+
+- Before opening, extracting, or analyzing a malware submission, run the read-only
+  safety check with sample paths, hashes, and distinctive filenames as patterns.
+- Run the same check again before declaring the analysis complete. Investigate any
+  unexpected matching process, service, scheduled task, Run-key value, network
+  connection, or active Microsoft Defender threat.
+- The check must not execute, load, register, or make a network request from a sample.
+- Safety-check output, snapshots, and reports are ephemeral operational data. They
+  MUST NOT be written under this repository or committed to GitHub. Use stdout, or
+  an outside-repository temporary location only when transient retention is required.
+- Do not declare completion while an unexplained execution or persistence indicator
+  remains. Escalate the observation to the user without attempting destructive cleanup.
+
+## Hash-only OSINT enrichment rules
+
+- For low-confidence and unidentified cases, query exact hashes only by
+  default. Never submit or upload a sample as a fallback, and never contact
+  infrastructure extracted from a sample.
+- Keep raw API/provider responses under ignored `.work/` storage. Publish only
+  normalized evidence, sanitized references, source status, and confidence.
+- Do not count an aggregator in addition to its named underlying providers.
+  Require at least two independent agreeing providers for medium confidence.
+- A one-provider label is a low-confidence lead. Preserve competing family
+  labels as conflicts; a tie remains unknown. Missing OSINT is not benign
+  evidence.
+- Store reviewed manual research in hash-keyed curated evidence. Distinguish an
+  exact-hash source from general family context and record provenance for both.
+- Strip URL user information, queries, fragments, credentials, tokens, email
+  addresses, raw provider fields, and recovered secrets from public output.
+- Unit-test source normalization, aliases, confidence, conflict handling,
+  secret sanitation, offline replay, and curated evidence before publication.
+
+## Profile-defined multi-family analysis rules
+
+- Put shared family markers, config keys, transport expectations, aliases, and
+  confirmation requirements in `extractors/profiles/windows_family_profiles.json`.
+  Keep family detector files as thin adapters; do not duplicate extraction logic.
+- Treat a MalwareBazaar exact signature and reviewed hash as family-selection
+  evidence, not proof that a literal is a decoded config or live C2.
+- Classify network findings by role. Delivery-stage URLs may be IOCs but are not
+  C2; public-IP discovery, certificate, documentation, placeholder, and benign
+  vendor values are neither C2 targets nor standalone IOCs.
+- Never create Shodan banner/hash, HTTP title, certificate hash, JARM, or liveness
+  output without an actual authorized observation. Offline query strings must be
+  labelled as passive plans only.
+- MalwareBazaar acquisition must remain resumable. Persist exhausted transient
+  failures in a hash-keyed retry queue and rerun them after other static work;
+  never silently substitute an older sample for a selected newest hash.
+- After a profile-family batch, run `validate_family_expansion.py`. Completion
+  requires hash, routing, public-artifact, non-execution, and non-contact checks.
+- Keep loopback emulators synthetic and explicitly non-wire-compatible. All bind
+  and client targets must pass the shared literal-loopback validator.
+
+## Deep static hard-case rules
+
+- Use `analysis-framework/inventories/static-hard-cases.yaml` as the reviewed
+  inventory. Authenticate every root and child by SHA-256 and preserve the
+  parent/transform/child relationship.
+- Keep this workflow static-only: do not execute samples or recovered layers,
+  do not CPU-emulate native code or CIL, and do not contact extracted hosts.
+- Analyze every recovered child as a separate layer. A packer/container result
+  does not describe the terminal payload, and a missing expected child remains
+  unresolved rather than absent.
+- Treat CFG technique results as routing evidence. `not_observed` applies only
+  to the bounded reachable graph; `suspected` is not confirmation. Confirm CFF
+  only after recovering the dispatcher state and reproducible successor map.
+- Suppress native CFF/VM attribution for a normal CLR entry thunk. Route managed
+  images to metadata, CIL, and resource analysis. Treat UPX/MPRESS loader-stub
+  graphs as packer-confounded until an authenticated child is analyzed.
+- Prefer Ghidra MCP for static validation, always with an explicit program
+  selector. Keep it localhost-only and leave arbitrary scripts disabled.
+- Publish hashes, sizes, relationships, metrics, evidence, and explicit limits
+  only. Never publish recovered raw binaries or the start/end host safety-check
+  output.

@@ -17,10 +17,11 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="hashlib.html">hashlib</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="pefile.html">pefile</a><br>
 </td><td class="multicolumn"><a href="struct.html">struct</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -30,7 +31,8 @@
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="unpackers.donut_unpacker.html#DonutLayout">DonutLayout</a>
+<dt class="heading-text"><a href="unpackers.donut_unpacker.html#DonutCandidate">DonutCandidate</a>
+</dt><dt class="heading-text"><a href="unpackers.donut_unpacker.html#DonutLayout">DonutLayout</a>
 </dt><dt class="heading-text"><a href="unpackers.donut_unpacker.html#DonutResult">DonutResult</a>
 </dt></dl>
 </dd>
@@ -38,18 +40,51 @@
  <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DonutCandidate">class <strong>DonutCandidate</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DonutCandidate">DonutCandidate</a>(offset:&nbsp;'int',&nbsp;stride:&nbsp;'int',&nbsp;data:&nbsp;'bytes')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+One&nbsp;strictly&nbsp;validated&nbsp;contiguous&nbsp;or&nbsp;sparse&nbsp;Donut&nbsp;shellcode&nbsp;candidate.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DonutCandidate-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DonutCandidate-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="DonutCandidate-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="DonutCandidate-__init__"><strong>__init__</strong></a>(self, offset: 'int', stride: 'int', data: 'bytes') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DonutCandidate-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DonutCandidate-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'data': 'bytes', 'offset': 'int', 'stride': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'offset': Field(name='offset',type='int',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'stride': Field(name='stride',type='int',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('offset', 'stride', 'data')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="DonutLayout">class <strong>DonutLayout</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DonutLayout">DonutLayout</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;name:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;crypt_start:&nbsp;'int',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;api_count:&nbsp;'int',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;dll_names:&nbsp;'int',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;instance_type:&nbsp;'int',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;module_length:&nbsp;'int',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;module:&nbsp;'int'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DonutLayout">DonutLayout</a>(name:&nbsp;'str',&nbsp;crypt_start:&nbsp;'int',&nbsp;api_count:&nbsp;'int',&nbsp;dll_names:&nbsp;'int',&nbsp;instance_type:&nbsp;'int',&nbsp;module_length:&nbsp;'int',&nbsp;module:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Offsets&nbsp;for&nbsp;one&nbsp;observed&nbsp;Donut&nbsp;instance&nbsp;layout.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -60,18 +95,7 @@ Offsets&nbsp;for&nbsp;one&nbsp;observed&nbsp;Donut&nbsp;instance&nbsp;layout.<br
 
 <dl><dt><a name="DonutLayout-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="DonutLayout-__init__"><strong>__init__</strong></a>(
-    self,
-    name: 'str',
-    crypt_start: 'int',
-    api_count: 'int',
-    dll_names: 'int',
-    instance_type: 'int',
-    module_length: 'int',
-    module: 'int'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="DonutLayout-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+<dl><dt><a name="DonutLayout-__init__"><strong>__init__</strong></a>(self, name: 'str', crypt_start: 'int', api_count: 'int', dll_names: 'int', instance_type: 'int', module_length: 'int', module: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="DonutLayout-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -101,13 +125,7 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="DonutResult">class <strong>DonutResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DonutResult">DonutResult</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;layout:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;instance:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;module:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;payload:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;metadata:&nbsp;'dict'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DonutResult">DonutResult</a>(layout:&nbsp;'str',&nbsp;instance:&nbsp;'bytes',&nbsp;module:&nbsp;'bytes',&nbsp;payload:&nbsp;'bytes',&nbsp;metadata:&nbsp;'dict')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Recovered&nbsp;Donut&nbsp;metadata&nbsp;and&nbsp;bytes&nbsp;without&nbsp;executing&nbsp;loader&nbsp;code.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -118,16 +136,7 @@ Recovered&nbsp;Donut&nbsp;metadata&nbsp;and&nbsp;bytes&nbsp;without&nbsp;executi
 
 <dl><dt><a name="DonutResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="DonutResult-__init__"><strong>__init__</strong></a>(
-    self,
-    layout: 'str',
-    instance: 'bytes',
-    module: 'bytes',
-    payload: 'bytes',
-    metadata: 'dict'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="DonutResult-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+<dl><dt><a name="DonutResult-__init__"><strong>__init__</strong></a>(self, layout: 'str', instance: 'bytes', module: 'bytes', payload: 'bytes', metadata: 'dict') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="DonutResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -161,9 +170,11 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-chaskey_block"><strong>chaskey_block</strong></a>(key: 'bytes', block: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;Donut's&nbsp;16-round&nbsp;Chaskey&nbsp;permutation&nbsp;to&nbsp;one&nbsp;16-byte&nbsp;block.</span></dd></dl>
  <dl><dt><a name="-chaskey_ctr"><strong>chaskey_ctr</strong></a>(key: 'bytes', counter: 'bytes', data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Encrypt&nbsp;or&nbsp;decrypt&nbsp;bytes&nbsp;with&nbsp;Donut's&nbsp;big-endian-counter&nbsp;Chaskey&nbsp;CTR.</span></dd></dl>
  <dl><dt><a name="-decrypt_instance"><strong>decrypt_instance</strong></a>(shellcode: 'bytes') -&gt; 'tuple[bytes, DonutLayout]'</dt><dd><span class="code">Decrypt&nbsp;a&nbsp;Donut&nbsp;instance&nbsp;and&nbsp;auto-select&nbsp;a&nbsp;supported&nbsp;structure&nbsp;layout.</span></dd></dl>
+ <dl><dt><a name="-find_donut_shellcodes"><strong>find_donut_shellcodes</strong></a>(data: 'bytes', strides: 'tuple[int, ...]' = (1, 4)) -&gt; 'list[DonutCandidate]'</dt><dd><span class="code">Find&nbsp;strict&nbsp;call-over-instance&nbsp;Donut&nbsp;shellcode&nbsp;in&nbsp;contiguous&nbsp;or&nbsp;sparse&nbsp;lanes.</span></dd></dl>
  <dl><dt><a name="-is_donut_shellcode"><strong>is_donut_shellcode</strong></a>(data: 'bytes') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;true&nbsp;when&nbsp;bytes&nbsp;have&nbsp;Donut's&nbsp;call-over-instance&nbsp;layout.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;static&nbsp;Donut&nbsp;unpacker&nbsp;and&nbsp;optionally&nbsp;write&nbsp;recovered&nbsp;layers.</span></dd></dl>
  <dl><dt><a name="-parse_module"><strong>parse_module</strong></a>(module: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;the&nbsp;fixed&nbsp;Donut&nbsp;module&nbsp;header&nbsp;and&nbsp;return&nbsp;publish-safe&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-recover_donut_payloads"><strong>recover_donut_payloads</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Decrypt&nbsp;strict&nbsp;Donut&nbsp;candidates&nbsp;and&nbsp;recover&nbsp;validated&nbsp;terminal&nbsp;modules.</span></dd></dl>
  <dl><dt><a name="-recover_module_payload"><strong>recover_module_payload</strong></a>(module: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Recover&nbsp;an&nbsp;uncompressed&nbsp;or&nbsp;aPLib-compressed&nbsp;Donut&nbsp;module&nbsp;payload.</span></dd></dl>
  <dl><dt><a name="-rotr32"><strong>rotr32</strong></a>(value: 'int', count: 'int') -&gt; 'int'</dt><dd><span class="code">Rotate&nbsp;a&nbsp;32-bit&nbsp;integer&nbsp;right.</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;a&nbsp;lowercase&nbsp;SHA-256&nbsp;digest.</span></dd></dl>
@@ -174,5 +185,5 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>LAYOUTS</strong> = (DonutLayout(name='modern-0x290', crypt_start=656...tance_type=2420, module_length=3496, module=3504), DonutLayout(name='legacy-0x23c', crypt_start=572...tance_type=2336, module_length=3416, module=3424))</td></tr></table>
+<td class="singlecolumn"><strong>LAYOUTS</strong> = (DonutLayout(name='current-0x240-array', crypt_st...0, instance_type=-1, module_length=-1, module=-1), DonutLayout(name='current-0x230-array', crypt_st...8, instance_type=-1, module_length=-1, module=-1), DonutLayout(name='modern-0x290', crypt_start=656...tance_type=2420, module_length=3496, module=3504), DonutLayout(name='legacy-0x23c', crypt_start=572...tance_type=2336, module_length=3416, module=3424))</td></tr></table>
 </body></html>

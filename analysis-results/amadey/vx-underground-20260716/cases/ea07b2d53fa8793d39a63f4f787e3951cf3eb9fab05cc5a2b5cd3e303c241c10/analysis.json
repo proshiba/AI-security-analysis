@@ -1,0 +1,1631 @@
+{
+  "case": {
+    "sha256": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+    "name": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "self_extracting_container",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 13,
+    "recovered_configs": 1,
+    "static_config_recovered": true,
+    "config_findings": 1,
+    "c2_assessment": "confirmed",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 10
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+    "config": {
+      "source_name": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+      "static_config_recovered": true,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": false,
+        "rc4_protected_traffic": true
+      },
+      "recovered_layer_configs": [
+        {
+          "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+          "kind": "7z-pe",
+          "depth": 1,
+          "config": {
+            "source_name": "7z-pe.bin",
+            "c2_urls": [
+              "http://212.113.119.255/joomla/index.php"
+            ],
+            "version": "3.70",
+            "campaign_id": "5d3738",
+            "install_directory": "5cb6818d6c",
+            "install_filename": "oneetx.exe",
+            "rc4_key": "a091ec0a6e22276a96a99c1d34ef679c",
+            "decoded_strings": [
+              "212.113.119.255",
+              "/joomla/index.php",
+              "",
+              "3.70",
+              "5cb6818d6c",
+              "oneetx.exe",
+              "SCHTASKS",
+              "/Create /SC MINUTE /MO 1 /TN ",
+              " /TR \"",
+              "\" /F",
+              "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+              "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+              "Startup",
+              "Rem",
+              "cmd /C RMDIR /s/q ",
+              "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "rundll32 ",
+              " /Delete /TN \"",
+              "Programs",
+              "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+              "%USERPROFILE%",
+              "\\App",
+              "POST",
+              "GET",
+              "id=",
+              "&vs=",
+              "&sd=",
+              "&os=",
+              "&bi=",
+              "&ar=",
+              "&pc=",
+              "&un=",
+              "&dm=",
+              "&av=",
+              "&lv=",
+              "&og=",
+              "cred.dll|clip.dll|",
+              "d1",
+              "e1",
+              "e0",
+              "Main",
+              "http://",
+              "https://",
+              "exe",
+              "dll",
+              "cmd",
+              "ps1",
+              "Plugins/",
+              "+++",
+              "#",
+              "|",
+              "&unit=",
+              "=",
+              "shell32.dll",
+              "kernel32.dll",
+              "GetNativeSystemInfo",
+              "ProgramData\\",
+              "AVAST Software",
+              "Avira",
+              "Kaspersky Lab",
+              "ESET",
+              "Panda Security",
+              "Doctor Web",
+              "AVG"
+            ],
+            "profile": "amadey_custom_alphabet_base64",
+            "static_config_recovered": true,
+            "features": {
+              "persistence": true,
+              "plugin_download": true,
+              "system_discovery": true,
+              "rc4_protected_traffic": false
+            }
+          }
+        }
+      ],
+      "selected_layer_config": {
+        "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+        "kind": "7z-pe",
+        "depth": 1,
+        "config": {
+          "source_name": "7z-pe.bin",
+          "c2_urls": [
+            "http://212.113.119.255/joomla/index.php"
+          ],
+          "version": "3.70",
+          "campaign_id": "5d3738",
+          "install_directory": "5cb6818d6c",
+          "install_filename": "oneetx.exe",
+          "rc4_key": "a091ec0a6e22276a96a99c1d34ef679c",
+          "decoded_strings": [
+            "212.113.119.255",
+            "/joomla/index.php",
+            "",
+            "3.70",
+            "5cb6818d6c",
+            "oneetx.exe",
+            "SCHTASKS",
+            "/Create /SC MINUTE /MO 1 /TN ",
+            " /TR \"",
+            "\" /F",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+            "Startup",
+            "Rem",
+            "cmd /C RMDIR /s/q ",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "rundll32 ",
+            " /Delete /TN \"",
+            "Programs",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+            "%USERPROFILE%",
+            "\\App",
+            "POST",
+            "GET",
+            "id=",
+            "&vs=",
+            "&sd=",
+            "&os=",
+            "&bi=",
+            "&ar=",
+            "&pc=",
+            "&un=",
+            "&dm=",
+            "&av=",
+            "&lv=",
+            "&og=",
+            "cred.dll|clip.dll|",
+            "d1",
+            "e1",
+            "e0",
+            "Main",
+            "http://",
+            "https://",
+            "exe",
+            "dll",
+            "cmd",
+            "ps1",
+            "Plugins/",
+            "+++",
+            "#",
+            "|",
+            "&unit=",
+            "=",
+            "shell32.dll",
+            "kernel32.dll",
+            "GetNativeSystemInfo",
+            "ProgramData\\",
+            "AVAST Software",
+            "Avira",
+            "Kaspersky Lab",
+            "ESET",
+            "Panda Security",
+            "Doctor Web",
+            "AVG"
+          ],
+          "profile": "amadey_custom_alphabet_base64",
+          "static_config_recovered": true,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": true,
+            "rc4_protected_traffic": false
+          }
+        }
+      }
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "http://212.113.119.255/joomla/index.php",
+        "role": "c2",
+        "confidence": "confirmed",
+        "source": "amadey_config_decryption"
+      }
+    ],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 10
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "confirmed",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "http://212.113.119.255/joomla/index.php",
+          "role": "c2",
+          "confidence": "confirmed",
+          "source": "amadey_config_decryption"
+        },
+        "host": "212.113.119.255",
+        "port": null,
+        "passive_queries": [
+          "ip:212.113.119.255"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+    "sha256": "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10",
+    "size": 1073152,
+    "entropy": 7.9411,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 1073152,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 155,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 26112,
+          "virtual_size": 25884,
+          "entropy": 6.3078,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".data",
+          "raw_size": 512,
+          "virtual_size": 6728,
+          "entropy": 4.9706,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".idata",
+          "raw_size": 4608,
+          "virtual_size": 4206,
+          "entropy": 5.0572,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1038336,
+          "virtual_size": 1040384,
+          "entropy": 7.9591,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 2560,
+          "virtual_size": 2192,
+          "entropy": 6.2747,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rsrc"
+      ],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "self_extracting_container",
+      "containerized": true,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 43,
+      "opaque_resources_recovered": 1,
+      "archive_resources_recovered": 1
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "sevenzip": {
+      "status": "extracted",
+      "exit_code": 0,
+      "archive_types": [
+        "Cab",
+        "PE"
+      ],
+      "members": [
+        ".rsrc\\RCDATA\\CABINET",
+        ".rsrc\\RCDATA\\CABINET",
+        "za912166.exe",
+        "y04Gd06.exe"
+      ],
+      "total_members": 4,
+      "declared_total_size": 2046765,
+      "password_attempted": false,
+      "extract_exit_code": 0,
+      "inventory": [
+        {
+          "name": "y04Gd06.exe",
+          "size": 234496,
+          "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+          "format": "pe",
+          "status": "extracted"
+        },
+        {
+          "name": "za912166.exe",
+          "size": 886272,
+          "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a",
+          "format": "pe",
+          "status": "extracted"
+        }
+      ],
+      "extracted_total_size": 1120768,
+      "retained_members": 2,
+      "split_reassembly": [],
+      "nsis_script_recovery": {
+        "status": "not_nsis"
+      }
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 55762,
+        "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71"
+      },
+      {
+        "kind": "pe-resource-cab",
+        "size": 925997,
+        "sha256": "0b77d9c7765c70567c2702f46acc8cac806699306d5c53619bdf5d5aeb640bef"
+      },
+      {
+        "kind": "7z-pe",
+        "size": 234496,
+        "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4"
+      },
+      {
+        "kind": "7z-pe",
+        "size": 886272,
+        "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71",
+        "size": 55762,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71",
+          "size": 55762,
+          "entropy": 7.9852,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "pe-resource-cab",
+        "sha256": "0b77d9c7765c70567c2702f46acc8cac806699306d5c53619bdf5d5aeb640bef",
+        "size": 925997,
+        "format": "cab",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-cab.bin",
+          "sha256": "0b77d9c7765c70567c2702f46acc8cac806699306d5c53619bdf5d5aeb640bef",
+          "size": 925997,
+          "entropy": 7.9996,
+          "format": "cab",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab"
+            ],
+            "members": [
+              "za912166.exe",
+              "y04Gd06.exe"
+            ],
+            "total_members": 2,
+            "declared_total_size": 1120768,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "y04Gd06.exe",
+                "size": 234496,
+                "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "za912166.exe",
+                "size": 886272,
+                "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 1120768,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "7z-pe",
+              "size": 234496,
+              "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 886272,
+              "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-cab.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-pe",
+        "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+        "size": 234496,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "13b4b17671c12fd3f9db5491efb7fb389601b57ac7f89fd78638625c1ef201e4",
+          "size": 234496,
+          "entropy": 6.3486,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 234496,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 126,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 176640,
+                "virtual_size": 176317,
+                "entropy": 6.4563,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 39936,
+                "virtual_size": 39576,
+                "entropy": 4.8468,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".data",
+                "raw_size": 6144,
+                "virtual_size": 10056,
+                "entropy": 1.4009,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 512,
+                "virtual_size": 480,
+                "entropy": 4.7177,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 10240,
+                "virtual_size": 10104,
+                "entropy": 6.6101,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 1,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "c2_urls": [
+            "http://212.113.119.255/joomla/index.php"
+          ],
+          "version": "3.70",
+          "campaign_id": "5d3738",
+          "install_directory": "5cb6818d6c",
+          "install_filename": "oneetx.exe",
+          "rc4_key": "a091ec0a6e22276a96a99c1d34ef679c",
+          "decoded_strings": [
+            "212.113.119.255",
+            "/joomla/index.php",
+            "",
+            "3.70",
+            "5cb6818d6c",
+            "oneetx.exe",
+            "SCHTASKS",
+            "/Create /SC MINUTE /MO 1 /TN ",
+            " /TR \"",
+            "\" /F",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+            "Startup",
+            "Rem",
+            "cmd /C RMDIR /s/q ",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "rundll32 ",
+            " /Delete /TN \"",
+            "Programs",
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+            "%USERPROFILE%",
+            "\\App",
+            "POST",
+            "GET",
+            "id=",
+            "&vs=",
+            "&sd=",
+            "&os=",
+            "&bi=",
+            "&ar=",
+            "&pc=",
+            "&un=",
+            "&dm=",
+            "&av=",
+            "&lv=",
+            "&og=",
+            "cred.dll|clip.dll|",
+            "d1",
+            "e1",
+            "e0",
+            "Main",
+            "http://",
+            "https://",
+            "exe",
+            "dll",
+            "cmd",
+            "ps1",
+            "Plugins/",
+            "+++",
+            "#",
+            "|",
+            "&unit=",
+            "=",
+            "shell32.dll",
+            "kernel32.dll",
+            "GetNativeSystemInfo",
+            "ProgramData\\",
+            "AVAST Software",
+            "Avira",
+            "Kaspersky Lab",
+            "ESET",
+            "Panda Security",
+            "Doctor Web",
+            "AVG"
+          ],
+          "profile": "amadey_custom_alphabet_base64",
+          "static_config_recovered": true,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": true,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [
+          {
+            "kind": "network.url",
+            "value": "http://212.113.119.255/joomla/index.php",
+            "role": "c2",
+            "confidence": "confirmed",
+            "source": "amadey_config_decryption"
+          }
+        ],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-pe",
+        "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a",
+        "size": 886272,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "d0c24e50bb14c48e66d4d428170a80e50eb0f2993b3f15fe760edd896ba4840a",
+          "size": 886272,
+          "entropy": 7.92,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 886272,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 155,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 26112,
+                "virtual_size": 25884,
+                "entropy": 6.3078,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".data",
+                "raw_size": 512,
+                "virtual_size": 6728,
+                "entropy": 4.9706,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".idata",
+                "raw_size": 4608,
+                "virtual_size": 4206,
+                "entropy": 5.0572,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 851456,
+                "virtual_size": 851968,
+                "entropy": 7.9434,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 2560,
+                "virtual_size": 2192,
+                "entropy": 6.2747,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".rsrc"
+            ],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "self_extracting_container",
+            "containerized": true,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 43,
+            "opaque_resources_recovered": 1,
+            "archive_resources_recovered": 1
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab",
+              "PE"
+            ],
+            "members": [
+              ".rsrc\\RCDATA\\CABINET",
+              ".rsrc\\RCDATA\\CABINET",
+              "za907615.exe",
+              "xYwyj63.exe"
+            ],
+            "total_members": 4,
+            "declared_total_size": 1821013,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "xYwyj63.exe",
+                "size": 371200,
+                "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "za907615.exe",
+                "size": 710656,
+                "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 1081856,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "pe-resource-opaque",
+              "size": 55762,
+              "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71"
+            },
+            {
+              "kind": "pe-resource-cab",
+              "size": 739157,
+              "sha256": "654ce671c29a342b952d8d13e1cda9b7b1ad3433df055b051936f8b416092b74"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 371200,
+              "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 710656,
+              "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": true
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "pe-resource-cab",
+        "sha256": "654ce671c29a342b952d8d13e1cda9b7b1ad3433df055b051936f8b416092b74",
+        "size": 739157,
+        "format": "cab",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-cab.bin",
+          "sha256": "654ce671c29a342b952d8d13e1cda9b7b1ad3433df055b051936f8b416092b74",
+          "size": 739157,
+          "entropy": 7.9995,
+          "format": "cab",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab"
+            ],
+            "members": [
+              "za907615.exe",
+              "xYwyj63.exe"
+            ],
+            "total_members": 2,
+            "declared_total_size": 1081856,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "xYwyj63.exe",
+                "size": 371200,
+                "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "za907615.exe",
+                "size": 710656,
+                "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 1081856,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "7z-pe",
+              "size": 371200,
+              "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 710656,
+              "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-cab.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "7z-pe",
+        "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085",
+        "size": 371200,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "d5959016421e5ee8e9728dd75063e38e853afcee1e830666798da13f44dca085",
+          "size": 371200,
+          "entropy": 7.2172,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 371200,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 106,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 271360,
+                "virtual_size": 271100,
+                "entropy": 7.8849,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".data",
+                "raw_size": 9216,
+                "virtual_size": 41325992,
+                "entropy": 2.1173,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 57344,
+                "virtual_size": 57296,
+                "entropy": 5.3004,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 32256,
+                "virtual_size": 31752,
+                "entropy": 0.9396,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".text"
+            ],
+            "code_entropy_sections": [
+              ".text"
+            ],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 31,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "7z-pe",
+        "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86",
+        "size": 710656,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "8d784a666f522f0ec605fb16ee6acffd593bd44a2889d4c1256c08768918ae86",
+          "size": 710656,
+          "entropy": 7.8918,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 710656,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 155,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 26112,
+                "virtual_size": 25884,
+                "entropy": 6.3078,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".data",
+                "raw_size": 512,
+                "virtual_size": 6728,
+                "entropy": 4.9706,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".idata",
+                "raw_size": 4608,
+                "virtual_size": 4206,
+                "entropy": 5.0572,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 675840,
+                "virtual_size": 675840,
+                "entropy": 7.9229,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 2560,
+                "virtual_size": 2192,
+                "entropy": 6.2747,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".rsrc"
+            ],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "self_extracting_container",
+            "containerized": true,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 43,
+            "opaque_resources_recovered": 1,
+            "archive_resources_recovered": 1
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab",
+              "PE"
+            ],
+            "members": [
+              ".rsrc\\RCDATA\\CABINET",
+              ".rsrc\\RCDATA\\CABINET",
+              "za897037.exe",
+              "w48Me13.exe"
+            ],
+            "total_members": 4,
+            "declared_total_size": 1274195,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "w48Me13.exe",
+                "size": 286208,
+                "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "za897037.exe",
+                "size": 424448,
+                "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 710656,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "pe-resource-opaque",
+              "size": 55762,
+              "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71"
+            },
+            {
+              "kind": "pe-resource-cab",
+              "size": 563539,
+              "sha256": "e1138eb9af83dc77ef6d369aad48cdace32707eaff98da6340436baf395c5042"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 286208,
+              "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 424448,
+              "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": true
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 3,
+        "kind": "pe-resource-cab",
+        "sha256": "e1138eb9af83dc77ef6d369aad48cdace32707eaff98da6340436baf395c5042",
+        "size": 563539,
+        "format": "cab",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-cab.bin",
+          "sha256": "e1138eb9af83dc77ef6d369aad48cdace32707eaff98da6340436baf395c5042",
+          "size": 563539,
+          "entropy": 7.9996,
+          "format": "cab",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab"
+            ],
+            "members": [
+              "za897037.exe",
+              "w48Me13.exe"
+            ],
+            "total_members": 2,
+            "declared_total_size": 710656,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "w48Me13.exe",
+                "size": 286208,
+                "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "za897037.exe",
+                "size": 424448,
+                "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 710656,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "7z-pe",
+              "size": 286208,
+              "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 424448,
+              "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-cab.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 3,
+        "kind": "7z-pe",
+        "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea",
+        "size": 286208,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "43319b571c0e9b9859f2e52bb53c5c4fd99771e660af4d8510f6f1606dd098ea",
+          "size": 286208,
+          "entropy": 6.8638,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 286208,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 106,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 186368,
+                "virtual_size": 185948,
+                "entropy": 7.7866,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".data",
+                "raw_size": 9216,
+                "virtual_size": 41325992,
+                "entropy": 2.1195,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 57344,
+                "virtual_size": 57296,
+                "entropy": 5.3084,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 32256,
+                "virtual_size": 31752,
+                "entropy": 0.9389,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".text"
+            ],
+            "code_entropy_sections": [
+              ".text"
+            ],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 31,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      },
+      {
+        "depth": 3,
+        "kind": "7z-pe",
+        "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd",
+        "size": 424448,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-pe.bin",
+          "sha256": "55e8ebaac67d64552c1f532243ebfd7b17c45e3731f6071a72c34c12aa1f74dd",
+          "size": 424448,
+          "entropy": 7.7687,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 424448,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 155,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 26112,
+                "virtual_size": 25884,
+                "entropy": 6.3078,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".data",
+                "raw_size": 512,
+                "virtual_size": 6728,
+                "entropy": 4.9706,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".idata",
+                "raw_size": 4608,
+                "virtual_size": 4206,
+                "entropy": 5.0572,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 389632,
+                "virtual_size": 393216,
+                "entropy": 7.8258,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 2560,
+                "virtual_size": 2192,
+                "entropy": 6.2747,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".rsrc"
+            ],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "self_extracting_container",
+            "containerized": true,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 43,
+            "opaque_resources_recovered": 1,
+            "archive_resources_recovered": 1
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "sevenzip": {
+            "status": "extracted",
+            "exit_code": 0,
+            "archive_types": [
+              "Cab",
+              "PE"
+            ],
+            "members": [
+              ".rsrc\\RCDATA\\CABINET",
+              ".rsrc\\RCDATA\\CABINET",
+              "tz4642.exe",
+              "v9344GW.exe"
+            ],
+            "total_members": 4,
+            "declared_total_size": 659861,
+            "password_attempted": false,
+            "extract_exit_code": 0,
+            "inventory": [
+              {
+                "name": "tz4642.exe",
+                "size": 11264,
+                "sha256": "850cd190aaeebcf1505674d97f51756f325e650320eaf76785d954223a9bee38",
+                "format": "pe",
+                "status": "extracted"
+              },
+              {
+                "name": "v9344GW.exe",
+                "size": 371200,
+                "sha256": "bae1d3c32a7153645aea0608932a5bd66d0efd3539a4dffb50ff9e22e6063e21",
+                "format": "pe",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 382464,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "pe-resource-opaque",
+              "size": 55762,
+              "sha256": "f169eed8248d8f9efd20dd716790f2b3bb0547687546811b4137be21b5c63b71"
+            },
+            {
+              "kind": "pe-resource-cab",
+              "size": 277397,
+              "sha256": "03fab9a98f7d67703b37bf796497058a0730edfcd2d5c0250ebee1f9363aa8ed"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 11264,
+              "sha256": "850cd190aaeebcf1505674d97f51756f325e650320eaf76785d954223a9bee38"
+            },
+            {
+              "kind": "7z-pe",
+              "size": 371200,
+              "sha256": "bae1d3c32a7153645aea0608932a5bd66d0efd3539a4dffb50ff9e22e6063e21"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "7z-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": true,
+            "plugin_download": true,
+            "system_discovery": false,
+            "rc4_protected_traffic": true
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

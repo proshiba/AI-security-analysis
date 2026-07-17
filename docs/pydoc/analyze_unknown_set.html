@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analyze_unknown_set</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analyze_unknown_set</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Canalyze_unknown_set.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\analyze_unknown_set.py</a></td></tr></table>
+    <p><span class="code">Statically&nbsp;classify&nbsp;a&nbsp;newest-first&nbsp;MalwareBazaar&nbsp;unknown/stealer&nbsp;batch.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="importlib.html">importlib</a><br>
+<a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="yara.html">yara</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_item"><strong>analyze_item</strong></a>(item: 'dict', detectors: 'dict[str, object]', rules, sevenzip: 'Path | None') -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;encrypted&nbsp;MalwareBazaar&nbsp;archive&nbsp;entirely&nbsp;through&nbsp;static&nbsp;parsing.</span></dd></dl>
+ <dl><dt><a name="-analyze_manifest"><strong>analyze_manifest</strong></a>(manifest_path: 'Path', output: 'Path', registry: 'Path', sevenzip: 'Path | None', *, force: 'bool' = False, force_hashes: 'set[str] | None' = None) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;all&nbsp;manifest&nbsp;items&nbsp;in&nbsp;listed&nbsp;newest-first&nbsp;order&nbsp;and&nbsp;write&nbsp;reports.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;offline&nbsp;unknown-batch&nbsp;analysis&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-cluster_cases"><strong>cluster_cases</strong></a>(cases: 'list[dict]') -&gt; 'dict[str, list[str]]'</dt><dd><span class="code">Group&nbsp;unresolved&nbsp;cases&nbsp;by&nbsp;exact&nbsp;ASAR,&nbsp;imphash,&nbsp;or&nbsp;source-type&nbsp;features.</span></dd></dl>
+ <dl><dt><a name="-compile_yara_rules"><strong>compile_yara_rules</strong></a>(repository: 'Path')</dt><dd><span class="code">Compile&nbsp;all&nbsp;repository&nbsp;YARA&nbsp;files&nbsp;into&nbsp;isolated&nbsp;namespaces.</span></dd></dl>
+ <dl><dt><a name="-external_evidence"><strong>external_evidence</strong></a>(metadata: 'dict') -&gt; 'list[dict]'</dt><dd><span class="code">Extract&nbsp;family&nbsp;leads&nbsp;from&nbsp;source&nbsp;tags,&nbsp;public&nbsp;YARA,&nbsp;and&nbsp;sandbox&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-extract_iocs"><strong>extract_iocs</strong></a>(strings: 'list[str]') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;sanitized,&nbsp;bounded&nbsp;URL&nbsp;and&nbsp;IP&nbsp;candidates&nbsp;from&nbsp;static&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-extract_strings"><strong>extract_strings</strong></a>(data: 'bytes', limit: 'int' = 50000) -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;bounded&nbsp;ASCII&nbsp;and&nbsp;UTF-16LE&nbsp;strings&nbsp;without&nbsp;interpreting&nbsp;content.</span></dd></dl>
+ <dl><dt><a name="-family_from_text"><strong>family_from_text</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Map&nbsp;only&nbsp;reviewed&nbsp;family&nbsp;tokens&nbsp;to&nbsp;normalized&nbsp;family&nbsp;identifiers.</span></dd></dl>
+ <dl><dt><a name="-genesis_shape"><strong>genesis_shape</strong></a>(strings: 'list[str]', has_asar: 'bool') -&gt; 'bool'</dt><dd><span class="code">Recognize&nbsp;the&nbsp;reviewed&nbsp;Electron&nbsp;loader&nbsp;shape&nbsp;without&nbsp;naming&nbsp;it&nbsp;alone.</span></dd></dl>
+ <dl><dt><a name="-internal_evidence"><strong>internal_evidence</strong></a>(data: 'bytes', name: 'str', detectors: 'dict[str, object]', rules) -&gt; 'tuple[list[dict], dict]'</dt><dd><span class="code">Run&nbsp;registered&nbsp;detectors,&nbsp;distinctive&nbsp;markers,&nbsp;and&nbsp;repository&nbsp;YARA.</span></dd></dl>
+ <dl><dt><a name="-internal_family_compatible"><strong>internal_family_compatible</strong></a>(family: 'str', data_format: 'str') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;whether&nbsp;format-sensitive&nbsp;internal&nbsp;evidence&nbsp;is&nbsp;applicable.</span></dd></dl>
+ <dl><dt><a name="-ioc_worthy_url"><strong>ioc_worthy_url</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">Exclude&nbsp;local,&nbsp;example,&nbsp;certificate,&nbsp;and&nbsp;documentation&nbsp;URLs&nbsp;from&nbsp;IOC&nbsp;output.</span></dd></dl>
+ <dl><dt><a name="-irahook_shape"><strong>irahook_shape</strong></a>(strings: 'list[str]', root_format: 'str') -&gt; 'bool'</dt><dd><span class="code">Recognize&nbsp;the&nbsp;reviewed&nbsp;IRAHook&nbsp;Minecraft-mod&nbsp;package&nbsp;shape.</span></dd></dl>
+ <dl><dt><a name="-load_detectors"><strong>load_detectors</strong></a>(registry_path: 'Path') -&gt; 'dict[str, object]'</dt><dd><span class="code">Load&nbsp;registered&nbsp;in-memory&nbsp;malware&nbsp;detectors&nbsp;once&nbsp;for&nbsp;a&nbsp;batch.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;newest-first&nbsp;batch&nbsp;and&nbsp;print&nbsp;aggregate&nbsp;counts.</span></dd></dl>
+ <dl><dt><a name="-normalize_case_iocs"><strong>normalize_case_iocs</strong></a>(case: 'dict') -&gt; 'dict'</dt><dd><span class="code">Re-sanitize&nbsp;cached&nbsp;case&nbsp;URLs&nbsp;after&nbsp;IOC&nbsp;policy&nbsp;or&nbsp;parser&nbsp;updates.</span></dd></dl>
+ <dl><dt><a name="-normalize_case_structure"><strong>normalize_case_structure</strong></a>(case: 'dict') -&gt; 'dict'</dt><dd><span class="code">Bound&nbsp;verbose&nbsp;cached&nbsp;ASAR,&nbsp;Electron,&nbsp;and&nbsp;artifact&nbsp;inventories.</span></dd></dl>
+ <dl><dt><a name="-public_unpack_summary"><strong>public_unpack_summary</strong></a>(report: 'dict') -&gt; 'dict'</dt><dd><span class="code">Reduce&nbsp;an&nbsp;unpack&nbsp;report&nbsp;to&nbsp;non-binary&nbsp;structural&nbsp;evidence.</span></dd></dl>
+ <dl><dt><a name="-recursive_layers"><strong>recursive_layers</strong></a>(root_data: 'bytes', root_name: 'str', sevenzip: 'Path | None', electron_expected: 'bool') -&gt; 'tuple[dict, list[dict], list[tuple[str, bytes]], list[str]]'</dt><dd><span class="code">Recover&nbsp;bounded&nbsp;priority&nbsp;layers&nbsp;while&nbsp;skipping&nbsp;oversized&nbsp;runtime&nbsp;binaries.</span></dd></dl>
+ <dl><dt><a name="-render_case_readme"><strong>render_case_readme</strong></a>(case: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;publish-safe&nbsp;case&nbsp;report&nbsp;with&nbsp;attribution&nbsp;and&nbsp;detection&nbsp;material.</span></dd></dl>
+ <dl><dt><a name="-render_summary"><strong>render_summary</strong></a>(summary: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;aggregate&nbsp;newest-first&nbsp;collection&nbsp;and&nbsp;family&nbsp;distribution.</span></dd></dl>
+ <dl><dt><a name="-resolve_attribution"><strong>resolve_attribution</strong></a>(evidence: 'list[dict]') -&gt; 'dict'</dt><dd><span class="code">Select&nbsp;a&nbsp;family&nbsp;candidate&nbsp;and&nbsp;calibrated&nbsp;confidence&nbsp;from&nbsp;independent&nbsp;evidence.</span></dd></dl>
+ <dl><dt><a name="-safe_config_findings"><strong>safe_config_findings</strong></a>(family: 'str', blobs: 'list[tuple[str, bytes]]') -&gt; 'list[dict]'</dt><dd><span class="code">Run&nbsp;a&nbsp;supported&nbsp;extractor&nbsp;and&nbsp;retain&nbsp;only&nbsp;sanitized&nbsp;network&nbsp;IOC&nbsp;findings.</span></dd></dl>
+ <dl><dt><a name="-sanitize_ip_candidate"><strong>sanitize_ip_candidate</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Validate&nbsp;a&nbsp;public&nbsp;IPv4&nbsp;candidate&nbsp;and&nbsp;preserve&nbsp;an&nbsp;optional&nbsp;TCP&nbsp;port.</span></dd></dl>
+ <dl><dt><a name="-sanitize_url"><strong>sanitize_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Remove&nbsp;credentials,&nbsp;query,&nbsp;and&nbsp;fragment&nbsp;from&nbsp;an&nbsp;HTTP(S)&nbsp;IOC&nbsp;candidate.</span></dd></dl>
+ <dl><dt><a name="-scan_yara"><strong>scan_yara</strong></a>(data: 'bytes', rules) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;repository&nbsp;YARA&nbsp;rule&nbsp;names&nbsp;for&nbsp;one&nbsp;in-memory&nbsp;layer.</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;lowercase&nbsp;SHA-256&nbsp;digest&nbsp;for&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-write_case"><strong>write_case</strong></a>(case: 'dict', output: 'Path') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;one&nbsp;JSON/Markdown&nbsp;case&nbsp;and&nbsp;machine-readable&nbsp;IOC&nbsp;source&nbsp;file.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ASCII</strong> = re.compile(b'[\\x20-\\x7e]{5,}')<br>
+<strong>BENIGN_HOST_PREFIXES</strong> = ('cacerts.digicert.com', 'crl.comodoca.com', 'crl.sectigo.com', 'crl.usertrust.com', 'crl3.digicert.com', 'crl4.digicert.com', 'crt.sectigo.com', 'ocsp.comodoca.com', 'ocsp.digicert.com', 'ocsp.sectigo.com', 'ocsp.usertrust.com', 'www.microsoft.com')<br>
+<strong>BENIGN_URL_HOSTS</strong> = {'android.googlesource.com', 'api.fastcopy.jp', 'api.ipify.org', 'archiverjs.com', 'axios-http.com', 'blog.caustik.com', ...}<br>
+<strong>COMMON</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')<br>
+<strong>EXTRACTORS</strong> = {'agenttesla': &lt;function extract&gt;, 'amadey': &lt;function extract&gt;, 'amosstealer': &lt;function extract&gt;, 'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'atlascross': &lt;function extract&gt;, 'darkcomet': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'donutloader': &lt;function extract&gt;, 'formbook': &lt;function extract&gt;, 'guloader': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, ...}<br>
+<strong>FAMILY_ALIASES</strong> = {'agent tesla': 'agenttesla', 'agenttesla': 'agenttesla', 'amadey': 'amadey', 'amos': 'amosstealer', 'amosstealer': 'amosstealer', 'async rat': 'asyncrat', 'asyncrat': 'asyncrat', 'atomic stealer': 'amosstealer', 'atomicstealer': 'amosstealer', 'beavertail': 'beavertail', ...}<br>
+<strong>GENERIC_LABELS</strong> = {'dll', 'dropper', 'electron', 'exe', 'generic', 'infostealer', ...}<br>
+<strong>IP</strong> = re.compile('(?&lt;!\\d)(?:\\d{1,3}\\.){3}\\d{1,3}(?::\\d{1,5})?')<br>
+<strong>MAX_LAYERS</strong> = 48<br>
+<strong>MAX_LAYER_SIZE</strong> = 67108864<br>
+<strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>SOURCE_WEIGHT</strong> = {'external_sandbox': 2, 'external_yara': 3, 'internal_detector': 4, 'internal_inference': 4, 'internal_shape': 3, 'internal_yara': 4, 'source_tag': 1}<br>
+<strong>SRC</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')<br>
+<strong>STRICT_INTERNAL_FORMATS</strong> = {'agenttesla': {'pe'}, 'stealc': {'pe'}}<br>
+<strong>URL</strong> = re.compile('https?://[^\\s\\"\'`&lt;&gt;]{4,512}', re.IGNORECASE)<br>
+<strong>WIDE</strong> = re.compile(b'(?:[\\x20-\\x7e]\\x00){5,}')<br>
+<strong>location</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')</td></tr></table>
+</body></html>

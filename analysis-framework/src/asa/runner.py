@@ -174,9 +174,10 @@ def run_analysis(
     password: str = "infected",
     family_hint: str | None = None,
     campaign_hint: str | None = None,
+    unwrap_archive: bool = True,
 ) -> dict:
     """Discover, compile, and execute one offline analysis plan."""
-    data, facts = discover(sample, password, family_hint, campaign_hint)
+    data, facts = discover(sample, password, family_hint, campaign_hint, unwrap_archive)
     definitions = load_definition_tree(definitions_root)
     malware = list(index_definitions(definitions, MalwareDefinition).values())
     pipelines = index_definitions(definitions, PipelineDefinition)

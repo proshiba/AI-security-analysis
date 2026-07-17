@@ -43,8 +43,6 @@ Static&nbsp;metadata&nbsp;for&nbsp;a&nbsp;callable&nbsp;analysis&nbsp;step.<br>&
 
 <dl><dt><a name="StepSpec-__init__"><strong>__init__</strong></a>(self, id: 'str', version: 'int', capabilities: 'tuple[str, ...]' = ()) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt><a name="StepSpec-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
-
 <dl><dt><a name="StepSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
 <dl><dt><a name="StepSpec-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
@@ -78,5 +76,11 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><dl><dt><a name="-get_step"><strong>get_step</strong></a>(reference: 'str') -&gt; 'StepSpec'</dt><dd><span class="code">Resolve&nbsp;an&nbsp;allowlisted&nbsp;step&nbsp;reference&nbsp;and&nbsp;compatible&nbsp;major&nbsp;version.</span></dd></dl>
  <dl><dt><a name="-list_steps"><strong>list_steps</strong></a>() -&gt; 'list[StepSpec]'</dt><dd><span class="code">Return&nbsp;the&nbsp;catalog&nbsp;in&nbsp;deterministic&nbsp;order.</span></dd></dl>
  <dl><dt><a name="-parse_step_reference"><strong>parse_step_reference</strong></a>(reference: 'str') -&gt; 'tuple[str, int]'</dt><dd><span class="code">Parse&nbsp;`step.id@^N`&nbsp;and&nbsp;reject&nbsp;arbitrary&nbsp;paths&nbsp;or&nbsp;commands.</span></dd></dl>
-</td></tr></table>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PROFILED_FAMILIES</strong> = ('asyncrat', 'darkcomet', 'dcrat', 'guloader', 'hijackloader', 'njrat', 'quasarrat', 'redlinestealer', 'snakekeylogger', 'xworm')</td></tr></table>
 </body></html>

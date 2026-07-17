@@ -59,10 +59,10 @@ def _safe_integer(expression: str) -> int:
 
 def _integer_array(body: str) -> list[int]:
     """Parse a comma-separated array of bounded constant expressions."""
-    values = [_safe_integer(item) for item in body.split(",") if item.strip()]
-    if not 1 <= len(values) <= 16 * 1024 * 1024:
+    parts = [item for item in body.split(",") if item.strip()]
+    if not 1 <= len(parts) <= 16 * 1024 * 1024:
         raise ValueError("integer array size blocked")
-    return values
+    return [_safe_integer(item) for item in parts]
 
 
 def _literal(text: str, name: str) -> str | None:
@@ -73,9 +73,11 @@ def _literal(text: str, name: str) -> str | None:
 def _decode_xor_concat(text: str) -> tuple[bytes, str] | None:
     """Decode the object-array concatenation plus repeating-key XOR pattern."""
     arrays: dict[tuple[str, str], list[int]] = {}
-    for match in re.finditer(r'(\w+)\["([^"]+)"\]\s*=\s*\[(.*?)\];', text, re.S):
+    for match, body in _array_assignments(
+        text, r'(?<![\w$])([A-Za-z_$][\w$]{0,127})\["([^"\r\n]{1,256})"\]\s*=\s*\['
+    ):
         try:
-            arrays[(match.group(1), match.group(2))] = _integer_array(match.group(3))
+            arrays[(match.group(1), match.group(2))] = _integer_array(body)
         except (SyntaxError, ValueError, ZeroDivisionError):
             continue
     best: list[tuple[str, str]] = []
@@ -115,13 +117,13 @@ def _decode_subtract_array(text: str) -> tuple[bytes, str] | None:
     key, base = _literal(text, key_match.group(1)), int(key_match.group(2))
     if not key:
         return None
-    candidates = list(re.finditer(r"\bvar\s+(\w+)\s*=\s*\[(.*?)\];", text, re.S))
-    candidates.sort(key=lambda item: len(item.group(2)), reverse=True)
-    for match in candidates:
-        if len(match.group(2)) < 1024:
+    candidates = _array_assignments(text, r"\bvar\s+(\w+)\s*=\s*\[")
+    candidates.sort(key=lambda item: len(item[1]), reverse=True)
+    for _match, body in candidates:
+        if len(body) < 1024:
             continue
         try:
-            values = _integer_array(match.group(2))
+            values = _integer_array(body)
         except (SyntaxError, ValueError, ZeroDivisionError):
             continue
         decoded = bytes(
@@ -251,3 +253,24 @@ def recover_javascript_dropper(data: bytes) -> tuple[dict, list[tuple[str, bytes
         "payload": payload_report,
         "executed": False,
     }, artifacts
+
+
+def _array_assignments(text: str, header_pattern: str) -> list[tuple[re.Match[str], str]]:
+    """Return bracket-bounded array assignments with one forward-only scan."""
+    pattern = re.compile(header_pattern)
+    results: list[tuple[re.Match[str], str]] = []
+    cursor = 0
+    while cursor < len(text):
+        match = pattern.search(text, cursor)
+        if not match:
+            break
+        close = text.find("]", match.end())
+        if close < 0:
+            break
+        trailer = close + 1
+        while trailer < len(text) and text[trailer].isspace():
+            trailer += 1
+        if trailer < len(text) and text[trailer] == ";":
+            results.append((match, text[match.end():close]))
+        cursor = close + 1
+    return results

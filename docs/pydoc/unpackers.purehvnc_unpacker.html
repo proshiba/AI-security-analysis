@@ -9,18 +9,12 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.purehvnc_unpacker</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cpurehvnc_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\purehvnc_unpacker.py</a></td></tr></table>
-    <p><span class="code">Recover&nbsp;PureHVNC&nbsp;first-byte/index-XOR&nbsp;envelopes&nbsp;without&nbsp;executing&nbsp;them.</span></p>
+    <p><span class="code">Compatibility&nbsp;facade&nbsp;for&nbsp;the&nbsp;generic&nbsp;index-XOR&nbsp;PE&nbsp;recovery&nbsp;helper.<br>
+&nbsp;<br>
+The&nbsp;delivery&nbsp;transform&nbsp;formerly&nbsp;lived&nbsp;under&nbsp;a&nbsp;PureHVNC-specific&nbsp;name.&nbsp;It&nbsp;is<br>
+kept&nbsp;import-compatible,&nbsp;but&nbsp;callers&nbsp;should&nbsp;use<br>
+``unpackers.index_xor_pe_unpacker``&nbsp;and&nbsp;classify&nbsp;recovered&nbsp;payloads&nbsp;separately.</span></p>
 <p>
-<table class="section">
-<tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
-
-<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="struct.html">struct</a><br>
-</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -30,7 +24,7 @@
 <dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
 </dt><dd>
 <dl>
-<dt class="heading-text"><a href="unpackers.purehvnc_unpacker.html#XorCandidate">XorCandidate</a>
+<dt class="heading-text"><a href="unpackers.index_xor_pe_unpacker.html#XorCandidate">unpackers.index_xor_pe_unpacker.XorCandidate</a>
 </dt></dl>
 </dd>
 </dl>
@@ -52,8 +46,6 @@ One&nbsp;structurally&nbsp;validated&nbsp;embedded&nbsp;PE&nbsp;candidate.<br>&n
 <dl><dt><a name="XorCandidate-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
 <dl><dt><a name="XorCandidate-__init__"><strong>__init__</strong></a>(self, offset: 'int', stride: 'int', key: 'int', data: 'bytes') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="XorCandidate-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
 <dl><dt><a name="XorCandidate-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -83,10 +75,17 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;PureHVNC&nbsp;static&nbsp;envelope-recovery&nbsp;parser.</span></dd></dl>
- <dl><dt><a name="-find_first_byte_xor_pes"><strong>find_first_byte_xor_pes</strong></a>(data: 'bytes', strides: 'tuple[int, ...]' = (1, 4)) -&gt; 'list[XorCandidate]'</dt><dd><span class="code">Scan&nbsp;for&nbsp;stride-one&nbsp;or&nbsp;sparse-stride-four&nbsp;XOR&nbsp;envelopes&nbsp;that&nbsp;decrypt&nbsp;to&nbsp;PE&nbsp;files.</span></dd></dl>
- <dl><dt><a name="-first_byte_index_xor"><strong>first_byte_index_xor</strong></a>(envelope: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;bytes&nbsp;where&nbsp;byte&nbsp;zero&nbsp;is&nbsp;the&nbsp;key&nbsp;and&nbsp;subsequent&nbsp;bytes&nbsp;use&nbsp;key+index.</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Recover&nbsp;all&nbsp;validated&nbsp;embedded&nbsp;PEs&nbsp;and&nbsp;emit&nbsp;hashes&nbsp;and&nbsp;offsets.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;generic&nbsp;static&nbsp;envelope-recovery&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-candidate_report"><strong>candidate_report</strong></a>(candidates: 'list[XorCandidate]') -&gt; 'list[dict[str, int | str]]'</dt><dd><span class="code">Convert&nbsp;recovered&nbsp;candidates&nbsp;to&nbsp;publish-safe&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-find_first_byte_xor_pes"><strong>find_first_byte_xor_pes</strong></a>(data: 'bytes', strides: 'tuple[int, ...]' = (1, 4)) -&gt; 'list[XorCandidate]'</dt><dd><span class="code">Find&nbsp;stride-one&nbsp;or&nbsp;sparse-stride&nbsp;XOR&nbsp;envelopes&nbsp;that&nbsp;decrypt&nbsp;to&nbsp;valid&nbsp;PEs.</span></dd></dl>
+ <dl><dt><a name="-first_byte_index_xor"><strong>first_byte_index_xor</strong></a>(envelope: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;bytes&nbsp;where&nbsp;byte&nbsp;zero&nbsp;is&nbsp;the&nbsp;key&nbsp;and&nbsp;later&nbsp;bytes&nbsp;use&nbsp;key+index.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Recover&nbsp;validated&nbsp;embedded&nbsp;PEs&nbsp;and&nbsp;emit&nbsp;hashes&nbsp;and&nbsp;offsets.</span></dd></dl>
  <dl><dt><a name="-pe_extent"><strong>pe_extent</strong></a>(data: 'bytes') -&gt; 'int | None'</dt><dd><span class="code">Return&nbsp;a&nbsp;bounded&nbsp;PE&nbsp;file&nbsp;extent,&nbsp;or&nbsp;none&nbsp;when&nbsp;headers&nbsp;are&nbsp;invalid.</span></dd></dl>
-</td></tr></table>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['XorCandidate', 'build_parser', 'candidate_report', 'find_first_byte_xor_pes', 'first_byte_index_xor', 'main', 'pe_extent']</td></tr></table>
 </body></html>

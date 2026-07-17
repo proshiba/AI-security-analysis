@@ -19,7 +19,8 @@
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 </td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
@@ -28,7 +29,15 @@
 <td class="singlecolumn"><dl><dt><a name="-assess"><strong>assess</strong></a>(result: 'dict') -&gt; 'dict'</dt><dd><span class="code">Assess&nbsp;extractor&nbsp;findings&nbsp;conservatively&nbsp;and&nbsp;preserve&nbsp;provenance.</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;offline&nbsp;detector&nbsp;command-line&nbsp;parser.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Assess&nbsp;one&nbsp;extractor&nbsp;result&nbsp;and&nbsp;write&nbsp;deterministic&nbsp;JSON.</span></dd></dl>
+ <dl><dt><a name="-protocol_profile"><strong>protocol_profile</strong></a>(family: 'str | None') -&gt; 'dict | None'</dt><dd><span class="code">Return&nbsp;offline&nbsp;confirmation&nbsp;and&nbsp;emulator&nbsp;guidance&nbsp;for&nbsp;a&nbsp;profiled&nbsp;family.</span></dd></dl>
  <dl><dt><a name="-shodan_queries"><strong>shodan_queries</strong></a>(host: 'str', port: 'int | None' = None) -&gt; 'list[str]'</dt><dd><span class="code">Create&nbsp;passive&nbsp;Shodan&nbsp;pivots&nbsp;without&nbsp;contacting&nbsp;the&nbsp;target&nbsp;or&nbsp;Shodan.</span></dd></dl>
  <dl><dt><a name="-target_from_finding"><strong>target_from_finding</strong></a>(finding: 'dict') -&gt; 'tuple[str, int | None] | None'</dt><dd><span class="code">Normalize&nbsp;one&nbsp;network&nbsp;finding&nbsp;into&nbsp;a&nbsp;host&nbsp;and&nbsp;optional&nbsp;port.</span></dd></dl>
-</td></tr></table>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>NON_C2_ROLES</strong> = {'certificate_service', 'documentation_reference', 'host_discovery_service', 'stage_url_candidate'}<br>
+<strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')</td></tr></table>
 </body></html>

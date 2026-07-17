@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3",
+  "config": {
+    "source_name": "6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "delphi_resource_carrier",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 2288128,
+      "sections": [
+        {
+          "name": "CODE",
+          "raw_size": 982016,
+          "virtual_size": 981868,
+          "entropy": 6.5698
+        },
+        {
+          "name": "DATA",
+          "raw_size": 10240,
+          "virtual_size": 10160,
+          "entropy": 4.1876
+        },
+        {
+          "name": "BSS",
+          "raw_size": 0,
+          "virtual_size": 3545,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 9216,
+          "virtual_size": 8742,
+          "entropy": 4.7676
+        },
+        {
+          "name": ".tls",
+          "raw_size": 0,
+          "virtual_size": 24,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 512,
+          "virtual_size": 24,
+          "entropy": 0.2006
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 74752,
+          "virtual_size": 74464,
+          "entropy": 6.6816
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1210368,
+          "virtual_size": 1210368,
+          "entropy": 7.2989
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Turbo Linker(2.25)",
+      "Compiler: Borland Delphi(7)[Enterprise]"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

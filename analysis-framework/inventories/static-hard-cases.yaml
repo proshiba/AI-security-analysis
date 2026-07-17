@@ -1,0 +1,230 @@
+schema_version: 1
+title: Curated deep-static-analysis inventory
+safety:
+  sample_execution: forbidden
+  cpu_emulation: forbidden
+  network_contact: forbidden
+  recovered_binary_publication: forbidden
+
+cases:
+  - sha256: fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de
+    family: valleyrat
+    category: native_virtualized_protector
+    priority: P0
+    blockers: [native_control_flow_obfuscation, overlapping_instructions, opaque_predicates, rdtsc, stack_state_manipulation]
+    expected_children: [db720e674a25318cd09e35d8fae5b43faaa3acf9dfe04f5b6ea23d8c0c414779]
+  - sha256: ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d
+    family: valleyrat
+    category: native_virtualized_protector
+    priority: P0
+    blockers: [native_control_flow_obfuscation, overlapping_instructions, opaque_predicates, rdtsc, stack_state_manipulation]
+    expected_children: [136bdce277b8c810656eccc0b0e4b47f0fde81e1d5aba86a475a08d96b7a22a9]
+  - sha256: 81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9
+    family: valleyrat
+    category: native_virtualized_protector
+    priority: P0
+    blockers: [native_control_flow_obfuscation, overlapping_instructions, opaque_predicates, rdtsc, stack_state_manipulation]
+    expected_children: [1982d5168c430ee373e6bcbd99322b844bdb5942f778bc9d4b141e7c27182105]
+  - sha256: 5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c
+    family: remusstealer
+    category: native_state_machine_loader
+    priority: P1
+    blockers: [native_control_flow_obfuscation, custom_state_machine, api_hash_resolver]
+  - sha256: 78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db
+    family: remcosrat
+    category: native_raw_intermediate_loader
+    priority: P1
+    blockers: [native_control_flow_obfuscation, raw_code_terminal_layer]
+    expected_children: [e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a]
+    raw_code_layers:
+      e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a: 64
+  - sha256: 7215cbe8e5dfed7b22c8bbe8c5f7f35a7848e545d1cdeb60a378baf0be32cb0e
+    family: venomrat
+    category: managed_control_flow_and_resource_obfuscation
+    priority: P1
+    blockers: [dotnet_reactor_control_flow, smartassembly, opaque_resource]
+    expected_children: [7a66395f6df32fd158ee78bd5a2018f7986f8cb4fcbb370661a303b4ee25ff05]
+  - sha256: ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646
+    family: shadowpad
+    category: nspack
+    priority: P1
+    blockers: [nspack, terminal_config_not_recovered]
+  - sha256: 5cecb26a3f33c24b92a0c8f6f5175da0664b21d7c4216a41694e4a4cad233ca8
+    family: latrodectus
+    category: encrypted_string_generation
+    priority: P1
+    blockers: [aes_ctr_string_generation, static_config_not_recovered]
+
+groups:
+  - id: newest_100_size_gate_quasarrat
+    family: quasarrat
+    category: size_budget_exceeded
+    priority: P0
+    blockers: [legacy_root_size_gate_over_32_mib]
+    hashes:
+      - 439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2
+      - c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627
+      - bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153
+  - id: newest_100_size_gate_redline
+    family: redlinestealer
+    category: size_budget_exceeded
+    priority: P0
+    blockers: [legacy_root_size_gate_over_32_mib]
+    hashes:
+      - 7fc964fe47e08d13c158f808d0d68f3f2b9341dfb1ba6fb2a48690fe27e22682
+      - 7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a
+  - id: newest_100_size_gate_hijackloader
+    family: hijackloader
+    category: size_budget_exceeded
+    priority: P0
+    blockers: [legacy_root_size_gate_over_32_mib]
+    hashes: [9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a]
+  - id: newest_100_redline_themida
+    family: redlinestealer
+    category: themida_protector
+    priority: P0
+    blockers: [themida, terminal_layer_not_recovered]
+    hashes: [3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02]
+  - id: newest_100_darkcomet_upx
+    family: darkcomet
+    category: upx_packer
+    priority: P0
+    blockers: [upx_marker, terminal_layer_not_recovered]
+    hashes: [a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a]
+  - id: newest_100_managed_njrat
+    family: njrat
+    category: managed_loader_or_obfuscated
+    priority: P1
+    blockers: [managed_loader_or_obfuscated, family_config_not_recovered]
+    hashes:
+      - da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51
+      - 64da4c1638c0e1a6435e2026155f9092e7532235e1a38a8b1c8b9fc85c469f9a
+      - c854317fdfc61855002f0cca0cba147c979a56878b8b211c5d512218877d680c
+  - id: newest_100_managed_redline
+    family: redlinestealer
+    category: managed_loader_or_obfuscated
+    priority: P1
+    blockers: [managed_loader_or_obfuscated, family_config_not_recovered]
+    hashes:
+      - 72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a
+      - cbb753220731503e7974588a48305dcf19d8528d7299f695e05211f845a8f720
+  - id: newest_100_managed_snakekeylogger
+    family: snakekeylogger
+    category: managed_loader_or_obfuscated
+    priority: P1
+    blockers: [managed_loader_or_obfuscated, family_config_not_recovered]
+    hashes:
+      - 970d178fff5e535e65917b5b007dbaf5948d32668899bded7d954e5823fb50b9
+      - e9a3825e87a0b0a53998c1e695ba4942c47d6f4fdb695038ece3900cc645ad6a
+  - id: vidar_koivm
+    family: vidar
+    category: koivm_managed_virtualization
+    priority: P0
+    blockers: [koivm_runtime, virtualized_cil, static_config_not_recovered]
+    hashes:
+      - 02355d3fee5e217b25f9210ad0f6bacc3807b6ef1a59aa4d428c01017dcbcf28
+      - 05f9553616bb5fdbf37bd4036c210929e08d7181de898c1bea1bdae7afb0766f
+      - 0c857501e3851072db666386136929c06bcf4c8d3160b41b7d82a3ce9afca1be
+      - 3418a369486e9bf2b57023dc0b02cb00f12a5214fca8bae20ff93586cc8c678a
+      - 363c46dfb252d7c40d9c3bb63bdc40c2eff0ce16c0c1b77f507d73058104c6e1
+      - 4c17f7ee55f9bf6fa9acaeeb9574feab39ba4a3cccd4426dfa85aaf58b90ae73
+      - 4d4f97f1621334e4075e0229265ac6c5da14754eff1378a7d77ea6d3821e8a33
+      - 87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6
+      - 99e733391ac499e78e535a98551c4d27408abfad4e56fe4c46956636655df29c
+      - b67bc78347918209973d633287c4e1f514a0917b8678c2cf2066ba80b2004f78
+  - id: stealc_themida
+    family: stealc
+    category: themida_winlicense
+    priority: P0
+    blockers: [themida_winlicense_2x, terminal_config_not_recovered]
+    hashes:
+      - 09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889
+      - 125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1
+      - 299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b
+      - 99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af
+      - 9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb
+      - ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a
+      - b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b
+      - e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0
+      - e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779
+      - eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a
+      - f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12
+  - id: stealc_enigma
+    family: stealc
+    category: enigma_protector
+    priority: P0
+    blockers: [enigma_5x, terminal_config_not_recovered]
+    hashes: [d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292]
+  - id: stealc_encrypted_buffers
+    family: stealc
+    category: encrypted_payload_buffer
+    priority: P1
+    blockers: [encrypted_payload_buffer, decoder_not_recovered]
+    hashes:
+      - 0a9eab89753e07a01b1c5e0197acefea9cc05e5f7829823f811e7aa1d7b817b7
+      - 1b8433398050753d992dc40ea4c07144b43724a99ec4cf2fdac764645d6d1023
+      - 2874b873e12bcdfcf0a37708512e21637e38e5f5b9a2bf0c3b34f72d74c05708
+      - 2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab
+      - 4eb215aa80ea20f514aa4815bc82f872bf7130391e21509aef3a29cb34d3a420
+      - 4ff0d58788532f4c0bb9dbc9effe6202dd1adaae2ecb8eebc2d48be8cf4b1895
+      - 68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308
+      - 6bfc504449a39316188b90599aa225fef46e6be74d2283725f48bcb2860ec1ca
+      - 736af94a2fd07dca7397c2b2068bfd1e2a71a716c5ddda5e9cb7da808355487a
+      - b00335a75190fd3b930329adf19c93b483975cb24cc056bea62b0ef359abe3fa
+      - b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf
+      - c9dc79d72ab3131295608a78c6473a8bde3791683e88bebeee9989decb8eb4ee
+      - ca20c0b93bbebbdcd91cad1a8db0356fb4c5d2e17894bd5a34bfcaa4c78a6a9c
+      - dda07a7f4225baf73499de332ccfbbcd3197e370b77829f13a9991328b976b37
+      - e07d3383a78b7b05cd27cf2f569c6e93026e9f40dff4ccb8ec81efafa6b2b23f
+  - id: stealc_native_wrappers
+    family: stealc
+    category: native_high_entropy_wrapper
+    priority: P1
+    blockers: [high_entropy_native_wrapper, decoder_not_recovered]
+    hashes:
+      - 0523d96352c2028dd22fe5591db75e08c6d8ad76afd0baf2c0b5ce04ae850439
+      - 0b2079978ba2073cfde3c6bc39847431e4e2ab64db27d592df01c4f93d209ca1
+      - 65fcf2bac887d16fe2d281c53efaa770c73f7e32a2862024cc21f9680ee9efe9
+      - d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b
+      - f4a7d43dc4cdf21cc7a58af7c66386cea1616658f15b996691fbb85a7cb06b9d
+  - id: stealc_delphi_carriers
+    family: stealc
+    category: delphi_resource_carrier
+    priority: P1
+    blockers: [delphi_resource_carrier, payload_decoder_not_recovered]
+    hashes:
+      - 6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3
+      - 84db5b4abf8d9cc8159a751668dc6c5be7ee4143811e38599d5b134120ceca7d
+      - 86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460
+  - id: stealc_nsis
+    family: stealc
+    category: nsis_container
+    priority: P1
+    blockers: [nsis_terminal_payload_not_recovered]
+    hashes: [52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924]
+  - id: amadey_unknown_protector_shape
+    family: amadey
+    category: unknown_native_packer
+    priority: P2
+    blockers: [suspected_packed, protector_not_attributed]
+    hashes:
+      - 1dbbf81d6f4b2222b37594e8ff30672bf85fd360f347cbd20b1a5d7b841dd276
+      - 43e67fbb1bc6ac4549c216476b2aa4e98a89e74ce4d51b8d72380fdd8cc4edb1
+      - 572d806c0b56d27fe05562301de6a9ed45cda3f36aef2f6e370867d9f3847013
+      - 78305c8b5e8ead6989a0af09fc6ed8f2ff1b246c0487dfa78fb5b155b554cae9
+      - 7d05ae98fea42630b199a45f26e18a7196a8f3509ed703fc918416780fd1f661
+      - c72cbb4b668f0f56d9df6359e5d391908a9ef5bb21c8f8eb4445be9197c47ef0
+      - d04f0d88706837f7af27edf86b3c0e3241bad8ab43939ddda29dc6541b20eed2
+      - e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb
+      - ea3b2c23df3162a6fa5c9d22d03f50db30542d7570ef769ded4ef106fb0255f4
+      - ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677
+      - fda0fc105ffd6faae12d08c243fe684be8c69696bd654d733f5caf487b59baae
+
+excluded_cases:
+  reason: Required terminal bytes are absent from the submitted sample; deobfuscation cannot reconstruct unavailable content.
+  hashes:
+    - 526efbd526d1e0fa9ac6b9def17f1925774e3696595232e8e8d6801a8a302e36
+    - ee1bddda91c3a8a3ca8b3fcc077c373dc80da17b94ae6dc7f4219116a49fd7ac
+    - 6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1
+    - 3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b
+    - 6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8

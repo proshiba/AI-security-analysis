@@ -1,0 +1,249 @@
+{
+  "case": {
+    "sha256": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+    "name": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": true,
+    "config_findings": 1,
+    "c2_assessment": "confirmed",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+    "config": {
+      "source_name": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+      "c2_urls": [
+        "http://185.172.128.19/ghsdh39s/index.php"
+      ],
+      "version": "4.12",
+      "campaign_id": "037208",
+      "install_directory": "cd1f156d67",
+      "install_filename": "Utsysc.exe",
+      "rc4_key": "07c6bc37dc50874878dcb010336ed906",
+      "decoded_strings": [
+        "185.172.128.19",
+        "/ghsdh39s/index.php",
+        "",
+        "4.12",
+        "S-%lu-",
+        "%-lu",
+        "-%lu",
+        "cd1f156d67",
+        "Utsysc.exe",
+        "SCHTASKS",
+        "/Create /SC MINUTE /MO 1 /TN ",
+        " /TR \"",
+        "\" /F",
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+        "Startup",
+        "Rem",
+        "cmd /C RMDIR /s/q ",
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "rundll32 ",
+        " /Delete /TN \"",
+        "Programs",
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+        "%USERPROFILE%",
+        "\\App",
+        "POST",
+        "GET",
+        "id:",
+        "vs:",
+        "sd:",
+        "os:",
+        "bi:",
+        "ar:",
+        "pc:",
+        "un:",
+        "dm:",
+        "av:",
+        "lv:",
+        "og:",
+        "r=",
+        "cred.dll|clip.dll|",
+        "d1",
+        "e1",
+        "e0",
+        "Main",
+        "http://",
+        "https://",
+        "exe",
+        "dll",
+        "cmd",
+        "ps1",
+        "/Plugins/",
+        "+++",
+        "#",
+        "|",
+        "&unit=",
+        "=",
+        "shell32.dll",
+        "kernel32.dll",
+        "GetNativeSystemInfo",
+        "ProgramData\\",
+        "AVAST Software",
+        "Avira",
+        "Kaspersky Lab"
+      ],
+      "profile": "amadey_custom_alphabet_base64",
+      "static_config_recovered": true,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": true,
+        "rc4_protected_traffic": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "http://185.172.128.19/ghsdh39s/index.php",
+        "role": "c2",
+        "confidence": "confirmed",
+        "source": "amadey_config_decryption"
+      }
+    ],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "confirmed",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "http://185.172.128.19/ghsdh39s/index.php",
+          "role": "c2",
+          "confidence": "confirmed",
+          "source": "amadey_config_decryption"
+        },
+        "host": "185.172.128.19",
+        "port": null,
+        "passive_queries": [
+          "ip:185.172.128.19"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+    "sha256": "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
+    "size": 428544,
+    "entropy": 6.4943,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 428544,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 166,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 322560,
+          "virtual_size": 322074,
+          "entropy": 6.5525,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 71168,
+          "virtual_size": 70804,
+          "entropy": 4.9559,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 13312,
+          "virtual_size": 18164,
+          "entropy": 3.8426,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 480,
+          "entropy": 4.7177,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 19968,
+          "virtual_size": 19628,
+          "entropy": 6.5909,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 1,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

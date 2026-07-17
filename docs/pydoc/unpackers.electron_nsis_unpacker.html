@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.electron_nsis_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.electron_nsis_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Celectron_nsis_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\electron_nsis_unpacker.py</a></td></tr></table>
+    <p><span class="code">Targeted&nbsp;NSIS&nbsp;-&gt;&nbsp;7z&nbsp;-&gt;&nbsp;Electron&nbsp;ASAR&nbsp;recovery&nbsp;using&nbsp;7-Zip&nbsp;as&nbsp;a&nbsp;parser.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="subprocess.html">subprocess</a><br>
+</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-extract_member"><strong>extract_member</strong></a>(path: 'Path', member: 'str', output: 'Path', executable: 'Path', timeout: 'float' = 180.0) -&gt; 'Path'</dt><dd><span class="code">Extract&nbsp;one&nbsp;validated&nbsp;archive&nbsp;member&nbsp;and&nbsp;return&nbsp;its&nbsp;unambiguous&nbsp;local&nbsp;path.</span></dd></dl>
+ <dl><dt><a name="-list_archive"><strong>list_archive</strong></a>(path: 'Path', executable: 'Path', timeout: 'float' = 60.0) -&gt; 'dict'</dt><dd><span class="code">List&nbsp;one&nbsp;archive&nbsp;with&nbsp;7-Zip&nbsp;and&nbsp;return&nbsp;bounded&nbsp;type/member&nbsp;metadata.</span></dd></dl>
+ <dl><dt><a name="-recover_electron_asars"><strong>recover_electron_asars</strong></a>(data: 'bytes', executable: 'Path') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;nested&nbsp;Electron&nbsp;ASAR&nbsp;bytes&nbsp;without&nbsp;expanding&nbsp;the&nbsp;full&nbsp;app&nbsp;bundle.</span></dd></dl>
+ <dl><dt><a name="-safe_archive_member"><strong>safe_archive_member</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;and&nbsp;validate&nbsp;one&nbsp;untrusted&nbsp;7-Zip&nbsp;member&nbsp;path.</span></dd></dl>
+ <dl><dt><a name="-select_asar_members"><strong>select_asar_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;app.asar&nbsp;candidates,&nbsp;preferring&nbsp;the&nbsp;canonical&nbsp;path.</span></dd></dl>
+ <dl><dt><a name="-select_nested_7z_members"><strong>select_nested_7z_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;nested&nbsp;7z&nbsp;candidates&nbsp;from&nbsp;an&nbsp;NSIS&nbsp;listing.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_ARCHIVE</strong> = 268435456<br>
+<strong>MAX_ASAR</strong> = 67108864<br>
+<strong>MAX_MEMBERS</strong> = 512</td></tr></table>
+</body></html>

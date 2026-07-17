@@ -1,0 +1,9 @@
+# IOC list
+
+| Type | Value | Role | Confidence | Source |
+|---|---|---|---|---|
+| domain | www.pneword.net | c2_domain_exact_hash_primary_source | confirmed_public_exact_hash | iocs.json |
+| endpoint | www.pneword.net:443 | c2_endpoint_http_tcp_udp | confirmed_public_exact_hash | iocs.json |
+| endpoint | www.pneword.net:53 | c2_endpoint_http_tcp_udp | confirmed_public_exact_hash | iocs.json |
+| endpoint | www.pneword.net:80 | c2_endpoint_http_tcp_udp | confirmed_public_exact_hash | iocs.json |
+| sha256 | ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646 | submitted_sample | confirmed | directory |

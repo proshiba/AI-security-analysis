@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "284c664b4baff90444c4ed96cfcb4ef6d26cc7aedc46c1e996c359ecea95f697",
+  "config": {
+    "source_name": "284c664b4baff90444c4ed96cfcb4ef6d26cc7aedc46c1e996c359ecea95f697",
+    "decoded_payloads": [
+      {
+        "source": "pe-rva:0xa264",
+        "decoded_sha256": "f685f35948721c3279f6473e46335e57c2307f7ce291b1ab9f0391f6fc3ed9c5",
+        "algorithm": "casper-x64-stream",
+        "key_id": "seed-rva:0xa260",
+        "module_offset": 23,
+        "module_size": 87418,
+        "configs": [
+          {
+            "format": "shadowpad-casper-x64",
+            "size": 2140,
+            "strings": {
+              "campaign_id": "3vS89RZxQNWSgQTu1",
+              "install_name": "Roshan",
+              "install_path": "%SystemRoot%\\System32\\ras\\remote.exe",
+              "service_name": "Remote RT",
+              "service_display_name": "Remote Registry Tools",
+              "service_description": "Enables remote users to modify registry settings on this computer. If this service is stopped, the registry can be modified only by users on this computer. If this service is disabled, any services that explicitly depend on it will fail to start.",
+              "registry_key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "registry_value_name": "Remote Registry",
+              "injection_target_1": "",
+              "injection_target_2": "",
+              "injection_target_3": "",
+              "injection_target_4": "%windir%\\system32\\svchost.exe",
+              "c2_1": "https://goods.kankuedu.org",
+              "c2_2": "",
+              "c2_3": "",
+              "c2_4": "",
+              "c2_5": "",
+              "c2_6": "",
+              "c2_7": "",
+              "c2_8": "",
+              "c2_9": "",
+              "reserved_1": "",
+              "reserved_2": "",
+              "reserved_3": "",
+              "reserved_4": "",
+              "reserved_5": "",
+              "reserved_6": "",
+              "reserved_7": "",
+              "proxy_1": "HTTP\n\n\n\n\n",
+              "proxy_2": "HTTP\n\n\n\n\n",
+              "proxy_3": "HTTP\n\n\n\n\n",
+              "proxy_4": "HTTP\n\n\n\n\n"
+            },
+            "dns_servers": [
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8"
+            ],
+            "timeout_multiplier": 1,
+            "field_54": 5,
+            "offset": 19447,
+            "block_header": {
+              "key": 3365841664,
+              "flags": 305419896,
+              "code": 0,
+              "compressed_size": 702,
+              "decompressed_size": 2140,
+              "cipher": "xor-byte"
+            }
+          }
+        ]
+      }
+    ],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 1
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "https://goods.kankuedu.org",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x4bf7"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

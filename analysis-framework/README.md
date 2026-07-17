@@ -115,3 +115,113 @@ python common/generate_stealer_reports.py `
 ```
 
 The workflow never executes a sample or contacts extracted infrastructure. Recovered layers stay outside the repository in password-protected analysis archives.
+
+## Raw family-directory analysis
+
+`common/analyze_stealer_set.py --input-root` analyzes raw files from a local
+family directory without assuming that a sample-owned ZIP is a single-member
+intake archive. The directory path is never published. Duplicate files are
+deduplicated by SHA-256, recovered layers are recursively bounded, and very
+large PE files use bounded entropy and marker sampling.
+
+```powershell
+python common/analyze_stealer_set.py `
+  --input-root C:\malware-lab\vx-underground\Latrodectus `
+  --family latrodectus `
+  --signature Latrodectus `
+  --output C:\malware-lab\out\latrodectus `
+  --definitions definitions `
+  --sevenzip 'C:\Program Files\7-Zip\7z.exe'
+```
+
+The current shared pipeline includes Amadey, Latrodectus, DonutLoader, Vidar,
+and AMOS. Family and campaign selection remains declarative; static unpacking,
+config extraction, report generation, and IOC generation stay in shared
+modules.
+
+## Newest-first unclassified MalwareBazaar workflow
+
+`common/malwarebazaar_unknown_batch.py` queries the `unknown`, `stealer`, and
+`infostealer` tags, keeps only entries whose MalwareBazaar family signature is
+empty, removes hashes already present in the result tree, de-duplicates tag
+overlap, and selects at most 100 entries by descending `first_seen`. Downloads
+remain encrypted and resumable; the Auth-Key is read only from
+`MALWAREBAZAAR_AUTH_KEY`.
+
+```powershell
+python common/malwarebazaar_unknown_batch.py `
+  --root C:\malware-lab\unknown-YYYYMMDD `
+  --limit 100 `
+  --exclude-path ..\analysis-results
+
+python common/analyze_unknown_set.py `
+  --manifest C:\malware-lab\unknown-YYYYMMDD\manifest.json `
+  --output C:\malware-lab\unknown-analysis-YYYYMMDD `
+  --registry registry\malware_types.json `
+  --sevenzip 'C:\Program Files\7-Zip\7z.exe'
+```
+
+The analyzer uses registered detectors, repository YARA, reviewed structural
+signatures, bounded recursive unpacking, ASAR parsing, and static IOC
+sanitization. External tags, sandbox labels, and public YARA names are retained
+as leads but do not independently produce a supported family attribution.
+`--force-hash <sha256>` re-runs a selected cached case after parser changes;
+`--force` ignores all cached cases. Extracted network values remain unconfirmed
+static candidates and are never contacted by this workflow.
+
+## Hash-only OSINT enrichment
+
+`common/osint_hash_enricher.py` correlates low-confidence and unidentified
+cases against exact-hash metadata without submitting samples or contacting
+extracted infrastructure. The source registry is
+`osint/hash_sources.yaml`; raw responses stay in the
+ignored cache while normalized evidence is written into the public case tree.
+
+```powershell
+python common/osint_hash_enricher.py `
+  --summary ..\analysis-results\unclassified\<batch>\summary.json `
+  --output ..\analysis-results\unclassified\<batch> `
+  --registry osint\hash_sources.yaml `
+  --cache ..\.work\<batch>\osint-cache `
+  --history ..\analysis_history.yaml `
+  --curated-evidence ..\analysis-results\unclassified\<batch>\research-evidence.yaml
+```
+
+Use `--offline` for deterministic cache replay and `--source <name> --refresh`
+for a scoped refresh. One family provider remains a low-confidence lead;
+medium requires two independent agreeing providers, and conflicts are retained.
+
+See [HASH-OSINT-WORKFLOW.md](docs/HASH-OSINT-WORKFLOW.md) for source semantics,
+curated evidence schema, execution order, outputs, and failure checks.
+
+## Profile-defined ten-family workflow
+
+The 2026-07-17 expansion adds AsyncRAT, XWorm, QuasarRAT, njRAT, DarkComet,
+DCRat, RedLine Stealer, Snake Keylogger, GuLoader, and HijackLoader without ten
+copies of extractor or detector logic. Family differences live in
+`extractors/profiles/windows_family_profiles.json`; shared implementations are
+`common/profiled_family_detector.py`, `extractors/profiled_family.py`,
+`common/c2_candidate_detector.py`, and `emulators/families/lab.py`.
+
+`malwarebazaar_batch.py` records exhausted transient downloads in `retry_queue`.
+Rerunning the same command reuses valid encrypted ZIPs and retries the missing
+hashes. Use `validate_family_expansion.py` after report generation to verify inner
+hashes, detector/extractor routing, required public files, forbidden binary
+artifacts, and non-execution/non-contact flags. Full relationships, commands,
+failure checks, and the 100-case outcome are documented in
+[PROFILED-FAMILY-EXPANSION.md](docs/PROFILED-FAMILY-EXPANSION.md).
+
+## Deep static hard-case workflow
+
+`inventories/static-hard-cases.yaml` records the historically difficult cases,
+their blockers, and authenticated child hashes. `common/deep_static_triage.py`
+performs bounded, in-memory recursive static analysis and publishes only
+sanitized JSON and Markdown. Native entry CFG observations come from
+`unpackers/static_control_flow.py`; managed PE metadata, CIL, and resource
+triage come from `unpackers/managed_il_triage.py`.
+
+This workflow never executes or CPU-emulates a sample, never contacts extracted
+infrastructure, and never writes recovered binary layers. A `suspected` control
+flow technique is a prioritization hint, not confirmed attribution. See
+[DEEP-STATIC-ANALYSIS.md](docs/DEEP-STATIC-ANALYSIS.md) for the evidence standard,
+method matrix, commands, outputs, and failure checks.

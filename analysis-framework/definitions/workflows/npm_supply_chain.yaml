@@ -1,0 +1,10 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: npm_supply_chain.config, display_name: npm postinstall offline decode, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: strings, uses: "static.strings.extract@^1", needs: [inventory]}
+  - {id: config, uses: "family.npm_supply_chain.config@^1", needs: [strings]}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

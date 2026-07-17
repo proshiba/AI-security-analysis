@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "family": "purehvnc",
+  "sample_sha256": "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0",
+  "config": {
+    "variant": "managed_purerat",
+    "delivery_profile": "chrd_wave_donut",
+    "terminal_sha256": "c1a2b48d4f639b46cf6cde8322666f0991531ef32ffe571140418ae40342ffe8",
+    "c2_host": "tirakian.com",
+    "c2_ports": [56001, 56002, 56003],
+    "endpoints": ["tirakian.com:56001", "tirakian.com:56002", "tirakian.com:56003"],
+    "campaign_id": "bem",
+    "version_candidates": ["4.4.1"],
+    "certificate_sha256": "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b"
+  },
+  "findings": [
+    {"kind": "network.endpoint", "value": "tirakian.com:56001", "role": "configured_c2", "confidence": "confirmed", "source": "static_config"},
+    {"kind": "network.endpoint", "value": "tirakian.com:56002", "role": "configured_c2", "confidence": "confirmed", "source": "static_config"},
+    {"kind": "network.endpoint", "value": "tirakian.com:56003", "role": "configured_c2", "confidence": "confirmed", "source": "static_config"}
+  ],
+  "limitations": ["Static extraction only; no payload execution or C2 contact was performed."],
+  "executed": false,
+  "network_contacted": false
+}
+

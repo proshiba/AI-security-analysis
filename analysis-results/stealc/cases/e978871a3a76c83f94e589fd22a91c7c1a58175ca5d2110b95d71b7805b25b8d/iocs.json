@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "sha256": "e978871a3a76c83f94e589fd22a91c7c1a58175ca5d2110b95d71b7805b25b8d",
+      "role": "reviewed_stealc_sample",
+      "confidence": "confirmed"
+    }
+  ],
+  "network": [
+    {
+      "value": "http://185.106.94.206/4e815d9f1ec482dd.php",
+      "role": "c2_url_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "http://185.106.94.206/49171d9bb28d893a/",
+      "role": "dependency_directory_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "185.106.94.206",
+      "role": "c2_ipv4_from_static_config",
+      "confidence": "confirmed_static_config"
+    }
+  ],
+  "network_contacted": false
+}

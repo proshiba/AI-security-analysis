@@ -1,0 +1,165 @@
+{
+  "case": {
+    "sha256": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+    "name": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+    "family": "latrodectus",
+    "campaign": "direct_dll_or_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "self_extracting_container",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+    "config": {
+      "source_name": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+      "static_config_recovered": false,
+      "features": {
+        "host_discovery": false,
+        "domain_discovery": false,
+        "security_discovery": false,
+        "scheduled_task_persistence": false,
+        "payload_download": false,
+        "rundll32_execution": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+    "sha256": "5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1",
+    "size": 3866624,
+    "entropy": 7.7487,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 164352,
+      "security_offset": 2854093,
+      "security_size": 8656,
+      "gap_size": 2689741
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 168,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 26624,
+          "virtual_size": 26396,
+          "entropy": 6.5048,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 6656,
+          "virtual_size": 6614,
+          "entropy": 5.0268,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 512,
+          "virtual_size": 463772,
+          "entropy": 1.736,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".ndata",
+          "raw_size": 0,
+          "virtual_size": 528384,
+          "entropy": 0.0,
+          "characteristics": "0xc0000080"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 129536,
+          "virtual_size": 129272,
+          "entropy": 5.4161,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [
+        "Nullsoft"
+      ],
+      "classification": "self_extracting_container",
+      "containerized": true,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [
+        ".ndata"
+      ],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 3702272,
+      "overlay_format": "data",
+      "resource_count": 9,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "sevenzip": {
+      "status": "not_archive_container",
+      "exit_code": 2,
+      "archive_types": [],
+      "members": [],
+      "total_members": 0,
+      "declared_total_size": 0,
+      "password_attempted": false
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

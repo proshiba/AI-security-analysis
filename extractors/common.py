@@ -44,7 +44,11 @@ def valid_host(host: str) -> bool:
             return True
         except ValueError:
             return False
-    return all(part and len(part) <= 63 for part in host.split("."))
+    labels = host.lower().rstrip(".").split(".")
+    if len(labels) < 2 or not re.fullmatch(r"[a-z]{2,63}", labels[-1]):
+        return False
+    label = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", re.I)
+    return all(bool(label.fullmatch(part)) for part in labels)
 
 
 def endpoint_candidates(strings: list[str]) -> list[str]:

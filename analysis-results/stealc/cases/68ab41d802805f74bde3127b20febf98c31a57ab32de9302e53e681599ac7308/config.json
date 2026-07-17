@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308",
+  "config": {
+    "source_name": "68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "encrypted_payload_buffer",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 250880,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 68096,
+          "virtual_size": 68035,
+          "entropy": 6.7128
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27642,
+          "entropy": 4.7668
+        },
+        {
+          "name": ".data",
+          "raw_size": 92672,
+          "virtual_size": 34932000,
+          "entropy": 7.7105
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61440,
+          "virtual_size": 61400,
+          "entropy": 4.4372
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(12.00.40629)",
+      "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2013)",
+      "Debug data: Records"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

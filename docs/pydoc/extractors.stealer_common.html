@@ -25,14 +25,7 @@
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-campaign_shape"><strong>campaign_shape</strong></a>(name: 'str', data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Describe&nbsp;the&nbsp;delivery/container&nbsp;shape&nbsp;without&nbsp;asserting&nbsp;operator&nbsp;identity.</span></dd></dl>
  <dl><dt><a name="-clean_url"><strong>clean_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;literal&nbsp;URL&nbsp;and&nbsp;reject&nbsp;malformed&nbsp;or&nbsp;known&nbsp;reference-only&nbsp;hosts.</span></dd></dl>
- <dl><dt><a name="-extract_stealer"><strong>extract_stealer</strong></a>(
-    family: 'str',
-    data: 'bytes',
-    name: 'str',
-    markers: 'tuple[str, ...]',
-    features: 'dict[str, tuple[str, ...]]',
-    limitations: 'list[str]'
-) -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;one&nbsp;conservative&nbsp;stealer&nbsp;configuration&nbsp;result&nbsp;from&nbsp;static&nbsp;literals.</span></dd></dl>
+ <dl><dt><a name="-extract_stealer"><strong>extract_stealer</strong></a>(family: 'str', data: 'bytes', name: 'str', markers: 'tuple[str, ...]', features: 'dict[str, tuple[str, ...]]', limitations: 'list[str]', analysis_data: 'bytes | None' = None) -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;a&nbsp;result&nbsp;while&nbsp;optionally&nbsp;scanning&nbsp;a&nbsp;bounded&nbsp;derived&nbsp;byte&nbsp;view.</span></dd></dl>
  <dl><dt><a name="-feature_hits"><strong>feature_hits</strong></a>(strings: 'list[str]', features: 'dict[str, tuple[str, ...]]') -&gt; 'dict[str, bool]'</dt><dd><span class="code">Match&nbsp;reviewed&nbsp;case-insensitive&nbsp;feature&nbsp;groups&nbsp;against&nbsp;extracted&nbsp;strings.</span></dd></dl>
  <dl><dt><a name="-infrastructure_urls"><strong>infrastructure_urls</strong></a>(strings: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;normalized&nbsp;non-reference&nbsp;infrastructure&nbsp;URL&nbsp;candidates.</span></dd></dl>
  <dl><dt><a name="-url_role"><strong>url_role</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Classify&nbsp;an&nbsp;embedded&nbsp;URL&nbsp;by&nbsp;conservative&nbsp;infrastructure&nbsp;role.</span></dd></dl>
@@ -42,5 +35,6 @@
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>BENIGN_SUFFIXES</strong> = ('apple.com', 'digicert.com', 'globalsign.com', 'microsoft.com', 'microsoftonline.com', 'go.dev', 'nsis.sf.net', 'w3.org', 'certum.pl', 'ocsp-certum.com', 'thawte.com', 'usertrust.com', 'adobe.com', 'purl.org', 'curl.se', 'docs.rs', 'github.com', 'ip-api.com', 'ipinfo.io', 'ipify.org', ...)</td></tr></table>
+<td class="singlecolumn"><strong>BENIGN_SUFFIXES</strong> = ('apple.com', 'digicert.com', 'globalsign.com', 'microsoft.com', 'microsoftonline.com', 'go.dev', 'nsis.sf.net', 'w3.org', 'certum.pl', 'ocsp-certum.com', 'thawte.com', 'usertrust.com', 'adobe.com', 'purl.org', 'curl.se', 'docs.rs', 'github.com', 'ip-api.com', 'ipinfo.io', 'ipify.org', ...)<br>
+<strong>REFERENCE_HOST_PREFIXES</strong> = ('cert.', 'crl.', 'crls.', 'crt.', 'ocsp.', 'ocsps.')</td></tr></table>
 </body></html>

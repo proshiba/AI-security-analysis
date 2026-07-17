@@ -1,0 +1,222 @@
+{
+  "case": {
+    "sha256": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+    "name": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 3,
+    "c2_assessment": "candidate",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+    "config": {
+      "source_name": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [
+        "Autofill"
+      ],
+      "features": {
+        "browser_collection": true,
+        "wallet_collection": true,
+        "telegram_dead_drop": true,
+        "dependency_download": true
+      },
+      "urls": [
+        "http://157.90.113.100:80",
+        "https://steamcommunity.com/profiles/76561199482248283",
+        "https://t.me/dionysus_tg"
+      ],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": true,
+      "scan_source": "complete_input",
+      "original_size": 372224,
+      "recovered_layer_configs": []
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "http://157.90.113.100:80",
+        "role": "candidate_infrastructure",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      },
+      {
+        "kind": "network.url",
+        "value": "https://steamcommunity.com/profiles/76561199482248283",
+        "role": "candidate_infrastructure",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      },
+      {
+        "kind": "network.url",
+        "value": "https://t.me/dionysus_tg",
+        "role": "candidate_infrastructure",
+        "confidence": "candidate",
+        "source": "embedded_literal"
+      }
+    ],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "candidate",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "http://157.90.113.100:80",
+          "role": "candidate_infrastructure",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "157.90.113.100",
+        "port": 80,
+        "passive_queries": [
+          "ip:157.90.113.100 port:80"
+        ],
+        "active_probe_performed": false
+      },
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://steamcommunity.com/profiles/76561199482248283",
+          "role": "candidate_infrastructure",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "steamcommunity.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:steamcommunity.com"
+        ],
+        "active_probe_performed": false
+      },
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://t.me/dionysus_tg",
+          "role": "candidate_infrastructure",
+          "confidence": "candidate",
+          "source": "embedded_literal"
+        },
+        "host": "t.me",
+        "port": null,
+        "passive_queries": [
+          "hostname:t.me"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+    "sha256": "28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113",
+    "size": 372224,
+    "entropy": 6.5482,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 372224,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 93,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 275456,
+          "virtual_size": 274997,
+          "entropy": 6.5046,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 65536,
+          "virtual_size": 65112,
+          "entropy": 5.6755,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 7168,
+          "virtual_size": 86436,
+          "entropy": 3.9221,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 23040,
+          "virtual_size": 22684,
+          "entropy": 6.1327,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 0,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,5 @@
+# IOC list
+
+| Type | Value | Role | Confidence | Source |
+|---|---|---|---|---|
+| sha256 | 526efbd526d1e0fa9ac6b9def17f1925774e3696595232e8e8d6801a8a302e36 | submitted_sample | confirmed | directory |

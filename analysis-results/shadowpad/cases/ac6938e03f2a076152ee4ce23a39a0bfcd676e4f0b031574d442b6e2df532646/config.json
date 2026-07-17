@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646",
+  "config": {
+    "source_name": "ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646",
+    "decoded_payloads": [],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 0
+  },
+  "findings": [],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3", "role": "submitted_casper_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "www.grandfoodtony.com", "role": "c2_domain_from_config", "confidence": "confirmed_static_config"},
+    {"value": "www.grandfoodtony.com:80", "role": "c2_endpoint_tcp_http_udp", "confidence": "confirmed_static_config"},
+    {"value": "www.grandfoodtony.com:443", "role": "c2_endpoint_tcp_http_udp", "confidence": "confirmed_static_config"},
+    {"value": "www.grandfoodtony.com:8080", "role": "c2_endpoint_tcp_http_udp", "confidence": "confirmed_static_config"}
+  ],
+  "network_contacted": false
+}
+

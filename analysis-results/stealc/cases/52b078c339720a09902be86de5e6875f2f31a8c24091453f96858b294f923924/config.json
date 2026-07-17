@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924",
+  "config": {
+    "source_name": "52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "nsis_container",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 5279488,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 25088,
+          "virtual_size": 24695,
+          "entropy": 6.7089
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 5120,
+          "virtual_size": 4688,
+          "entropy": 5.0448
+        },
+        {
+          "name": ".data",
+          "raw_size": 1024,
+          "virtual_size": 108600,
+          "entropy": 5.2245
+        },
+        {
+          "name": ".ndata",
+          "raw_size": 0,
+          "virtual_size": 36864,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 2317824,
+          "virtual_size": 2317824,
+          "entropy": 2.5688
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(6.0)",
+      "Compiler: Microsoft Visual C/C++(13.10.4035)[C]",
+      "Sign tool: Windows Authenticode(2.0)[PKCS #7, after overlay]",
+      "Installer: Nullsoft Scriptable Install System[lzma, solid]"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

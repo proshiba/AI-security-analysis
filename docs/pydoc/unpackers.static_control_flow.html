@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.static_control_flow</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.static_control_flow</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cstatic_control_flow.py">c:\users\administrator\ai-security-analysis\unpackers\static_control_flow.py</a></td></tr></table>
+    <p><span class="code">Bounded,&nbsp;execution-free&nbsp;control-flow&nbsp;triage&nbsp;for&nbsp;native&nbsp;PE&nbsp;and&nbsp;raw&nbsp;code.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;deliberately&nbsp;performs&nbsp;disassembly&nbsp;only.&nbsp;&nbsp;It&nbsp;never&nbsp;maps&nbsp;a&nbsp;sample&nbsp;as&nbsp;an<br>
+executable,&nbsp;emulates&nbsp;instructions,&nbsp;resolves&nbsp;network&nbsp;infrastructure,&nbsp;or&nbsp;mutates&nbsp;a<br>
+binary.&nbsp;&nbsp;Its&nbsp;technique&nbsp;labels&nbsp;are&nbsp;conservative&nbsp;prioritization&nbsp;hints,&nbsp;not&nbsp;proof<br>
+that&nbsp;a&nbsp;particular&nbsp;commercial&nbsp;protector&nbsp;or&nbsp;obfuscator&nbsp;was&nbsp;used.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="capstone.html">capstone</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="math.html">math</a><br>
+<a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="capstone.x86_const.html">capstone.x86_const</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_code_region"><strong>analyze_code_region</strong></a>(data: 'bytes', *, bits: 'int' = 64, base_address: 'int' = 0, entry_offset: 'int' = 0, max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_input_bytes: 'int' = 268435456, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;a&nbsp;raw&nbsp;x86&nbsp;code&nbsp;region&nbsp;using&nbsp;bounded&nbsp;recursive&nbsp;disassembly&nbsp;only.</span></dd></dl>
+ <dl><dt><a name="-analyze_pe_control_flow"><strong>analyze_pe_control_flow</strong></a>(data: 'bytes', *, max_blocks: 'int' = 4096, max_input_bytes: 'int' = 268435456, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;the&nbsp;reachable&nbsp;native&nbsp;entry&nbsp;CFG&nbsp;of&nbsp;a&nbsp;PE&nbsp;without&nbsp;loading&nbsp;or&nbsp;running&nbsp;it.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;execution-free&nbsp;control-flow&nbsp;triage&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;PE&nbsp;or&nbsp;raw&nbsp;code&nbsp;file&nbsp;and&nbsp;emit&nbsp;JSON&nbsp;without&nbsp;executing&nbsp;it.</span></dd></dl>
+ <dl><dt><a name="-plan_static_methods"><strong>plan_static_methods</strong></a>(analysis: 'dict[str, Any]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;an&nbsp;ordered,&nbsp;execution-free&nbsp;method&nbsp;plan&nbsp;for&nbsp;an&nbsp;analysis&nbsp;result.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_MAX_BLOCKS</strong> = 4096<br>
+<strong>DEFAULT_MAX_BLOCK_BYTES</strong> = 4096<br>
+<strong>DEFAULT_MAX_INPUT_BYTES</strong> = 268435456<br>
+<strong>DEFAULT_MAX_INSTRUCTIONS</strong> = 50000<br>
+<strong>MAX_EVIDENCE</strong> = 32</td></tr></table>
+</body></html>

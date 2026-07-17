@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "88a60c235a2fbf9b681d9b67daf8f67e9a21edd53fc84b8babfa8f286c38e6b8",
+  "config": {
+    "source_name": "88a60c235a2fbf9b681d9b67daf8f67e9a21edd53fc84b8babfa8f286c38e6b8",
+    "decoded_payloads": [
+      {
+        "source": "pe-rva:0xa264",
+        "decoded_sha256": "0b020c0c7468f83d64af3b17ca406fbd397ab8b97d43f22e9d4e881a456aa48b",
+        "algorithm": "casper-x64-stream",
+        "key_id": "seed-rva:0xa260",
+        "module_offset": 23,
+        "module_size": 87418,
+        "configs": [
+          {
+            "format": "shadowpad-casper-x64",
+            "size": 2140,
+            "strings": {
+              "campaign_id": "uq2kKaadPToLV5qZj",
+              "install_name": "EventManager",
+              "install_path": "C:\\Windows\\inf\\Termservice\\tslabels.exe",
+              "service_name": "System Event Manager",
+              "service_display_name": "System Event Manager",
+              "service_description": "System Event Manager",
+              "registry_key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "registry_value_name": "EventManager",
+              "injection_target_1": "%windir%\\system32\\svchost.exe",
+              "injection_target_2": "%windir%\\system32\\SearchIndexer.exe",
+              "injection_target_3": "%windir%\\system32\\WmiPrvSE.exe",
+              "injection_target_4": "%ProgramFiles%\\Windows Media Player\\wmplayer.exe",
+              "c2_1": "HTTPS://gfsg.chickenkiller.com",
+              "c2_2": "",
+              "c2_3": "",
+              "c2_4": "",
+              "c2_5": "",
+              "c2_6": "",
+              "c2_7": "",
+              "c2_8": "",
+              "c2_9": "",
+              "reserved_1": "",
+              "reserved_2": "",
+              "reserved_3": "",
+              "reserved_4": "",
+              "reserved_5": "",
+              "reserved_6": "",
+              "reserved_7": "",
+              "proxy_1": "HTTP\n\n\n\n\n",
+              "proxy_2": "HTTP\n\n\n\n\n",
+              "proxy_3": "HTTP\n\n\n\n\n",
+              "proxy_4": "HTTP\n\n\n\n\n"
+            },
+            "dns_servers": [
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8"
+            ],
+            "timeout_multiplier": 1,
+            "field_54": 5,
+            "offset": 19447,
+            "block_header": {
+              "key": 3950886656,
+              "flags": 305419896,
+              "code": 0,
+              "compressed_size": 600,
+              "decompressed_size": 2140,
+              "cipher": "xor-byte"
+            }
+          }
+        ]
+      }
+    ],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 1
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "HTTPS://gfsg.chickenkiller.com",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x4bf7"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

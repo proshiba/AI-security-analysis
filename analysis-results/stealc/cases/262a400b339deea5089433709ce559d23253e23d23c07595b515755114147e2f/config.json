@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
+  "config": {
+    "source_name": "262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
+    "profile": {
+      "generation": "StealC-v1",
+      "method": "v1-paired-buffer-xor",
+      "base_url": "http://40.86.87.10",
+      "gate_path": "/108e010e8f91c38c.php",
+      "c2_url": "http://40.86.87.10/108e010e8f91c38c.php",
+      "dll_path": "/b13597c85f807692/",
+      "dll_url": "http://40.86.87.10/b13597c85f807692/",
+      "build_id": "ZOV",
+      "decoded_string_count": 351,
+      "string_key": null
+    }
+  },
+  "findings": [
+    {
+      "kind": "url",
+      "value": "http://40.86.87.10/108e010e8f91c38c.php",
+      "role": "stealc_c2_url",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "kind": "url",
+      "value": "http://40.86.87.10/b13597c85f807692/",
+      "role": "stealc_dependency_directory",
+      "confidence": "confirmed_static_config"
+    }
+  ],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "decoded_v1_config",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 161792,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 109568,
+          "virtual_size": 109370,
+          "entropy": 6.1468
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 31232,
+          "virtual_size": 31038,
+          "entropy": 5.7634
+        },
+        {
+          "name": ".data",
+          "raw_size": 3072,
+          "virtual_size": 2173740,
+          "entropy": 2.8776
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 16896,
+          "virtual_size": 16868,
+          "entropy": 4.4882
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(10.00.30319)",
+      "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2010)"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

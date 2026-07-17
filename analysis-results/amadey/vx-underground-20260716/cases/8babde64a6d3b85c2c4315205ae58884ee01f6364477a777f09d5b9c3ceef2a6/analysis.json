@@ -1,0 +1,140 @@
+{
+  "case": {
+    "sha256": "8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6",
+    "name": "cc5e48eb9cf7308dedf57d5e468e836f",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6",
+    "config": {
+      "source_name": "cc5e48eb9cf7308dedf57d5e468e836f",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": false,
+        "rc4_protected_traffic": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "cc5e48eb9cf7308dedf57d5e468e836f",
+    "sha256": "8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6",
+    "size": 294400,
+    "entropy": 6.9457,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 294400,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 130,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 182784,
+          "virtual_size": 182710,
+          "entropy": 7.7203,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".data",
+          "raw_size": 19456,
+          "virtual_size": 5641300,
+          "entropy": 1.0746,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 91136,
+          "virtual_size": 91016,
+          "entropy": 5.7637,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".text"
+      ],
+      "code_entropy_sections": [
+        ".text"
+      ],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 40,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

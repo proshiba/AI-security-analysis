@@ -39,7 +39,19 @@ def test_target_queries_and_assessment() -> None:
             ],
         }
     )
+    discovery = detector.assess(
+        {
+            "family": "njrat",
+            "findings": [
+                {"kind": "network.url", "value": "https://ipinfo.io/json", "role": "host_discovery_service", "confidence": "probable"}
+            ],
+        }
+    )
+    assert discovery["assessment"] == "none" and discovery["targets"] == []
     assert result["assessment"] == "probable" and result["network_contacted"] is False
+    profile = detector.protocol_profile("guloader")
+    assert profile and profile["category"] == "loader"
+    assert profile["active_confirmation_default"] == "disabled"
 
 
 def test_cli(tmp_path: Path) -> None:

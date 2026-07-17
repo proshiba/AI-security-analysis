@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.stealc.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.stealc.html" class="white">stealc</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cstealc%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\stealc\extractor.py</a></td></tr></table>
+    <p><span class="code">Offline&nbsp;StealC&nbsp;v1&nbsp;string&nbsp;and&nbsp;configuration&nbsp;extractor.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;supports&nbsp;the&nbsp;two&nbsp;statically&nbsp;recoverable&nbsp;v1&nbsp;layouts&nbsp;observed&nbsp;in&nbsp;the<br>
+reviewed&nbsp;corpus:&nbsp;Base64&nbsp;plus&nbsp;RC4&nbsp;skip-key&nbsp;strings&nbsp;and&nbsp;paired&nbsp;XOR&nbsp;buffers&nbsp;passed<br>
+through&nbsp;``push&nbsp;size;&nbsp;push&nbsp;key;&nbsp;push&nbsp;ciphertext``&nbsp;call&nbsp;sites.&nbsp;&nbsp;It&nbsp;parses&nbsp;bytes<br>
+only;&nbsp;it&nbsp;never&nbsp;loads&nbsp;the&nbsp;PE,&nbsp;executes&nbsp;code,&nbsp;or&nbsp;contacts&nbsp;a&nbsp;recovered&nbsp;endpoint.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
+<a href="binascii.html">binascii</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+<a href="urllib.html">urllib</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="extractors.stealc.extractor.html#DecodedProfile">DecodedProfile</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DecodedProfile">class <strong>DecodedProfile</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DecodedProfile">DecodedProfile</a>(method:&nbsp;'str',&nbsp;base_url:&nbsp;'str',&nbsp;gate_path:&nbsp;'str',&nbsp;dll_path:&nbsp;'str',&nbsp;build_id:&nbsp;'str&nbsp;|&nbsp;None',&nbsp;decoded_count:&nbsp;'int',&nbsp;string_key:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Normalized&nbsp;StealC&nbsp;configuration&nbsp;recovered&nbsp;from&nbsp;one&nbsp;string&nbsp;scheme.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="DecodedProfile-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__init__"><strong>__init__</strong></a>(self, method: 'str', base_url: 'str', gate_path: 'str', dll_path: 'str', build_id: 'str | None', decoded_count: 'int', string_key: 'str | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>c2_url</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;configured&nbsp;HTTP&nbsp;gate&nbsp;URL.</span></dd>
+</dl>
+<dl><dt><strong>dll_url</strong></dt>
+<dd><span class="code">Return&nbsp;the&nbsp;configured&nbsp;dependency&nbsp;directory&nbsp;URL.</span></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'base_url': 'str', 'build_id': 'str | None', 'decoded_count': 'int', 'dll_path': 'str', 'gate_path': 'str', 'method': 'str', 'string_key': 'str | None'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'base_url': Field(name='base_url',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'build_id': Field(name='build_id',type='str | None',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'decoded_count': Field(name='decoded_count',type='int',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'dll_path': Field(name='dll_path',type='str',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD), 'gate_path': Field(name='gate_path',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'method': Field(name='method',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'string_key': Field(name='string_key',type='str | None',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('method', 'base_url', 'gate_path', 'dll_path', 'build_id', 'decoded_count', 'string_key')</dl>
+
+<dl><dt><strong>string_key</strong> = None</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', source_name: 'str' = 'sample.bin') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;publish-safe&nbsp;StealC&nbsp;configuration&nbsp;and&nbsp;IOC&nbsp;findings.</span></dd></dl>
+ <dl><dt><a name="-extract_rc4_profile"><strong>extract_rc4_profile</strong></a>(data: 'bytes') -&gt; 'DecodedProfile | None'</dt><dd><span class="code">Recover&nbsp;a&nbsp;Base64/RC4&nbsp;skip-key&nbsp;StealC&nbsp;profile&nbsp;from&nbsp;PE&nbsp;data.</span></dd></dl>
+ <dl><dt><a name="-extract_xor_profile"><strong>extract_xor_profile</strong></a>(data: 'bytes') -&gt; 'DecodedProfile | None'</dt><dd><span class="code">Recover&nbsp;a&nbsp;paired-buffer&nbsp;XOR&nbsp;StealC&nbsp;profile&nbsp;from&nbsp;x86&nbsp;PE&nbsp;call&nbsp;sites.</span></dd></dl>
+ <dl><dt><a name="-rc4_skip"><strong>rc4_skip</strong></a>(data: 'bytes', key: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;StealC's&nbsp;RC4&nbsp;skip-key&nbsp;variant.<br>
+&nbsp;<br>
+The&nbsp;observed&nbsp;implementation&nbsp;retains&nbsp;the&nbsp;ciphertext&nbsp;byte&nbsp;when&nbsp;the&nbsp;normal<br>
+RC4&nbsp;XOR&nbsp;would&nbsp;produce&nbsp;NUL.&nbsp;&nbsp;This&nbsp;avoids&nbsp;embedded&nbsp;NULs&nbsp;in&nbsp;decrypted&nbsp;C&nbsp;strings<br>
+while&nbsp;still&nbsp;advancing&nbsp;the&nbsp;RC4&nbsp;state.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ASCII_RUN</strong> = re.compile(b'[\\x20-\\x7e]{4,}')<br>
+<strong>BASE64_VALUE</strong> = re.compile(b'[A-Za-z0-9+/]+={0,2}')<br>
+<strong>KNOWN_MARKERS</strong> = (b'getprocaddress', b'content-type: multipart/form-data', b'select origin_url', b'sqlite3.dll', b'hwid', b'build')<br>
+<strong>MAX_ENCODED_LENGTH</strong> = 4096<br>
+<strong>MAX_ENCODED_VALUES</strong> = 4096<br>
+<strong>MAX_FINAL_KEYS</strong> = 4<br>
+<strong>MAX_KEY_CANDIDATES</strong> = 512<br>
+<strong>MAX_PROBE_VALUES</strong> = 64<br>
+<strong>XOR_CALL</strong> = re.compile(b'\\x6a(.)\\x68(.{4})\\x68(.{4}).{0,5}\\xe8', re.DOTALL)</td></tr></table>
+</body></html>

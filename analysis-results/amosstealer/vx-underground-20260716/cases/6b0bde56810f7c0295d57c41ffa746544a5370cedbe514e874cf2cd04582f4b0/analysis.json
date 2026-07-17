@@ -1,0 +1,326 @@
+{
+  "case": {
+    "sha256": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+    "name": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+    "family": "amosstealer",
+    "campaign": "xz_macho_delivery",
+    "format": "xz",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 3,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "needs_review",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "layer_count": 3
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "sample_sha256": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+    "config": {
+      "source_name": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "keychain_collection": false,
+        "browser_collection": false,
+        "wallet_collection": false,
+        "apple_script": false,
+        "user_prompt": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+      "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 3
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amosstealer",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+    "sha256": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+    "size": 1325338,
+    "entropy": 7.9944,
+    "format": "xz",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "xz": {
+      "status": "recovered_with_trailing_metadata",
+      "streams": 7,
+      "size": 3023360,
+      "sha256": "3e64db660cb31e357a7b53421b3bf15ee28d5c057734f3fe96ba229096838272",
+      "trailing_metadata_size": 5938,
+      "trailing_metadata_sha256": "81421a4f027f476745b40da51cdcb53ce6a437ad1985d9468617454ef7540044",
+      "trailing_metadata_format": "xml-plist"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "xz-decompressed",
+        "size": 3023360,
+        "sha256": "3e64db660cb31e357a7b53421b3bf15ee28d5c057734f3fe96ba229096838272"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "xz-decompressed",
+        "sha256": "3e64db660cb31e357a7b53421b3bf15ee28d5c057734f3fe96ba229096838272",
+        "size": 3023360,
+        "format": "apple-disk-image",
+        "unpack": {
+          "schema_version": 2,
+          "name": "xz-decompressed.bin",
+          "sha256": "3e64db660cb31e357a7b53421b3bf15ee28d5c057734f3fe96ba229096838272",
+          "size": 3023360,
+          "entropy": 5.6514,
+          "format": "apple-disk-image",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "sevenzip": {
+            "status": "partially_extracted",
+            "exit_code": 2,
+            "archive_types": [
+              "APM",
+              "Mub"
+            ],
+            "members": [
+              "disk image.hfs",
+              "disk image.hfs",
+              "disk image.x64",
+              "disk image.arm64"
+            ],
+            "total_members": 4,
+            "declared_total_size": 16545520,
+            "password_attempted": false,
+            "extract_exit_code": 2,
+            "inventory": [
+              {
+                "name": "disk image.arm64",
+                "size": 381088,
+                "sha256": "91cca8b573d9bfdbe2d7ff74ce31acee7a3a9f8e0034841af38d96a1d4ad02f4",
+                "format": "macho",
+                "status": "extracted"
+              },
+              {
+                "name": "disk image.x64",
+                "size": 386640,
+                "sha256": "7668dcab16c2f16396dd0d3a580bca89a3675462c1e9f98e79d75d6e7e6c8c1f",
+                "format": "macho",
+                "status": "extracted"
+              }
+            ],
+            "extracted_total_size": 767728,
+            "retained_members": 2,
+            "split_reassembly": [],
+            "nsis_script_recovery": {
+              "status": "not_nsis"
+            }
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [
+            {
+              "kind": "7z-macho",
+              "size": 381088,
+              "sha256": "91cca8b573d9bfdbe2d7ff74ce31acee7a3a9f8e0034841af38d96a1d4ad02f4"
+            },
+            {
+              "kind": "7z-macho",
+              "size": 386640,
+              "sha256": "7668dcab16c2f16396dd0d3a580bca89a3675462c1e9f98e79d75d6e7e6c8c1f"
+            }
+          ],
+          "unpack_status": "artifacts_recovered"
+        },
+        "config": {
+          "source_name": "xz-decompressed.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [
+            "Atomic",
+            "Login Data",
+            "keychain",
+            "osascript"
+          ],
+          "features": {
+            "keychain_collection": true,
+            "browser_collection": true,
+            "wallet_collection": true,
+            "apple_script": true,
+            "user_prompt": true
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false
+        },
+        "findings": [],
+        "limitations": [
+          "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+          "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "7z-macho",
+        "sha256": "91cca8b573d9bfdbe2d7ff74ce31acee7a3a9f8e0034841af38d96a1d4ad02f4",
+        "size": 381088,
+        "format": "macho",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-macho.bin",
+          "sha256": "91cca8b573d9bfdbe2d7ff74ce31acee7a3a9f8e0034841af38d96a1d4ad02f4",
+          "size": 381088,
+          "entropy": 5.3817,
+          "format": "macho",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "macho": {
+            "kind": "macho64",
+            "cpu_type": "0x100000c",
+            "cpu_subtype": "0x0",
+            "file_type": 2,
+            "load_commands": 35,
+            "load_command_bytes": 4232,
+            "flags": "0x218085"
+          },
+          "macho_slices": {
+            "status": "not_universal",
+            "architectures": []
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-macho.bin",
+          "campaign_shape": "direct_macho",
+          "family_markers": [
+            "Atomic",
+            "Login Data",
+            "keychain",
+            "osascript"
+          ],
+          "features": {
+            "keychain_collection": true,
+            "browser_collection": true,
+            "wallet_collection": true,
+            "apple_script": true,
+            "user_prompt": true
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false
+        },
+        "findings": [],
+        "limitations": [
+          "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+          "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+        ]
+      },
+      {
+        "depth": 2,
+        "kind": "7z-macho",
+        "sha256": "7668dcab16c2f16396dd0d3a580bca89a3675462c1e9f98e79d75d6e7e6c8c1f",
+        "size": 386640,
+        "format": "macho",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-macho.bin",
+          "sha256": "7668dcab16c2f16396dd0d3a580bca89a3675462c1e9f98e79d75d6e7e6c8c1f",
+          "size": 386640,
+          "entropy": 5.4112,
+          "format": "macho",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "macho": {
+            "kind": "macho64",
+            "cpu_type": "0x1000007",
+            "cpu_subtype": "0x3",
+            "file_type": 2,
+            "load_commands": 35,
+            "load_command_bytes": 4312,
+            "flags": "0x218085"
+          },
+          "macho_slices": {
+            "status": "not_universal",
+            "architectures": []
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-macho.bin",
+          "campaign_shape": "direct_macho",
+          "family_markers": [
+            "Atomic",
+            "Login Data",
+            "keychain",
+            "osascript"
+          ],
+          "features": {
+            "keychain_collection": true,
+            "browser_collection": true,
+            "wallet_collection": true,
+            "apple_script": true,
+            "user_prompt": true
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false
+        },
+        "findings": [],
+        "limitations": [
+          "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+          "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

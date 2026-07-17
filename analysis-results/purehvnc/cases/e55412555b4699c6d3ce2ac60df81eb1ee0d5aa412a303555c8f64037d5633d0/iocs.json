@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "submitted_sample": {"sha256": "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0", "role": "submitted_sample", "confidence": "confirmed"},
+  "delivery_artifacts": [
+    {"sha256": "9d8e67acc8362da1eb87339e548db45d8112175404df30b9960ecad208c329eb", "role": "malicious_delivery_container", "confidence": "confirmed"},
+    {"sha256": "9c382435a539afb1ccd33d5ed7a1c390e52bfa223cdf88e48ca5a656fb9592e2", "role": "chrd_config", "confidence": "confirmed"},
+    {"sha256": "da4fa1b8f0e80693cfecefc70afdac3cccc13aeabb44149a3cf2e48aad9a42a1", "role": "donut_shellcode", "confidence": "confirmed"},
+    {"sha256": "96d2f935f7973f4c31c320cd2ee2173bd6f67ac32758ecc242f928409ecf92d7", "role": "managed_resource_loader", "confidence": "confirmed"},
+    {"sha256": "c1a2b48d4f639b46cf6cde8322666f0991531ef32ffe571140418ae40342ffe8", "role": "terminal_payload", "confidence": "confirmed"}
+  ],
+  "configured_c2": [
+    {"value": "tirakian.com:56001", "role": "configured_c2", "confidence": "confirmed"},
+    {"value": "tirakian.com:56002", "role": "configured_c2", "confidence": "confirmed"},
+    {"value": "tirakian.com:56003", "role": "configured_c2", "confidence": "confirmed"}
+  ],
+  "tls_certificate": {"sha256": "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b", "role": "configured_tls_certificate", "confidence": "confirmed"},
+  "network_contacted": false
+}
+

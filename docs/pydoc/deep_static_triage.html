@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module deep_static_triage</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">deep_static_triage</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cdeep_static_triage.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\deep_static_triage.py</a></td></tr></table>
+    <p><span class="code">Run&nbsp;bounded,&nbsp;static-only&nbsp;triage&nbsp;over&nbsp;an&nbsp;inventory&nbsp;of&nbsp;difficult&nbsp;samples.<br>
+&nbsp;<br>
+The&nbsp;orchestrator&nbsp;deliberately&nbsp;treats&nbsp;malware&nbsp;bytes&nbsp;as&nbsp;ephemeral&nbsp;in-memory&nbsp;data.<br>
+It&nbsp;can&nbsp;authenticate&nbsp;MalwareBazaar&nbsp;AES&nbsp;ZIPs&nbsp;and&nbsp;pass&nbsp;recovered&nbsp;layers&nbsp;between<br>
+static&nbsp;parsers,&nbsp;but&nbsp;it&nbsp;never&nbsp;executes,&nbsp;emulates,&nbsp;contacts&nbsp;infrastructure,&nbsp;or<br>
+writes&nbsp;a&nbsp;raw&nbsp;or&nbsp;recovered&nbsp;artifact.&nbsp;&nbsp;Its&nbsp;only&nbsp;persistent&nbsp;products&nbsp;are&nbsp;a<br>
+sanitized&nbsp;JSON&nbsp;report&nbsp;and&nbsp;a&nbsp;Markdown&nbsp;summary.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_case"><strong>analyze_case</strong></a>(case: 'Mapping[str, Any]', locations: 'Sequence[Mapping[str, Any]]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;inventory&nbsp;case&nbsp;using&nbsp;only&nbsp;bounded&nbsp;in-memory&nbsp;static&nbsp;operations.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static-only&nbsp;batch&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-expand_inventory"><strong>expand_inventory</strong></a>(document: 'Mapping[str, Any]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Expand&nbsp;group&nbsp;hashes&nbsp;into&nbsp;cases,&nbsp;applying&nbsp;matching&nbsp;case&nbsp;overrides.<br>
+&nbsp;<br>
+Supported&nbsp;groups&nbsp;contain&nbsp;``id``,&nbsp;``family``,&nbsp;``category``,&nbsp;``priority``,<br>
+``blockers``&nbsp;and&nbsp;``hashes``.&nbsp;&nbsp;An&nbsp;optional&nbsp;entry&nbsp;in&nbsp;``cases``&nbsp;with&nbsp;the&nbsp;same<br>
+``sha256``&nbsp;replaces&nbsp;whichever&nbsp;of&nbsp;those&nbsp;defaults&nbsp;it&nbsp;explicitly&nbsp;supplies&nbsp;and<br>
+may&nbsp;add&nbsp;``expected_children``&nbsp;or&nbsp;``raw_code_layers``.</span></dd></dl>
+ <dl><dt><a name="-index_local_samples"><strong>index_local_samples</strong></a>(roots: 'Sequence[Path]') -&gt; 'dict[str, list[dict[str, Any]]]'</dt><dd><span class="code">Index&nbsp;hash-named&nbsp;raw&nbsp;files&nbsp;and&nbsp;``&lt;sha256&gt;.zip``&nbsp;archives&nbsp;under&nbsp;roots.<br>
+&nbsp;<br>
+Paths&nbsp;are&nbsp;returned&nbsp;only&nbsp;for&nbsp;internal&nbsp;acquisition&nbsp;and&nbsp;are&nbsp;never&nbsp;copied&nbsp;into<br>
+the&nbsp;public&nbsp;report.&nbsp;&nbsp;Symlinks&nbsp;and&nbsp;obvious&nbsp;report-document&nbsp;suffixes&nbsp;are<br>
+excluded.&nbsp;&nbsp;File&nbsp;contents&nbsp;are&nbsp;authenticated&nbsp;against&nbsp;the&nbsp;requested&nbsp;hash&nbsp;later.</span></dd></dl>
+ <dl><dt><a name="-load_inventory"><strong>load_inventory</strong></a>(path: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Load&nbsp;a&nbsp;UTF-8&nbsp;YAML&nbsp;inventory&nbsp;and&nbsp;require&nbsp;a&nbsp;mapping&nbsp;document.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;inventory&nbsp;triage&nbsp;and&nbsp;publish&nbsp;sanitized&nbsp;JSON/Markdown&nbsp;reports.</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;sanitized&nbsp;human-readable&nbsp;summary&nbsp;without&nbsp;raw&nbsp;bytes&nbsp;or&nbsp;paths.</span></dd></dl>
+ <dl><dt><a name="-run_inventory"><strong>run_inventory</strong></a>(document: 'Mapping[str, Any]', roots: 'Sequence[Path]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;all&nbsp;expanded&nbsp;inventory&nbsp;cases&nbsp;against&nbsp;hash-indexed&nbsp;local&nbsp;roots.</span></dd></dl>
+ <dl><dt><a name="-scan_protector_markers"><strong>scan_protector_markers</strong></a>(data: 'bytes', *, max_scan_bytes: 'int' = 33554432) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;recognized&nbsp;protector/obfuscator&nbsp;markers&nbsp;from&nbsp;bounded&nbsp;byte&nbsp;windows.</span></dd></dl>
+ <dl><dt><a name="-write_public_report"><strong>write_public_report</strong></a>(report: 'Mapping[str, Any]', output_dir: 'Path') -&gt; 'tuple[Path, Path]'</dt><dd><span class="code">Write&nbsp;only&nbsp;sanitized&nbsp;JSON&nbsp;and&nbsp;Markdown&nbsp;products&nbsp;to&nbsp;an&nbsp;output&nbsp;directory.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_MARKER_SCAN_BYTES</strong> = 33554432<br>
+<strong>DEFAULT_MAX_BLOCKS</strong> = 4096<br>
+<strong>DEFAULT_MAX_BLOCK_BYTES</strong> = 4096<br>
+<strong>DEFAULT_MAX_DEPTH</strong> = 3<br>
+<strong>DEFAULT_MAX_INPUT_SIZE</strong> = 268435456<br>
+<strong>DEFAULT_MAX_INSTRUCTIONS</strong> = 50000<br>
+<strong>DEFAULT_MAX_NODES</strong> = 64<br>
+<strong>DEFAULT_MAX_TOTAL_LAYER_BYTES</strong> = 536870912<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>REPOSITORY</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>Sequence</strong> = typing.Sequence<br>
+<strong>__annotations__</strong> = {'_MARKERS': 'tuple[tuple[str, tuple[bytes, ...]], ...]'}</td></tr></table>
+</body></html>

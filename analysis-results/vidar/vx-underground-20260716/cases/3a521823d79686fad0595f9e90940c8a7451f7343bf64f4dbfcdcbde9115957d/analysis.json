@@ -1,0 +1,88 @@
+{
+  "case": {
+    "sha256": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+    "name": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+    "family": "vidar",
+    "campaign": "nested_or_protected_delivery",
+    "format": "data",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "needs_review",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+    "config": {
+      "source_name": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+      "campaign_shape": "unknown_or_nested_delivery",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "complete_input",
+      "original_size": 2710,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+    "sha256": "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
+    "size": 2710,
+    "entropy": 5.3521,
+    "format": "data",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

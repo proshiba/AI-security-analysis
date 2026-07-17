@@ -61,3 +61,9 @@ Detection rules under `rules/` are starting points and require environment tunin
 ## Latest refresh
 
 - [2026-07-15: 10 new MalwareBazaar samples](refresh-20260715/README.md)
+
+## VX-Underground batch, 2026-07-16
+
+[Two reviewed submissions](vx-underground-20260716/README.md) resolved to the
+same universal Mach-O payload. One arrived as seven concatenated XZ streams
+containing an Apple disk image; both x86-64 and arm64 slices were recovered.

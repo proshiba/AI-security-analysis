@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "asyncrat": {
+      "display_name": "AsyncRAT",
+      "category": "rat",
+      "aliases": ["async-rat", "async_rat"],
+      "markers": ["asyncrat", "asyncrat server", "asyncrat client", "pastebin", "pong", "hwid"],
+      "minimum_markers": 2,
+      "config_keys": ["Hosts", "Ports", "Version", "Install", "Mutex", "Pastebin"],
+      "transport": "encrypted length-prefixed TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Decode the settings object and corroborate host, port, certificate/key material, and AsyncRAT framing."
+    },
+    "xworm": {
+      "display_name": "XWorm",
+      "category": "rat",
+      "aliases": ["x-worm"],
+      "markers": ["xworm", "xworm.client", "<|>", "runpe", "usb.exe", "pong"],
+      "minimum_markers": 2,
+      "config_keys": ["Host", "Port", "Key", "SPL", "Version", "USB"],
+      "transport": "delimiter-framed encrypted TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Recover the configured separator/key and validate XWorm registration framing in an isolated lab."
+    },
+    "quasarrat": {
+      "display_name": "QuasarRAT",
+      "category": "rat",
+      "aliases": ["quasar", "quasar-rat"],
+      "markers": ["quasar.client", "quasar.common", "quasar server", "reconnectdelay", "xclient.core", "clientconfig"],
+      "minimum_markers": 2,
+      "config_keys": ["Hosts", "Ports", "Version", "ReconnectDelay", "Mutex", "ServerSignature"],
+      "transport": "TLS-capable length-prefixed TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Corroborate a decoded ClientConfig with Quasar namespaces and certificate-backed packet framing."
+    },
+    "njrat": {
+      "display_name": "njRAT",
+      "category": "rat",
+      "aliases": ["nj-rat", "nj_rat", "bladabindi"],
+      "markers": ["njrat", "nj-w0rm", "im523", "hacked", "y262s", "njrat v"],
+      "minimum_markers": 2,
+      "config_keys": ["H", "P", "VN", "VR", "EXE", "DR", "RG", "USB"],
+      "transport": "delimiter-framed TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Recover the H/P/VN configuration tuple and validate the njRAT registration delimiter offline or on loopback."
+    },
+    "darkcomet": {
+      "display_name": "DarkComet",
+      "category": "rat",
+      "aliases": ["darkcomet-rat", "dark-comet"],
+      "markers": ["darkcomet data", "darkcomet-rat", "#begin darkcomet", "netdata", "fwb", "darkcomet-rat server"],
+      "minimum_markers": 2,
+      "config_keys": ["NETDATA", "MUTEX", "SID", "GENCODE", "FWB", "EDTPATH"],
+      "transport": "encrypted command-oriented TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Decode the DarkComet configuration block and validate NETDATA plus family command framing."
+    },
+    "dcrat": {
+      "display_name": "DCRat",
+      "category": "rat",
+      "aliases": ["dc-rat", "darkcrystalrat", "darkcrystal-rat"],
+      "markers": ["dcrat", "dcrat.server", "dcrat.client", "dcrat.build", "dcratmutex", "darkcrystal"],
+      "minimum_markers": 2,
+      "config_keys": ["Hosts", "Ports", "Version", "Group", "Mutex", "Install"],
+      "transport": "encrypted protobuf-like TCP",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Decode the embedded settings resource and corroborate host/port with DCRat message serialization."
+    },
+    "redlinestealer": {
+      "display_name": "RedLine Stealer",
+      "category": "stealer",
+      "aliases": ["redline", "redline-stealer", "redline stealer"],
+      "markers": ["redline", "redline.reburn", "coldwallets", "installedbrowsers", "hardwareid", "scanners"],
+      "minimum_markers": 3,
+      "config_keys": ["IP", "ID", "Message", "Key", "BuildID", "HardwareId"],
+      "transport": "service-oriented TCP/HTTP variant",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Decode the build configuration and corroborate endpoint, build ID, and RedLine collection schema."
+    },
+    "snakekeylogger": {
+      "display_name": "Snake Keylogger",
+      "category": "stealer",
+      "aliases": ["snake", "snake-keylogger", "404 keylogger"],
+      "markers": ["snake keylogger", "snakekeylogger", "telegram.bot", "smtpclient", "ftpwebrequest", "keylogger"],
+      "minimum_markers": 2,
+      "config_keys": ["Host", "Port", "From", "To", "Telegram", "FTP", "SMTP"],
+      "transport": "SMTP/FTP/Telegram/HTTP exfiltration",
+      "endpoint_role": "exfiltration_candidate",
+      "confirmation": "Corroborate an endpoint with the selected exfiltration backend without publishing credentials or tokens."
+    },
+    "guloader": {
+      "display_name": "GuLoader",
+      "category": "loader",
+      "aliases": ["gu-loader", "cloud eye", "cloudeye"],
+      "markers": ["guloader", "cloudeye", "callwindowproc", "enumsystemlocales", "ntallocatevirtualmemory", "virtualalloc"],
+      "minimum_markers": 3,
+      "config_keys": ["URL", "Password", "UserAgent", "Method", "Referer"],
+      "transport": "HTTP(S) staged payload retrieval",
+      "endpoint_role": "stage_url_candidate",
+      "confirmation": "Treat URLs as delivery candidates until the decoded downloader routine and payload transform are recovered."
+    },
+    "hijackloader": {
+      "display_name": "HijackLoader",
+      "category": "loader",
+      "aliases": ["hijack-loader", "idat loader", "idatloader"],
+      "markers": ["hijackloader", "idat", "esal", "module stomping", "heaven's gate", "clickfix"],
+      "minimum_markers": 2,
+      "config_keys": ["URL", "Stage", "Module", "Password", "Campaign", "UserAgent"],
+      "transport": "HTTP(S) staged payload retrieval",
+      "endpoint_role": "stage_url_candidate",
+      "confirmation": "Corroborate a URL with the IDAT/ESAL loader chain and recovered stage metadata; do not equate reachability with C2."
+    }
+  }
+}

@@ -1,0 +1,304 @@
+{
+  "case": {
+    "sha256": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+    "name": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+    "family": "latrodectus",
+    "campaign": "direct_dll_or_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": true,
+    "config_findings": 2,
+    "c2_assessment": "confirmed",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+    "config": {
+      "source_name": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+      "c2_urls": [
+        "https://carflotyup.com/live/",
+        "https://worlpquano.com/live/"
+      ],
+      "version": "1.3.1",
+      "group_name": "Neptun",
+      "group_id": 2441763523,
+      "rc4_key": "PAcrb6Y46B5YRPMWGRsCBDWxzXwhSAeix03rAkTeAEOoauDBGr",
+      "decoded_strings": [
+        "/c ipconfig /all",
+        "C:\\Windows\\System32\\cmd.exe",
+        "/c systeminfo",
+        "/c nltest /domain_trusts",
+        "/c net view /all /domain",
+        "/c nltest /domain_trusts /all_trusts",
+        "/c net view /all",
+        "&ipconfig=",
+        "/c net group \"Domain Admins\" /domain",
+        "/Node:localhost /Namespace:\\\\root\\SecurityCenter2 Path AntiVirusProduct Get * /Format:List",
+        "C:\\Windows\\System32\\wbem\\wmic.exe",
+        "/c net config workstation",
+        "/c wmic.exe /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName || echo No Antivirus installed",
+        "/c whoami /groups",
+        "&systeminfo=",
+        "&domain_trusts=",
+        "&domain_trusts_all=",
+        "&net_view_all_domain=",
+        "&net_view_all=",
+        "&net_group=",
+        "&wmic=",
+        "&net_config_ws=",
+        "&net_wmic_av=",
+        "&whoami_group=",
+        "\"pid\": ",
+        "\"%d\",",
+        "\"proc\": ",
+        "\"%s\",",
+        "\"subproc\": [",
+        "&proclist=[",
+        "&desklinks=[",
+        "*.*",
+        "\"%s\"",
+        "confrontation_%x",
+        "falsify_steward",
+        ".dll",
+        ".exe",
+        "anxiety",
+        "rundll32.exe",
+        "\"%s\", %s %s",
+        "runnung",
+        ":wtfbbq",
+        "%s/%s",
+        "%s%s",
+        "files/bp.dat",
+        "%s\\%d.dll",
+        "%d.dat",
+        "%s\\%s",
+        "init -zzzz=\"%s\\%s\"",
+        "front",
+        "/files/",
+        "Neptun",
+        "Content-Type: application/x-www-form-urlencoded",
+        "POST",
+        "GET",
+        "curl/7.88.1",
+        "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Tob 1.1)",
+        "CLEARURL",
+        "URLS",
+        "COMMAND",
+        "ERROR",
+        "PAcrb6Y46B5YRPMWGRsCBDWxzXwhSAeix03rAkTeAEOoauDBGr",
+        "counter=%d&type=%d&guid=%s&os=%d&arch=%d&username=%s&group=%lu&ver=%d.%d&up=%d&direction=%s",
+        "AppData",
+        "Desktop",
+        "Startup",
+        "Personal",
+        "Local AppData",
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+        "%s%d.dll",
+        "C:\\WINDOWS\\SYSTEM32\\rundll32.exe %s,%s",
+        "<!DOCTYPE",
+        "%s%d.exe",
+        "C:\\WINDOWS\\SYSTEM32\\rundll32.exe %s",
+        "<html>",
+        "12345",
+        "&stiller=",
+        "LogonTrigger",
+        "%x%x",
+        "TimeTrigger",
+        "PT0H%02dM",
+        "&mac=",
+        "PT0S",
+        "%04d-%02d-%02dT%02d:%02d:%02d",
+        "%02x",
+        ":%02x",
+        "&computername=%s",
+        "&domain=%s",
+        "\\*.dll",
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+        "%04X%04X%04X%04X%08X%04X",
+        "https://carflotyup.com/live/",
+        "https://worlpquano.com/live/",
+        "\\Registry\\Machine\\",
+        "\\update_data.dat"
+      ],
+      "profile": "latrodectus_legacy_prng_strings",
+      "static_config_recovered": true,
+      "features": {
+        "host_discovery": true,
+        "domain_discovery": true,
+        "security_discovery": true,
+        "scheduled_task_persistence": true,
+        "payload_download": true,
+        "rundll32_execution": true
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [
+      {
+        "kind": "network.url",
+        "value": "https://carflotyup.com/live/",
+        "role": "c2",
+        "confidence": "confirmed",
+        "source": "latrodectus_string_decryption"
+      },
+      {
+        "kind": "network.url",
+        "value": "https://worlpquano.com/live/",
+        "role": "c2",
+        "confidence": "confirmed",
+        "source": "latrodectus_string_decryption"
+      }
+    ],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "confirmed",
+    "targets": [
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://carflotyup.com/live/",
+          "role": "c2",
+          "confidence": "confirmed",
+          "source": "latrodectus_string_decryption"
+        },
+        "host": "carflotyup.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:carflotyup.com"
+        ],
+        "active_probe_performed": false
+      },
+      {
+        "finding": {
+          "kind": "network.url",
+          "value": "https://worlpquano.com/live/",
+          "role": "c2",
+          "confidence": "confirmed",
+          "source": "latrodectus_string_decryption"
+        },
+        "host": "worlpquano.com",
+        "port": null,
+        "passive_queries": [
+          "hostname:worlpquano.com"
+        ],
+        "active_probe_performed": false
+      }
+    ],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+    "sha256": "a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7",
+    "size": 61440,
+    "entropy": 5.6157,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 61440,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 5,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 50688,
+          "virtual_size": 50644,
+          "entropy": 5.4187,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 1536,
+          "virtual_size": 1358,
+          "entropy": 4.2532,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 5632,
+          "virtual_size": 9112,
+          "entropy": 6.4029,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 2048,
+          "virtual_size": 1740,
+          "entropy": 3.8726,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.0815,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 0,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

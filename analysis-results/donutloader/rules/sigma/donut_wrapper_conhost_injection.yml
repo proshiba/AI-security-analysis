@@ -1,0 +1,23 @@
+title: Suspicious Conhost Launch Consistent With a Donut Wrapper
+id: a5983bc4-2c68-4c8b-9ccf-45a6d841f145
+status: experimental
+description: Detects a non-console application launching System32 conhost with an additional quoted payload argument, a behavior observed in the reviewed Donut wrapper profile.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\conhost.exe'
+    CommandLine|contains|all:
+      - '\System32\conhost.exe'
+      - '" "'
+  filter_parents:
+    ParentImage|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\WindowsTerminal.exe'
+  condition: selection and not filter_parents
+falsepositives:
+  - Console hosts launched by uncommon terminal, accessibility, testing, or software-management products
+level: medium

@@ -1,0 +1,21 @@
+title: Rundll32 Loading a DLL From a User-Writable Location
+id: d8d18040-a263-4e48-b03a-49dcbe387398
+status: experimental
+description: Detects rundll32 loading a DLL from a user profile or temporary directory, a common execution shape for Latrodectus delivery.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  image:
+    Image|endswith: '\rundll32.exe'
+  user_path:
+    CommandLine|contains:
+      - '\AppData\'
+      - '\Users\Public\'
+      - '\Temp\'
+  dll:
+    CommandLine|contains: '.dll'
+  condition: image and user_path and dll
+falsepositives:
+  - Software installers, per-user COM components, support tooling, and application self-repair
+level: medium

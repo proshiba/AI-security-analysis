@@ -29,6 +29,8 @@ static_unpacker.py is the orchestrator. javascript_obfuscator.py handles
 script encodings and string-array layers. javascript_dropper_unpacker.py
 handles numeric-array, Unicode environment, AES-CBC, and GZip chains.
 nsis_unpacker.py handles explicit NSIS script and native constant-XOR layers.
+`static_control_flow.py` provides bounded recursive x86/x64 entry-CFG triage.
+`managed_il_triage.py` inventories managed metadata, CIL, and resources without CLR loading.
 
 ## Tooling
 
@@ -143,3 +145,40 @@ The CHRD integration fixture recovered terminal SHA-256 `c1a2b48d4f639b46cf6cde8
 - Neither module launches LNK, JavaScript, Git, scripts, loaders or recovered PEs.
 
 See docs/APT-C60-2026-WORKFLOW.md for command order and failure checks.
+
+## Current Donut, container, and large-file support
+
+- `donut_unpacker.py` supports current `0x240` and `0x230` array layouts in
+  addition to the reviewed modern and legacy layouts. It validates the
+  call-over-instance prologue, API count, DLL basename list, decrypted PE
+  extent, and output hashes.
+- `donut_wrapper_unpacker.py` recovers the reviewed 32-byte XOR wrapper only
+  after validating its decoded `SystemRoot`, `System32\conhost.exe`, and
+  quoted-argument templates.
+- `container_recovery.py` handles concatenated XZ streams, bounded XML-plist
+  trailers, Mach-O FAT slices, and inflated PE certificate gaps.
+- `static_unpacker.py` treats Apple disk images and multi-member malware-owned
+  archives as recursive layers. Files larger than 64 MiB use deterministic
+  bounded entropy sampling and a bounded marker probe.
+
+All transformations are structure-validated and performed in memory or in
+quarantined temporary paths. A recovered PE is analyzed recursively but is
+never launched.
+
+## Electron ASAR and Java/Mach-O boundaries
+
+- `asar_unpacker.py` validates Chromium ASAR pickle boundaries, member offsets,
+  integrity metadata, traversal-safe names, and total output limits before it
+  returns in-memory members.
+- `electron_nsis_unpacker.py` uses 7-Zip only as a parser to locate a nested
+  Electron archive and recover `resources/app.asar`; it does not launch NSIS,
+  Electron, JavaScript, or a recovered payload.
+- `static_unpacker.py` applies both paths recursively and can deobfuscate the
+  reviewed plain JavaScript string-array rotation without evaluating JavaScript.
+- Java class files and universal Mach-O share the `CAFEBABE` magic. The format
+  detector now requires a plausible bounded Mach-O architecture table and
+  otherwise labels the object `java-class`.
+
+Related tests are `test_asar_unpacker.py`, `test_electron_nsis_unpacker.py`,
+`test_javascript_plain_array.py`, and the Java/Mach-O regression in
+`test_static_unpacker.py`.

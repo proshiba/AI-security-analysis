@@ -1,0 +1,315 @@
+{
+  "case": {
+    "sha256": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+    "name": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+    "family": "latrodectus",
+    "campaign": "office_delivery",
+    "format": "ole",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 2,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 2
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+    "config": {
+      "source_name": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+      "static_config_recovered": false,
+      "features": {
+        "host_discovery": false,
+        "domain_discovery": false,
+        "security_discovery": false,
+        "scheduled_task_persistence": false,
+        "payload_download": false,
+        "rundll32_execution": true
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 2
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+    "sha256": "ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3",
+    "size": 1602560,
+    "entropy": 7.1355,
+    "format": "ole",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "embedded-pe",
+        "size": 399328,
+        "sha256": "1e0e63b446eecf6c9781c7d1cae1f46a3bb31654a70612f71f31538fb4f4729a"
+      },
+      {
+        "kind": "embedded-pe",
+        "size": 446944,
+        "sha256": "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "embedded-pe",
+        "sha256": "1e0e63b446eecf6c9781c7d1cae1f46a3bb31654a70612f71f31538fb4f4729a",
+        "size": 399328,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "embedded-pe.bin",
+          "sha256": "1e0e63b446eecf6c9781c7d1cae1f46a3bb31654a70612f71f31538fb4f4729a",
+          "size": 399328,
+          "entropy": 6.5893,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 392704,
+            "security_offset": 392704,
+            "security_size": 6624,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 129,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 286208,
+                "virtual_size": 285742,
+                "entropy": 6.6163,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 82432,
+                "virtual_size": 82264,
+                "entropy": 5.2108,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".data",
+                "raw_size": 6144,
+                "virtual_size": 14052,
+                "entropy": 3.8933,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 3072,
+                "virtual_size": 2712,
+                "entropy": 4.6467,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 13824,
+                "virtual_size": 13816,
+                "entropy": 6.603,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 6624,
+            "overlay_format": "data",
+            "resource_count": 2,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "embedded-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "host_discovery": false,
+            "domain_discovery": false,
+            "security_discovery": false,
+            "scheduled_task_persistence": false,
+            "payload_download": false,
+            "rundll32_execution": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+          "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+          "No check-in or infrastructure contact was performed."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "embedded-pe",
+        "sha256": "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd",
+        "size": 446944,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "embedded-pe.bin",
+          "sha256": "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd",
+          "size": 446944,
+          "entropy": 6.4039,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 440320,
+            "security_offset": 440320,
+            "security_size": 6624,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 256,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 291840,
+                "virtual_size": 291542,
+                "entropy": 6.5003,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 121344,
+                "virtual_size": 120896,
+                "entropy": 5.0309,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".data",
+                "raw_size": 4608,
+                "virtual_size": 8476,
+                "entropy": 2.1473,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 1536,
+                "virtual_size": 1328,
+                "entropy": 3.7584,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 19968,
+                "virtual_size": 19468,
+                "entropy": 6.6052,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 6624,
+            "overlay_format": "data",
+            "resource_count": 2,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "embedded-pe.bin",
+          "static_config_recovered": false,
+          "features": {
+            "host_discovery": false,
+            "domain_discovery": false,
+            "security_discovery": false,
+            "scheduled_task_persistence": false,
+            "payload_download": false,
+            "rundll32_execution": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+          "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+          "No check-in or infrastructure contact was performed."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

@@ -1,0 +1,58 @@
+schema_version: 1
+
+policy:
+  query_scope: hash_metadata_only
+  sample_submission: prohibited
+  infrastructure_contact: prohibited
+  raw_cache: private_work_directory_only
+  public_output: normalized_evidence_only
+  medium_confidence_minimum_independent_providers: 2
+  high_confidence_requires_reviewed_local_evidence: true
+
+sources:
+  malwarebazaar:
+    enabled: true
+    transport: aggregator
+    auth_env: MALWAREBAZAAR_AUTH_KEY
+    endpoint: https://mb-api.abuse.ch/api/v1/
+    documentation: https://bazaar.abuse.ch/api/
+    capabilities:
+      - family_labels
+      - public_yara
+      - provider_report_links
+    notes: Underlying named analysis providers are counted separately; MalwareBazaar itself is not an extra independent vote.
+
+  otx:
+    enabled: true
+    transport: community_intelligence
+    auth_env: OTX_API_KEY
+    auth_optional: true
+    endpoint: https://otx.alienvault.com/api/v1/indicators/file/{sha256}/general
+    documentation: https://otx.alienvault.com/api
+    capabilities:
+      - pulse_names
+      - pulse_tags
+    notes: Multiple pulses are one OTX provider vote and remain community evidence.
+
+  circl_hashlookup:
+    enabled: true
+    transport: known_file_context
+    endpoint: https://hashlookup.circl.lu/lookup/sha256/{sha256}
+    documentation: https://www.circl.lu/services/hashlookup/
+    capabilities:
+      - known_file_context
+      - trust_context
+    notes: Presence is context, not proof that a file is benign or malicious, and never supplies a malware-family vote.
+
+  virustotal:
+    enabled: true
+    transport: multi_vendor_intelligence
+    auth_env: VT_API_KEY
+    auth_optional: false
+    endpoint: https://www.virustotal.com/api/v3/files/{sha256}
+    documentation: https://docs.virustotal.com/reference/file-info
+    capabilities:
+      - popular_threat_classification
+      - sandbox_family_labels
+      - vendor_family_consensus
+    notes: Lookup only. The implementation never uploads or submits a file.

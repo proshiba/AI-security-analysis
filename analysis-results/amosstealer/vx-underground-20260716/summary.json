@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "family": "amosstealer",
+  "signature": "AMOS",
+  "source": "vx-underground",
+  "counts": {
+    "total": 2,
+    "errors": 0,
+    "packing_suspected": 0,
+    "with_recovered_artifacts": 2,
+    "with_static_config": 0,
+    "with_config_findings": 0
+  },
+  "case_count": 2,
+  "campaigns": {
+    "direct_macho": 1,
+    "xz_macho_delivery": 1
+  },
+  "formats": {
+    "macho": 1,
+    "xz": 1
+  },
+  "features": {
+    "apple_script": 1,
+    "browser_collection": 1,
+    "keychain_collection": 1,
+    "user_prompt": 1,
+    "wallet_collection": 1
+  },
+  "config_values": {},
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+      "name": "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
+      "family": "amosstealer",
+      "campaign": "xz_macho_delivery",
+      "format": "xz",
+      "packing_suspected": false,
+      "packing_classification": "not_applicable",
+      "unpack_status": "artifacts_recovered",
+      "recovered_artifacts": 3,
+      "recovered_configs": 0,
+      "static_config_recovered": false,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "needs_review",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ],
+      "layer_count": 3
+    },
+    {
+      "sha256": "ce3c57e6c025911a916a61a716ff32f2699f3e3a84eb0ebbe892a5d4b8fb9c7a",
+      "name": "ce3c57e6c025911a916a61a716ff32f2699f3e3a84eb0ebbe892a5d4b8fb9c7a",
+      "family": "amosstealer",
+      "campaign": "direct_macho",
+      "format": "macho",
+      "packing_suspected": false,
+      "packing_classification": "not_applicable",
+      "unpack_status": "artifacts_recovered",
+      "recovered_artifacts": 2,
+      "recovered_configs": 0,
+      "static_config_recovered": false,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "ready",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "The `/ledger/` URL pattern is treated as probable exfil/C2 infrastructure, not proof of server ownership.",
+        "Script and macro submissions can be delivery stages rather than the final Mach-O payload."
+      ],
+      "layer_count": 2
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

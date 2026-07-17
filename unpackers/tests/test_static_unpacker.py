@@ -25,7 +25,10 @@ def test_hash_entropy_format_and_names() -> None:
     assert len(unpacker.sha256_bytes(b"x")) == 64
     assert unpacker.entropy(b"\0" * 100) == 0
     assert unpacker.detect_format(minimal_macho(), "x") == "macho"
+    java_class = b"\xca\xfe\xba\xbe\x00\x00\x00\x34" + b"\x00" * 32
+    assert unpacker.detect_format(java_class, "Fixture.class") == "java-class"
     assert unpacker.detect_format(b"7z\xbc\xaf'\x1c", "x") == "7z"
+    assert unpacker.detect_format(b"ER\x02\x00" + b"\0" * 28, "x") == "apple-disk-image"
     assert unpacker.detect_format(b"Rar!\x1a\x07\x01\x00", "x") == "rar"
     assert unpacker.detect_format(b"var x = 1", "x.js") == "script"
     assert unpacker.detect_format("// loader".encode("utf-16"), "x") == "script"
@@ -212,3 +215,7 @@ def test_unpack_and_cli(tmp_path: Path) -> None:
     assert unpacker.build_parser().parse_args(args).input == source
     assert unpacker.main(args) == 0
     assert json.loads(output.read_text())["executed"] is False
+    original = source.read_bytes()
+    with pytest.raises(ValueError, match="paths must differ"):
+        unpacker.main(["--input", str(source), "--output", str(source)])
+    assert source.read_bytes() == original

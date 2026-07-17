@@ -157,37 +157,104 @@ def extract_managed_config(data: bytes) -> dict[str, Any]:
     return config
 
 
+def _valid_ipv4(value: str) -> bool:
+    """Return true for a usable IPv4 literal."""
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return address.version == 4 and not address.is_unspecified and not address.is_multicast
+
+
+def native_endpoint_candidates(strings: list[str], adjacency: int = 2) -> list[str]:
+    """Associate native IP and port strings while rejecting unrelated port-like text."""
+    if adjacency < 0:
+        raise ValueError("adjacency must be non-negative")
+    endpoints: set[str] = set()
+    for value in strings:
+        for host, raw_port in re.findall(r"(?<![\d.])((?:\d{1,3}\.){3}\d{1,3})\s*:\s*(\d{1,5})(?!\d)", value):
+            port = int(raw_port)
+            if _valid_ipv4(host) and 0 < port <= 65535:
+                endpoints.add(f"{host}:{port}")
+    for index, value in enumerate(strings):
+        host = value.strip()
+        if not re.fullmatch(r"(?:\d{1,3}\.){3}\d{1,3}", host) or not _valid_ipv4(host):
+            continue
+        start, stop = max(0, index - adjacency), min(len(strings), index + adjacency + 1)
+        for neighbor in strings[start:stop]:
+            raw_port = neighbor.strip()
+            if re.fullmatch(r"\d{1,5}", raw_port) and 0 < int(raw_port) <= 65535:
+                endpoints.add(f"{host}:{int(raw_port)}")
+    return sorted(endpoints)
+
+
 def extract_native_config(data: bytes) -> dict[str, Any]:
     """Extract a conservative native 10FX-framed PureHVNC endpoint profile."""
     strings = extract_strings(data, minimum=3)
-    ips = []
-    for value in strings:
-        for candidate in re.findall(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])", value):
-            try:
-                address = ipaddress.ip_address(candidate)
-            except ValueError:
-                continue
-            if not address.is_unspecified and not address.is_multicast:
-                ips.append(candidate)
-    ips = list(dict.fromkeys(ips))
     if b"10FX" not in data and b"XF01" not in data and not any("START_SCREEN" in item for item in strings):
         raise ValueError("native PureHVNC protocol markers were not found")
-    ports = sorted({int(item) for value in strings for item in re.findall(r"(?<!\d)(?:8080|[1-9]\d{3,4})(?!\d)", value) if int(item) <= 65535})
-    endpoints = [f"{host}:{port}" for host in ips for port in ports]
-    return {"variant": "native_10fx", "c2_hosts": ips, "c2_ports": ports, "endpoints": endpoints, "frame_magic": "0x58463031", "frame_magic_ascii": "10FX"}
+    endpoints = native_endpoint_candidates(strings)
+    hosts = sorted({value.rsplit(":", 1)[0] for value in endpoints})
+    ports = sorted({int(value.rsplit(":", 1)[1]) for value in endpoints})
+    return {
+        "variant": "native_10fx",
+        "c2_hosts": hosts,
+        "c2_ports": ports,
+        "endpoints": endpoints,
+        "frame_magic": "0x58463031",
+        "frame_magic_ascii": "10FX",
+    }
+
+
+def extract_direct_config(data: bytes) -> tuple[dict[str, Any], str]:
+    """Extract config from an already recovered terminal payload."""
+    try:
+        return extract_managed_config(data), "confirmed"
+    except ValueError:
+        return extract_native_config(data), "high"
+
+
+def extract_chrd_carrier(data: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Recover a CHRD/Donut carrier and extract its terminal managed PureRAT config."""
+    from unpackers.chrd_donut_unpacker import unpack_chrd_donut
+
+    chain = unpack_chrd_donut(data)
+    config = extract_managed_config(chain.terminal_payload)
+    config.update(
+        {
+            "delivery_profile": "chrd_wave_donut",
+            "terminal_sha256": sha256_bytes(chain.terminal_payload),
+            "chain": chain.metadata,
+        }
+    )
+    return config, chain.metadata
 
 
 def extract(data: bytes, name: str = "sample") -> dict:
-    """Extract PureRAT/PureHVNC config, preferring the managed protobuf profile."""
+    """Extract direct or CHRD-wrapped PureRAT/PureHVNC configuration."""
     limitations = ["Static extraction only; no payload execution or C2 contact was performed."]
     try:
-        config, confidence = extract_managed_config(data), "confirmed"
+        config, confidence = extract_direct_config(data)
     except ValueError:
-        try:
-            config, confidence = extract_native_config(data), "high"
-        except ValueError:
+        if b"CHRD" in data:
+            try:
+                config, _metadata = extract_chrd_carrier(data)
+                confidence = "confirmed"
+            except (ValueError, RuntimeError, OSError) as error:
+                config, confidence = {"variant": "unrecognized", "endpoints": []}, "unverified"
+                limitations.append(f"CHRD carrier recovery failed validation: {type(error).__name__}.")
+        else:
             config, confidence = {"variant": "unrecognized", "endpoints": []}, "unverified"
-            limitations.append("No supported managed protobuf or native 10FX profile was found.")
+            limitations.append("No supported managed protobuf, native 10FX, or CHRD carrier profile was found.")
     config["source_name"] = name
-    findings = [{"kind": "network.endpoint", "value": endpoint, "role": "configured_c2", "confidence": confidence, "source": "static_config"} for endpoint in config.get("endpoints", [])]
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "configured_c2",
+            "confidence": confidence,
+            "source": "static_config",
+        }
+        for endpoint in config.get("endpoints", [])
+    ]
     return build_result("purehvnc", data, config, findings, limitations)

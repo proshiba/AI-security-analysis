@@ -1,0 +1,1780 @@
+{
+  "case": {
+    "sha256": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+    "name": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "self_extracting_container",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 27,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 27
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+    "config": {
+      "source_name": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "complete_input",
+      "original_size": 834674,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 27
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+    "sha256": "151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479",
+    "size": 834674,
+    "entropy": 7.9719,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 57344,
+      "security_offset": 824530,
+      "security_size": 10144,
+      "gap_size": 767186
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 172,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 28160,
+          "virtual_size": 28078,
+          "entropy": 6.5085,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 11264,
+          "virtual_size": 10850,
+          "entropy": 4.3905,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 512,
+          "virtual_size": 425660,
+          "entropy": 1.4309,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".ndata",
+          "raw_size": 0,
+          "virtual_size": 528384,
+          "entropy": 0.0,
+          "characteristics": "0xc0000080"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 16384,
+          "virtual_size": 15992,
+          "entropy": 7.371,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 4096,
+          "virtual_size": 3890,
+          "entropy": 7.9099,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rsrc",
+        ".reloc"
+      ],
+      "code_entropy_sections": [],
+      "packer_markers": [
+        "Nullsoft"
+      ],
+      "classification": "self_extracting_container",
+      "containerized": true,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [
+        ".ndata"
+      ],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 777330,
+      "overlay_format": "data",
+      "resource_count": 7,
+      "opaque_resources_recovered": 1,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "sevenzip": {
+      "status": "extracted",
+      "exit_code": 0,
+      "archive_types": [
+        "Nsis",
+        "PE"
+      ],
+      "members": [
+        "[0]",
+        "[0]",
+        "$TEMP\\Fail",
+        "$TEMP\\Below",
+        "$TEMP\\Ro",
+        "$TEMP\\Elliott",
+        "$TEMP\\Agriculture",
+        "$TEMP\\Exclusively",
+        "$TEMP\\Rand",
+        "$TEMP\\Exhibit",
+        "$TEMP\\Practitioner",
+        "$TEMP\\Rescue",
+        "$TEMP\\Diy",
+        "$TEMP\\Desktops",
+        "$TEMP\\Dealt",
+        "$TEMP\\Late",
+        "$TEMP\\Pregnant",
+        "$TEMP\\Argued",
+        "$TEMP\\Swim",
+        "$TEMP\\Directors",
+        "$TEMP\\Suit",
+        "$TEMP\\Cu",
+        "$TEMP\\Being",
+        "$TEMP\\Further",
+        "$TEMP\\Black",
+        "$TEMP\\Queries",
+        "$TEMP\\Hours",
+        "$TEMP\\Katrina"
+      ],
+      "total_members": 28,
+      "declared_total_size": 767186,
+      "password_attempted": false,
+      "extract_exit_code": 0,
+      "inventory": [
+        {
+          "name": "$TEMP/Agriculture",
+          "size": 22528,
+          "sha256": "64aa151e343829cc4b1d337c410ab786228cd64f37456d0929e6f05768ba9cf6",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Argued",
+          "size": 53248,
+          "sha256": "4bf7f1bcd2744f0e38e31c78586df5b020bd14c72c15e287523eb9864a0e1b29",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Being",
+          "size": 48128,
+          "sha256": "ab3cfa206585ca600f599485f2063082e5e7fcf22aa26be460bd4043e0f936cb",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Below",
+          "size": 34816,
+          "sha256": "970527fcafc7952b2c97cd4833680a9b4420c14711deb6edbceaeb34259a9883",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Black",
+          "size": 30720,
+          "sha256": "6f2f6dcfb3a1a506fdbab909bb76621307cc08a19ca86bb136c1fae68c75708a",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Cu",
+          "size": 61440,
+          "sha256": "6bd7ff074df7f2097e1a3349286cc613c97fd4ca47a7bc64fcb099494b1d3cbc",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Dealt",
+          "size": 55296,
+          "sha256": "0eeab4e2c06b3fcac8ffa673e9a47d2fc746168b1d4f87679e7775f5940742a5",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Desktops",
+          "size": 35840,
+          "sha256": "2a6556abb0971b84cba5249234d57de5bdb424009b67d7ad1f2591f8db7a2970",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Directors",
+          "size": 67584,
+          "sha256": "c04c589932fd74272bf0f58a078f79ffd9fe159ef9a3710a602b1530d9ea63da",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Diy",
+          "size": 48128,
+          "sha256": "a6fad3d46b0a8e74318b87ae8553261274e39617d1e27b7c3c6e1988eb588e4e",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Elliott",
+          "size": 114,
+          "sha256": "015a5397fbe4822cd1f4ed2f49bd7065a384949342fc3b33a57f3dfdb7ee9818",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Exclusively",
+          "size": 30720,
+          "sha256": "2cd989421ca19c294fb517ad67af162261c8b7266e17f213ba5d7f0ebdfb9fa7",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Exhibit",
+          "size": 75776,
+          "sha256": "4886af9dc9fbd57ce7c8fd486247790bfacd468184cf1ec8f66931d262e06729",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Fail",
+          "size": 22996,
+          "sha256": "ecc8abc33adddba1a6fe1dc626698aba572b61fe8a6988ce541ddb7b16f2e7c7",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Further",
+          "size": 69632,
+          "sha256": "d46cd3ce10c355622f4123a28f907292a65e0746ab8a6385c0ea212ee9eb2a0b",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Hours",
+          "size": 46859,
+          "sha256": "bdc02640cb3d780b5ec58b66328d6591bf53f3786a5a9b14e56a132e4dd6db6f",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Katrina",
+          "size": 34816,
+          "sha256": "56143152cf4ef32820bbf2c358ebaf3faaafe857f802e04d11f7a6c34a9df3d1",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Late",
+          "size": 57344,
+          "sha256": "60a85ea86f3bbb20466842f0937bcb4794799afe9766cd46881c9cfe6ab0bbf5",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Practitioner",
+          "size": 50176,
+          "sha256": "1016415bd80a9943c3c103aa74bb3b6c3feae31437b97b52eeae8b6a765280a5",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Pregnant",
+          "size": 27648,
+          "sha256": "012804834cda2559dbdfe72599126689d71901666ede8e5d3830b0e3ff72eb47",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Queries",
+          "size": 59392,
+          "sha256": "d2af659e6b06c7551951c547f9ee9f1def04edb77fecf2429114a337dea14168",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Rand",
+          "size": 202752,
+          "sha256": "98773e10ff7bcf174b7c73f1bbd8e47f08e996ba201b2a30ac34897bcef0f5fd",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Rescue",
+          "size": 24576,
+          "sha256": "00401eacd2abcd9d19c0a5196260f5ac627fedb8375b932d94a35a26bef34c1d",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Ro",
+          "size": 27648,
+          "sha256": "56ff0739cef74a4abd0635950f07435b627e384495737f5b7285fb95f91e2ddc",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Suit",
+          "size": 46080,
+          "sha256": "779f46fc17c935261963cd5b0686fee09b75937894d0818c77b04f7570caba63",
+          "format": "data",
+          "status": "extracted"
+        },
+        {
+          "name": "$TEMP/Swim",
+          "size": 7770,
+          "sha256": "e99aeed2c33405a2128b1eeb3fcf77c05a45a840b7c2a1caa5340b92e222b99b",
+          "format": "data",
+          "status": "extracted"
+        }
+      ],
+      "extracted_total_size": 1242027,
+      "retained_members": 26,
+      "split_reassembly": [],
+      "nsis_script_recovery": {
+        "status": "no_decompiled_nsis_script"
+      }
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 9738,
+        "sha256": "69b3d014b5053502a626d189699f11a80ec2610af3ac2350f526df5b91955e04"
+      },
+      {
+        "kind": "7z-data",
+        "size": 22528,
+        "sha256": "64aa151e343829cc4b1d337c410ab786228cd64f37456d0929e6f05768ba9cf6"
+      },
+      {
+        "kind": "7z-data",
+        "size": 53248,
+        "sha256": "4bf7f1bcd2744f0e38e31c78586df5b020bd14c72c15e287523eb9864a0e1b29"
+      },
+      {
+        "kind": "7z-data",
+        "size": 48128,
+        "sha256": "ab3cfa206585ca600f599485f2063082e5e7fcf22aa26be460bd4043e0f936cb"
+      },
+      {
+        "kind": "7z-data",
+        "size": 34816,
+        "sha256": "970527fcafc7952b2c97cd4833680a9b4420c14711deb6edbceaeb34259a9883"
+      },
+      {
+        "kind": "7z-data",
+        "size": 30720,
+        "sha256": "6f2f6dcfb3a1a506fdbab909bb76621307cc08a19ca86bb136c1fae68c75708a"
+      },
+      {
+        "kind": "7z-data",
+        "size": 61440,
+        "sha256": "6bd7ff074df7f2097e1a3349286cc613c97fd4ca47a7bc64fcb099494b1d3cbc"
+      },
+      {
+        "kind": "7z-data",
+        "size": 55296,
+        "sha256": "0eeab4e2c06b3fcac8ffa673e9a47d2fc746168b1d4f87679e7775f5940742a5"
+      },
+      {
+        "kind": "7z-data",
+        "size": 35840,
+        "sha256": "2a6556abb0971b84cba5249234d57de5bdb424009b67d7ad1f2591f8db7a2970"
+      },
+      {
+        "kind": "7z-data",
+        "size": 67584,
+        "sha256": "c04c589932fd74272bf0f58a078f79ffd9fe159ef9a3710a602b1530d9ea63da"
+      },
+      {
+        "kind": "7z-data",
+        "size": 48128,
+        "sha256": "a6fad3d46b0a8e74318b87ae8553261274e39617d1e27b7c3c6e1988eb588e4e"
+      },
+      {
+        "kind": "7z-data",
+        "size": 114,
+        "sha256": "015a5397fbe4822cd1f4ed2f49bd7065a384949342fc3b33a57f3dfdb7ee9818"
+      },
+      {
+        "kind": "7z-data",
+        "size": 30720,
+        "sha256": "2cd989421ca19c294fb517ad67af162261c8b7266e17f213ba5d7f0ebdfb9fa7"
+      },
+      {
+        "kind": "7z-data",
+        "size": 75776,
+        "sha256": "4886af9dc9fbd57ce7c8fd486247790bfacd468184cf1ec8f66931d262e06729"
+      },
+      {
+        "kind": "7z-data",
+        "size": 22996,
+        "sha256": "ecc8abc33adddba1a6fe1dc626698aba572b61fe8a6988ce541ddb7b16f2e7c7"
+      },
+      {
+        "kind": "7z-data",
+        "size": 69632,
+        "sha256": "d46cd3ce10c355622f4123a28f907292a65e0746ab8a6385c0ea212ee9eb2a0b"
+      },
+      {
+        "kind": "7z-data",
+        "size": 46859,
+        "sha256": "bdc02640cb3d780b5ec58b66328d6591bf53f3786a5a9b14e56a132e4dd6db6f"
+      },
+      {
+        "kind": "7z-data",
+        "size": 34816,
+        "sha256": "56143152cf4ef32820bbf2c358ebaf3faaafe857f802e04d11f7a6c34a9df3d1"
+      },
+      {
+        "kind": "7z-data",
+        "size": 57344,
+        "sha256": "60a85ea86f3bbb20466842f0937bcb4794799afe9766cd46881c9cfe6ab0bbf5"
+      },
+      {
+        "kind": "7z-data",
+        "size": 50176,
+        "sha256": "1016415bd80a9943c3c103aa74bb3b6c3feae31437b97b52eeae8b6a765280a5"
+      },
+      {
+        "kind": "7z-data",
+        "size": 27648,
+        "sha256": "012804834cda2559dbdfe72599126689d71901666ede8e5d3830b0e3ff72eb47"
+      },
+      {
+        "kind": "7z-data",
+        "size": 59392,
+        "sha256": "d2af659e6b06c7551951c547f9ee9f1def04edb77fecf2429114a337dea14168"
+      },
+      {
+        "kind": "7z-data",
+        "size": 202752,
+        "sha256": "98773e10ff7bcf174b7c73f1bbd8e47f08e996ba201b2a30ac34897bcef0f5fd"
+      },
+      {
+        "kind": "7z-data",
+        "size": 24576,
+        "sha256": "00401eacd2abcd9d19c0a5196260f5ac627fedb8375b932d94a35a26bef34c1d"
+      },
+      {
+        "kind": "7z-data",
+        "size": 27648,
+        "sha256": "56ff0739cef74a4abd0635950f07435b627e384495737f5b7285fb95f91e2ddc"
+      },
+      {
+        "kind": "7z-data",
+        "size": 46080,
+        "sha256": "779f46fc17c935261963cd5b0686fee09b75937894d0818c77b04f7570caba63"
+      },
+      {
+        "kind": "7z-data",
+        "size": 7770,
+        "sha256": "e99aeed2c33405a2128b1eeb3fcf77c05a45a840b7c2a1caa5340b92e222b99b"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "69b3d014b5053502a626d189699f11a80ec2610af3ac2350f526df5b91955e04",
+        "size": 9738,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "69b3d014b5053502a626d189699f11a80ec2610af3ac2350f526df5b91955e04",
+          "size": 9738,
+          "entropy": 7.9494,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 9738
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "64aa151e343829cc4b1d337c410ab786228cd64f37456d0929e6f05768ba9cf6",
+        "size": 22528,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "64aa151e343829cc4b1d337c410ab786228cd64f37456d0929e6f05768ba9cf6",
+          "size": 22528,
+          "entropy": 6.7618,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 22528
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "4bf7f1bcd2744f0e38e31c78586df5b020bd14c72c15e287523eb9864a0e1b29",
+        "size": 53248,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "4bf7f1bcd2744f0e38e31c78586df5b020bd14c72c15e287523eb9864a0e1b29",
+          "size": 53248,
+          "entropy": 6.577,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 53248
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "ab3cfa206585ca600f599485f2063082e5e7fcf22aa26be460bd4043e0f936cb",
+        "size": 48128,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "ab3cfa206585ca600f599485f2063082e5e7fcf22aa26be460bd4043e0f936cb",
+          "size": 48128,
+          "entropy": 6.4695,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 48128
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "970527fcafc7952b2c97cd4833680a9b4420c14711deb6edbceaeb34259a9883",
+        "size": 34816,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "970527fcafc7952b2c97cd4833680a9b4420c14711deb6edbceaeb34259a9883",
+          "size": 34816,
+          "entropy": 6.732,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 34816
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "6f2f6dcfb3a1a506fdbab909bb76621307cc08a19ca86bb136c1fae68c75708a",
+        "size": 30720,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "6f2f6dcfb3a1a506fdbab909bb76621307cc08a19ca86bb136c1fae68c75708a",
+          "size": 30720,
+          "entropy": 6.6299,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 30720
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "6bd7ff074df7f2097e1a3349286cc613c97fd4ca47a7bc64fcb099494b1d3cbc",
+        "size": 61440,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "6bd7ff074df7f2097e1a3349286cc613c97fd4ca47a7bc64fcb099494b1d3cbc",
+          "size": 61440,
+          "entropy": 4.48,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 61440
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "0eeab4e2c06b3fcac8ffa673e9a47d2fc746168b1d4f87679e7775f5940742a5",
+        "size": 55296,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "0eeab4e2c06b3fcac8ffa673e9a47d2fc746168b1d4f87679e7775f5940742a5",
+          "size": 55296,
+          "entropy": 6.7487,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 55296
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "2a6556abb0971b84cba5249234d57de5bdb424009b67d7ad1f2591f8db7a2970",
+        "size": 35840,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "2a6556abb0971b84cba5249234d57de5bdb424009b67d7ad1f2591f8db7a2970",
+          "size": 35840,
+          "entropy": 4.6931,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 35840
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "c04c589932fd74272bf0f58a078f79ffd9fe159ef9a3710a602b1530d9ea63da",
+        "size": 67584,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "c04c589932fd74272bf0f58a078f79ffd9fe159ef9a3710a602b1530d9ea63da",
+          "size": 67584,
+          "entropy": 5.3404,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 67584
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "a6fad3d46b0a8e74318b87ae8553261274e39617d1e27b7c3c6e1988eb588e4e",
+        "size": 48128,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "a6fad3d46b0a8e74318b87ae8553261274e39617d1e27b7c3c6e1988eb588e4e",
+          "size": 48128,
+          "entropy": 6.2338,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 48128
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "015a5397fbe4822cd1f4ed2f49bd7065a384949342fc3b33a57f3dfdb7ee9818",
+        "size": 114,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "015a5397fbe4822cd1f4ed2f49bd7065a384949342fc3b33a57f3dfdb7ee9818",
+          "size": 114,
+          "entropy": 3.5708,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 114
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "2cd989421ca19c294fb517ad67af162261c8b7266e17f213ba5d7f0ebdfb9fa7",
+        "size": 30720,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "2cd989421ca19c294fb517ad67af162261c8b7266e17f213ba5d7f0ebdfb9fa7",
+          "size": 30720,
+          "entropy": 6.6082,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 30720
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "4886af9dc9fbd57ce7c8fd486247790bfacd468184cf1ec8f66931d262e06729",
+        "size": 75776,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "4886af9dc9fbd57ce7c8fd486247790bfacd468184cf1ec8f66931d262e06729",
+          "size": 75776,
+          "entropy": 7.9974,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 75776
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "ecc8abc33adddba1a6fe1dc626698aba572b61fe8a6988ce541ddb7b16f2e7c7",
+        "size": 22996,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "ecc8abc33adddba1a6fe1dc626698aba572b61fe8a6988ce541ddb7b16f2e7c7",
+          "size": 22996,
+          "entropy": 5.0203,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 22996
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "d46cd3ce10c355622f4123a28f907292a65e0746ab8a6385c0ea212ee9eb2a0b",
+        "size": 69632,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "d46cd3ce10c355622f4123a28f907292a65e0746ab8a6385c0ea212ee9eb2a0b",
+          "size": 69632,
+          "entropy": 6.4963,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 69632
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "bdc02640cb3d780b5ec58b66328d6591bf53f3786a5a9b14e56a132e4dd6db6f",
+        "size": 46859,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "bdc02640cb3d780b5ec58b66328d6591bf53f3786a5a9b14e56a132e4dd6db6f",
+          "size": 46859,
+          "entropy": 7.9965,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 46859
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "56143152cf4ef32820bbf2c358ebaf3faaafe857f802e04d11f7a6c34a9df3d1",
+        "size": 34816,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "56143152cf4ef32820bbf2c358ebaf3faaafe857f802e04d11f7a6c34a9df3d1",
+          "size": 34816,
+          "entropy": 6.687,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 34816
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "60a85ea86f3bbb20466842f0937bcb4794799afe9766cd46881c9cfe6ab0bbf5",
+        "size": 57344,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "60a85ea86f3bbb20466842f0937bcb4794799afe9766cd46881c9cfe6ab0bbf5",
+          "size": 57344,
+          "entropy": 6.6022,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 57344
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "1016415bd80a9943c3c103aa74bb3b6c3feae31437b97b52eeae8b6a765280a5",
+        "size": 50176,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "1016415bd80a9943c3c103aa74bb3b6c3feae31437b97b52eeae8b6a765280a5",
+          "size": 50176,
+          "entropy": 6.2289,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 50176
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "012804834cda2559dbdfe72599126689d71901666ede8e5d3830b0e3ff72eb47",
+        "size": 27648,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "012804834cda2559dbdfe72599126689d71901666ede8e5d3830b0e3ff72eb47",
+          "size": 27648,
+          "entropy": 4.1614,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 27648
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "d2af659e6b06c7551951c547f9ee9f1def04edb77fecf2429114a337dea14168",
+        "size": 59392,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "d2af659e6b06c7551951c547f9ee9f1def04edb77fecf2429114a337dea14168",
+          "size": 59392,
+          "entropy": 6.4855,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 59392
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "98773e10ff7bcf174b7c73f1bbd8e47f08e996ba201b2a30ac34897bcef0f5fd",
+        "size": 202752,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "98773e10ff7bcf174b7c73f1bbd8e47f08e996ba201b2a30ac34897bcef0f5fd",
+          "size": 202752,
+          "entropy": 7.9992,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 202752
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "00401eacd2abcd9d19c0a5196260f5ac627fedb8375b932d94a35a26bef34c1d",
+        "size": 24576,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "00401eacd2abcd9d19c0a5196260f5ac627fedb8375b932d94a35a26bef34c1d",
+          "size": 24576,
+          "entropy": 6.4519,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 24576
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "56ff0739cef74a4abd0635950f07435b627e384495737f5b7285fb95f91e2ddc",
+        "size": 27648,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "56ff0739cef74a4abd0635950f07435b627e384495737f5b7285fb95f91e2ddc",
+          "size": 27648,
+          "entropy": 6.1839,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 27648
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "779f46fc17c935261963cd5b0686fee09b75937894d0818c77b04f7570caba63",
+        "size": 46080,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "779f46fc17c935261963cd5b0686fee09b75937894d0818c77b04f7570caba63",
+          "size": 46080,
+          "entropy": 6.5691,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 46080
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "7z-data",
+        "sha256": "e99aeed2c33405a2128b1eeb3fcf77c05a45a840b7c2a1caa5340b92e222b99b",
+        "size": 7770,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "7z-data.bin",
+          "sha256": "e99aeed2c33405a2128b1eeb3fcf77c05a45a840b7c2a1caa5340b92e222b99b",
+          "size": 7770,
+          "entropy": 7.3972,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "7z-data.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 7770
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

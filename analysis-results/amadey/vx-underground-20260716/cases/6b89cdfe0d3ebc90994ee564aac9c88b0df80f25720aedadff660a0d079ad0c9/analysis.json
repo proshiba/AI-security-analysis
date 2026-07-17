@@ -1,0 +1,204 @@
+{
+  "case": {
+    "sha256": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+    "name": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 1,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 1
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+    "config": {
+      "source_name": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": true,
+        "rc4_protected_traffic": true
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+    "sha256": "6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9",
+    "size": 3037032,
+    "entropy": 6.7816,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 3030528,
+      "security_offset": 3030528,
+      "security_size": 6504,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 146,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 1193984,
+          "virtual_size": 1196032,
+          "entropy": 6.5813,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 534528,
+          "virtual_size": 536576,
+          "entropy": 5.333,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 28160,
+          "virtual_size": 32768,
+          "entropy": 4.1405,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".tls",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.0204,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".gfids",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.2757,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1271808,
+          "virtual_size": 1271512,
+          "entropy": 6.8912,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 6504,
+      "overlay_format": "data",
+      "resource_count": 93,
+      "opaque_resources_recovered": 1,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 427062,
+        "sha256": "34d3a33125060650e6f593e33e9405c2acdb17f4a573e772c311efa4b67d81a0"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "34d3a33125060650e6f593e33e9405c2acdb17f4a573e772c311efa4b67d81a0",
+        "size": 427062,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "34d3a33125060650e6f593e33e9405c2acdb17f4a573e772c311efa4b67d81a0",
+          "size": 427062,
+          "entropy": 7.289,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}
