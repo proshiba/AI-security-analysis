@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "d9438cd2cdc83e8efad7b0c9a825466efea709335b63d6181dfdc57fb1f4a4e3",
+  "config": {
+    "source_name": "d9438cd2cdc83e8efad7b0c9a825466efea709335b63d6181dfdc57fb1f4a4e3",
+    "decoded_payloads": [
+      {
+        "source": "pe-rva:0x780c",
+        "decoded_sha256": "79e06fd2df99c00b82142190b14d7df07e8be9e73266724c2b8560b57b71cd0c",
+        "algorithm": "casper-x86-stream",
+        "key_id": "seed-rva:0x7808",
+        "module_offset": 24,
+        "module_size": 88920,
+        "configs": [
+          {
+            "format": "shadowpad-casper-x86",
+            "size": 2136,
+            "strings": {
+              "campaign_id": "CLwKvjhHyeuLPsS6Z",
+              "install_name": "MUI",
+              "install_path": "%ALLUSERSPROFILE%\\MUI\\service.exe",
+              "service_name": "MUI",
+              "service_display_name": "MUI",
+              "service_description": "The service is responsible for applying settings configured.",
+              "registry_key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "registry_value_name": "MUI",
+              "injection_target_1": "%windir%\\system32\\svchost.exe",
+              "injection_target_2": "%windir%\\system32\\taskhost.exe",
+              "injection_target_3": "%windir%\\system32\\SearchIndexer.exe",
+              "injection_target_4": "%windir%\\system32\\winlogon.exe",
+              "c2_1": "HTTP://10.0.123.1:65234",
+              "c2_2": "HTTP://10.0.123.1:8080",
+              "c2_3": "HTTP://10.0.123.1:57223",
+              "c2_4": "TCP://10.0.123.1:65234",
+              "c2_5": "TCP://10.0.123.1:57223",
+              "c2_6": "TCP://10.0.123.1:8080",
+              "c2_7": "",
+              "c2_8": "",
+              "c2_9": "",
+              "reserved_1": "",
+              "reserved_2": "",
+              "reserved_3": "",
+              "reserved_4": "",
+              "reserved_5": "",
+              "reserved_6": "",
+              "reserved_7": "",
+              "proxy_1": "HTTP\n\n\n\n\n",
+              "proxy_2": "HTTP\n\n\n\n\n",
+              "proxy_3": "HTTP\n\n\n\n\n",
+              "proxy_4": "HTTP\n\n\n\n\n"
+            },
+            "dns_servers": [
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8"
+            ],
+            "timeout_multiplier": 10,
+            "field_54": 0,
+            "offset": 11644,
+            "block_header": {
+              "key": 1300138561,
+              "flags": 305419896,
+              "code": 0,
+              "compressed_size": 690,
+              "decompressed_size": 2136,
+              "cipher": "four-state"
+            }
+          }
+        ]
+      }
+    ],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 1
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://10.0.123.1:57223",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://10.0.123.1:65234",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://10.0.123.1:8080",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://10.0.123.1:57223",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://10.0.123.1:65234",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://10.0.123.1:8080",
+      "role": "context_only_private_config",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

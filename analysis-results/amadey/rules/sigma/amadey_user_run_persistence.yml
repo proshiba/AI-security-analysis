@@ -1,0 +1,21 @@
+title: User Run-Key Persistence From a User-Writable Executable
+id: 5d9e404f-2eb5-4d12-bd8f-91d1024237c9
+status: experimental
+description: Detects Run-key persistence pointing to an executable in a user-writable location, consistent with reviewed Amadey installation profiles.
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  run_key:
+    TargetObject|contains: '\Software\Microsoft\Windows\CurrentVersion\Run'
+  user_path:
+    Details|contains:
+      - '\AppData\Local\'
+      - '\AppData\Roaming\'
+      - '\Temp\'
+  executable:
+    Details|endswith: '.exe'
+  condition: run_key and user_path and executable
+falsepositives:
+  - Legitimate per-user updaters, collaboration tools, portable applications, and enterprise logon utilities
+level: medium

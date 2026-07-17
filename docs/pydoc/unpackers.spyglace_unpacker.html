@@ -43,13 +43,7 @@ the&nbsp;resulting&nbsp;Portable&nbsp;Executable.&nbsp;&nbsp;Recovered&nbsp;file
 <td class="section-title" colspan=3>&nbsp;<br><a name="RecoveredPayload">class <strong>RecoveredPayload</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RecoveredPayload">RecoveredPayload</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;data:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;method:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;input_sha256:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;payload_sha256:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;role:&nbsp;'str'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RecoveredPayload">RecoveredPayload</a>(data:&nbsp;'bytes',&nbsp;method:&nbsp;'str',&nbsp;input_sha256:&nbsp;'str',&nbsp;payload_sha256:&nbsp;'str',&nbsp;role:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 One&nbsp;validated&nbsp;PE&nbsp;and&nbsp;the&nbsp;transform&nbsp;used&nbsp;to&nbsp;recover&nbsp;it.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -60,16 +54,7 @@ One&nbsp;validated&nbsp;PE&nbsp;and&nbsp;the&nbsp;transform&nbsp;used&nbsp;to&nb
 
 <dl><dt><a name="RecoveredPayload-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="RecoveredPayload-__init__"><strong>__init__</strong></a>(
-    self,
-    data: 'bytes',
-    method: 'str',
-    input_sha256: 'str',
-    payload_sha256: 'str',
-    role: 'str'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="RecoveredPayload-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+<dl><dt><a name="RecoveredPayload-__init__"><strong>__init__</strong></a>(self, data: 'bytes', method: 'str', input_sha256: 'str', payload_sha256: 'str', role: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="RecoveredPayload-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 

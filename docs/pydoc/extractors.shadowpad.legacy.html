@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.shadowpad.legacy</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.shadowpad.html" class="white">shadowpad</a>.legacy</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cshadowpad%5Clegacy.py">c:\users\administrator\ai-security-analysis\extractors\shadowpad\legacy.py</a></td></tr></table>
+    <p><span class="code">Static&nbsp;Casper-era&nbsp;ShadowPad&nbsp;loader,&nbsp;module,&nbsp;and&nbsp;config&nbsp;primitives.<br>
+&nbsp;<br>
+The&nbsp;routines&nbsp;in&nbsp;this&nbsp;module&nbsp;transform&nbsp;byte&nbsp;strings&nbsp;only.&nbsp;&nbsp;They&nbsp;do&nbsp;not&nbsp;map&nbsp;a<br>
+module&nbsp;into&nbsp;executable&nbsp;memory,&nbsp;invoke&nbsp;an&nbsp;entry&nbsp;point,&nbsp;or&nbsp;contact&nbsp;recovered<br>
+infrastructure.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="extractors.shadowpad.legacy.html#LegacyDecode">LegacyDecode</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LegacyDecode">class <strong>LegacyDecode</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LegacyDecode">LegacyDecode</a>(data:&nbsp;'bytes',&nbsp;architecture:&nbsp;'str',&nbsp;seed_rva:&nbsp;'int',&nbsp;encrypted_rva:&nbsp;'int',&nbsp;encrypted_length:&nbsp;'int',&nbsp;module_offset:&nbsp;'int',&nbsp;module_size:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;structurally&nbsp;identified&nbsp;Casper-era&nbsp;outer-loader&nbsp;decode.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LegacyDecode-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LegacyDecode-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LegacyDecode-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LegacyDecode-__init__"><strong>__init__</strong></a>(self, data: 'bytes', architecture: 'str', seed_rva: 'int', encrypted_rva: 'int', encrypted_length: 'int', module_offset: 'int', module_size: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LegacyDecode-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LegacyDecode-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'architecture': 'str', 'data': 'bytes', 'encrypted_length': 'int', 'encrypted_rva': 'int', 'module_offset': 'int', 'module_size': 'int', 'seed_rva': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'architecture': Field(name='architecture',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'encrypted_length': Field(name='encrypted_length',type='int',default...appingproxy({}),kw_only=False,_field_type=_FIELD), 'encrypted_rva': Field(name='encrypted_rva',type='int',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'module_offset': Field(name='module_offset',type='int',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'module_size': Field(name='module_size',type='int',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'seed_rva': Field(name='seed_rva',type='int',default=&lt;datacl...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('data', 'architecture', 'seed_rva', 'encrypted_rva', 'encrypted_length', 'module_offset', 'module_size')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-decode_legacy_pe"><strong>decode_legacy_pe</strong></a>(data: 'bytes') -&gt; 'list[LegacyDecode]'</dt><dd><span class="code">Structurally&nbsp;locate&nbsp;and&nbsp;decode&nbsp;Casper-era&nbsp;streams&nbsp;in&nbsp;PE&nbsp;sections.</span></dd></dl>
+ <dl><dt><a name="-decrypt_casper_block"><strong>decrypt_casper_block</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;an&nbsp;old&nbsp;four-state&nbsp;Casper&nbsp;module/config&nbsp;block.</span></dd></dl>
+ <dl><dt><a name="-decrypt_legacy_string"><strong>decrypt_legacy_string</strong></a>(data: 'bytes', variant: 'str') -&gt; 'str'</dt><dd><span class="code">Decrypt&nbsp;a&nbsp;NUL-terminated&nbsp;legacy&nbsp;Config-module&nbsp;string.</span></dd></dl>
+ <dl><dt><a name="-decrypt_xor_block"><strong>decrypt_xor_block</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;a&nbsp;newer&nbsp;Casper&nbsp;block&nbsp;using&nbsp;its&nbsp;fourth&nbsp;byte&nbsp;as&nbsp;the&nbsp;XOR&nbsp;key.</span></dd></dl>
+ <dl><dt><a name="-find_legacy_configs"><strong>find_legacy_configs</strong></a>(payload: 'bytes', architecture: 'str') -&gt; 'list[dict]'</dt><dd><span class="code">Find,&nbsp;unpack,&nbsp;and&nbsp;parse&nbsp;structurally&nbsp;valid&nbsp;legacy&nbsp;configs.</span></dd></dl>
+ <dl><dt><a name="-legacy_x64_stream"><strong>legacy_x64_stream</strong></a>(data: 'bytes', seed: 'int') -&gt; 'bytes'</dt><dd><span class="code">Decode&nbsp;the&nbsp;older&nbsp;64-bit&nbsp;Casper&nbsp;loader's&nbsp;evolving&nbsp;XOR&nbsp;stream.</span></dd></dl>
+ <dl><dt><a name="-legacy_x86_stream"><strong>legacy_x86_stream</strong></a>(data: 'bytes', seed: 'int') -&gt; 'bytes'</dt><dd><span class="code">Decode&nbsp;the&nbsp;older&nbsp;32-bit&nbsp;Casper&nbsp;loader's&nbsp;evolving&nbsp;XOR&nbsp;stream.</span></dd></dl>
+ <dl><dt><a name="-parse_legacy_config"><strong>parse_legacy_config</strong></a>(config: 'bytes', architecture: 'str') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;the&nbsp;0x858/0x85c&nbsp;Casper-era&nbsp;Config-module&nbsp;structure.</span></dd></dl>
+ <dl><dt><a name="-quicklz_decompress"><strong>quicklz_decompress</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decompress&nbsp;QuickLZ&nbsp;1.5&nbsp;level-1&nbsp;data&nbsp;used&nbsp;by&nbsp;legacy&nbsp;ShadowPad.</span></dd></dl>
+ <dl><dt><a name="-quicklz_header"><strong>quicklz_header</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;and&nbsp;validate&nbsp;a&nbsp;QuickLZ&nbsp;1.5&nbsp;framing&nbsp;header.</span></dd></dl>
+ <dl><dt><a name="-unpack_casper_block"><strong>unpack_casper_block</strong></a>(data: 'bytes', cipher: 'str') -&gt; 'tuple[dict, bytes]'</dt><dd><span class="code">Decrypt,&nbsp;validate,&nbsp;and&nbsp;QuickLZ-decompress&nbsp;a&nbsp;Casper&nbsp;block.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CASPER_FLAGS</strong> = 305419896<br>
+<strong>LEGACY_CONFIG_LABELS</strong> = ('campaign_id', 'install_name', 'install_path', 'service_name', 'service_display_name', 'service_description', 'registry_key_path', 'registry_value_name', 'injection_target_1', 'injection_target_2', 'injection_target_3', 'injection_target_4', 'c2_1', 'c2_2', 'c2_3', 'c2_4', 'c2_5', 'c2_6', 'c2_7', 'c2_8', ...)<br>
+<strong>LEGACY_X64_PREFIX</strong> = b'UH\x89\xe5Qh'<br>
+<strong>LEGACY_X86_PREFIX</strong> = b'\x8bL$\x04U\x89\xe5'<br>
+<strong>MODULE_FLAGS</strong> = 6619137</td></tr></table>
+</body></html>

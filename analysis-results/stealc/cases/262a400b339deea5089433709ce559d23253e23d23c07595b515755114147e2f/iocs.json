@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "sha256": "262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
+      "role": "reviewed_stealc_sample",
+      "confidence": "confirmed"
+    }
+  ],
+  "network": [
+    {
+      "value": "http://40.86.87.10/108e010e8f91c38c.php",
+      "role": "c2_url_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "http://40.86.87.10/b13597c85f807692/",
+      "role": "dependency_directory_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "40.86.87.10",
+      "role": "c2_ipv4_from_static_config",
+      "confidence": "confirmed_static_config"
+    }
+  ],
+  "network_contacted": false
+}

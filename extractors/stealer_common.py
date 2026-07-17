@@ -10,6 +10,7 @@ from extractors.common import (
     build_result,
     extract_strings,
     url_candidates,
+    valid_host,
 )
 
 BENIGN_SUFFIXES = (
@@ -41,6 +42,27 @@ BENIGN_SUFFIXES = (
     "freegeip.app",
     "winimage.com",
     "1.1.1.1",
+    "advancedinstaller.com",
+    "adguard.com",
+    "agrd.dev",
+    "aimp.ru",
+    "autoitscript.com",
+    "nlog-project.org",
+    "sectigo.com",
+    "ssl.com",
+    "symcb.com",
+    "schemas.xml",
+    "symcd.com",
+    "symauth.com",
+    "xmlsoap.org",
+)
+REFERENCE_HOST_PREFIXES = (
+    "cert.",
+    "crl.",
+    "crls.",
+    "crt.",
+    "ocsp.",
+    "ocsps.",
 )
 
 
@@ -53,6 +75,10 @@ def clean_url(value: str) -> str | None:
     except ValueError:
         return None
     if parsed.scheme not in {"http", "https", "ftp"} or not host or "." not in host:
+        return None
+    if not valid_host(host):
+        return None
+    if host.startswith(REFERENCE_HOST_PREFIXES):
         return None
     for suffix in BENIGN_SUFFIXES:
         if host == suffix or host.endswith("." + suffix):
@@ -123,9 +149,10 @@ def extract_stealer(
     markers: tuple[str, ...],
     features: dict[str, tuple[str, ...]],
     limitations: list[str],
+    analysis_data: bytes | None = None,
 ) -> dict:
-    """Build one conservative stealer configuration result from static literals."""
-    strings = extract_strings(data)
+    """Build a result while optionally scanning a bounded derived byte view."""
+    strings = extract_strings(data if analysis_data is None else analysis_data)
     lowered = "\n".join(strings).lower()
     marker_hits = sorted(marker for marker in markers if marker.lower() in lowered)
     urls = infrastructure_urls(strings)
@@ -159,6 +186,7 @@ def extract_stealer(
         "features": feature_hits(strings, features),
         "urls": urls,
         "endpoints": endpoints,
-        "static_config_recovered": bool(urls or endpoints),
+        "static_config_recovered": False,
+        "candidate_infrastructure_recovered": bool(urls or endpoints),
     }
     return build_result(family, data, config, findings, limitations)

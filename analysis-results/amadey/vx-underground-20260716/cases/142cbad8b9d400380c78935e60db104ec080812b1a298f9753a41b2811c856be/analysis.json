@@ -1,0 +1,229 @@
+{
+  "case": {
+    "sha256": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+    "name": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "zip",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+    "config": {
+      "source_name": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": false,
+        "plugin_download": false,
+        "system_discovery": false,
+        "rc4_protected_traffic": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+    "sha256": "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
+    "size": 159282,
+    "entropy": 7.9944,
+    "format": "zip",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "zip": [
+      {
+        "name": "customXml/item1.xml",
+        "size": 58402,
+        "sha256": "77108d3ffef6fa23df6bf7a21cb66a6718855826f311274f80c1c40f2df27719",
+        "format": "data"
+      },
+      {
+        "name": "customXml/item2.xml",
+        "size": 9799,
+        "sha256": "e6896400349ea6d6e2a2d66f02341cfa47cc675c1c036348032b895411608069",
+        "format": "data"
+      },
+      {
+        "name": "customXml/item3.xml",
+        "size": 213,
+        "sha256": "a0f15edf4943ff9a862e29ba8c598c98ddd88fc10c4895ff6eb778d7c2dfd9ff",
+        "format": "data"
+      },
+      {
+        "name": "customXml/itemProps1.xml",
+        "size": 1088,
+        "sha256": "e27af927b66f5a3e300d5c1b9e1fb808a755f116a0b2fbbfd1edb4b39a17240e",
+        "format": "data"
+      },
+      {
+        "name": "customXml/itemProps2.xml",
+        "size": 486,
+        "sha256": "38f33be8cb56f8eeb37635c934829597e244f4982159f8180d9fdf45ada53595",
+        "format": "data"
+      },
+      {
+        "name": "customXml/itemProps3.xml",
+        "size": 335,
+        "sha256": "0acc39fffd8041ff942394ae466bee3f61eb93946d7a9d474e3c0fce8e024ed0",
+        "format": "data"
+      },
+      {
+        "name": "customXml/_rels/item1.xml.rels",
+        "size": 296,
+        "sha256": "80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0",
+        "format": "data"
+      },
+      {
+        "name": "customXml/_rels/item2.xml.rels",
+        "size": 296,
+        "sha256": "2a6aee4c8a9714223a3568077411a0c82d11b484b1c9ab93a19d50b99c57baa5",
+        "format": "data"
+      },
+      {
+        "name": "customXml/_rels/item3.xml.rels",
+        "size": 296,
+        "sha256": "3aa4054f7f463c6d441102c960783aa7f937d6945a0a885b624a66aafaeedb6c",
+        "format": "data"
+      },
+      {
+        "name": "docProps/app.xml",
+        "size": 758,
+        "sha256": "5d48ff2c7f57025c01ea685fe9e0b5d2cb3b83fcc3d126842075fb8c707bfd7d",
+        "format": "data"
+      },
+      {
+        "name": "docProps/core.xml",
+        "size": 745,
+        "sha256": "ecd0b8d03ab6b3f24b6d3902b50142b386ff3d7e9d1836668e6036b20b82d2be",
+        "format": "data"
+      },
+      {
+        "name": "docProps/custom.xml",
+        "size": 1036,
+        "sha256": "53f013850daa8566f77421600569d2f48cce0ac240e8b92fe3276820e3da8a85",
+        "format": "data"
+      },
+      {
+        "name": "word/document.xml",
+        "size": 4240,
+        "sha256": "83b407d8b67a17c5bf1d3438e1e88f46e9164eb49064a8036d7aaa2a4237f33b",
+        "format": "data"
+      },
+      {
+        "name": "word/fontTable.xml",
+        "size": 2761,
+        "sha256": "a507baad19fe336f7e4a79d0b7a4f1764aef01bc9a375df6757e4086213ae540",
+        "format": "data"
+      },
+      {
+        "name": "word/media/image1.jpeg",
+        "size": 163691,
+        "sha256": "aecdeed9e0eb8a937259c2c0e1606c74bde1bf1335032c7e376dd6ccdf591f6d",
+        "format": "data"
+      },
+      {
+        "name": "word/numbering.xml",
+        "size": 32296,
+        "sha256": "18be1233168c68e14af8cad6f43f1b2d7f766b1f68804931336173d7a628e713",
+        "format": "data"
+      },
+      {
+        "name": "word/settings.xml",
+        "size": 3285,
+        "sha256": "8811795e5a2ff85c3c7b185482116a5224ef95aa56f3b238c8ac6fd0e3ab82a1",
+        "format": "data"
+      },
+      {
+        "name": "word/styles.xml",
+        "size": 55717,
+        "sha256": "04f24e187171f1aa96fd2081feee259f3983c6df2fb7e94a23acabfd1d6c6e5d",
+        "format": "data"
+      },
+      {
+        "name": "word/theme/theme1.xml",
+        "size": 6795,
+        "sha256": "95e9db2278364c40d924d624dc9865105d277c22ddee7b3f459b069338b8c56a",
+        "format": "data"
+      },
+      {
+        "name": "word/webSettings.xml",
+        "size": 894,
+        "sha256": "a935be2dde349160ee390cc5b6a06aa057cfd44feac230f6eff440889f53902f",
+        "format": "data"
+      },
+      {
+        "name": "word/_rels/document.xml.rels",
+        "size": 1510,
+        "sha256": "20e729598341b9bc5f200124a15255746f9f0103c26aa9da49c10825c68f6fc8",
+        "format": "data"
+      },
+      {
+        "name": "word/_rels/settings.xml.rels",
+        "size": 337,
+        "sha256": "8478c1ab673f95b9fba25809e48fd4d43b6be4af7c2824d8e1e7eb7ab1367c4a",
+        "format": "data"
+      },
+      {
+        "name": "[Content_Types].xml",
+        "size": 2018,
+        "sha256": "845ac9ea42261eef8c95b812dcea322f5d6f540609014b5e6e2e2812fa5b3691",
+        "format": "data"
+      },
+      {
+        "name": "_rels/.rels",
+        "size": 737,
+        "sha256": "c30fe099dbcfed4ecc4ae544ccf82f432c8d3bb665e2a301df283738b196d803",
+        "format": "data"
+      }
+    ],
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

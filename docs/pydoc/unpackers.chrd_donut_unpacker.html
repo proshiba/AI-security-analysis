@@ -45,16 +45,7 @@
 <td class="section-title" colspan=3>&nbsp;<br><a name="ChrdResult">class <strong>ChrdResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ChrdResult">ChrdResult</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;wave:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;numeric_stream:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;outer_blob:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;donut_shellcode:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;donut:&nbsp;'DonutResult',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;managed_loader:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;terminal_payload:&nbsp;'bytes',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;metadata:&nbsp;'dict'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ChrdResult">ChrdResult</a>(wave:&nbsp;'bytes',&nbsp;numeric_stream:&nbsp;'bytes',&nbsp;outer_blob:&nbsp;'bytes',&nbsp;donut_shellcode:&nbsp;'bytes',&nbsp;donut:&nbsp;'DonutResult',&nbsp;managed_loader:&nbsp;'bytes',&nbsp;terminal_payload:&nbsp;'bytes',&nbsp;metadata:&nbsp;'dict')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Recovered&nbsp;CHRD&nbsp;chain&nbsp;metadata&nbsp;and&nbsp;terminal&nbsp;managed&nbsp;payload.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -65,19 +56,7 @@ Recovered&nbsp;CHRD&nbsp;chain&nbsp;metadata&nbsp;and&nbsp;terminal&nbsp;managed
 
 <dl><dt><a name="ChrdResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="ChrdResult-__init__"><strong>__init__</strong></a>(
-    self,
-    wave: 'bytes',
-    numeric_stream: 'bytes',
-    outer_blob: 'bytes',
-    donut_shellcode: 'bytes',
-    donut: 'DonutResult',
-    managed_loader: 'bytes',
-    terminal_payload: 'bytes',
-    metadata: 'dict'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="ChrdResult-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+<dl><dt><a name="ChrdResult-__init__"><strong>__init__</strong></a>(self, wave: 'bytes', numeric_stream: 'bytes', outer_blob: 'bytes', donut_shellcode: 'bytes', donut: 'DonutResult', managed_loader: 'bytes', terminal_payload: 'bytes', metadata: 'dict') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="ChrdResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -110,11 +89,7 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;reviewed&nbsp;CHRD/Donut&nbsp;chain&nbsp;command-line&nbsp;parser.</span></dd></dl>
  <dl><dt><a name="-decode_low_nibbles"><strong>decode_low_nibbles</strong></a>(resources: 'dict[int, bytes]', first_id: 'int' = 15000) -&gt; 'bytes'</dt><dd><span class="code">Join&nbsp;contiguous&nbsp;RCDATA&nbsp;chunks&nbsp;and&nbsp;reconstruct&nbsp;bytes&nbsp;from&nbsp;their&nbsp;low&nbsp;nibbles.</span></dd></dl>
  <dl><dt><a name="-decode_numeric_stream"><strong>decode_numeric_stream</strong></a>(stream: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Expand&nbsp;CHRD&nbsp;numeric&nbsp;segments,&nbsp;including&nbsp;Jacobi&nbsp;and&nbsp;affine&nbsp;segment&nbsp;types.</span></dd></dl>
- <dl><dt><a name="-decrypt_outer_blob"><strong>decrypt_outer_blob</strong></a>(
-    data: 'bytes',
-    table: 'tuple[int, ...]' = (3838880206, 3141347903, 2627418239, 2337842668, 4132099758, 1335970258, 2009966678, 2574354508),
-    seed_bytes: 'bytes' = b'7\x9e\xa4\x04'
-) -&gt; 'bytes'</dt><dd><span class="code">Reverse&nbsp;the&nbsp;reviewed&nbsp;outer&nbsp;loader's&nbsp;DWORD&nbsp;stream&nbsp;transform.</span></dd></dl>
+ <dl><dt><a name="-decrypt_outer_blob"><strong>decrypt_outer_blob</strong></a>(data: 'bytes', table: 'tuple[int, ...]' = (3838880206, 3141347903, 2627418239, 2337842668, 4132099758, 1335970258, 2009966678, 2574354508), seed_bytes: 'bytes' = b'7\x9e\xa4\x04') -&gt; 'bytes'</dt><dd><span class="code">Reverse&nbsp;the&nbsp;reviewed&nbsp;outer&nbsp;loader's&nbsp;DWORD&nbsp;stream&nbsp;transform.</span></dd></dl>
  <dl><dt><a name="-extract_managed_resource_payload"><strong>extract_managed_resource_payload</strong></a>(loader: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Recover&nbsp;a&nbsp;TripleDES-CBC/GZip&nbsp;PayloadSource&nbsp;resource&nbsp;from&nbsp;the&nbsp;managed&nbsp;loader.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;full&nbsp;static&nbsp;CHRD/Donut&nbsp;recovery&nbsp;chain.</span></dd></dl>
  <dl><dt><a name="-parse_chrd_config"><strong>parse_chrd_config</strong></a>(config: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;the&nbsp;reviewed&nbsp;CHRD&nbsp;inverse-transform&nbsp;configuration&nbsp;structure.</span></dd></dl>

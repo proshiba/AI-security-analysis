@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "family": "donutloader",
+  "signature": "DonutLoader",
+  "source": "vx-underground",
+  "counts": {
+    "total": 2,
+    "errors": 0,
+    "packing_suspected": 0,
+    "with_recovered_artifacts": 2,
+    "with_static_config": 0,
+    "with_config_findings": 0
+  },
+  "case_count": 2,
+  "campaigns": {
+    "direct_shellcode": 1,
+    "pe_wrapper_or_loader": 1
+  },
+  "formats": {
+    "data": 1,
+    "pe": 1
+  },
+  "features": {},
+  "config_values": {
+    "delivery_profile": {
+      "embedded_donut": 1,
+      "unrecognized": 1
+    }
+  },
+  "findings": [],
+  "cases": [
+    {
+      "sha256": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+      "name": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+      "family": "donutloader",
+      "campaign": "direct_shellcode",
+      "format": "data",
+      "packing_suspected": false,
+      "packing_classification": "not_applicable",
+      "unpack_status": "artifacts_recovered",
+      "recovered_artifacts": 1,
+      "recovered_configs": 0,
+      "static_config_recovered": false,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "needs_review",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Static extraction only; no payload execution or C2 contact was performed."
+      ],
+      "layer_count": 1
+    },
+    {
+      "sha256": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+      "name": "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
+      "family": "donutloader",
+      "campaign": "pe_wrapper_or_loader",
+      "format": "pe",
+      "packing_suspected": false,
+      "packing_classification": "not_packed",
+      "unpack_status": "artifacts_recovered",
+      "recovered_artifacts": 3,
+      "recovered_configs": 0,
+      "static_config_recovered": false,
+      "config_findings": 0,
+      "c2_assessment": "none",
+      "declarative_status": "needs_review",
+      "sample_executed": false,
+      "network_contacted": false,
+      "limitations": [
+        "Static extraction only; no payload execution or C2 contact was performed.",
+        "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+      ],
+      "layer_count": 3
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

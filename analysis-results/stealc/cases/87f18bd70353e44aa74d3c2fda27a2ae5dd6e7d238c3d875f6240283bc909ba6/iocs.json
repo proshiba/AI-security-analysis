@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "sha256": "87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6",
+      "role": "reviewed_stealc_sample",
+      "confidence": "confirmed"
+    }
+  ],
+  "network": [
+    {
+      "value": "http://777palm.com/bef7fb05c9ef6540.php",
+      "role": "c2_url_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "http://777palm.com/2ccaf544c0cf7de7/",
+      "role": "dependency_directory_from_static_config",
+      "confidence": "confirmed_static_config"
+    },
+    {
+      "value": "777palm.com",
+      "role": "c2_domain_from_static_config",
+      "confidence": "confirmed_static_config"
+    }
+  ],
+  "network_contacted": false
+}

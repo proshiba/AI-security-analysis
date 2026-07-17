@@ -1,0 +1,259 @@
+{
+  "case": {
+    "sha256": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+    "name": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 1,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "skipped_size_limit",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 1
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+    "config": {
+      "source_name": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "inflated_pe_compacted",
+      "original_size": 761452376,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+    "sha256": "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df",
+    "size": 761452376,
+    "entropy": 0.9258,
+    "format": "pe",
+    "entropy_sampled": true,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "recovered",
+      "original_size": 761452376,
+      "recovered_size": 2199040,
+      "removed_gap_size": 759242760,
+      "security_size": 10576,
+      "security_sha256": "f12aff693ed1d2f2327cbea1595baddbca05716b62841acfb6f551a1623cf633",
+      "sha256": "0b609f79c18acb2ccada73ca2df6da0433d71bda671a2599f64bb7f7016a8657"
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": true,
+      "is_go": false,
+      "imports": 1,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 2195968,
+          "virtual_size": 2195684,
+          "entropy": 5.6615,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 2048,
+          "virtual_size": 1590,
+          "entropy": 3.5403,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.1019,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 2,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "dotnet_resources": {
+      "status": "no_manifest_resources",
+      "count": 0,
+      "inventory": []
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-inflated-gap-removed",
+        "size": 2199040,
+        "sha256": "0b609f79c18acb2ccada73ca2df6da0433d71bda671a2599f64bb7f7016a8657"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-inflated-gap-removed",
+        "sha256": "0b609f79c18acb2ccada73ca2df6da0433d71bda671a2599f64bb7f7016a8657",
+        "size": 2199040,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-inflated-gap-removed.bin",
+          "sha256": "0b609f79c18acb2ccada73ca2df6da0433d71bda671a2599f64bb7f7016a8657",
+          "size": 2199040,
+          "entropy": 5.6601,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 2199040,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": true,
+            "is_go": false,
+            "imports": 1,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 2195968,
+                "virtual_size": 2195684,
+                "entropy": 5.6615,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 2048,
+                "virtual_size": 1590,
+                "entropy": 3.5403,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 512,
+                "virtual_size": 12,
+                "entropy": 0.1019,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [],
+            "code_entropy_sections": [],
+            "packer_markers": [],
+            "classification": "not_packed",
+            "containerized": false,
+            "entrypoint_section": ".text",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": false,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 2,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "dotnet_resources": {
+            "status": "no_manifest_resources",
+            "count": 0,
+            "inventory": []
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-inflated-gap-removed.bin",
+          "campaign_shape": "direct_pe_or_pe_loader",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 2199040
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

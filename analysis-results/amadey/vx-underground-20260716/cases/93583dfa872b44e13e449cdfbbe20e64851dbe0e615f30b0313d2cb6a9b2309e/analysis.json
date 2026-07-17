@@ -1,0 +1,212 @@
+{
+  "case": {
+    "sha256": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+    "name": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 1,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 1
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+    "config": {
+      "source_name": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": true,
+        "rc4_protected_traffic": true
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+    "sha256": "93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e",
+    "size": 1523200,
+    "entropy": 6.6633,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 1523200,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": true,
+      "is_go": false,
+      "imports": 1,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 1520640,
+          "virtual_size": 1520520,
+          "entropy": 6.6674,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1536,
+          "virtual_size": 1366,
+          "entropy": 3.9302,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.1019,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 2,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "dotnet_resources": {
+      "status": "resources_recovered",
+      "count": 2,
+      "inventory": [
+        {
+          "name": "Uzztyncyuj.Properties.Resources.resources",
+          "size": 469722,
+          "sha256": "96c5c1a0345007a49b238bfe6e3644b4f7fdbb1287a9f9ee40247a8cdca7cd83",
+          "entropy": 7.8833,
+          "format": "data",
+          "entries": [
+            {
+              "name": "Dicaqekwgc",
+              "type": "System.ByteArray"
+            }
+          ],
+          "status": "extracted"
+        },
+        {
+          "name": "ILLink.Descriptors.xml",
+          "size": 64,
+          "sha256": "b35e1f1c8950d9d17a3ee27deaddf6ad80fd93daea8134f43e830e5285c54387",
+          "entropy": 4.3955,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        }
+      ]
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 469722,
+        "sha256": "96c5c1a0345007a49b238bfe6e3644b4f7fdbb1287a9f9ee40247a8cdca7cd83"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "96c5c1a0345007a49b238bfe6e3644b4f7fdbb1287a9f9ee40247a8cdca7cd83",
+        "size": 469722,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "96c5c1a0345007a49b238bfe6e3644b4f7fdbb1287a9f9ee40247a8cdca7cd83",
+          "size": 469722,
+          "entropy": 7.8833,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "static_config_recovered": false,
+          "features": {
+            "persistence": false,
+            "plugin_download": false,
+            "system_discovery": false,
+            "rc4_protected_traffic": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+          "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+          "No recovered endpoint was contacted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

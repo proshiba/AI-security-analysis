@@ -1,0 +1,187 @@
+{
+  "case": {
+    "sha256": "42054b960727fbd72bde57e8903881e4239e9500f1160ca298e10a1b438698a8",
+    "name": "6738c904ba78a2268a8950152a6c7448",
+    "family": "amadey",
+    "campaign": "direct_pe_or_container",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "amadey",
+    "sample_sha256": "42054b960727fbd72bde57e8903881e4239e9500f1160ca298e10a1b438698a8",
+    "config": {
+      "source_name": "6738c904ba78a2268a8950152a6c7448",
+      "static_config_recovered": false,
+      "features": {
+        "persistence": true,
+        "plugin_download": true,
+        "system_discovery": true,
+        "rc4_protected_traffic": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed C2 status requires the reviewed custom-alphabet/Base64 config structure; literal-only URLs remain candidates.",
+      "Themida/WinLicense wrappers require a recovered inner PE before configuration extraction can be complete.",
+      "No recovered endpoint was contacted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "amadey",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "6738c904ba78a2268a8950152a6c7448",
+    "sha256": "42054b960727fbd72bde57e8903881e4239e9500f1160ca298e10a1b438698a8",
+    "size": 4470944,
+    "entropy": 7.8733,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 4464640,
+      "security_offset": 4464640,
+      "security_size": 6304,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 264,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 0,
+          "virtual_size": 155766,
+          "entropy": 0.0,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 0,
+          "virtual_size": 33444,
+          "entropy": 0.0,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 0,
+          "virtual_size": 17732,
+          "entropy": 0.0,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": "ÆMATĒR",
+          "raw_size": 0,
+          "virtual_size": 2272,
+          "entropy": 0.0,
+          "characteristics": "0x60000060"
+        },
+        {
+          "name": "ÆMATĒR",
+          "raw_size": 0,
+          "virtual_size": 2272,
+          "entropy": 0.0,
+          "characteristics": "0x60000060"
+        },
+        {
+          "name": "ÆMATĒR",
+          "raw_size": 0,
+          "virtual_size": 2576759,
+          "entropy": 0.0,
+          "characteristics": "0x60000060"
+        },
+        {
+          "name": "ÆMATĒR",
+          "raw_size": 4295168,
+          "virtual_size": 4294704,
+          "entropy": 7.9129,
+          "characteristics": "0x60000060"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 1536,
+          "virtual_size": 1416,
+          "entropy": 4.1349,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 166912,
+          "virtual_size": 166543,
+          "entropy": 5.482,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [
+        "ÆMATĒR"
+      ],
+      "code_entropy_sections": [
+        "ÆMATĒR"
+      ],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": "ÆMATĒR",
+      "zero_raw_virtual_sections": [
+        ".text",
+        ".rdata",
+        ".data",
+        "ÆMATĒR"
+      ],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 6304,
+      "overlay_format": "data",
+      "resource_count": 11,
+      "opaque_resources_recovered": 0,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

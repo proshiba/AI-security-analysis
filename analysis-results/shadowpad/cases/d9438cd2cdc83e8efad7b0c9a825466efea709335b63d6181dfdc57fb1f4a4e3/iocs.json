@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "d9438cd2cdc83e8efad7b0c9a825466efea709335b63d6181dfdc57fb1f4a4e3", "role": "submitted_casper_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "10.0.123.1:65234", "role": "context_only_private_builder_test_endpoint", "confidence": "confirmed_static_config"},
+    {"value": "10.0.123.1:8080", "role": "context_only_private_builder_test_endpoint", "confidence": "confirmed_static_config"},
+    {"value": "10.0.123.1:57223", "role": "context_only_private_builder_test_endpoint", "confidence": "confirmed_static_config"}
+  ],
+  "network_contacted": false
+}
+

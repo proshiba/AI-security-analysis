@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+  "config": {
+    "source_name": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "themida_protected",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 1756672,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.961
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2682880,
+          "entropy": 0.2608
+        },
+        {
+          "name": "dnbdzjvd",
+          "raw_size": 1660928,
+          "virtual_size": 1662976,
+          "entropy": 7.9532
+        },
+        {
+          "name": "hwzrywcd",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.0548
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7952
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(10.00.30319)",
+      "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2010)",
+      "Protector: Themida/Winlicense(~2.XX)"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

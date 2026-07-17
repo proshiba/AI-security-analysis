@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292",
+  "config": {
+    "source_name": "d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "enigma_protected",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 2473472,
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 41984,
+          "virtual_size": 110592,
+          "entropy": 7.9949
+        },
+        {
+          "name": "",
+          "raw_size": 16384,
+          "virtual_size": 32768,
+          "entropy": 7.9782
+        },
+        {
+          "name": "",
+          "raw_size": 1024,
+          "virtual_size": 2174976,
+          "entropy": 6.4171
+        },
+        {
+          "name": "",
+          "raw_size": 8192,
+          "virtual_size": 20480,
+          "entropy": 7.9543
+        },
+        {
+          "name": "",
+          "raw_size": 206848,
+          "virtual_size": 7864320,
+          "entropy": 7.9989
+        },
+        {
+          "name": ".data",
+          "raw_size": 2198016,
+          "virtual_size": 2199552,
+          "entropy": 7.9822
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(10.00.30319)",
+      "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2010)",
+      "Protector: Enigma(5.X)"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

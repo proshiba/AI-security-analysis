@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "sample_sha256": "d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b",
+  "config": {
+    "source_name": "d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b",
+    "profile": null
+  },
+  "findings": [],
+  "limitations": [
+    "Static extraction only; the sample was not executed.",
+    "No recovered endpoint was contacted or assigned a liveness state.",
+    "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false,
+  "analysis": {
+    "collection": "VX-Underground StealC family directory",
+    "analyzed_at": "2026-07-16",
+    "static_status": "high_entropy_native_wrapper",
+    "pe": {
+      "machine": "x86",
+      "dotnet": false,
+      "size": 250880,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 138240,
+          "virtual_size": 137808,
+          "entropy": 7.8143
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 13312,
+          "virtual_size": 13032,
+          "entropy": 4.9567
+        },
+        {
+          "name": ".data",
+          "raw_size": 56320,
+          "virtual_size": 33697420,
+          "entropy": 0.2477
+        },
+        {
+          "name": ".bak",
+          "raw_size": 1024,
+          "virtual_size": 723,
+          "entropy": 0.0
+        },
+        {
+          "name": ".teholac",
+          "raw_size": 1024,
+          "virtual_size": 1024,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 39936,
+          "virtual_size": 39432,
+          "entropy": 4.625
+        }
+      ]
+    },
+    "die_detections": [
+      "Linker: Microsoft Linker(10.00.30319)",
+      "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+      "Tool: Microsoft Visual Studio(2010)",
+      "Debug data: Records"
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

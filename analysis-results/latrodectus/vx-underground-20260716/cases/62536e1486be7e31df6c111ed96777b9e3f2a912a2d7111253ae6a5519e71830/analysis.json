@@ -1,0 +1,264 @@
+{
+  "case": {
+    "sha256": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+    "name": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+    "family": "latrodectus",
+    "campaign": "direct_dll_or_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 2,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 2
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+    "config": {
+      "source_name": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+      "static_config_recovered": false,
+      "features": {
+        "host_discovery": false,
+        "domain_discovery": false,
+        "security_discovery": false,
+        "scheduled_task_persistence": false,
+        "payload_download": false,
+        "rundll32_execution": false
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 2
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+    "sha256": "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
+    "size": 6640176,
+    "entropy": 7.9921,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 6630400,
+      "security_offset": 6630400,
+      "security_size": 9776,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x8664",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 92,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 167424,
+          "virtual_size": 167344,
+          "entropy": 6.4999,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 60928,
+          "virtual_size": 60814,
+          "entropy": 5.241,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 5120,
+          "virtual_size": 23395968,
+          "entropy": 3.7322,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".pdata",
+          "raw_size": 4608,
+          "virtual_size": 4176,
+          "entropy": 5.077,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": "_RDATA",
+          "raw_size": 512,
+          "virtual_size": 244,
+          "entropy": 2.439,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 6388736,
+          "virtual_size": 6388720,
+          "entropy": 8.0,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 2048,
+          "virtual_size": 1600,
+          "entropy": 4.8411,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rsrc"
+      ],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 9776,
+      "overlay_format": "data",
+      "resource_count": 7,
+      "opaque_resources_recovered": 2,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 375824,
+        "sha256": "18482454a42d6c0383360d5fca080f78f41acaff34339dbf618bb57a1a585425"
+      },
+      {
+        "kind": "pe-resource-opaque",
+        "size": 6007664,
+        "sha256": "e78414fc91e6f2f7342101149b12cede93de4b4bdcbff0e52f84b2a0a1fe64eb"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "18482454a42d6c0383360d5fca080f78f41acaff34339dbf618bb57a1a585425",
+        "size": 375824,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "18482454a42d6c0383360d5fca080f78f41acaff34339dbf618bb57a1a585425",
+          "size": 375824,
+          "entropy": 7.9995,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "static_config_recovered": false,
+          "features": {
+            "host_discovery": false,
+            "domain_discovery": false,
+            "security_discovery": false,
+            "scheduled_task_persistence": false,
+            "payload_download": false,
+            "rundll32_execution": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+          "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+          "No check-in or infrastructure contact was performed."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "e78414fc91e6f2f7342101149b12cede93de4b4bdcbff0e52f84b2a0a1fe64eb",
+        "size": 6007664,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "e78414fc91e6f2f7342101149b12cede93de4b4bdcbff0e52f84b2a0a1fe64eb",
+          "size": 6007664,
+          "entropy": 8.0,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "static_config_recovered": false,
+          "features": {
+            "host_discovery": false,
+            "domain_discovery": false,
+            "security_discovery": false,
+            "scheduled_task_persistence": false,
+            "payload_download": false,
+            "rundll32_execution": false
+          }
+        },
+        "findings": [],
+        "limitations": [
+          "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+          "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+          "No check-in or infrastructure contact was performed."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

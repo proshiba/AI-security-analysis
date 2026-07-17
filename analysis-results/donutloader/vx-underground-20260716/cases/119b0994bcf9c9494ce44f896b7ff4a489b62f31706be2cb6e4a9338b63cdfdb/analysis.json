@@ -1,0 +1,257 @@
+{
+  "case": {
+    "sha256": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+    "name": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+    "family": "donutloader",
+    "campaign": "direct_shellcode",
+    "format": "data",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 1,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "needs_review",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Static extraction only; no payload execution or C2 contact was performed."
+    ],
+    "layer_count": 1
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "donutloader",
+    "sample_sha256": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+    "config": {
+      "layer_markers": [
+        "portable_executable",
+        "strict_donut_shellcode"
+      ],
+      "delivery_profile": "embedded_donut",
+      "donut_confirmed": true,
+      "donut_candidates": [
+        {
+          "offset": 0,
+          "stride": 1,
+          "shellcode_sha256": "685437d2b82dc5f41ea828da25a120b8038272ecdde58266db9d35b51d33386e",
+          "shellcode_size": 6891410,
+          "layout": "current-0x230-array",
+          "instance_sha256": "e199ef132428ece3a12deb874404c72f5d1608db2dd7ca55bdfea7e9689b6193",
+          "payloads": [
+            {
+              "sha256": "e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f",
+              "size": 6876672
+            }
+          ]
+        }
+      ],
+      "chain": null,
+      "recovered_pe_artifacts": [],
+      "terminal_configs": [],
+      "source_name": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+      "endpoints": [],
+      "static_config_recovered": false,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Static extraction only; no payload execution or C2 contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 1
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "donutloader",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+    "sha256": "119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb",
+    "size": 6915330,
+    "entropy": 7.9999,
+    "format": "data",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "donut": {
+      "status": "payload_recovered",
+      "candidates": [
+        {
+          "offset": 0,
+          "stride": 1,
+          "shellcode_sha256": "685437d2b82dc5f41ea828da25a120b8038272ecdde58266db9d35b51d33386e",
+          "status": "payload_recovered",
+          "layout": "current-0x230-array",
+          "instance_sha256": "e199ef132428ece3a12deb874404c72f5d1608db2dd7ca55bdfea7e9689b6193",
+          "payloads": [
+            {
+              "sha256": "e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f",
+              "size": 6876672
+            }
+          ]
+        }
+      ]
+    },
+    "recovered": [
+      {
+        "kind": "donut-terminal-payload",
+        "size": 6876672,
+        "sha256": "e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "donut-terminal-payload",
+        "sha256": "e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f",
+        "size": 6876672,
+        "format": "pe",
+        "unpack": {
+          "schema_version": 2,
+          "name": "donut-terminal-payload.bin",
+          "sha256": "e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f",
+          "size": 6876672,
+          "entropy": 7.6147,
+          "format": "pe",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "inflated_pe": {
+            "status": "not_inflated",
+            "section_end": 6876672,
+            "security_offset": 0,
+            "security_size": 0,
+            "gap_size": 0
+          },
+          "pe": {
+            "machine": "0x14c",
+            "is_dotnet": false,
+            "is_go": false,
+            "imports": 8,
+            "sections": [
+              {
+                "name": ".text",
+                "raw_size": 237568,
+                "virtual_size": 237450,
+                "entropy": 6.5636,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rdata",
+                "raw_size": 47616,
+                "virtual_size": 47280,
+                "entropy": 5.5281,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".data",
+                "raw_size": 2560,
+                "virtual_size": 5664,
+                "entropy": 2.4848,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".*+@",
+                "raw_size": 3147776,
+                "virtual_size": 3147515,
+                "entropy": 7.5987,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": "._mt",
+                "raw_size": 512,
+                "virtual_size": 88,
+                "entropy": 0.4559,
+                "characteristics": "0xc0000040"
+              },
+              {
+                "name": ".s8n",
+                "raw_size": 3427840,
+                "virtual_size": 3427760,
+                "entropy": 7.6603,
+                "characteristics": "0x60000020"
+              },
+              {
+                "name": ".rsrc",
+                "raw_size": 512,
+                "virtual_size": 469,
+                "entropy": 4.6912,
+                "characteristics": "0x40000040"
+              },
+              {
+                "name": ".reloc",
+                "raw_size": 11264,
+                "virtual_size": 11040,
+                "entropy": 6.1119,
+                "characteristics": "0x42000040"
+              }
+            ],
+            "high_entropy_sections": [
+              ".*+@",
+              ".s8n"
+            ],
+            "code_entropy_sections": [
+              ".*+@",
+              ".s8n"
+            ],
+            "packer_markers": [],
+            "classification": "suspected_packed",
+            "containerized": false,
+            "entrypoint_section": ".s8n",
+            "zero_raw_virtual_sections": [],
+            "virtualized_shape": false,
+            "packing_suspected": true,
+            "overlay_size": 0,
+            "overlay_format": "data",
+            "resource_count": 1,
+            "opaque_resources_recovered": 0,
+            "archive_resources_recovered": 0
+          },
+          "donut_wrapper": {
+            "status": "wrapper_not_detected"
+          },
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "layer_markers": [
+            "portable_executable"
+          ],
+          "delivery_profile": "unrecognized",
+          "donut_confirmed": false,
+          "donut_candidates": [],
+          "chain": null,
+          "recovered_pe_artifacts": [],
+          "terminal_configs": [],
+          "source_name": "donut-terminal-payload.bin",
+          "endpoints": []
+        },
+        "findings": [],
+        "limitations": [
+          "Static extraction only; no payload execution or C2 contact was performed.",
+          "No strict Donut call-over-instance structure was recovered; a family label alone is not confirmation."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

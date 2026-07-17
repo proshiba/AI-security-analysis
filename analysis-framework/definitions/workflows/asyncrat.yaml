@@ -1,0 +1,11 @@
+api_version: asa/v1alpha1
+kind: AnalysisPipeline
+metadata: {id: asyncrat.config, display_name: AsyncRAT static workflow, version: 1.0.0}
+capabilities: [filesystem.sample.read]
+steps:
+  - {id: intake, uses: "intake.submission@^1"}
+  - {id: inventory, uses: "containers.inventory@^1", needs: [intake]}
+  - {id: unpack, uses: "static.unpack.inspect@^1", needs: [inventory], on_error: partial}
+  - {id: strings, uses: "static.strings.extract@^1", needs: [unpack]}
+  - {id: config, uses: "family.asyncrat.config@^1", needs: [strings], on_error: partial}
+  - {id: report, uses: "reporting.case_report@^1", needs: [config], on_error: partial}

@@ -13,5 +13,7 @@
 
 - [Safe submission I/O and batch workflow](SAFE-SUBMISSION-IO.md)
 - [ValleyRAT infection-chain pattern design](../malware/valleyrat/docs/PATTERN-DESIGN.md)
+- [Profile-defined ten-family expansion and component relationships](PROFILED-FAMILY-EXPANSION.md)
+- [Deep static analysis of difficult samples](DEEP-STATIC-ANALYSIS.md)
 - [ValleyRAT workflow](../malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md)
 - [C2 liveness and Shodan fingerprint collection](../common/C2-LIVENESS.md)

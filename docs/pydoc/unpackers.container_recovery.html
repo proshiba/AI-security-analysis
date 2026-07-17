@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.container_recovery</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.container_recovery</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Ccontainer_recovery.py">c:\users\administrator\ai-security-analysis\unpackers\container_recovery.py</a></td></tr></table>
+    <p><span class="code">Bounded&nbsp;recovery&nbsp;helpers&nbsp;for&nbsp;XZ,&nbsp;Mach-O&nbsp;FAT,&nbsp;and&nbsp;inflated&nbsp;PE&nbsp;files.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="lzma.html">lzma</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-recover_inflated_pe"><strong>recover_inflated_pe</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Remove&nbsp;an&nbsp;oversized&nbsp;security-directory&nbsp;gap&nbsp;while&nbsp;preserving&nbsp;PE&nbsp;sections.<br>
+&nbsp;<br>
+Recovery&nbsp;is&nbsp;attempted&nbsp;only&nbsp;when&nbsp;the&nbsp;certificate&nbsp;table&nbsp;begins&nbsp;more&nbsp;than<br>
+64&nbsp;MiB&nbsp;after&nbsp;the&nbsp;final&nbsp;section.&nbsp;The&nbsp;security&nbsp;directory&nbsp;is&nbsp;cleared&nbsp;in&nbsp;the<br>
+derived&nbsp;artifact;&nbsp;the&nbsp;original&nbsp;certificate&nbsp;hash&nbsp;remains&nbsp;in&nbsp;the&nbsp;report.</span></dd></dl>
+ <dl><dt><a name="-recover_macho_slices"><strong>recover_macho_slices</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;bounded&nbsp;thin&nbsp;Mach-O&nbsp;slices&nbsp;from&nbsp;a&nbsp;universal&nbsp;Mach-O&nbsp;binary.</span></dd></dl>
+ <dl><dt><a name="-recover_xz"><strong>recover_xz</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Decompress&nbsp;concatenated&nbsp;XZ&nbsp;streams&nbsp;with&nbsp;absolute&nbsp;output&nbsp;and&nbsp;memory&nbsp;bounds.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MACHO_FAT_MAGICS</strong> = {b'\xbe\xba\xfe\xca': '&lt;', b'\xca\xfe\xba\xbe': '&gt;'}<br>
+<strong>MAX_ARTIFACT</strong> = 268435456<br>
+<strong>MAX_SECURITY_GAP</strong> = 67108864<br>
+<strong>MAX_XZ_METADATA</strong> = 1048576</td></tr></table>
+</body></html>

@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3",
+  "config": {
+    "source_name": "231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3",
+    "decoded_payloads": [
+      {
+        "source": "pe-rva:0x77fc",
+        "decoded_sha256": "c5cc79db1422bb5185222f673c55db3114e97a522c16618ee8ff7de97715235a",
+        "algorithm": "casper-x86-stream",
+        "key_id": "seed-rva:0x77f8",
+        "module_offset": 24,
+        "module_size": 88902,
+        "configs": [
+          {
+            "format": "shadowpad-casper-x86",
+            "size": 2136,
+            "strings": {
+              "campaign_id": "D0a2MkJLmoTKHbCAn",
+              "install_name": "ChromeUpdateService",
+              "install_path": "%ALLUSERSPROFILE%\\Chrome\\AppData\\Update\\ChromeUpdate.exe",
+              "service_name": "ChromeUpdateService",
+              "service_display_name": "ChromeUpdateService",
+              "service_description": "The Chrome Update agent service collects and manages health information for client computers on a network. Information collected by NAP agent is used to make sure that the client computer has the required software and settings.",
+              "registry_key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "registry_value_name": "ChromeUpdateService",
+              "injection_target_1": "C:\\Program Files\\Kaspersky Lab\\NetworkAgent\\klrbtagt.exe",
+              "injection_target_2": "C:\\Program Files (x86)\\Kaspersky Lab\\NetworkAgent\\klrbtagt.exe",
+              "injection_target_3": "%windir%\\system32\\svchost.exe",
+              "injection_target_4": "%windir%\\system32\\taskhost.exe",
+              "c2_1": "TCP://www.grandfoodtony.com:80",
+              "c2_2": "TCP://www.grandfoodtony.com:443",
+              "c2_3": "TCP://www.grandfoodtony.com:8080",
+              "c2_4": "HTTP://www.grandfoodtony.com:80",
+              "c2_5": "HTTP://www.grandfoodtony.com:443",
+              "c2_6": "HTTP://www.grandfoodtony.com:8080",
+              "c2_7": "UDP://www.grandfoodtony.com:80",
+              "c2_8": "UDP://www.grandfoodtony.com:443",
+              "c2_9": "UDP://www.grandfoodtony.com:8080",
+              "reserved_1": "",
+              "reserved_2": "",
+              "reserved_3": "",
+              "reserved_4": "",
+              "reserved_5": "",
+              "reserved_6": "",
+              "reserved_7": "",
+              "proxy_1": "HTTP\n\n\n\n\n",
+              "proxy_2": "HTTP\n\n\n\n\n",
+              "proxy_3": "HTTP\n\n\n\n\n",
+              "proxy_4": "HTTP\n\n\n\n\n"
+            },
+            "dns_servers": [
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8"
+            ],
+            "timeout_multiplier": 10,
+            "field_54": 0,
+            "offset": 11644,
+            "block_header": {
+              "key": 2647551549,
+              "flags": 305419896,
+              "code": 0,
+              "compressed_size": 1224,
+              "decompressed_size": 2136,
+              "cipher": "four-state"
+            }
+          }
+        ]
+      }
+    ],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 1
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://www.grandfoodtony.com:443",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://www.grandfoodtony.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://www.grandfoodtony.com:8080",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://www.grandfoodtony.com:443",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://www.grandfoodtony.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://www.grandfoodtony.com:8080",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "UDP://www.grandfoodtony.com:443",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "UDP://www.grandfoodtony.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "UDP://www.grandfoodtony.com:8080",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

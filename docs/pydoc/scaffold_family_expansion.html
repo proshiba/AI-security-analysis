@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module scaffold_family_expansion</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">scaffold_family_expansion</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cscaffold_family_expansion.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\scaffold_family_expansion.py</a></td></tr></table>
+    <p><span class="code">Generate&nbsp;thin&nbsp;detector&nbsp;wrappers&nbsp;and&nbsp;declarative&nbsp;definitions&nbsp;for&nbsp;a&nbsp;reviewed&nbsp;batch.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;deterministic&nbsp;scaffolding&nbsp;command-line&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-detector_source"><strong>detector_source</strong></a>(family: 'str', display_name: 'str') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;documented&nbsp;thin&nbsp;wrapper&nbsp;around&nbsp;the&nbsp;shared&nbsp;detector.</span></dd></dl>
+ <dl><dt><a name="-family_items"><strong>family_items</strong></a>(manifest: 'dict', profiles: 'dict[str, dict]') -&gt; 'dict[str, list[dict]]'</dt><dd><span class="code">Group&nbsp;manifest&nbsp;items&nbsp;by&nbsp;normalized&nbsp;requested&nbsp;signature&nbsp;and&nbsp;validate&nbsp;hashes.</span></dd></dl>
+ <dl><dt><a name="-family_readme"><strong>family_readme</strong></a>(profile: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;concise&nbsp;family-tool&nbsp;documentation&nbsp;without&nbsp;unsupported&nbsp;C2&nbsp;claims.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Generate&nbsp;all&nbsp;declared&nbsp;family&nbsp;scaffolding&nbsp;and&nbsp;print&nbsp;counts.</span></dd></dl>
+ <dl><dt><a name="-malware_definition"><strong>malware_definition</strong></a>(family: 'str', profile: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;family&nbsp;classification&nbsp;definition.</span></dd></dl>
+ <dl><dt><a name="-scaffold"><strong>scaffold</strong></a>(manifest_path: 'Path', repository: 'Path') -&gt; 'dict'</dt><dd><span class="code">Generate&nbsp;family&nbsp;modules,&nbsp;campaign&nbsp;registries,&nbsp;and&nbsp;YAML&nbsp;definitions.</span></dd></dl>
+ <dl><dt><a name="-update_registry"><strong>update_registry</strong></a>(path: 'Path', grouped: 'dict[str, list[dict]]', profiles: 'dict[str, dict]') -&gt; 'None'</dt><dd><span class="code">Add&nbsp;generated&nbsp;families&nbsp;to&nbsp;the&nbsp;central&nbsp;detector&nbsp;registry&nbsp;without&nbsp;dropping&nbsp;entries.</span></dd></dl>
+ <dl><dt><a name="-workflow_definition"><strong>workflow_definition</strong></a>(family: 'str', profile: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;static-only&nbsp;workflow&nbsp;using&nbsp;the&nbsp;shared&nbsp;family&nbsp;config&nbsp;step.</span></dd></dl>
+ <dl><dt><a name="-write_text"><strong>write_text</strong></a>(path: 'Path', value: 'str') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;normalized&nbsp;UTF-8&nbsp;text&nbsp;after&nbsp;creating&nbsp;the&nbsp;parent&nbsp;directory.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')</td></tr></table>
+</body></html>

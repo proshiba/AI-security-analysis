@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c",
+  "config": {
+    "source_name": "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c",
+    "decoded_payloads": [
+      {
+        "source": "pe-rva:0x77fc",
+        "decoded_sha256": "b561d39474be9a7f47d531de2d30cb89021eed8d1ac3d885f029f765bf838194",
+        "algorithm": "casper-x86-stream",
+        "key_id": "seed-rva:0x77f8",
+        "module_offset": 24,
+        "module_size": 88902,
+        "configs": [
+          {
+            "format": "shadowpad-casper-x86",
+            "size": 2136,
+            "strings": {
+              "campaign_id": "9AsW5rVRZ4qiR7AgU",
+              "install_name": "VMware Snapshot Provider Service",
+              "install_path": "%ProgramData%\\VMware\\RawdskCompatibility\\virtual\\vmrawdsk.exe",
+              "service_name": "VMware Snapshot Provider Service",
+              "service_display_name": "VMware Snapshot Provider Service",
+              "service_description": "VMware Snapshot Provider Service provides support for freezing or thawing file systems for VSS (Volume Shadow Copy Service).",
+              "registry_key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+              "registry_value_name": "VMware Snapshot Provider Service",
+              "injection_target_1": "%windir%\\system32\\svchost.exe",
+              "injection_target_2": "%windir%\\system32\\winlogon.exe",
+              "injection_target_3": "%windir%\\system32\\taskhost.exe",
+              "injection_target_4": "%windir%\\system32\\svchost.exe",
+              "c2_1": "TCP://websencl.com:8080",
+              "c2_2": "TCP://websencl.com:80",
+              "c2_3": "TCP://websencl.com:443",
+              "c2_4": "HTTP://websencl.com:8080",
+              "c2_5": "HTTP://websencl.com:80",
+              "c2_6": "HTTP://websencl.com:443",
+              "c2_7": "",
+              "c2_8": "",
+              "c2_9": "",
+              "reserved_1": "",
+              "reserved_2": "",
+              "reserved_3": "",
+              "reserved_4": "",
+              "reserved_5": "",
+              "reserved_6": "",
+              "reserved_7": "",
+              "proxy_1": "HTTP\n\n\n\n\n",
+              "proxy_2": "HTTP\n\n\n\n\n",
+              "proxy_3": "HTTP\n\n\n\n\n",
+              "proxy_4": "HTTP\n\n\n\n\n"
+            },
+            "dns_servers": [
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8",
+              "8.8.8.8"
+            ],
+            "timeout_multiplier": 1,
+            "field_54": 0,
+            "offset": 11644,
+            "block_header": {
+              "key": 3340944033,
+              "flags": 305419896,
+              "code": 0,
+              "compressed_size": 923,
+              "decompressed_size": 2136,
+              "cipher": "four-state"
+            }
+          }
+        ]
+      }
+    ],
+    "scatterbee_payload_count": 0,
+    "legacy_payload_count": 1
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://websencl.com:443",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://websencl.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "HTTP://websencl.com:8080",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://websencl.com:443",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://websencl.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    },
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://websencl.com:8080",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "legacy_config:0x2d7c"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

@@ -9,13 +9,22 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">chain</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Cmalware%5Cdonutloader%5Cchain.py">c:\users\administrator\ai-security-analysis\analysis-framework\malware\donutloader\chain.py</a></td></tr></table>
-    <p><span class="code">Thin&nbsp;CLI&nbsp;wrapper&nbsp;for&nbsp;the&nbsp;reusable&nbsp;CHRD/Donut&nbsp;terminal-payload&nbsp;recovery&nbsp;chain.</span></p>
+    <p><span class="code">Dispatch&nbsp;reviewed&nbsp;Donut-related&nbsp;delivery&nbsp;profiles&nbsp;to&nbsp;static&nbsp;unpackers.</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-run"><strong>run</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;static&nbsp;CHRD/Donut&nbsp;unpacker&nbsp;without&nbsp;executing&nbsp;recovered&nbsp;bytes.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;profile-aware&nbsp;static&nbsp;chain&nbsp;parser.</span></dd></dl>
+ <dl><dt><a name="-detect_profile"><strong>detect_profile</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;strongest&nbsp;supported&nbsp;static&nbsp;delivery&nbsp;profile.</span></dd></dl>
+ <dl><dt><a name="-run"><strong>run</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Select&nbsp;and&nbsp;run&nbsp;one&nbsp;bounded&nbsp;static&nbsp;unpacker.</span></dd></dl>
 </td></tr></table>
 </body></html>

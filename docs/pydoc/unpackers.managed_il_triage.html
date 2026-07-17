@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.managed_il_triage</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.managed_il_triage</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cmanaged_il_triage.py">c:\users\administrator\ai-security-analysis\unpackers\managed_il_triage.py</a></td></tr></table>
+    <p><span class="code">Bounded,&nbsp;execution-free&nbsp;.NET&nbsp;metadata&nbsp;and&nbsp;CIL&nbsp;triage.<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;treats&nbsp;the&nbsp;input&nbsp;as&nbsp;an&nbsp;inert&nbsp;byte&nbsp;string.&nbsp;&nbsp;It&nbsp;never&nbsp;asks&nbsp;the&nbsp;CLR&nbsp;to<br>
+load&nbsp;an&nbsp;assembly,&nbsp;executes&nbsp;or&nbsp;emulates&nbsp;CIL,&nbsp;extracts&nbsp;a&nbsp;resource&nbsp;to&nbsp;disk,&nbsp;or<br>
+performs&nbsp;network&nbsp;I/O.&nbsp;&nbsp;Technique&nbsp;assessments&nbsp;are&nbsp;conservative&nbsp;prioritization<br>
+hints&nbsp;and&nbsp;are&nbsp;not&nbsp;protector&nbsp;attribution.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="dnfile.html">dnfile</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="logging.html">logging</a><br>
+<a href="math.html">math</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+<a href="warnings.html">warnings</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_managed_pe"><strong>analyze_managed_pe</strong></a>(data: 'bytes', *, max_input_bytes: 'int' = 536870912, max_types: 'int' = 4096, max_methods: 'int' = 20000, max_instructions: 'int' = 200000, max_method_bytes: 'int' = 262144, max_metadata_strings: 'int' = 40000, max_metadata_string_bytes: 'int' = 8388608, max_metadata_scan_bytes: 'int' = 16777216, max_resources: 'int' = 1024, max_resource_bytes: 'int' = 67108864, dispatcher_switch_targets: 'int' = 16) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Statically&nbsp;inventory&nbsp;a&nbsp;managed&nbsp;PE&nbsp;under&nbsp;explicit&nbsp;parsing&nbsp;budgets.<br>
+&nbsp;<br>
+``data``&nbsp;is&nbsp;never&nbsp;CLR-loaded,&nbsp;executed,&nbsp;emulated,&nbsp;or&nbsp;written&nbsp;to&nbsp;disk.&nbsp;&nbsp;CIL<br>
+method&nbsp;bodies&nbsp;are&nbsp;parsed&nbsp;from&nbsp;bounded&nbsp;byte&nbsp;slices&nbsp;and&nbsp;resources&nbsp;are&nbsp;only<br>
+represented&nbsp;by&nbsp;metadata,&nbsp;SHA-256,&nbsp;and&nbsp;entropy.&nbsp;&nbsp;A&nbsp;partial&nbsp;result&nbsp;is&nbsp;returned<br>
+when&nbsp;a&nbsp;budget&nbsp;is&nbsp;exhausted&nbsp;or&nbsp;an&nbsp;individual&nbsp;method&nbsp;is&nbsp;malformed.<br>
+&nbsp;<br>
+``max_method_bytes``&nbsp;bounds&nbsp;the&nbsp;exact&nbsp;header-plus-declared-code&nbsp;slice&nbsp;before<br>
+dncil&nbsp;parses&nbsp;a&nbsp;method.&nbsp;``max_instructions``&nbsp;is&nbsp;applied&nbsp;only&nbsp;after&nbsp;dncil&nbsp;has<br>
+constructed&nbsp;that&nbsp;method's&nbsp;instruction&nbsp;collection;&nbsp;the&nbsp;returned&nbsp;report&nbsp;records<br>
+this&nbsp;parser-boundary&nbsp;limitation&nbsp;explicitly.</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;command-line&nbsp;parser&nbsp;for&nbsp;bounded&nbsp;managed-IL&nbsp;triage.</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;static&nbsp;managed-IL&nbsp;triage&nbsp;and&nbsp;write&nbsp;a&nbsp;metadata-only&nbsp;JSON&nbsp;report.</span></dd></dl>
+ <dl><dt><a name="-plan_managed_methods"><strong>plan_managed_methods</strong></a>(result: 'dict[str, Any]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Return&nbsp;an&nbsp;ordered,&nbsp;static-only&nbsp;deep-analysis&nbsp;plan&nbsp;for&nbsp;a&nbsp;triage&nbsp;result.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_DISPATCHER_SWITCH_TARGETS</strong> = 16<br>
+<strong>DEFAULT_MAX_INPUT_BYTES</strong> = 536870912<br>
+<strong>DEFAULT_MAX_INSTRUCTIONS</strong> = 200000<br>
+<strong>DEFAULT_MAX_METADATA_SCAN_BYTES</strong> = 16777216<br>
+<strong>DEFAULT_MAX_METADATA_STRINGS</strong> = 40000<br>
+<strong>DEFAULT_MAX_METADATA_STRING_BYTES</strong> = 8388608<br>
+<strong>DEFAULT_MAX_METHODS</strong> = 20000<br>
+<strong>DEFAULT_MAX_METHOD_BYTES</strong> = 262144<br>
+<strong>DEFAULT_MAX_RESOURCES</strong> = 1024<br>
+<strong>DEFAULT_MAX_RESOURCE_BYTES</strong> = 67108864<br>
+<strong>DEFAULT_MAX_TYPES</strong> = 4096<br>
+<strong>INSTRUCTION_BUDGET_NOTE</strong> = 'max_instructions is enforced after dncil parses ...hod; max_method_bytes is the pre-parse byte bound'<br>
+<strong>MAX_NAME_LENGTH</strong> = 512</td></tr></table>
+</body></html>

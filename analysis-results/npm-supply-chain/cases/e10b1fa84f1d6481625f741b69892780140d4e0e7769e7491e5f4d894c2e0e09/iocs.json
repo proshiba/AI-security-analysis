@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "campaign": "axios_plain_crypto_js_202603",
+  "packages": [
+    {"name": "axios", "version": "1.14.1", "sha1": "2553649f2322049666871cea80a5d0d6adc700ca"},
+    {"name": "axios", "version": "0.30.4", "sha1": "d6f3f62fd3b9f5432f5782b62d8cfd5247d5ee71"},
+    {"name": "plain-crypto-js", "version": "4.2.1", "sha1": "07d889e2dadce6f3910dcbc253317d28ca61c766"}
+  ],
+  "files": [
+    {"name": "setup.js", "sha256": "e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09"}
+  ],
+  "network": [
+    {"value": "sfrclak.com", "role": "c2_domain", "confidence": "confirmed_static"},
+    {"value": "142.11.206.73", "role": "reported_a_record", "confidence": "reported"},
+    {"value": "8000/tcp", "role": "c2_port", "confidence": "confirmed_static"},
+    {"value": "http://sfrclak.com:8000/6202033", "role": "payload_dispatch", "confidence": "confirmed_static"}
+  ],
+  "host": [
+    "%PROGRAMDATA%\\wt.exe",
+    "%TEMP%\\6202033.vbs",
+    "%TEMP%\\6202033.ps1",
+    "/Library/Caches/com.apple.act.mond",
+    "/tmp/ld.py"
+  ],
+  "network_contacted": false
+}

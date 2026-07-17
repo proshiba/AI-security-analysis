@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "campaign": "valleyrat_cefclient_libcef_jp_malspam_202603",
+  "files": [
+    {"sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd", "role": "outer_zip", "confidence": "confirmed_malicious"},
+    {"sha256": "07ead27a736604b28876f4a0c940279983bd7076c2e1fed4039c4f0a81f3e0d5", "role": "malicious_libcef", "confidence": "confirmed_malicious"},
+    {"sha256": "02698279d30b2d95f571ba613c80980a84574f3b334eafe0c8d2c0839be90e89", "role": "signed_sideload_host", "confidence": "context_only_not_standalone_ioc"}
+  ],
+  "network": [
+    {"value": "xjvbn.com", "role": "delivery", "confidence": "confirmed_reported"},
+    {"value": "ljowqjd.cn", "role": "contacted_domain", "confidence": "confirmed_public_relation"},
+    {"value": "198.44.170.58", "role": "reported_infrastructure", "confidence": "unverified_in_config"},
+    {"value": "162.159.36.2", "role": "cloudflare_resolution", "confidence": "context_only_not_c2"}
+  ],
+  "network_contacted": false
+}

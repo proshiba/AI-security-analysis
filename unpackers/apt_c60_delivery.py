@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 import re
 import tarfile
 
+from unpackers.path_safety import safe_member_name as validate_member_name
 MAX_ARCHIVE = 256 * 1024 * 1024
 MAX_MEMBER = 128 * 1024 * 1024
 
@@ -46,17 +47,7 @@ def decode_base64_tar(data: bytes) -> bytes:
 
 def safe_member_name(name: str) -> str:
     """Normalize one TAR member and reject unsafe path forms."""
-    normalized = name.replace("\\", "/")
-    path = PurePosixPath(normalized)
-    if (
-        not normalized
-        or normalized.startswith("/")
-        or re.match(r"^[A-Za-z]:", normalized)
-    ):
-        raise ValueError(f"unsafe TAR member: {name}")
-    if any(part in {"", ".", ".."} for part in path.parts):
-        raise ValueError(f"unsafe TAR member: {name}")
-    return normalized
+    return validate_member_name(name, "TAR")
 
 
 def read_tar_members(tar_data: bytes) -> dict[str, bytes]:

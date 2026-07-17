@@ -27,19 +27,10 @@
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-discover"><strong>discover</strong></a>(
-    path: 'Path',
-    password: 'str' = 'infected',
-    family_hint: 'str | None' = None,
-    campaign_hint: 'str | None' = None
-) -&gt; 'tuple[bytes, dict]'</dt><dd><span class="code">Return&nbsp;normalized&nbsp;discovery&nbsp;facts&nbsp;and&nbsp;retained&nbsp;in-memory&nbsp;bytes.</span></dd></dl>
- <dl><dt><a name="-infer_campaign"><strong>infer_campaign</strong></a>(
-    family: 'str | None',
-    strings_ci: 'list[str]',
-    member_names: 'list[str]'
-) -&gt; 'str | None'</dt><dd><span class="code">Infer&nbsp;reviewed&nbsp;campaign&nbsp;shapes&nbsp;while&nbsp;preserving&nbsp;unknown&nbsp;variants.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-discover"><strong>discover</strong></a>(path: 'Path', password: 'str' = 'infected', family_hint: 'str | None' = None, campaign_hint: 'str | None' = None, unwrap_archive: 'bool' = True) -&gt; 'tuple[bytes, dict]'</dt><dd><span class="code">Return&nbsp;normalized&nbsp;discovery&nbsp;facts&nbsp;and&nbsp;retained&nbsp;in-memory&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-infer_campaign"><strong>infer_campaign</strong></a>(family: 'str | None', strings_ci: 'list[str]', member_names: 'list[str]') -&gt; 'str | None'</dt><dd><span class="code">Infer&nbsp;reviewed&nbsp;campaign&nbsp;shapes&nbsp;while&nbsp;preserving&nbsp;unknown&nbsp;variants.</span></dd></dl>
  <dl><dt><a name="-infer_family"><strong>infer_family</strong></a>(strings_ci: 'list[str]') -&gt; 'str | None'</dt><dd><span class="code">Infer&nbsp;only&nbsp;families&nbsp;with&nbsp;sufficiently&nbsp;distinctive&nbsp;static&nbsp;markers.</span></dd></dl>
- <dl><dt><a name="-read_submission"><strong>read_submission</strong></a>(path: 'Path', password: 'str' = 'infected') -&gt; 'tuple[bytes, str, dict]'</dt><dd><span class="code">Read&nbsp;a&nbsp;raw&nbsp;file&nbsp;or&nbsp;one&nbsp;authenticated&nbsp;single-member&nbsp;ZIP&nbsp;without&nbsp;extraction.</span></dd></dl>
+ <dl><dt><a name="-read_submission"><strong>read_submission</strong></a>(path: 'Path', password: 'str' = 'infected', unwrap_archive: 'bool' = True) -&gt; 'tuple[bytes, str, dict]'</dt><dd><span class="code">Read&nbsp;raw&nbsp;bytes&nbsp;or&nbsp;optionally&nbsp;unwrap&nbsp;one&nbsp;authenticated&nbsp;single-member&nbsp;ZIP.</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal,&nbsp;absolute,&nbsp;drive-qualified,&nbsp;and&nbsp;empty&nbsp;names.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

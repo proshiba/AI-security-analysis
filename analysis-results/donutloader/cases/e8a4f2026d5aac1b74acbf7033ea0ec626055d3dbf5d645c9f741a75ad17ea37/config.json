@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "family": "donutloader",
+  "sample_sha256": "e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37",
+  "config": {
+    "delivery_profile": "index_xor_multi_pe",
+    "donut_confirmed": false,
+    "terminal_family": "purehvnc",
+    "terminal_variant": "native_10fx",
+    "terminal_sha256": "2e12fa92aae24cf0ec9890151f28fa402324439ccd671135370cb3a2f541087e",
+    "endpoints": ["154.82.93.206:8080"],
+    "frame_magic": "0x58463031"
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "154.82.93.206:8080",
+      "role": "terminal_payload_configured_c2",
+      "confidence": "high",
+      "source": "recovered_terminal_static_config"
+    }
+  ],
+  "limitations": [
+    "No strict Donut structure was recovered from this submitted case.",
+    "Static extraction only; no payload execution or C2 contact was performed."
+  ],
+  "executed": false,
+  "network_contacted": false
+}
+

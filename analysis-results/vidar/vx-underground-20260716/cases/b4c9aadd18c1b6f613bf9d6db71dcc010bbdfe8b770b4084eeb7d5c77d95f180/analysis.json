@@ -1,0 +1,305 @@
+{
+  "case": {
+    "sha256": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+    "name": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "not_packed",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 3,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 3
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+    "config": {
+      "source_name": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": false,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "complete_input",
+      "original_size": 1304576,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 3
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+    "sha256": "b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180",
+    "size": 1304576,
+    "entropy": 7.6922,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 1304576,
+      "security_offset": 0,
+      "security_size": 0,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": false,
+      "is_go": false,
+      "imports": 203,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 325632,
+          "virtual_size": 325593,
+          "entropy": 6.5517,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 60928,
+          "virtual_size": 60580,
+          "entropy": 5.424,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".data",
+          "raw_size": 10240,
+          "virtual_size": 22724,
+          "entropy": 4.4348,
+          "characteristics": "0xc0000040"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 906752,
+          "virtual_size": 906328,
+          "entropy": 7.94,
+          "characteristics": "0x40000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".rsrc"
+      ],
+      "code_entropy_sections": [],
+      "packer_markers": [],
+      "classification": "not_packed",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 0,
+      "overlay_format": "data",
+      "resource_count": 33,
+      "opaque_resources_recovered": 3,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 66072,
+        "sha256": "f3ff991495f87ec90d035f0c89a51cd659716c240e29048ceb0e6cf045ce7405"
+      },
+      {
+        "kind": "pe-resource-opaque",
+        "size": 225086,
+        "sha256": "87108826042af808cf6b466e153052b2a10473ff701f42ec6c76088337894d59"
+      },
+      {
+        "kind": "pe-resource-opaque",
+        "size": 562348,
+        "sha256": "7c92a92027ab30d21bc18f68dabb472da9e333ea5312dd8f53615dfde7da9b71"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "f3ff991495f87ec90d035f0c89a51cd659716c240e29048ceb0e6cf045ce7405",
+        "size": 66072,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "f3ff991495f87ec90d035f0c89a51cd659716c240e29048ceb0e6cf045ce7405",
+          "size": 66072,
+          "entropy": 7.9941,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 66072
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "87108826042af808cf6b466e153052b2a10473ff701f42ec6c76088337894d59",
+        "size": 225086,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "87108826042af808cf6b466e153052b2a10473ff701f42ec6c76088337894d59",
+          "size": 225086,
+          "entropy": 7.9988,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 225086
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "7c92a92027ab30d21bc18f68dabb472da9e333ea5312dd8f53615dfde7da9b71",
+        "size": 562348,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "7c92a92027ab30d21bc18f68dabb472da9e333ea5312dd8f53615dfde7da9b71",
+          "size": 562348,
+          "entropy": 7.9972,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 562348
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

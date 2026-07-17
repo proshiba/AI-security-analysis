@@ -1,0 +1,22 @@
+title: Suspicious CEF DLL Side Loading From User-Writable Directory
+id: 71b2c657-439a-43c1-b529-64dfe966aef0
+status: experimental
+description: Detects a process loading libcef.dll from common user-writable extraction paths; correlate with the campaign hashes or network IOCs.
+logsource:
+  category: image_load
+  product: windows
+detection:
+  selection:
+    ImageLoaded|endswith: '\libcef.dll'
+    Image|contains:
+      - '\Downloads\'
+      - '\AppData\Local\Temp\'
+      - '\Desktop\'
+  filter_legitimate:
+    Image|contains:
+      - '\Program Files\'
+      - '\Program Files (x86)\'
+  condition: selection and not filter_legitimate
+falsepositives:
+  - Portable or legitimately extracted Chromium/CEF applications
+level: medium

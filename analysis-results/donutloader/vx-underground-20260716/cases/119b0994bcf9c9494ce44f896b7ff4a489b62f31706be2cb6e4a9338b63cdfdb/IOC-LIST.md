@@ -1,0 +1,9 @@
+# IOC list
+
+| Type | Value | Role | Confidence | Source |
+|---|---|---|---|---|
+| domain | analysis.json | config_ioc | recorded | README:Static config snapshot |
+| sha256 | 119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb | submitted_sample | confirmed | directory |
+| sha256 | 685437d2b82dc5f41ea828da25a120b8038272ecdde58266db9d35b51d33386e | config_ioc | recorded | README:Static config snapshot |
+| sha256 | e199ef132428ece3a12deb874404c72f5d1608db2dd7ca55bdfea7e9689b6193 | config_ioc | recorded | README:Static config snapshot |
+| sha256 | e5588d0970d3a1825b4c1280fd16d9149901c4bcfcf636fcee7b3e9d5ae5170f | config_ioc | recorded | README:Static config snapshot |

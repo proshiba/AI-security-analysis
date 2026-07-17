@@ -28,6 +28,11 @@
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-decode_script_text"><strong>decode_script_text</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;common&nbsp;script&nbsp;encodings&nbsp;without&nbsp;interpreting&nbsp;script&nbsp;content.</span></dd></dl>
+ <dl><dt><a name="-deobfuscate_plain_string_array"><strong>deobfuscate_plain_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Statically&nbsp;resolve&nbsp;a&nbsp;rotated&nbsp;plain-string&nbsp;array&nbsp;decoder&nbsp;pattern.<br>
+&nbsp;<br>
+The&nbsp;supported&nbsp;shape&nbsp;uses&nbsp;a&nbsp;local&nbsp;array-returning&nbsp;function,&nbsp;an&nbsp;index-offset<br>
+decoder,&nbsp;and&nbsp;a&nbsp;numeric&nbsp;``parseInt``&nbsp;rotation&nbsp;sentinel.&nbsp;No&nbsp;JavaScript&nbsp;is<br>
+interpreted&nbsp;or&nbsp;executed.</span></dd></dl>
  <dl><dt><a name="-deobfuscate_string_array"><strong>deobfuscate_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Statically&nbsp;decode&nbsp;a&nbsp;rotated,&nbsp;custom-Base64&nbsp;JavaScript&nbsp;string&nbsp;array.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

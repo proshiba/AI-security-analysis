@@ -14,6 +14,19 @@ class StepSpec:
     capabilities: tuple[str, ...] = ()
 
 
+PROFILED_FAMILIES = (
+    "asyncrat",
+    "darkcomet",
+    "dcrat",
+    "guloader",
+    "hijackloader",
+    "njrat",
+    "quasarrat",
+    "redlinestealer",
+    "snakekeylogger",
+    "xworm",
+)
+
 _STEPS = {
     item.id: item
     for item in (
@@ -31,8 +44,12 @@ _STEPS = {
         StepSpec("external.ghidra_mcp.import_analyze", 1, ("external.ghidra_mcp",)),
         StepSpec("family.valleyrat.config", 1),
         StepSpec("family.agenttesla.config", 1),
+        StepSpec("family.atlascross.config", 1),
+        StepSpec("family.amadey.config", 1),
+        StepSpec("family.npm_supply_chain.config", 1),
         StepSpec("family.amosstealer.config", 1),
         StepSpec("family.formbook.config", 1),
+        StepSpec("family.latrodectus.config", 1),
         StepSpec("family.lummastealer.config", 1),
         StepSpec("family.donutloader.layers", 1),
         StepSpec("family.purehvnc.config", 1),
@@ -40,9 +57,11 @@ _STEPS = {
         StepSpec("family.remusstealer.config", 1),
         StepSpec("family.spyglace.config", 1),
         StepSpec("family.venomrat.config", 1),
+        StepSpec("family.stealc.config", 1),
         StepSpec("family.vidar.config", 1),
         StepSpec("family.mx_go.config", 1),
         StepSpec("reporting.case_report", 1),
+        *(StepSpec(f"family.{family}.config", 1) for family in PROFILED_FAMILIES),
     )
 }
 

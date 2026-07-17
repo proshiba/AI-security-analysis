@@ -29,14 +29,7 @@ bounded,&nbsp;statically&nbsp;inspected&nbsp;decoder&nbsp;stub.</span></p>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-apply_dword_xor"><strong>apply_dword_xor</strong></a>(data: 'bytes', key: 'int', length: 'int') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;a&nbsp;bounded&nbsp;little-endian&nbsp;dword&nbsp;XOR,&nbsp;zero-padding&nbsp;a&nbsp;short&nbsp;final&nbsp;page.</span></dd></dl>
- <dl><dt><a name="-decode_nsis_hex_xor_words"><strong>decode_nsis_hex_xor_words</strong></a>(
-    data: 'bytes',
-    *,
-    offset: 'int' = 12,
-    read_chars: 'int' = 2048,
-    key: 'int' = 399936311,
-    terminator: 'int' = 81
-) -&gt; 'tuple[dict[str, Any], bytes]'</dt><dd><span class="code">Reproduce&nbsp;an&nbsp;NSIS&nbsp;``IntOp``/``IntFmt``&nbsp;32-bit&nbsp;XOR&nbsp;text&nbsp;decoder.<br>
+ <dl><dt><a name="-decode_nsis_hex_xor_words"><strong>decode_nsis_hex_xor_words</strong></a>(data: 'bytes', *, offset: 'int' = 12, read_chars: 'int' = 2048, key: 'int' = 399936311, terminator: 'int' = 81) -&gt; 'tuple[dict[str, Any], bytes]'</dt><dd><span class="code">Reproduce&nbsp;an&nbsp;NSIS&nbsp;``IntOp``/``IntFmt``&nbsp;32-bit&nbsp;XOR&nbsp;text&nbsp;decoder.<br>
 &nbsp;<br>
 The&nbsp;source&nbsp;is&nbsp;ASCII&nbsp;hexadecimal.&nbsp;&nbsp;Each&nbsp;eight-character&nbsp;word&nbsp;is&nbsp;XORed&nbsp;as&nbsp;an<br>
 unsigned&nbsp;32-bit&nbsp;integer&nbsp;and&nbsp;then&nbsp;emitted&nbsp;in&nbsp;the&nbsp;left-to-right&nbsp;byte&nbsp;order&nbsp;of<br>

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "files": [{"sha256": "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c", "role": "submitted_casper_loader", "confidence": "confirmed"}],
+  "network": [
+    {"value": "websencl.com", "role": "c2_domain_from_config", "confidence": "confirmed_static_config"},
+    {"value": "websencl.com:80", "role": "c2_endpoint_tcp_http", "confidence": "confirmed_static_config"},
+    {"value": "websencl.com:443", "role": "c2_endpoint_tcp_http", "confidence": "confirmed_static_config"},
+    {"value": "websencl.com:8080", "role": "c2_endpoint_tcp_http", "confidence": "confirmed_static_config"}
+  ],
+  "network_contacted": false
+}

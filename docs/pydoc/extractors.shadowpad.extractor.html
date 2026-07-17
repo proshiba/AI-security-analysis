@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.shadowpad.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.shadowpad.html" class="white">shadowpad</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cshadowpad%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\shadowpad\extractor.py</a></td></tr></table>
+    <p><span class="code">Offline&nbsp;ShadowPad/ScatterBee&nbsp;payload&nbsp;and&nbsp;configuration&nbsp;extractor.<br>
+&nbsp;<br>
+The&nbsp;implementation&nbsp;is&nbsp;derived&nbsp;from&nbsp;the&nbsp;public&nbsp;PwC&nbsp;ScatterBee&nbsp;description&nbsp;and<br>
+uses&nbsp;only&nbsp;byte&nbsp;transformations.&nbsp;&nbsp;It&nbsp;never&nbsp;loads&nbsp;a&nbsp;PE,&nbsp;executes&nbsp;shellcode,&nbsp;or<br>
+contacts&nbsp;a&nbsp;recovered&nbsp;endpoint.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="cryptography.hazmat.primitives.ciphers.algorithms.html">cryptography.hazmat.primitives.ciphers.algorithms</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+<a href="cryptography.hazmat.primitives.ciphers.modes.html">cryptography.hazmat.primitives.ciphers.modes</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+<a href="urllib.html">urllib</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="extractors.shadowpad.extractor.html#PayloadDecode">PayloadDecode</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PayloadDecode">class <strong>PayloadDecode</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PayloadDecode">PayloadDecode</a>(data:&nbsp;'bytes',&nbsp;algorithm:&nbsp;'str',&nbsp;key_id:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+A&nbsp;successfully&nbsp;decoded&nbsp;ScatterBee&nbsp;payload.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PayloadDecode-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PayloadDecode-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="PayloadDecode-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="PayloadDecode-__init__"><strong>__init__</strong></a>(self, data: 'bytes', algorithm: 'str', key_id: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PayloadDecode-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PayloadDecode-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'algorithm': 'str', 'data': 'bytes', 'key_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'algorithm': Field(name='algorithm',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD), 'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'key_id': Field(name='key_id',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('data', 'algorithm', 'key_id')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-add_seed_bytes"><strong>add_seed_bytes</strong></a>(value: 'int') -&gt; 'int'</dt><dd><span class="code">Return&nbsp;the&nbsp;low&nbsp;byte&nbsp;of&nbsp;the&nbsp;sum&nbsp;of&nbsp;a&nbsp;32-bit&nbsp;seed's&nbsp;four&nbsp;bytes.</span></dd></dl>
+ <dl><dt><a name="-decode_candidates"><strong>decode_candidates</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, PayloadDecode]]'</dt><dd><span class="code">Decode&nbsp;the&nbsp;input&nbsp;or&nbsp;any&nbsp;PE&nbsp;region&nbsp;that&nbsp;contains&nbsp;a&nbsp;full&nbsp;ScatterBee&nbsp;payload.</span></dd></dl>
+ <dl><dt><a name="-decode_payload"><strong>decode_payload</strong></a>(data: 'bytes') -&gt; 'PayloadDecode | None'</dt><dd><span class="code">Decode&nbsp;a&nbsp;complete&nbsp;ScatterBee&nbsp;payload&nbsp;when&nbsp;a&nbsp;known&nbsp;key&nbsp;variant&nbsp;matches.</span></dd></dl>
+ <dl><dt><a name="-derive_aes_key"><strong>derive_aes_key</strong></a>(md5_digest: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Reproduce&nbsp;the&nbsp;AES-128&nbsp;key&nbsp;material&nbsp;generated&nbsp;by&nbsp;CryptoAPI.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;ShadowPad&nbsp;config&nbsp;evidence&nbsp;without&nbsp;executing&nbsp;or&nbsp;writing&nbsp;decoded&nbsp;data.</span></dd></dl>
+ <dl><dt><a name="-find_32_config"><strong>find_32_config</strong></a>(payload: 'bytes') -&gt; 'int | None'</dt><dd><span class="code">Find&nbsp;and&nbsp;structurally&nbsp;validate&nbsp;a&nbsp;32-bit&nbsp;ShadowPad&nbsp;configuration.</span></dd></dl>
+ <dl><dt><a name="-find_64_chunks"><strong>find_64_chunks</strong></a>(payload: 'bytes') -&gt; 'int | None'</dt><dd><span class="code">Find&nbsp;three&nbsp;consecutive&nbsp;valid&nbsp;64-bit&nbsp;ShadowPad&nbsp;chunk&nbsp;headers.</span></dd></dl>
+ <dl><dt><a name="-network_values"><strong>network_values</strong></a>(config: 'dict') -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;unique&nbsp;endpoint-like&nbsp;values&nbsp;from&nbsp;decoded&nbsp;config&nbsp;strings.</span></dd></dl>
+ <dl><dt><a name="-parse_32_config"><strong>parse_32_config</strong></a>(payload: 'bytes', sub_key: 'int') -&gt; 'dict | None'</dt><dd><span class="code">Decode&nbsp;the&nbsp;documented&nbsp;23-string&nbsp;32-bit&nbsp;ShadowPad&nbsp;configuration.</span></dd></dl>
+ <dl><dt><a name="-parse_64_config"><strong>parse_64_config</strong></a>(payload: 'bytes', decode: 'PayloadDecode') -&gt; 'dict | None'</dt><dd><span class="code">Decode&nbsp;a&nbsp;supported&nbsp;AES&nbsp;or&nbsp;stream-cipher&nbsp;64-bit&nbsp;ShadowPad&nbsp;config&nbsp;chunk.</span></dd></dl>
+ <dl><dt><a name="-scatter_aes"><strong>scatter_aes</strong></a>(data: 'bytes', key_string: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;an&nbsp;MD5/CryptoDeriveKey&nbsp;ScatterBee&nbsp;AES&nbsp;payload.</span></dd></dl>
+ <dl><dt><a name="-scatter_stream"><strong>scatter_stream</strong></a>(data: 'bytes', seed: 'int', sub_key: 'int') -&gt; 'bytes'</dt><dd><span class="code">Decode&nbsp;bytes&nbsp;with&nbsp;the&nbsp;ScatterBee&nbsp;evolving-seed&nbsp;stream&nbsp;cipher.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>AES_KEY_STRINGS</strong> = (b'\x82\xe4\xe2\xfe\xf1U\xd0\x9e\x01\xb7\x98\xff1\x8c\n\xf8', b'9\x88\xa1\x8d\xba\xe0\xd9\xf1\xb1_\xaf\xc7b\x1e\r\x80', b'\xf0\xc2\xc5\xc7\xd0\xd9_\xd7X\xae\xab\xcbk@\xc2\xcb', b'ef\r\xafe\x15\xd3\xb7U|sdeY\x95\xf4')<br>
+<strong>CONFIG_32_LABELS</strong> = ('timestamp', 'campaign_code', 'install_path', 'spoofed_name', 'loader_filename', 'payload_filename', 'service_name', 'alternative_service_name_1', 'alternative_service_name_2', 'registry_key_path', 'service_description', 'injection_target_1', 'injection_target_2', 'injection_target_3', 'injection_target_4', 'c2_1', 'c2_2', 'c2_3', 'c2_4', 'proxy_1', ...)<br>
+<strong>NETWORK_VALUE</strong> = re.compile('(?i)(?:tcp|udp|http|https)://[^\\s\\...\\d{1,3}\\.){3}\\d{1,3}:\\d{1,5}', re.IGNORECASE)<br>
+<strong>STREAM_SUB_KEYS</strong> = (1395875231, 4018248083, 243632639, 231208455, 1144145594, 1454056255)<br>
+<strong>VALID_CHUNK_TAGS</strong> = {2, 128, 131, 132, 144, 145, ...}</td></tr></table>
+</body></html>

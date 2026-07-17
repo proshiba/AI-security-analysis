@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "family": "stealc",
+  "source": "https://vx-underground.org/Samples/Families/Stealc",
+  "acquired_at": "2026-07-16",
+  "source_modified_date": "2025-07-10",
+  "counts": {
+    "total": 41,
+    "decoded_config": 5,
+    "themida": 11,
+    "enigma": 1,
+    "nsis": 1,
+    "delphi_carrier": 3,
+    "other_protected_or_unsupported": 20
+  },
+  "sample_executed": false,
+  "network_contacted": false
+}

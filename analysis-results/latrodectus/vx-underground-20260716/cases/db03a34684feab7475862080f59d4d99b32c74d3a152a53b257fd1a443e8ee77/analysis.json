@@ -1,0 +1,85 @@
+{
+  "case": {
+    "sha256": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+    "name": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+    "family": "latrodectus",
+    "campaign": "direct_dll_or_loader",
+    "format": "data",
+    "packing_suspected": false,
+    "packing_classification": "not_applicable",
+    "unpack_status": "no_artifact_recovered",
+    "recovered_artifacts": 0,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "layer_count": 0
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "sample_sha256": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+    "config": {
+      "source_name": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+      "static_config_recovered": false,
+      "features": {
+        "host_discovery": false,
+        "domain_discovery": false,
+        "security_discovery": false,
+        "scheduled_task_persistence": false,
+        "payload_download": false,
+        "rundll32_execution": true
+      },
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Confirmed values require the characteristic decrypted registration format and at least one URL.",
+      "AES-CTR string generations and protected delivery wrappers may require a recovered memory image or a later parser profile.",
+      "No check-in or infrastructure contact was performed."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 0
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "latrodectus",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+    "sha256": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77",
+    "size": 1634,
+    "entropy": 2.4596,
+    "format": "data",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [],
+    "unpack_status": "no_artifact_recovered"
+  },
+  "layers": {
+    "layers": [],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

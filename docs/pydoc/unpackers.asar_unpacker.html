@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.asar_unpacker</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.asar_unpacker</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Casar_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\asar_unpacker.py</a></td></tr></table>
+    <p><span class="code">Bounded&nbsp;Electron&nbsp;ASAR&nbsp;recovery&nbsp;without&nbsp;running&nbsp;Node.js&nbsp;or&nbsp;packaged&nbsp;code.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-asar_header"><strong>asar_header</strong></a>(data: 'bytes') -&gt; 'tuple[dict, int]'</dt><dd><span class="code">Parse&nbsp;and&nbsp;return&nbsp;a&nbsp;validated&nbsp;Chromium-pickle&nbsp;ASAR&nbsp;header&nbsp;and&nbsp;data&nbsp;offset.</span></dd></dl>
+ <dl><dt><a name="-is_asar"><strong>is_asar</strong></a>(data: 'bytes') -&gt; 'bool'</dt><dd><span class="code">Return&nbsp;whether&nbsp;bytes&nbsp;contain&nbsp;a&nbsp;structurally&nbsp;valid&nbsp;bounded&nbsp;ASAR&nbsp;header.</span></dd></dl>
+ <dl><dt><a name="-recover_asar"><strong>recover_asar</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;an&nbsp;ASAR&nbsp;and&nbsp;return&nbsp;bounded&nbsp;script/config/native&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-safe_asar_name"><strong>safe_asar_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;one&nbsp;ASAR&nbsp;path&nbsp;and&nbsp;reject&nbsp;traversal&nbsp;or&nbsp;absolute&nbsp;names.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_HEADER</strong> = 16777216<br>
+<strong>MAX_MEMBER</strong> = 268435456<br>
+<strong>MAX_MEMBERS</strong> = 4096<br>
+<strong>MAX_TOTAL</strong> = 536870912<br>
+<strong>RETAIN_SUFFIXES</strong> = {'.bin', '.cjs', '.dat', '.dll', '.exe', '.js', ...}</td></tr></table>
+</body></html>

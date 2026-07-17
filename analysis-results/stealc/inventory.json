@@ -1,0 +1,2149 @@
+{
+  "summary": {
+    "schema_version": 1,
+    "family": "stealc",
+    "source": "https://vx-underground.org/Samples/Families/Stealc",
+    "acquired_at": "2026-07-16",
+    "source_modified_date": "2025-07-10",
+    "counts": {
+      "total": 41,
+      "decoded_config": 5,
+      "themida": 11,
+      "enigma": 1,
+      "nsis": 1,
+      "delphi_carrier": 3,
+      "other_protected_or_unsupported": 20
+    },
+    "sample_executed": false,
+    "network_contacted": false
+  },
+  "samples": [
+    {
+      "sha256": "0523d96352c2028dd22fe5591db75e08c6d8ad76afd0baf2c0b5ce04ae850439",
+      "size": 244224,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "high_entropy_native_wrapper",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 130048,
+          "virtual_size": 129554,
+          "entropy": 7.7432
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 11264,
+          "virtual_size": 11252,
+          "entropy": 5.4751
+        },
+        {
+          "name": ".data",
+          "raw_size": 19456,
+          "virtual_size": 4344608,
+          "entropy": 0.662
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 82432,
+          "virtual_size": 82056,
+          "entropy": 4.3548
+        }
+      ],
+      "die_detections": [
+        "Compiler: Microsoft Visual C/C++(15.00-16.00)[libcmt, wWinMain]",
+        "Debug data: Records[codeview]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "size": 1837056,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 141312,
+          "virtual_size": 2469888,
+          "entropy": 7.9834
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2732032,
+          "entropy": 0.2608
+        },
+        {
+          "name": "lculjkhe",
+          "raw_size": 1680896,
+          "virtual_size": 1683456,
+          "entropy": 7.953
+        },
+        {
+          "name": "ezzbfwjh",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.3222
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7245
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "0a9eab89753e07a01b1c5e0197acefea9cc05e5f7829823f811e7aa1d7b817b7",
+      "size": 245248,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 69120,
+          "virtual_size": 68867,
+          "entropy": 6.7072
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 28140,
+          "entropy": 4.7454
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 3585512,
+          "entropy": 7.6937
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 53760,
+          "virtual_size": 53272,
+          "entropy": 4.4838
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "0b2079978ba2073cfde3c6bc39847431e4e2ab64db27d592df01c4f93d209ca1",
+      "size": 258048,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "high_entropy_native_wrapper",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 138240,
+          "virtual_size": 138032,
+          "entropy": 7.8206
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 13312,
+          "virtual_size": 13032,
+          "entropy": 4.9567
+        },
+        {
+          "name": ".data",
+          "raw_size": 56320,
+          "virtual_size": 33697420,
+          "entropy": 0.2477
+        },
+        {
+          "name": ".hogum",
+          "raw_size": 1024,
+          "virtual_size": 723,
+          "entropy": 0.0
+        },
+        {
+          "name": ".yirak",
+          "raw_size": 1024,
+          "virtual_size": 1024,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 47104,
+          "virtual_size": 47024,
+          "entropy": 4.4978
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+      "size": 1783808,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9692
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2744320,
+          "entropy": 0.2608
+        },
+        {
+          "name": "oggjeoxe",
+          "raw_size": 1688064,
+          "virtual_size": 1691648,
+          "entropy": 7.9537
+        },
+        {
+          "name": "bpbnhoje",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.1234
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8156
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "1b8433398050753d992dc40ea4c07144b43724a99ec4cf2fdac764645d6d1023",
+      "size": 246784,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 68096,
+          "virtual_size": 67699,
+          "entropy": 6.703
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 30208,
+          "virtual_size": 29880,
+          "entropy": 4.8766
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 3585380,
+          "entropy": 7.6895
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 54272,
+          "virtual_size": 53856,
+          "entropy": 4.3174
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2",
+      "size": 81408,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "decoded_v1_config",
+      "config_extracted": true,
+      "profile": {
+        "generation": "StealC-v1",
+        "method": "v1-base64-rc4-skip-key",
+        "base_url": "http://fff-ttt.com",
+        "gate_path": "/984dd96064cb23d7.php",
+        "c2_url": "http://fff-ttt.com/984dd96064cb23d7.php",
+        "dll_path": "/a02fc2187db8cd88/",
+        "dll_url": "http://fff-ttt.com/a02fc2187db8cd88/",
+        "build_id": "default",
+        "decoded_string_count": 325,
+        "string_key": "92082364821226974234"
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 56832,
+          "virtual_size": 56386,
+          "entropy": 6.1038
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 12800,
+          "virtual_size": 12498,
+          "entropy": 5.5915
+        },
+        {
+          "name": ".data",
+          "raw_size": 0,
+          "virtual_size": 2167239,
+          "entropy": 0.0
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 10752,
+          "virtual_size": 10674,
+          "entropy": 4.1986
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
+      "size": 161792,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "decoded_v1_config",
+      "config_extracted": true,
+      "profile": {
+        "generation": "StealC-v1",
+        "method": "v1-paired-buffer-xor",
+        "base_url": "http://40.86.87.10",
+        "gate_path": "/108e010e8f91c38c.php",
+        "c2_url": "http://40.86.87.10/108e010e8f91c38c.php",
+        "dll_path": "/b13597c85f807692/",
+        "dll_url": "http://40.86.87.10/b13597c85f807692/",
+        "build_id": "ZOV",
+        "decoded_string_count": 351,
+        "string_key": null
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 109568,
+          "virtual_size": 109370,
+          "entropy": 6.1468
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 31232,
+          "virtual_size": 31038,
+          "entropy": 5.7634
+        },
+        {
+          "name": ".data",
+          "raw_size": 3072,
+          "virtual_size": 2173740,
+          "entropy": 2.8776
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 16896,
+          "virtual_size": 16868,
+          "entropy": 4.4882
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "2874b873e12bcdfcf0a37708512e21637e38e5f5b9a2bf0c3b34f72d74c05708",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66947,
+          "entropy": 6.7145
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27588,
+          "entropy": 4.7593
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 34932736,
+          "entropy": 7.7009
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61440,
+          "virtual_size": 61384,
+          "entropy": 4.429
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+      "size": 1798144,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9682
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608
+        },
+        {
+          "name": "ibsbbfsz",
+          "raw_size": 1702400,
+          "virtual_size": 1703936,
+          "entropy": 7.9537
+        },
+        {
+          "name": "xnkbybmp",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.2436
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.819
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66947,
+          "entropy": 6.7048
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 27652,
+          "entropy": 4.6985
+        },
+        {
+          "name": ".data",
+          "raw_size": 92672,
+          "virtual_size": 3585312,
+          "entropy": 7.7099
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61952,
+          "virtual_size": 61448,
+          "entropy": 4.4128
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "4eb215aa80ea20f514aa4815bc82f872bf7130391e21509aef3a29cb34d3a420",
+      "size": 251392,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66947,
+          "entropy": 6.709
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27636,
+          "entropy": 4.7622
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 3585856,
+          "entropy": 7.691
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61952,
+          "virtual_size": 61448,
+          "entropy": 4.4058
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "4ff0d58788532f4c0bb9dbc9effe6202dd1adaae2ecb8eebc2d48be8cf4b1895",
+      "size": 244736,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 69120,
+          "virtual_size": 68851,
+          "entropy": 6.7059
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 28008,
+          "entropy": 4.734
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 3585544,
+          "entropy": 7.697
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 53248,
+          "virtual_size": 53152,
+          "entropy": 4.5031
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924",
+      "size": 5279488,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "nsis_container",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 25088,
+          "virtual_size": 24695,
+          "entropy": 6.7089
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 5120,
+          "virtual_size": 4688,
+          "entropy": 5.0448
+        },
+        {
+          "name": ".data",
+          "raw_size": 1024,
+          "virtual_size": 108600,
+          "entropy": 5.2245
+        },
+        {
+          "name": ".ndata",
+          "raw_size": 0,
+          "virtual_size": 36864,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 2317824,
+          "virtual_size": 2317824,
+          "entropy": 2.5688
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(6.0)",
+        "Compiler: Microsoft Visual C/C++(13.10.4035)[C]",
+        "Sign tool: Windows Authenticode(2.0)[PKCS #7, after overlay]",
+        "Installer: Nullsoft Scriptable Install System[lzma, solid]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "65fcf2bac887d16fe2d281c53efaa770c73f7e32a2862024cc21f9680ee9efe9",
+      "size": 278016,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "high_entropy_native_wrapper",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 125952,
+          "virtual_size": 125488,
+          "entropy": 7.4369
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 9216,
+          "virtual_size": 8708,
+          "entropy": 5.3295
+        },
+        {
+          "name": ".data",
+          "raw_size": 5120,
+          "virtual_size": 4325824,
+          "entropy": 3.0834
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 136704,
+          "virtual_size": 136248,
+          "entropy": 4.7151
+        }
+      ],
+      "die_detections": [
+        "Compiler: Microsoft Visual C/C++(15.00-16.00)[libcmt]",
+        "Debug data: Records[codeview]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 68096,
+          "virtual_size": 68035,
+          "entropy": 6.7128
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27642,
+          "entropy": 4.7668
+        },
+        {
+          "name": ".data",
+          "raw_size": 92672,
+          "virtual_size": 34932000,
+          "entropy": 7.7105
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61440,
+          "virtual_size": 61400,
+          "entropy": 4.4372
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "6bfc504449a39316188b90599aa225fef46e6be74d2283725f48bcb2860ec1ca",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66931,
+          "entropy": 6.7088
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27476,
+          "entropy": 4.7421
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 34932416,
+          "entropy": 7.7098
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61952,
+          "virtual_size": 61544,
+          "entropy": 4.4111
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3",
+      "size": 2288128,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "delphi_resource_carrier",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "CODE",
+          "raw_size": 982016,
+          "virtual_size": 981868,
+          "entropy": 6.5698
+        },
+        {
+          "name": "DATA",
+          "raw_size": 10240,
+          "virtual_size": 10160,
+          "entropy": 4.1876
+        },
+        {
+          "name": "BSS",
+          "raw_size": 0,
+          "virtual_size": 3545,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 9216,
+          "virtual_size": 8742,
+          "entropy": 4.7676
+        },
+        {
+          "name": ".tls",
+          "raw_size": 0,
+          "virtual_size": 24,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 512,
+          "virtual_size": 24,
+          "entropy": 0.2006
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 74752,
+          "virtual_size": 74464,
+          "entropy": 6.6816
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1210368,
+          "virtual_size": 1210368,
+          "entropy": 7.2989
+        }
+      ],
+      "die_detections": [
+        "Linker: Turbo Linker(2.25)",
+        "Compiler: Borland Delphi(7)[Enterprise]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "736af94a2fd07dca7397c2b2068bfd1e2a71a716c5ddda5e9cb7da808355487a",
+      "size": 243712,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66947,
+          "entropy": 6.711
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 27652,
+          "entropy": 4.6993
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 3585600,
+          "entropy": 7.7016
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 54272,
+          "virtual_size": 53856,
+          "entropy": 4.4463
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "77d6f1914af6caf909fa2a246fcec05f500f79dd56e5d0d466d55924695c702d",
+      "size": 81408,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "decoded_v1_config",
+      "config_extracted": true,
+      "profile": {
+        "generation": "StealC-v1",
+        "method": "v1-base64-rc4-skip-key",
+        "base_url": "http://162.0.238.10",
+        "gate_path": "/752e382b4dcf5e3f.php",
+        "c2_url": "http://162.0.238.10/752e382b4dcf5e3f.php",
+        "dll_path": "/dbe4ef521ee4cc21/",
+        "dll_url": "http://162.0.238.10/dbe4ef521ee4cc21/",
+        "build_id": "default",
+        "decoded_string_count": 325,
+        "string_key": "74934157919546113795"
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 56832,
+          "virtual_size": 56354,
+          "entropy": 6.1021
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 12800,
+          "virtual_size": 12490,
+          "entropy": 5.5686
+        },
+        {
+          "name": ".data",
+          "raw_size": 0,
+          "virtual_size": 2167239,
+          "entropy": 0.0
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 10752,
+          "virtual_size": 10680,
+          "entropy": 4.2059
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "84db5b4abf8d9cc8159a751668dc6c5be7ee4143811e38599d5b134120ceca7d",
+      "size": 2288128,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "delphi_resource_carrier",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "CODE",
+          "raw_size": 982016,
+          "virtual_size": 981868,
+          "entropy": 6.5698
+        },
+        {
+          "name": "DATA",
+          "raw_size": 10240,
+          "virtual_size": 10160,
+          "entropy": 4.1876
+        },
+        {
+          "name": "BSS",
+          "raw_size": 0,
+          "virtual_size": 3545,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 9216,
+          "virtual_size": 8742,
+          "entropy": 4.7676
+        },
+        {
+          "name": ".tls",
+          "raw_size": 0,
+          "virtual_size": 24,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 512,
+          "virtual_size": 24,
+          "entropy": 0.2006
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 74752,
+          "virtual_size": 74464,
+          "entropy": 6.6816
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1210368,
+          "virtual_size": 1210368,
+          "entropy": 7.2988
+        }
+      ],
+      "die_detections": [
+        "Linker: Turbo Linker(2.25)",
+        "Compiler: Borland Delphi(7)[Enterprise]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460",
+      "size": 2288128,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "delphi_resource_carrier",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "CODE",
+          "raw_size": 982016,
+          "virtual_size": 981868,
+          "entropy": 6.5698
+        },
+        {
+          "name": "DATA",
+          "raw_size": 10240,
+          "virtual_size": 10160,
+          "entropy": 4.1876
+        },
+        {
+          "name": "BSS",
+          "raw_size": 0,
+          "virtual_size": 3545,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata",
+          "raw_size": 9216,
+          "virtual_size": 8742,
+          "entropy": 4.7676
+        },
+        {
+          "name": ".tls",
+          "raw_size": 0,
+          "virtual_size": 24,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 512,
+          "virtual_size": 24,
+          "entropy": 0.2006
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 74752,
+          "virtual_size": 74464,
+          "entropy": 6.6816
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 1210368,
+          "virtual_size": 1210368,
+          "entropy": 7.2989
+        }
+      ],
+      "die_detections": [
+        "Linker: Turbo Linker(2.25)",
+        "Compiler: Borland Delphi(7)[Enterprise]"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6",
+      "size": 82329,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "decoded_v1_config",
+      "config_extracted": true,
+      "profile": {
+        "generation": "StealC-v1",
+        "method": "v1-base64-rc4-skip-key",
+        "base_url": "http://777palm.com",
+        "gate_path": "/bef7fb05c9ef6540.php",
+        "c2_url": "http://777palm.com/bef7fb05c9ef6540.php",
+        "dll_path": "/2ccaf544c0cf7de7/",
+        "dll_url": "http://777palm.com/2ccaf544c0cf7de7/",
+        "build_id": "default",
+        "decoded_string_count": 325,
+        "string_key": "65248967668842672256"
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 56832,
+          "virtual_size": 56386,
+          "entropy": 6.1038
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 12800,
+          "virtual_size": 12498,
+          "entropy": 5.5883
+        },
+        {
+          "name": ".data",
+          "raw_size": 0,
+          "virtual_size": 2167239,
+          "entropy": 0.0
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 10752,
+          "virtual_size": 10674,
+          "entropy": 4.1986
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+      "size": 1745408,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9736
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2682880,
+          "entropy": 0.2608
+        },
+        {
+          "name": "nsriuoot",
+          "raw_size": 1649664,
+          "virtual_size": 1650688,
+          "entropy": 7.9541
+        },
+        {
+          "name": "fcgomrub",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.7878
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8917
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+      "size": 1764864,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9647
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2740224,
+          "entropy": 0.2608
+        },
+        {
+          "name": "nvgmvkfs",
+          "raw_size": 1668608,
+          "virtual_size": 1671168,
+          "entropy": 7.9554
+        },
+        {
+          "name": "mvlvetrb",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.8255
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.6938
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+      "size": 1756672,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.961
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2682880,
+          "entropy": 0.2608
+        },
+        {
+          "name": "dnbdzjvd",
+          "raw_size": 1660928,
+          "virtual_size": 1662976,
+          "entropy": 7.9532
+        },
+        {
+          "name": "hwzrywcd",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.0548
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7952
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "b00335a75190fd3b930329adf19c93b483975cb24cc056bea62b0ef359abe3fa",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66931,
+          "entropy": 6.7087
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27476,
+          "entropy": 4.7434
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 34932416,
+          "entropy": 7.7069
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61952,
+          "virtual_size": 61544,
+          "entropy": 4.401
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+      "size": 1811968,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9703
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2777088,
+          "entropy": 0.2608
+        },
+        {
+          "name": "cpbdjvhh",
+          "raw_size": 1715712,
+          "virtual_size": 1716224,
+          "entropy": 7.9531
+        },
+        {
+          "name": "btxydvwq",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.8903
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8805
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf",
+      "size": 245760,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 69120,
+          "virtual_size": 68851,
+          "entropy": 6.7079
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 28008,
+          "entropy": 4.7339
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 3586024,
+          "entropy": 7.6972
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 53760,
+          "virtual_size": 53272,
+          "entropy": 4.4845
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "c9dc79d72ab3131295608a78c6473a8bde3791683e88bebeee9989decb8eb4ee",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66931,
+          "entropy": 6.7074
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27476,
+          "entropy": 4.7426
+        },
+        {
+          "name": ".data",
+          "raw_size": 93184,
+          "virtual_size": 34932064,
+          "entropy": 7.6896
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61952,
+          "virtual_size": 61544,
+          "entropy": 4.4209
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "ca20c0b93bbebbdcd91cad1a8db0356fb4c5d2e17894bd5a34bfcaa4c78a6a9c",
+      "size": 246272,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 69120,
+          "virtual_size": 68835,
+          "entropy": 6.7074
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 27864,
+          "entropy": 4.7135
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 3586024,
+          "entropy": 7.6966
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 54272,
+          "virtual_size": 53856,
+          "entropy": 4.4026
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292",
+      "size": 2473472,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "enigma_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 41984,
+          "virtual_size": 110592,
+          "entropy": 7.9949
+        },
+        {
+          "name": "",
+          "raw_size": 16384,
+          "virtual_size": 32768,
+          "entropy": 7.9782
+        },
+        {
+          "name": "",
+          "raw_size": 1024,
+          "virtual_size": 2174976,
+          "entropy": 6.4171
+        },
+        {
+          "name": "",
+          "raw_size": 8192,
+          "virtual_size": 20480,
+          "entropy": 7.9543
+        },
+        {
+          "name": "",
+          "raw_size": 206848,
+          "virtual_size": 7864320,
+          "entropy": 7.9989
+        },
+        {
+          "name": ".data",
+          "raw_size": 2198016,
+          "virtual_size": 2199552,
+          "entropy": 7.9822
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Enigma(5.X)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "high_entropy_native_wrapper",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 138240,
+          "virtual_size": 137808,
+          "entropy": 7.8143
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 13312,
+          "virtual_size": 13032,
+          "entropy": 4.9567
+        },
+        {
+          "name": ".data",
+          "raw_size": 56320,
+          "virtual_size": 33697420,
+          "entropy": 0.2477
+        },
+        {
+          "name": ".bak",
+          "raw_size": 1024,
+          "virtual_size": 723,
+          "entropy": 0.0
+        },
+        {
+          "name": ".teholac",
+          "raw_size": 1024,
+          "virtual_size": 1024,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 39936,
+          "virtual_size": 39432,
+          "entropy": 4.625
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "dda07a7f4225baf73499de332ccfbbcd3197e370b77829f13a9991328b976b37",
+      "size": 244224,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66915,
+          "entropy": 6.7126
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 28160,
+          "virtual_size": 27656,
+          "entropy": 4.698
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 3586112,
+          "entropy": 7.7026
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 54272,
+          "virtual_size": 53856,
+          "entropy": 4.4235
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "e07d3383a78b7b05cd27cf2f569c6e93026e9f40dff4ccb8ec81efafa6b2b23f",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "encrypted_payload_buffer",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 67072,
+          "virtual_size": 66947,
+          "entropy": 6.7145
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 27648,
+          "virtual_size": 27588,
+          "entropy": 4.7593
+        },
+        {
+          "name": ".data",
+          "raw_size": 93696,
+          "virtual_size": 34932736,
+          "entropy": 7.7011
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 61440,
+          "virtual_size": 61400,
+          "entropy": 4.4329
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(12.00.40629)",
+        "Compiler: Microsoft Visual C/C++(18.00.40629)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2013)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+      "size": 1795584,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9702
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608
+        },
+        {
+          "name": "cgmytlif",
+          "raw_size": 1699840,
+          "virtual_size": 1699840,
+          "entropy": 7.9543
+        },
+        {
+          "name": "rvymqypd",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.97
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7589
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+      "size": 1822720,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 90624,
+          "virtual_size": 2396160,
+          "entropy": 7.9752
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 496,
+          "entropy": 5.0482
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.8647
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2801664,
+          "entropy": 0.2569
+        },
+        {
+          "name": "slkfwdkq",
+          "raw_size": 1716736,
+          "virtual_size": 1720320,
+          "entropy": 7.9544
+        },
+        {
+          "name": "tyqcqcio",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.4297
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7034
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "e978871a3a76c83f94e589fd22a91c7c1a58175ca5d2110b95d71b7805b25b8d",
+      "size": 103936,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "decoded_v1_config",
+      "config_extracted": true,
+      "profile": {
+        "generation": "StealC-v1",
+        "method": "v1-base64-rc4-skip-key",
+        "base_url": "http://185.106.94.206",
+        "gate_path": "/4e815d9f1ec482dd.php",
+        "c2_url": "http://185.106.94.206/4e815d9f1ec482dd.php",
+        "dll_path": "/49171d9bb28d893a/",
+        "dll_url": "http://185.106.94.206/49171d9bb28d893a/",
+        "build_id": "GoogleMaps",
+        "decoded_string_count": 342,
+        "string_key": "52129722198130874989795557381261264814249348323986"
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 76800,
+          "virtual_size": 76335,
+          "entropy": 5.9533
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 14336,
+          "virtual_size": 13948,
+          "entropy": 5.4903
+        },
+        {
+          "name": ".data",
+          "raw_size": 0,
+          "virtual_size": 2167351,
+          "entropy": 0.0
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 11776,
+          "virtual_size": 11604,
+          "entropy": 4.5208
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+      "size": 1814528,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 90624,
+          "virtual_size": 2396160,
+          "entropy": 7.9781
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 496,
+          "entropy": 5.0482
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.8647
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2781184,
+          "entropy": 0.2608
+        },
+        {
+          "name": "esdzurwm",
+          "raw_size": 1708032,
+          "virtual_size": 1708032,
+          "entropy": 7.953
+        },
+        {
+          "name": "gpsgltzd",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.7931
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.0196
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12",
+      "size": 1792000,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "themida_protected",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": "   \u0000    ",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9652
+        },
+        {
+          "name": ".rsrc   ",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0
+        },
+        {
+          "name": ".idata  ",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064
+        },
+        {
+          "name": "        ",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608
+        },
+        {
+          "name": "lxojhmjk",
+          "raw_size": 1696256,
+          "virtual_size": 1699840,
+          "entropy": 7.9542
+        },
+        {
+          "name": "mdoopayt",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.5417
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7567
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Protector: Themida/Winlicense(~2.XX)"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    },
+    {
+      "sha256": "f4a7d43dc4cdf21cc7a58af7c66386cea1616658f15b996691fbb85a7cb06b9d",
+      "size": 250880,
+      "machine": "x86",
+      "dotnet": false,
+      "status": "high_entropy_native_wrapper",
+      "config_extracted": false,
+      "profile": null,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 138240,
+          "virtual_size": 137872,
+          "entropy": 7.8161
+        },
+        {
+          "name": ".rdata",
+          "raw_size": 13312,
+          "virtual_size": 12992,
+          "entropy": 4.9467
+        },
+        {
+          "name": ".data",
+          "raw_size": 56320,
+          "virtual_size": 33697420,
+          "entropy": 0.2473
+        },
+        {
+          "name": ".xipewav",
+          "raw_size": 1024,
+          "virtual_size": 723,
+          "entropy": 0.0
+        },
+        {
+          "name": ".gata",
+          "raw_size": 1024,
+          "virtual_size": 1024,
+          "entropy": 0.0
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 39936,
+          "virtual_size": 39432,
+          "entropy": 4.5383
+        }
+      ],
+      "die_detections": [
+        "Linker: Microsoft Linker(10.00.30319)",
+        "Compiler: Microsoft Visual C/C++(16.00.30319)[LTCG/C++]",
+        "Tool: Microsoft Visual Studio(2010)",
+        "Debug data: Records"
+      ],
+      "sample_executed": false,
+      "network_contacted": false
+    }
+  ]
+}

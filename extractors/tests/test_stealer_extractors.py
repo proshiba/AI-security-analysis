@@ -43,6 +43,8 @@ def test_stealer_common_functions() -> None:
         ["fixture"],
     )
     assert result["findings"][0]["role"] == "c2_or_exfil_candidate"
+    assert not result["config"]["static_config_recovered"]
+    assert result["config"]["candidate_infrastructure_recovered"]
 
 
 def test_family_extractors_and_dispatcher() -> None:

@@ -1,0 +1,20 @@
+title: TeamPCP Trivy Fallback Exfiltration Repository Activity
+id: b7ee2a40-18db-4098-865b-37906422a342
+status: experimental
+description: Detects GitHub audit events consistent with the Trivy stealer fallback path.
+logsource:
+  product: github
+  service: audit
+detection:
+  selection_repo:
+    action|contains:
+      - 'repo.create'
+      - 'repository.create'
+    repo|startswith: 'tpcp-docs-'
+  selection_release:
+    action|contains: 'release'
+    repo|startswith: 'tpcp-docs-'
+  condition: 1 of selection_*
+falsepositives:
+  - Deliberate incident-response test repositories using the public IOC
+level: high

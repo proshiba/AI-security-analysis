@@ -1,0 +1,991 @@
+{
+  "case": {
+    "sha256": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+    "name": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+    "family": "vidar",
+    "campaign": "direct_pe_or_pe_loader",
+    "format": "pe",
+    "packing_suspected": false,
+    "packing_classification": "managed_loader_or_obfuscated",
+    "unpack_status": "artifacts_recovered",
+    "recovered_artifacts": 9,
+    "recovered_configs": 0,
+    "static_config_recovered": false,
+    "config_findings": 0,
+    "c2_assessment": "none",
+    "declarative_status": "ready",
+    "sample_executed": false,
+    "network_contacted": false,
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "layer_count": 9
+  },
+  "config": {
+    "schema_version": 1,
+    "family": "vidar",
+    "sample_sha256": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+    "config": {
+      "source_name": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+      "campaign_shape": "direct_pe_or_pe_loader",
+      "family_markers": [],
+      "features": {
+        "browser_collection": true,
+        "wallet_collection": false,
+        "telegram_dead_drop": false,
+        "dependency_download": false
+      },
+      "urls": [],
+      "endpoints": [],
+      "static_config_recovered": false,
+      "candidate_infrastructure_recovered": false,
+      "scan_source": "complete_input",
+      "original_size": 4585688,
+      "recovered_layer_configs": []
+    },
+    "findings": [],
+    "limitations": [
+      "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+      "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+    ],
+    "credentials_published": false,
+    "executed": false,
+    "network_contacted": false,
+    "layers_analyzed": 9
+  },
+  "c2": {
+    "schema_version": 1,
+    "family": "vidar",
+    "assessment": "none",
+    "targets": [],
+    "network_contacted": false,
+    "sample_executed": false,
+    "warning": "Passive pivots and embedded literals do not by themselves confirm a live C2 service."
+  },
+  "unpack": {
+    "schema_version": 2,
+    "name": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+    "sha256": "416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b",
+    "size": 4585688,
+    "entropy": 7.2415,
+    "format": "pe",
+    "entropy_sampled": false,
+    "executed": false,
+    "network_contacted": false,
+    "inflated_pe": {
+      "status": "not_inflated",
+      "section_end": 4575744,
+      "security_offset": 4575744,
+      "security_size": 9944,
+      "gap_size": 0
+    },
+    "pe": {
+      "machine": "0x14c",
+      "is_dotnet": true,
+      "is_go": false,
+      "imports": 1,
+      "sections": [
+        {
+          "name": ".text",
+          "raw_size": 4454400,
+          "virtual_size": 4453924,
+          "entropy": 7.244,
+          "characteristics": "0x60000020"
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 120320,
+          "virtual_size": 120212,
+          "entropy": 5.9529,
+          "characteristics": "0x40000040"
+        },
+        {
+          "name": ".reloc",
+          "raw_size": 512,
+          "virtual_size": 12,
+          "entropy": 0.1019,
+          "characteristics": "0x42000040"
+        }
+      ],
+      "high_entropy_sections": [
+        ".text"
+      ],
+      "code_entropy_sections": [
+        ".text"
+      ],
+      "packer_markers": [],
+      "classification": "managed_loader_or_obfuscated",
+      "containerized": false,
+      "entrypoint_section": ".text",
+      "zero_raw_virtual_sections": [],
+      "virtualized_shape": false,
+      "packing_suspected": false,
+      "overlay_size": 9944,
+      "overlay_format": "data",
+      "resource_count": 7,
+      "opaque_resources_recovered": 1,
+      "archive_resources_recovered": 0
+    },
+    "donut_wrapper": {
+      "status": "wrapper_not_detected"
+    },
+    "dotnet_resources": {
+      "status": "resources_recovered",
+      "count": 20,
+      "inventory": [
+        {
+          "name": "kernelsoft.Forms.resources",
+          "size": 3954,
+          "sha256": "9520c45a1d51f17cc46b2a8c9347dc7ae340dcef02a2f896b589f43f09f9165a",
+          "entropy": 6.7862,
+          "format": "data",
+          "entries": [
+            {
+              "name": "BindingNavigatorAddNewItem.Image",
+              "type": "System.Drawing.Bitmap"
+            },
+            {
+              "name": "BindingNavigatorMovePreviousItem.Image",
+              "type": "System.Drawing.Bitmap"
+            },
+            {
+              "name": "BindingNavigatorMoveLastItem.Image",
+              "type": "System.Drawing.Bitmap"
+            },
+            {
+              "name": "BindingNavigatorDeleteItem.Image",
+              "type": "System.Drawing.Bitmap"
+            },
+            {
+              "name": "BindingNavigatorMoveNextItem.Image",
+              "type": "System.Drawing.Bitmap"
+            },
+            {
+              "name": "BindingNavigatorMoveFirstItem.Image",
+              "type": "System.Drawing.Bitmap"
+            }
+          ],
+          "status": "extracted",
+          "bitmap_payloads": {
+            "status": "bitmap_entries_processed",
+            "entries": [
+              {
+                "name": "BindingNavigatorAddNewItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              },
+              {
+                "name": "BindingNavigatorMovePreviousItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              },
+              {
+                "name": "BindingNavigatorMoveLastItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              },
+              {
+                "name": "BindingNavigatorDeleteItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              },
+              {
+                "name": "BindingNavigatorMoveNextItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              },
+              {
+                "name": "BindingNavigatorMoveFirstItem.Image",
+                "status": "unsupported_bitmap_serialization"
+              }
+            ]
+          }
+        },
+        {
+          "name": "kernelsoft.Resources.resources",
+          "size": 1063136,
+          "sha256": "0730d84f06965a271ae553936d7a51506ec8418b3536ea694f018a3bf8fc1ec5",
+          "entropy": 7.9982,
+          "format": "data",
+          "entries": [
+            {
+              "name": "IeEPZ",
+              "type": "System.ByteArray"
+            }
+          ],
+          "status": "extracted"
+        },
+        {
+          "name": "kernelsoft.g.resources",
+          "size": 180,
+          "sha256": "e13ed2c59366d0eea74863fd71a81f0cb977cce1edfde304fc538690a4f6ac89",
+          "entropy": 4.9557,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "QTsCNuNxLCRkR2lcv1.hSosk1jUqXTdcedGjC",
+          "size": 7712,
+          "sha256": "516ada191ce161be39d20c06c79dccf762a29367992decc3e0712704847b81a5",
+          "entropy": 7.9731,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "AdGuard.Utils.effective_tld_names.dat",
+          "size": 84566,
+          "sha256": "dd1f8de462648edb73ffcb9c9295179b0769e6c0d62e22f03730dc5dcdd5ee40",
+          "entropy": 4.5245,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "liOWGjnJrWSGuIZy21.ljyXkU4PrZYiUZTDMk",
+          "size": 71568,
+          "sha256": "9012ba0f377ea32a9896268fbdf324a3f247b6fab9aad7ecfaf80e0a58769855",
+          "entropy": 7.9967,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "VOmKNTYqKQ3ubQKp1p.ItmlEpLsd42xCOAffM",
+          "size": 256,
+          "sha256": "2b15567b711e5f8663d6a4079ec41266cd6915a28e42e120d8d13a4531335e23",
+          "entropy": 7.2039,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "h67V77XKuG0J6yADlg.wEdaNaIO3DltYLSDoa",
+          "size": 15419,
+          "sha256": "d1fa4a8f45823f7420c161085ff7231659b27d22111c523ba10eeb5a07c9ad42",
+          "entropy": 6.0956,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "mCf82Slw3gVky2T4lu.iBYE0XkHYFQeN4LkyH",
+          "size": 128328,
+          "sha256": "3c1b507c3b5e543401b43d43a4bf4aaee8e4e95d760a346c33fa1f6851a717bf",
+          "entropy": 7.9987,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "AihAoYvTQSIfZatlox.dS5EHwbakwdmNRNlT0",
+          "size": 2040,
+          "sha256": "dbc700daeb669786a7f23670c40155448f6d47ddaed6194f5512e2fc66af56fc",
+          "entropy": 7.9181,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "aR3nbf8dQp2feLmk31.lSfgApatkdxsVcGcrktoFd.resources",
+          "size": 7468,
+          "sha256": "f2aaf0826dc165c16097604df4ca2a65557a70b4b2afebbe4ed36d47b9554fe9",
+          "entropy": 4.8182,
+          "format": "data",
+          "entries": [
+            {
+              "name": "$this.SnapToGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.TrayLargeIcon",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Icon",
+              "type": "System.Drawing.Icon"
+            },
+            {
+              "name": "$this.Locked",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.DrawGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "progressBar1.Modifiers",
+              "type": "System.CodeDom.MemberAttributes"
+            },
+            {
+              "name": "$this.Localizable",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Language",
+              "type": "System.Globalization.CultureInfo"
+            },
+            {
+              "name": "$this.GridSize",
+              "type": "System.Drawing.Size"
+            },
+            {
+              "name": "$this.TrayHeight",
+              "type": "System.Int32"
+            },
+            {
+              "name": "progressBar1.Locked",
+              "type": "System.Boolean"
+            }
+          ],
+          "status": "extracted"
+        },
+        {
+          "name": "sk4U5B8Z7oNjYKTJX4IC.lqvn5J8ZefIT2YGqBWJG",
+          "size": 89232,
+          "sha256": "3c77a8ab5386a380a674a0c6076a2291ffbd5807df7ec602593e42b3ef64f2ee",
+          "entropy": 7.9979,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "hupkQ08ZTQaaVksNmEyj.0HXJB18ZgKZ6aUvB5TuC",
+          "size": 256,
+          "sha256": "a7d01762ab2c628a8a9c6a26e12e532df7eb8c811534b8ce87e6bfeae8989c98",
+          "entropy": 7.1705,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "ib5N5e8ZCHjrkITL7ZXh.sRSU8a8ZvhTalbl4RtQ8",
+          "size": 63910,
+          "sha256": "0b05fc30c4227251abaaaa31d48504ed000d00e6c7db9184133746b9e10b3e02",
+          "entropy": 7.9965,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "qvVEYZ8ZnGSwyqki4G0K.LawEIq8ZE9UF6Wyk1SpC",
+          "size": 7984,
+          "sha256": "18a9ca3bb708ca30958d658fa0128d94b379588b2eb90828d3acc9276a3b10d1",
+          "entropy": 7.9756,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "cIaIZf8ZbbNkOlkCaljZ.ZToivm8ZjGlVcwqF2NCY",
+          "size": 15366,
+          "sha256": "81b53f9d1affb9d98838f70d103483269a1656f3d639cab36415857c911a9503",
+          "entropy": 6.082,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "82lsCZCKT1bIVMI85T.VKelqRWfGLXRpTOsEO",
+          "size": 387788,
+          "sha256": "f0b6c66f186422afd791d340807820bf7cecb07e24761566907018c1de2d1eeb",
+          "entropy": 7.9994,
+          "format": "data",
+          "entries": [],
+          "status": "extracted"
+        },
+        {
+          "name": "aR3nbf8dQp2feLmk31.lSfgApatkdxsVcGcrktoFd.resources",
+          "size": 7468,
+          "sha256": "f2aaf0826dc165c16097604df4ca2a65557a70b4b2afebbe4ed36d47b9554fe9",
+          "entropy": 4.8182,
+          "format": "data",
+          "entries": [
+            {
+              "name": "$this.SnapToGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.TrayLargeIcon",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Icon",
+              "type": "System.Drawing.Icon"
+            },
+            {
+              "name": "$this.Locked",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.DrawGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "progressBar1.Modifiers",
+              "type": "System.CodeDom.MemberAttributes"
+            },
+            {
+              "name": "$this.Localizable",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Language",
+              "type": "System.Globalization.CultureInfo"
+            },
+            {
+              "name": "$this.GridSize",
+              "type": "System.Drawing.Size"
+            },
+            {
+              "name": "$this.TrayHeight",
+              "type": "System.Int32"
+            },
+            {
+              "name": "progressBar1.Locked",
+              "type": "System.Boolean"
+            }
+          ],
+          "status": "extracted"
+        },
+        {
+          "name": "aR3nbf8dQp2feLmk31.lSfgApatkdxsVcGcrktoFd.resources",
+          "size": 5650,
+          "sha256": "fd69c8c2514e47fe7ffb2af4092b5a68c4904b6b5ef787431d99ef7235274440",
+          "entropy": 4.4953,
+          "format": "data",
+          "entries": [
+            {
+              "name": "$this.SnapToGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.TrayLargeIcon",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Icon",
+              "type": "System.Drawing.Icon"
+            },
+            {
+              "name": "$this.Locked",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.DrawGrid",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "progressBar1.Modifiers",
+              "type": "System.CodeDom.MemberAttributes"
+            },
+            {
+              "name": "$this.Localizable",
+              "type": "System.Boolean"
+            },
+            {
+              "name": "$this.Language",
+              "type": "System.Globalization.CultureInfo"
+            },
+            {
+              "name": "$this.GridSize",
+              "type": "System.Drawing.Size"
+            },
+            {
+              "name": "$this.TrayHeight",
+              "type": "System.Int32"
+            },
+            {
+              "name": "progressBar1.Locked",
+              "type": "System.Boolean"
+            }
+          ],
+          "status": "extracted"
+        },
+        {
+          "name": "AdGuard.Utils.Properties.Resources.resources",
+          "size": 594,
+          "sha256": "b8b2ffdb902f2d9e0ab81ede35594bb56c6ee01deb5fff33166e92011b354561",
+          "entropy": 5.3851,
+          "format": "data",
+          "entries": [
+            {
+              "name": "task_config_format",
+              "type": "System.String"
+            }
+          ],
+          "status": "extracted"
+        }
+      ]
+    },
+    "donut": {
+      "status": "no_payload_recovered",
+      "candidates": []
+    },
+    "recovered": [
+      {
+        "kind": "pe-resource-opaque",
+        "size": 29471,
+        "sha256": "2787d68e9edfaf08a7be70c8a29ab1a02978c808b444bbc6a154564a0adf6193"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 1063136,
+        "sha256": "0730d84f06965a271ae553936d7a51506ec8418b3536ea694f018a3bf8fc1ec5"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 7712,
+        "sha256": "516ada191ce161be39d20c06c79dccf762a29367992decc3e0712704847b81a5"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 71568,
+        "sha256": "9012ba0f377ea32a9896268fbdf324a3f247b6fab9aad7ecfaf80e0a58769855"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 128328,
+        "sha256": "3c1b507c3b5e543401b43d43a4bf4aaee8e4e95d760a346c33fa1f6851a717bf"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 89232,
+        "sha256": "3c77a8ab5386a380a674a0c6076a2291ffbd5807df7ec602593e42b3ef64f2ee"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 63910,
+        "sha256": "0b05fc30c4227251abaaaa31d48504ed000d00e6c7db9184133746b9e10b3e02"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 7984,
+        "sha256": "18a9ca3bb708ca30958d658fa0128d94b379588b2eb90828d3acc9276a3b10d1"
+      },
+      {
+        "kind": "dotnet-resource-opaque",
+        "size": 387788,
+        "sha256": "f0b6c66f186422afd791d340807820bf7cecb07e24761566907018c1de2d1eeb"
+      }
+    ],
+    "unpack_status": "artifacts_recovered"
+  },
+  "layers": {
+    "layers": [
+      {
+        "depth": 1,
+        "kind": "pe-resource-opaque",
+        "sha256": "2787d68e9edfaf08a7be70c8a29ab1a02978c808b444bbc6a154564a0adf6193",
+        "size": 29471,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "pe-resource-opaque.bin",
+          "sha256": "2787d68e9edfaf08a7be70c8a29ab1a02978c808b444bbc6a154564a0adf6193",
+          "size": 29471,
+          "entropy": 7.963,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "pe-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 29471
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "0730d84f06965a271ae553936d7a51506ec8418b3536ea694f018a3bf8fc1ec5",
+        "size": 1063136,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "0730d84f06965a271ae553936d7a51506ec8418b3536ea694f018a3bf8fc1ec5",
+          "size": 1063136,
+          "entropy": 7.9982,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 1063136
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "516ada191ce161be39d20c06c79dccf762a29367992decc3e0712704847b81a5",
+        "size": 7712,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "516ada191ce161be39d20c06c79dccf762a29367992decc3e0712704847b81a5",
+          "size": 7712,
+          "entropy": 7.9731,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 7712
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "9012ba0f377ea32a9896268fbdf324a3f247b6fab9aad7ecfaf80e0a58769855",
+        "size": 71568,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "9012ba0f377ea32a9896268fbdf324a3f247b6fab9aad7ecfaf80e0a58769855",
+          "size": 71568,
+          "entropy": 7.9967,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 71568
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "3c1b507c3b5e543401b43d43a4bf4aaee8e4e95d760a346c33fa1f6851a717bf",
+        "size": 128328,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "3c1b507c3b5e543401b43d43a4bf4aaee8e4e95d760a346c33fa1f6851a717bf",
+          "size": 128328,
+          "entropy": 7.9987,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 128328
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "3c77a8ab5386a380a674a0c6076a2291ffbd5807df7ec602593e42b3ef64f2ee",
+        "size": 89232,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "3c77a8ab5386a380a674a0c6076a2291ffbd5807df7ec602593e42b3ef64f2ee",
+          "size": 89232,
+          "entropy": 7.9979,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 89232
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "0b05fc30c4227251abaaaa31d48504ed000d00e6c7db9184133746b9e10b3e02",
+        "size": 63910,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "0b05fc30c4227251abaaaa31d48504ed000d00e6c7db9184133746b9e10b3e02",
+          "size": 63910,
+          "entropy": 7.9965,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 63910
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "18a9ca3bb708ca30958d658fa0128d94b379588b2eb90828d3acc9276a3b10d1",
+        "size": 7984,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "18a9ca3bb708ca30958d658fa0128d94b379588b2eb90828d3acc9276a3b10d1",
+          "size": 7984,
+          "entropy": 7.9756,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 7984
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      },
+      {
+        "depth": 1,
+        "kind": "dotnet-resource-opaque",
+        "sha256": "f0b6c66f186422afd791d340807820bf7cecb07e24761566907018c1de2d1eeb",
+        "size": 387788,
+        "format": "data",
+        "unpack": {
+          "schema_version": 2,
+          "name": "dotnet-resource-opaque.bin",
+          "sha256": "f0b6c66f186422afd791d340807820bf7cecb07e24761566907018c1de2d1eeb",
+          "size": 387788,
+          "entropy": 7.9994,
+          "format": "data",
+          "entropy_sampled": false,
+          "executed": false,
+          "network_contacted": false,
+          "donut": {
+            "status": "no_payload_recovered",
+            "candidates": []
+          },
+          "recovered": [],
+          "unpack_status": "no_artifact_recovered"
+        },
+        "config": {
+          "source_name": "dotnet-resource-opaque.bin",
+          "campaign_shape": "unknown_or_nested_delivery",
+          "family_markers": [],
+          "features": {
+            "browser_collection": false,
+            "wallet_collection": false,
+            "telegram_dead_drop": false,
+            "dependency_download": false
+          },
+          "urls": [],
+          "endpoints": [],
+          "static_config_recovered": false,
+          "candidate_infrastructure_recovered": false,
+          "scan_source": "complete_input",
+          "original_size": 387788
+        },
+        "findings": [],
+        "limitations": [
+          "Vidar may obtain infrastructure from a dead-drop profile rather than a direct embedded C2.",
+          "Packed or loader-stage samples require recursive recovery before a final config can be asserted."
+        ]
+      }
+    ],
+    "sample_executed": false,
+    "network_contacted": false
+  }
+}

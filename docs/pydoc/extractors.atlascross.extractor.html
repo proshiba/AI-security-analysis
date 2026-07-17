@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.atlascross.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.atlascross.html" class="white">atlascross</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Catlascross%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\atlascross\extractor.py</a></td></tr></table>
+    <p><span class="code">Decode&nbsp;the&nbsp;AtlasCross/Atlas&nbsp;RAT&nbsp;configuration&nbsp;layouts&nbsp;reported&nbsp;in&nbsp;2026.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-decode_c_string"><strong>decode_c_string</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;a&nbsp;bounded&nbsp;NUL-terminated&nbsp;UTF-8&nbsp;field.</span></dd></dl>
+ <dl><dt><a name="-decode_ini_hex"><strong>decode_ini_hex</strong></a>(value: 'bytes') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;one&nbsp;even-length&nbsp;hexadecimal&nbsp;UTF-16LE&nbsp;INI&nbsp;value.</span></dd></dl>
+ <dl><dt><a name="-decrypt_config"><strong>decrypt_config</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Apply&nbsp;the&nbsp;three-branch&nbsp;per-index&nbsp;XOR&nbsp;transform&nbsp;to&nbsp;a&nbsp;324-byte&nbsp;config.</span></dd></dl>
+ <dl><dt><a name="-encrypt_config"><strong>encrypt_config</strong></a>(data: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Encode&nbsp;a&nbsp;clear&nbsp;configuration&nbsp;for&nbsp;deterministic,&nbsp;non-malicious&nbsp;test&nbsp;fixtures.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;binary&nbsp;or&nbsp;dropped-INI&nbsp;AtlasCross&nbsp;configuration&nbsp;without&nbsp;execution.</span></dd></dl>
+ <dl><dt><a name="-locate_config"><strong>locate_config</strong></a>(data: 'bytes') -&gt; 'tuple[int, bytes]'</dt><dd><span class="code">Locate&nbsp;a&nbsp;config&nbsp;after&nbsp;the&nbsp;published&nbsp;marker&nbsp;or&nbsp;accept&nbsp;a&nbsp;raw&nbsp;config&nbsp;blob.</span></dd></dl>
+ <dl><dt><a name="-parse_config"><strong>parse_config</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;domain,&nbsp;little-endian&nbsp;port,&nbsp;remark,&nbsp;and&nbsp;group&nbsp;from&nbsp;an&nbsp;encrypted&nbsp;blob.</span></dd></dl>
+ <dl><dt><a name="-parse_ini_config"><strong>parse_ini_config</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;the&nbsp;dropped&nbsp;hex-UTF-16LE&nbsp;AtlasPro-style&nbsp;INI&nbsp;without&nbsp;exposing&nbsp;SIGN.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CONFIG_MARKER</strong> = b'By@V&lt;'<br>
+<strong>CONFIG_SIZE</strong> = 324<br>
+<strong>INI_FIELD_RE</strong> = re.compile(b'(?im)^\\s*(LoginAddress|LoginPort|R...\s*([0-9a-f]+)\\s*$', re.IGNORECASE|re.MULTILINE)</td></tr></table>
+</body></html>

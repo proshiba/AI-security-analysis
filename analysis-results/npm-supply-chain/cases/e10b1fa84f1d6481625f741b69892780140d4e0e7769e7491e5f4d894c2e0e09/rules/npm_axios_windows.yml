@@ -1,0 +1,24 @@
+title: Axios Supply Chain RAT Dropper Windows Chain
+id: 5a321cf0-b3c2-42b9-8055-e6ae8483eeb2
+status: experimental
+description: Detects campaign-specific script names or the copied PowerShell binary used by the malicious npm postinstall.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_campaign:
+    CommandLine|contains:
+      - '6202033.vbs'
+      - '6202033.ps1'
+      - 'packages.npm.org/product1'
+  selection_copy:
+    Image|endswith: '\wt.exe'
+    Image|contains: '\ProgramData\'
+    CommandLine|contains|all:
+      - '-ep bypass'
+      - '-file'
+  condition: 1 of selection_*
+falsepositives:
+  - Internal tests replaying the public campaign
+  - Administratively renamed PowerShell requires command-line correlation
+level: high

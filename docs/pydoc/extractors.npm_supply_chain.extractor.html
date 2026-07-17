@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.npm_supply_chain.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.npm_supply_chain.html" class="white">npm_supply_chain</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cnpm_supply_chain%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\npm_supply_chain\extractor.py</a></td></tr></table>
+    <p><span class="code">Statically&nbsp;decode&nbsp;the&nbsp;2026&nbsp;axios/plain-crypto-js&nbsp;malicious&nbsp;postinstall.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ast.html">ast</a><br>
+</td><td class="multicolumn"><a href="base64.html">base64</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-decode_script"><strong>decode_script</strong></a>(source: 'str') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;decoded&nbsp;imports,&nbsp;templates,&nbsp;endpoints,&nbsp;and&nbsp;the&nbsp;campaign&nbsp;identifier.</span></dd></dl>
+ <dl><dt><a name="-decode_value"><strong>decode_value</strong></a>(value: 'str', order: 'str') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;one&nbsp;reversed-Base64&nbsp;and&nbsp;XOR-obfuscated&nbsp;string&nbsp;without&nbsp;JavaScript.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;publish-safe&nbsp;configuration&nbsp;from&nbsp;a&nbsp;malicious&nbsp;npm&nbsp;setup&nbsp;script.</span></dd></dl>
+ <dl><dt><a name="-javascript_number_key"><strong>javascript_number_key</strong></a>(order: 'str') -&gt; 'list[int]'</dt><dd><span class="code">Model&nbsp;JavaScript&nbsp;``Number(character)``&nbsp;for&nbsp;the&nbsp;decimal&nbsp;key&nbsp;schedule.</span></dd></dl>
+ <dl><dt><a name="-parse_string_table"><strong>parse_string_table</strong></a>(source: 'str') -&gt; 'tuple[list[str], str]'</dt><dd><span class="code">Parse&nbsp;the&nbsp;literal&nbsp;string&nbsp;table&nbsp;and&nbsp;order&nbsp;key&nbsp;without&nbsp;evaluating&nbsp;code.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ARRAY_RE</strong> = re.compile('\\bstq\\s*=\\s*(\\[.*?\\])\\s*,\\s*ord\\s*=', re.DOTALL)<br>
+<strong>ENTRY_RE</strong> = re.compile('_entry\\s*\\(\\s*[\\"\']([^\\"\']+)[\\"\']\\s*\\)')<br>
+<strong>ORDER_RE</strong> = re.compile('\\bord\\s*=\\s*[\\"\']([^\\"\']+)[\\"\']')</td></tr></table>
+</body></html>

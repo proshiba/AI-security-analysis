@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "family": "purehvnc",
+  "sample_sha256": "c1a2b48d4f639b46cf6cde8322666f0991531ef32ffe571140418ae40342ffe8",
+  "configured_endpoints": ["tirakian.com:56001", "tirakian.com:56002", "tirakian.com:56003"],
+  "certificate": {
+    "pfx_sha256": "01034a2cf003614de716ee94393e0fb2a80e6f1d0ddead61b4cb57c200f4cb96",
+    "certificate_sha256": "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b",
+    "subject": "CN=PureRAT Agent",
+    "issuer": "CN=PureRAT Agent",
+    "not_before": "2026-07-04T15:16:54+00:00",
+    "not_after": "2027-07-05T15:16:54+00:00"
+  },
+  "shodan_queries": [
+    "hostname:\"tirakian.com\" port:56001",
+    "hostname:\"tirakian.com\" port:56002",
+    "hostname:\"tirakian.com\" port:56003",
+    "ssl.cert.fingerprint:\"67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b\"",
+    "ssl.cert.subject.cn:\"PureRAT Agent\""
+  ],
+  "banner_hash": null,
+  "jarm": null,
+  "limitations": ["Banner hash and JARM require an authorized passive source or active probe."],
+  "network_contacted": false
+}
+

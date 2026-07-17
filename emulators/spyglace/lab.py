@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import ipaddress
-import socket
-import threading
 import urllib.parse
+
+from emulators.common import require_loopback as validate_loopback
+from emulators.common import LoopbackCollector
 
 DEFAULT_RC4_KEY = bytes.fromhex("90b149c69b149c4b99c04d1dc9b940b9")
 
@@ -92,58 +92,4 @@ def parse_initial_form(body: bytes, key: bytes = DEFAULT_RC4_KEY) -> dict[str, s
 
 def require_loopback(host: str) -> str:
     """Resolve and require an IPv4/IPv6 loopback address."""
-    address = ipaddress.ip_address(socket.gethostbyname(host))
-    if not address.is_loopback:
-        raise ValueError("SpyGlace lab permits loopback addresses only")
-    return str(address)
-
-
-class LoopbackCollector:
-    """Collect one local request and never return tasks or commands."""
-
-    def __init__(self, host: str = "127.0.0.1", port: int = 0) -> None:
-        """Initialize a stopped collector."""
-        self.host = host
-        self.port = port
-        self.received: list[bytes] = []
-        self._socket: socket.socket | None = None
-        self._thread: threading.Thread | None = None
-
-    def start(self) -> int:
-        """Start one loopback listener and return its selected port."""
-        host = require_loopback(self.host)
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(2.0)
-        self._socket.bind((host, self.port))
-        self._socket.listen(1)
-        self.port = self._socket.getsockname()[1]
-        self._thread = threading.Thread(target=self._collect_once, daemon=True)
-        self._thread.start()
-        return self.port
-
-    def _collect_once(self) -> None:
-        """Collect one connection without transmitting a response."""
-        assert self._socket is not None
-        try:
-            client, _address = self._socket.accept()
-            with client:
-                client.settimeout(0.2)
-                chunks = []
-                while True:
-                    try:
-                        chunk = client.recv(65536)
-                    except socket.timeout:
-                        break
-                    if not chunk:
-                        break
-                    chunks.append(chunk)
-                self.received.append(b"".join(chunks))
-        except (OSError, socket.timeout):
-            return
-
-    def stop(self) -> None:
-        """Close the listener and briefly join its worker."""
-        if self._socket is not None:
-            self._socket.close()
-        if self._thread is not None:
-            self._thread.join(timeout=2.5)
+    return validate_loopback(host, "SpyGlace lab")

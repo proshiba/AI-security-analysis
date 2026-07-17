@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "family": "shadowpad",
+  "sample_sha256": "f7ef194f2dcc341ba03f76872cb7c0dfbae8f79118f99cf73dfccfb146c4e966",
+  "config": {
+    "source_name": "f7ef194f2dcc341ba03f76872cb7c0dfbae8f79118f99cf73dfccfb146c4e966",
+    "decoded_payloads": [
+      {
+        "source": "resource:1320/117",
+        "decoded_sha256": "b3428803a202f39a97a0594cee2950e0975dac82195d98c8df9c66a7fc8b18bc",
+        "algorithm": "aes-md5",
+        "key_id": "known-key-1",
+        "config": {
+          "format": "shadowpad-64",
+          "offset": 557352,
+          "chunk_length": 1908,
+          "config_encoding": "aes-md5",
+          "strings": {
+            "config_string_01": "",
+            "config_string_02": "",
+            "config_string_03": "Windows_Search_Update",
+            "config_string_04": "Windows_Search_Update",
+            "config_string_05": "C:\\WINDOWS\\system32\\wsuhost.exe",
+            "config_string_06": "%ProgramFiles%\\Windows_Search_Update\\wsuhost.exe",
+            "config_string_07": "",
+            "config_string_08": "%ALLUSERSPROFILE%\\DRM\\Windows_Search_Update\\wsuhost.exe",
+            "config_string_09": "IVIEWERS.dll",
+            "config_string_10": "Windows_Search_Update",
+            "config_string_11": "Windows_Search_Update",
+            "config_string_12": "Windows_Search_Update",
+            "config_string_13": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "config_string_14": "Windows_Search_Update",
+            "config_string_15": "",
+            "config_string_16": "",
+            "config_string_17": "",
+            "config_string_18": "%windir%\\system32\\svchost.exe -k Windows_Search_Update",
+            "config_string_19": "",
+            "config_string_20": "",
+            "config_string_21": "",
+            "config_string_22": "%windir%\\system32\\svchost.exe -k TEST_X64_SC",
+            "config_string_23": "TCP://fljhcqwe.com:80",
+            "config_string_24": "HTTP\n\n\n\n\n",
+            "config_string_25": "HTTP\n\n\n\n\n",
+            "config_string_26": "HTTP\n\n\n\n\n",
+            "config_string_27": "HTTP\n\n\n\n\n"
+          }
+        }
+      }
+    ],
+    "scatterbee_payload_count": 1,
+    "legacy_payload_count": 0
+  },
+  "findings": [
+    {
+      "kind": "network.endpoint",
+      "value": "TCP://fljhcqwe.com:80",
+      "role": "shadowpad_config_network",
+      "confidence": "confirmed",
+      "source": "decoded_config:resource:1320/117"
+    }
+  ],
+  "limitations": [
+    "Only public ScatterBee stream/AES key variants are supported.",
+    "Casper-era x86/x64 streams, Config blocks, and QuickLZ level 1 are supported.",
+    "Decoded payload bytes are hashed in memory but are not written by this extractor.",
+    "No endpoint was contacted; config values describe static intent only."
+  ],
+  "credentials_published": false,
+  "executed": false,
+  "network_contacted": false
+}

@@ -29,12 +29,21 @@ def test_discovery_functions(tmp_path: Path) -> None:
     assert discovery.infer_family(["remcos agent"]) == "remcosrat"
     assert discovery.infer_family(["lummac2"]) == "lummastealer"
     assert discovery.infer_family(["rpsgwra{l", "[iljvvrsrel", "tvdqhg''''"]) == "spyglace"
+    assert discovery.infer_family(
+        ["index.php", "/plugins/", "os=", "computername"]
+    ) == "amadey"
+    assert discovery.infer_family(
+        ["counter=%d&type=%d&guid=", "/files/", "urls|"]
+    ) == "latrodectus"
     assert discovery.infer_family(["none"]) is None
     assert (
         discovery.infer_campaign("mx-go", ["/api/v1/heartbeat_direct"], []) == "remotely_controlled_bulk_email_spam_bot"
     )
     assert discovery.infer_campaign("amosstealer", [], ["sample.macho"]) == "direct_macho"
     assert discovery.infer_campaign("spyglace", [], ["payload.bin"]) == "direct_spyglace_pe"
+    assert discovery.infer_campaign("amadey", [], ["sample.exe"]) == "direct_pe_or_container"
+    assert discovery.infer_campaign("latrodectus", [], ["sample.docm"]) == "office_delivery"
+    assert discovery.infer_campaign("latrodectus", [], ["sample.dll"]) == "direct_dll_or_loader"
     assert discovery.infer_campaign(None, [], []) is None
     _, facts = discovery.discover(raw)
     assert facts["classification"]["family_hint"] == "mx-go"

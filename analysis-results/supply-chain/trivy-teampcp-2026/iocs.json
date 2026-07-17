@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "campaign": "teampcp_trivy_supply_chain_202603",
+  "cve": "CVE-2026-33634",
+  "network": ["scan.aquasecurtiy.org", "45.148.10.212"],
+  "github": {"repository_prefix": "tpcp-docs-", "release_asset_prefix": "data-"},
+  "files": [
+    {"sha256": "0376b98064636c30f5fbe60fb3b1225516e23e88dd7e909937f81d9265292e7d", "name": "trivy_0.69.4_windows_64bit.zip"},
+    {"sha256": "822dd269ec10459572dfaaefe163dae693c344249a0161953f0d5cdd110bd2a0", "name": "trivy_0.69.4_linux_amd64"},
+    {"sha256": "385d498d18a3a7c67878ca7322716f9da25683eb1a4bf9e9592da0d5f2ab09f6", "name": "trivy_0.69.4_Linux-64bit.tar.gz"}
+  ],
+  "images": [
+    "sha256:27f446230c60bbf0b70e008db798bd4f33b7826f9f76f756606f5417100beef3",
+    "sha256:5aaa1d7cfa9ca4649d6ffad165435c519dc836fa6e21b729a2174ad10b057d2b",
+    "sha256:425cd3e1a2846ac73944e891250377d2b03653e6f028833e30fc00c1abbc6d33"
+  ],
+  "network_contacted": false
+}

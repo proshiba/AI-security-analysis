@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import gzip
-import ipaddress
-import socket
 import struct
-import threading
-from dataclasses import dataclass, field
 from typing import Any
 
+from emulators.common import require_loopback as validate_loopback
 from extractors.purehvnc.extractor import parse_protobuf, read_varint
+from emulators.common import LoopbackCollector
 
 NATIVE_MAGIC = 0x58463031
 HEADER = struct.Struct("<III")
@@ -68,57 +66,4 @@ def parse_managed_message(data: bytes) -> dict[int, list[Any]]:
 
 def require_loopback(host: str) -> str:
     """Validate that a bind or target address is strictly loopback."""
-    address = ipaddress.ip_address(socket.gethostbyname(host))
-    if not address.is_loopback:
-        raise ValueError("PureHVNC lab permits loopback addresses only")
-    return str(address)
-
-
-@dataclass
-class LoopbackCollector:
-    """Minimal collector that records bytes and never dispatches commands."""
-
-    host: str = "127.0.0.1"
-    port: int = 0
-    received: list[bytes] = field(default_factory=list)
-    _socket: socket.socket | None = field(default=None, init=False, repr=False)
-    _thread: threading.Thread | None = field(default=None, init=False, repr=False)
-
-    def start(self) -> int:
-        """Start one loopback listener and return its ephemeral port."""
-        host = require_loopback(self.host)
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(2.0)
-        self._socket.bind((host, self.port))
-        self._socket.listen(1)
-        self.port = self._socket.getsockname()[1]
-        self._thread = threading.Thread(target=self._collect_once, daemon=True)
-        self._thread.start()
-        return self.port
-
-    def _collect_once(self) -> None:
-        """Collect one connection without sending any response."""
-        assert self._socket is not None
-        try:
-            client, _address = self._socket.accept()
-            with client:
-                client.settimeout(0.2)
-                chunks = []
-                while True:
-                    try:
-                        chunk = client.recv(65536)
-                    except socket.timeout:
-                        break
-                    if not chunk:
-                        break
-                    chunks.append(chunk)
-                self.received.append(b"".join(chunks))
-        except (OSError, socket.timeout):
-            return
-
-    def stop(self) -> None:
-        """Close the listener and join its worker briefly."""
-        if self._socket is not None:
-            self._socket.close()
-        if self._thread is not None:
-            self._thread.join(timeout=2.5)
+    return validate_loopback(host, "PureHVNC lab")

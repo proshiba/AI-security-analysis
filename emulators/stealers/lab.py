@@ -5,12 +5,12 @@ from __future__ import annotations
 
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import ipaddress
 import json
 import re
 from urllib import request
 from urllib.parse import urlsplit
 
+from emulators.common import require_loopback as validate_loopback
 PROFILES = {
     "formbook": {"method": "POST", "path": "/lab/formbook/submit"},
     "vidar": {"method": "GET", "path": "/lab/vidar/bootstrap"},
@@ -22,14 +22,7 @@ PROFILES = {
 
 def require_loopback(host: str) -> str:
     """Reject every non-loopback emulator bind or target host."""
-    if host.lower() == "localhost":
-        return host
-    try:
-        if ipaddress.ip_address(host).is_loopback:
-            return host
-    except ValueError:
-        pass
-    raise ValueError("stealer emulator is loopback-only")
+    return validate_loopback(host, "stealer emulator")
 
 
 def profile_for(family: str) -> dict:

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.amadey.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.amadey.html" class="white">amadey</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Camadey%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\amadey\extractor.py</a></td></tr></table>
+    <p><span class="code">Static&nbsp;Amadey&nbsp;configuration&nbsp;extractor&nbsp;for&nbsp;reviewed&nbsp;x86&nbsp;and&nbsp;x64&nbsp;layouts.<br>
+&nbsp;<br>
+The&nbsp;implementation&nbsp;mirrors&nbsp;the&nbsp;documented/CAPE&nbsp;string&nbsp;layout&nbsp;but&nbsp;performs<br>
+all&nbsp;work&nbsp;in&nbsp;memory.&nbsp;&nbsp;It&nbsp;never&nbsp;executes&nbsp;a&nbsp;sample&nbsp;or&nbsp;contacts&nbsp;recovered&nbsp;hosts.</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-decode_amadey_string"><strong>decode_amadey_string</strong></a>(key: 'str', encoded: 'str') -&gt; 'bytes'</dt><dd><span class="code">Decode&nbsp;one&nbsp;Amadey&nbsp;custom-alphabet&nbsp;value&nbsp;followed&nbsp;by&nbsp;Base64.</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;Amadey&nbsp;config,&nbsp;behavior&nbsp;markers,&nbsp;and&nbsp;evidence-qualified&nbsp;C2s.</span></dd></dl>
+ <dl><dt><a name="-recover_config"><strong>recover_config</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Recover&nbsp;validated&nbsp;Amadey&nbsp;configuration&nbsp;fields&nbsp;from&nbsp;one&nbsp;PE&nbsp;image.</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ALPHABET</strong> = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 '<br>
+<strong>X64_CALL</strong> = re.compile(b'\\x48\\x83\\xec.\\x41\\xb8(.{4})\\x...15(.{4})\\x48\\x8d\\x0d.{4}\\xe8.{4}', re.DOTALL)<br>
+<strong>X86_CALL</strong> = re.compile(b'\\x6a(.)\\x68(.{4})\\xb9.{4}\\xe8.{4}\\x68.{4}\\xe8.{4}\\x59\\xc3', re.DOTALL)</td></tr></table>
+</body></html>

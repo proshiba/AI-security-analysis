@@ -28,11 +28,7 @@
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;local&nbsp;Git-mirror&nbsp;inventory&nbsp;command-line&nbsp;parser.</span></dd></dl>
- <dl><dt><a name="-collect_repository"><strong>collect_repository</strong></a>(
-    git_dir: 'Path',
-    export_dir: 'Path | None' = None,
-    maximum_blob_size: 'int' = 67108864
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Inventory&nbsp;all&nbsp;historical&nbsp;blobs&nbsp;and&nbsp;optionally&nbsp;export&nbsp;each&nbsp;unique&nbsp;byte&nbsp;sequence.</span></dd></dl>
+ <dl><dt><a name="-collect_repository"><strong>collect_repository</strong></a>(git_dir: 'Path', export_dir: 'Path | None' = None, maximum_blob_size: 'int' = 67108864) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Inventory&nbsp;all&nbsp;historical&nbsp;blobs&nbsp;and&nbsp;optionally&nbsp;export&nbsp;each&nbsp;unique&nbsp;byte&nbsp;sequence.</span></dd></dl>
  <dl><dt><a name="-commit_metadata"><strong>commit_metadata</strong></a>(git_dir: 'Path', commit: 'str') -&gt; 'dict[str, str]'</dt><dd><span class="code">Read&nbsp;publish-safe&nbsp;author&nbsp;and&nbsp;timestamp&nbsp;metadata&nbsp;for&nbsp;one&nbsp;commit.</span></dd></dl>
  <dl><dt><a name="-detect_format"><strong>detect_format</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Identify&nbsp;common&nbsp;container,&nbsp;executable,&nbsp;script,&nbsp;and&nbsp;text&nbsp;formats&nbsp;by&nbsp;bytes.</span></dd></dl>
  <dl><dt><a name="-git_output"><strong>git_output</strong></a>(git_dir: 'Path', arguments: 'list[str]', text: 'bool' = False) -&gt; 'bytes | str'</dt><dd><span class="code">Run&nbsp;a&nbsp;read-only&nbsp;Git&nbsp;query&nbsp;against&nbsp;an&nbsp;explicit&nbsp;repository&nbsp;directory.</span></dd></dl>

@@ -7,8 +7,28 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
+from typing import Any
 
 from malwarebazaar_batch import public_manifest
+
+OMITTED_CONFIG_KEYS = {
+    "decoded_strings",
+    "recovered_layer_configs",
+    "selected_layer_config",
+    "source_name",
+}
+AGGREGATE_CONFIG_KEYS = {
+    "build_id",
+    "campaign_id",
+    "c2_urls",
+    "delivery_profile",
+    "group_id",
+    "group_name",
+    "install_directory",
+    "install_filename",
+    "profile",
+    "version",
+}
 
 
 def load_case(case_dir: Path) -> dict:
@@ -22,19 +42,65 @@ def load_case(case_dir: Path) -> dict:
     }
 
 
+def compact_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Return publish-useful config fields while omitting bulky decoded buffers."""
+    output: dict[str, Any] = {}
+    for key, value in config.items():
+        if key in OMITTED_CONFIG_KEYS or value in (None, "", [], {}):
+            continue
+        output[key] = value
+    selected = config.get("selected_layer_config")
+    if isinstance(selected, dict) and isinstance(selected.get("config"), dict):
+        output["selected_recovered_layer"] = {
+            "sha256": selected.get("sha256"),
+            "kind": selected.get("kind"),
+            "depth": selected.get("depth"),
+            "config": compact_config(selected["config"]),
+        }
+    return output
+
+
+def _aggregate_config_values(
+    config: dict[str, Any], values: dict[str, Counter]
+) -> None:
+    """Count stable scalar and list config values for the family overview."""
+    selected = config.get("selected_layer_config")
+    candidates = [config]
+    if isinstance(selected, dict) and isinstance(selected.get("config"), dict):
+        candidates.append(selected["config"])
+    for candidate in candidates:
+        for key in AGGREGATE_CONFIG_KEYS:
+            value = candidate.get(key)
+            items = value if isinstance(value, list) else [value]
+            for item in items:
+                if isinstance(item, (str, int)) and item not in ("", None):
+                    values[key][str(item)] += 1
+
+
 def summarize_family(summary: dict, pipeline_root: Path) -> dict:
     """Aggregate campaigns, formats, features, and findings across analyzed cases."""
     campaigns, formats, features, findings = Counter(), Counter(), Counter(), []
+    config_values: dict[str, Counter] = {
+        key: Counter() for key in sorted(AGGREGATE_CONFIG_KEYS)
+    }
     cases = []
     for item in summary["cases"]:
         case = load_case(pipeline_root / item["sha256"])
         campaigns[item["campaign"]] += 1
         formats[item["format"]] += 1
-        for feature, present in case["config"]["config"].get("features", {}).items():
+        config = case["config"]["config"]
+        for feature, present in config.get("features", {}).items():
             if present:
                 features[feature] += 1
+        _aggregate_config_values(config, config_values)
         findings.extend(case["config"].get("findings", []))
-        cases.append({**item, "limitations": case["config"].get("limitations", [])})
+        cases.append(
+            {
+                **item,
+                "limitations": case["config"].get("limitations", []),
+                "layer_count": len(case["layers"].get("layers", [])),
+            }
+        )
     unique_findings = []
     seen = set()
     for finding in findings:
@@ -46,10 +112,17 @@ def summarize_family(summary: dict, pipeline_root: Path) -> dict:
         "schema_version": 1,
         "family": summary["family"],
         "signature": summary["signature"],
+        "source": summary.get("source", "local-offline-intake"),
+        "counts": summary.get("counts", {}),
         "case_count": len(cases),
         "campaigns": dict(sorted(campaigns.items())),
         "formats": dict(sorted(formats.items())),
         "features": dict(sorted(features.items())),
+        "config_values": {
+            key: dict(sorted(counter.items()))
+            for key, counter in config_values.items()
+            if counter
+        },
         "findings": unique_findings,
         "cases": cases,
         "sample_executed": False,
@@ -65,6 +138,17 @@ def render_case(item: dict, case: dict) -> str:
         or "| none recovered | - | - | static extraction incomplete |"
     )
     limitations = "\n".join(f"- {value}" for value in case["config"].get("limitations", []))
+    layers = case["layers"].get("layers", [])
+    layer_rows = (
+        "\n".join(
+            f"| {row.get('depth', '-')} | `{row.get('kind', 'unknown')}` | "
+            f"`{row.get('sha256', 'unknown')}` | {row.get('size', 0)} | "
+            f"`{row.get('format', 'unknown')}` |"
+            for row in layers
+        )
+        or "| - | none recovered | - | - | - |"
+    )
+    config = compact_config(case["config"].get("config", {}))
     return f"""# {item["family"]} case {item["sha256"]}
 
 ## Overview
@@ -74,6 +158,8 @@ def render_case(item: dict, case: dict) -> str:
 - Campaign shape: `{item["campaign"]}`
 - Format: `{item["format"]}`
 - Packing suspected: `{str(item["packing_suspected"]).lower()}`
+- Packing classification: `{item.get("packing_classification", "unknown")}`
+- Unpack status: `{item.get("unpack_status", "unknown")}`
 - Recovered static layers: {item["recovered_artifacts"]}
 - Sample executed: false
 - Network contacted: false
@@ -86,13 +172,23 @@ def render_case(item: dict, case: dict) -> str:
 
 An embedded value is not proof that the server is live or exclusively controlled by this family.
 
-## Collection/behavior features
+## Static config snapshot
 
 ```json
-{json.dumps(case["config"]["config"].get("features", {}), ensure_ascii=False, indent=2)}
+{json.dumps(config, ensure_ascii=False, indent=2)}
 ```
 
-## Unpacking status
+The complete normalized extractor output, including bounded decoded-string evidence, is retained in `analysis.json`.
+
+## Recovered layers
+
+| Depth | Kind | SHA-256 | Size | Format |
+|---:|---|---|---:|---|
+{layer_rows}
+
+Recovered bytes are deliberately not committed.
+
+## Unpacking details
 
 - Root entropy: {case["unpack"]["entropy"]}
 - Root packing assessment: `{case["unpack"].get("pe", {}).get("packing_suspected", False)}`
@@ -119,6 +215,17 @@ def render_family(value: dict) -> str:
         )
         or "| none recovered | - | - | packed/encrypted or no literal config |"
     )
+    config_values = (
+        "\n".join(
+            f"- `{key}`: "
+            + ", ".join(
+                f"`{config_value}` ({count})"
+                for config_value, count in values.items()
+            )
+            for key, values in value["config_values"].items()
+        )
+        or "- no validated family configuration values recovered"
+    )
     cases = "\n".join(
         f"| [{item['sha256'][:12]}](cases/{item['sha256']}/README.md) | {item['format']} | "
         f"{item['campaign']} | {str(item['packing_suspected']).lower()} | {item['recovered_artifacts']} | "
@@ -127,7 +234,17 @@ def render_family(value: dict) -> str:
     )
     return f"""# {value["signature"]} analysis
 
-{value["case_count"]} new MalwareBazaar submissions were analyzed statically. Delivery shape is separated from malware family because loaders, packers, and operators can vary independently.
+{value["case_count"]} `{value["source"]}` submissions were analyzed statically. Delivery shape is separated from malware family because loaders, packers, and operators can vary independently.
+
+## Batch outcome
+
+- Cases: {value["case_count"]}
+- Errors: {value["counts"].get("errors", 0)}
+- Packing suspected: {value["counts"].get("packing_suspected", 0)}
+- Cases with recovered artifacts: {value["counts"].get("with_recovered_artifacts", 0)}
+- Cases with validated static config: {value["counts"].get("with_static_config", 0)}
+- Sample executed: false
+- Network contacted: false
 
 ## Campaign/delivery shapes
 
@@ -144,6 +261,10 @@ def render_family(value: dict) -> str:
 {findings}
 
 No active C2 check-in was performed. Use `analysis-framework/common/c2_candidate_detector.py` for offline assessment and passive-query generation.
+
+## Validated config values
+
+{config_values}
 
 ## Cases
 
@@ -164,7 +285,7 @@ Detection rules under `rules/` are starting points and require environment tunin
 - Samples were never executed and recovered layers are not committed.
 - External infrastructure was not contacted.
 - Unknown packers and password-protected nested archives remain unresolved.
-- MalwareBazaar signature attribution is a lead and was retained separately from static evidence.
+- Source attribution is retained separately from validated static evidence.
 """
 
 
