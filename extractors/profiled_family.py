@@ -64,6 +64,24 @@ def load_profiles(path: Path = PROFILE_PATH) -> dict[str, dict]:
     profiles = value.get("profiles")
     if value.get("schema_version") != 1 or not isinstance(profiles, dict):
         raise ValueError("invalid family profile document")
+    for family, profile in profiles.items():
+        markers = profile.get("markers") if isinstance(profile, dict) else None
+        minimum = profile.get("minimum_markers") if isinstance(profile, dict) else None
+        normalized = (
+            [marker.lower() for marker in markers if isinstance(marker, str) and marker]
+            if isinstance(markers, list)
+            else []
+        )
+        if (
+            not isinstance(markers, list)
+            or len(normalized) != len(markers)
+            or len(set(normalized)) != len(normalized)
+            or len(markers) < 2
+            or not isinstance(minimum, int)
+            or minimum < 2
+            or minimum > len(markers)
+        ):
+            raise ValueError(f"invalid family profile marker threshold: {family}")
     return profiles
 
 
@@ -105,6 +123,31 @@ def bounded_strings(data: bytes, limit: int = MAX_STRINGS) -> list[str]:
                 if len(values) >= limit:
                     return values
     return values
+
+
+def _independent_marker_hits(markers: list[str], text: str) -> list[str]:
+    """Return matched literals without double-counting substring aliases.
+
+    For example, AsyncRAT Server must not count as both asyncrat and
+    asyncrat server. A second independent literal such as HWID is required.
+    """
+    lowered = text.lower()
+    matched: list[str] = []
+    seen: set[str] = set()
+    for marker in markers:
+        normalized = marker.lower()
+        if normalized in seen or normalized not in lowered:
+            continue
+        seen.add(normalized)
+        matched.append(marker)
+    return [
+        marker
+        for marker in matched
+        if not any(
+            marker.lower() != other.lower() and marker.lower() in other.lower()
+            for other in matched
+        )
+    ]
 
 
 def sanitize_network_url(value: str) -> str | None:
@@ -179,9 +222,9 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
     strings = bounded_strings(data)
     lowered = [value.lower() for value in strings]
     joined = "\n".join(lowered)
-    marker_hits = [marker for marker in profile["markers"] if marker.lower() in joined]
+    marker_hits = _independent_marker_hits(profile["markers"], joined)
     key_hits = [key for key in profile["config_keys"] if key.lower() in joined]
-    enough_markers = len(marker_hits) >= int(profile["minimum_markers"])
+    enough_markers = len(marker_hits) >= max(2, int(profile["minimum_markers"]))
     urls = []
     for raw in url_candidates(strings):
         value = sanitize_network_url(raw)
@@ -189,7 +232,7 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
             urls.append(value)
     endpoints = [value for value in endpoint_candidates(strings) if _publishable_endpoint(value)]
     role = profile["endpoint_role"]
-    confidence = "probable" if enough_markers else "candidate"
+    confidence = "candidate"
     findings = [
         {
             "kind": "network.url",
@@ -211,6 +254,7 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         }
         for value in endpoints[:remaining]
     )
+    profile_literal_correlation = bool(enough_markers and findings)
     config = {
         "source_name": source_name,
         "profile": profile["family"],
@@ -221,7 +265,9 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         "minimum_markers": profile["minimum_markers"],
         "observed_config_keys": key_hits,
         "network_candidates": [item["value"] for item in findings],
-        "static_config_recovered": bool(enough_markers and findings),
+        "profile_literal_correlation": profile_literal_correlation,
+        "decoded_config_recovered": False,
+        "static_config_recovered": False,
         "scan_scope": "complete_input" if len(data) <= FULL_SCAN_LIMIT else "deterministic_three_window_sample",
     }
     return build_result(
@@ -230,7 +276,8 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         config,
         findings,
         [
-            "Profile-driven static extraction; encrypted or packed config fields may require a family-specific decoder or recovered inner payload.",
+            "Profile literals and sanitized network candidates are correlation evidence, not a decoded configuration.",
+            "Encrypted or packed config fields require a family-specific decoder or recovered inner payload.",
             profile["confirmation"],
             "Candidate infrastructure was not contacted and liveness was not inferred.",
             "Credentials, tokens, URL queries, and URL fragments are not published.",

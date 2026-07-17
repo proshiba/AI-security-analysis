@@ -26,10 +26,15 @@ def summary_fixture() -> dict:
 
 def test_render_and_idempotent_append(tmp_path: Path) -> None:
     """Render conservative C2-empty entries and append every hash once."""
-    entries = history.render_history_entries(summary_fixture(), "analysis-results/unclassified/batch", "2026-07-17")
+    entries = history.render_history_entries(summary_fixture(), "analysis-results", "2026-07-17")
     assert len(entries) == 2
     assert 'malware_type: "irahook"' in entries[0][1]
     assert "c2: []" in entries[0][1]
+    assert (
+        "result_path: analysis-results/malware/unclassified/versions/unknown/cases/"
+        + "a" * 64
+        + "/"
+    ) in entries[0][1]
     path = tmp_path / "analysis_history.yaml"
     path.write_text("analyses:\n", encoding="utf-8")
     assert history.append_missing_entries(path, entries) == 2
@@ -45,6 +50,8 @@ def test_cli(tmp_path: Path) -> None:
     output.write_text("analyses:\n", encoding="utf-8")
     assert history.main([
         "--summary", str(summary), "--history", str(output),
-        "--result-root", "analysis-results/unclassified/batch",
         "--analyzed-at", "2026-07-17",
     ]) == 0
+    assert "analysis-results/malware/unclassified/versions/unknown/cases/" in (
+        output.read_text(encoding="utf-8")
+    )

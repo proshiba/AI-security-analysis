@@ -20,7 +20,7 @@ sanitized&nbsp;JSON&nbsp;report&nbsp;and&nbsp;a&nbsp;Markdown&nbsp;summary.</spa
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
-    
+
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 <a href="hashlib.html">hashlib</a><br>
@@ -32,9 +32,9 @@ sanitized&nbsp;JSON&nbsp;report&nbsp;and&nbsp;a&nbsp;Markdown&nbsp;summary.</spa
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
-    
+
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-analyze_case"><strong>analyze_case</strong></a>(case: 'Mapping[str, Any]', locations: 'Sequence[Mapping[str, Any]]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;inventory&nbsp;case&nbsp;using&nbsp;only&nbsp;bounded&nbsp;in-memory&nbsp;static&nbsp;operations.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-analyze_case"><strong>analyze_case</strong></a>(case: 'Mapping[str, Any]', locations: 'Sequence[Mapping[str, Any]]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, archive_password: 'str' = '', max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;inventory&nbsp;case&nbsp;using&nbsp;only&nbsp;bounded&nbsp;in-memory&nbsp;static&nbsp;operations.</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static-only&nbsp;batch&nbsp;command-line&nbsp;parser.</span></dd></dl>
  <dl><dt><a name="-expand_inventory"><strong>expand_inventory</strong></a>(document: 'Mapping[str, Any]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">Expand&nbsp;group&nbsp;hashes&nbsp;into&nbsp;cases,&nbsp;applying&nbsp;matching&nbsp;case&nbsp;overrides.<br>
 &nbsp;<br>
@@ -50,14 +50,14 @@ excluded.&nbsp;&nbsp;File&nbsp;contents&nbsp;are&nbsp;authenticated&nbsp;against
  <dl><dt><a name="-load_inventory"><strong>load_inventory</strong></a>(path: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Load&nbsp;a&nbsp;UTF-8&nbsp;YAML&nbsp;inventory&nbsp;and&nbsp;require&nbsp;a&nbsp;mapping&nbsp;document.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;inventory&nbsp;triage&nbsp;and&nbsp;publish&nbsp;sanitized&nbsp;JSON/Markdown&nbsp;reports.</span></dd></dl>
  <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;sanitized&nbsp;human-readable&nbsp;summary&nbsp;without&nbsp;raw&nbsp;bytes&nbsp;or&nbsp;paths.</span></dd></dl>
- <dl><dt><a name="-run_inventory"><strong>run_inventory</strong></a>(document: 'Mapping[str, Any]', roots: 'Sequence[Path]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;all&nbsp;expanded&nbsp;inventory&nbsp;cases&nbsp;against&nbsp;hash-indexed&nbsp;local&nbsp;roots.</span></dd></dl>
+ <dl><dt><a name="-run_inventory"><strong>run_inventory</strong></a>(document: 'Mapping[str, Any]', roots: 'Sequence[Path]', *, password: 'str' = 'infected', max_depth: 'int' = 3, max_nodes: 'int' = 64, max_input_size: 'int' = 268435456, max_total_layer_bytes: 'int' = 536870912, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, archive_password: 'str' = '', max_blocks: 'int' = 4096, max_instructions: 'int' = 50000, max_block_bytes: 'int' = 4096) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Analyze&nbsp;all&nbsp;expanded&nbsp;inventory&nbsp;cases&nbsp;against&nbsp;hash-indexed&nbsp;local&nbsp;roots.</span></dd></dl>
  <dl><dt><a name="-scan_protector_markers"><strong>scan_protector_markers</strong></a>(data: 'bytes', *, max_scan_bytes: 'int' = 33554432) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;recognized&nbsp;protector/obfuscator&nbsp;markers&nbsp;from&nbsp;bounded&nbsp;byte&nbsp;windows.</span></dd></dl>
  <dl><dt><a name="-write_public_report"><strong>write_public_report</strong></a>(report: 'Mapping[str, Any]', output_dir: 'Path') -&gt; 'tuple[Path, Path]'</dt><dd><span class="code">Write&nbsp;only&nbsp;sanitized&nbsp;JSON&nbsp;and&nbsp;Markdown&nbsp;products&nbsp;to&nbsp;an&nbsp;output&nbsp;directory.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
-    
+
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>DEFAULT_MARKER_SCAN_BYTES</strong> = 33554432<br>
 <strong>DEFAULT_MAX_BLOCKS</strong> = 4096<br>

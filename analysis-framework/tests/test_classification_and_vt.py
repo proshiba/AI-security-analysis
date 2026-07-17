@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
+from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +65,89 @@ class ClassificationTests(unittest.TestCase):
             self.assertEqual(result["malware_type"], "valleyrat")
             self.assertEqual(result["campaign_type"], "unknown")
             self.assertEqual(result["attribution_basis"], "explicit_user_type_unmatched")
+
+    def test_detector_loader_is_contained_and_allowlisted(self):
+        """Load only the family detector path rooted in this framework."""
+        detector = self.classify_sample.load_detector(
+            ROOT, "malware/valleyrat/detect.py", "valleyrat"
+        )
+        self.assertTrue(callable(detector))
+        rejected = (
+            (ROOT, "../outside.py", "valleyrat"),
+            (ROOT, "malware/agenttesla/detect.py", "valleyrat"),
+            (ROOT, "malware/valleyrat/helper.py", "valleyrat"),
+        )
+        for root, relative, family in rejected:
+            with self.subTest(relative=relative):
+                with self.assertRaises(self.classify_sample.DetectorPathError):
+                    self.classify_sample.load_detector(root, relative, family)
+
+    def test_tied_family_detections_are_ambiguous_with_all_evidence(self):
+        """Do not let registry order decide equal-confidence family matches."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sample = root / "sample.bin"
+            sample.write_bytes(b"two-family fixture")
+            registry = root / "registry.json"
+            registry.write_text(
+                json.dumps({
+                    "malware_types": {
+                        "valleyrat": {"detector": "malware/valleyrat/detect.py"},
+                        "agenttesla": {"detector": "malware/agenttesla/detect.py"},
+                    }
+                }),
+                encoding="utf-8",
+            )
+
+            def fake_loader(_root, _path, family):
+                def detect(_data, _sample):
+                    return {
+                        "matched": True,
+                        "observations": {"family_marker": family},
+                        "campaigns": [{
+                            "campaign_type": f"{family}_campaign",
+                            "confidence": "medium",
+                            "reasons": [f"{family} marker"],
+                        }],
+                    }
+                return detect
+
+            with patch.object(self.classify_sample, "load_detector", side_effect=fake_loader):
+                result = self.classify_sample.classify(sample, registry)
+            self.assertEqual(result["malware_type"], "unknown")
+            self.assertEqual(result["attribution_basis"], "ambiguous_type_detection")
+            self.assertEqual(len(result["all_type_detections"]), 2)
+            self.assertEqual(
+                {item["malware_type"] for item in result["ambiguous_type_candidates"]},
+                {"agenttesla", "valleyrat"},
+            )
+
+    def test_tied_campaigns_are_not_selected_by_list_order(self):
+        """Preserve tied campaign evidence while returning unknown."""
+        with tempfile.TemporaryDirectory() as tmp:
+            sample = Path(tmp) / "sample.bin"
+            sample.write_bytes(b"campaign fixture")
+
+            def fake_loader(_root, _path, _family):
+                return lambda _data, _sample: {
+                    "matched": True,
+                    "observations": {},
+                    "campaigns": [
+                        {"campaign_type": "second", "confidence": "medium", "reasons": ["b"]},
+                        {"campaign_type": "first", "confidence": "medium", "reasons": ["a"]},
+                    ],
+                }
+
+            with patch.object(self.classify_sample, "load_detector", side_effect=fake_loader):
+                result = self.classify_sample.classify(
+                    sample, ROOT / "registry" / "malware_types.json", "valleyrat"
+                )
+            self.assertEqual(result["campaign_type"], "unknown")
+            self.assertEqual(result["campaign_resolution"], "ambiguous_campaign_detection")
+            self.assertEqual(
+                {item["campaign_type"] for item in result["candidates"]},
+                {"first", "second"},
+            )
 
 
 class VirusTotalSandboxTests(unittest.TestCase):

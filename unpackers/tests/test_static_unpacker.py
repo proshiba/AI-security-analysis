@@ -82,9 +82,68 @@ def test_zip_recovery_and_write(tmp_path: Path) -> None:
             archive.writestr(f"{index}.txt", b"x")
     report, recovered = unpacker.unpack_bytes(blocked.getvalue(), "large.zip")
     assert report["zip"][0]["status"] == "member_limit_applied" and recovered == []
+    assert report["unpack_status"] == "bounded_limit"
     destination = tmp_path / "artifacts.zip"
     unpacker.write_artifacts(destination, artifacts)
     assert zipfile.is_zipfile(destination)
+
+
+def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
+    """Reject the whole archive before retaining any partial artifact."""
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("one.js", b"12345678")
+        archive.writestr("two.js", b"abcdefgh")
+    data = stream.getvalue()
+
+    inventory, artifacts = unpacker.recover_zip(data, max_members=1)
+    assert inventory[0]["status"] == "member_limit_applied"
+    assert artifacts == []
+
+    inventory, artifacts = unpacker.recover_zip(data, max_total_size=15)
+    assert inventory[0]["status"] == "total_size_blocked"
+    assert artifacts == []
+
+    dense = io.BytesIO()
+    with zipfile.ZipFile(dense, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("dense.js", b"A" * 4096)
+    inventory, artifacts = unpacker.recover_zip(
+        dense.getvalue(), max_compression_ratio=2
+    )
+    assert inventory[0]["status"] == "ratio_blocked"
+    assert artifacts == []
+
+
+def test_zip_malformed_and_streaming_size_mismatch_fail_closed() -> None:
+    """Reject malformed metadata after only one byte beyond the declared size."""
+    with pytest.raises(zipfile.BadZipFile):
+        unpacker.recover_zip(b"not a zip archive")
+
+    class TrackingStream(io.BytesIO):
+        bytes_read = 0
+
+        def read(self, size=-1):
+            chunk = super().read(size)
+            self.bytes_read += len(chunk)
+            return chunk
+
+    stream = TrackingStream(b"ABCDE" + b"unread" * 100)
+
+    class FakeArchive:
+        def open(self, *_args, **_kwargs):
+            return stream
+
+    with pytest.raises(unpacker._ZipQuotaExceeded, match="output exceeded"):
+        unpacker._read_standard_zip_member_capped(
+            FakeArchive(),
+            SimpleNamespace(file_size=4, compress_size=4),
+            name="forged.bin",
+            max_member_size=100,
+            remaining_total=100,
+            max_compression_ratio=200,
+            chunk_size=2,
+        )
+    assert stream.bytes_read == 5
 
 
 def test_valid_pe_carving_and_cab_detection(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -202,6 +261,86 @@ def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:
         unpacker.sevenzip_inventory(b"7z", tmp_path / "missing.exe")["status"]
         == "unavailable"
     )
+
+
+def test_reviewed_container_hint_forces_bounded_archive_probe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Probe a reviewed NSIS-like PE even when generic layout routing is false."""
+    monkeypatch.setattr(unpacker, "detect_format", lambda *_args: "pe")
+    monkeypatch.setattr(
+        unpacker, "recover_inflated_pe", lambda _data: ({"status": "none"}, None)
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": [],
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, [])
+    )
+    monkeypatch.setattr(
+        unpacker, "recover_donut_payloads", lambda _data: ({}, [])
+    )
+    monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _data: [])
+    observed: list[bytes] = []
+
+    def fake_extract(data: bytes, *_args):
+        observed.append(data)
+        return {"status": "extracted"}, [("nsis-stage", b"child")]
+
+    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_extract)
+    report, artifacts = unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        sevenzip=tmp_path / "7z.exe",
+        force_container_probe=True,
+    )
+    assert observed == [b"MZfixture"]
+    assert report["sevenzip"]["forced_by_reviewed_hint"] is True
+    assert artifacts == [("nsis-stage", b"child")]
+
+
+def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Do not pass an unrelated archive password to an NSIS PE."""
+    inventory_passwords: list[str] = []
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, password: str = ""):
+        inventory_passwords.append(password)
+        return {
+            "status": "listed",
+            "archive_types": ["Nsis", "PE"],
+            "members": ["[NSIS].nsi"],
+            "total_members": 0,
+            "declared_total_size": 0,
+            "archive_unlock_attempted": bool(password),
+        }
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"MZfixture", tmp_path / "7z.exe", password="infected"
+    )
+    assert inventory_passwords == [""]
+    assert all(not argument.startswith("-p") for argument in commands[0])
+    assert report["archive_unlock_attempted"] is False
+    assert report["status"] == "extracted"
+    assert artifacts == []
 
 
 def test_unpack_and_cli(tmp_path: Path) -> None:

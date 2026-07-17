@@ -1,23 +1,23 @@
-# Declarative engine implementation
+# 宣言型エンジンの実装
 
-The `asa/v1alpha1` implementation now includes strict definition validation, deterministic DAG compilation, and an offline static-analysis runner.
+`asa/v1alpha1` の実装には、厳格な定義検証、決定的なDAGコンパイル、オフライン静的解析ランナーが含まれます。
 
-## Implemented
+## 実装済み機能
 
-- strict Pydantic models and YAML loading
-- non-executable condition DSL
-- weighted family/campaign scoring with tie-to-unknown behavior
-- allowlisted, major-versioned step catalog
-- dependency validation and deterministic DAG ordering
-- offline capability-policy enforcement
-- raw-file and single-member encrypted-ZIP intake
-- normalized discovery facts and reviewed family/campaign inference
-- offline implementations for intake, inventory, strings, IOCs, PE, .NET, Go, scripts, ISO, family config, and reporting
-- FLOSS and Ghidra MCP availability checks without automatic invocation
-- `validate`, `plan`, and `asa-analyze` CLIs
-- ten malware definitions and twelve pipelines
+- 厳格なPydanticモデルとYAML読み込み
+- 任意コードを実行できない条件DSL
+- 重み付きファミリー／キャンペーン採点と、同点時にunknownとする処理
+- 許可リスト方式でメジャーバージョンを管理するステップカタログ
+- 依存関係検証と決定的なDAG順序
+- オフライン能力ポリシーの適用
+- 生ファイルと単一メンバー暗号化ZIPの受け入れ
+- 正規化した探索結果と、レビュー済みファミリー／キャンペーン推定
+- 受け入れ、インベントリ、文字列、IOC、PE、.NET、Go、スクリプト、ISO、ファミリー設定、レポートのオフライン実装
+- FLOSSとGhidra MCPを自動実行しない可用性確認
+- `validate`、`plan`、`asa-analyze` の各CLI
+- 29件のマルウェア定義と31件のパイプライン
 
-## Run an offline analysis
+## オフライン解析の実行
 
 ```powershell
 $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>'
@@ -27,22 +27,22 @@ python -m asa.runtime_cli `
   --output C:\analysis-output\case
 ```
 
-Optional reviewed analyst hints are accepted through `--family-hint` and `--campaign-hint`. Unknown or tied classification remains `needs_review`; a hint never bypasses policy or step validation.
+レビュー済みの解析者ヒントは、任意の `--family-hint` と `--campaign-hint` で指定できます。未知または同点の分類は `needs_review` のままであり、ヒントによってポリシーやステップ検証を迂回することはありません。
 
-Outputs:
+出力:
 
-- `facts.json`: normalized discovery evidence
-- `plan.json`: compiled family/campaign DAG
-- `steps/<step-id>/result.json`: per-step static result
-- `run.json`: terminal step states and safety flags
+- `facts.json`: 正規化した探索証拠
+- `plan.json`: コンパイル済みファミリー／キャンペーンDAG
+- `steps/<step-id>/result.json`: ステップごとの静的解析結果
+- `run.json`: 最終的なステップ状態と安全フラグ
 
-## Validate definitions
+## 定義の検証
 
 ```powershell
 python -m asa.cli validate --definitions .\analysis-framework\definitions
 ```
 
-## Compile only
+## コンパイルだけを実行
 
 ```powershell
 python -m asa.cli plan `
@@ -52,13 +52,13 @@ python -m asa.cli plan `
   --output C:\analysis-output\plan.json
 ```
 
-## Safety boundary
+## 安全境界
 
-- YAML cannot specify Python paths, PowerShell, or shell commands.
-- Every step must match the catalog allowlist and declared major version.
-- Policy-denied capabilities cannot be restored by a pipeline or malware definition.
-- Unknown/tied classification is not forced into a known handler.
-- Sample bytes are parsed, never launched or loaded as executable code.
-- No runtime step contacts external infrastructure.
-- FLOSS and Ghidra MCP steps are preflight-only in this release.
-- ZIP contents are retained in memory and archive traversal is rejected.
+- YAMLからPythonパス、PowerShell、シェルコマンドを指定することはできません。
+- すべてのステップは、カタログの許可リストと宣言済みメジャーバージョンに一致しなければなりません。
+- ポリシーが拒否した能力を、パイプラインまたはマルウェア定義から復活させることはできません。
+- 未知または同点の分類を既知ハンドラーへ強制しません。
+- 検体のバイト列は解析するだけで、実行可能コードとして起動またはロードしません。
+- 実行時ステップは外部インフラへ接続しません。
+- このリリースのFLOSSとGhidra MCPステップは事前確認だけです。
+- ZIP内容はメモリに保持し、アーカイブのパストラバーサルを拒否します。

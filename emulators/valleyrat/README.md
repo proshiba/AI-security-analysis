@@ -1,34 +1,29 @@
-# ValleyRAT emulators
+# ValleyRATエミュレーター
 
-Defensive protocol emulators for ValleyRAT analysis live here. The first tool,
-`vvas_client.py`, emulates the observed vvaS check-in without executing malware
-code or downloading payload stages by default.
+ValleyRAT解析用の防御目的プロトコルエミュレーターを格納します。最初のツールである `vvas_client.py` は、マルウェアコードを実行せず、既定ではペイロード段階もダウンロードせずに、観測済みのvvaSチェックインを再現します。
 
-## Safety model
+## 安全モデル
 
-- The emulator sends only the observed vvaS check-in bytes, `33 32 00`, unless
-  overridden for a reviewed profile.
-- The default read limit is 64 bytes, enough to validate the response header and
-  capture a small banner prefix.
-- The declared stage body is not downloaded unless `--allow-stage-download` and
-  `--i-understand-stage-download-risk` are both supplied.
-- Any downloaded stage bytes are potential malware material and must not be
-  committed to this repository.
-- Live C2 interaction must follow the current case profile, reviewed scope, and
-  containment requirements.
+- レビュー済みプロファイルで上書きしない限り、エミュレーターが送信するのは観測済みvvaSチェックインの `33 32 00` だけです。
+- ネットワーク接続は既定で無効です。稼働中ホストの確認には `--allow-network` が必要です。
+- 既定の読み取り上限は64バイトです。応答ヘッダーの検証と短いバナー接頭辞の取得には十分です。
+- `--allow-stage-download` と `--i-understand-stage-download-risk` の両方を指定しない限り、宣言された段階の本文をダウンロードしません。
+- ダウンロードした段階のバイト列はマルウェア素材である可能性があるため、このリポジトリへコミットしてはなりません。
+- 稼働中C2との通信は、現在のケースプロファイル、レビュー済み範囲、封じ込め要件に従わなければなりません。
 
-## vvaS client usage
+## vvaSクライアントの使用方法
 
-Run a direct bounded check-in:
+範囲を限定した直接チェックインを実行する例:
 
 ```bash
 python emulators/valleyrat/vvas_client.py \
   --host 202.95.8.27 \
   --port 6666 \
+  --allow-network \
   --output out/valleyrat-vvas-6666.json
 ```
 
-Render reviewed ValleyRAT profile targets without network contact:
+ネットワークへ接続せずに、レビュー済みValleyRATプロファイルの接続先を表示する例:
 
 ```bash
 python emulators/valleyrat/vvas_client.py \
@@ -36,40 +31,36 @@ python emulators/valleyrat/vvas_client.py \
   --dry-run
 ```
 
-Run from a reviewed ValleyRAT profile when live interaction is authorized:
+稼働中ホストとの通信が許可されている場合に、レビュー済みValleyRATプロファイルから実行する例:
 
 ```bash
 python emulators/valleyrat/vvas_client.py \
   --profile analysis-framework/malware/valleyrat/config/profiles/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6.json \
+  --allow-network \
   --output out/valleyrat-vvas-profile.json
 ```
 
-The JSON output records the target, sent bytes, declared stage size, header
-match status, response hash, base64 prefix, and whether any stage download was
-requested.
+JSON出力には、接続先、送信バイト列、宣言された段階サイズ、ヘッダー一致状態、応答ハッシュ、Base64接頭辞、段階ダウンロードを要求したかどうかを記録します。
 
-## Comparing results
+## 結果の比較
 
-Compare newly collected emulator output with existing `c2-live` evidence:
+新しく収集したエミュレーター出力を既存の `c2-live` 証拠と比較します。
 
 ```bash
 python emulators/valleyrat/compare_results.py \
-  analysis-results/valleyrat/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6/c2-live/2026-07-13_202.95.8.27_6666.json \
+  analysis-results/malware/valleyrat/versions/unknown/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6/c2-live/2026-07-13_202.95.8.27_6666.json \
   out/valleyrat-vvas-6666.json
 ```
 
-Use `--json` to emit a machine-readable comparison summary.
+`--json` を指定すると、機械可読な比較要約を出力します。
 
-## Relationship to `analysis-framework/common/c2_detector.py`
+## `analysis-framework/common/c2_detector.py`との関係
 
-`analysis-framework/common/c2_detector.py` remains the workflow-integrated,
-bounded C2 liveness checker. The standalone emulator in this directory is for
-profile-driven vvaS protocol emulation, repeatable evidence capture, and
-comparison of observations across time or ports.
+`analysis-framework/common/c2_detector.py` は、ワークフローへ統合した範囲限定C2生存確認ツールです。このディレクトリの単体エミュレーターは、プロファイル駆動のvvaSプロトコル再現、再現可能な証拠取得、時期またはポートが異なる観測の比較に使用します。
 
-## Offline tests
+## オフラインテスト
 
-The unit tests do not contact any external host:
+単体テストは外部ホストへ接続しません。
 
 ```bash
 python -m pytest emulators/valleyrat/tests

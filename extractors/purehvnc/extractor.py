@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import Any, Iterator
 
 import dnfile
+import pefile
 
 from extractors.common import build_result, extract_strings, sha256_bytes
 
@@ -191,9 +192,27 @@ def native_endpoint_candidates(strings: list[str], adjacency: int = 2) -> list[s
 def extract_native_config(data: bytes) -> dict[str, Any]:
     """Extract a conservative native 10FX-framed PureHVNC endpoint profile."""
     strings = extract_strings(data, minimum=3)
-    if b"10FX" not in data and b"XF01" not in data and not any("START_SCREEN" in item for item in strings):
-        raise ValueError("native PureHVNC protocol markers were not found")
+    upper = data.upper()
+    upper_strings = [value.upper() for value in strings]
+    frame_marker = (
+        b"10FX" in upper
+        or b"XF01" in upper
+        or any(marker in value for value in upper_strings for marker in ("10FX", "XF01"))
+    )
+    command_marker = (
+        b"START_SCREEN" in upper
+        or b"SCREENSHOT_PREVIEW" in upper
+        or any(
+            marker in value
+            for value in upper_strings
+            for marker in ("START_SCREEN", "SCREENSHOT_PREVIEW")
+        )
+    )
+    if not frame_marker or not command_marker:
+        raise ValueError("corroborated native PureHVNC protocol markers were not found")
     endpoints = native_endpoint_candidates(strings)
+    if not endpoints:
+        raise ValueError("native PureHVNC endpoint tuple was not found")
     hosts = sorted({value.rsplit(":", 1)[0] for value in endpoints})
     ports = sorted({int(value.rsplit(":", 1)[1]) for value in endpoints})
     return {
@@ -236,11 +255,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
     try:
         config, confidence = extract_direct_config(data)
     except ValueError:
-        if b"CHRD" in data:
+        if data.startswith(b"MZ") and b"CHRD" in data:
             try:
                 config, _metadata = extract_chrd_carrier(data)
                 confidence = "confirmed"
-            except (ValueError, RuntimeError, OSError) as error:
+            except (ValueError, RuntimeError, OSError, pefile.PEFormatError) as error:
                 config, confidence = {"variant": "unrecognized", "endpoints": []}, "unverified"
                 limitations.append(f"CHRD carrier recovery failed validation: {type(error).__name__}.")
         else:

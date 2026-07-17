@@ -2,9 +2,10 @@
 """Enrich low-confidence malware cases with auditable hash-only OSINT.
 
 The collector never uploads a sample and never contacts infrastructure found
-inside a sample. Raw API responses are restricted to an ignored private cache;
-repository output contains only normalized provider evidence, source status,
-references, and a conservative combined attribution.
+inside a sample. Network hash lookups are disabled unless explicitly enabled.
+Raw API responses are restricted to an ignored private cache; repository output
+contains only normalized provider evidence, source status, references, and a
+conservative combined attribution.
 """
 
 from __future__ import annotations
@@ -23,6 +24,12 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 import yaml
+
+from result_layout import (
+    canonical_collection_manifest_path,
+    canonical_collection_source_path,
+    resolve_catalog_case_path,
+)
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 OSINT_START = "<!-- hash-osint:start -->"
@@ -56,6 +63,116 @@ FAMILY_ALIASES = {
     "venomrat": "venomrat", "vidar": "vidar", "wasp stealer": "waspstealer",
     "waspstealer": "waspstealer", "xloader": "formbook", "xworm": "xworm",
 }
+
+
+def _canonical_output_context(
+    output_root: Path,
+    results_root: Path | None,
+    collection_id: str | None,
+) -> tuple[Path, str] | None:
+    """明示指定またはcanonicalな出力パスから成果物コンテキストを解決する。"""
+    if (results_root is None) != (collection_id is None):
+        raise ValueError("results_root and collection_id must be supplied together")
+    aggregate = output_root.resolve()
+    if results_root is not None and collection_id is not None:
+        root = results_root.resolve()
+        expected = canonical_collection_source_path(
+            root, collection_id, "unclassified"
+        ).resolve()
+        if aggregate != expected:
+            raise ValueError(
+                f"aggregate output must be canonical collection source: {expected}"
+            )
+        return root, collection_id
+    parents = aggregate.parents
+    if (
+        aggregate.name == "unclassified"
+        and len(parents) >= 4
+        and parents[0].name == "sources"
+        and parents[2].name == "collections"
+    ):
+        inferred_root = parents[3]
+        inferred_collection = parents[1].name
+        expected = canonical_collection_source_path(
+            inferred_root, inferred_collection, "unclassified"
+        ).resolve()
+        if aggregate != expected:
+            raise ValueError("invalid canonical collection source path")
+        return inferred_root, inferred_collection
+    return None
+
+
+def _validate_collection_membership(
+    results_root: Path,
+    collection_id: str,
+    digests: Iterable[str],
+) -> None:
+    """collection manifestが正本ケースと集約出力を参照していることを検証する。"""
+    manifest_path = canonical_collection_manifest_path(results_root, collection_id)
+    if not manifest_path.is_file():
+        raise ValueError(f"collection manifest is missing: {manifest_path}")
+    document = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    if (
+        document.get("schema_version") != 1
+        or document.get("collection_id") != collection_id
+    ):
+        raise ValueError(f"invalid collection manifest: {manifest_path}")
+    raw_cases = document.get("cases") or []
+    if any(
+        not isinstance(item, dict)
+        or set(item) != {"case_id"}
+        or not str(item["case_id"]).startswith("sha256:")
+        or SHA256.fullmatch(str(item["case_id"])[7:]) is None
+        for item in raw_cases
+    ):
+        raise ValueError(f"invalid collection case membership: {manifest_path}")
+    members = {str(item["case_id"])[7:] for item in raw_cases}
+    missing = sorted(set(digests) - members)
+    if missing:
+        raise ValueError(
+            "summary contains cases absent from collection manifest: "
+            + ", ".join(missing)
+        )
+    raw_sources = document.get("family_sources") or []
+    if any(
+        not isinstance(item, dict) or set(item) != {"family", "path"}
+        for item in raw_sources
+    ):
+        raise ValueError(f"invalid collection family sources: {manifest_path}")
+    sources = {
+        str(item["family"]): str(item["path"])
+        for item in raw_sources
+    }
+    if sources.get("unclassified") != "sources/unclassified":
+        raise ValueError(
+            "collection manifest must map unclassified to sources/unclassified"
+        )
+
+
+def _canonical_case_directories(
+    results_root: Path,
+    digests: Iterable[str],
+) -> dict[str, Path]:
+    """catalogを正本としてケースごとのcanonicalディレクトリを解決する。"""
+    catalog = results_root / "catalog" / "cases.json"
+    if not catalog.is_file():
+        raise ValueError(f"case catalog is missing: {catalog}")
+    output: dict[str, Path] = {}
+    for digest in digests:
+        case_dir = resolve_catalog_case_path(results_root, digest)
+        if not case_dir.is_dir():
+            raise ValueError(f"canonical case directory is missing: {case_dir}")
+        output[digest] = case_dir
+    return output
+
+
+def _relative_markdown_path(target: Path, start: Path) -> str:
+    """同一成果物ツリー内の相対Markdownパスをスラッシュ区切りで返す。"""
+    try:
+        relative = os.path.relpath(target.resolve(), start.resolve())
+    except ValueError as exc:
+        raise ValueError("aggregate and canonical case must share a filesystem") from exc
+    return Path(relative).as_posix()
 
 
 def validate_sha256(value: str) -> str:
@@ -471,7 +588,7 @@ def collect_case(
     *,
     offline_metadata: dict | None = None,
     enabled_sources: set[str] | None = None,
-    network: bool = True,
+    network: bool = False,
     timeout: float = 30.0,
 ) -> dict:
     """Collect raw hash evidence for one case without sample submission."""
@@ -510,28 +627,45 @@ def collect_case(
 
 
 def render_case_osint(record: dict) -> str:
-    """Render one auditable case-level OSINT section."""
+    """監査可能なケース単位のOSINT節を日本語で生成する。"""
     attribution = record["combined_attribution"]
     lines = [
-        OSINT_START, "## Hash OSINT enrichment", "",
-        f"- Combined family: `{attribution['family']}`",
-        f"- Confidence/status: `{attribution['confidence']}` / `{attribution['status']}`",
-        f"- Independent agreeing providers: {attribution['provider_count']}",
-        f"- Collected at: `{record['collected_at']}`",
-        "- Scope: hash metadata only; no sample submission, execution, or infrastructure contact.", "",
-        "### Family evidence", "",
+        OSINT_START, "## ハッシュOSINTによる補強", "",
+        f"- 統合ファミリー: `{attribution['family']}`",
+        f"- 確度／状態: `{attribution['confidence']}`／`{attribution['status']}`",
+        f"- 独立して一致した情報源数: {attribution['provider_count']}件",
+        f"- 収集日時: `{record['collected_at']}`",
+        "- 対象範囲: ハッシュのメタデータのみ。検体の投稿・実行、"
+        "およびインフラへの接続は行っていません。", "",
+        "### ファミリー根拠", "",
     ]
     if record["family_evidence"]:
         for item in record["family_evidence"]:
-            reference = f" ([report]({item['reference']}))" if item.get("reference") else ""
-            lines.append(f"- `{item['provider']}` -> `{item['family']}` from `{item['label']}`{reference}")
+            reference = (
+                f"（[報告]({item['reference']})）"
+                if item.get("reference") else ""
+            )
+            lines.append(
+                f"- 情報源 `{item['provider']}`: ラベル `{item['label']}`から"
+                f"ファミリー `{item['family']}`を観測{reference}"
+            )
     else:
-        lines.append("- No family-specific public label was recovered.")
+        lines.append("- ファミリー固有の公開ラベルは得られませんでした。")
     if attribution["conflicts"]:
-        lines.extend(["", f"- Conflicting family leads retained: `{', '.join(attribution['conflicts'])}`"])
-    lines.extend(["", "### Source status", "", "| Source | Status |", "|---|---|"])
+        lines.extend([
+            "",
+            f"- 競合するファミリー候補を保持: "
+            f"`{', '.join(attribution['conflicts'])}`",
+        ])
+    lines.extend([
+        "", "### 情報源の状態", "",
+        "| 情報源 | 状態 |",
+        "|---|---|",
+    ])
     for source_id, source in record["sources"].items():
-        lines.append(f"| {source_id} | {source.get('status', 'error')} |")
+        lines.append(
+            f"| `{source_id}` | `{source.get('status', 'error')}` |"
+        )
     lines.extend(["", OSINT_END])
     return "\n".join(lines)
 
@@ -543,8 +677,12 @@ def upsert_marked_section(text: str, section: str) -> str:
     return base + "\n\n" + section.strip() + "\n"
 
 
-def render_osint_summary(records: list[dict]) -> str:
-    """Render aggregate enrichment coverage, upgrades, and remaining unknowns."""
+def render_osint_summary(
+    records: list[dict],
+    case_links: dict[str, str] | None = None,
+) -> str:
+    """補強範囲・確度向上・未解決数を集約した日本語報告を生成する。"""
+    case_links = case_links or {}
     family_counts = Counter((item["combined_attribution"]["family"], item["combined_attribution"]["confidence"]) for item in records)
     source_counts: dict[str, Counter] = defaultdict(Counter)
     for item in records:
@@ -554,24 +692,52 @@ def render_osint_summary(records: list[dict]) -> str:
     supported = sum(item["combined_attribution"]["confidence"] in {"medium", "high"} for item in records)
     unresolved = sum(item["combined_attribution"]["family"] == "unknown" or bool(item["combined_attribution"]["conflicts"]) for item in records)
     lines = [
-        "# Hash OSINT enrichment", "",
-        "Low-confidence and unidentified cases were correlated using hash-only public intelligence. Family attribution is promoted to medium only when at least two independent providers agree. Aggregator transports do not count as an extra vote.", "",
-        "## Outcome", "",
-        f"- Targeted cases: {len(records)}", f"- Family lead recovered: {identified}",
-        f"- Supported at medium/high confidence: {supported}", f"- Remaining unknown/conflicting: {unresolved}", "",
-        "## Family distribution", "", "| Family | Confidence | Count |", "|---|---|---:|",
+        "# ハッシュOSINTによる補強", "",
+        "低確度または未識別のケースを、完全一致ハッシュだけを用いた公開情報と"
+        "相関しました。ファミリー帰属を中確度へ引き上げるには、独立した情報源"
+        "2件以上の一致が必要です。集約サービスの転送経路は追加の1票として"
+        "数えません。", "",
+        "## 結果", "",
+        f"- 対象ケース: {len(records)}件",
+        f"- ファミリー候補を取得: {identified}件",
+        f"- 中／高確度の裏付けあり: {supported}件",
+        f"- 未識別／競合が残るケース: {unresolved}件", "",
+        "## ファミリー分布", "",
+        "| ファミリー | 確度 | 件数 |",
+        "|---|---|---:|",
     ]
     for (family, confidence), count in sorted(family_counts.items()):
-        lines.append(f"| {family} | {confidence} | {count} |")
-    lines.extend(["", "## Source coverage", "", "| Source | Status | Count |", "|---|---|---:|"])
+        lines.append(f"| `{family}` | `{confidence}` | {count} |")
+    lines.extend([
+        "", "## 情報源の網羅状況", "",
+        "| 情報源 | 状態 | 件数 |",
+        "|---|---|---:|",
+    ])
     for source, counts in sorted(source_counts.items()):
         for status, count in sorted(counts.items()):
-            lines.append(f"| {source} | {status} | {count} |")
-    lines.extend(["", "## Cases", "", "| SHA-256 | Family | Confidence | Providers |", "|---|---|---|---:|"])
+            lines.append(f"| `{source}` | `{status}` | {count} |")
+    lines.extend([
+        "", "## ケース", "",
+        "| SHA-256 | ファミリー | 確度 | 情報源数 |",
+        "|---|---|---|---:|",
+    ])
     for item in records:
         attr = item["combined_attribution"]
-        lines.append(f"| [{item['sha256']}](cases/{item['sha256']}/README.md) | {attr['family']} | {attr['confidence']} | {attr['provider_count']} |")
-    lines.extend(["", "## Interpretation", "", "A missing public label does not make a file benign. CIRCL known-file context is recorded separately and never supplies a malware-family vote. OTX pulse names remain community evidence. A keyed service is marked unavailable when its required credential is absent; no file is uploaded as a fallback."])
+        target = case_links.get(
+            item["sha256"], f"cases/{item['sha256']}/README.md"
+        )
+        lines.append(
+            f"| [{item['sha256']}]({target}) | `{attr['family']}` | "
+            f"`{attr['confidence']}` | {attr['provider_count']} |"
+        )
+    lines.extend([
+        "", "## 解釈", "",
+        "公開ラベルがないことは、ファイルが無害であることを意味しません。"
+        "CIRCLの既知ファイル文脈は別に記録し、マルウェアファミリーの票には"
+        "使用しません。OTXのパルス名はコミュニティ根拠として扱います。"
+        "APIキーが必要なサービスで認証情報がない場合は利用不可と記録し、"
+        "代替としてファイルをアップロードすることはありません。",
+    ])
     return "\n".join(lines) + "\n"
 
 
@@ -590,15 +756,40 @@ def update_history_from_enrichment(history_path: Path, records: Iterable[dict]) 
         supported = attr["family"] != "unknown" and attr["confidence"] in {"medium", "high"}
         malware_type = attr["family"] if supported else "Unclassified"
         note = (
-            f"Hash-only OSINT enrichment: {attr['family']} at {attr['confidence']} confidence from "
-            f"{attr['provider_count']} independent provider(s); static attribution is retained separately. "
-            "No sample submission, execution, or infrastructure contact."
+            f"完全一致ハッシュだけを用いたOSINT補強: ファミリー{attr['family']}、"
+            f"確度{attr['confidence']}、独立した情報源{attr['provider_count']}件。"
+            "静的解析による帰属は別に保持しています。検体の投稿・実行、"
+            "およびインフラへの接続は行っていません。"
         )
-        block = re.sub(r'^  - malware_type:.*$', f"  - malware_type: {json.dumps(malware_type)}", block, count=1, flags=re.M)
+        block = re.sub(
+            r'^  - malware_type:.*$',
+            lambda _match: f"  - malware_type: {json.dumps(malware_type)}",
+            block,
+            count=1,
+            flags=re.M,
+        )
         block = re.sub(r'^    analysis_level:.*$', "    analysis_level: static_plus_hash_osint", block, count=1, flags=re.M)
-        block = re.sub(r'^      - "family:.*?"$', f"      - {json.dumps('family:' + attr['family'])}", block, count=1, flags=re.M)
-        block = re.sub(r'^      - "confidence:.*?"$', f"      - {json.dumps('confidence:' + attr['confidence'])}", block, count=1, flags=re.M)
-        block = re.sub(r'^    notes:.*$', f"    notes: {json.dumps(note)}", block, count=1, flags=re.M)
+        block = re.sub(
+            r'^      - "family:.*?"$',
+            lambda _match: f"      - {json.dumps('family:' + attr['family'])}",
+            block,
+            count=1,
+            flags=re.M,
+        )
+        block = re.sub(
+            r'^      - "confidence:.*?"$',
+            lambda _match: f"      - {json.dumps('confidence:' + attr['confidence'])}",
+            block,
+            count=1,
+            flags=re.M,
+        )
+        block = re.sub(
+            r'^    notes:.*$',
+            lambda _match: f"    notes: {json.dumps(note, ensure_ascii=False)}",
+            block,
+            count=1,
+            flags=re.M,
+        )
         text = text[:match.start()] + block + text[match.end():]
         updated += 1
     history_path.write_text(text, encoding="utf-8")
@@ -613,25 +804,61 @@ def enrich_batch(
     *,
     private_manifest: Path | None = None,
     enabled_sources: set[str] | None = None,
-    network: bool = True,
+    network: bool = False,
     refresh: bool = False,
     delay: float = 0.0,
     history_path: Path | None = None,
     curated_evidence_path: Path | None = None,
+    results_root: Path | None = None,
+    collection_id: str | None = None,
 ) -> dict:
-    """Collect, normalize, publish, and summarize one low-confidence batch."""
+    """低確度バッチを収集・正規化し、正本ケースと集約先を分離して公開する。"""
+    summary_path = summary_path.resolve()
+    output_root = output_root.resolve()
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    target_cases = select_targets(summary)
+    summary_digests = [
+        validate_sha256(case["sha256"])
+        for case in summary.get("cases") or []
+    ]
+    target_digests = [
+        validate_sha256(case["sha256"])
+        for case in target_cases
+    ]
+    context = _canonical_output_context(
+        output_root, results_root, collection_id
+    )
+    if context is not None:
+        canonical_root, canonical_collection = context
+        _validate_collection_membership(
+            canonical_root, canonical_collection, summary_digests
+        )
+        case_directories = _canonical_case_directories(
+            canonical_root, target_digests
+        )
+    else:
+        case_directories = {
+            digest: output_root / "cases" / digest
+            for digest in target_digests
+        }
     registry = load_source_registry(registry_path)
     offline: dict[str, dict] = {}
     if private_manifest:
         manifest = json.loads(private_manifest.read_text(encoding="utf-8"))
         offline = {str(item.get("sha256")): item.get("detail_metadata") or {} for item in manifest.get("items") or []}
+    output_root.mkdir(parents=True, exist_ok=True)
     cache_root.mkdir(parents=True, exist_ok=True)
     collected_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     records: list[dict] = []
-    target_hashes = {case["sha256"] for case in select_targets(summary)}
+    target_hashes = set(target_digests)
+    case_links = {
+        digest: _relative_markdown_path(
+            case_directories[digest] / "README.md", output_root
+        )
+        for digest in target_digests
+    }
     curated = load_curated_evidence(curated_evidence_path)
-    for index, case in enumerate(select_targets(summary), 1):
+    for index, case in enumerate(target_cases, 1):
         digest = validate_sha256(case["sha256"])
         cache_path = cache_root / f"{digest}.json"
         prior_cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.is_file() else {}
@@ -651,8 +878,9 @@ def enrich_batch(
             public_collected["curated_research"] = {"status": "ok", "response": curated[digest]}
         record = build_public_evidence(digest, case.get("attribution") or {}, public_collected, observed_at)
         records.append(record)
-        case_dir = output_root / "cases" / digest
-        case_dir.mkdir(parents=True, exist_ok=True)
+        case_dir = case_directories[digest]
+        if context is None:
+            case_dir.mkdir(parents=True, exist_ok=True)
         (case_dir / "osint-evidence.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         case_json = case_dir / "case.json"
         if case_json.is_file():
@@ -667,8 +895,15 @@ def enrich_batch(
     by_hash = {item["sha256"]: item for item in records}
     for case in summary.get("cases") or []:
         if case.get("sha256") in by_hash:
-            case["combined_attribution"] = by_hash[case["sha256"]]["combined_attribution"]
-            case["hash_osint"] = {"collected_at": by_hash[case["sha256"]]["collected_at"], "evidence_file": f"cases/{case['sha256']}/osint-evidence.json"}
+            digest = case["sha256"]
+            case["combined_attribution"] = by_hash[digest]["combined_attribution"]
+            case["hash_osint"] = {
+                "collected_at": by_hash[digest]["collected_at"],
+                "evidence_file": _relative_markdown_path(
+                    case_directories[digest] / "osint-evidence.json",
+                    summary_path.parent,
+                ),
+            }
     counts = {
         "targeted": len(records),
         "identified": sum(item["combined_attribution"]["family"] != "unknown" for item in records),
@@ -681,11 +916,21 @@ def enrich_batch(
     summary["hash_osint_enrichment"] = {"collected_at": collected_at, "counts": counts, "summary_file": "osint-summary.json"}
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (output_root / "osint-summary.json").write_text(json.dumps(osint_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    osint_markdown = render_osint_summary(records)
+    osint_markdown = render_osint_summary(records, case_links)
     (output_root / "OSINT.md").write_text(osint_markdown, encoding="utf-8")
     root_readme = output_root / "README.md"
     if root_readme.is_file():
-        root_section = OSINT_START + "\n## Hash OSINT enrichment\n\n" + f"- Targeted: {counts['targeted']}\n- Family lead recovered: {counts['identified']}\n- Medium/high support: {counts['supported']}\n- Remaining unknown/conflicting: {counts['unresolved_or_conflicting']}\n- Details: [OSINT.md](OSINT.md)\n" + OSINT_END
+        root_section = (
+            OSINT_START
+            + "\n## ハッシュOSINTによる補強\n\n"
+            + f"- 対象ケース: {counts['targeted']}件\n"
+            + f"- ファミリー候補を取得: {counts['identified']}件\n"
+            + f"- 中／高確度の裏付けあり: {counts['supported']}件\n"
+            + f"- 未識別／競合が残るケース: "
+            f"{counts['unresolved_or_conflicting']}件\n"
+            + "- 詳細: [OSINT.md](OSINT.md)\n"
+            + OSINT_END
+        )
         root_readme.write_text(upsert_marked_section(root_readme.read_text(encoding="utf-8"), root_section), encoding="utf-8")
     history_updated = update_history_from_enrichment(history_path, records) if history_path else 0
     return {**counts, "history_updated": history_updated}
@@ -696,12 +941,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--results-root",
+        type=Path,
+        help=(
+            "canonical成果物ルート。--collection-idと併用し、"
+            "--outputとの一致を検証する"
+        ),
+    )
+    parser.add_argument(
+        "--collection-id",
+        help="canonical collection ID（--results-rootと併用）",
+    )
     parser.add_argument("--registry", required=True, type=Path)
     parser.add_argument("--cache", required=True, type=Path)
     parser.add_argument("--private-manifest", type=Path)
     parser.add_argument("--history", type=Path)
     parser.add_argument("--source", action="append", dest="sources")
-    parser.add_argument("--offline", action="store_true")
+    parser.add_argument(
+        "--allow-network",
+        action="store_true",
+        help="explicitly allow exact-hash provider lookups; disabled by default",
+    )
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--curated-evidence", type=Path)
     parser.add_argument("--delay", type=float, default=0.2)
@@ -715,11 +976,13 @@ def main(argv: list[str] | None = None) -> int:
         args.summary, args.output, args.registry, args.cache,
         private_manifest=args.private_manifest,
         enabled_sources=set(args.sources) if args.sources else None,
-        network=not args.offline,
+        network=args.allow_network,
         refresh=args.refresh,
         delay=max(0.0, args.delay),
         history_path=args.history,
         curated_evidence_path=args.curated_evidence,
+        results_root=args.results_root,
+        collection_id=args.collection_id,
     )
     print(json.dumps(counts, indent=2))
     return 0

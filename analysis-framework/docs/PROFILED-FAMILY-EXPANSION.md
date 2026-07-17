@@ -1,93 +1,77 @@
-# Profile-defined family expansion, 2026-07-17
+# profile 定義によるファミリー拡張（2026-07-17）
 
-## Scope and verified outcome
+## 対象と検証結果
 
-The ten newest MalwareBazaar samples for each of ten additional exact signatures
-were acquired as encrypted ZIP archives and analyzed statically. The final
-validation covered 100/100 inner SHA-256 values, ten detector routes, ten config
-extractor routes, all public case files, and every offline safety flag.
+追加 10 signature について、MalwareBazaar で新しい順に各 10 検体を暗号化 ZIP として取得し、静的解析しました。最終 validator は内部 SHA-256 100/100 件、detector 10 route、config extractor 10 route、公開 case file、offline safety flag を検証しています。
 
-| Family | Samples | Main submitted formats | Recovered layers | Publishable static findings |
-| --- | ---: | --- | ---: | --- |
-| AsyncRAT | 10 | XLSM, JS, HTA, PS1, EXE | 1 | 3 stage URL candidates |
-| XWorm | 10 | JS, VBS, HTA | 0 | none |
-| QuasarRAT | 10 | EXE, BAT | 2; 3 size-gated | none |
-| njRAT | 10 | EXE, JS, VBS | 3 | 4 public-IP discovery services; excluded from IOC/C2 |
-| DarkComet | 10 | EXE | 8 | none |
-| DCRat | 10 | EXE, PS1, VBS, JS | 6 | 1 stage URL candidate |
-| RedLine Stealer | 10 | EXE, CAB, RAR, ISO | 4; 2 size-gated | 1 C2 candidate and 1 stage URL |
-| Snake Keylogger | 10 | JS, EXE | 2 | none |
-| GuLoader | 10 | VBS, JS, EXE | 2 | none |
-| HijackLoader | 10 | MSI, EXE, PS1 | 1; 1 size-gated | none |
+| ファミリー | 検体数 | 主な提出形式 | 回収 layer | 公開可能な静的 finding |
+|---|---:|---|---:|---|
+| AsyncRAT | 10 | XLSM、JS、HTA、PS1、EXE | 1 | stage URL 候補 3 件 |
+| XWorm | 10 | JS、VBS、HTA | 0 | なし |
+| QuasarRAT | 10 | EXE、BAT | 2、size gate 3 | なし |
+| njRAT | 10 | EXE、JS、VBS | 3 | 公開 IP 確認 service 4 件（IOC/C2 から除外） |
+| DarkComet | 10 | EXE | 8 | なし |
+| DCRat | 10 | EXE、PS1、VBS、JS | 6 | stage URL 候補 1 件 |
+| RedLine Stealer | 10 | EXE、CAB、RAR、ISO | 4、size gate 2 | C2 候補 1 件、stage URL 1 件 |
+| Snake Keylogger | 10 | JS、EXE | 2 | なし |
+| GuLoader | 10 | VBS、JS、EXE | 2 | なし |
+| HijackLoader | 10 | MSI、EXE、PS1 | 1、size gate 1 | なし |
 
-No family-specific encrypted config structure was fully recovered in this batch.
-Accordingly, the source signature establishes reviewed family selection, but does
-not turn embedded strings into confirmed C2. The only C2-role literal retained was
-`80.234.41.242:7895` in a RedLine Stealer case, at candidate confidence. Five
-delivery-stage URLs remain IOC candidates. Certificate, documentation, placeholder,
-and public-IP discovery values are not emitted as C2 targets.
+この batch では、ファミリー固有の暗号化 config 構造を完全には回収できませんでした。source signature はレビュー対象のファミリー選択を裏付けますが、埋込み文字列を確認済み C2 へ昇格させる根拠にはなりません。C2 役割で残した literal は RedLine Stealer case の `80.234.41.242:7895` だけで、確度は candidate です。配布 stage URL 5 件は IOC 候補として残し、証明書、文書、placeholder、公開 IP 確認値は C2 target から除外しています。
 
-No sample or recovered layer was executed. Extracted infrastructure was not
-contacted, and liveness was not inferred.
+検体と回収 layer は実行していません。抽出インフラへ接続せず、稼働状態も推測していません。
 
-## Component relationships
+## component の関係
 
 ```mermaid
 flowchart LR
-    MB["MalwareBazaar exact-signature query"] --> ACQ["malwarebazaar_batch.py<br/>encrypted ZIP + retry queue"]
-    ACQ --> MAN["private combined manifest<br/>hash and local ZIP path"]
-    MAN --> TRIAGE["bounded recursive static triage<br/>unpackers/"]
-    TRIAGE --> CACHE["private static cache<br/>no execution"]
-    PROFILE["windows_family_profiles.json<br/>markers, keys, transport, confirmation"] --> DET["profiled_family_detector.py"]
+    MB["MalwareBazaar exact-signature query"] --> ACQ["malwarebazaar_batch.py<br/>暗号化 ZIP と retry queue"]
+    ACQ --> MAN["非公開 combined manifest<br/>hash と local ZIP path"]
+    MAN --> TRIAGE["制限付き再帰静的 triage<br/>unpackers/"]
+    TRIAGE --> CACHE["非公開 static cache<br/>未実行"]
+    PROFILE["windows_family_profiles.json<br/>marker、key、transport、確認条件"] --> DET["profiled_family_detector.py"]
     PROFILE --> EXT["profiled_family.py<br/>config extractor"]
-    PROFILE --> DEF["definitions/malware + workflows"]
+    PROFILE --> DEF["definitions/malware と workflows"]
     PROFILE --> EMU["emulators/families/lab.py<br/>synthetic loopback-only protocol"]
     MAN --> DET
     MAN --> EXT
     CACHE --> REPORT["generate_family_expansion_reports.py"]
     DET --> REPORT
-    EXT --> ROLE["URL/endpoint role filter"]
-    ROLE --> C2["c2_candidate_detector.py<br/>passive query plan only"]
+    EXT --> ROLE["URL／endpoint role filter"]
+    ROLE --> C2["c2_candidate_detector.py<br/>受動 query plan のみ"]
     C2 --> REPORT
-    REPORT --> RESULTS["analysis-results/<family>/<run-id>"]
-    RESULTS --> VALIDATE["validate_family_expansion.py<br/>100-case safety/integrity check"]
+    REPORT --> CASES["malware/<family>/versions/unknown/cases/<sha256>"]
+    REPORT --> COLLECTION["collections/<run-id>/sources/<family>"]
+    CASES --> VALIDATE["validate_family_expansion.py<br/>安全性・完全性検査"]
+    COLLECTION --> VALIDATE
 ```
 
-The ten `analysis-framework/malware/<family>/detect.py` files are deliberately
-thin adapters. Executable detection logic is centralized in
-`profiled_family_detector.py`; extractor behavior is centralized in
-`extractors/profiled_family.py`; family differences are data in the profile JSON.
-Declarative YAML selects allowlisted offline steps from `asa.catalog`.
+`analysis-framework/malware/<family>/detect.py` の 10 file は薄い adapter です。実行可能な detection logic は `profiled_family_detector.py`、extractor 挙動は `extractors/profiled_family.py` に集約し、ファミリー差分は profile JSON に置いています。declarative YAML は `asa.catalog` で許可した offline step だけを選びます。
 
-## Network-role model
+## 通信値の role model
 
-| Role | Included in IOC list | Included in C2 observation plan | Interpretation |
-| --- | --- | --- | --- |
-| `c2_candidate` | yes | yes | Requires decoded config and family protocol correlation |
-| `stage_url_candidate` | yes | no | Delivery or payload location, not C2 by itself |
-| `host_discovery_service` | no | no | Public IP/geolocation lookup used as behavior context |
-| certificate/documentation | no | no | Build/runtime metadata without malicious ownership evidence |
+| role | IOC 一覧 | C2 observation plan | 解釈 |
+|---|---|---|---|
+| `c2_candidate` | 含む | 含む | 復号 config とファミリー protocol の相関が必要 |
+| `stage_url_candidate` | 含む | 含めない | 配布先または payload location。単独では C2 ではない |
+| `host_discovery_service` | 含めない | 含めない | 挙動文脈として使う公開 IP／位置情報確認 service |
+| 証明書／文書 | 含めない | 含めない | 悪性所有の根拠がない build/runtime metadata |
 
-The C2 detector creates Shodan query strings offline. It does not query Shodan,
-open a socket, fetch a stage, calculate a live JARM, or claim service liveness.
-The emulator uses a synthetic uint32-length-plus-JSON frame that is explicitly not
-wire compatible with the malware. It binds and connects only to literal loopback
-addresses.
+C2 detector は Shodan query 文字列を offline で作るだけです。Shodan query、socket 接続、stage 取得、live JARM 計算、service 稼働判定は行いません。emulator は malware と wire compatible ではない synthetic な uint32-length＋JSON frame を使い、literal loopback address だけへ bind／connect します。
 
-## Reproducible order
+## 再現可能な順序
 
-1. Run `analysis_safety_check.ps1` and keep its output outside the repository.
-2. Query/download encrypted archives with `malwarebazaar_batch.py`.
-3. If `pending` is non-zero, finish other static work and rerun the same command.
-   Existing archives are reused; `retry_queue` hashes are attempted again.
-4. Run bounded recursive static triage into a private cache.
-5. Scaffold or refresh the exact-hash family registries and declarative YAML.
-6. Generate publish-safe reports, YARA, config output, and passive C2 plans.
-7. Run the 100-case validator.
-8. Run unit tests, pydoc verification, YARA compilation, and `git diff --check`.
-9. Run the ending safety check; do not commit its output.
+1. `analysis_safety_check.ps1` を実行し、出力は repository 外に置く。
+2. `malwarebazaar_batch.py` で暗号化 archive を query／取得する。
+3. `pending` が 0 でなければ他の静的作業を先に終え、同じ command を再実行する。既存 archive を再利用し、`retry_queue` の hash だけを再試行する。
+4. 制限付き再帰静的 triage を非公開 cache へ出力する。
+5. exact-hash family registry と declarative YAML を作成または更新する。
+6. 公開可能 report、YARA、config、受動 C2 plan を生成する。
+7. 100 case validator を実行する。
+8. unit test、pydoc 検証、YARA compile、`git diff --check` を実行する。
+9. 終了時 safety check を実行し、その出力は commit しない。
 
-Representative commands from the repository root:
+repository root からの代表 command:
 
 ```powershell
 python analysis-framework/common/malwarebazaar_batch.py `
@@ -97,7 +81,8 @@ python analysis-framework/common/malwarebazaar_batch.py `
 python analysis-framework/common/generate_family_expansion_reports.py `
   --manifest C:\malware-lab\family-expansion-YYYYMMDD\combined-manifest.json `
   --cache C:\malware-lab\family-expansion-analysis-YYYYMMDD `
-  --output-root analysis-results
+  --output-root analysis-results `
+  --run-id malwarebazaar-YYYYMMDD
 
 python analysis-framework/common/validate_family_expansion.py `
   --manifest C:\malware-lab\family-expansion-YYYYMMDD\combined-manifest.json `
@@ -106,48 +91,39 @@ python analysis-framework/common/validate_family_expansion.py `
   --run-id malwarebazaar-YYYYMMDD
 ```
 
-## Output image and failure checks
+## 出力構成と失敗時の扱い
 
 ```text
-analysis-results/<family>/malwarebazaar-20260717/
-  README.md
-  IOC-LIST.md
-  manifest.json
-  rules/yara/<family>_profile.yar
-  cases/<sha256>/
-    README.md
-    IOC-LIST.md
-    indicators.json
-    config.json
-    c2-observation-plan.json
+analysis-results/
+├─ malware/<family>/versions/unknown/cases/<sha256>/
+│  ├─ README.md
+│  ├─ IOC-LIST.md
+│  ├─ indicators.json
+│  ├─ config.json
+│  ├─ c2-observation-plan.json
+│  └─ metadata.json
+└─ collections/<run-id>/
+   ├─ manifest.json                 # case_id と family_sources
+   └─ sources/<family>/
+      ├─ README.md
+      ├─ IOC-LIST.md
+      ├─ manifest.json
+      └─ rules/yara/<family>_profile.yar
 ```
 
-- `retry_pending > 0`: rerun acquisition later; do not silently replace a newest
-  selected hash with an older sample.
-- Hash mismatch: quarantine the archive metadata and reacquire; do not analyze it.
-- `root_size_gate_over_32_mib`: record the unresolved bound. A size gate is not an
-  unpacking success or benign verdict.
-- No marker/config: retain exact-signature attribution separately from config and
-  C2 confidence.
-- Only discovery/certificate/doc URLs: report behavior context, not IOC/C2.
-- Any `sample_executed=true`, `network_contacted=true`, or executable under the
-  public result tree: validation must fail.
+- `retry_pending > 0`: 後で取得を再実行し、新しい選択 hash を古い検体で暗黙に置換しない。
+- hash 不一致: archive metadata を隔離して再取得し、解析しない。
+- `root_size_gate_over_32_mib`: 未解決の上限として記録する。size gate は unpack 成功や benign 判定ではない。
+- marker／config なし: exact-signature 帰属と config／C2 確度を分離して残す。
+- discovery／証明書／文書 URL だけ: IOC／C2 ではなく挙動文脈として報告する。
+- `sample_executed=true`、`network_contacted=true`、または公開成果物内の executable: validation を失敗させる。
 
-## Detection material and false positives
+IOC Markdown は `種別 (Type)`、`値 (Value)`、`役割 (Role)`、`確度 (Confidence)`、`根拠 (Source)` の 5 列で統一します。
 
-Each family run contains a medium-confidence marker-cluster YARA rule. It combines
-multiple strings and a size bound; it still requires benign-corpus validation.
-Exact hashes are high precision but have no variant coverage. A shared Sigma
-template for script hosts plus explicit remote-content syntax is stored under
-`analysis-results/_shared/rules/sigma/`; it is low confidence because software
-deployment and administration scripts can overlap. Direct PE cases do not receive
-invented process, registry, or network events.
+## 検知 material と誤検知
 
-## Duplication audit
+family source ごとに中信頼の marker-cluster YARA rule を置きます。複数文字列と size 上限を組み合わせますが、benign corpus 検証が必要です。exact hash は高精度でも亜種を検出できません。script host と明示的 remote-content syntax の共有 Sigma template は `analysis-results/_shared/rules/sigma/` に置きます。software 配布や管理 script と重なるため低信頼です。直接 PE case に process、registry、network event を補いません。
 
-An AST-normalized scan initially found seven structural duplicate groups among 560
-implementation functions. Archive member validation, loopback enforcement, and the
-one-shot loopback collector were centralized in `unpackers/path_safety.py` and
-`emulators/common.py`. The post-refactor scan covered 549 implementation functions
-and left one group: three intentionally uniform CLI parser builders. Forty focused
-regression tests passed after the refactor.
+## 重複監査
+
+AST 正規化 scan では当初 560 implementation function 中 7 structural duplicate group を検出しました。archive member validation、loopback 強制、one-shot loopback collector を `unpackers/path_safety.py` と `emulators/common.py` に集約しました。refactor 後は 549 implementation function を調べ、意図的に均一な CLI parser builder 3 件の 1 group だけが残りました。refactor 後の focused regression test は 40 件成功しています。

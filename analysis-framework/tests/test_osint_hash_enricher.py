@@ -76,11 +76,48 @@ def test_collect_case_uses_offline_metadata(monkeypatch: pytest.MonkeyPatch) -> 
     """Use the private MalwareBazaar snapshot without issuing a network request."""
     monkeypatch.setattr(osint, "collect_network_source", lambda *args, **kwargs: {"status": "not_found"})
     registry = {"sources": {"malwarebazaar": {"enabled": True}, "circl_hashlookup": {"enabled": True, "endpoint": "https://x/{sha256}"}}}
-    result = osint.collect_case("a" * 64, registry, offline_metadata={"tags": []})
+    result = osint.collect_case("a" * 64, registry, offline_metadata={"tags": []}, network=True)
     assert result["malwarebazaar"]["status"] == "ok"
     assert result["circl_hashlookup"]["status"] == "not_found"
     monkeypatch.setattr(osint, "collect_network_source", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("secret detail")))
-    assert osint.collect_case("a" * 64, registry, offline_metadata={"tags": []})["circl_hashlookup"]["reason"] == "RuntimeError during hash lookup"
+    assert osint.collect_case(
+        "a" * 64, registry, offline_metadata={"tags": []}, network=True,
+    )["circl_hashlookup"]["reason"] == "RuntimeError during hash lookup"
+
+
+def test_collect_case_defaults_to_no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Do not invoke a provider unless the caller explicitly enables network."""
+    monkeypatch.setattr(
+        osint,
+        "collect_network_source",
+        lambda *args, **kwargs: pytest.fail("network collector must not be called"),
+    )
+    registry = {
+        "sources": {
+            "circl_hashlookup": {
+                "enabled": True,
+                "endpoint": "https://example.test/{sha256}",
+            },
+        },
+    }
+    result = osint.collect_case("f" * 64, registry)
+    assert result["circl_hashlookup"] == {
+        "status": "not_queried",
+        "reason": "network collection disabled",
+    }
+
+
+def test_cli_requires_positive_network_opt_in() -> None:
+    """Expose only a positive network acknowledgement and default it off."""
+    required = [
+        "--summary", "summary.json", "--output", "out", "--registry", "sources.yaml",
+        "--cache", "cache",
+    ]
+    offline = osint.build_parser().parse_args(required)
+    online = osint.build_parser().parse_args([*required, "--allow-network"])
+    assert offline.allow_network is False
+    assert online.allow_network is True
+    assert not hasattr(offline, "offline")
 
 
 def test_public_record_and_markdown_upsert_are_publish_safe() -> None:
@@ -152,3 +189,162 @@ def test_public_failure_reason_hides_credential_names() -> None:
         "2026-07-17T00:00:00+00:00",
     )
     assert "VT_API_KEY" not in json.dumps(record)
+
+
+def test_markdown_renderers_are_japanese_and_keep_enums_as_code() -> None:
+    """日本語本文と技術enumの保全、canonicalリンク差し替えを確認する。"""
+    digest = "7" * 64
+    record = {
+        "sha256": digest,
+        "collected_at": "2026-07-17T00:00:00+00:00",
+        "family_evidence": [{
+            "provider": "triage",
+            "family": "stealc",
+            "label": "StealC",
+            "reference": "https://example.test/report",
+        }],
+        "combined_attribution": {
+            "family": "stealc",
+            "confidence": "medium",
+            "status": "supported",
+            "provider_count": 2,
+            "conflicts": [],
+        },
+        "sources": {"triage": {"status": "ok"}},
+    }
+    section = osint.render_case_osint(record)
+    assert "## ハッシュOSINTによる補強" in section
+    assert "### ファミリー根拠" in section
+    assert "`stealc`" in section
+    assert "## Hash OSINT enrichment" not in section
+
+    link = "../../../../malware/unclassified/case/README.md"
+    aggregate = osint.render_osint_summary([record], {digest: link})
+    assert "# ハッシュOSINTによる補強" in aggregate
+    assert "| 情報源 | 状態 | 件数 |" in aggregate
+    assert f"]({link})" in aggregate
+    assert "`medium`" in aggregate
+    assert record["combined_attribution"]["confidence"] == "medium"
+
+
+def test_canonical_output_separates_cases_and_validates_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ケース正本とcollection集約を分離し、リンクとmanifestを整合させる。"""
+    repository = tmp_path / "r"
+    results = repository / "analysis-results"
+    collection_id = "malwarebazaar-unknown-20260717"
+    aggregate = (
+        results / "collections" / collection_id / "sources" / "unclassified"
+    )
+    digest = "8" * 64
+    case_dir = (
+        results
+        / "malware"
+        / "unclassified"
+        / "versions"
+        / "unknown"
+        / "cases"
+        / digest
+    )
+    case_dir.mkdir(parents=True)
+    (case_dir / "README.md").write_text("# 未分類ケース\n", encoding="utf-8")
+    (case_dir / "case.json").write_text(
+        json.dumps({"sha256": digest}) + "\n", encoding="utf-8"
+    )
+    (results / "catalog").mkdir(parents=True)
+    (results / "catalog" / "cases.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "cases": {
+                digest: {
+                    "case_id": f"sha256:{digest}",
+                    "case_kind": "unclassified",
+                    "family": "unclassified",
+                    "version_key": "unknown",
+                    "canonical_path": case_dir.relative_to(repository).as_posix(),
+                },
+            },
+        }),
+        encoding="utf-8",
+    )
+    collection_root = results / "collections" / collection_id
+    collection_root.mkdir(parents=True)
+    manifest_path = collection_root / "manifest.json"
+    manifest_path.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "collection_id": collection_id,
+            "family_sources": [{
+                "family": "unclassified",
+                "path": "sources/unclassified",
+            }],
+            "cases": [{"case_id": f"sha256:{digest}"}],
+        }),
+        encoding="utf-8",
+    )
+    manifest_before = manifest_path.read_bytes()
+    aggregate.mkdir(parents=True)
+    summary_path = aggregate / "summary.json"
+    summary_path.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "cases": [{
+                "sha256": digest,
+                "attribution": {
+                    "family": "unknown",
+                    "confidence": "low",
+                    "evidence": [],
+                },
+            }],
+        }),
+        encoding="utf-8",
+    )
+    (aggregate / "README.md").write_text("# 集約\n", encoding="utf-8")
+    registry = repository / "sources.yaml"
+    registry.write_text(
+        "schema_version: 1\n"
+        "policy: {sample_submission: prohibited}\n"
+        "sources:\n"
+        "  circl_hashlookup:\n"
+        "    enabled: true\n"
+        "    endpoint: 'https://example.test/{sha256}'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        osint,
+        "collect_network_source",
+        lambda *_args, **_kwargs: pytest.fail(
+            "network collector must not be called"
+        ),
+    )
+
+    counts = osint.enrich_batch(
+        summary_path,
+        aggregate,
+        registry,
+        repository / "cache",
+        results_root=results,
+        collection_id=collection_id,
+    )
+
+    assert counts["targeted"] == 1
+    assert not (aggregate / "cases").exists()
+    assert (case_dir / "osint-evidence.json").is_file()
+    assert "## ハッシュOSINTによる補強" in (
+        case_dir / "README.md"
+    ).read_text(encoding="utf-8")
+    osint_markdown = (aggregate / "OSINT.md").read_text(encoding="utf-8")
+    match = __import__("re").search(
+        rf"\[{digest}\]\(([^)]+)\)", osint_markdown
+    )
+    assert match is not None
+    assert (aggregate / match.group(1)).resolve() == (
+        case_dir / "README.md"
+    ).resolve()
+    assert (aggregate / match.group(1)).resolve().is_file()
+    updated_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    evidence_link = updated_summary["cases"][0]["hash_osint"]["evidence_file"]
+    assert (summary_path.parent / evidence_link).resolve().is_file()
+    assert manifest_path.read_bytes() == manifest_before

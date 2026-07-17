@@ -1,4 +1,4 @@
-"""Generate deterministic IOC-only Markdown lists for every published analysis."""
+"""公開済み解析ごとに、決定的な IOC 専用 Markdown 一覧を生成する。"""
 
 from __future__ import annotations
 
@@ -13,13 +13,21 @@ from typing import Iterable
 
 import yaml
 
+from result_layout import resolve_catalog_case_path
+
+
+IOC_HEADER = "| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |"
+IOC_SEPARATOR = "|---|---|---|---|---|"
+
 HASH_RE = re.compile(r"(?i)(?<![0-9a-f])([0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{32})(?![0-9a-f])")
 URL_RE = re.compile(r"(?i)https?://[^\s<>\"'`|]+")
 ENDPOINT_RE = re.compile(r"(?i)(?<![\w.-])((?:[a-z0-9-]+\.)+[a-z]{2,63}|(?:\d{1,3}\.){3}\d{1,3}):(\d{1,5})(?:/tcp)?")
 IP_RE = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
 DOMAIN_RE = re.compile(r"(?i)^(?:[a-z0-9-]+\.)+[a-z]{2,63}$")
 CASE_HASH_RE = re.compile(r"(?i)^[0-9a-f]{64}$")
-RELEVANT_HEADING = re.compile(r"(?i)(ioc|c2|network|infrastructure|endpoint|config|通信|インフラ)")
+RELEVANT_HEADING = re.compile(
+    r"(?i)(ioc|c2|network|infrastructure|endpoint|config|通信|ネットワーク|インフラ|エンドポイント|設定|侵害指標)"
+)
 REFERENCE_HOSTS = {
     "tria.ge",
     "bazaar.abuse.ch",
@@ -52,15 +60,38 @@ EXCLUSION_MARKERS = (
     "legitimate ",
     "shared edge",
     "cloudflare edge",
+    "cloudflare-関連",
+    "インフラ文脈のみ",
+    "インフラ 文脈 のみ",
 )
 EMPTY_VALUES = {"", "none", "none recovered", "n/a", "not available", "unresolved", "unknown", "-"}
 CONFIDENCE_ORDER = {"confirmed": 5, "high": 5, "medium": 4, "inferred": 3, "low": 2, "unverified": 1, "recorded": 3}
 SOURCE_ORDER = {"directory": 6, "iocs.json": 5, "config.json": 5, "analysis_history": 4, "README": 2}
+NON_IOC_ROLES = {
+    "certificate_service",
+    "documentation_reference",
+    "host_discovery_service",
+}
+NON_IOC_MARKERS = {"context_only", "not_ioc", "not_c2", "dual-use"}
+IOC_TYPE_LABELS = {
+    "domain": "ドメイン",
+    "endpoint": "接続先",
+}
+IOC_CONFIDENCE_LABELS = {
+    "confirmed": "確認済み",
+    "high": "高",
+    "inferred": "推定",
+    "low": "低",
+    "medium": "中",
+    "recorded": "記録済み",
+    "unverified": "未検証",
+}
+IOC_ROLE_LABELS = {"delivery": "配布"}
 
 
 @dataclass(frozen=True)
 class Indicator:
-    """One publish-safe indicator with provenance and confidence."""
+    """根拠と確度を持つ、公開可能な単一の指標。"""
 
     type: str
     value: str
@@ -70,7 +101,7 @@ class Indicator:
 
 
 def sanitize_url(value: str) -> str | None:
-    """Remove credentials, query data, and fragments while preserving IOC paths."""
+    """IOC のパスを維持しながら、認証情報、クエリ、フラグメントを除去する。"""
     try:
         parsed = urllib.parse.urlsplit(value.rstrip(".,;)]}"))
     except ValueError:
@@ -81,11 +112,17 @@ def sanitize_url(value: str) -> str | None:
         port = f":{parsed.port}" if parsed.port else ""
     except ValueError:
         return None
-    return urllib.parse.urlunsplit((parsed.scheme.lower(), f"{parsed.hostname.lower()}{port}", parsed.path, "", ""))
+    host = parsed.hostname.lower()
+    try:
+        if ipaddress.ip_address(host).version == 6:
+            host = f"[{host}]"
+    except ValueError:
+        pass
+    return urllib.parse.urlunsplit((parsed.scheme.lower(), f"{host}{port}", parsed.path, "", ""))
 
 
 def indicator_type(value: str) -> str | None:
-    """Classify a normalized value as a publishable IOC type."""
+    """正規化済みの値を、公開可能な IOC 種別へ分類する。"""
     lowered = value.lower().strip()
     if lowered in EMPTY_VALUES or "<redacted>" in lowered:
         return None
@@ -106,7 +143,10 @@ def indicator_type(value: str) -> str | None:
         pass
     if re.match(r"(?i)^(?:[a-z]:\\|%[a-z_]+%\\|/)", value):
         return "file_path"
-    if re.search(r"(?i)\.(?:exe|dll|sys|js|jse|vbs|ps1|bin|dat|ini|msi|hta|lnk|asp|php|zip|rar|7z)$", value):
+    if re.search(
+        r"(?i)\.(?:exe|dll|sys|js|jse|vbs|ps1|bin|dat|ini|msi|hta|lnk|asp|php|zip|rar|7z|json|csv|ya?ml|md|txt)$",
+        value,
+    ):
         return "file_name"
     if lowered.startswith("sha256:") and re.fullmatch(r"sha256:[0-9a-f]{64}", lowered):
         return "container_digest"
@@ -116,7 +156,7 @@ def indicator_type(value: str) -> str | None:
 
 
 def normalize_value(value: str) -> tuple[str, str] | None:
-    """Normalize one candidate and return its type and safe value."""
+    """単一の候補を正規化し、種別と安全な値を返す。"""
     cleaned = value.strip().strip("`\"'").rstrip(".,;)]}")
     if cleaned.lower().endswith("/tcp") and ENDPOINT_RE.fullmatch(cleaned.lower()):
         cleaned = cleaned[:-4]
@@ -143,7 +183,7 @@ def normalize_value(value: str) -> tuple[str, str] | None:
 
 
 def confidence_from_text(text: str, default: str = "recorded") -> str:
-    """Map explicit confidence wording to a compact normalized label."""
+    """明示された確度表現を、短い正規化ラベルへ変換する。"""
     lowered = text.lower()
     if any(item in lowered for item in ("confirmed", "確定", "高", "confirmed_static", "confirmed_config")):
         return "confirmed"
@@ -155,12 +195,18 @@ def confidence_from_text(text: str, default: str = "recorded") -> str:
 
 
 def indicators_from_text(text: str, role: str, confidence: str, source: str) -> list[Indicator]:
-    """Extract hashes and network indicators from an explicitly relevant text fragment."""
+    """明示的に関連する文章片からハッシュとネットワーク指標を抽出する。"""
     if any(marker in text.lower() for marker in EXCLUSION_MARKERS):
         return []
     values: list[str] = []
     text_without_urls = URL_RE.sub(" ", text)
-    values.extend(match.group(1) for match in HASH_RE.finditer(text_without_urls))
+    hash_context = f"{source} {text}".lower()
+    allow_hash = role == "file_ioc" or any(
+        marker in hash_context
+        for marker in ("ioc", "侵害指標", "hash", "ハッシュ", "digest", "sha1", "sha-1", "sha256", "sha-256", "md5", "fingerprint", "指紋")
+    )
+    if allow_hash:
+        values.extend(match.group(1) for match in HASH_RE.finditer(text_without_urls))
     values.extend(match.group(0) for match in URL_RE.finditer(text))
     values.extend(f"{match.group(1)}:{match.group(2)}" for match in ENDPOINT_RE.finditer(text))
     values.extend(IP_RE.findall(text))
@@ -174,13 +220,11 @@ def indicators_from_text(text: str, role: str, confidence: str, source: str) -> 
         if not normalized:
             continue
         kind, safe_value = normalized
-        if kind == "file_name" and role not in {"file_ioc", "config_ioc"}:
+        if kind in {"file_name", "file_path"}:
             continue
-        if (
-            kind == "domain"
-            and safe_value.rsplit(".", 1)[-1] in {"client", "core"}
-            and any(character.isupper() for character in value)
-        ):
+        if kind in {"md5", "sha1", "sha256", "container_digest"} and not allow_hash:
+            continue
+        if kind == "domain" and safe_value.rsplit(".", 1)[-1] in {"client", "core"}:
             continue
         key = (kind, safe_value.lower())
         if key not in seen:
@@ -190,7 +234,7 @@ def indicators_from_text(text: str, role: str, confidence: str, source: str) -> 
 
 
 def _role_from_heading(heading: str) -> str:
-    """Return a stable IOC role for an English or Japanese report heading."""
+    """英語または日本語の報告書見出しから、安定した IOC 役割を返す。"""
     lowered = heading.lower()
     if "c2" in lowered:
         return "c2_or_network_ioc"
@@ -208,7 +252,7 @@ def _role_from_heading(heading: str) -> str:
 
 
 def read_relevant_markdown(path: Path) -> list[Indicator]:
-    """Extract only values under explicit IOC, C2, network, or config headings."""
+    """明示的な IOC、C2、ネットワーク、設定の見出し配下だけから値を抽出する。"""
     if not path.exists():
         return []
     heading = ""
@@ -231,7 +275,7 @@ def read_relevant_markdown(path: Path) -> list[Indicator]:
 
 
 def indicators_from_ioc_json(path: Path) -> list[Indicator]:
-    """Extract supported indicators from a case-local structured IOC document."""
+    """ケース内の構造化 IOC 文書から、対応する指標を抽出する。"""
     if not path.exists():
         return []
     value = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -276,7 +320,7 @@ def indicators_from_ioc_json(path: Path) -> list[Indicator]:
 
 
 def indicators_from_config(path: Path) -> list[Indicator]:
-    """Read only normalized extractor findings from a config JSON output."""
+    """設定 JSON 出力から、正規化済み抽出結果だけを読み取る。"""
     if not path.exists():
         return []
     value = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -306,27 +350,55 @@ def indicators_from_config(path: Path) -> list[Indicator]:
 
 
 def load_history(path: Path) -> dict[str, dict]:
-    """Index analysis-history entries by normalized result directory."""
+    """正規化した結果ディレクトリ別に、解析履歴の項目を索引化する。"""
     value = yaml.safe_load(path.read_text(encoding="utf-8-sig")) or {}
     return {str(item["result_path"]).replace("\\", "/").rstrip("/"): item for item in value.get("analyses", [])}
 
 
 def analysis_directories(results_root: Path, history: dict[str, dict]) -> list[Path]:
-    """Discover individual cases, campaigns, and explicitly indexed incident analyses."""
+    """固定レイアウトの case、campaign、research、collection source を列挙する。"""
     output: set[Path] = set()
     for readme in results_root.rglob("README.md"):
         relative = readme.relative_to(results_root)
         parts = relative.parts
+        parent_parts = relative.parent.parts
         if "cases" in parts:
             index = parts.index("cases")
             if index + 2 == len(parts) - 1 and CASE_HASH_RE.fullmatch(parts[index + 1]):
                 output.add(readme.parent)
-        if "campaigns" in parts:
-            index = parts.index("campaigns")
-            if index + 2 == len(parts) - 1:
+        if "campaigns" in parent_parts:
+            index = parent_parts.index("campaigns")
+            if len(parent_parts) - index - 1 in {1, 2}:
                 output.add(readme.parent)
-        if parts and parts[0] in {"supply-chain", "vulnerabilities"} and len(parts) == 3:
+        if (
+            len(parent_parts) >= 3
+            and parent_parts[0] == "research"
+            and parent_parts[1] in {"supply-chain", "vulnerabilities", "news"}
+        ):
             output.add(readme.parent)
+        # 移行前の読取り互換。新規 writer は必ず research/ 以下へ出力する。
+        if parts and parts[0] in {"supply-chain", "vulnerabilities", "news"} and len(parts) == 3:
+            output.add(readme.parent)
+    for manifest_path in results_root.rglob("manifest.json"):
+        directory = manifest_path.parent
+        if not (directory / "README.md").is_file():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            continue
+        relative = directory.relative_to(results_root).parts
+        canonical_source = (
+            len(relative) == 4
+            and relative[0] == "collections"
+            and relative[2] == "sources"
+        )
+        legacy_source = (directory / "cases").is_dir()
+        if (
+            manifest.get("source") == "MalwareBazaar exact signature query"
+            and (canonical_source or legacy_source)
+        ):
+            output.add(directory)
     repository = results_root.parent
     for result_path in history:
         directory = repository / result_path
@@ -336,7 +408,7 @@ def analysis_directories(results_root: Path, history: dict[str, dict]) -> list[P
 
 
 def history_indicators(directory: Path, repository: Path, history: dict[str, dict]) -> list[Indicator]:
-    """Convert reviewed sample hashes and C2 entries from analysis history."""
+    """解析履歴で確認済みの検体ハッシュと C2 項目を指標へ変換する。"""
     key = directory.relative_to(repository).as_posix().rstrip("/")
     item = history.get(key)
     if not item:
@@ -353,14 +425,14 @@ def history_indicators(directory: Path, repository: Path, history: dict[str, dic
 
 
 def directory_hash_indicator(directory: Path) -> list[Indicator]:
-    """Treat a SHA-256 case-directory name as the submitted sample hash."""
+    """SHA-256 形式のケースディレクトリ名を、提出検体ハッシュとして扱う。"""
     if CASE_HASH_RE.fullmatch(directory.name):
         return [Indicator("sha256", directory.name.lower(), "submitted_sample", "confirmed", "directory")]
     return []
 
 
 def merge_indicators(values: Iterable[Indicator]) -> list[Indicator]:
-    """Deduplicate indicators while preferring stronger provenance and confidence."""
+    """より強い根拠と確度を優先しながら、指標を重複排除する。"""
     selected: dict[tuple[str, str], Indicator] = {}
     for item in values:
         key = (item.type, item.value.lower())
@@ -381,8 +453,70 @@ def merge_indicators(values: Iterable[Indicator]) -> list[Indicator]:
     return sorted(selected.values(), key=lambda item: (item.type, item.value.lower(), item.role.lower()))
 
 
+def indicators_from_reviewed_findings(hashes: Iterable[str], findings: Iterable[dict]) -> list[Indicator]:
+    """横断報告用に、確認済みハッシュと構造化所見を正規化する。"""
+    unique: dict[tuple[str, str], Indicator] = {}
+    for value in hashes:
+        normalized = normalize_value(str(value))
+        if not normalized or normalized[0] != "sha256":
+            continue
+        kind, safe_value = normalized
+        indicator = Indicator(kind, safe_value, "submitted_sample", "confirmed", "manifest")
+        unique.setdefault((kind, safe_value.lower()), indicator)
+    for item in findings:
+        role = str(item.get("role") or "candidate_infrastructure")
+        confidence = str(item.get("confidence") or "candidate")
+        exclusion = f"{role} {confidence}".lower()
+        if role.lower() in NON_IOC_ROLES or any(marker in exclusion for marker in NON_IOC_MARKERS):
+            continue
+        normalized = normalize_value(str(item.get("value") or ""))
+        if not normalized:
+            continue
+        kind, safe_value = normalized
+        indicator = Indicator(
+            kind,
+            safe_value,
+            role,
+            confidence,
+            str(item.get("source") or "static_analysis"),
+        )
+        unique.setdefault((kind, safe_value.lower()), indicator)
+    return sorted(unique.values(), key=lambda item: (item.type, item.value.lower(), item.role.lower()))
+
+
+def _profile_run_indicators(directory: Path, results_root: Path) -> list[Indicator] | None:
+    """検体アーカイブに触れず、公開済みファミリ別実行結果を一件読み込む。"""
+    manifest_path = directory / "manifest.json"
+    if not manifest_path.is_file():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    if manifest.get("source") != "MalwareBazaar exact signature query":
+        return None
+    family = str(manifest.get("family") or "")
+    hashes = [str(item.get("sha256") or "").lower() for item in manifest.get("items") or []]
+    findings: list[dict] = []
+    for digest in hashes:
+        normalized = normalize_value(digest)
+        if not normalized or normalized[0] != "sha256":
+            raise ValueError(f"invalid aggregate manifest hash: {manifest_path}")
+        indicator_path = (
+            resolve_catalog_case_path(results_root, digest, family=family)
+            / "indicators.json"
+        )
+        if not indicator_path.is_file():
+            raise ValueError(f"missing aggregate case indicators: {indicator_path}")
+        case = json.loads(indicator_path.read_text(encoding="utf-8-sig"))
+        if str((case.get("source") or {}).get("sha256") or "").lower() != digest:
+            raise ValueError(f"aggregate case hash mismatch: {indicator_path}")
+        findings.extend((case.get("static_analysis") or {}).get("findings") or [])
+    return indicators_from_reviewed_findings(hashes, findings)
+
+
 def collect_indicators(directory: Path, repository: Path, history: dict[str, dict]) -> list[Indicator]:
-    """Collect all conservative, publish-safe indicators for one analysis."""
+    """単一解析について、保守的かつ公開可能な指標をすべて収集する。"""
+    aggregate = _profile_run_indicators(directory, repository / "analysis-results")
+    if aggregate is not None:
+        return aggregate
     values: list[Indicator] = []
     values.extend(directory_hash_indicator(directory))
     values.extend(history_indicators(directory, repository, history))
@@ -393,22 +527,33 @@ def collect_indicators(directory: Path, repository: Path, history: dict[str, dic
 
 
 def render_ioc_list(values: list[Indicator]) -> str:
-    """Render one IOC-only Markdown table without behavioral narrative."""
+    """挙動説明を混在させず、日本語見出しの IOC 表を描画する。"""
     lines = [
-        "# IOC list",
+        "# IOC 一覧",
         "",
-        "| Type | Value | Role | Confidence | Source |",
-        "|---|---|---|---|---|",
+        IOC_HEADER,
+        IOC_SEPARATOR,
     ]
     for item in values:
-        cells = [item.type, item.value, item.role, item.confidence, item.source]
+        cells = [
+            IOC_TYPE_LABELS.get(item.type, item.type),
+            item.value,
+            IOC_ROLE_LABELS.get(item.role, item.role),
+            IOC_CONFIDENCE_LABELS.get(item.confidence, item.confidence),
+            item.source,
+        ]
         lines.append("| " + " | ".join(cell.replace("|", "\\|").replace("`", "\\`") for cell in cells) + " |")
     return "\n".join(lines) + "\n"
 
 
 def render_index(results_root: Path, reports: list[tuple[Path, int]]) -> str:
-    """Render the repository-wide index of per-analysis IOC lists."""
-    lines = ["# IOC list index", "", "| Analysis | IOC list | Entries |", "|---|---|---:|"]
+    """解析単位の IOC 一覧を横断する日本語索引を描画する。"""
+    lines = [
+        "# IOC 一覧索引",
+        "",
+        "| 解析 (Analysis) | IOC 一覧 | 件数 (Entries) |",
+        "|---|---|---:|",
+    ]
     for directory, count in reports:
         relative = directory.relative_to(results_root).as_posix()
         lines.append(f"| `{relative}` | [IOC-LIST.md]({relative}/IOC-LIST.md) | {count} |")
@@ -416,7 +561,7 @@ def render_index(results_root: Path, reports: list[tuple[Path, int]]) -> str:
 
 
 def generate(repository: Path, check: bool = False) -> dict:
-    """Generate or verify every per-analysis IOC list and the aggregate index."""
+    """解析単位の IOC 一覧と横断索引を、すべて生成または検証する。"""
     results_root = repository / "analysis-results"
     history = load_history(repository / "analysis_history.yaml")
     directories = analysis_directories(results_root, history)
@@ -445,7 +590,7 @@ def generate(repository: Path, check: bool = False) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the deterministic IOC-list generator CLI."""
+    """決定的な IOC 一覧生成用 CLI を構築する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--check", action="store_true")
@@ -453,7 +598,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Generate IOC lists or fail when committed outputs are stale."""
+    """IOC 一覧を生成し、検証時に保存済み出力が古ければ失敗する。"""
     args = build_parser().parse_args(argv)
     result = generate(args.repository.resolve(), check=args.check)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

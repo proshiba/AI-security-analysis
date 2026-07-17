@@ -24,17 +24,39 @@ def test_known_hash_loading_and_campaign_routing(tmp_path: Path) -> None:
 
 
 def test_detector_exact_and_structural_paths(monkeypatch) -> None:
-    """Match exact reviewed bytes and structurally corroborated unknown bytes."""
+    """Match correlated literals without claiming a decoded config."""
     monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
     monkeypatch.setattr(
         detector,
         "extract_family",
         lambda *_args: {
-            "config": {"static_config_recovered": True, "marker_hits": ["asyncrat"], "observed_config_keys": ["Hosts"]},
+            "config": {
+                "profile_literal_correlation": True,
+                "decoded_config_recovered": False,
+                "static_config_recovered": False,
+                "marker_hits": ["asyncrat server", "hwid"],
+                "observed_config_keys": ["Hosts"],
+            },
             "findings": [{"value": "example"}],
         },
     )
     result = detector.detect_family("asyncrat", b"AsyncRAT Server HWID fixture", Path("x.exe"))
     assert result["matched"] is True
     assert result["campaigns"][0]["confidence"] == "medium"
+    assert result["campaigns"][0]["campaign_type"] == "reviewed_direct_payload_or_wrapper"
+    assert result["observations"]["profile_literal_correlation"] is True
+    assert result["observations"]["static_config_recovered"] is False
     assert result["observations"]["network_contacted"] is False
+
+
+def test_detector_rejects_one_overlapping_family_literal(monkeypatch) -> None:
+    """Reject one compound profile literal before invoking extraction."""
+    monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
+    monkeypatch.setattr(
+        detector,
+        "extract_family",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("extractor should not run")),
+    )
+    result = detector.detect_family("asyncrat", b"AsyncRAT Server", Path("x.exe"))
+    assert result["matched"] is False
+    assert result["observations"]["marker_hits"] == ["asyncrat server"]

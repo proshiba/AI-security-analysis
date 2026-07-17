@@ -48,7 +48,10 @@ def test_c2_detector_lab_checkin_and_recipient_summary() -> None:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     detector = __import__("pathlib").Path(__file__).resolve().parents[4] / "analysis-framework" / "common" / "c2_detector.py"
-    common = [sys.executable, str(detector), "127.0.0.1", str(server.server_port), "--protocol", "mxgo", "--mxgo-allow-loopback-network"]
+    common = [
+        sys.executable, str(detector), "127.0.0.1", str(server.server_port),
+        "--protocol", "mxgo", "--allow-network", "--mxgo-allow-loopback-network",
+    ]
     try:
         checkin = subprocess.run(common + ["--mxgo-mode", "checkin"], capture_output=True, text=True, check=True, timeout=10)
         checkin_result = json.loads(checkin.stdout)

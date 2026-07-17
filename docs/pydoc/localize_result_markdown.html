@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module localize_result_markdown</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">localize_result_markdown</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Clocalize_result_markdown.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\localize_result_markdown.py</a></td></tr></table>
+    <p><span class="code">解析結果&nbsp;Markdown&nbsp;を既知の定型表現だけで安全かつ決定的に日本語化する。<br>
+&nbsp;<br>
+既定は&nbsp;dry-run&nbsp;である。コード、URL、ハッシュ、機械可読値を維持し、未知の英語説明が<br>
+残る場合は完全な相対パス・行番号・原文を報告して書き込みを拒否する。``--write``&nbsp;時は<br>
+計画時ハッシュを再確認し、原子的に置換して、途中失敗時には元の内容へ戻す。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="stat.html">stat</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="tempfile.html">tempfile</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="localize_result_markdown.html#LocalizationApplyError">LocalizationApplyError</a>
+</dt><dt class="heading-text"><a href="localize_result_markdown.html#StalePlanError">StalePlanError</a>
+</dt><dt class="heading-text"><a href="localize_result_markdown.html#UnresolvedEnglishError">UnresolvedEnglishError</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="localize_result_markdown.html#LocalizationPlan">LocalizationPlan</a>
+</dt><dt class="heading-text"><a href="localize_result_markdown.html#PlanEntry">PlanEntry</a>
+</dt><dt class="heading-text"><a href="localize_result_markdown.html#UnresolvedLine">UnresolvedLine</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalizationApplyError">class <strong>LocalizationApplyError</strong></a>(<a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">書き込みに失敗し、置換済みファイルを元へ戻したことを示す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="localize_result_markdown.html#LocalizationApplyError">LocalizationApplyError</a></dd>
+<dd><a href="localize_result_markdown.html#LocalizationError">LocalizationError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="LocalizationApplyError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="LocalizationApplyError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LocalizationApplyError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LocalizationApplyError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LocalizationApplyError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationApplyError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="LocalizationApplyError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationApplyError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LocalizationApplyError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LocalizationApplyError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LocalizationApplyError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalizationError">class <strong>LocalizationError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">ローカライズ処理を安全に完了できない場合の基底例外。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="localize_result_markdown.html#LocalizationError">LocalizationError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="LocalizationError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="LocalizationError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LocalizationError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LocalizationError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LocalizationError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="LocalizationError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LocalizationError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LocalizationError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#LocalizationError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LocalizationPlan">class <strong>LocalizationPlan</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LocalizationPlan">LocalizationPlan</a>(repository:&nbsp;'Path',&nbsp;roots:&nbsp;'tuple[str,&nbsp;...]',&nbsp;entries:&nbsp;'tuple[<a href="#PlanEntry">PlanEntry</a>,&nbsp;...]')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+一括適用前に固定した、決定的な&nbsp;Markdown&nbsp;ローカライズ計画。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LocalizationPlan-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LocalizationPlan-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LocalizationPlan-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationPlan-__init__"><strong>__init__</strong></a>(self, repository: 'Path', roots: 'tuple[str, ...]', entries: 'tuple[PlanEntry, ...]') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LocalizationPlan-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LocalizationPlan-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>unresolved_count</strong></dt>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'entries': 'tuple[PlanEntry, ...]', 'repository': 'Path', 'roots': 'tuple[str, ...]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'entries': Field(name='entries',type='tuple[PlanEntry, ...]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'repository': Field(name='repository',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'roots': Field(name='roots',type='tuple[str, ...]',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('repository', 'roots', 'entries')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="PlanEntry">class <strong>PlanEntry</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#PlanEntry">PlanEntry</a>(path:&nbsp;'str',&nbsp;source_sha256:&nbsp;'str',&nbsp;target_sha256:&nbsp;'str',&nbsp;translation_method:&nbsp;'str',&nbsp;unresolved:&nbsp;'tuple[<a href="#UnresolvedLine">UnresolvedLine</a>,&nbsp;...]',&nbsp;_path:&nbsp;'Path',&nbsp;_source_bytes:&nbsp;'bytes',&nbsp;_target_bytes:&nbsp;'bytes')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+一件の入力、変換後内容、フィンガープリントを保持する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="PlanEntry-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="PlanEntry-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="PlanEntry-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="PlanEntry-__init__"><strong>__init__</strong></a>(self, path: 'str', source_sha256: 'str', target_sha256: 'str', translation_method: 'str', unresolved: 'tuple[UnresolvedLine, ...]', _path: 'Path', _source_bytes: 'bytes', _target_bytes: 'bytes') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="PlanEntry-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="PlanEntry-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>changed</strong></dt>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'_path': 'Path', '_source_bytes': 'bytes', '_target_bytes': 'bytes', 'path': 'str', 'source_sha256': 'str', 'target_sha256': 'str', 'translation_method': 'str', 'unresolved': 'tuple[UnresolvedLine, ...]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'_path': Field(name='_path',type='Path',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), '_source_bytes': Field(name='_source_bytes',type='bytes',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), '_target_bytes': Field(name='_target_bytes',type='bytes',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'path': Field(name='path',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_sha256': Field(name='source_sha256',type='str',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'target_sha256': Field(name='target_sha256',type='str',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'translation_method': Field(name='translation_method',type='str',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'unresolved': Field(name='unresolved',type='tuple[UnresolvedLi...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('path', 'source_sha256', 'target_sha256', 'translation_method', 'unresolved', '_path', '_source_bytes', '_target_bytes')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StalePlanError">class <strong>StalePlanError</strong></a>(<a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">計画後に対象&nbsp;Markdown&nbsp;が変更された場合に発生する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="localize_result_markdown.html#StalePlanError">StalePlanError</a></dd>
+<dd><a href="localize_result_markdown.html#LocalizationError">LocalizationError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="StalePlanError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="StalePlanError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="StalePlanError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StalePlanError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="StalePlanError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StalePlanError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="StalePlanError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="StalePlanError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#StalePlanError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="StalePlanError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#StalePlanError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UnresolvedEnglishError">class <strong>UnresolvedEnglishError</strong></a>(<a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">未解決の英語説明が残る計画への書き込みを拒否する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="localize_result_markdown.html#UnresolvedEnglishError">UnresolvedEnglishError</a></dd>
+<dd><a href="localize_result_markdown.html#LocalizationError">LocalizationError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="localize_result_markdown.html#LocalizationError">LocalizationError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="UnresolvedEnglishError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="UnresolvedEnglishError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="UnresolvedEnglishError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#UnresolvedEnglishError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="UnresolvedEnglishError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#UnresolvedEnglishError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="UnresolvedLine">class <strong>UnresolvedLine</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#UnresolvedLine">UnresolvedLine</a>(line:&nbsp;'int',&nbsp;text:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+翻訳辞書で安全に解決できなかった英語説明。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="UnresolvedLine-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-__init__"><strong>__init__</strong></a>(self, line: 'int', text: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="UnresolvedLine-as_dict"><strong>as_dict</strong></a>(self) -&gt; 'dict[str, object]'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'line': 'int', 'text': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'line': Field(name='line',type='int',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'text': Field(name='text',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('line', 'text')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-apply_plan"><strong>apply_plan</strong></a>(plan: 'LocalizationPlan') -&gt; 'int'</dt><dd><span class="code">未解決なし・非&nbsp;stale&nbsp;の計画を一括適用し、失敗時は全件を戻す。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">dry-run&nbsp;を既定とする&nbsp;CLI&nbsp;の引数を構成する。</span></dd></dl>
+ <dl><dt><a name="-build_plan"><strong>build_plan</strong></a>(repository: 'Path', roots: 'Iterable[Path] | None' = None) -&gt; 'LocalizationPlan'</dt><dd><span class="code">現在のバイト列を固定し、書き込みを伴わない変換計画を作る。</span></dd></dl>
+ <dl><dt><a name="-discover_result_markdown"><strong>discover_result_markdown</strong></a>(repository: 'Path', roots: 'Iterable[Path] | None' = None) -&gt; 'tuple[Path, ...]'</dt><dd><span class="code">analysis-results&nbsp;配下の通常&nbsp;Markdown&nbsp;だけを重複なく列挙する。</span></dd></dl>
+ <dl><dt><a name="-find_unresolved_english"><strong>find_unresolved_english</strong></a>(text: 'str') -&gt; 'tuple[UnresolvedLine, ...]'</dt><dd><span class="code">コードフェンス外に残る英語説明を行番号と原文のまま返す。</span></dd></dl>
+ <dl><dt><a name="-localize_markdown"><strong>localize_markdown</strong></a>(text: 'str', *, post_line_translators: 'Sequence[Callable[[str], str]]' = ()) -&gt; 'str'</dt><dd><span class="code">Markdown&nbsp;一件を変換し、全保護対象が維持されたことを検証する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'Sequence[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">計画を報告し、明示時のみ適用する。未解決・失敗は非ゼロで閉じる。</span></dd></dl>
+ <dl><dt><a name="-plan_report"><strong>plan_report</strong></a>(plan: 'LocalizationPlan', *, mode: 'str' = 'dry-run', written_files: 'int' = 0) -&gt; 'dict[str, object]'</dt><dd><span class="code">時刻を含めない再現可能な&nbsp;JSON&nbsp;レポートを作る。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ABBREVIATED_HASH</strong> = re.compile('(?&lt;![0-9A-Fa-f])[0-9A-Fa-f]{8}\\.\\.\\.(?![0-9A-Fa-f])')<br>
+<strong>ANALYSIS_TITLE</strong> = re.compile('^(#\\s+)(.+?)\\s+analysis(?:\\s+results)?(\\s*)$', re.IGNORECASE)<br>
+<strong>APPROVED_MIXED_LINES</strong> = {'| SHA-256 | 形式 (Format) | 配送形態 (Campaign) | パッキング (Packed) | レイヤー数 (Layers) | 確認事項 (Findings) |', '| SHA-256 | 種別 (Type) | アンパック (Unpack) | 設定 (Config) | ネットワーク候補 (Network candidates) |', '| 値 (Value) | 役割 (Role) | 確度 (Confidence) | 情報源 (Source) |', '| 情報源 (Source) | 状態 (Status) |', '| 深さ | 種別 | SHA-256 | サイズ | 形式 |', '| 深さ | 種別 | 形式 | サイズ | SHA-256 |', ...}<br>
+<strong>ATLASCROSS_ENDPOINT_IOC_ROW</strong> = re.compile('^\\|\\s*endpoint\\s*\\|\\s*(?:[0-9]{...s*\\|\\s*recorded\\s*\\|\\s*iocs\\.json\\s*\\|$')<br>
+<strong>BARE_URL</strong> = re.compile('https?://[^\\s&lt;&gt;)]+')<br>
+<strong>BULLET_FIELD</strong> = re.compile('^(\\s*[-*+]\\s+)([^:]{1,100})(:\\s*)(.*)$')<br>
+<strong>BULLET_LABEL_TRANSLATIONS</strong> = {'7z status': '7z の状態', 'Analysis mode': '解析方式', 'Artifact': 'アーティファクト', 'Artifact type': 'アーティファクト種別', 'Attribution confidence': '帰属の確度', 'Blockers': '未解決要因', 'Budget limited': '予算制限', 'C2 role assumption': 'C2 の役割に関する仮定', 'Campaign shape': '配送／キャンペーン形態', 'Category': '種別', ...}<br>
+<strong>CASE_TITLE</strong> = re.compile('^(#\\s+)(.+?)\\s+case\\s+([0-9A-Fa-f]{32,})(\\s*)$', re.IGNORECASE)<br>
+<strong>COLLECTION_LOCALIZATION_ROOTS</strong> = ('analysis-results/collections/refresh-20260715/', 'analysis-results/collections/malwarebazaar-20260717/', 'analysis-results/collections/vx-underground-20260716/')<br>
+<strong>Callable</strong> = typing.Callable<br>
+<strong>DOTTED_IDENTIFIER</strong> = re.compile('\\b[A-Za-z_$&lt;&gt;][A-Za-z0-9_$&lt;&gt;]*(?:\\.[A-Za-z_$&lt;&gt;][A-Za-z0-9_$&lt;&gt;]*)+\\b')<br>
+<strong>EXCLUDED_RESULT_ROOT_DOCS</strong> = {'analysis-results/AGENTS.md', 'analysis-results/README.md'}<br>
+<strong>FENCE</strong> = re.compile('^\\s*(`{3,}|~{3,})')<br>
+<strong>HARD_CASE_TABLE_ROW</strong> = re.compile('^\\|\\s*[0-9A-Fa-f]{64}\\s*\\|\\s*[a...ssembly|Themida|UPX|nsPack)\\s*\\|\\s*-\\s*\\|$')<br>
+<strong>HEADING_TRANSLATIONS</strong> = {'# IOC list': '# IOC 一覧', '# IOC list index': '# IOC 一覧索引', '# Overview': '# 概要', '## Attribution evidence': '## 帰属の根拠', '## Batch outcome': '## バッチ解析結果', '## Behavior': '## 挙動', '## Behavior and C2 assessment': '## 挙動および C2 の評価', '## Behavioral model': '## 挙動モデル', '## C2 and IOC evidence': '## C2 および IOC の根拠', '## C2/config findings': '## C2／設定の確認事項', ...}<br>
+<strong>INLINE_CODE</strong> = re.compile('(`+)([^\\r\\n]*?)\\1')<br>
+<strong>IOC_TYPES</strong> = {'domain', 'email', 'filename', 'filepath', 'hostname', 'ipv4', ...}<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>JAPANESE</strong> = re.compile('[ぁ-んァ-ヶ一-龯々〆ヵヶー]')<br>
+<strong>JAPANESE_TITLE_CITATION</strong> = re.compile('\\[出典：[^\\]\\r\\n]*「[^\\]\\r\\n]*[ぁ-...][^\\]\\r\\n]*」\\]\\((?:[^()]|\\([^()]*\\))*\\)')<br>
+<strong>KNOWN_PRODUCT_TITLES</strong> = {'agent tesla', 'agenttesla', 'amadey', 'amosstealer', 'asyncrat', 'atlas rat', ...}<br>
+<strong>LEGACY_LOCALIZATION_ROOTS</strong> = ('analysis-results/malware/agenttesla/', 'analysis-results/malware/latrodectus/', 'analysis-results/malware/remcosrat/', 'analysis-results/malware/stealc/', 'analysis-results/malware/valleyrat/', 'analysis-results/malware/venomrat/', 'analysis-results/malware/vidar/')<br>
+<strong>LOCALIZED_CVE_HEADING</strong> = re.compile('^#\\s+ネットスケーラー CVE-[0-9]{4}-[0-9]+ の防御的評価$')<br>
+<strong>LOCALIZED_FAMILY_DOC_TITLE</strong> = re.compile('^#\\s+(?:QuasarRAT|HijackLoader|RedL...GuLoader|Atlas RAT)：(?:公開情報の詳細|版・検体一覧|概要|技術解析)$')<br>
+<strong>LOCALIZED_HARD_CASE_LAYER</strong> = re.compile('^-\\s+レイヤー\\s+[0-9A-Fa-f]{64}:\\s+形式...a-z0-9_:+, -]+;\\s+マネージドルーティング=[a-z0-9_:+, -]+$')<br>
+<strong>LOCALIZED_RESEARCH_HEADING</strong> = re.compile('^###\\s+(?:VenomRAT の再評価|ValleyRAT 3...RemcosRAT（\\x60[0-9a-f]{8}\\.\\.\\.\\x60）の再評価)$')<br>
+<strong>LOCALIZED_SUPPLY_CHAIN_HEADING</strong> = re.compile('^#\\s+(?:axios / plain-crypto-js|Trivy / TeamPCP) 供給網侵害$')<br>
+<strong>LONG_HASH</strong> = re.compile('(?&lt;![0-9A-Fa-f])[0-9A-Fa-f]{32,}(?![0-9A-Fa-f])')<br>
+<strong>MARKDOWN_DESTINATION</strong> = re.compile('(?&lt;=\\]\\()[^\\r\\n)]+(?=\\))')<br>
+<strong>NPM_ENDPOINT_IOC_ROW</strong> = re.compile('^\\|\\s*endpoint\\s*\\|\\s*sfrclak\\...\\s*recorded\\s*\\|\\s*analysis_history\\s*\\|$')<br>
+<strong>OTHER_FAMILY_LOCALIZATION_ROOTS</strong> = ('analysis-results/malware/amadey/', 'analysis-results/malware/shadowpad/', 'analysis-results/malware/spyglace/', 'analysis-results/malware/remusstealer/', 'analysis-results/malware/amosstealer/', 'analysis-results/malware/lummastealer/', 'analysis-results/malware/formbook/', 'analysis-results/malware/donutloader/', 'analysis-results/malware/purehvnc/')<br>
+<strong>PHRASE_TRANSLATIONS</strong> = {'MalwareBazaar review': 'MalwareBazaar 調査', 'Overview': '概要', 'analysis': '解析', 'analysis result': '解析結果', 'analysis results': '解析結果'}<br>
+<strong>REMAINING_FAMILY_ENDPOINT_IOC_ROW</strong> = re.compile('^\\|\\s*endpoint\\s*\\|\\s*80\\.234\...\|\\s*candidate\\s*\\|\\s*config\\.json\\s*\\|$')<br>
+<strong>REMAINING_FAMILY_LOCALIZATION_ROOTS</strong> = ('analysis-results/malware/quasarrat/', 'analysis-results/malware/hijackloader/', 'analysis-results/malware/redlinestealer/', 'analysis-results/malware/snakekeylogger/', 'analysis-results/malware/njrat/', 'analysis-results/malware/xworm/', 'analysis-results/malware/asyncrat/', 'analysis-results/malware/darkcomet/', 'analysis-results/malware/dcrat/', 'analysis-results/malware/guloader/', 'analysis-results/malware/atlascross/')<br>
+<strong>REPOSITORY_IDENTIFIER</strong> = re.compile('\\b(?:AI-security-analysis|VX-Underground)\\b')<br>
+<strong>RESEARCH_LOCALIZATION_ROOT</strong> = 'analysis-results/research/'<br>
+<strong>RULE_IDENTIFIER</strong> = re.compile('\\b(?:rule|ruleset|id|name)\\s*[:=]\\s*([A-Za-z_][A-Za-z0-9_.-]+)', re.IGNORECASE)<br>
+<strong>SAFE_MIXED_PHRASES</strong> = {'Agent Tesla', 'Alloy Taurus', 'Balikbayan Foxes', 'Blind Eagle', 'CISA Cyber Safety Review Board', 'Dark Comet RAT', ...}<br>
+<strong>SAFE_TECHNICAL_WORDS</strong> = {'.net', '7-zip', '866564bb...1d065', 'AadDDRTaSPtyAG57er#$ad!lDKTOPLTEL78pE', 'K31610KIO9834PG79787', 'K31610KIO9834PG79797', ...}<br>
+<strong>SENTENCE_TRANSLATIONS</strong> = {'- Exact hash: high precision and low false-positive risk, but no variant coverage.': '- 完全一致ハッシュは高精度で誤検知リスクが低いが、亜種は検知できない。', '- Execution/network: not performed': '- 実行／ネットワーク: 実施していない', '- Execution/network: sample not executed; infrastructure not contacted': '- 実行／ネットワーク: 検体は実行せず、インフラストラクチャにも接続していない', '- Low confidence / high false-positive risk: fil...n/NSIS/PyInstaller tags, imphash, or a URL alone.': '- 低確度／高い誤検知リスク: ファイル名、一般的な Electron／NSIS／PyInstaller タグ、imphash、または URL 単独。', '- Medium confidence / medium false-positive risk... observations or a reviewed structural signature.': '- 中確度／中程度の誤検知リスク: ファミリー固有の独立した静的所見を二つ、またはレビュー済みの構造シグネチャを必要とする。', '- No strict Donut call-over-instance structure w...overed; a family label alone is not confirmation.': '- Donut に固有の call-over-instance 構造は復元できておらず、ファミリー名だけでは確認済みとしない。', '- Operator/campaign: not attributed': '- 攻撃者／キャンペーン: 未帰属', '- Profile marker cluster plus endpoint: medium c...ers, and legitimate software strings can overlap.': '- プロファイルの複数マーカーとエンドポイントの組み合わせは中程度の確度である。フォーク、流出したビルダー、正規ソフトウェアの文字列と重複し得る。', '- Scope: hash metadata only; no sample submission, execution, or infrastructure contact.': '- 対象範囲: ハッシュのメタデータのみ。検体の送信・実行やインフラへの接続は行っていない。', '- Sigma input: only observed script-delivery beh...rocess behavior was invented for direct PE cases.': '- Sigma 入力には確認済みのスクリプト配送挙動だけを使用する。直接 PE のケースに動的プロセス挙動を推測で追加していない。', ...}<br>
+<strong>SIMPLE_PRODUCT_TITLE</strong> = re.compile('^(#\\s+)([A-Za-z][A-Za-z0-9 ._+/-]{1,80})(\\s*)$')<br>
+<strong>SPYGLACE_CONFIG_TABLE_ROW</strong> = re.compile('^\\|\\s*[0-9A-Fa-f]{64}\\s*\\|\\s*[0...a-z0-9.]+\\.asp){3}\\s*\\|\\s*[A-Z0-9]+\\s*\\|$')<br>
+<strong>Sequence</strong> = typing.Sequence<br>
+<strong>TABLE_HEADER_TRANSLATIONS</strong> = {'| Confidence | Recommended input | False-positive considerations |': '| 確度 | 推奨入力 | 誤検知時の考慮事項 |', '| Depth | Kind | Format | Size | SHA-256 |': '| 深さ | 種別 | 形式 | サイズ | SHA-256 |', '| Depth | Kind | SHA-256 | Size | Format |': '| 深さ | 種別 | SHA-256 | サイズ | 形式 |', '| Field | Value |': '| 項目 (Field) | 値 (Value) |', '| SHA-256 | Format | Campaign | Packed | Layers | Findings |': '| SHA-256 | 形式 (Format) | 配送形態 (Campaign) | パッキング (Packed) | レイヤー数 (Layers) | 確認事項 (Findings) |', '| SHA-256 | Type | Unpack | Config | Network candidates |': '| SHA-256 | 種別 (Type) | アンパック (Unpack) | 設定 (Config) | ネットワーク候補 (Network candidates) |', '| Source | Status |': '| 情報源 (Source) | 状態 (Status) |', '| Type | Value | Role | Confidence | Source |': '| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |', '| Value | Role | Confidence | Source |': '| 値 (Value) | 役割 (Role) | 確度 (Confidence) | 情報源 (Source) |'}<br>
+<strong>TECHNICAL_COMMAND_LIST</strong> = re.compile('^-\\s+[a-z]+(?:\\s+on/off)?(?:、[a-z]+(?:\\s+on/off)?)+$')<br>
+<strong>TECHNICAL_ENUM</strong> = re.compile('\\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\\b')<br>
+<strong>TECHNICAL_FILENAME</strong> = re.compile('\\b[A-Za-z0-9_.-]+\\.(?:json|ya?ml|md|ps1|py|exe|dll|bin|zip|asp)\\b', re.IGNORECASE)<br>
+<strong>UNCLASSIFIED_LOCALIZATION_ROOTS</strong> = ('analysis-results/malware/unclassified/', 'analysis-results/collections/malwarebazaar-unknown-20260717/')</td></tr></table>
+</body></html>

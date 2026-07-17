@@ -184,6 +184,16 @@ def test_clr_thunk_and_compressor_stubs_are_not_cff_attribution() -> None:
         cyclomatic_complexity=18,
         indirect_branches=8,
         instructions=80,
+        dispatcher_candidates=[
+            {
+                "address": "0x1000",
+                "score": 90,
+                "indegree": 8,
+                "outdegree": 3,
+                "scc_size": 10,
+                "incoming_edge_ratio": 0.4,
+            }
+        ],
     )
     packed = control_flow._assess_techniques(
         packed_metrics,
@@ -228,3 +238,97 @@ def test_clr_thunk_and_compressor_stubs_are_not_cff_attribution() -> None:
     )
     assert decoy["control_flow_flattening"]["status"] == "suspected"
     assert decoy["indirect_branch_obfuscation"]["status"] == "suspected"
+
+
+def test_dense_loop_join_is_not_control_flow_flattening() -> None:
+    """Reject a common loop/join shape without a multi-way dispatcher."""
+    metrics = {
+        "basic_blocks": 26,
+        "branch_instructions": 14,
+        "max_indegree": 5,
+        "hub_incoming_edge_ratio": 0.125,
+        "largest_scc": 6,
+        "cyclomatic_complexity": 9,
+        "dispatcher_candidates": [
+            {
+                "address": "0xe132c",
+                "score": 57,
+                "indegree": 5,
+                "outdegree": 1,
+                "scc_size": 6,
+                "incoming_edge_ratio": 0.125,
+            }
+        ],
+        "constant_branch_evidence": [],
+        "indirect_branches": 0,
+        "indirect_calls": 0,
+        "calls": 3,
+        "unresolved_successors": 0,
+        "overlapping_instruction_events": 0,
+        "decode_failures": 0,
+        "stop_mnemonics": {},
+        "anti_analysis_mnemonics": {},
+        "stack_pointer_writes": 0,
+        "instructions": 120,
+    }
+    result = control_flow._assess_techniques(
+        metrics,
+        {
+            "is_dotnet": False,
+            "entrypoint_high_entropy": False,
+            "high_entropy_executable_sections": [],
+            "imports": 12,
+            "packer_markers": [],
+            "virtualized_shape": False,
+        },
+    )
+    assessment = result["control_flow_flattening"]
+    assert assessment["status"] == "not_observed"
+    assert assessment["score"] == 0
+    assert "rejected join/loop-only shape" in assessment["evidence"][0]
+
+
+def test_plain_mpress_text_is_not_a_packer_marker() -> None:
+    """Require an MPRESS layout/signature instead of a generic substring."""
+    plain = control_flow.analyze_pe_control_flow(marked_pe(b"\xc3", b"MPRESS"))
+    assert "MPRESS" not in plain["static_context"]["packer_markers"]
+    signature = control_flow.analyze_pe_control_flow(marked_pe(b"\xc3", b"MPRESS1"))
+    assert "MPRESS" in signature["static_context"]["packer_markers"]
+
+
+def test_reviewed_iat_calls_are_excluded_from_indirect_obfuscation() -> None:
+    """Separate ordinary IAT calls from unexplained indirect control flow."""
+    code = b"\xff\x15\x00\x20\x40\x00\xc3"
+    context = {
+        "format": "raw_code",
+        "is_dotnet": False,
+        "imports": 1,
+        "entrypoint_high_entropy": False,
+        "high_entropy_executable_sections": [],
+        "packer_markers": [],
+        "virtualized_shape": False,
+    }
+    result = control_flow._analyze_mapped_code(
+        code,
+        [(0x1000, 0, len(code))],
+        0x1000,
+        32,
+        context,
+        16,
+        32,
+        32,
+        {0x402000: "KERNEL32.dll!Sleep"},
+    )
+
+    metrics = result["metrics"]
+    assert metrics["indirect_calls"] == 1
+    assert metrics["import_indirect_calls"] == 1
+    assert metrics["unexplained_indirect_transfers"] == 0
+    assert metrics["indirect_transfer_sites"][0]["target"] == "KERNEL32.dll!Sleep"
+    assert (
+        metrics["indirect_transfer_sites"][0]["classification"]
+        == "reviewed_import_thunk"
+    )
+    assessment = result["techniques"]["indirect_branch_obfuscation"]
+    assert assessment["status"] == "not_observed"
+    assert "excluded reviewed import-thunk transfers=1" in assessment["evidence"]

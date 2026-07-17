@@ -102,7 +102,7 @@ if ($AllowLiveC2Check) {
         $liveOutput = Join-Path $liveDirectory ("{0:D2}-{1}-{2}.json" -f ($index + 1), $target.host, $target.port)
         $liveArgs = @(
             (Join-Path $root 'common\c2_detector.py'), $target.host, ([string]$target.port),
-            '--protocol', $target.protocol, '--timeout', '8', '--output', $liveOutput
+            '--protocol', $target.protocol, '--timeout', '8', '--allow-network', '--output', $liveOutput
         )
         if ($target.send_hex) { $liveArgs += @('--send-hex', $target.send_hex) }
         if ($target.expected_stage_size) { $liveArgs += @('--expected-stage-size', ([string]$target.expected_stage_size)) }

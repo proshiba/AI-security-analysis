@@ -305,37 +305,78 @@ def recover_nsis_scripted_layers(
     script_name = next(
         (name for name in files if name.lower().endswith("[nsis].nsi")), None
     )
-    if not script_name:
-        return {"status": "no_decompiled_nsis_script"}, []
-    script = files[script_name].decode("utf-8", errors="replace")
-    key_match = re.search(r"StrCpy\s+\$R9\s+(\d+)", script, re.I)
-    seek_match = re.search(r"FileSeek\s+\S+\s+(\d+)", script, re.I)
-    read_match = re.search(r"FileRead\s+\S+\s+\S+\s+(\d+)", script, re.I)
-    decoder_match = re.search(
-        r"StrCpy\s+\S+\s+\$INSTDIR\\([^\r\n]+?Drbler)\s*$", script, re.I | re.M
+    script = (
+        files[script_name].decode("utf-8", errors="replace")
+        if script_name
+        else ""
     )
-    if not (key_match and seek_match and read_match and decoder_match):
-        return {"status": "unsupported_nsis_script_pattern"}, []
-    decoder_suffix = decoder_match.group(1).replace("\\", "/").lower()
-    decoder_name = next(
-        (name for name in files if name.lower().endswith(decoder_suffix)), None
-    )
-    if not decoder_name:
-        return {"status": "decoder_data_missing", "expected": decoder_suffix}, []
-    word_report, command_stream = decode_nsis_hex_xor_words(
-        files[decoder_name],
-        offset=int(seek_match.group(1)),
-        read_chars=int(read_match.group(1)),
-        key=int(key_match.group(1)),
-    )
+    decoder_name: str | None = None
+    recovery_basis = "decompiled_nsis_script"
+    if script_name:
+        key_match = re.search(r"StrCpy\s+\$R9\s+(\d+)", script, re.I)
+        seek_match = re.search(r"FileSeek\s+\S+\s+(\d+)", script, re.I)
+        read_match = re.search(r"FileRead\s+\S+\s+\S+\s+(\d+)", script, re.I)
+        decoder_match = re.search(
+            r"StrCpy\s+\S+\s+\$INSTDIR\\([^\r\n]+?Drbler)\s*$",
+            script,
+            re.I | re.M,
+        )
+        if not (key_match and seek_match and read_match and decoder_match):
+            return {"status": "unsupported_nsis_script_pattern"}, []
+        decoder_suffix = decoder_match.group(1).replace("\\", "/").lower()
+        decoder_name = next(
+            (name for name in files if name.lower().endswith(decoder_suffix)), None
+        )
+        if not decoder_name:
+            return {"status": "decoder_data_missing", "expected": decoder_suffix}, []
+        word_report, command_stream = decode_nsis_hex_xor_words(
+            files[decoder_name],
+            offset=int(seek_match.group(1)),
+            read_chars=int(read_match.group(1)),
+            key=int(key_match.group(1)),
+        )
+    else:
+        # 7-Zip 26.x no longer emits the synthetic [NSIS].nsi stream for this
+        # installer family. Recover only the already-supported default layout
+        # and require several independent System-plugin call shapes. This is a
+        # bounded static signature, not a general NSIS bytecode interpreter.
+        candidates: list[tuple[str, dict[str, Any], bytes]] = []
+        required_calls = ("setfilepointer", "readfile", "virtualalloc")
+        for name, blob in sorted(files.items()):
+            candidate_report, candidate_stream = decode_nsis_hex_xor_words(blob)
+            calls = [
+                str(value).lower()
+                for value in candidate_report.get("system_calls", [])
+            ]
+            if candidate_stream and all(
+                any(required in call for call in calls) for required in required_calls
+            ):
+                candidates.append((name, candidate_report, candidate_stream))
+        if not candidates:
+            return {
+                "status": "no_decompiled_nsis_script",
+                "scriptless_fallback": "no_corroborated_command_stream",
+            }, []
+        if len(candidates) != 1:
+            return {
+                "status": "ambiguous_scriptless_command_stream",
+                "candidate_count": len(candidates),
+                "candidate_sha256": [
+                    sha256_bytes(stream) for _, _, stream in candidates
+                ],
+            }, []
+        decoder_name, word_report, command_stream = candidates[0]
+        recovery_basis = "corroborated_encoded_command_stream"
     report: dict[str, Any] = {
         "status": "command_stream_recovered"
         if command_stream
         else word_report["status"],
-        "script": script_name,
         "decoder_data": decoder_name,
+        "recovery_basis": recovery_basis,
         "word_decoder": word_report,
     }
+    if script_name:
+        report["script"] = script_name
     artifacts: list[tuple[str, bytes]] = []
     if command_stream:
         artifacts.append(("nsis-xor-command-stream", command_stream))
@@ -353,8 +394,12 @@ def recover_nsis_scripted_layers(
     if len(pointer_values) < 2 or not read_sizes:
         report["stage_recovery"] = {"status": "insufficient_call_parameters"}
         return report, artifacts
-    payload_match = re.search(
-        r"StrCpy\s+\$4\s+\$INSTDIR\\([^\r\n]+)\s*$", script, re.I | re.M
+    stage_offset, source_offset = pointer_values[0], pointer_values[1]
+    stage_size = read_sizes[0]
+    payload_match = (
+        re.search(r"StrCpy\s+\$4\s+\$INSTDIR\\([^\r\n]+)\s*$", script, re.I | re.M)
+        if script
+        else None
     )
     payload_suffix = (
         payload_match.group(1).replace("\\", "/").lower() if payload_match else ""
@@ -367,25 +412,59 @@ def recover_nsis_scripted_layers(
         ),
         None,
     )
+    decoder_stage: bytes | None = None
+    xor_loop: dict[str, Any] | None = None
     if not payload_name:
-        excluded = {script_name, decoder_name}
-        candidates = [
-            (len(blob), name)
-            for name, blob in files.items()
+        excluded = {name for name in (script_name, decoder_name) if name}
+        candidate_names = sorted(
+            name
+            for name in files
             if name not in excluded and not PurePosixPath(name).suffix
-        ]
-        payload_name = max(candidates)[1] if candidates else None
+        )
+        if script_name:
+            candidates = [(len(files[name]), name) for name in candidate_names]
+            payload_name = max(candidates)[1] if candidates else None
+        else:
+            # A scriptless extraction does not provide the NSIS variable that
+            # names the payload. Validate every extensionless candidate instead
+            # of treating file size as identity, then require uniqueness.
+            validated: list[tuple[str, bytes, dict[str, Any]]] = []
+            for name in candidate_names:
+                blob = files[name]
+                if (
+                    stage_offset < 0
+                    or stage_size <= 0
+                    or stage_offset + stage_size > len(blob)
+                ):
+                    continue
+                candidate_stage = blob[stage_offset : stage_offset + stage_size]
+                candidate_loop = find_static_dword_xor_loop(candidate_stage)
+                if candidate_loop.get("status") == "identified":
+                    validated.append((name, candidate_stage, candidate_loop))
+            if not validated:
+                report["stage_recovery"] = {
+                    "status": "no_valid_scriptless_payload_candidate",
+                    "candidate_count": len(candidate_names),
+                }
+                return report, artifacts
+            if len(validated) != 1:
+                report["stage_recovery"] = {
+                    "status": "ambiguous_scriptless_payload_candidates",
+                    "candidate_count": len(validated),
+                    "candidate_names": [name for name, _, _ in validated],
+                }
+                return report, artifacts
+            payload_name, decoder_stage, xor_loop = validated[0]
     if not payload_name:
         report["stage_recovery"] = {"status": "payload_data_missing"}
         return report, artifacts
-    stage_offset, source_offset = pointer_values[0], pointer_values[1]
-    stage_size = read_sizes[0]
     payload = files[payload_name]
-    if stage_offset < 0 or stage_size <= 0 or stage_offset + stage_size > len(payload):
-        report["stage_recovery"] = {"status": "invalid_stage_bounds"}
-        return report, artifacts
-    decoder_stage = payload[stage_offset : stage_offset + stage_size]
-    xor_loop = find_static_dword_xor_loop(decoder_stage)
+    if decoder_stage is None or xor_loop is None:
+        if stage_offset < 0 or stage_size <= 0 or stage_offset + stage_size > len(payload):
+            report["stage_recovery"] = {"status": "invalid_stage_bounds"}
+            return report, artifacts
+        decoder_stage = payload[stage_offset : stage_offset + stage_size]
+        xor_loop = find_static_dword_xor_loop(decoder_stage)
     stage_report: dict[str, Any] = {
         "status": xor_loop["status"],
         "payload_data": payload_name,

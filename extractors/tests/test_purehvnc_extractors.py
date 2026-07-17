@@ -46,3 +46,19 @@ def test_native_profile_and_layer_markers() -> None:
     assert layer_markers(b"MZ CHRD PayloadSource.zip") == ["chrd_config", "managed_payload_resource", "portable_executable"]
     with pytest.raises(ValueError):
         extract_native_config(b"unrelated")
+    with pytest.raises(ValueError):
+        extract_native_config(b"10FX\0" + b"154.82.93.206:8080\0")
+    with pytest.raises(ValueError):
+        extract_native_config(b"START_SCREEN\0" + b"154.82.93.206:8080\0")
+    with pytest.raises(ValueError):
+        extract_native_config(b"10FX\0START_SCREEN\0")
+
+
+def test_native_profile_accepts_utf16le_protocol_markers() -> None:
+    """Treat wide frame and command strings as the same corroborating signals."""
+    data = b"\x00\x00".join(
+        value.encode("utf-16le")
+        for value in ("10FX", "SCREENSHOT_PREVIEW", "154.82.93.206:8080")
+    )
+    config = extract_native_config(data)
+    assert config["endpoints"] == ["154.82.93.206:8080"]

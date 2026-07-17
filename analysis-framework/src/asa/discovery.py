@@ -13,7 +13,7 @@ import pyzipper
 from extractors.common import extract_strings
 
 from unpackers.path_safety import safe_member_name as validate_member_name
-from extractors.profiled_family import load_profiles
+from extractors.profiled_family import _independent_marker_hits, load_profiles
 MAX_MEMBER = 256 * 1024 * 1024
 SCRIPT_SUFFIXES = {".js", ".jse", ".vbs", ".vbe", ".ps1", ".hta", ".osascript", ".applescript", ".vba"}
 
@@ -55,15 +55,23 @@ def infer_family(strings_ci: list[str]) -> str | None:
         return "spyglace"
     if all(item in text for item in ("mx-go/internal/mail", "mx-go/internal/control", "mx-go/internal/remote")):
         return "mx-go"
-    if any(item in text for item in ("quasar.client", "xclient.core")) and "reconnectdelay" in text:
+    if all(item in text for item in ("quasar.client", "xclient.core", "reconnectdelay")):
         return "venomrat"
-    if any(item in text for item in ("ledger/live/", "security dump-keychain")) and any(
+    if "ledger/live/" in text and any(
         item in text for item in ("keychain", "osascript", "login data")
     ):
         return "amosstealer"
-    if any(item in text for item in ("lummac2", "lumma stealer")):
+    if "security dump-keychain" in text and any(
+        item in text for item in ("osascript", "login data")
+    ):
+        return "amosstealer"
+    if any(item in text for item in ("lummac2", "lumma stealer")) and any(
+        item in text for item in ("build_id", "hwid", "/api/", "/gate")
+    ):
         return "lummastealer"
-    if any(item in text for item in ("remusstealer", "remus stealer")):
+    if any(item in text for item in ("remusstealer", "remus stealer")) and any(
+        item in text for item in ("wallet.dat", "login data", "go build id", "runtime.main")
+    ):
         return "remusstealer"
     if any(item in text for item in ("information.txt", "passwords.txt")) and "wallet" in text:
         return "vidar"
@@ -73,7 +81,9 @@ def infer_family(strings_ci: list[str]) -> str | None:
         return "amadey"
     if all(item in text for item in ("counter=%d&type=%d&guid=", "/files/")) and "urls|" in text:
         return "latrodectus"
-    if any(item in text for item in ("formbook", "xloader")):
+    if any(item in text for item in ("formbook", "xloader")) and any(
+        item in text for item in ("ntsetcontextthread", "getthreadcontext", "writeprocessmemory")
+    ):
         return "formbook"
     base64_like = sum(
         bool(re.fullmatch(r"[a-z0-9+/]{16,}={0,2}", item, re.I))
@@ -83,16 +93,35 @@ def infer_family(strings_ci: list[str]) -> str | None:
         re.fullmatch(r"(?:\d{20}|\d{50})", item) for item in strings_ci
     ):
         return "stealc"
-    if any(item in text for item in ("remcos agent", "rmc-")):
+    if len(
+        _independent_marker_hits(
+            ["remcos agent", "rmc-", "remcos", "control remote"],
+            text,
+        )
+    ) >= 2:
         return "remcosrat"
-    if any(item in text for item in ("agenttesla", "otnmpxnddvnptbn")):
+    if any(item in text for item in ("agenttesla", "otnmpxnddvnptbn")) and any(
+        item in text
+        for item in (
+            "appdomain",
+            "win32_baseboard",
+            "smtpclient",
+            "ftpwebrequest",
+            "in-",
+            "-in1",
+        )
+    ):
         return "agenttesla"
-    if any(item in text for item in ("vvas.bin", "odaktomk", "n520")):
+    if sum(item in text for item in ("vvas.bin", "loggercollector.dll", "chgport.exe", "odaktomk")) >= 2:
         return "valleyrat"
+    if all(item in text for item in ("n520", "config.enc")):
+        return "valleyrat"
+    profile_candidates: list[str] = []
     for family, profile in load_profiles().items():
-        if sum(marker.lower() in text for marker in profile["markers"]) >= int(profile["minimum_markers"]):
-            return family
-    return None
+        marker_hits = _independent_marker_hits(profile["markers"], text)
+        if len(marker_hits) >= max(2, int(profile["minimum_markers"])):
+            profile_candidates.append(family)
+    return profile_candidates[0] if len(profile_candidates) == 1 else None
 
 
 def infer_campaign(family: str | None, strings_ci: list[str], member_names: list[str]) -> str | None:

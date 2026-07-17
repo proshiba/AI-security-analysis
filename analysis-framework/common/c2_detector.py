@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Bounded C2 liveness and Internet-scanner fingerprint collection.
 
-The probe never downloads a declared stage, follows redirects, or executes data.
-Protocol confirmation is separate from TCP/HTTP/TLS reachability.
+The default operation is an offline preflight. A live probe requires explicit
+network opt-in and never downloads a declared stage, follows redirects, or
+executes data. Protocol confirmation is separate from TCP/HTTP/TLS reachability.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ import ssl
 import struct
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +29,13 @@ from n520_protocol import decode_stream as decode_n520_stream
 from n520_protocol import derive_session_key as derive_n520_session_key
 from n520_protocol import extract_plugin as extract_n520_plugin
 from n520_protocol import parse_handshake as parse_n520_handshake
+
+
+JARM_STDOUT_LIMIT_BYTES = 64 * 1024
+JARM_STDERR_LIMIT_BYTES = 16 * 1024
+JARM_MIN_PROCESS_TIMEOUT_SECONDS = 20.0
+JARM_PROCESS_TIMEOUT_MULTIPLIER = 12.0
+JARM_PROCESS_STOP_GRACE_SECONDS = 1.0
 
 
 def murmur3_32(data: bytes, seed: int = 0) -> int:
@@ -126,6 +135,75 @@ def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
     }
 
 
+def validate_http_request_fields(args) -> None:
+    """Reject CR/LF in every value that can enter an HTTP request line or Host header."""
+    fields = {
+        "host": getattr(args, "host", None),
+        "HTTP host": getattr(args, "http_host", None),
+        "HTTP path": getattr(args, "http_path", None),
+        "SNI/HTTP host": getattr(args, "sni", None),
+        "MX-Go HTTP path": getattr(args, "mxgo_recipient_path", None),
+    }
+    for label, value in fields.items():
+        if value is not None and ("\r" in str(value) or "\n" in str(value)):
+            raise ValueError(f"{label} must not contain CR/LF")
+
+
+def preflight_probe(args) -> dict:
+    """Describe a probe without DNS resolution, socket creation, or subprocesses."""
+    started = time.perf_counter()
+    protocol = getattr(args, "protocol", "tcp")
+    max_bytes = getattr(args, "max_bytes", 65536)
+    result = {
+        "schema_version": 2,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "host": args.host,
+        "port": args.port,
+        "protocol": protocol,
+        "timeout_seconds": getattr(args, "timeout", 5.0),
+        "maximum_response_bytes": 64 if protocol == "vvas" else (44 if protocol == "n520" else max_bytes),
+        "alive": False,
+        "c2_confirmed": False,
+        "network_contacted": False,
+        "application_data_sent": False,
+        "status": "dry_run",
+        "required_network_opt_in": "--allow-network",
+    }
+    if protocol == "mxgo" and getattr(args, "mxgo_mode", "preview") == "preview":
+        client_id = getattr(args, "mxgo_client_id", "LAB-MXGO-000000000000")
+        body = json.dumps(build_mxgo_heartbeat(client_id), separators=(",", ":")).encode()
+        result["mxgo_request_preview"] = {
+            "method": "POST",
+            "path": "/api/v1/heartbeat_direct",
+            "content_type": "application/json",
+            "body_length": len(body),
+            "body_sha256": hashlib.sha256(body).hexdigest(),
+            "fields": sorted(build_mxgo_heartbeat(client_id)),
+            "uses_real_machine_identity": False,
+        }
+    elif protocol in {"http", "https"}:
+        result["http_request_preview"] = {
+            "method": "GET",
+            "path": getattr(args, "http_path", "/"),
+            "host": (
+                getattr(args, "http_host", None)
+                or getattr(args, "sni", None)
+                or args.host
+            ),
+            "redirect_followed": False,
+        }
+    else:
+        result["preflight"] = {
+            "application_data_planned": bool(
+                protocol == "vvas"
+                or (protocol == "n520" and getattr(args, "n520_checkin", False))
+                or getattr(args, "send_hex", None)
+            ),
+        }
+    result["elapsed_ms"] = round((time.perf_counter() - started) * 1000, 2)
+    return result
+
+
 def read_bounded(sock: socket.socket, maximum: int) -> bytes:
     """Implement the read bounded operation for the analysis framework."""
     chunks, total = [], 0
@@ -199,24 +277,237 @@ def tls_metadata(sock: ssl.SSLSocket) -> dict:
     return result
 
 
-def collect_jarm(host: str, port: int, script: Path | None, timeout: float) -> dict:
-    """Implement the collect jarm operation for the analysis framework."""
+def _stop_process(process: subprocess.Popen[bytes]) -> str:
+    """Stop a helper process and wait for cleanup before returning."""
+    if process.poll() is not None:
+        return "already_exited"
+    try:
+        process.terminate()
+    except OSError:
+        pass
+    try:
+        process.wait(timeout=JARM_PROCESS_STOP_GRACE_SECONDS)
+        return "terminated"
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        process.kill()
+    except OSError:
+        pass
+    try:
+        process.wait(timeout=JARM_PROCESS_STOP_GRACE_SECONDS)
+        return "killed"
+    except subprocess.TimeoutExpired:
+        return "cleanup_failed"
+
+
+def _monitor_bounded_process(process: subprocess.Popen[bytes], timeout: float) -> dict:
+    """Monitor one started helper while retaining bounded pipe output."""
+    assert process.stdout is not None and process.stderr is not None
+    retained = {"stdout": bytearray(), "stderr": bytearray()}
+    limits = {"stdout": JARM_STDOUT_LIMIT_BYTES, "stderr": JARM_STDERR_LIMIT_BYTES}
+    state = {
+        "stdout_observed": 0,
+        "stderr_observed": 0,
+        "truncated": set(),
+        "reader_errors": set(),
+    }
+    lock = threading.Lock()
+    overflow = threading.Event()
+    reader_failed = threading.Event()
+
+    def drain(name: str, stream) -> None:
+        try:
+            while True:
+                chunk = stream.read(8192)
+                if not chunk:
+                    break
+                with lock:
+                    state[f"{name}_observed"] += len(chunk)
+                    remaining = max(0, limits[name] - len(retained[name]))
+                    if remaining:
+                        retained[name].extend(chunk[:remaining])
+                    if len(chunk) > remaining:
+                        state["truncated"].add(name)
+                        overflow.set()
+        except Exception:
+            with lock:
+                state["reader_errors"].add(name)
+            reader_failed.set()
+        finally:
+            try:
+                stream.close()
+            except OSError:
+                pass
+
+    threads = [
+        threading.Thread(target=drain, args=("stdout", process.stdout), daemon=True),
+        threading.Thread(target=drain, args=("stderr", process.stderr), daemon=True),
+    ]
+    for thread in threads:
+        thread.start()
+
+    deadline = time.monotonic() + timeout
+    stop_reason = None
+    while process.poll() is None:
+        if overflow.is_set():
+            stop_reason = "output_limit"
+            break
+        if reader_failed.is_set():
+            stop_reason = "pipe_error"
+            break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            stop_reason = "timeout"
+            break
+        overflow.wait(min(0.05, remaining))
+
+    cleanup_action = "already_exited"
+    if stop_reason:
+        cleanup_action = _stop_process(process)
+        if cleanup_action == "cleanup_failed":
+            stop_reason = "cleanup_failed"
+    else:
+        process.wait()
+
+    for thread in threads:
+        thread.join(timeout=JARM_PROCESS_STOP_GRACE_SECONDS)
+    if any(thread.is_alive() for thread in threads):
+        cleanup_action = _stop_process(process)
+        for stream in (process.stdout, process.stderr):
+            try:
+                stream.close()
+            except OSError:
+                pass
+        for thread in threads:
+            thread.join(timeout=JARM_PROCESS_STOP_GRACE_SECONDS)
+        stop_reason = "pipe_cleanup_failed" if any(thread.is_alive() for thread in threads) else (stop_reason or "pipe_error")
+
+    if stop_reason is None:
+        if overflow.is_set():
+            stop_reason = "output_limit"
+        elif reader_failed.is_set():
+            stop_reason = "pipe_error"
+    return {
+        "returncode": process.returncode,
+        "stdout": bytes(retained["stdout"]),
+        "stderr": bytes(retained["stderr"]),
+        "stdout_observed_bytes": state["stdout_observed"],
+        "stderr_observed_bytes": state["stderr_observed"],
+        "stdout_truncated": "stdout" in state["truncated"],
+        "stderr_truncated": "stderr" in state["truncated"],
+        "reader_errors": sorted(state["reader_errors"]),
+        "stop_reason": stop_reason,
+        "cleanup_action": cleanup_action,
+    }
+
+
+def _run_bounded_process(command: list[str], timeout: float) -> dict:
+    """Run a helper with bounded pipe retention and fail-closed cleanup."""
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=False,
+        bufsize=0,
+    )
+    try:
+        return _monitor_bounded_process(process, timeout)
+    except BaseException:
+        _stop_process(process)
+        for stream in (process.stdout, process.stderr):
+            if stream is None:
+                continue
+            try:
+                stream.close()
+            except Exception:
+                pass
+        raise
+
+
+def collect_jarm(
+    host: str,
+    port: int,
+    script: Path | None,
+    timeout: float,
+    *,
+    allow_network: bool = False,
+) -> dict:
+    """Collect a JARM fingerprint with bounded helper output and fail-closed cleanup."""
+    if not allow_network:
+        return {
+            "status": "not_collected",
+            "reason": "network collection disabled",
+            "network_contacted": False,
+        }
     if not script or not script.is_file():
         return {"status": "not_collected", "reason": "official Salesforce JARM script not found"}
+    process_timeout = max(
+        JARM_MIN_PROCESS_TIMEOUT_SECONDS,
+        timeout * JARM_PROCESS_TIMEOUT_MULTIPLIER,
+    )
     try:
-        completed = subprocess.run(
-            [sys.executable, str(script), "-p", str(port), host], capture_output=True,
-            text=True, timeout=max(20.0, timeout * 12), check=False,
+        completed = _run_bounded_process(
+            [sys.executable, str(script), "-p", str(port), host],
+            process_timeout,
         )
-        match = re.search(r"\b[0-9a-f]{62}\b", completed.stdout, re.I)
-        fingerprint = match.group(0).lower() if match else None
+        output = completed.pop("stdout")
+        completed.pop("stderr")
+        metadata = {
+            "tool": "Salesforce JARM",
+            "network_contacted": True,
+            "exit_code": completed["returncode"],
+            "process_timeout_seconds": process_timeout,
+            "stdout_limit_bytes": JARM_STDOUT_LIMIT_BYTES,
+            "stderr_limit_bytes": JARM_STDERR_LIMIT_BYTES,
+            "stdout_retained_bytes": len(output),
+            "stderr_retained_bytes": min(
+                completed["stderr_observed_bytes"], JARM_STDERR_LIMIT_BYTES,
+            ),
+            "stdout_observed_bytes": completed["stdout_observed_bytes"],
+            "stderr_observed_bytes": completed["stderr_observed_bytes"],
+            "stdout_truncated": completed["stdout_truncated"],
+            "stderr_truncated": completed["stderr_truncated"],
+            "cleanup_action": completed["cleanup_action"],
+            "output_tail": output[-1000:].decode("utf-8", errors="replace"),
+        }
+        if completed["stop_reason"] == "output_limit":
+            return {
+                "status": "output_limit",
+                "fingerprint": None,
+                "reason": "JARM helper output exceeded the bounded capture limit",
+                **metadata,
+            }
+        if completed["stop_reason"] == "timeout":
+            return {
+                "status": "timeout",
+                "fingerprint": None,
+                "reason": "JARM helper exceeded its process timeout",
+                **metadata,
+            }
+        if completed["stop_reason"]:
+            return {
+                "status": "error",
+                "fingerprint": None,
+                "reason": f"JARM helper failed closed: {completed['stop_reason']}",
+                **metadata,
+            }
+        match = re.search(rb"\b[0-9a-f]{62}\b", output, re.I)
+        fingerprint = match.group(0).decode("ascii").lower() if match else None
         if fingerprint == "0" * 62:
             fingerprint = None
+        if completed["returncode"] != 0:
+            return {
+                "status": "error",
+                "fingerprint": None,
+                "reason": "JARM helper exited unsuccessfully",
+                **metadata,
+            }
         return {
             "status": "collected" if fingerprint else "no_fingerprint",
             "fingerprint": fingerprint,
-            "tool": "Salesforce JARM", "exit_code": completed.returncode,
-            "output_tail": completed.stdout[-1000:],
+            **metadata,
         }
     except Exception as exc:
         return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
@@ -224,6 +515,9 @@ def collect_jarm(host: str, port: int, script: Path | None, timeout: float) -> d
 
 def probe(args) -> dict:
     """Implement the probe operation for the analysis framework."""
+    validate_http_request_fields(args)
+    if not getattr(args, "allow_network", False):
+        return preflight_probe(args)
     started = time.perf_counter()
     result = {
         "schema_version": 2, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -419,7 +713,13 @@ def probe(args) -> dict:
             "prefix_base64": base64.b64encode(raw[:512]).decode(),
         }
     if args.collect_jarm and args.protocol in {"https", "tls", "n520"}:
-        result["jarm"] = collect_jarm(args.sni or args.host, args.port, args.jarm_script, args.timeout)
+        result["jarm"] = collect_jarm(
+            args.sni or args.host,
+            args.port,
+            args.jarm_script,
+            args.timeout,
+            allow_network=True,
+        )
 
     try:
         ipaddress.ip_address(args.host)
@@ -478,8 +778,13 @@ def main() -> int:
     parser.add_argument("--archive-password", default="infected")
     parser.add_argument("--collect-jarm", action="store_true")
     parser.add_argument("--jarm-script", type=Path, default=Path(r"C:\Users\Administrator\Tools\Salesforce-JARM\jarm.py"))
+    parser.add_argument("--allow-network", action="store_true", help="explicitly allow the bounded live probe")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    try:
+        validate_http_request_fields(args)
+    except ValueError as exc:
+        parser.error(str(exc))
     if not 1 <= args.port <= 65535 or not 0.1 <= args.timeout <= 30 or not 1 <= args.max_bytes <= 1048576:
         parser.error("port, timeout, or max-bytes is outside the allowed range")
     if not 1 <= args.n520_wait <= 30 or not 1 <= args.n520_max_bytes <= 16 * 1024 * 1024 or not 1 <= args.n520_max_frames <= 64:
@@ -487,7 +792,7 @@ def main() -> int:
     if args.protocol == "mxgo" and args.mxgo_mode != "preview":
         if not mxgo_loopback_target(args.host):
             parser.error("active MX-Go emulation is loopback-only")
-        if not args.mxgo_allow_loopback_network:
+        if args.allow_network and not args.mxgo_allow_loopback_network:
             parser.error("active MX-Go emulation requires --mxgo-allow-loopback-network")
         if not re.fullmatch(r"/[A-Za-z0-9._/-]{1,200}", args.mxgo_recipient_path):
             parser.error("invalid MX-Go recipient fixture path")

@@ -14,7 +14,7 @@ analyses:
     c2:
       - 202.95.8.27:6666
       - 202.95.8.27:8888
-    result_path: analysis-results/valleyrat/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6/
     notes: "Hash-only OSINT enrichment: unknown at low confidence from 0 independent provider(s); static attribution is retained separately. No sample submission, execution, or infrastructure contact."
 
   - malware_type: ValleyRAT
@@ -30,7 +30,7 @@ analyses:
     c2:
       - www.tq8j.com:443
       - 103.45.64.246:443
-    result_path: analysis-results/valleyrat/cases/b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c/
     notes: ローカル実行はせず、MSI/CAB 構造と sandbox の process 帰属付き通信を突合。
 
   - malware_type: ValleyRAT
@@ -44,7 +44,7 @@ analyses:
       - 同一 process から C2 への反復接続
     c2:
       - 150.158.50.175:443
-    result_path: analysis-results/valleyrat/cases/942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0/
     notes: ローカル実行なし。Triage の process/network evidence を利用。
 
   - malware_type: ValleyRAT
@@ -60,7 +60,7 @@ analyses:
     c2:
       - 154.81.37.130:4444
       - 154.81.37.130:5555
-    result_path: analysis-results/valleyrat/cases/eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534/
     notes: ローカル実行なし。task 作成と通信を sandbox 証跡で確認。
 
   - malware_type: ValleyRAT
@@ -75,7 +75,7 @@ analyses:
     c2:
       - 134.122.128.66:6666
       - 134.122.128.66:8888
-    result_path: analysis-results/valleyrat/cases/15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f/
     notes: ローカル実行・ライブ接続なし。配布 IP と C2 を分離して記録。
 
   - malware_type: ValleyRAT
@@ -90,7 +90,7 @@ analyses:
     c2:
       - 27.124.18.166:63016
       - 27.124.18.166:63026
-    result_path: analysis-results/valleyrat/cases/5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19/
     notes: Triage config と dwmhost.exe の C2 接続を高信頼 IOC として整理。
 
   - malware_type: ValleyRAT
@@ -104,7 +104,7 @@ analyses:
       - Defender exclusion と SYSTEM/highest scheduled task
     c2:
       - 8.210.15.149:28300
-    result_path: analysis-results/valleyrat/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd/
     notes: 34UXpv.exe の DNS/C2 接続と防御回避を sandbox 証跡で確認。
 
   - malware_type: ValleyRAT
@@ -118,7 +118,7 @@ analyses:
       - server-first 44-byte handshake and bounded empty command-1 collection
     c2:
       - 118.107.21.88:9999
-    result_path: analysis-results/valleyrat/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/
     notes: 'Config distribution was 118.107.21.88:9000/config.enc. No station ID, plugin, fallback C2, or operator command was received during the bounded 2026-07-15 validation.'
 
   - malware_type: ValleyRAT
@@ -133,7 +133,7 @@ analyses:
     c2:
       - oidng2.duoshit.com:443
       - 51.79.18.52:443
-    result_path: analysis-results/valleyrat/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/
     notes: 'Endpoint is inferred from external evidence; final local payload/config was not recovered.'
 
   - malware_type: ValleyRAT
@@ -147,7 +147,7 @@ analyses:
       - HTTP stage distribution separated from final C2
     c2:
       []
-    result_path: analysis-results/valleyrat/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1/
     notes: 'Confirmed distribution URL was http://43.198.235.91/getinstall64; final ValleyRAT C2 remained unresolved.'
 
   - malware_type: ValleyRAT
@@ -162,7 +162,7 @@ analyses:
     c2:
       - cqbxbkj.cn
       - 18.167.91.239
-    result_path: analysis-results/valleyrat/cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab/
     notes: 'Port 8880 is an unverified similar-campaign lead and refused connection during the prior bounded check; it is not recorded as confirmed C2.'
   - malware_type: AgentTesla
     analyzed_at: 2026-07-13
@@ -175,7 +175,7 @@ analyses:
       - 'DownloadData, IN-/-in1 carving, character reversal, Base64 decode, in-memory .NET load'
     c2:
       - 'ftp.ltcresource.com.my:21'
-    result_path: analysis-results/agenttesla/cases/1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -189,7 +189,7 @@ analyses:
       - 'AgentTesla configuration extracted by external sandbox'
     c2:
       - 'ftp.dankely.org:21'
-    result_path: analysis-results/agenttesla/cases/5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -203,7 +203,7 @@ analyses:
       - 'PowerShell/AES and in-memory .NET loading behavior'
     c2:
       - 'ftp.4bagh.net:21'
-    result_path: analysis-results/agenttesla/cases/7f31b2c417af903470a865c011854acb2d0ce9ef3e497973d54e97fb68db74d8/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/7f31b2c417af903470a865c011854acb2d0ce9ef3e497973d54e97fb68db74d8/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -217,7 +217,7 @@ analyses:
       - 'Decoded stage is loaded in memory'
     c2:
       - 'ftp.orangesac.com:21'
-    result_path: analysis-results/agenttesla/cases/856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -231,7 +231,7 @@ analyses:
       - 'AgentTesla SMTP exfiltration configuration'
     c2:
       - 'smtp.hostinger.com:587'
-    result_path: analysis-results/agenttesla/cases/98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -245,7 +245,7 @@ analyses:
       - 'Shares SMTP infrastructure and loader pattern with a74a948a'
     c2:
       - 'server275.web-hosting.com:587'
-    result_path: analysis-results/agenttesla/cases/a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -259,7 +259,7 @@ analyses:
       - 'Shares SMTP infrastructure and loader pattern with a01716c2'
     c2:
       - 'server275.web-hosting.com:587'
-    result_path: analysis-results/agenttesla/cases/a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -273,7 +273,7 @@ analyses:
       - 'Do not equate shared infrastructure with identical operator'
     c2:
       - 'server275.web-hosting.com:587'
-    result_path: analysis-results/agenttesla/cases/d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -287,7 +287,7 @@ analyses:
       - 'C2 is inherited from the byte-identical inner payload'
     c2:
       - 'ftp.4bagh.net:21'
-    result_path: analysis-results/agenttesla/cases/e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: AgentTesla
@@ -301,7 +301,7 @@ analyses:
       - 'Illustrates why delivery and payload/config clustering must remain separate'
     c2:
       - 'ftp.cyberflor.co:21'
-    result_path: analysis-results/agenttesla/cases/efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296/
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -315,7 +315,7 @@ analyses:
       - 'External sandbox observed WScript and PowerShell before Remcos configuration extraction'
     c2:
       - '102.220.160.21:2404'
-    result_path: analysis-results/remcosrat/cases/04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1/
+    result_path: analysis-results/malware/remcosrat/versions/unknown/cases/04052c109be755361fd73902875a6552446525cc09d68a9b81eed56b9386d2e1/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -329,7 +329,7 @@ analyses:
       - 'Launches through Shell.Application.ShellExecute'
     c2:
       - '103.67.163.108:2404'
-    result_path: analysis-results/remcosrat/cases/09cc1c77657400e803310dd7ba58a91854fb275e5b29adf53a6ee2827f848366/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/09cc1c77657400e803310dd7ba58a91854fb275e5b29adf53a6ee2827f848366/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -343,7 +343,7 @@ analyses:
       - 'Remote stage is transformed and loaded in memory'
     c2:
       - 'thrillermotion.4nmn.com:2022'
-    result_path: analysis-results/remcosrat/cases/3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -359,7 +359,7 @@ analyses:
       - 'pavementmg.duckdns.org:4450'
       - 'pavementmg.duckdns.org:4551'
       - 'pavementmg.duckdns.org:4553'
-    result_path: analysis-results/remcosrat/cases/47af1f0d9932840767920b3cb2befb3839bbc980e610c6a14327edf1b1682b2d/
+    result_path: analysis-results/malware/remcosrat/versions/v6.0.0-pro/cases/47af1f0d9932840767920b3cb2befb3839bbc980e610c6a14327edf1b1682b2d/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -375,7 +375,7 @@ analyses:
       - '37.27.30.5:2404'
       - '37.27.30.5:2405'
       - '37.27.30.5:2406'
-    result_path: analysis-results/remcosrat/cases/52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -389,7 +389,7 @@ analyses:
       - 'Remote stage and final C2 are distinct observables'
     c2:
       - 'kesmn.com:2404'
-    result_path: analysis-results/remcosrat/cases/a1391c592b986457334a361609a952d930182d892a7dd68ab17e6ea18fa4faf2/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/a1391c592b986457334a361609a952d930182d892a7dd68ab17e6ea18fa4faf2/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -405,7 +405,7 @@ analyses:
       - '37.27.30.5:2404'
       - '37.27.30.5:2405'
       - '37.27.30.5:2406'
-    result_path: analysis-results/remcosrat/cases/b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -419,7 +419,7 @@ analyses:
       - 'MalwareBazaar tag mentions 37.27.30.5, but no port/config was independently recovered; do not promote the tag pivot to confirmed C2'
     c2:
       []
-    result_path: analysis-results/remcosrat/cases/c4fc9162227b35c631fbe623ee30fa7f660ed015915ed66c76942b1583ac3f77/
+    result_path: analysis-results/malware/remcosrat/versions/unknown/cases/c4fc9162227b35c631fbe623ee30fa7f660ed015915ed66c76942b1583ac3f77/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -436,7 +436,7 @@ analyses:
       - '141.98.10.150:14642'
       - '141.98.10.150:14643'
       - '141.98.10.150:14644'
-    result_path: analysis-results/remcosrat/cases/d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8/
+    result_path: analysis-results/malware/remcosrat/versions/v6.0.0-pro/cases/d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: RemcosRAT
@@ -450,7 +450,7 @@ analyses:
       - 'Instantiates ActiveXObject, writes/launches a secondary JavaScript path, and leads to PowerShell in sandbox telemetry'
     c2:
       - '79.141.165.55:2404'
-    result_path: analysis-results/remcosrat/cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/
+    result_path: analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/d92f3155a058d19c81eba292df6fa7d5080c684ba6a19d3d04d2bdd24796d53c/
     notes: 'No local sample execution or live C2 contact; credentials excluded from published results.'
 
   - malware_type: VenomRAT
@@ -460,7 +460,7 @@ analyses:
     campaign_type: japan_tax_notice_runtimebroker
     matched_patterns: ['Tax_Notice lure', 'VBS and BITSAdmin staging', 'RuntimeBroker persistence and UAC-policy modification']
     c2: ['192.252.180.45:4449']
-    result_path: analysis-results/venomrat/cases/f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d/
+    result_path: analysis-results/malware/venomrat/versions/v6.0.3/cases/f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d/
     notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
 
   - malware_type: VenomRAT
@@ -470,7 +470,7 @@ analyses:
     campaign_type: japan_tax_notice_runtimebroker
     matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'RunOnce persistence']
     c2: ['192.252.180.45:4449']
-    result_path: analysis-results/venomrat/cases/54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d/
+    result_path: analysis-results/malware/venomrat/versions/v6.0.3/cases/54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d/
     notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
 
   - malware_type: VenomRAT
@@ -480,7 +480,7 @@ analyses:
     campaign_type: japan_tax_notice_runtimebroker
     matched_patterns: ['Tax_Notice lure', 'RuntimeBroker profile copy', 'Run persistence and token/hook activity']
     c2: ['192.252.180.45:4449']
-    result_path: analysis-results/venomrat/cases/01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386/
+    result_path: analysis-results/malware/venomrat/versions/v6.0.3/cases/01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386/
     notes: 'User-provided Japan-observed provenance; no local execution or live C2 contact.'
 
   - malware_type: VenomRAT
@@ -490,7 +490,7 @@ analyses:
     campaign_type: japan_tax_notice_disk_image
     matched_patterns: ['IMG delivery', 'DLL hijacking', 'Run-key and process/token/hook behavior']
     c2: ['192.252.180.45:4449']
-    result_path: analysis-results/venomrat/cases/5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083/
+    result_path: analysis-results/malware/venomrat/versions/v6.0.3/cases/5cdb8b20bab0ef77f5889729c7c8664326607ecf19ae48d2e1b1398df6b40083/
     notes: 'Japan observation is requester-supplied; no local execution or live C2 contact.'
 
   - malware_type: VenomRAT
@@ -500,7 +500,7 @@ analyses:
     campaign_type: direct_dotnet_quasar_module
     matched_patterns: ['Quasar.Client and xClient.Core namespaces', 'Quasar-style configuration fields', 'Three literal port-1002 endpoint candidates']
     c2: ['sznftk1.it.com:1002', 'eeee456.it.com:1002', 'xelamnces.online:1002']
-    result_path: analysis-results/venomrat/cases/6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/6bd804b150495e241f5791e889b8eaa1c2f16564cca78da4caec91a2d37f2955/
     notes: 'C2 entries are static configuration candidates, not live-confirmed; sample not executed.'
 
   - malware_type: VenomRAT
@@ -510,7 +510,7 @@ analyses:
     campaign_type: dotnet_encrypted_resource_loader
     matched_patterns: ['Image-extension masquerading .NET PE', 'AES/GZip/resource loading', '332036-byte entropy-7.999 embedded resource']
     c2: []
-    result_path: analysis-results/venomrat/cases/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b/
     notes: 'Final payload/configuration not recovered; absence of C2 is not evidence of no C2.'
 
   - malware_type: VenomRAT
@@ -520,7 +520,7 @@ analyses:
     campaign_type: native_resource_loader
     matched_patterns: ['Native x64 loader', '24 PE resources', '956928-byte EXPAND/2499 recovery target']
     c2: []
-    result_path: analysis-results/venomrat/cases/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8/
     notes: 'Final payload/configuration not recovered; certificate URLs excluded from infrastructure.'
 
   - malware_type: Unclassified-MX-Go
@@ -536,7 +536,7 @@ analyses:
     c2:
       - '43.165.179.173:5000 (embedded control server; live TCP/API routes confirmed 2026-07-15, no check-in)'
       - 'www.iainglespa.com:443 (content/config host; sandbox connected, live TLS open but paths gated/disabled)'
-    result_path: analysis-results/unclassified/mx-go/cases/462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/462ae2f56a5f3a961be8bdee03497c65cad61ab04c2482ddcb14e6bf6cdd70fb/
     notes: 'Classified as an unclassified remotely controlled bulk-email spam bot, not a general RAT. Sample was not executed. Bounded 2026-07-15 live check found the control port open and four exact API routes; no POST/check-in or content bodies were sent/retrieved. Added a loopback-only C2/content emulator and synthetic client/recipient validation.'
   - malware_type: VenomRAT
     analyzed_at: 2026-07-15
@@ -545,7 +545,7 @@ analyses:
     campaign_type: utf16_js_unicode_environment_loader
     matched_patterns: ['numeric-array repeating-key XOR', 'PowerShell environment-chunk reconstruction', 'Unicode minus 19968', 'terminal x64 .NET PE']
     c2: []
-    result_path: analysis-results/venomrat/refresh-20260715/cases/579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/579085581348296ae88419296edc6a8e91acf4463c7994112b5c3f7f3653710e/
     notes: 'Recovered terminal PE 4246bf9121476cc6fb8d2f69c6263a7b4d31a331bd02dd9a7603e6200fb9725b without execution or networking.'
 
   - malware_type: VenomRAT
@@ -555,7 +555,7 @@ analyses:
     campaign_type: utf16_js_aes_gzip_loader
     matched_patterns: ['numeric-array repeating subtraction', 'Unicode environment chunks', 'embedded AES-CBC key and IV', 'GZip', 'terminal x64 .NET PE']
     c2: []
-    result_path: analysis-results/venomrat/refresh-20260715/cases/d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/d7de7d851061a99e6f2ca256aba5badf90778f566fc528db6396a4180901ac26/
     notes: 'Recovered terminal PE 16109f93bcddf8dec5e21057f35b3da437d94976f503f45b217232c26b65515e without executing JavaScript or PowerShell.'
 
   - malware_type: VenomRAT
@@ -565,7 +565,7 @@ analyses:
     campaign_type: cmd_chunked_base64_loader
     matched_patterns: ['CMD echo redirection stream', 'certutil decode recipe', 'structurally validated terminal x86 PE']
     c2: []
-    result_path: analysis-results/venomrat/refresh-20260715/cases/ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8/
+    result_path: analysis-results/malware/venomrat/versions/unknown/cases/ad6417ba292c504cb7307ca0c520435739f87908f117cc2423cd4b7e81cc1ac8/
     notes: 'Reassembled terminal PE d6bb84d31d68519e201370f8ccb60d373412573d125f30c5b3090c1ad206d5fd and suppressed 128 false fragment artifacts.'
 
   - malware_type: RemusStealer
@@ -575,7 +575,7 @@ analyses:
     campaign_type: custom_native_memory_loader
     matched_patterns: ['zero imports', 'API hash resolution', 'high-entropy .rdata', 'RWX allocation', 'bespoke state machine']
     c2: []
-    result_path: analysis-results/remusstealer/refresh-20260715/cases/5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c/
+    result_path: analysis-results/malware/remusstealer/versions/unknown/cases/5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c/
     notes: 'Blocker native_control_flow_obfuscation; no sample execution, loader execution, memory dumping, or emulation.'
 
   - malware_type: RemcosRAT
@@ -585,7 +585,7 @@ analyses:
     campaign_type: nsis_scripted_native_loader
     matched_patterns: ['NSIS word XOR 0x17d68b37', 'System-plugin command stream', 'dword XOR 0xe7c94882', '435824-byte native loader']
     c2: []
-    result_path: analysis-results/remcosrat/refresh-20260715/cases/78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db/
+    result_path: analysis-results/malware/remcosrat/versions/unknown/cases/78b21599a83dbfad39c17202d37dd2b6d552c9679755bc199a9826f3dd0e40db/
     notes: 'Recovered intermediate e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a; final payload remains control-flow obfuscated.'
 
   - malware_type: ValleyRAT
@@ -595,7 +595,7 @@ analyses:
     campaign_type: ole_embedded_virtualized_pe
     matched_patterns: ['OLE embedded PE', 'single imported API', 'zero-raw normal sections', 'high-entropy RX entry section', 'opaque control flow']
     c2: []
-    result_path: analysis-results/valleyrat/refresh-20260715/cases/fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de/
     notes: 'Recovered protected PE db720e674a25318cd09e35d8fae5b43faaa3acf9dfe04f5b6ea23d8c0c414779; blocker native_control_flow_obfuscation.'
 
   - malware_type: ValleyRAT
@@ -605,7 +605,7 @@ analyses:
     campaign_type: ole_embedded_virtualized_pe
     matched_patterns: ['OLE embedded PE', 'single imported API', 'overlapping instructions', 'opaque predicates', 'rdtsc and stack-state manipulation']
     c2: []
-    result_path: analysis-results/valleyrat/refresh-20260715/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/
     notes: 'Recovered protected PE 136bdce277b8c810656eccc0b0e4b47f0fde81e1d5aba86a475a08d96b7a22a9; blocker native_control_flow_obfuscation.'
 
   - malware_type: ValleyRAT
@@ -615,7 +615,7 @@ analyses:
     campaign_type: ole_embedded_virtualized_pe
     matched_patterns: ['OLE embedded PE', 'single imported API', 'zero-raw normal sections', 'high-entropy RX entry section']
     c2: []
-    result_path: analysis-results/valleyrat/refresh-20260715/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9/
     notes: 'Recovered protected PE 1982d5168c430ee373e6bcbd99322b844bdb5942f778bc9d4b141e7c27182105; blocker native_control_flow_obfuscation.'
   - malware_type: DonutLoader
     analyzed_at: 2026-07-16
@@ -629,7 +629,7 @@ analyses:
       - 'native 10FX frame and remote-control capability cluster'
     c2:
       - '154.82.93.206:8080'
-    result_path: analysis-results/donutloader/cases/e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37/
+    result_path: analysis-results/malware/donutloader/versions/unknown/cases/e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37/
     notes: 'Reassigned submission label retained, but Donut is not statically confirmed; native 10FX terminal recovered as 2e12fa92...1087e. No execution or C2 contact.'
 
   - malware_type: PureHVNC
@@ -646,7 +646,7 @@ analyses:
       - 'tirakian.com:56001'
       - 'tirakian.com:56002'
       - 'tirakian.com:56003'
-    result_path: analysis-results/purehvnc/cases/e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0/
+    result_path: analysis-results/malware/purehvnc/versions/v4.4.1/cases/e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0/
     notes: 'Terminal c1a2b48d...2ffe8 was fully recovered from embedded data; Donut is a delivery layer. No additional download, execution, or C2 contact was needed.'
 
   - malware_type: SpyGlace
@@ -656,7 +656,7 @@ analyses:
     campaign_type: apt_c60_2026_repository_delivery_sapphire
     matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid SAPPHIRE', 'four ASP paths']
     c2: ['185.18.222.241']
-    result_path: analysis-results/spyglace/cases/e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f/
+    result_path: analysis-results/malware/spyglace/versions/v3.1.15/cases/e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f/
     notes: 'Recovered PE 7ab9c634...ae4c; no execution or C2 contact.'
   - malware_type: SpyGlace
     analyzed_at: 2026-07-15
@@ -665,7 +665,7 @@ analyses:
     campaign_type: apt_c60_2026_repository_delivery_eve
     matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'four ASP paths']
     c2: ['31.58.136.207']
-    result_path: analysis-results/spyglace/cases/9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502/
+    result_path: analysis-results/malware/spyglace/versions/v3.1.15/cases/9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502/
     notes: 'Recovered PE af24d54d...9aa5; no execution or C2 contact.'
   - malware_type: SpyGlace
     analyzed_at: 2026-07-15
@@ -674,7 +674,7 @@ analyses:
     campaign_type: apt_c60_2026_repository_delivery_eve
     matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'mutex build variant']
     c2: ['31.58.136.207']
-    result_path: analysis-results/spyglace/cases/add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c/
+    result_path: analysis-results/malware/spyglace/versions/v3.1.15/cases/add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c/
     notes: 'Recovered PE 88f58087...e37c; no execution or C2 contact.'
   - malware_type: SpyGlace
     analyzed_at: 2026-07-15
@@ -683,7 +683,7 @@ analyses:
     campaign_type: apt_c60_2026_repository_delivery_eve
     matched_patterns: ['repository XOR envelope', 'encoded WinHTTP/API and command strings', 'userid EVE', 'mutex build variant']
     c2: ['31.58.136.207']
-    result_path: analysis-results/spyglace/cases/c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52/
+    result_path: analysis-results/malware/spyglace/versions/v3.1.15/cases/c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52/
     notes: 'Recovered PE 7621e4ef...e067; no execution or C2 contact.'
   - malware_type: ValleyRAT
     analyzed_at: 2026-07-16
@@ -696,7 +696,7 @@ analyses:
       - 'exact outer ZIP and DLL hashes'
     c2:
       - 'ljowqjd.cn'
-    result_path: analysis-results/valleyrat/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/
     notes: 'Malicious DLL unavailable from MalwareBazaar; final config remains unverified and the signed host hash is context-only.'
 
   - malware_type: npm_supply_chain
@@ -710,7 +710,7 @@ analyses:
       - 'package.md anti-forensics replacement'
     c2:
       - 'sfrclak.com:8000/6202033'
-    result_path: analysis-results/npm-supply-chain/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/
+    result_path: analysis-results/research/supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/
     notes: 'setup.js obtained from MalwareBazaar and decoded without Node.js execution or network contact; downloaded RAT payloads unavailable.'
 
   - malware_type: AtlasCross
@@ -726,7 +726,7 @@ analyses:
     c2:
       - 'bifa668.com:9899'
       - '61.111.250.139:9899'
-    result_path: analysis-results/atlascross/campaigns/silver-fox-vpn-2026/
+    result_path: analysis-results/research/campaigns/atlascross/silver-fox-vpn-2026/
     notes: 'Published samples unavailable from MalwareBazaar; extractor validated against a deterministic synthetic config fixture.'
 
   - malware_type: Trivy-TeamPCP
@@ -741,7 +741,7 @@ analyses:
     c2:
       - 'scan.aquasecurtiy.org'
       - '45.148.10.212'
-    result_path: analysis-results/supply-chain/trivy-teampcp-2026/
+    result_path: analysis-results/research/supply-chain/trivy-teampcp-2026/
     notes: 'Artifact unavailable from MalwareBazaar; hashes and behavior derive from Aqua official advisory. Cisco downstream scope remains reporting-only.'
 
   - malware_type: ShadowPad
@@ -755,7 +755,7 @@ analyses:
       - 'decoded 32-bit config block'
     c2:
       - 'fljhcqwe.com:80'
-    result_path: analysis-results/shadowpad/cases/f7ef194f2dcc341ba03f76872cb7c0dfbae8f79118f99cf73dfccfb146c4e966/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/f7ef194f2dcc341ba03f76872cb7c0dfbae8f79118f99cf73dfccfb146c4e966/
     notes: 'Resource contents and payload configuration were recovered by static decoding.'
 
   - malware_type: ShadowPad
@@ -767,7 +767,7 @@ analyses:
       - 'IVIEWERS.dll sideload component'
       - 'embedded member of reviewed OLEVIEW chain'
     c2: []
-    result_path: analysis-results/shadowpad/cases/1e06fd5b9aa0e5260369e52ec2d9f87060941de835234afd198b1d4c0b161678/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/1e06fd5b9aa0e5260369e52ec2d9f87060941de835234afd198b1d4c0b161678/
     notes: 'No standalone config was recovered; the parent-chain endpoint is not attributed to this DLL alone.'
 
   - malware_type: ShadowPad
@@ -783,7 +783,7 @@ analyses:
       - 'www.grandfoodtony.com:80'
       - 'www.grandfoodtony.com:443'
       - 'www.grandfoodtony.com:8080'
-    result_path: analysis-results/shadowpad/cases/231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3/
     notes: 'TCP, HTTP, and UDP configuration recovered without contacting the endpoints.'
 
   - malware_type: ShadowPad
@@ -799,7 +799,7 @@ analyses:
       - 'websencl.com:8080'
       - 'websencl.com:80'
       - 'websencl.com:443'
-    result_path: analysis-results/shadowpad/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/
     notes: 'TCP and HTTP configuration recovered without contacting the endpoints.'
 
   - malware_type: ShadowPad
@@ -812,7 +812,7 @@ analyses:
       - 'QuickLZ Config module'
       - 'campaign ID CLwKvjhHyeuLPsS6Z'
     c2: []
-    result_path: analysis-results/shadowpad/cases/d9438cd2cdc83e8efad7b0c9a825466efea709335b63d6181dfdc57fb1f4a4e3/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/d9438cd2cdc83e8efad7b0c9a825466efea709335b63d6181dfdc57fb1f4a4e3/
     notes: 'Private 10.0.123.1 builder/test values are retained in case context and excluded from public IOC output.'
 
   - malware_type: ShadowPad
@@ -826,7 +826,7 @@ analyses:
       - 'campaign ID 3vS89RZxQNWSgQTu1'
     c2:
       - 'goods.kankuedu.org'
-    result_path: analysis-results/shadowpad/cases/284c664b4baff90444c4ed96cfcb4ef6d26cc7aedc46c1e996c359ecea95f697/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/284c664b4baff90444c4ed96cfcb4ef6d26cc7aedc46c1e996c359ecea95f697/
     notes: 'HTTPS config URL and installation fields recovered by static decoding.'
 
   - malware_type: ShadowPad
@@ -840,7 +840,7 @@ analyses:
       - 'campaign ID uq2kKaadPToLV5qZj'
     c2:
       - 'gfsg.chickenkiller.com'
-    result_path: analysis-results/shadowpad/cases/88a60c235a2fbf9b681d9b67daf8f67e9a21edd53fc84b8babfa8f286c38e6b8/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/88a60c235a2fbf9b681d9b67daf8f67e9a21edd53fc84b8babfa8f286c38e6b8/
     notes: 'HTTPS config URL and installation fields recovered by static decoding.'
 
   - malware_type: ShadowPad
@@ -855,7 +855,7 @@ analyses:
       - 'www.pneword.net:80'
       - 'www.pneword.net:443'
       - 'www.pneword.net:53'
-    result_path: analysis-results/shadowpad/cases/ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646/
+    result_path: analysis-results/malware/shadowpad/versions/unknown/cases/ac6938e03f2a076152ee4ce23a39a0bfcd676e4f0b031574d442b6e2df532646/
     notes: 'Config attribution is exact-hash primary-source evidence; generic local nsPack config recovery remains unresolved.'
 
   - malware_type: StealC
@@ -867,7 +867,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/0523d96352c2028dd22fe5591db75e08c6d8ad76afd0baf2c0b5ce04ae850439/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/0523d96352c2028dd22fe5591db75e08c6d8ad76afd0baf2c0b5ce04ae850439/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -878,7 +878,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -889,7 +889,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/0a9eab89753e07a01b1c5e0197acefea9cc05e5f7829823f811e7aa1d7b817b7/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/0a9eab89753e07a01b1c5e0197acefea9cc05e5f7829823f811e7aa1d7b817b7/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -900,7 +900,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/0b2079978ba2073cfde3c6bc39847431e4e2ab64db27d592df01c4f93d209ca1/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/0b2079978ba2073cfde3c6bc39847431e4e2ab64db27d592df01c4f93d209ca1/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -911,7 +911,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -922,7 +922,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/1b8433398050753d992dc40ea4c07144b43724a99ec4cf2fdac764645d6d1023/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/1b8433398050753d992dc40ea4c07144b43724a99ec4cf2fdac764645d6d1023/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -934,7 +934,7 @@ analyses:
     c2:
       - 'http://fff-ttt.com/984dd96064cb23d7.php'
     notes: 'C2 and build profile recovered from sample bytes; no network contact or liveness check.'
-    result_path: analysis-results/stealc/cases/1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -946,7 +946,7 @@ analyses:
     c2:
       - 'http://40.86.87.10/108e010e8f91c38c.php'
     notes: 'C2 and build profile recovered from sample bytes; no network contact or liveness check.'
-    result_path: analysis-results/stealc/cases/262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -957,7 +957,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/2874b873e12bcdfcf0a37708512e21637e38e5f5b9a2bf0c3b34f72d74c05708/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/2874b873e12bcdfcf0a37708512e21637e38e5f5b9a2bf0c3b34f72d74c05708/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -968,7 +968,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -979,7 +979,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -990,7 +990,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/4eb215aa80ea20f514aa4815bc82f872bf7130391e21509aef3a29cb34d3a420/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/4eb215aa80ea20f514aa4815bc82f872bf7130391e21509aef3a29cb34d3a420/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1001,7 +1001,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/4ff0d58788532f4c0bb9dbc9effe6202dd1adaae2ecb8eebc2d48be8cf4b1895/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/4ff0d58788532f4c0bb9dbc9effe6202dd1adaae2ecb8eebc2d48be8cf4b1895/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1012,7 +1012,7 @@ analyses:
       - 'nsis_container'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1023,7 +1023,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/65fcf2bac887d16fe2d281c53efaa770c73f7e32a2862024cc21f9680ee9efe9/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/65fcf2bac887d16fe2d281c53efaa770c73f7e32a2862024cc21f9680ee9efe9/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1034,7 +1034,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/68ab41d802805f74bde3127b20febf98c31a57ab32de9302e53e681599ac7308/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1045,7 +1045,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/6bfc504449a39316188b90599aa225fef46e6be74d2283725f48bcb2860ec1ca/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/6bfc504449a39316188b90599aa225fef46e6be74d2283725f48bcb2860ec1ca/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1056,7 +1056,7 @@ analyses:
       - 'delphi_resource_carrier'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1067,7 +1067,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/736af94a2fd07dca7397c2b2068bfd1e2a71a716c5ddda5e9cb7da808355487a/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/736af94a2fd07dca7397c2b2068bfd1e2a71a716c5ddda5e9cb7da808355487a/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1079,7 +1079,7 @@ analyses:
     c2:
       - 'http://162.0.238.10/752e382b4dcf5e3f.php'
     notes: 'C2 and build profile recovered from sample bytes; no network contact or liveness check.'
-    result_path: analysis-results/stealc/cases/77d6f1914af6caf909fa2a246fcec05f500f79dd56e5d0d466d55924695c702d/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/77d6f1914af6caf909fa2a246fcec05f500f79dd56e5d0d466d55924695c702d/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1090,7 +1090,7 @@ analyses:
       - 'delphi_resource_carrier'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/84db5b4abf8d9cc8159a751668dc6c5be7ee4143811e38599d5b134120ceca7d/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/84db5b4abf8d9cc8159a751668dc6c5be7ee4143811e38599d5b134120ceca7d/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1101,7 +1101,7 @@ analyses:
       - 'delphi_resource_carrier'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1113,7 +1113,7 @@ analyses:
     c2:
       - 'http://777palm.com/bef7fb05c9ef6540.php'
     notes: 'C2 and build profile recovered from sample bytes; no network contact or liveness check.'
-    result_path: analysis-results/stealc/cases/87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1124,7 +1124,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1135,7 +1135,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1146,7 +1146,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1157,7 +1157,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/b00335a75190fd3b930329adf19c93b483975cb24cc056bea62b0ef359abe3fa/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/b00335a75190fd3b930329adf19c93b483975cb24cc056bea62b0ef359abe3fa/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1168,7 +1168,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1179,7 +1179,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1190,7 +1190,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/c9dc79d72ab3131295608a78c6473a8bde3791683e88bebeee9989decb8eb4ee/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/c9dc79d72ab3131295608a78c6473a8bde3791683e88bebeee9989decb8eb4ee/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1201,7 +1201,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/ca20c0b93bbebbdcd91cad1a8db0356fb4c5d2e17894bd5a34bfcaa4c78a6a9c/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/ca20c0b93bbebbdcd91cad1a8db0356fb4c5d2e17894bd5a34bfcaa4c78a6a9c/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1212,7 +1212,7 @@ analyses:
       - 'enigma_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1223,7 +1223,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/d53599b86cbdc98e7d59ddf760bac28aa25f561a4f125f47544c9cfe41aaca3b/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1234,7 +1234,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/dda07a7f4225baf73499de332ccfbbcd3197e370b77829f13a9991328b976b37/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/dda07a7f4225baf73499de332ccfbbcd3197e370b77829f13a9991328b976b37/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1245,7 +1245,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/e07d3383a78b7b05cd27cf2f569c6e93026e9f40dff4ccb8ec81efafa6b2b23f/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/e07d3383a78b7b05cd27cf2f569c6e93026e9f40dff4ccb8ec81efafa6b2b23f/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1256,7 +1256,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1267,7 +1267,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1279,7 +1279,7 @@ analyses:
     c2:
       - 'http://185.106.94.206/4e815d9f1ec482dd.php'
     notes: 'C2 and build profile recovered from sample bytes; no network contact or liveness check.'
-    result_path: analysis-results/stealc/cases/e978871a3a76c83f94e589fd22a91c7c1a58175ca5d2110b95d71b7805b25b8d/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/e978871a3a76c83f94e589fd22a91c7c1a58175ca5d2110b95d71b7805b25b8d/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1290,7 +1290,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1301,7 +1301,7 @@ analyses:
       - 'themida_protected'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12/
 
   - malware_type: StealC
     analyzed_at: 2026-07-16
@@ -1312,7 +1312,7 @@ analyses:
       - 'native_encrypted_or_unsupported_profile'
     c2: []
     notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
-    result_path: analysis-results/stealc/cases/f4a7d43dc4cdf21cc7a58af7c66386cea1616658f15b996691fbb85a7cb06b9d/
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/f4a7d43dc4cdf21cc7a58af7c66386cea1616658f15b996691fbb85a7cb06b9d/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1325,7 +1325,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/e82f6ae11ddfaf06b82738aa2f499d4cb8476ec7914efd9aa16bdf520ef90539/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e82f6ae11ddfaf06b82738aa2f499d4cb8476ec7914efd9aa16bdf520ef90539/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1338,7 +1338,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f0d3c665335eda74c52e36348ca978fd021a08c39836029adfa68adf5a3e32f4/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f0d3c665335eda74c52e36348ca978fd021a08c39836029adfa68adf5a3e32f4/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1351,7 +1351,7 @@ analyses:
       - "format:py"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/b34aa84e8b4ad57d773fab6cbd7c40cda65f5f17c566cbd726ce3edcd04255b1/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b34aa84e8b4ad57d773fab6cbd7c40cda65f5f17c566cbd726ce3edcd04255b1/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1364,7 +1364,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/bcc244c0f1ce4421a7ee483f3ab947cd0e7509f0fb1e384e2d047702e8a183da/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/bcc244c0f1ce4421a7ee483f3ab947cd0e7509f0fb1e384e2d047702e8a183da/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1377,7 +1377,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence twizstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/d0c75fc6832d501cafa08ee2b0e7af722542da38116be5c9d1f86f28c54b1f6e/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d0c75fc6832d501cafa08ee2b0e7af722542da38116be5c9d1f86f28c54b1f6e/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1390,7 +1390,7 @@ analyses:
       - "format:jar"
     c2: []
     notes: "Provisional low-confidence twizstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/c7ca320e009e41f13cb676d63a6b84d8d6810e9dc2ad4e6cbd44aa7f90ffcdf3/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c7ca320e009e41f13cb676d63a6b84d8d6810e9dc2ad4e6cbd44aa7f90ffcdf3/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1403,7 +1403,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/9d924e9bd656a47ca6503d98f389ae94b83a1dd1cc459eefa00d914f61c1acbe/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9d924e9bd656a47ca6503d98f389ae94b83a1dd1cc459eefa00d914f61c1acbe/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1416,7 +1416,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f101fda6093f12758efae630bc265d6bad71479249685b7503c05e707424a276/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f101fda6093f12758efae630bc265d6bad71479249685b7503c05e707424a276/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1429,7 +1429,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f0d032c835744156d134ff521c8bc2996f0d7922c7c0c8c31f12fb27d7dddc99/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f0d032c835744156d134ff521c8bc2996f0d7922c7c0c8c31f12fb27d7dddc99/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1442,7 +1442,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/2d8d12f404151317ff562585b5d2e5ba728b7e8aba60d950835a1a80e6462c3f/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2d8d12f404151317ff562585b5d2e5ba728b7e8aba60d950835a1a80e6462c3f/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1455,7 +1455,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7135a3a2239145504e6fdc81bcdef7bcbd69a06727b638a59ba1f3e76130eb1d/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7135a3a2239145504e6fdc81bcdef7bcbd69a06727b638a59ba1f3e76130eb1d/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1468,7 +1468,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/9580aefa4e99bac7914a988a79688ef6173ee0e0175b993cdfcfea72cc40703b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9580aefa4e99bac7914a988a79688ef6173ee0e0175b993cdfcfea72cc40703b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1481,7 +1481,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "Provisional low-confidence beavertail lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/281d4d60fc99cf7f54819defb1c7c14b9202d46890936c4c6b9ebe3ddc75dd2f/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/281d4d60fc99cf7f54819defb1c7c14b9202d46890936c4c6b9ebe3ddc75dd2f/
 
   - malware_type: "genesisstealer"
     analyzed_at: 2026-07-17
@@ -1494,7 +1494,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/db023a90f2815b9ae7200d024ed8c75b3fa219104b26e2a30da0767721773615/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/db023a90f2815b9ae7200d024ed8c75b3fa219104b26e2a30da0767721773615/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1507,7 +1507,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/bb7554b559d6d3d336aff85cb331b40513b9e9e5235b24401e15ec0810aa61d3/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/bb7554b559d6d3d336aff85cb331b40513b9e9e5235b24401e15ec0810aa61d3/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1520,7 +1520,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/3d681ca349e4770e359b067428f742d5d34941d9d59bb9cc1b373e5c2fa37a1d/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3d681ca349e4770e359b067428f742d5d34941d9d59bb9cc1b373e5c2fa37a1d/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1533,7 +1533,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/8614fc066d4c8dfe26b101b53f48adaf94d28ca86aa958e79300b34abb4d504f/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8614fc066d4c8dfe26b101b53f48adaf94d28ca86aa958e79300b34abb4d504f/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1546,7 +1546,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/4da1ad20dd78cf747ac77045d93a347bda68b3f577c31149b10819c0a2cf96eb/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4da1ad20dd78cf747ac77045d93a347bda68b3f577c31149b10819c0a2cf96eb/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1559,7 +1559,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/98b1c5219b380a435f14f3332d5a54b20bbd109f3bed06bd4a2c50375703be83/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/98b1c5219b380a435f14f3332d5a54b20bbd109f3bed06bd4a2c50375703be83/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1572,7 +1572,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/5e1e742b71db901d1afd0d72d0a6572f6b3555e4fdd3267bebee5ea2dc143579/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5e1e742b71db901d1afd0d72d0a6572f6b3555e4fdd3267bebee5ea2dc143579/
 
   - malware_type: "genesisstealer"
     analyzed_at: 2026-07-17
@@ -1585,7 +1585,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/b74168c64c6b0d54e89c0c2b704788f592e76658a5995f6cf421190cd6f22cae/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b74168c64c6b0d54e89c0c2b704788f592e76658a5995f6cf421190cd6f22cae/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1598,7 +1598,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/9a34d891551bd469fa1adfc39c49cf9d060fb58fd6dce8c6f6c300c433552114/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9a34d891551bd469fa1adfc39c49cf9d060fb58fd6dce8c6f6c300c433552114/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1611,7 +1611,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/3af2f2b356d0699d2fcebbe777a1558e36ce98e4952740f7de793de01cce1f84/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3af2f2b356d0699d2fcebbe777a1558e36ce98e4952740f7de793de01cce1f84/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1624,7 +1624,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1637,7 +1637,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6627ea7acdef08a231ebf979d35b48089ac139dabb195188942ea2761636a87e/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6627ea7acdef08a231ebf979d35b48089ac139dabb195188942ea2761636a87e/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1650,7 +1650,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f0a26746becf17483c824a3da1f19fe92a966b5f377f881acb285c4eabd92178/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f0a26746becf17483c824a3da1f19fe92a966b5f377f881acb285c4eabd92178/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1663,7 +1663,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7af71cb50454a30dbe06d315fd3ed60ff78fed62dd80995e7d3463a9ac227abe/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7af71cb50454a30dbe06d315fd3ed60ff78fed62dd80995e7d3463a9ac227abe/
 
   - malware_type: "genesisstealer"
     analyzed_at: 2026-07-17
@@ -1676,7 +1676,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/68822ae592a4e44984186eb70b76fa1e7563f83b0c89bf9fbb231acfd9122f49/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/68822ae592a4e44984186eb70b76fa1e7563f83b0c89bf9fbb231acfd9122f49/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1689,7 +1689,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/ac4c78ac34e311f80c74d9ff375634095a753aee52911a5443a56281d38917db/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ac4c78ac34e311f80c74d9ff375634095a753aee52911a5443a56281d38917db/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1702,7 +1702,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/507b83e920cc500779125e8862eb9fb8fef6440256842ba0b49c6d018a0e4e21/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/507b83e920cc500779125e8862eb9fb8fef6440256842ba0b49c6d018a0e4e21/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1715,7 +1715,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7523d3e9f57b02354311fb5d8b6b5eb69bd4e619d9dbeb727baae75ff6bfd1ea/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7523d3e9f57b02354311fb5d8b6b5eb69bd4e619d9dbeb727baae75ff6bfd1ea/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1728,7 +1728,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/5c550f4c2aefbe36483133aecac707a8b7c924e4ea3ecc6e80377e1043f27be8/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5c550f4c2aefbe36483133aecac707a8b7c924e4ea3ecc6e80377e1043f27be8/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1741,7 +1741,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/0fe1ba3145b5b940133971909a3d5dd505b9cd2b69d4b62d021e5350071d12e9/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0fe1ba3145b5b940133971909a3d5dd505b9cd2b69d4b62d021e5350071d12e9/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1754,7 +1754,7 @@ analyses:
       - "format:jar"
     c2: []
     notes: "Provisional low-confidence irahook lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/41c335937e9ee691c7442d8c89b3233b3bad19e346a00787c1aefac0d0b1a1ed/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/41c335937e9ee691c7442d8c89b3233b3bad19e346a00787c1aefac0d0b1a1ed/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1767,7 +1767,7 @@ analyses:
       - "format:7z"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/856195def0cae78be549ea750168bc950593d131f52b1e0c30aa490856a2bf39/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/856195def0cae78be549ea750168bc950593d131f52b1e0c30aa490856a2bf39/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1780,7 +1780,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/34aafc29cafa27ebc47e559eb021d5644560e77c4790139f22f180b5b0ef0553/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/34aafc29cafa27ebc47e559eb021d5644560e77c4790139f22f180b5b0ef0553/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1793,7 +1793,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/a616c9a41262714bb781447d3e37a09b6fd636e79d8381097fb923a109c53298/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a616c9a41262714bb781447d3e37a09b6fd636e79d8381097fb923a109c53298/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1806,7 +1806,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/0eacb4b988838c45ccb50c57488056513232ef3bdb3e141ddacfa5c5c6e0876a/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0eacb4b988838c45ccb50c57488056513232ef3bdb3e141ddacfa5c5c6e0876a/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1819,7 +1819,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6a9b3e9c2a07ed0279bf55390fe20028ac2a2d3eebb19bdc778937b9bc93410a/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6a9b3e9c2a07ed0279bf55390fe20028ac2a2d3eebb19bdc778937b9bc93410a/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1832,7 +1832,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/bcf6919c62267e25e8c026f28fd565f085d2ae3157097ccb2575888c6236a3f9/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/bcf6919c62267e25e8c026f28fd565f085d2ae3157097ccb2575888c6236a3f9/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1845,7 +1845,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence waspstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/4d74a2df37d961af81255fc64ef1e49a5805bb1eec98513fbb93295fb8c482f2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4d74a2df37d961af81255fc64ef1e49a5805bb1eec98513fbb93295fb8c482f2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1858,7 +1858,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7999c886fa298ae60dfee677566ec81de63817a4c6dfa047e2be6eb95578b2a2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7999c886fa298ae60dfee677566ec81de63817a4c6dfa047e2be6eb95578b2a2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1871,7 +1871,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/207cf72adbfce7d14a56677f0bc99d481a716aab52c19ecac71caaf3ca7a62cf/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/207cf72adbfce7d14a56677f0bc99d481a716aab52c19ecac71caaf3ca7a62cf/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1884,7 +1884,7 @@ analyses:
       - "format:py"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/da01b54e7d42de9f00fdac7f2123779363a13df7d40bdb72558c9618e13dc77b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/da01b54e7d42de9f00fdac7f2123779363a13df7d40bdb72558c9618e13dc77b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1897,7 +1897,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/311294dee731688c8762cfa6e5865b8a989fcddb3166737f137416db6f46e515/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/311294dee731688c8762cfa6e5865b8a989fcddb3166737f137416db6f46e515/
 
   - malware_type: "stealc"
     analyzed_at: 2026-07-17
@@ -1910,7 +1910,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f5b1bc797b8693d71954e2dbd9e077f512f23e1944c9f43fe7b860718c975b8f/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f5b1bc797b8693d71954e2dbd9e077f512f23e1944c9f43fe7b860718c975b8f/
 
   - malware_type: "irahook"
     analyzed_at: 2026-07-17
@@ -1923,7 +1923,7 @@ analyses:
       - "format:jar"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/3155a4b8a3f92e2947f88970a4d9f6a0c47fa66c93a1f5c7c8b8cabe93f6acf6/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3155a4b8a3f92e2947f88970a4d9f6a0c47fa66c93a1f5c7c8b8cabe93f6acf6/
 
   - malware_type: "agenttesla"
     analyzed_at: 2026-07-17
@@ -1936,7 +1936,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/451590c2017a91e4b0765591659dd7ef882b46e77b6c69cca30d7aa11bf6c42d/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/451590c2017a91e4b0765591659dd7ef882b46e77b6c69cca30d7aa11bf6c42d/
 
   - malware_type: "stealc"
     analyzed_at: 2026-07-17
@@ -1949,7 +1949,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Medium-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6cff215dcf60fc90e76adfc28b6725b123532365efa504e15d37144bf97d1857/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6cff215dcf60fc90e76adfc28b6725b123532365efa504e15d37144bf97d1857/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1962,7 +1962,7 @@ analyses:
       - "format:macho"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/a302ee498b5d963a36a5514efadaaf154ecb1a5f5e8f57b7d9a9c9f928fd0470/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a302ee498b5d963a36a5514efadaaf154ecb1a5f5e8f57b7d9a9c9f928fd0470/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1975,7 +1975,7 @@ analyses:
       - "format:macho"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/77008928203ea27e10cf340735c461aaadd041dbd7bef6858ea6663d2d76b32b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/77008928203ea27e10cf340735c461aaadd041dbd7bef6858ea6663d2d76b32b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -1988,7 +1988,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence remusstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/c19ececd55e07469d7b9f6a4b64cd209cfa21f3b61edd0c03f71e44e0222ed63/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c19ececd55e07469d7b9f6a4b64cd209cfa21f3b61edd0c03f71e44e0222ed63/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2001,7 +2001,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/8befee725051508cc4651f95dcef53b60b0ccc20921c4b0b3cdc574ca0ad48c5/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8befee725051508cc4651f95dcef53b60b0ccc20921c4b0b3cdc574ca0ad48c5/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2014,7 +2014,7 @@ analyses:
       - "format:js"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/049300aa5dd774d6c984779a0570f59610399c71864b5d5c2605906db46ddeb9/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/049300aa5dd774d6c984779a0570f59610399c71864b5d5c2605906db46ddeb9/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2027,7 +2027,7 @@ analyses:
       - "format:py"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/1f557a73f974bff5ced48e7b0beb82cd748976495be537ea5dd63a2b202ae077/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1f557a73f974bff5ced48e7b0beb82cd748976495be537ea5dd63a2b202ae077/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2040,7 +2040,7 @@ analyses:
       - "format:jar"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/72d80252032723c3b7f9c04be3fcdf69e96dad41cd8b7968266b296643357316/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/72d80252032723c3b7f9c04be3fcdf69e96dad41cd8b7968266b296643357316/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2053,7 +2053,7 @@ analyses:
       - "format:sh"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/d48114cf768076f0234d2550d0ce4650a6caed11c8f04f9843174a898efa9a45/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d48114cf768076f0234d2550d0ce4650a6caed11c8f04f9843174a898efa9a45/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2066,7 +2066,7 @@ analyses:
       - "format:zip"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/3df42b6f82cb5ae54a014acf2ad5a137bd0821310cbd23c06009b5419ecb3693/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3df42b6f82cb5ae54a014acf2ad5a137bd0821310cbd23c06009b5419ecb3693/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2079,7 +2079,7 @@ analyses:
       - "format:apk"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f73771a1b9887ebe85ce70b6dc459e0ce05ff6f71ba5833b5385a9e0a81af3df/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f73771a1b9887ebe85ce70b6dc459e0ce05ff6f71ba5833b5385a9e0a81af3df/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2092,7 +2092,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence irahook lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/a184a71163c51658936d227645992ad84ace7344b40d75355dc0b8f302072779/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a184a71163c51658936d227645992ad84ace7344b40d75355dc0b8f302072779/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2105,7 +2105,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/cec77d39618d296514bc46c814f21a445a07f79f1338e14fad4195486f0e10d4/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/cec77d39618d296514bc46c814f21a445a07f79f1338e14fad4195486f0e10d4/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2118,7 +2118,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/471f99411247895d67f0c6839d247f244818782cf585944cb2ab80834fcacc27/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/471f99411247895d67f0c6839d247f244818782cf585944cb2ab80834fcacc27/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2131,7 +2131,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/2ded3eade95b1a4ed3f10da1a50efede68ce05f11a8b1a1ff154961c63be2b73/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2ded3eade95b1a4ed3f10da1a50efede68ce05f11a8b1a1ff154961c63be2b73/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2144,7 +2144,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/a115fc4034004ebc0319673babaa81f190264a2c9bdce75836821828a502be71/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a115fc4034004ebc0319673babaa81f190264a2c9bdce75836821828a502be71/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2157,7 +2157,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/01fff901e38eb14df4672a1f8823b11bc59cd5ad8bf9491ba382f178c0f0a3a8/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/01fff901e38eb14df4672a1f8823b11bc59cd5ad8bf9491ba382f178c0f0a3a8/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2170,7 +2170,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/b54cf7b7ed423801209a42794fa9d49541deba7c28b11ef595c09652a3151626/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b54cf7b7ed423801209a42794fa9d49541deba7c28b11ef595c09652a3151626/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2183,7 +2183,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/9d2c9250f5c34ed82142a4f50aaf26139d9bdd94c84ffd6ea24f072b198f9de3/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9d2c9250f5c34ed82142a4f50aaf26139d9bdd94c84ffd6ea24f072b198f9de3/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2196,7 +2196,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/d377b32d986db632c5b13e5c8f0fdcfb207009e43dfd8c09ad68e7a0c2957ab2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d377b32d986db632c5b13e5c8f0fdcfb207009e43dfd8c09ad68e7a0c2957ab2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2209,7 +2209,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/f6ebd5e13f84b18c6db1607e6cb3b69ba6efeb10456bad83657523e13e51d7d0/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f6ebd5e13f84b18c6db1607e6cb3b69ba6efeb10456bad83657523e13e51d7d0/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2222,7 +2222,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/23eda9f78b427fc4f1c53aba2326bcf471a4852d0fd176ada019c0aa5a07f716/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/23eda9f78b427fc4f1c53aba2326bcf471a4852d0fd176ada019c0aa5a07f716/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2235,7 +2235,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/23c74af6858e25071299ccb237c81695784c3fb52f3ecaae287e7200b9a556e2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/23c74af6858e25071299ccb237c81695784c3fb52f3ecaae287e7200b9a556e2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2248,7 +2248,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/18c39998ce16daee7f4dca34650b11047a257cf4b6fad82ad3bc3a36ad39f85c/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/18c39998ce16daee7f4dca34650b11047a257cf4b6fad82ad3bc3a36ad39f85c/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2261,7 +2261,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/97aee10761650a3b2aada9753a35f06be366ef054b523cfc33a2cab5acdd4c50/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/97aee10761650a3b2aada9753a35f06be366ef054b523cfc33a2cab5acdd4c50/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2274,7 +2274,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/fb3bc0aeffd3825adcf65dd2bf446d3a41c42f8a9addb243b5b098383b74f7e0/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/fb3bc0aeffd3825adcf65dd2bf446d3a41c42f8a9addb243b5b098383b74f7e0/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2287,7 +2287,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6dbd61bc6d8af86186e328c039df8002e162c2a6d719688ba2ccacdf976b029a/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6dbd61bc6d8af86186e328c039df8002e162c2a6d719688ba2ccacdf976b029a/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2300,7 +2300,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/1d0c31cff1f0ce473bbd1204fe11ebc4c2d2668a7e86997442faa0f12c5d5c9c/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1d0c31cff1f0ce473bbd1204fe11ebc4c2d2668a7e86997442faa0f12c5d5c9c/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2313,7 +2313,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/90d859d03351817c11341a9fdc24a6c2308148303adb23d5aba6fe36ef0af7b6/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/90d859d03351817c11341a9fdc24a6c2308148303adb23d5aba6fe36ef0af7b6/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2326,7 +2326,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/4e88041072ca5ca1771c65da33eeff7600d344662ac989608d66a52d51c9fdd3/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4e88041072ca5ca1771c65da33eeff7600d344662ac989608d66a52d51c9fdd3/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2339,7 +2339,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/ff52e47d9d49492968cf25db06d43c1f4629b3586e5a90f2973111398dd857b7/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ff52e47d9d49492968cf25db06d43c1f4629b3586e5a90f2973111398dd857b7/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2352,7 +2352,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/a842785570bd6539ce16a4988252576b8b6a61f7ccbcd6131865813a22f439be/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a842785570bd6539ce16a4988252576b8b6a61f7ccbcd6131865813a22f439be/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2365,7 +2365,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/b16debf39bf10feff2c0f541547bd5583a62df7c219f3e40007172a7e12b5056/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b16debf39bf10feff2c0f541547bd5583a62df7c219f3e40007172a7e12b5056/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2378,7 +2378,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6a0b799ce9c4cea900cc7ac7004242e1230311ccbe1b6c43ffac44c003e1a757/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6a0b799ce9c4cea900cc7ac7004242e1230311ccbe1b6c43ffac44c003e1a757/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2391,7 +2391,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/d3d2c81d64b1d6e655c9511088d7446176cfee458877a64842a0f74f793acf1e/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d3d2c81d64b1d6e655c9511088d7446176cfee458877a64842a0f74f793acf1e/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2404,7 +2404,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/c24479ca1dc4160372beed905cd7837cbb244bc98aa47caf591c6a9285aa00ba/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c24479ca1dc4160372beed905cd7837cbb244bc98aa47caf591c6a9285aa00ba/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2417,7 +2417,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/21ecba80411c7c157621d316182bbd94be1f2b79e1511f65aced819ace364091/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/21ecba80411c7c157621d316182bbd94be1f2b79e1511f65aced819ace364091/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2430,7 +2430,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/649f7fadef7147e01e9ca6532af9b5edc5bcbe483b181010f2fff89b80bd6c74/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/649f7fadef7147e01e9ca6532af9b5edc5bcbe483b181010f2fff89b80bd6c74/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2443,7 +2443,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/78fe4120c3c127d36eed177b899a9c4b557f24f723f8903cccd270892d41b48b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/78fe4120c3c127d36eed177b899a9c4b557f24f723f8903cccd270892d41b48b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2456,7 +2456,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/1c5dbb66584bf425f5fb6f9a064f1255ebeff474977626081b1f15c492d83213/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1c5dbb66584bf425f5fb6f9a064f1255ebeff474977626081b1f15c492d83213/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2469,7 +2469,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7d0e6cd597d538a28d67731fa9244d436a62c7c524b9d288188e3e94d51b2fd2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7d0e6cd597d538a28d67731fa9244d436a62c7c524b9d288188e3e94d51b2fd2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2482,7 +2482,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/50602d12f0e1007d164726e547c53c86eb0a5719dd9a702b839fb396eeae6882/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/50602d12f0e1007d164726e547c53c86eb0a5719dd9a702b839fb396eeae6882/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2495,7 +2495,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7ae9c755c34d1a3ca45f2e942d0d3371925d476dbdde550bf5d2476c187435cf/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7ae9c755c34d1a3ca45f2e942d0d3371925d476dbdde550bf5d2476c187435cf/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2508,7 +2508,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/fa9c6aa074e0ef745932eab4e905c72e1f682d3bd9755af7b56b5df78e363e67/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/fa9c6aa074e0ef745932eab4e905c72e1f682d3bd9755af7b56b5df78e363e67/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2521,7 +2521,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/ea521e5fccb4a49739dd8ccb4be27aac504ce43289f887fe05367a76ca11d92b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ea521e5fccb4a49739dd8ccb4be27aac504ce43289f887fe05367a76ca11d92b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2534,7 +2534,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/31806a4d42c9adfcab0b03872b9391ee349d38de1418b2b2339b75ff33a22c73/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/31806a4d42c9adfcab0b03872b9391ee349d38de1418b2b2339b75ff33a22c73/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2547,7 +2547,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/6dc376c535829409dc2a6f0548504f8d0f07dd4bb17750fb057975965958fa85/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6dc376c535829409dc2a6f0548504f8d0f07dd4bb17750fb057975965958fa85/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2560,7 +2560,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/c3568aca0cc2712fe08725345b25bc7c58fc5129a1283e37fdf7c2efff4b1327/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c3568aca0cc2712fe08725345b25bc7c58fc5129a1283e37fdf7c2efff4b1327/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2573,7 +2573,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/af694f8e3d5f1eca4abb657c6c8c21a730488c4352649e6c9902556d08ea1bc2/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/af694f8e3d5f1eca4abb657c6c8c21a730488c4352649e6c9902556d08ea1bc2/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2586,7 +2586,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7a6d027aa2ae856b193a91db8c09e1c0750131bf3cf1ca0777db78c6b41045af/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7a6d027aa2ae856b193a91db8c09e1c0750131bf3cf1ca0777db78c6b41045af/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2599,7 +2599,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "Provisional low-confidence genesisstealer lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/7de041828e166e3d0a63672360897868e9b96d879aee5597a4cced308372831b/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7de041828e166e3d0a63672360897868e9b96d879aee5597a4cced308372831b/
 
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-17
@@ -2612,7 +2612,7 @@ analyses:
       - "format:exe"
     c2: []
     notes: "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
-    result_path: analysis-results/unclassified/malwarebazaar-unknown-20260717/cases/995789ee574af3a22375acd45f8d33ff0545f56e2b5400ecf80c165bab7f304e/
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/995789ee574af3a22375acd45f8d33ff0545f56e2b5400ecf80c165bab7f304e/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2626,7 +2626,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/e6d51d45edea7591b826b2d703c20a426fffa27a022c0156916ae9c35245bd07/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/e6d51d45edea7591b826b2d703c20a426fffa27a022c0156916ae9c35245bd07/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2640,7 +2640,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/846ccf956dabc8c403a9532fe3788cbb89191139091751cd0da782844b6db4d8/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/846ccf956dabc8c403a9532fe3788cbb89191139091751cd0da782844b6db4d8/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2654,7 +2654,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/284851633769226e2a9ea85d6421b1be15f155f6ecf4ba9c729659c32ff922fc/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/284851633769226e2a9ea85d6421b1be15f155f6ecf4ba9c729659c32ff922fc/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2668,7 +2668,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/401b70e0313d7f6dd1fd444a8d61e25ae433a5944a2607405fe5ddbc9b8f7afc/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/401b70e0313d7f6dd1fd444a8d61e25ae433a5944a2607405fe5ddbc9b8f7afc/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2682,7 +2682,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/65b8743fc32646c20d09b6a6a8e907a963b09d2de02fe5c886753833c6601ce6/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/65b8743fc32646c20d09b6a6a8e907a963b09d2de02fe5c886753833c6601ce6/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2696,7 +2696,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2710,7 +2710,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/ea326b9f3adb615c5b8a6c89288227ece1d29fc30dbfb4500d98c15c33bed6f5/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/ea326b9f3adb615c5b8a6c89288227ece1d29fc30dbfb4500d98c15c33bed6f5/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2724,7 +2724,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/bc2d5313943d2e4a33cdb0a4708c6ec94c60f26ae402626caf970e283d0ad9d4/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/bc2d5313943d2e4a33cdb0a4708c6ec94c60f26ae402626caf970e283d0ad9d4/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2738,7 +2738,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/abca9cfafbc5165e73c2bb0ef24815c23a5f865a4c6a4eca61b2c17ec80c9ca7/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/abca9cfafbc5165e73c2bb0ef24815c23a5f865a4c6a4eca61b2c17ec80c9ca7/
 
   - malware_type: "asyncrat"
     analyzed_at: 2026-07-17
@@ -2752,7 +2752,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/asyncrat/malwarebazaar-20260717/cases/d0eb26a39239d90bd01b96a9356d6a4e7df96d64431fb5c8ed2108bfea6eaf40/
+    result_path: analysis-results/malware/asyncrat/versions/unknown/cases/d0eb26a39239d90bd01b96a9356d6a4e7df96d64431fb5c8ed2108bfea6eaf40/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2766,7 +2766,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/414adc9d44514fb2aa210571d1330c64ae2ba691c796859f21ba1b6aef2a4e4c/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/414adc9d44514fb2aa210571d1330c64ae2ba691c796859f21ba1b6aef2a4e4c/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2780,7 +2780,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/565f971ad49449edb483a26a837a1d88d50ea4f43520c4705abb2051116a077b/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/565f971ad49449edb483a26a837a1d88d50ea4f43520c4705abb2051116a077b/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2794,7 +2794,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/9b9e8c44b72d92c5b795d571031210eb88d0d156b1f5808487ca9b980157d299/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/9b9e8c44b72d92c5b795d571031210eb88d0d156b1f5808487ca9b980157d299/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2808,7 +2808,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/21327e4b5d555b1adfdea28de614bfd2d3bbbe05bfd849ff2e6019c70e09d117/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/21327e4b5d555b1adfdea28de614bfd2d3bbbe05bfd849ff2e6019c70e09d117/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2822,7 +2822,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/bb112bb9c4a80dfa451b0af100d3d4dd90e803575c1e18bc1f72ed222a3ec49b/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/bb112bb9c4a80dfa451b0af100d3d4dd90e803575c1e18bc1f72ed222a3ec49b/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2836,7 +2836,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/64285094d2a6f543433d9b2bbac04cc93be0bfeb0ba2fbafb8d2f239f64a347b/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/64285094d2a6f543433d9b2bbac04cc93be0bfeb0ba2fbafb8d2f239f64a347b/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2850,7 +2850,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/ed2589d688255e2edb8f2316a8bab3f8e2fc88619a8226041f800c1551dafe6f/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/ed2589d688255e2edb8f2316a8bab3f8e2fc88619a8226041f800c1551dafe6f/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2864,7 +2864,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/f8393ec6bb72178d727ee6fa8d73fff62ba61268297a879f6df108c688b2fba8/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/f8393ec6bb72178d727ee6fa8d73fff62ba61268297a879f6df108c688b2fba8/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2878,7 +2878,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/801c316223b29446274f7f8770b9b730efc035d9867d43493929c18990786df8/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/801c316223b29446274f7f8770b9b730efc035d9867d43493929c18990786df8/
 
   - malware_type: "xworm"
     analyzed_at: 2026-07-17
@@ -2892,7 +2892,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/xworm/malwarebazaar-20260717/cases/fb39d3b564103e08a57ba475aa657a2cf1cedadbafecfa01948ddb7506de03a0/
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/fb39d3b564103e08a57ba475aa657a2cf1cedadbafecfa01948ddb7506de03a0/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2906,7 +2906,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2920,7 +2920,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2934,7 +2934,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2948,7 +2948,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2962,7 +2962,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/ed1565803c87371b03b576b6fcfb47ba3aeebdcfa07010f1c27ed9c91a70b074/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/ed1565803c87371b03b576b6fcfb47ba3aeebdcfa07010f1c27ed9c91a70b074/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2976,7 +2976,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/c97f1f67e5730c1cb688c7759f5189917c70566480eefa69e873c24cdaa65219/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/c97f1f67e5730c1cb688c7759f5189917c70566480eefa69e873c24cdaa65219/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -2990,7 +2990,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/37d820586008e23767774a05f15c698bd09c42cd3b11da36ec672cc278023fd5/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/37d820586008e23767774a05f15c698bd09c42cd3b11da36ec672cc278023fd5/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -3004,7 +3004,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/4e2e5a9e1f41cd31e084667b68efe7206b78131d6b885bc187254b74ed5f16c3/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/4e2e5a9e1f41cd31e084667b68efe7206b78131d6b885bc187254b74ed5f16c3/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -3018,7 +3018,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/52673ce0852b419c3cef66af46cef46e9beae85db86fa29c6ca54293f2677f56/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/52673ce0852b419c3cef66af46cef46e9beae85db86fa29c6ca54293f2677f56/
 
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
@@ -3032,7 +3032,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/quasarrat/malwarebazaar-20260717/cases/453e8395ae2bf5ce4de758228eb9dfb60e8da309f59a7cea600de3b8d3e258ea/
+    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/453e8395ae2bf5ce4de758228eb9dfb60e8da309f59a7cea600de3b8d3e258ea/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3046,7 +3046,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/176384807e08ef03d707d11a1dde23cb61c5a78d187fd8b9870a6f773f880ee0/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/176384807e08ef03d707d11a1dde23cb61c5a78d187fd8b9870a6f773f880ee0/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3060,7 +3060,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/d9d61360f2a56e3f54573dddd201b482e99fe2b0bd9f943cf19c0b3e5c463475/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/d9d61360f2a56e3f54573dddd201b482e99fe2b0bd9f943cf19c0b3e5c463475/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3074,7 +3074,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3088,7 +3088,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/4e5c8cedafeb1be4d6d1719cc913d5e13666c8b67e23e0c29f94baff0c00ce45/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/4e5c8cedafeb1be4d6d1719cc913d5e13666c8b67e23e0c29f94baff0c00ce45/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3102,7 +3102,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/1e716a69b81f3272b10e3cc7b919e1a1f03005115fbf18ac8b1958a111a8f185/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/1e716a69b81f3272b10e3cc7b919e1a1f03005115fbf18ac8b1958a111a8f185/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3116,7 +3116,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/64da4c1638c0e1a6435e2026155f9092e7532235e1a38a8b1c8b9fc85c469f9a/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/64da4c1638c0e1a6435e2026155f9092e7532235e1a38a8b1c8b9fc85c469f9a/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3130,7 +3130,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/475774774c013c3a5d6db3ccdb025504c7151999a63097bf98476578d0533f5b/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/475774774c013c3a5d6db3ccdb025504c7151999a63097bf98476578d0533f5b/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3144,7 +3144,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/c854317fdfc61855002f0cca0cba147c979a56878b8b211c5d512218877d680c/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/c854317fdfc61855002f0cca0cba147c979a56878b8b211c5d512218877d680c/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3158,7 +3158,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/dd5d6e714667c0699571435b4d4ada397372f49b11fe7f0f4007b3b5fa766047/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/dd5d6e714667c0699571435b4d4ada397372f49b11fe7f0f4007b3b5fa766047/
 
   - malware_type: "njrat"
     analyzed_at: 2026-07-17
@@ -3172,7 +3172,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/njrat/malwarebazaar-20260717/cases/df4e36252bf8a2b1dee291bcaf9e0505246cacc1d1ea9db3494f30c8506ba0cb/
+    result_path: analysis-results/malware/njrat/versions/unknown/cases/df4e36252bf8a2b1dee291bcaf9e0505246cacc1d1ea9db3494f30c8506ba0cb/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3186,7 +3186,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/b9b052dfb2f19bf15aaba81f07861234f91a72a5c38d83c176a7a4dcdbb2e8c1/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/b9b052dfb2f19bf15aaba81f07861234f91a72a5c38d83c176a7a4dcdbb2e8c1/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3200,7 +3200,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3214,7 +3214,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/01e521b7dea93a8eb80883d7bc535dedc2a09eeb981729fd46f4ee677900c64e/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/01e521b7dea93a8eb80883d7bc535dedc2a09eeb981729fd46f4ee677900c64e/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3228,7 +3228,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/6090fe5aec71d6047fc74967df405d5fb14a18d3eeb83449227c95c9d2fb0948/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/6090fe5aec71d6047fc74967df405d5fb14a18d3eeb83449227c95c9d2fb0948/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3242,7 +3242,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/6e0ffb1fe4a65f13608436c52a94dc39cf4d052d4911af47427ccdd86e2eb140/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/6e0ffb1fe4a65f13608436c52a94dc39cf4d052d4911af47427ccdd86e2eb140/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3256,7 +3256,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/a88cfb093e1297165940818f7bb6e8441fb34462c021c525cba8683b8630e566/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/a88cfb093e1297165940818f7bb6e8441fb34462c021c525cba8683b8630e566/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3270,7 +3270,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/ef3e41ec91f8be146c3588321f98be8d3db3933d3881112554898e7eefb8b017/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/ef3e41ec91f8be146c3588321f98be8d3db3933d3881112554898e7eefb8b017/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3284,7 +3284,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/ca43b69aeecd6d78b0d80e8ea38ec2988c03152758fbff87b0a422ec26b99de3/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/ca43b69aeecd6d78b0d80e8ea38ec2988c03152758fbff87b0a422ec26b99de3/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3298,7 +3298,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/7e9a43686183b6cf6b9ac26c6c3de0176637799bf1b7ba348b31a7407cc3948a/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/7e9a43686183b6cf6b9ac26c6c3de0176637799bf1b7ba348b31a7407cc3948a/
 
   - malware_type: "darkcomet"
     analyzed_at: 2026-07-17
@@ -3312,7 +3312,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/darkcomet/malwarebazaar-20260717/cases/eafc56e985f24b31dc2f0d09c15497e25feca4e1e792d315648810d4e0fb7b55/
+    result_path: analysis-results/malware/darkcomet/versions/unknown/cases/eafc56e985f24b31dc2f0d09c15497e25feca4e1e792d315648810d4e0fb7b55/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3326,7 +3326,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/2500305d3a21671212f9d98de0d4750cdda70afa6f55b4ea3f141932c2b9338f/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/2500305d3a21671212f9d98de0d4750cdda70afa6f55b4ea3f141932c2b9338f/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3340,7 +3340,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/dc2a074cd511f6a130c72a365c0139399610eee9e50368b9f3be20016ede4a4e/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/dc2a074cd511f6a130c72a365c0139399610eee9e50368b9f3be20016ede4a4e/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3354,7 +3354,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/76d09603b6280d22dcd73e00a87210a9b24273f93074031fd6a7134559544eae/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/76d09603b6280d22dcd73e00a87210a9b24273f93074031fd6a7134559544eae/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3368,7 +3368,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/71c79c58dc14cf56ff1c7c4dea1894b4b4d9794a84abb0cc65168a99c0429c69/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/71c79c58dc14cf56ff1c7c4dea1894b4b4d9794a84abb0cc65168a99c0429c69/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3382,7 +3382,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/8c975ee0ff72d187ccf7b9cbeb6960c02489df9c2a2800170ded747bbd3f63f0/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/8c975ee0ff72d187ccf7b9cbeb6960c02489df9c2a2800170ded747bbd3f63f0/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3396,7 +3396,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/3c742975836a7071afbb7d23820029f89a48d99f79b85291658a710eb096f9b3/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/3c742975836a7071afbb7d23820029f89a48d99f79b85291658a710eb096f9b3/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3410,7 +3410,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/b6973c2ced99ff4ce53c7bb7b347bc891955c327efaefa87b68e95b7c0bafd31/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/b6973c2ced99ff4ce53c7bb7b347bc891955c327efaefa87b68e95b7c0bafd31/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3424,7 +3424,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/a09e7790157785ac318b2895ef8bd370c4d1e4e40138435f12367259caf83a6c/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/a09e7790157785ac318b2895ef8bd370c4d1e4e40138435f12367259caf83a6c/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3438,7 +3438,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/7027022df85d800ddd5d2ecfe5650d9ab535e782f11c11cdadff498a896037c0/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/7027022df85d800ddd5d2ecfe5650d9ab535e782f11c11cdadff498a896037c0/
 
   - malware_type: "dcrat"
     analyzed_at: 2026-07-17
@@ -3452,7 +3452,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/dcrat/malwarebazaar-20260717/cases/92598fd7f0d08b6ed7534573448bb262091b178cb63b436e399a6a1b04596e65/
+    result_path: analysis-results/malware/dcrat/versions/unknown/cases/92598fd7f0d08b6ed7534573448bb262091b178cb63b436e399a6a1b04596e65/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3466,7 +3466,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/7fc964fe47e08d13c158f808d0d68f3f2b9341dfb1ba6fb2a48690fe27e22682/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/7fc964fe47e08d13c158f808d0d68f3f2b9341dfb1ba6fb2a48690fe27e22682/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3480,7 +3480,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3494,7 +3494,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3509,7 +3509,7 @@ analyses:
     c2:
       - "80.234.41.242:7895"
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/8ebc8fc6ce56d5684a1f15bc23439a183e5955ab82971c5c7a7b0b8832d78198/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/8ebc8fc6ce56d5684a1f15bc23439a183e5955ab82971c5c7a7b0b8832d78198/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3523,7 +3523,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3537,7 +3537,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/cbb753220731503e7974588a48305dcf19d8528d7299f695e05211f845a8f720/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/cbb753220731503e7974588a48305dcf19d8528d7299f695e05211f845a8f720/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3551,7 +3551,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/d20ac6d6eda2d70adf552f3bca04c1e030611df9e61febee7246b87410e68d6e/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/d20ac6d6eda2d70adf552f3bca04c1e030611df9e61febee7246b87410e68d6e/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3565,7 +3565,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/e50435a53a917f108df672a16878c4a2c326c35158c29e1a575a40bdf21f7c8a/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/e50435a53a917f108df672a16878c4a2c326c35158c29e1a575a40bdf21f7c8a/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3579,7 +3579,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/bc07e39dbb79dd561fde2563d1e52827d9277b2d4f9631dea315a802d5e16b79/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/bc07e39dbb79dd561fde2563d1e52827d9277b2d4f9631dea315a802d5e16b79/
 
   - malware_type: "redlinestealer"
     analyzed_at: 2026-07-17
@@ -3593,7 +3593,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/redlinestealer/malwarebazaar-20260717/cases/b49154415e86353a2cfd3d25646074c446bbcda72a09fcd7365c4823027a061a/
+    result_path: analysis-results/malware/redlinestealer/versions/unknown/cases/b49154415e86353a2cfd3d25646074c446bbcda72a09fcd7365c4823027a061a/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3607,7 +3607,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/9c82c1e7da113f203f9c5548a7ac04d17d97ab65ce65356ab58cebe4c17dc0b5/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/9c82c1e7da113f203f9c5548a7ac04d17d97ab65ce65356ab58cebe4c17dc0b5/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3621,7 +3621,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/89eba8a1f75790aa208636c1cdf9cc85913088109e83dbddaed307553c734e4a/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/89eba8a1f75790aa208636c1cdf9cc85913088109e83dbddaed307553c734e4a/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3635,7 +3635,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/970d178fff5e535e65917b5b007dbaf5948d32668899bded7d954e5823fb50b9/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/970d178fff5e535e65917b5b007dbaf5948d32668899bded7d954e5823fb50b9/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3649,7 +3649,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/b290a3177beadf9ec47f90f3aff8aa25bd4424bfdb31452102a9c3e47e3ed229/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/b290a3177beadf9ec47f90f3aff8aa25bd4424bfdb31452102a9c3e47e3ed229/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3663,7 +3663,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/233e22ea1259c85e521ab9ec1f92ad3c95ac98433e0bcdc5b7c21888ae8317d1/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/233e22ea1259c85e521ab9ec1f92ad3c95ac98433e0bcdc5b7c21888ae8317d1/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3677,7 +3677,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/914a06741e5c1a028dc0b9e63d845230b11692454afc37785462ed6c05ca3add/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/914a06741e5c1a028dc0b9e63d845230b11692454afc37785462ed6c05ca3add/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3691,7 +3691,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/889ae5f08236631f13d71877bf20232a09596b0c2b47132a7b3bb32bfba81d60/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/889ae5f08236631f13d71877bf20232a09596b0c2b47132a7b3bb32bfba81d60/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3705,7 +3705,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/efb7d77b5a5489ab803d4b7c5075d0f7a1fac09c96847c28267318205a6937ab/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/efb7d77b5a5489ab803d4b7c5075d0f7a1fac09c96847c28267318205a6937ab/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3719,7 +3719,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/bf02bd3f34a3f9526386a8fd7eb5d7d58dd30dfb3a1f4767df0ffccd85150180/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/bf02bd3f34a3f9526386a8fd7eb5d7d58dd30dfb3a1f4767df0ffccd85150180/
 
   - malware_type: "snakekeylogger"
     analyzed_at: 2026-07-17
@@ -3733,7 +3733,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/snakekeylogger/malwarebazaar-20260717/cases/e9a3825e87a0b0a53998c1e695ba4942c47d6f4fdb695038ece3900cc645ad6a/
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/e9a3825e87a0b0a53998c1e695ba4942c47d6f4fdb695038ece3900cc645ad6a/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3747,7 +3747,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/1e969173c001e524b7ef3a22c0fcb1cc834104c18b64beea1d0a8de14be52087/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/1e969173c001e524b7ef3a22c0fcb1cc834104c18b64beea1d0a8de14be52087/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3761,7 +3761,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/18b716771b4141f47dd8884382e50e5d9a08561db09b8bd5eeb68cfcc7cfe09d/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/18b716771b4141f47dd8884382e50e5d9a08561db09b8bd5eeb68cfcc7cfe09d/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3775,7 +3775,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/cb5325281c5ecc2983de4e3d349cfa6fc272d3a9920aef743352386405ea280f/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/cb5325281c5ecc2983de4e3d349cfa6fc272d3a9920aef743352386405ea280f/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3789,7 +3789,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/66a1be3919f3f23710ebc6d58daf04e5abd52490f4a95993cea670cfc2314809/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/66a1be3919f3f23710ebc6d58daf04e5abd52490f4a95993cea670cfc2314809/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3803,7 +3803,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/0d56e8fdf02abdecc7c4a313e26952068020fad3e73632db837fe9b3bdf6511d/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/0d56e8fdf02abdecc7c4a313e26952068020fad3e73632db837fe9b3bdf6511d/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3817,7 +3817,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/791b77c7ccb414a3edf27fc19ad2af606463b520c201f528235e02d9abca2fa8/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/791b77c7ccb414a3edf27fc19ad2af606463b520c201f528235e02d9abca2fa8/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3831,7 +3831,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/f7c5c2b4cde3e19047279a18e6e9179e653c94af93967b0423fad65f50e16420/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/f7c5c2b4cde3e19047279a18e6e9179e653c94af93967b0423fad65f50e16420/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3845,7 +3845,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/f5e91e4b571064697aa93b0ea78a956b8602261dfabeb13f2352b296d07c7cb3/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/f5e91e4b571064697aa93b0ea78a956b8602261dfabeb13f2352b296d07c7cb3/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3859,7 +3859,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/56e7837e2855d749d9848d20ffb2e682f2288b7f10156597abd2fdee543e79c6/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/56e7837e2855d749d9848d20ffb2e682f2288b7f10156597abd2fdee543e79c6/
 
   - malware_type: "guloader"
     analyzed_at: 2026-07-17
@@ -3873,7 +3873,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/guloader/malwarebazaar-20260717/cases/dd3a09ed97f62ddcb37392273e052fe0aa33bb3b67033e9d90e7be85cb4062a5/
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/dd3a09ed97f62ddcb37392273e052fe0aa33bb3b67033e9d90e7be85cb4062a5/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3887,7 +3887,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/0e2d7312a79318caca8146de905da48aec617bedf9710e37c161ae3f4d4e504c/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/0e2d7312a79318caca8146de905da48aec617bedf9710e37c161ae3f4d4e504c/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3901,7 +3901,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/fbf7be017043471582fbe888052ad018d759c3d5ff25c27db07e4fce65a3d120/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/fbf7be017043471582fbe888052ad018d759c3d5ff25c27db07e4fce65a3d120/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3915,7 +3915,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/108d5bc2024134624ebfd2f221e636e9d2fd8e4505fa1817387e543cddc76d58/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/108d5bc2024134624ebfd2f221e636e9d2fd8e4505fa1817387e543cddc76d58/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3929,7 +3929,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/9cbbf013baf9d740a39159488843691a49dc89cdd79a69858ead44590611ea81/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/9cbbf013baf9d740a39159488843691a49dc89cdd79a69858ead44590611ea81/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3943,7 +3943,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/6dcba233968441cbb50e14bace526d0a22e0947b392973332d94166a9a064a1a/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/6dcba233968441cbb50e14bace526d0a22e0947b392973332d94166a9a064a1a/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3957,7 +3957,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/d88aa7f544145d8feda83c37b2c771b493bdbc6a3f84ce7ab9842823ea9f295f/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/d88aa7f544145d8feda83c37b2c771b493bdbc6a3f84ce7ab9842823ea9f295f/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3971,7 +3971,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3985,7 +3985,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -3999,7 +3999,7 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/ab6be6dbe8499287e1f596d72791ed7be436c81b1c464ea388601dae07804401/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/ab6be6dbe8499287e1f596d72791ed7be436c81b1c464ea388601dae07804401/
 
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
@@ -4013,4 +4013,4 @@ analyses:
       - "static-config:unresolved"
     c2: []
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/hijackloader/malwarebazaar-20260717/cases/cccaa74eb48cc6152f062bff6416def6922875ff7da6bbd2fac5f75b3332493b/
+    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/cccaa74eb48cc6152f062bff6416def6922875ff7da6bbd2fac5f75b3332493b/

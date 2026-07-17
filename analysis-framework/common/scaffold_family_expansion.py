@@ -14,7 +14,11 @@ REPO = Path(__file__).parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from extractors.profiled_family import load_profiles, normalize_family  # noqa: E402
+from extractors.profiled_family import (  # noqa: E402
+    _independent_marker_hits,
+    load_profiles,
+    normalize_family,
+)
 
 
 def family_items(manifest: dict, profiles: dict[str, dict]) -> dict[str, list[dict]]:
@@ -48,7 +52,59 @@ def detect(data: bytes, path: Path) -> dict:
 
 def malware_definition(family: str, profile: dict) -> str:
     """Render one family classification definition."""
-    markers = ", ".join(json.dumps(marker) for marker in profile["markers"][:3])
+    markers = list(dict.fromkeys(str(marker).lower() for marker in profile["markers"]))
+    marker_set = set(markers)
+    independent_config_keys = [
+        str(key).lower()
+        for key in profile["config_keys"]
+        if str(key).lower() not in marker_set
+    ]
+    config_keys = ", ".join(json.dumps(key) for key in independent_config_keys[:3])
+    minimum = max(2, int(profile["minimum_markers"]))
+    if len(markers) < minimum or not config_keys:
+        raise ValueError(f"profile requires family markers and config keys: {family}")
+    marker_weight = (70 + minimum - 1) // minimum
+    marker_rules: list[str] = []
+    for index, marker in enumerate(markers, 1):
+        supersets = [
+            other
+            for other in markers
+            if marker != other and marker in other
+        ]
+        if supersets:
+            # Keep the declarative rules aligned with the shared runtime rule:
+            # when a longer alias is present, its substring is not independent
+            # evidence. The assertion intentionally fails scaffold generation
+            # if the shared helper's semantics ever change.
+            independent = {
+                value.lower()
+                for value in _independent_marker_hits(
+                    [marker, *supersets], chr(10).join([marker, *supersets])
+                )
+            }
+            if marker in independent:
+                raise ValueError(f"marker independence mismatch: {family}:{marker}")
+        exclusion = (
+            chr(10)
+            + "            - not:"
+            + chr(10)
+            + "                fact: static.strings_ci"
+            + chr(10)
+            + "                contains_any: ["
+            + ", ".join(json.dumps(value) for value in supersets)
+            + "]"
+            if supersets
+            else ""
+        )
+        marker_rules.append(
+            f'''      - id: profile-marker-{index}
+        weight: {marker_weight}
+        when:
+          all:
+            - {{fact: static.strings_ci, contains: {json.dumps(marker)}}}{exclusion}
+            - {{fact: static.strings_ci, contains_any: [{config_keys}]}}'''
+        )
+    rendered_marker_rules = chr(10).join(marker_rules)
     return f'''api_version: asa/v1alpha1
 kind: MalwareAnalysisDefinition
 metadata: {{id: {family}, display_name: {profile["display_name"]}, version: 1.0.0}}
@@ -57,7 +113,7 @@ classification:
     threshold: 70
     rules:
       - {{id: reviewed-family-hint, weight: 100, when: {{fact: classification.family_hint, equals: {family}}}}}
-      - {{id: structural-marker-cluster, weight: 75, when: {{fact: static.strings_ci, contains_any: [{markers}]}}}}
+{rendered_marker_rules}
   campaigns:
     - {{id: script_delivery, pipeline: {family}.config, threshold: 70, rules: [{{id: hint, weight: 100, when: {{fact: classification.campaign_hint, equals: script_delivery}}}}]}}
     - {{id: direct_or_wrapper, pipeline: {family}.config, threshold: 70, rules: [{{id: hint, weight: 100, when: {{fact: classification.campaign_hint, equals: reviewed_direct_payload_or_wrapper}}}}]}}

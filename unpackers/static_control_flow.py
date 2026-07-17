@@ -105,6 +105,37 @@ def _direct_target(instruction: Any) -> int | None:
     return None
 
 
+def _indirect_memory_target(instruction: Any, bits: int) -> int | None:
+    """Return a statically addressable absolute or RIP-relative target slot."""
+    try:
+        operand = instruction.operands[0]
+        if operand.type != x86_const.X86_OP_MEM:
+            return None
+        memory = operand.mem
+        invalid = x86_const.X86_REG_INVALID
+        if int(memory.index) != invalid:
+            return None
+        if int(memory.base) == invalid:
+            return int(memory.disp) & ((1 << bits) - 1)
+        if bits == 64 and int(memory.base) == x86_const.X86_REG_RIP:
+            return int(instruction.address + instruction.size + memory.disp)
+    except (AttributeError, IndexError, TypeError, ValueError):
+        return None
+    return None
+
+
+def _known_indirect_transfer(
+    instruction: Any,
+    bits: int,
+    known_targets: dict[int, str],
+) -> tuple[int | None, str | None]:
+    """Resolve an indirect operand only when it names a reviewed target slot."""
+    slot = _indirect_memory_target(instruction, bits)
+    if slot is None:
+        return None, None
+    return slot, known_targets.get(slot)
+
+
 def _same_register_operands(op_str: str) -> bool:
     """Recognize two identical simple register operands."""
     operands = [value.strip().lower() for value in op_str.split(",")]
@@ -214,23 +245,54 @@ def _assess_techniques(metrics: dict[str, Any], context: dict[str, Any]) -> dict
     largest_scc = metrics["largest_scc"]
     complexity_density = metrics["cyclomatic_complexity"] / max(1, blocks)
 
+    # High indegree by itself is normally just a loop join or common cleanup
+    # block. Require a candidate to be both multi-way and loop-backed before
+    # allowing generic graph density to contribute to a CFF hypothesis. This
+    # is deliberately only a structural gate; state-variable recovery remains
+    # a follow-up method rather than an attribution claim.
+    dispatcher_candidates = metrics.get("dispatcher_candidates", [])
+    structural_dispatchers = [
+        item
+        for item in dispatcher_candidates
+        if isinstance(item, dict)
+        and int(item.get("indegree", 0)) >= 4
+        and int(item.get("outdegree", 0)) >= 2
+        and int(item.get("scc_size", 0)) >= 4
+    ]
     cff_score = 0
     cff_evidence: list[str] = []
-    if blocks >= 12:
-        cff_score += 10
-        cff_evidence.append(f"reachable blocks={blocks}")
-    if max_indegree >= 4:
-        cff_score += min(30, 15 + (max_indegree - 4) * 3)
-        cff_evidence.append(f"dispatcher-like maximum indegree={max_indegree}")
-    if hub_ratio >= 0.20:
-        cff_score += min(25, round(hub_ratio * 80))
-        cff_evidence.append(f"hub receives {hub_ratio:.1%} of known CFG edges")
-    if largest_scc >= 4:
-        cff_score += min(20, 8 + largest_scc)
-        cff_evidence.append(f"largest strongly connected component={largest_scc}")
-    if complexity_density >= 0.25:
-        cff_score += 15
-        cff_evidence.append(f"cyclomatic/block density={complexity_density:.2f}")
+    if structural_dispatchers:
+        candidate = max(
+            structural_dispatchers,
+            key=lambda item: (int(item.get("score", 0)), int(item.get("indegree", 0))),
+        )
+        cff_score += 25
+        cff_evidence.append(
+            "multi-way loop-backed dispatcher candidate="
+            f"{candidate.get('address', 'unknown')} "
+            f"(in={candidate.get('indegree')}, out={candidate.get('outdegree')}, "
+            f"scc={candidate.get('scc_size')})"
+        )
+        if blocks >= 12:
+            cff_score += 10
+            cff_evidence.append(f"reachable blocks={blocks}")
+        if max_indegree >= 4:
+            cff_score += min(20, 10 + (max_indegree - 4) * 2)
+            cff_evidence.append(f"maximum indegree={max_indegree}")
+        if hub_ratio >= 0.20:
+            cff_score += min(15, round(hub_ratio * 50))
+            cff_evidence.append(f"hub receives {hub_ratio:.1%} of known CFG edges")
+        if largest_scc >= 4:
+            cff_score += min(15, 5 + largest_scc)
+            cff_evidence.append(f"largest strongly connected component={largest_scc}")
+        if complexity_density >= 0.25:
+            cff_score += 15
+            cff_evidence.append(f"cyclomatic/block density={complexity_density:.2f}")
+    elif max_indegree >= 4 or largest_scc >= 4:
+        cff_evidence.append(
+            "rejected join/loop-only shape: no candidate has indegree>=4, "
+            "outdegree>=2, and SCC size>=4"
+        )
     cff_status = "suspected" if cff_score >= 55 else "not_observed"
 
     opaque_count = len(metrics["constant_branch_evidence"])
@@ -241,10 +303,20 @@ def _assess_techniques(metrics: dict[str, Any], context: dict[str, Any]) -> dict
         for item in metrics["constant_branch_evidence"][:8]
     ]
 
-    indirect = metrics["indirect_branches"] + metrics["indirect_calls"]
+    indirect = metrics.get(
+        "unexplained_indirect_transfers",
+        metrics["indirect_branches"] + metrics["indirect_calls"],
+    )
     indirect_ratio = indirect / max(1, branches + metrics["calls"])
     indirect_score = 0
     indirect_evidence: list[str] = []
+    import_transfers = metrics.get("import_indirect_calls", 0) + metrics.get(
+        "import_indirect_branches", 0
+    )
+    if import_transfers:
+        indirect_evidence.append(
+            f"excluded reviewed import-thunk transfers={import_transfers}"
+        )
     if indirect >= 3:
         indirect_score += min(55, indirect * 8)
         indirect_evidence.append(f"indirect control transfers={indirect}")
@@ -463,6 +535,7 @@ def _analyze_mapped_code(
     max_blocks: int,
     max_instructions: int,
     max_block_bytes: int,
+    known_indirect_targets: dict[int, str] | None = None,
 ) -> dict[str, Any]:
     """Build a bounded recursive-descent CFG over explicitly mapped code bytes."""
     dependencies = _dependency_report()
@@ -514,12 +587,38 @@ def _analyze_mapped_code(
     conditional_branches = 0
     unconditional_branches = 0
     indirect_branches = 0
+    import_indirect_branches = 0
+    unexplained_indirect_branches = 0
     calls = 0
     indirect_calls = 0
+    import_indirect_calls = 0
+    unexplained_indirect_calls = 0
+    indirect_transfer_sites: list[dict[str, Any]] = []
     returns = 0
     stack_pointer_writes = 0
     unresolved_successors = 0
     budget_exhausted = False
+    known_indirect_targets = known_indirect_targets or {}
+
+    def record_indirect(instruction: Any, kind: str, classification: str) -> None:
+        """Record one bounded indirect-transfer site."""
+        slot, label = _known_indirect_transfer(
+            instruction, bits, known_indirect_targets
+        )
+        if len(indirect_transfer_sites) >= MAX_EVIDENCE:
+            return
+        item = {
+            "address": hex(int(instruction.address)),
+            "kind": kind,
+            "mnemonic": instruction.mnemonic.lower(),
+            "operand": instruction.op_str,
+            "classification": classification if label else "unresolved",
+        }
+        if slot is not None:
+            item["target_slot"] = hex(slot)
+        if label:
+            item["target"] = label
+        indirect_transfer_sites.append(item)
 
     def enqueue(target: int, source: int, edge_kind: str) -> None:
         nonlocal unresolved_successors
@@ -586,13 +685,33 @@ def _analyze_mapped_code(
                 calls += 1
                 if _direct_target(instruction) is None:
                     indirect_calls += 1
+                    _, import_label = _known_indirect_transfer(
+                        instruction, bits, known_indirect_targets
+                    )
+                    if import_label:
+                        import_indirect_calls += 1
+                        record_indirect(instruction, "call", "reviewed_import_thunk")
+                    else:
+                        unexplained_indirect_calls += 1
+                        record_indirect(instruction, "call", "unresolved")
             if is_jump:
                 target = _direct_target(instruction)
                 if mnemonic in _UNCONDITIONAL_JUMPS:
                     unconditional_branches += 1
                     if target is None:
                         indirect_branches += 1
-                        unresolved_successors += 1
+                        _, import_label = _known_indirect_transfer(
+                            instruction, bits, known_indirect_targets
+                        )
+                        if import_label:
+                            import_indirect_branches += 1
+                            record_indirect(
+                                instruction, "jump", "reviewed_import_thunk"
+                            )
+                        else:
+                            unexplained_indirect_branches += 1
+                            unresolved_successors += 1
+                            record_indirect(instruction, "jump", "unresolved")
                     else:
                         enqueue(target, start, "jump")
                 else:
@@ -602,7 +721,11 @@ def _analyze_mapped_code(
                         opaque_evidence.append(proof)
                     if target is None:
                         indirect_branches += 1
+                        unexplained_indirect_branches += 1
                         unresolved_successors += 1
+                        record_indirect(
+                            instruction, "conditional_jump", "unresolved"
+                        )
                     else:
                         enqueue(target, start, "conditional_taken")
                     enqueue(block_end, start, "conditional_fallthrough")
@@ -675,6 +798,11 @@ def _analyze_mapped_code(
                 "outdegree": len(adjacency.get(node, set())),
                 "scc_size": component_by_node.get(node, 1),
                 "incoming_edge_ratio": round(incoming_ratio, 4),
+                "multiway_loop_gate": bool(
+                    indegree[node] >= 4
+                    and len(adjacency.get(node, set())) >= 2
+                    and component_by_node.get(node, 1) >= 4
+                ),
             })
 
     metrics = {
@@ -685,8 +813,16 @@ def _analyze_mapped_code(
         "conditional_branches": conditional_branches,
         "unconditional_branches": unconditional_branches,
         "indirect_branches": indirect_branches,
+        "import_indirect_branches": import_indirect_branches,
+        "unexplained_indirect_branches": unexplained_indirect_branches,
         "calls": calls,
         "indirect_calls": indirect_calls,
+        "import_indirect_calls": import_indirect_calls,
+        "unexplained_indirect_calls": unexplained_indirect_calls,
+        "unexplained_indirect_transfers": (
+            unexplained_indirect_branches + unexplained_indirect_calls
+        ),
+        "indirect_transfer_sites": indirect_transfer_sites,
         "returns": returns,
         "unresolved_successors": unresolved_successors,
         "decode_failures": decode_failures,
@@ -889,12 +1025,32 @@ def analyze_pe_control_flow(
         for item in entry.imports
         if item.name
     })[:256]
+    image_base = int(image.OPTIONAL_HEADER.ImageBase)
+    known_indirect_targets: dict[int, str] = {}
+    full_import_addresses: set[int] = set()
+    for entry in getattr(image, "DIRECTORY_ENTRY_IMPORT", []):
+        library = (getattr(entry, "dll", b"") or b"").decode(errors="replace")
+        for item in entry.imports:
+            try:
+                address = int(item.address)
+            except (AttributeError, TypeError, ValueError):
+                continue
+            raw_name = getattr(item, "name", None)
+            name = (
+                raw_name.decode(errors="replace")
+                if raw_name
+                else f"ordinal_{getattr(item, 'ordinal', 'unknown')}"
+            )
+            label = f"{library}!{name}" if library else name
+            full_import_addresses.add(address)
+            known_indirect_targets[address] = label
+            if address >= image_base:
+                known_indirect_targets[address - image_base] = label
     marker_probe = data[: min(len(data), image_file_end, 32 * 1024 * 1024)].lower()
     markers = [
         marker.decode()
         for marker in (
             b"UPX!",
-            b"MPRESS",
             b"Themida",
             b"WinLicense",
             b"VMProtect",
@@ -908,6 +1064,14 @@ def analyze_pe_control_flow(
     entry_high_entropy = entry_section in high_entropy_exec
     virtualized_shape = imports <= 2 and zero_raw_virtual >= 4 and entry_high_entropy
     normalized_section_names = {name.upper() for name in (item["name"] for item in section_inventory)}
+    # MPRESS may occur as an unrelated printable string. Only its documented
+    # section names/signatures are strong enough to route analysis as a packer.
+    if (
+        b"mpress1" in marker_probe
+        or b"mpress2" in marker_probe
+        or any(name.startswith(".MPRESS") for name in normalized_section_names)
+    ):
+        markers.append("MPRESS")
     known_stub_section = any(
         name.startswith(("UPX", ".MPRESS", ".THEMIDA", ".VMP", ".ENIGMA", ".NSP"))
         for name in normalized_section_names
@@ -923,6 +1087,7 @@ def analyze_pe_control_flow(
         "is_dotnet": is_dotnet,
         "imports": imports,
         "import_names": import_names,
+        "import_thunk_count": len(full_import_addresses),
         "entrypoint_rva": hex(entrypoint),
         "entrypoint_section": entry_section,
         "entrypoint_high_entropy": entry_high_entropy,
@@ -943,6 +1108,7 @@ def analyze_pe_control_flow(
         max_blocks,
         max_instructions,
         max_block_bytes,
+        known_indirect_targets,
     )
 
 

@@ -35,6 +35,7 @@ cases:
     category: native_raw_intermediate_loader
     priority: P1
     blockers: [native_control_flow_obfuscation, raw_code_terminal_layer]
+    container_probe: true
     expected_children: [e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a]
     raw_code_layers:
       e9ed0be544b08189ceca2ec8e6ae8f74d62335ed006f0b207fb211df6bbdcb3a: 64
@@ -196,11 +197,11 @@ groups:
       - 6cb09916c5a8464778c43a5372fe483b53e9c53f0867ec252667f109a58020d3
       - 84db5b4abf8d9cc8159a751668dc6c5be7ee4143811e38599d5b134120ceca7d
       - 86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460
-  - id: stealc_nsis
+  - id: stealc_reviewed_overlay
     family: stealc
-    category: nsis_container
+    category: native_pe_with_data_overlay
     priority: P1
-    blockers: [nsis_terminal_payload_not_recovered]
+    blockers: [overlay_data_decoder_not_recovered]
     hashes: [52b078c339720a09902be86de5e6875f2f31a8c24091453f96858b294f923924]
   - id: amadey_unknown_protector_shape
     family: amadey

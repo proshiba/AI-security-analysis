@@ -18,7 +18,8 @@
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
@@ -30,7 +31,7 @@
  <dl><dt><a name="-load_case"><strong>load_case</strong></a>(case_dir: 'Path') -&gt; 'dict'</dt><dd><span class="code">Load&nbsp;one&nbsp;normalized&nbsp;case&nbsp;without&nbsp;recovered&nbsp;sample&nbsp;bytes.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Generate&nbsp;one&nbsp;family&nbsp;report&nbsp;tree.</span></dd></dl>
  <dl><dt><a name="-render_case"><strong>render_case</strong></a>(item: 'dict', case: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;compact,&nbsp;evidence-qualified&nbsp;case&nbsp;README.</span></dd></dl>
- <dl><dt><a name="-render_family"><strong>render_family</strong></a>(value: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;family&nbsp;README&nbsp;with&nbsp;detection&nbsp;trade-offs&nbsp;and&nbsp;all&nbsp;case&nbsp;outcomes.</span></dd></dl>
+ <dl><dt><a name="-render_family"><strong>render_family</strong></a>(value: 'dict', case_links: 'dict[str, str] | None' = None) -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;family&nbsp;README&nbsp;with&nbsp;detection&nbsp;trade-offs&nbsp;and&nbsp;all&nbsp;case&nbsp;outcomes.</span></dd></dl>
  <dl><dt><a name="-summarize_family"><strong>summarize_family</strong></a>(summary: 'dict', pipeline_root: 'Path') -&gt; 'dict'</dt><dd><span class="code">Aggregate&nbsp;campaigns,&nbsp;formats,&nbsp;features,&nbsp;and&nbsp;findings&nbsp;across&nbsp;analyzed&nbsp;cases.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

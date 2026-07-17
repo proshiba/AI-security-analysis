@@ -1,96 +1,116 @@
-# Analysis results
+# 解析成果物
 
-静的解析・設定抽出・IOC評価の公開用結果です。検体本体、復元バイナリ、資格情報、ローカル解析パスは含めません。
+静的解析、設定抽出、IOC評価、OSINT調査の公開用成果物です。検体本体、復元バイナリ、資格情報、ローカル解析パス、プロバイダーの生応答は含めません。検体の実行、CPU／CILエミュレーション、実インフラへの接続も行っていません。
 
-標準配置は次のとおりです。
+## フォルダ構成
+
+マルウェアの個別検体は、収集回や日付に左右されない固定深度で管理します。
 
 ```text
-analysis-results/<malware-family>/cases/<sample-sha256>/
-analysis-results/<malware-family>/refresh-YYYYMMDD/cases/<sample-sha256>/
+analysis-results/
+├─ malware/<family>/
+│  ├─ README.md
+│  ├─ OSINT.md
+│  ├─ VERSIONS.md
+│  ├─ TECHNICAL-ANALYSIS.md
+│  └─ versions/<version-key>/cases/<sha256>/
+├─ collections/<collection-id>/
+├─ catalog/cases.json
+├─ research/{campaigns,supply-chain,vulnerabilities,news,audits}/
+└─ _shared/
 ```
 
-個別case、campaign、incidentには `README.md` に加えてIOCだけを抜き出した `IOC-LIST.md` を置きます。全件の索引は [IOC-INDEX.md](IOC-INDEX.md) です。一覧は次のgeneratorで再生成・検証します。
+`refresh-*`、`vx-underground-*`、`malwarebazaar-*` は検体の親フォルダには置きません。収集元、収集日、収集単位は [`collections/`](collections/) のmanifestでSHA-256に関連付け、同じ検体を複製しません。設計、版判定、移行時の検証条件は[成果物レイアウト仕様](../analysis-framework/docs/RESULT-LAYOUT.md)を参照してください。
+
+## 現在の収録状況
+
+| 区分 | 件数 |
+|---|---:|
+| SHA-256で一意な全case | 554 |
+| 既知マルウェアファミリ | 452 |
+| 未分類 | 101 |
+| サプライチェーンpayload | 1 |
+| 版を静的根拠で確認済み | 58 |
+| exact sampleの外部報告で版を特定 | 4 |
+| 版不明（既知ファミリ） | 390 |
+| 版不明（未分類） | 101 |
+
+版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
+
+未分類101件は既知ファミリへ無理に帰属させていません。71件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
+
+## マルウェアファミリ
+
+各 `README.md` から、概要、開発・販売主体、利用アクター、コモディティ／MaaS性、過去の攻撃事例、技術解析、版情報へ移動できます。詳細なOSINTと出典は各 `OSINT.md` にあります。
+
+- [Agent Tesla](malware/agenttesla/README.md)
+- [Amadey](malware/amadey/README.md)
+- [Atomic macOS Stealer（AMOS、アトミックmacOSスティーラー）](malware/amosstealer/README.md)
+- [AsyncRAT](malware/asyncrat/README.md)
+- [AtlasCross／Atlas RAT](malware/atlascross/README.md)
+- [DarkComet](malware/darkcomet/README.md)
+- [DCRat](malware/dcrat/README.md)
+- [DonutLoader](malware/donutloader/README.md)
+- [Formbook](malware/formbook/README.md)
+- [GuLoader](malware/guloader/README.md)
+- [HijackLoader](malware/hijackloader/README.md)
+- [Latrodectus](malware/latrodectus/README.md)
+- [Lumma Stealer](malware/lummastealer/README.md)
+- [njRAT](malware/njrat/README.md)
+- [PureHVNC／PureRAT](malware/purehvnc/README.md)
+- [QuasarRAT](malware/quasarrat/README.md)
+- [RedLine Stealer](malware/redlinestealer/README.md)
+- [Remcos RAT](malware/remcosrat/README.md)
+- [Remus Stealer](malware/remusstealer/README.md)
+- [ShadowPad](malware/shadowpad/README.md)
+- [Snake Keylogger](malware/snakekeylogger/README.md)
+- [SpyGlace](malware/spyglace/README.md)
+- [StealC](malware/stealc/README.md)
+- [ValleyRAT](malware/valleyrat/README.md)
+- [VenomRAT](malware/venomrat/README.md)
+- [Vidar](malware/vidar/README.md)
+- [XWorm](malware/xworm/README.md)
+- [未分類検体](malware/unclassified/README.md)
+
+## 収集単位
+
+collectionは検体の別コピーではなく、収集時点のmembershipとファミリ別集約成果物を保持します。
+
+- [2026-07-15 refresh：9ファミリ／90件](collections/refresh-20260715/README.md)
+- [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
+- [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
+- [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
+
+## 横断調査
+
+- [未完了・未スクリプト化項目の追加解析と全体監査](research/audits/static-analysis-audit-20260717/README.md)
+- [難解析80件／静的解析155 layer](research/audits/static-hard-cases/README.md)
+- [unpacking再評価](research/audits/unpacking-reassessment-20260715.md)
+- [SpyGlace／APT-C-60攻撃キャンペーン](research/campaigns/spyglace/apt-c60-2026/README.md)
+- [AtlasCross／Silver Fox偽VPNキャンペーン](research/campaigns/atlascross/silver-fox-vpn-2026/README.md)
+- [npm axios／plain-crypto-jsサプライチェーン侵害](research/supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/README.md)
+- [Trivy／TeamPCPサプライチェーン事案](research/supply-chain/trivy-teampcp-2026/README.md)
+- [CVE-2026-3055](research/vulnerabilities/cve-2026-3055/README.md)
+- [2026-04-01セキュリティニュース調査](research/news/20260401/README.md)
+
+## IOCの再生成と検証
+
+個別case、campaign、incidentには、人間向け `README.md` とIOC専用 `IOC-LIST.md` を置きます。全件索引は [`IOC-INDEX.md`](IOC-INDEX.md) です。`IOC-LIST.md` は生成物なので直接編集せず、元の `README.md`、`iocs.json`、`config.json`、`analysis_history.yaml` を修正してから再生成します。
 
 ```powershell
 python .\analysis-framework\common\generate_ioc_lists.py --repository .
 python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ```
 
-`IOC-LIST.md` は生成物です。手編集せず、元のREADME、`iocs.json`、`config.json`、`analysis_history.yaml` を修正して再生成してください。
+埋め込みURLやIPは、それだけでは稼働中C2やファミリ専用インフラを意味しません。配布先、stage取得先、C2候補、公開IP確認サービスなどの役割を分離し、確度と根拠を併記しています。Sigma／YARAは検知仮説であり、環境別の検証が必要です。
 
-## Families
+## 公開JSONの境界
 
-- [ValleyRAT](valleyrat/README.md) / [behavior and C2 model](valleyrat/BEHAVIOR-C2.md)
-- [AgentTesla](agenttesla/README.md)
-- [ShadowPad](shadowpad/README.md)
-- [StealC](stealc/README.md) / [behavior and C2 model](stealc/BEHAVIOR-C2.md)
-- [RemcosRAT](remcosrat/README.md)
-- [VenomRAT](venomrat/README.md) / [behavior and C2 model](venomrat/BEHAVIOR-C2.md)
-- [Formbook](formbook/README.md) / [behavior and C2 model](formbook/BEHAVIOR-C2.md)
-- [Vidar](vidar/README.md) / [behavior and C2 model](vidar/BEHAVIOR-C2.md)
-- [Amadey](amadey/README.md)
-- [Latrodectus](latrodectus/README.md)
-- [LummaStealer](lummastealer/README.md) / [behavior and C2 model](lummastealer/BEHAVIOR-C2.md)
-- [RemusStealer](remusstealer/README.md) / [behavior and C2 model](remusstealer/BEHAVIOR-C2.md)
-- [Atomic macOS Stealer (AMOS)](amosstealer/README.md) / [behavior and C2 model](amosstealer/BEHAVIOR-C2.md)
-- [Unclassified malware](unclassified/README.md)
-- [AsyncRAT](asyncrat/README.md)
-- [XWorm](xworm/README.md)
-- [QuasarRAT](quasarrat/README.md)
-- [njRAT](njrat/README.md)
-- [DarkComet](darkcomet/README.md)
-- [DCRat](dcrat/README.md)
-- [RedLine Stealer](redlinestealer/README.md)
-- [Snake Keylogger](snakekeylogger/README.md)
-- [GuLoader](guloader/README.md)
-- [HijackLoader](hijackloader/README.md)
-- [npm supply-chain: axios/plain-crypto-js](npm-supply-chain/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/README.md)
-- [AtlasCross / Atlas RAT](atlascross/campaigns/silver-fox-vpn-2026/README.md)
-- [Trivy / TeamPCP supply-chain incident](supply-chain/trivy-teampcp-2026/README.md)
-- [2026-04-01 security news analysis](news/20260401/README.md)
+プロバイダーの生応答は、git管理外の `.work/` にだけ保存します。公開前にMalwareBazaarの応答を許可項目だけの要約へ変換し、メールアドレス様の値を除去したうえで、書込みなしの監査を通します。
 
-## Latest refresh
+```powershell
+python .\analysis-framework\common\sanitize_public_results.py --root .\analysis-results --write
+python .\analysis-framework\common\sanitize_public_results.py --root .\analysis-results
+```
 
-- [2026-07-15: 9 families / 90 new samples](REFRESH-2026-07-15.md)
-- [2026-07-15: unpacking reassessment and remaining blockers](UNPACKING-REASSESSMENT-2026-07-15.md)
-
-## Cross-family deep static analysis, 2026-07-17
-
-- [80 difficult cases / 142 statically analyzed layers](static-hard-cases/README.md)
-- Static-only: no sample execution, CPU emulation, network/C2 contact, or recovered-binary publication.
-
-## VX-Underground family batches, 2026-07-16
-
-- [DonutLoader: 2 submissions](donutloader/vx-underground-20260716/README.md)
-- [Atomic macOS Stealer: 2 submissions](amosstealer/vx-underground-20260716/README.md)
-- [Vidar: 25 submissions](vidar/vx-underground-20260716/README.md)
-- [Amadey: 35 submissions](amadey/vx-underground-20260716/README.md)
-- [Latrodectus: 54 submissions](latrodectus/vx-underground-20260716/README.md)
-
-各レポートでは、MalwareBazaarの署名ラベル、静的に確認したファミリーマーカー、配布・ローダー形態、復号済み設定、候補IOCを区別します。埋め込みURLやIPは、それだけでは稼働中C2や当該ファミリー専用インフラを意味しません。
-
-すべてのrefresh解析は検体をローカル実行せず、実インフラへの接続も行いません。Sigma/YARAは検知仮説であり、正規ソフトウェアとの重複、署名・普及度、親子プロセス、通信先を組み合わせて環境別に検証してください。
-
-## PureHVNC and DonutLoader cases
-
-
-- [SpyGlace / APT-C-60 2026](spyglace/README.md) / [campaign analysis and IOC set](spyglace/campaigns/apt-c60-2026/README.md)
-- [PureHVNC / PureRAT](purehvnc/README.md)
-- [DonutLoader](donutloader/README.md)
-
-The DonutLoader result preserves both delivery classification and terminal PureRAT identity; configured C2 is not attributed to the delivery host or intermediate loader.
-
-## Unclassified newest-first batch, 2026-07-17
-
-- [100 MalwareBazaar unsigned/unknown-stealer cases](unclassified/malwarebazaar-unknown-20260717/README.md)
-- Medium-confidence internal support: 7; provisional low-confidence leads: 63; unresolved: 30.
-- Static IOC candidates are unconfirmed and were not contacted.
-
-## Profile-defined ten-family batch, 2026-07-17
-
-- [Architecture, execution order, retry handling, relationship diagram, and batch summary](../analysis-framework/docs/PROFILED-FAMILY-EXPANSION.md)
-- 10 families / 100 newest exact-signature samples; 100/100 passed hash, routing, public-output, and offline-safety validation.
-- One candidate C2-role literal was recovered: `80.234.41.242:7895` in a RedLine Stealer case. It was not contacted and is not labelled live or confirmed.
-- Five stage URL candidates were retained as delivery IOCs. Four public-IP discovery services were retained only as behavior context and excluded from IOC/C2 plans.
-- No encrypted family configuration was fully recovered in this batch; packed or runtime-only configurations remain explicitly unresolved.
-- Per-family medium-confidence YARA is stored under each batch. The shared low-confidence Sigma correlation template is under [_shared/rules/sigma](./_shared/rules/sigma/profiled_family_script_delivery.yml).
+公開要約に残すのは、exact sample hash、初回／最終観測時刻、size、file type／MIME、signature、tagだけです。資格情報、token、query、fragment、復元secret、安全検査ログは公開しません。

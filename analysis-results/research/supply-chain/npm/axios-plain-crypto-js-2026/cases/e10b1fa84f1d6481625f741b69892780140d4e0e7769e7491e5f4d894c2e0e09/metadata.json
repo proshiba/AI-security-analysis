@@ -1,0 +1,17 @@
+{
+  "canonical_path": "analysis-results/research/supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09",
+  "case_id": "sha256:e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09",
+  "case_kind": "supply_chain_payload",
+  "collections": [],
+  "family": "npm-supply-chain",
+  "malware_version": {
+    "confidence": "none",
+    "evidence": [],
+    "normalized_key": null,
+    "reason": "case_is_a_supply_chain_payload_not_a_malware_family_release",
+    "reported": null,
+    "status": "not_applicable"
+  },
+  "schema_version": 1,
+  "sha256": "e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09"
+}

@@ -80,14 +80,26 @@ def compile_plan(
     """Compile a non-executing plan and enforce the policy capability ceiling."""
     family, family_candidates = select_family(malware, facts)
     if family is None:
+        pipeline_id = "unknown.family_static"
+        if pipeline_id not in pipelines:
+            raise ValueError(f"missing pipeline: {pipeline_id}")
+        pipeline = pipelines[pipeline_id]
+        required = set(pipeline.capabilities)
+        for step in pipeline.steps:
+            required.update(get_step(step.uses).capabilities)
+        blocked = sorted((required & set(policy.deny)) | (required - set(policy.allow)))
+        reasons = ["no unique family exceeded its threshold"]
+        reasons.extend(f"capability not allowed: {item}" for item in blocked)
         return AnalysisPlan(
             family="unknown",
             campaign="unknown",
-            pipeline="unknown.family_static",
+            pipeline=pipeline_id,
             policy=policy.metadata.id,
-            status="needs_review",
-            reasons=["no unique family exceeded its threshold"],
+            status="blocked" if blocked else "needs_review",
+            reasons=reasons,
             family_candidates=family_candidates,
+            required_capabilities=sorted(required),
+            steps=topological_steps(pipeline),
         )
     campaign, pipeline_id, campaign_candidates = select_campaign(family, facts)
     if pipeline_id not in pipelines:

@@ -67,6 +67,7 @@ def test_load_and_expand_inventory_with_case_override(tmp_path: Path) -> None:
                 f"    raw_code_layers: {{{child}: 64}}",
                 f"  - sha256: {second}",
                 "    family: RemcosRAT",
+                "    container_probe: true",
             ]
         )
         + "\n",
@@ -81,8 +82,46 @@ def test_load_and_expand_inventory_with_case_override(tmp_path: Path) -> None:
     assert cases[0]["expected_children"] == [child]
     assert cases[0]["raw_code_layers"] == {child: 64}
     assert cases[1]["family"] == "RemcosRAT"
+    assert cases[1]["container_probe"] is True
     with pytest.raises(ValueError):
         triage.expand_inventory({"groups": "invalid"})
+    with pytest.raises(ValueError):
+        triage.expand_inventory(
+            {"cases": [{"sha256": "4" * 64, "container_probe": "yes"}]}
+        )
+
+
+def test_reviewed_container_probe_and_tool_paths_are_forwarded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pass explicit static-tool settings only for a reviewed root carrier."""
+    data = b"fixture"
+    digest = _digest(data)
+    source = tmp_path / digest
+    source.write_bytes(data)
+    observed: dict[str, object] = {}
+
+    def fake_unpack(blob: bytes, name: str, **kwargs):
+        observed.update(kwargs)
+        return {"format": "data", "name": name}, []
+
+    monkeypatch.setattr(triage, "unpack_bytes", fake_unpack)
+    result = triage.analyze_case(
+        {
+            "sha256": digest,
+            "family": "Fixture",
+            "container_probe": True,
+        },
+        [{"path": source, "source_kind": "raw_file"}],
+        sevenzip=tmp_path / "7z.exe",
+        archive_password="infected",
+    )
+    assert result["status"] == "analyzed"
+    assert observed == {
+        "sevenzip": tmp_path / "7z.exe",
+        "force_container_probe": True,
+        "archive_password": "infected",
+    }
 
 
 def test_index_local_samples_recognizes_raw_and_aes_zip(tmp_path: Path) -> None:
@@ -159,10 +198,12 @@ def test_analyze_case_recurses_in_memory_and_strips_private_data(
     root_path = tmp_path / root_hash
     root_path.write_bytes(root_data)
     calls: list[tuple[str, int | None]] = []
+    unpack_names: list[str] = []
 
     def fake_unpack(data: bytes, name: str):
         """Return one recovered raw-code layer for the root fixture."""
 
+        unpack_names.append(name)
         if data == root_data:
             return (
                 {
@@ -217,6 +258,9 @@ def test_analyze_case_recurses_in_memory_and_strips_private_data(
     assert calls[0] == ("pe", 17) and calls[1] == ("raw", 64)
     assert len(result["nodes"]) == 2
     assert result["expected_children"]["all_observed"] is True
+    assert result["expected_children"]["all_analyzed"] is True
+    assert unpack_names[0].endswith(".exe")
+    assert unpack_names[1].endswith(".bin")
     rendered = json.dumps(result)
     assert "private" not in rendered.lower()
     assert '"blocks"' not in rendered
@@ -317,7 +361,14 @@ def test_run_render_write_parser_and_main(tmp_path: Path) -> None:
         "persistent_outputs": ["json", "markdown"],
     }
     markdown = triage.render_markdown(report)
-    assert "# Deep static triage" in markdown and digest in markdown
+    assert "# 深層静的トリアージ" in markdown and digest in markdown
+    assert "## 概要" in markdown
+    assert "| 総ケース数 | 1 |" in markdown
+    assert "## ケース詳細" in markdown
+    assert "- 解析上限到達: いいえ" in markdown
+    assert "`Fixture`" in markdown
+    assert "`not_found`" in markdown
+    assert "This report was produced" not in markdown
     output = tmp_path / "report"
     json_path, markdown_path = triage.write_public_report(report, output)
     assert {path.name for path in output.iterdir()} == {
@@ -325,7 +376,7 @@ def test_run_render_write_parser_and_main(tmp_path: Path) -> None:
         "deep-static-triage.md",
     }
     assert json.loads(json_path.read_text(encoding="utf-8"))["summary"]["total"] == 1
-    assert markdown_path.read_text(encoding="utf-8").startswith("# Deep static triage")
+    assert markdown_path.read_text(encoding="utf-8").startswith("# 深層静的トリアージ")
 
     args = triage.build_parser().parse_args(
         [

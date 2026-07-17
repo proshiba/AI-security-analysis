@@ -1,24 +1,24 @@
-# MX-Go local protocol lab
+# MX-Goローカルプロトコル検証環境
 
-This lab reproduces the statically recovered MX-Go HTTP control and content paths without contacting real infrastructure. Both programs enforce loopback-only operation.
+この検証環境は実在インフラへ接続せず、静的に復元したMX-GoのHTTP制御パスとコンテンツパスを再現します。両プログラムともループバックだけで動作します。
 
-## Safety boundaries
+## 安全境界
 
-- `server.py` refuses non-loopback bind addresses.
-- `client.py` refuses non-loopback target URLs.
-- `c2_detector.py --protocol mxgo` defaults to an offline request preview.
-- Active detector modes require both a loopback host and `--mxgo-allow-loopback-network`.
-- Heartbeats use synthetic IDs and `LAB_ONLY`; hostnames, MAC addresses and real machine identifiers are not collected.
-- Recipient fixtures use the reserved `.invalid` TLD. Output contains only count/hash, not addresses.
-- The lab returns empty, non-operative command flags. It cannot send email or execute commands.
+- `server.py` はループバック以外のバインドアドレスを拒否します。
+- `client.py` はループバック以外の接続先URLを拒否します。
+- `c2_detector.py --protocol mxgo` は既定でオフラインの要求プレビューを生成します。
+- 能動的な検出器モードには、ループバックホストと `--mxgo-allow-loopback-network` の両方が必要です。
+- ハートビートには合成IDと `LAB_ONLY` を使用し、ホスト名、MACアドレス、実端末の識別子を収集しません。
+- 受信者の合成データには予約済み `.invalid` TLDを使います。出力には件数／ハッシュだけを含め、アドレスは含めません。
+- 検証環境が返すコマンドフラグは空で、動作しません。メール送信やコマンド実行はできません。
 
-## Start the local C2/content emulator
+## ローカルC2／コンテンツエミュレーターの起動
 
 ```powershell
 python .\emulators\unclassified\mx_go\server.py --host 127.0.0.1 --port 5000
 ```
 
-Emulated paths:
+エミュレートするパス:
 
 - `POST /api/v1/heartbeat_direct`
 - `POST /api/v1/activate`
@@ -27,7 +27,7 @@ Emulated paths:
 - `GET /api/client_command/<synthetic-client-id>`
 - `GET /jp01.txt`, `/html-a.txt`, `/fscs-a.txt`, `/yuming.txt`, `/dimk.txt`
 
-## Standalone client emulator
+## 単体クライアントエミュレーター
 
 ```powershell
 python .\emulators\unclassified\mx_go\client.py `
@@ -36,9 +36,9 @@ python .\emulators\unclassified\mx_go\client.py `
   --output C:\malware-lab\mx-go-lab-client.json
 ```
 
-## c2_detector integration
+## `c2_detector`との連携
 
-Generate a heartbeat description without network contact. The host may be the reviewed IOC because preview mode never resolves or connects to it:
+ネットワークへ接続せずにハートビートの説明を生成します。プレビューモードは名前解決も接続も行わないため、ホストにはレビュー済みIOCを指定できます。
 
 ```powershell
 python .\analysis-framework\common\c2_detector.py 43.165.179.173 5000 `
@@ -46,28 +46,30 @@ python .\analysis-framework\common\c2_detector.py 43.165.179.173 5000 `
   --mxgo-mode preview
 ```
 
-Validate a synthetic check-in against the local emulator:
+ローカルエミュレーターに対して合成チェックインを検証します。
 
 ```powershell
 python .\analysis-framework\common\c2_detector.py 127.0.0.1 5000 `
   --protocol mxgo `
   --mxgo-mode checkin `
+  --allow-network `
   --mxgo-allow-loopback-network
 ```
 
-Fetch and summarize the synthetic recipient fixture:
+合成した受信者データを取得して要約します。
 
 ```powershell
 python .\analysis-framework\common\c2_detector.py 127.0.0.1 5000 `
   --protocol mxgo `
   --mxgo-mode recipients `
   --mxgo-recipient-path /jp01.txt `
+  --allow-network `
   --mxgo-allow-loopback-network
 ```
 
-A non-loopback active target fails argument validation before DNS or TCP activity.
+ループバック以外の能動的接続先は、DNSまたはTCP処理より前の引数検証で失敗します。
 
-## Tests
+## テスト
 
 ```powershell
 python -m pytest .\analysis-framework\tests\test_c2_detector.py .\emulators\unclassified\mx_go\tests

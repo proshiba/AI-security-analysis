@@ -19,8 +19,9 @@
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 <a href="hashlib.html">hashlib</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="sys.html">sys</a><br>
 </td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
@@ -29,15 +30,18 @@
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_case"><strong>build_case</strong></a>(item: 'dict', static_case: 'dict', extractor_result: 'dict', c2_plan: 'dict', profile: 'dict') -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;one&nbsp;public&nbsp;case&nbsp;document&nbsp;with&nbsp;explicit&nbsp;evidence&nbsp;and&nbsp;limitations.</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;publish-safe&nbsp;report&nbsp;generation&nbsp;parser.</span></dd></dl>
- <dl><dt><a name="-case_markdown"><strong>case_markdown</strong></a>(case: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;detailed&nbsp;per-sample&nbsp;analysis&nbsp;README.</span></dd></dl>
- <dl><dt><a name="-family_markdown"><strong>family_markdown</strong></a>(family: 'str', profile: 'dict', cases: 'list[dict]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;aggregate&nbsp;family&nbsp;report&nbsp;with&nbsp;coverage&nbsp;and&nbsp;false-positive&nbsp;analysis.</span></dd></dl>
- <dl><dt><a name="-generate"><strong>generate</strong></a>(manifest_path: 'Path', cache: 'Path', output_root: 'Path') -&gt; 'dict'</dt><dd><span class="code">Generate&nbsp;all&nbsp;public&nbsp;reports&nbsp;directly&nbsp;from&nbsp;encrypted&nbsp;archives&nbsp;and&nbsp;static&nbsp;cache.</span></dd></dl>
- <dl><dt><a name="-ioc_markdown"><strong>ioc_markdown</strong></a>(hashes: 'list[str]', findings: 'list[dict]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;hashes&nbsp;and&nbsp;network&nbsp;candidates&nbsp;as&nbsp;a&nbsp;copyable&nbsp;IOC-only&nbsp;list.</span></dd></dl>
+ <dl><dt><a name="-case_markdown"><strong>case_markdown</strong></a>(case: 'dict') -&gt; 'str'</dt><dd><span class="code">検体単位の詳細な日本語&nbsp;README&nbsp;を描画する。</span></dd></dl>
+ <dl><dt><a name="-collection_markdown"><strong>collection_markdown</strong></a>(document: 'dict') -&gt; 'str'</dt><dd><span class="code">collection&nbsp;manifestから、検体を複製しない日本語READMEを生成する。</span></dd></dl>
+ <dl><dt><a name="-family_markdown"><strong>family_markdown</strong></a>(family: 'str', profile: 'dict', cases: 'list[dict]', case_links: 'dict[str, str] | None' = None) -&gt; 'str'</dt><dd><span class="code">family&nbsp;集約結果を誤検知評価付きの日本語&nbsp;Markdown&nbsp;で描画する。</span></dd></dl>
+ <dl><dt><a name="-generate"><strong>generate</strong></a>(manifest_path: 'Path', cache: 'Path', output_root: 'Path', run_id: 'str' = 'malwarebazaar-20260717') -&gt; 'dict'</dt><dd><span class="code">Generate&nbsp;all&nbsp;public&nbsp;reports&nbsp;directly&nbsp;from&nbsp;encrypted&nbsp;archives&nbsp;and&nbsp;static&nbsp;cache.</span></dd></dl>
+ <dl><dt><a name="-ioc_indicators"><strong>ioc_indicators</strong></a>(hashes: 'list[str]', findings: 'list[dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">Normalize&nbsp;reviewed&nbsp;hashes&nbsp;and&nbsp;findings&nbsp;into&nbsp;the&nbsp;shared&nbsp;IOC&nbsp;contract.</span></dd></dl>
+ <dl><dt><a name="-ioc_markdown"><strong>ioc_markdown</strong></a>(hashes: 'list[str]', findings: 'list[dict]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;shared&nbsp;five-column&nbsp;IOC-only&nbsp;table.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Generate&nbsp;reports&nbsp;and&nbsp;print&nbsp;aggregate&nbsp;counts.</span></dd></dl>
  <dl><dt><a name="-markdown_table"><strong>markdown_table</strong></a>(rows: 'list[list[str]]') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;small&nbsp;escaped&nbsp;Markdown&nbsp;table.</span></dd></dl>
  <dl><dt><a name="-merge_findings"><strong>merge_findings</strong></a>(extractor_result: 'dict', static_case: 'dict') -&gt; 'list[dict]'</dt><dd><span class="code">Merge&nbsp;extractor&nbsp;and&nbsp;recursive-layer&nbsp;literals&nbsp;without&nbsp;upgrading&nbsp;confidence.</span></dd></dl>
  <dl><dt><a name="-normalize_finding"><strong>normalize_finding</strong></a>(item: 'dict') -&gt; 'dict | None'</dt><dd><span class="code">Retain&nbsp;only&nbsp;publish-safe&nbsp;network&nbsp;finding&nbsp;fields&nbsp;with&nbsp;calibrated&nbsp;confidence.</span></dd></dl>
  <dl><dt><a name="-public_source"><strong>public_source</strong></a>(item: 'dict') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;source&nbsp;metadata&nbsp;without&nbsp;reporter&nbsp;identity&nbsp;or&nbsp;local&nbsp;archive&nbsp;paths.</span></dd></dl>
+ <dl><dt><a name="-regenerate_run_ioc_lists"><strong>regenerate_run_ioc_lists</strong></a>(output_root: 'Path', run_id: 'str' = 'malwarebazaar-20260717') -&gt; 'dict'</dt><dd><span class="code">Rebuild&nbsp;aggregate&nbsp;IOC&nbsp;tables&nbsp;from&nbsp;already-published&nbsp;case&nbsp;documents.</span></dd></dl>
  <dl><dt><a name="-write_text"><strong>write_text</strong></a>(path: 'Path', value: 'str') -&gt; 'None'</dt><dd><span class="code">Write&nbsp;normalized&nbsp;UTF-8&nbsp;text&nbsp;after&nbsp;creating&nbsp;parent&nbsp;directories.</span></dd></dl>
  <dl><dt><a name="-yara_rule"><strong>yara_rule</strong></a>(family: 'str', profile: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;a&nbsp;conservative&nbsp;profile-marker&nbsp;YARA&nbsp;rule&nbsp;with&nbsp;false-positive&nbsp;notes.</span></dd></dl>
 </td></tr></table><p>

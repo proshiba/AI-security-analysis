@@ -56,14 +56,19 @@
 Command&nbsp;files&nbsp;often&nbsp;emit&nbsp;one&nbsp;payload&nbsp;through&nbsp;many&nbsp;echo&nbsp;lines&nbsp;before&nbsp;using<br>
 certutil&nbsp;-decode.&nbsp;Those&nbsp;chunks&nbsp;are&nbsp;reassembled&nbsp;by&nbsp;redirection&nbsp;target.<br>
 Random&nbsp;high-entropy&nbsp;arguments&nbsp;are&nbsp;not&nbsp;retained&nbsp;individually.</span></dd></dl>
- <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;a&nbsp;bounded&nbsp;ZIP&nbsp;and&nbsp;retain&nbsp;recognized&nbsp;or&nbsp;script-like&nbsp;members.</span></dd></dl>
+ <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368, max_compression_ratio: 'float' = 200.0, read_chunk_size: 'int' = 1048576) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;a&nbsp;ZIP&nbsp;under&nbsp;member,&nbsp;total-byte,&nbsp;and&nbsp;compression-ratio&nbsp;quotas.</span></dd></dl>
  <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Run&nbsp;Detect&nbsp;It&nbsp;Easy&nbsp;as&nbsp;a&nbsp;static&nbsp;classifier&nbsp;and&nbsp;parse&nbsp;its&nbsp;JSON&nbsp;evidence.</span></dd></dl>
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Invoke&nbsp;UPX&nbsp;decompression&nbsp;as&nbsp;a&nbsp;data&nbsp;transform&nbsp;and&nbsp;validate&nbsp;the&nbsp;output&nbsp;PE.</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal&nbsp;and&nbsp;absolute&nbsp;or&nbsp;drive-qualified&nbsp;member&nbsp;names.</span></dd></dl>
  <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;recognized&nbsp;container&nbsp;with&nbsp;path,&nbsp;count,&nbsp;and&nbsp;byte-count&nbsp;bounds.</span></dd></dl>
  <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">Use&nbsp;7-Zip&nbsp;only&nbsp;to&nbsp;identify&nbsp;and&nbsp;list&nbsp;a&nbsp;possible&nbsp;archive&nbsp;container.</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;lowercase&nbsp;SHA-256&nbsp;digest&nbsp;for&nbsp;bytes.</span></dd></dl>
- <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;the&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;pipeline&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.</span></dd></dl>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.<br>
+&nbsp;<br>
+The&nbsp;force&nbsp;flag&nbsp;is&nbsp;for&nbsp;reviewed&nbsp;inventory&nbsp;hints&nbsp;such&nbsp;as&nbsp;a&nbsp;known&nbsp;NSIS<br>
+carrier&nbsp;whose&nbsp;PE&nbsp;layout&nbsp;does&nbsp;not&nbsp;satisfy&nbsp;the&nbsp;generic&nbsp;container&nbsp;heuristic.<br>
+It&nbsp;never&nbsp;executes&nbsp;the&nbsp;input;&nbsp;it&nbsp;only&nbsp;allows&nbsp;the&nbsp;configured&nbsp;archive&nbsp;parser<br>
+to&nbsp;inspect&nbsp;it.</span></dd></dl>
  <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;bounded&nbsp;on-disk&nbsp;PE&nbsp;extent&nbsp;at&nbsp;*offset*,&nbsp;or&nbsp;``None``.</span></dd></dl>
  <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;recovered&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES-encrypted&nbsp;quarantine&nbsp;archive.</span></dd></dl>
 </td></tr></table><p>
@@ -72,11 +77,13 @@ Random&nbsp;high-entropy&nbsp;arguments&nbsp;are&nbsp;not&nbsp;retained&nbsp;ind
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>ENTROPY_FULL_LIMIT</strong> = 8388608<br>
+<td class="singlecolumn"><strong>ARCHIVE_READ_CHUNK_SIZE</strong> = 1048576<br>
+<strong>ENTROPY_FULL_LIMIT</strong> = 8388608<br>
 <strong>ENTROPY_SAMPLE_WINDOW</strong> = 1048576<br>
 <strong>MACHO_MAGICS</strong> = {b'\xbe\xba\xfe\xca', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'}<br>
 <strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
 <strong>MAX_ARTIFACT</strong> = 268435456<br>
+<strong>MAX_COMPRESSION_RATIO</strong> = 200.0<br>
 <strong>MAX_EXTRACTED_TOTAL</strong> = 805306368<br>
 <strong>MAX_RETAINED_MEMBERS</strong> = 128<br>
 <strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.bat', '.bin', ...}<br>

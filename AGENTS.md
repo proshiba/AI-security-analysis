@@ -1,4 +1,4 @@
-# AI agent instructions for AI-security-analysis
+# AI-security-analysis向けAIエージェント指示
 
 このファイルはリポジトリ全体に適用される共通ルールです。より深い階層に `AGENTS.md` がある場合は、そのディレクトリ配下ではより深いファイルの指示も必ず読み、矛盾する場合はより深い指示を優先してください。
 
@@ -8,15 +8,24 @@
 - マルウェア別の解析コード、ドキュメント、設定、結果を扱う場合は、対象マルウェア配下の `AGENTS.md` と README/docs を先に確認すること。
   - ValleyRAT 関連の作業では `analysis-framework/malware/valleyrat/AGENTS.md` を必ず読むこと。
   - ValleyRAT のワークフローやパターン判断では `analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md` と `analysis-framework/malware/valleyrat/docs/PATTERN-DESIGN.md` も参照すること。
-- 公開可能な解析結果を扱う場合は `analysis-results/README.md` と対象種別の `analysis-results/<malware-type>/README.md` を確認すること。
+- 公開可能な解析結果を扱う場合は `analysis-results/README.md` と対象ファミリーの `analysis-results/malware/<family>/README.md` を確認すること。横断的な調査は `analysis-results/research/`、複数検体をまとめた成果物は `analysis-results/collections/` も確認すること。
 
 ## リポジトリ構成ルール
 
 - 解析コードは `analysis-framework/` に置くこと。
 - マルウェア種別固有のコード、設定、ドキュメント、テストは `analysis-framework/malware/<malware-type>/` に置くこと。
-- 公開可能な解析結果は `analysis-results/<malware-type>/cases/<sample-sha256>/` に置くこと。
+- 公開可能なマルウェア解析結果は `analysis-results/malware/<family>/versions/<version-key>/cases/<sample-sha256>/` に置くこと。ファミリー横断の調査は `analysis-results/research/<topic>/`、複数ファミリーや選定集合の成果物は `analysis-results/collections/<collection>/` に置くこと。
 - 新しいマルウェア種を追加するときに、`AAA-analysis/` のような独立トップレベルディレクトリを作らないこと。
 - 共通化できる処理は `analysis-framework/common/`、分類器は `analysis-framework/classifiers/`、種別登録は `analysis-framework/registry/` に置くこと。
+
+## 文書の言語ルール
+
+- 人が読む文書は、既定で日本語で新規作成・更新すること。対象には `README.md`、`AGENTS.md`、`docs/`、解析報告、OSINT文書、設計書、手順書、引継ぎ文書、Markdown表の見出しと説明、CLIの人間向けhelp、公開Python APIのdocstring、生成pydocを含む。
+- 既存文書を変更する場合も、英語だけの見出しや説明文を新たに残さないこと。変更範囲に日本語と英語の説明が混在している場合は、意味と根拠を保持して日本語へ統一すること。
+- マルウェア名、脅威アクター名、製品名、API名、関数名、class名、JSON／YAML key、schema enum、file path、command、hash、domain、URL、IOC、rule identifierなどの技術識別子は、正確性と機械可読性のため原表記を維持してよい。
+- 公開情報の原題や短い引用を原文で残す場合は、日本語の題名または要約を併記し、原文だけで説明を完結させないこと。翻訳によって帰属や確度を強めないこと。
+- 機械生成文書は、出力だけを手編集せず、generator、template、knowledge dataを日本語対応させること。再生成後も日本語へ収束することを確認すること。
+- 文書を追加・変更した後は、可能な範囲で `localize_result_markdown.py` のdry-run、`audit_japanese_docs.py --fail-on-findings`、local link監査、`git diff --check`を実行すること。公開Python APIのdocstringを変更した場合はpydocも再生成すること。
 
 ## 安全ルール
 
@@ -58,7 +67,7 @@
 
 - 個別のcase、campaign、incident解析には、同じディレクトリに機械可読性を意識した `IOC-LIST.md` を必ず置くこと。過去解析も例外にしないこと。
 - `IOC-LIST.md` は `python analysis-framework/common/generate_ioc_lists.py --repository .` で生成し、原則として手編集しないこと。
-- 内容は `Type`、`Value`、`Role`、`Confidence`、`Source` の表だけとし、挙動説明、検知考察、Shodan/Sigma/YARAクエリ、一般的なコマンド名を混ぜないこと。
+- 内容は `種別`、`値`、`役割`、`確度`、`根拠` の5列表だけとし、挙動説明、検知考察、Shodan/Sigma/YARAクエリ、一般的なコマンド名を混ぜないこと。
 - 掲載対象は、証拠に紐づいた検体・payload hash、domain、IP、endpoint、URL、証明書hash、特徴的なfile path/nameとすること。配布先、stage取得先、C2、証明書などの役割を分けること。
 - URLのuserinfo、query、fragment、token、password、メールアドレスその他の資格情報を掲載しないこと。必要なURLパスだけを残して秘密値を除去すること。
 - 正規署名付きhost、decoy、共有インフラは、単独IOCとして扱える根拠がない限り除外すること。`context_only`、`not_ioc`、`not_c2`、`dual-use` と分類された値も除外すること。
@@ -77,79 +86,42 @@
 
 - 変更したファイル、実行した検証、未検証事項を簡潔にまとめること。
 - ドキュメント変更でも、解析安全ルールや履歴サマリの整合性に影響がある場合はその点を明記すること。
+- 作業報告も日本語で記述し、英語のログやerror messageを示す場合は日本語で意味と影響を説明すること。
 
-## Malware-analysis start/end safety gate
+## マルウェア解析の開始時・終了時安全ゲート
 
-- Before opening, extracting, or analyzing a malware submission, run the read-only
-  safety check with sample paths, hashes, and distinctive filenames as patterns.
-- Run the same check again before declaring the analysis complete. Investigate any
-  unexpected matching process, service, scheduled task, Run-key value, network
-  connection, or active Microsoft Defender threat.
-- The check must not execute, load, register, or make a network request from a sample.
-- Safety-check output, snapshots, and reports are ephemeral operational data. They
-  MUST NOT be written under this repository or committed to GitHub. Use stdout, or
-  an outside-repository temporary location only when transient retention is required.
-- Do not declare completion while an unexplained execution or persistence indicator
-  remains. Escalate the observation to the user without attempting destructive cleanup.
+- マルウェア提出物を開く、抽出する、または解析する前に、検体パス、ハッシュ、特徴的なファイル名をパターンとして、読み取り専用の安全確認を実行すること。
+- 解析完了を宣言する前にも同じ確認を実行すること。予期しない一致プロセス、サービス、スケジュールタスク、Runキー値、ネットワーク接続、またはMicrosoft Defenderの有効な脅威を調査すること。
+- 安全確認では、検体を実行、ロード、登録したり、検体からネットワーク要求を送信したりしてはならない。
+- 安全確認の出力、スナップショット、レポートは一時的な運用データである。このリポジトリ配下へ書き込んだりGitHubへコミットしたりしてはならない。一時保持が必要な場合に限り、標準出力またはリポジトリ外の一時領域を使用すること。
+- 説明できない実行または永続化の指標が残っている間は完了を宣言しないこと。破壊的な除去を試みず、観測内容をユーザーへ報告すること。
 
-## Hash-only OSINT enrichment rules
+## ハッシュ限定OSINT補強ルール
 
-- For low-confidence and unidentified cases, query exact hashes only by
-  default. Never submit or upload a sample as a fallback, and never contact
-  infrastructure extracted from a sample.
-- Keep raw API/provider responses under ignored `.work/` storage. Publish only
-  normalized evidence, sanitized references, source status, and confidence.
-- Do not count an aggregator in addition to its named underlying providers.
-  Require at least two independent agreeing providers for medium confidence.
-- A one-provider label is a low-confidence lead. Preserve competing family
-  labels as conflicts; a tie remains unknown. Missing OSINT is not benign
-  evidence.
-- Store reviewed manual research in hash-keyed curated evidence. Distinguish an
-  exact-hash source from general family context and record provenance for both.
-- Strip URL user information, queries, fragments, credentials, tokens, email
-  addresses, raw provider fields, and recovered secrets from public output.
-- Unit-test source normalization, aliases, confidence, conflict handling,
-  secret sanitation, offline replay, and curated evidence before publication.
+- 確度が低いケースや未識別ケースでは、既定で完全一致ハッシュだけを照会すること。代替手段として検体を提出・アップロードせず、検体から抽出したインフラにも接続しないこと。
+- APIやプロバイダーの生レスポンスは、無視対象の `.work/` 配下へ保存すること。正規化済み証拠、無害化済み参照、情報源の状態、確度だけを公開すること。
+- 集約サービスと、それが明記する基礎プロバイダーを重複して数えないこと。中確度には、相互に独立し一致するプロバイダーを少なくとも2件要求すること。
+- 単一プロバイダーのラベルは低確度の手掛かりである。競合するファミリーラベルは競合として保持し、同数の場合はunknownのままにすること。OSINTがないことは無害性の証拠ではない。
+- レビュー済みの手動調査は、ハッシュをキーとする精選証拠へ保存すること。完全一致ハッシュの情報源と一般的なファミリー文脈を区別し、両方の来歴を記録すること。
+- 公開出力から、URLのユーザー情報、クエリ、フラグメント、資格情報、トークン、メールアドレス、プロバイダーの生フィールド、復元した秘密値を除去すること。
+- 公開前に、情報源の正規化、別名、確度、競合処理、秘密値の無害化、オフライン再生、精選証拠を単体テストすること。
 
-## Profile-defined multi-family analysis rules
+## プロファイル定義による複数ファミリー解析ルール
 
-- Put shared family markers, config keys, transport expectations, aliases, and
-  confirmation requirements in `extractors/profiles/windows_family_profiles.json`.
-  Keep family detector files as thin adapters; do not duplicate extraction logic.
-- Treat a MalwareBazaar exact signature and reviewed hash as family-selection
-  evidence, not proof that a literal is a decoded config or live C2.
-- Classify network findings by role. Delivery-stage URLs may be IOCs but are not
-  C2; public-IP discovery, certificate, documentation, placeholder, and benign
-  vendor values are neither C2 targets nor standalone IOCs.
-- Never create Shodan banner/hash, HTTP title, certificate hash, JARM, or liveness
-  output without an actual authorized observation. Offline query strings must be
-  labelled as passive plans only.
-- MalwareBazaar acquisition must remain resumable. Persist exhausted transient
-  failures in a hash-keyed retry queue and rerun them after other static work;
-  never silently substitute an older sample for a selected newest hash.
-- After a profile-family batch, run `validate_family_expansion.py`. Completion
-  requires hash, routing, public-artifact, non-execution, and non-contact checks.
-- Keep loopback emulators synthetic and explicitly non-wire-compatible. All bind
-  and client targets must pass the shared literal-loopback validator.
+- 共通のファミリーマーカー、設定鍵、通信方式の期待値、別名、確認要件は `extractors/profiles/windows_family_profiles.json` に置くこと。ファミリー検出器は薄いアダプターに保ち、抽出ロジックを重複させないこと。
+- MalwareBazaarの完全一致シグネチャとレビュー済みハッシュは、ファミリー選択の証拠として扱うこと。リテラルが復号済み設定または稼働中C2であることの証明にはしないこと。
+- ネットワーク所見は役割別に分類すること。配布段階URLはIOCになり得るがC2ではない。公開IP確認サービス、証明書、文書、プレースホルダー、無害なベンダー値は、C2対象でも単独IOCでもない。
+- 実際に許可された観測なしに、Shodanのバナー／ハッシュ、HTTPタイトル、証明書ハッシュ、JARM、生存確認の出力を作成しないこと。オフラインの照会文字列には、受動的な計画にすぎないことを明記すること。
+- MalwareBazaarからの取得は再開可能に保つこと。回数を使い切った一時的失敗はハッシュをキーとする再試行キューへ保存し、ほかの静的作業後に再実行すること。選定した最新ハッシュを、通知なく古い検体へ置き換えないこと。
+- プロファイル対象ファミリーの一括処理後に `validate_family_expansion.py` を実行すること。完了には、ハッシュ、ルーティング、公開成果物、非実行、非接続の各確認が必要である。
+- ループバックエミュレーターは合成データ用とし、実際の通信仕様と互換性がないことを明記すること。すべてのバインド先とクライアント対象は、共有のリテラル・ループバック検証を通すこと。
 
-## Deep static hard-case rules
+## 静的深掘りが必要な難解析ケースのルール
 
-- Use `analysis-framework/inventories/static-hard-cases.yaml` as the reviewed
-  inventory. Authenticate every root and child by SHA-256 and preserve the
-  parent/transform/child relationship.
-- Keep this workflow static-only: do not execute samples or recovered layers,
-  do not CPU-emulate native code or CIL, and do not contact extracted hosts.
-- Analyze every recovered child as a separate layer. A packer/container result
-  does not describe the terminal payload, and a missing expected child remains
-  unresolved rather than absent.
-- Treat CFG technique results as routing evidence. `not_observed` applies only
-  to the bounded reachable graph; `suspected` is not confirmation. Confirm CFF
-  only after recovering the dispatcher state and reproducible successor map.
-- Suppress native CFF/VM attribution for a normal CLR entry thunk. Route managed
-  images to metadata, CIL, and resource analysis. Treat UPX/MPRESS loader-stub
-  graphs as packer-confounded until an authenticated child is analyzed.
-- Prefer Ghidra MCP for static validation, always with an explicit program
-  selector. Keep it localhost-only and leave arbitrary scripts disabled.
-- Publish hashes, sizes, relationships, metrics, evidence, and explicit limits
-  only. Never publish recovered raw binaries or the start/end host safety-check
-  output.
+- レビュー済みインベントリとして `analysis-framework/inventories/static-hard-cases.yaml` を使用すること。すべてのルートと子要素をSHA-256で認証し、親／変換／子の関係を保持すること。
+- このワークフローは静的解析だけに限定すること。検体や復元したレイヤーを実行せず、ネイティブコードやCILをCPUエミュレーションせず、抽出したホストにも接続しないこと。
+- 復元したすべての子要素を別レイヤーとして解析すること。パッカー／コンテナの結果は最終ペイロードを説明せず、期待した子要素が見つからない場合は「存在しない」ではなく未解決とすること。
+- CFG技法の結果はルーティング証拠として扱うこと。`not_observed` は範囲を限定した到達可能グラフだけに適用し、`suspected` は確認を意味しない。ディスパッチャー状態と再現可能な後続写像を復元した後に限り、CFFを確認済みとすること。
+- 通常のCLRエントリサンクでは、ネイティブCFF／VMへの帰属を抑止すること。マネージドイメージはメタデータ、CIL、リソース解析へ送ること。認証済みの子要素を解析するまでは、UPX／MPRESSのローダースタブグラフをパッカーの影響下にあるものとして扱うこと。
+- 静的検証にはGhidra MCPを優先し、必ず明示的なプログラムセレクターを使用すること。localhostだけで運用し、任意スクリプト実行は無効のままにすること。
+- ハッシュ、サイズ、関係、指標、証拠、明示的な制約だけを公開すること。復元した生バイナリや、開始時・終了時のホスト安全確認出力を公開してはならない。

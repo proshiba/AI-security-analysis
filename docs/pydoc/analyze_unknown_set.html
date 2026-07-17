@@ -26,6 +26,82 @@
 <a href="yara.html">yara</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analyze_unknown_set.html#DetectorPathError">DetectorPathError</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="DetectorPathError">class <strong>DetectorPathError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Raised&nbsp;when&nbsp;registry&nbsp;metadata&nbsp;points&nbsp;outside&nbsp;the&nbsp;detector&nbsp;allowlist.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analyze_unknown_set.html#DetectorPathError">DetectorPathError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="DetectorPathError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="DetectorPathError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="DetectorPathError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="DetectorPathError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="DetectorPathError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="DetectorPathError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="DetectorPathError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="DetectorPathError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DetectorPathError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="DetectorPathError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#DetectorPathError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
@@ -50,8 +126,8 @@
  <dl><dt><a name="-normalize_case_structure"><strong>normalize_case_structure</strong></a>(case: 'dict') -&gt; 'dict'</dt><dd><span class="code">Bound&nbsp;verbose&nbsp;cached&nbsp;ASAR,&nbsp;Electron,&nbsp;and&nbsp;artifact&nbsp;inventories.</span></dd></dl>
  <dl><dt><a name="-public_unpack_summary"><strong>public_unpack_summary</strong></a>(report: 'dict') -&gt; 'dict'</dt><dd><span class="code">Reduce&nbsp;an&nbsp;unpack&nbsp;report&nbsp;to&nbsp;non-binary&nbsp;structural&nbsp;evidence.</span></dd></dl>
  <dl><dt><a name="-recursive_layers"><strong>recursive_layers</strong></a>(root_data: 'bytes', root_name: 'str', sevenzip: 'Path | None', electron_expected: 'bool') -&gt; 'tuple[dict, list[dict], list[tuple[str, bytes]], list[str]]'</dt><dd><span class="code">Recover&nbsp;bounded&nbsp;priority&nbsp;layers&nbsp;while&nbsp;skipping&nbsp;oversized&nbsp;runtime&nbsp;binaries.</span></dd></dl>
- <dl><dt><a name="-render_case_readme"><strong>render_case_readme</strong></a>(case: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;one&nbsp;publish-safe&nbsp;case&nbsp;report&nbsp;with&nbsp;attribution&nbsp;and&nbsp;detection&nbsp;material.</span></dd></dl>
- <dl><dt><a name="-render_summary"><strong>render_summary</strong></a>(summary: 'dict') -&gt; 'str'</dt><dd><span class="code">Render&nbsp;the&nbsp;aggregate&nbsp;newest-first&nbsp;collection&nbsp;and&nbsp;family&nbsp;distribution.</span></dd></dl>
+ <dl><dt><a name="-render_case_readme"><strong>render_case_readme</strong></a>(case: 'dict') -&gt; 'str'</dt><dd><span class="code">帰属根拠と検出情報を含む、公開可能な日本語ケース報告を生成する。</span></dd></dl>
+ <dl><dt><a name="-render_summary"><strong>render_summary</strong></a>(summary: 'dict', case_links: 'dict[str, str] | None' = None) -&gt; 'str'</dt><dd><span class="code">新しい順の集約コレクションとファミリー分布を日本語で生成する。</span></dd></dl>
  <dl><dt><a name="-resolve_attribution"><strong>resolve_attribution</strong></a>(evidence: 'list[dict]') -&gt; 'dict'</dt><dd><span class="code">Select&nbsp;a&nbsp;family&nbsp;candidate&nbsp;and&nbsp;calibrated&nbsp;confidence&nbsp;from&nbsp;independent&nbsp;evidence.</span></dd></dl>
  <dl><dt><a name="-safe_config_findings"><strong>safe_config_findings</strong></a>(family: 'str', blobs: 'list[tuple[str, bytes]]') -&gt; 'list[dict]'</dt><dd><span class="code">Run&nbsp;a&nbsp;supported&nbsp;extractor&nbsp;and&nbsp;retain&nbsp;only&nbsp;sanitized&nbsp;network&nbsp;IOC&nbsp;findings.</span></dd></dl>
  <dl><dt><a name="-sanitize_ip_candidate"><strong>sanitize_ip_candidate</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Validate&nbsp;a&nbsp;public&nbsp;IPv4&nbsp;candidate&nbsp;and&nbsp;preserve&nbsp;an&nbsp;optional&nbsp;TCP&nbsp;port.</span></dd></dl>
@@ -71,11 +147,14 @@
 <strong>COMMON</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')<br>
 <strong>EXTRACTORS</strong> = {'agenttesla': &lt;function extract&gt;, 'amadey': &lt;function extract&gt;, 'amosstealer': &lt;function extract&gt;, 'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'atlascross': &lt;function extract&gt;, 'darkcomet': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'donutloader': &lt;function extract&gt;, 'formbook': &lt;function extract&gt;, 'guloader': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, ...}<br>
 <strong>FAMILY_ALIASES</strong> = {'agent tesla': 'agenttesla', 'agenttesla': 'agenttesla', 'amadey': 'amadey', 'amos': 'amosstealer', 'amosstealer': 'amosstealer', 'async rat': 'asyncrat', 'asyncrat': 'asyncrat', 'atomic stealer': 'amosstealer', 'atomicstealer': 'amosstealer', 'beavertail': 'beavertail', ...}<br>
+<strong>FAMILY_ID_RE</strong> = re.compile('^[a-z0-9_]+$')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework')<br>
 <strong>GENERIC_LABELS</strong> = {'dll', 'dropper', 'electron', 'exe', 'generic', 'infostealer', ...}<br>
 <strong>IP</strong> = re.compile('(?&lt;!\\d)(?:\\d{1,3}\\.){3}\\d{1,3}(?::\\d{1,5})?')<br>
 <strong>MAX_LAYERS</strong> = 48<br>
 <strong>MAX_LAYER_SIZE</strong> = 67108864<br>
 <strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>ROOT_FULL_SCAN_LIMIT</strong> = 33554432<br>
 <strong>SOURCE_WEIGHT</strong> = {'external_sandbox': 2, 'external_yara': 3, 'internal_detector': 4, 'internal_inference': 4, 'internal_shape': 3, 'internal_yara': 4, 'source_tag': 1}<br>
 <strong>SRC</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')<br>
 <strong>STRICT_INTERNAL_FORMATS</strong> = {'agenttesla': {'pe'}, 'stealc': {'pe'}}<br>

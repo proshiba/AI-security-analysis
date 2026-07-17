@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 from malware_io import read_single_aes_zip_member, write_json
@@ -40,6 +41,69 @@ SIGNATURE_IDS = {
     "DonutLoader": "donutloader",
 }
 DECLARATIVE_SIZE_LIMIT = 128 * 1024 * 1024
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def validate_claimed_sha256(value: object, field: str = "sha256") -> str:
+    """Return one canonical SHA-256 identity or fail closed."""
+    if not isinstance(value, str) or SHA256_RE.fullmatch(value) is None:
+        raise ValueError(f"{field} must be exactly 64 lowercase hexadecimal characters")
+    return value
+
+
+def _contained_child(root: Path, child: Path, field: str) -> Path:
+    """Resolve a child and require it to remain below its declared root."""
+    resolved_root = root.resolve(strict=True)
+    resolved_child = child.resolve(strict=True)
+    try:
+        resolved_child.relative_to(resolved_root)
+    except ValueError as exc:
+        raise ValueError(f"{field} escapes manifest storage root: {resolved_child}") from exc
+    return resolved_child
+
+
+def resolve_manifest_archive(manifest_path: Path, value: object) -> Path:
+    """Resolve one manifest archive without allowing traversal or symlink escape.
+
+    Existing manifests use either an absolute archive path or a repository-CWD
+    relative path. A manifest-local relative path is also accepted, but an
+    ambiguous relative path that resolves to two different files is rejected.
+    In every case, the authenticated archive must remain below the manifest's
+    own storage directory.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("zip_path must be a non-empty string")
+    manifest_root = manifest_path.resolve(strict=True).parent
+    raw = Path(value)
+    candidates = [raw] if raw.is_absolute() else [Path.cwd() / raw, manifest_root / raw]
+    resolved: list[Path] = []
+    for candidate in candidates:
+        try:
+            item = candidate.resolve(strict=True)
+        except (FileNotFoundError, OSError):
+            continue
+        if item not in resolved:
+            resolved.append(item)
+    if not resolved:
+        raise FileNotFoundError(f"manifest archive does not exist: {value}")
+    if len(resolved) != 1:
+        raise ValueError(f"zip_path is ambiguous between working and manifest directories: {value}")
+    archive = _contained_child(manifest_root, resolved[0], "zip_path")
+    if not archive.is_file():
+        raise ValueError(f"zip_path must resolve to a regular file: {archive}")
+    return archive
+
+
+def resolve_case_output(output: Path, claimed_sha256: str) -> Path:
+    """Build a hash-keyed output directory and prove containment before writes."""
+    claimed = validate_claimed_sha256(claimed_sha256)
+    root = output.resolve(strict=False)
+    child = (root / claimed).resolve(strict=False)
+    try:
+        child.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"case output escapes output root: {child}") from exc
+    return child
 
 
 def family_id(signature: str) -> str:
@@ -254,9 +318,18 @@ def analyze_item(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    *,
+    expected_sha256: str | None = None,
 ) -> dict:
     """Analyze one authenticated archive without executing or networking it."""
     member = read_single_aes_zip_member(archive)
+    digest = hashlib.sha256(member.data).hexdigest()
+    if expected_sha256 is not None:
+        claimed = validate_claimed_sha256(expected_sha256)
+        if digest != claimed:
+            raise ValueError(
+                f"authenticated inner SHA-256 mismatch: claimed {claimed}, observed {digest}"
+            )
     return analyze_payload(
         family,
         member.data,
@@ -332,17 +405,33 @@ def analyze_manifest(
     """Analyze every item in one bounded MalwareBazaar family manifest."""
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     family = family_id(manifest["signature"])
+    items = manifest.get("items")
+    if not isinstance(items, list):
+        raise ValueError("manifest items must be a list")
+    validated: list[tuple[str, Path, Path]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"items[{index}] must be an object")
+        claimed = validate_claimed_sha256(item.get("sha256"), f"items[{index}].sha256")
+        if claimed in seen:
+            raise ValueError(f"duplicate manifest SHA-256: {claimed}")
+        seen.add(claimed)
+        archive = resolve_manifest_archive(manifest_path, item.get("zip_path"))
+        case_output = resolve_case_output(output, claimed)
+        validated.append((claimed, archive, case_output))
     cases = [
         analyze_item(
             family,
-            Path(item["zip_path"]),
-            output / item["sha256"],
+            archive,
+            case_output,
             definitions,
             upx,
             sevenzip,
             diec,
+            expected_sha256=claimed,
         )
-        for item in manifest["items"]
+        for claimed, archive, case_output in validated
     ]
     summary = build_summary(manifest["signature"], family, cases, "malwarebazaar")
     write_json(output / "summary.json", summary)
