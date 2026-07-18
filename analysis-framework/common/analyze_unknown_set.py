@@ -83,9 +83,41 @@ SOURCE_WEIGHT = {
 MAX_LAYER_SIZE = 64 * 1024 * 1024
 MAX_LAYERS = 48
 ROOT_FULL_SCAN_LIMIT = 32 * 1024 * 1024
+FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
+FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
 STRICT_INTERNAL_FORMATS = {
     "agenttesla": {"pe"}, "stealc": {"pe"},
 }
+
+
+class DetectorPathError(ValueError):
+    """Raised when registry metadata points outside the detector allowlist."""
+
+
+def _resolve_detector_path(family: str, relative_path: object) -> Path:
+    """Resolve the exact malware/family/detect.py path below this framework."""
+    if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
+        raise DetectorPathError(f"invalid detector family id: {family!r}")
+    if not isinstance(relative_path, str):
+        raise DetectorPathError("detector path must be a string")
+    requested = Path(relative_path)
+    expected = Path("malware") / family / "detect.py"
+    if requested.is_absolute() or requested != expected:
+        raise DetectorPathError(
+            f"detector path must be exactly {expected.as_posix()}: {relative_path!r}"
+        )
+    framework = FRAMEWORK_ROOT.resolve(strict=True)
+    malware_root = (framework / "malware").resolve(strict=True)
+    try:
+        resolved = (framework / requested).resolve(strict=True)
+        relative = resolved.relative_to(malware_root)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise DetectorPathError(f"detector path escapes or does not exist: {relative_path!r}") from exc
+    if relative.parts != (family, "detect.py") or not resolved.is_file():
+        raise DetectorPathError(f"detector path is not allowlisted: {resolved}")
+    return resolved
+
+
 BENIGN_URL_HOSTS = {
     "api.ipify.org", "archiverjs.com", "axios-http.com", "blog.caustik.com",
     "blog.izs.me", "caolan.github.io", "christalkington.com", "code.google.com",
@@ -255,15 +287,19 @@ def load_detectors(registry_path: Path) -> dict[str, object]:
     """Load registered in-memory malware detectors once for a batch."""
     registry = json.loads(registry_path.read_text(encoding="utf-8-sig"))["malware_types"]
     detectors = {}
-    framework = registry_path.parents[1]
     for family, metadata in registry.items():
-        path = framework / metadata["detector"]
+        if not isinstance(metadata, dict):
+            raise DetectorPathError(f"registry metadata must be an object: {family!r}")
+        path = _resolve_detector_path(family, metadata.get("detector"))
         spec = importlib.util.spec_from_file_location(f"unknown_batch_{family}", path)
         if spec is None or spec.loader is None:
-            continue
+            raise RuntimeError(f"cannot load detector: {path}")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        detectors[family] = module.detect
+        detector = getattr(module, "detect", None)
+        if not callable(detector):
+            raise RuntimeError(f"detector has no callable detect(): {path}")
+        detectors[family] = detector
     return detectors
 
 
@@ -680,46 +716,77 @@ def cluster_cases(cases: list[dict]) -> dict[str, list[str]]:
     return dict(sorted(groups.items()))
 
 
+_LIMITATION_JA = {
+    "Static-only attribution; low-confidence labels remain provisional.":
+        "静的解析だけに基づく帰属であり、低確度のラベルは暫定情報です。",
+    "General string URLs are candidates, not confirmed C2 endpoints.":
+        "一般文字列から得たURLは候補であり、確認済みC2エンドポイントではありません。",
+    "Oversized Electron runtime binaries are inventoried but not recursively parsed.":
+        "大容量のElectronランタイムバイナリは一覧化のみ行い、再帰解析していません。",
+}
+_EVIDENCE_DETAIL_JA = {
+    "distinctive static markers": "固有の静的マーカー",
+    "registered detector matched": "登録済み検出器の一致",
+    "NSIS/Electron ASAR loader markers": "NSIS/Electron ASARローダーのマーカー",
+    "IRAHook Fabric mod package and EasySleep class markers":
+        "IRAHook Fabric modパッケージとEasySleepクラスのマーカー",
+}
+
+
 def render_case_readme(case: dict) -> str:
-    """Render one publish-safe case report with attribution and detection material."""
+    """帰属根拠と検出情報を含む、公開可能な日本語ケース報告を生成する。"""
     source, attribution = case["source"], case["attribution"]
     lines = [
         f"# {case['sha256']}", "",
-        "## Overview", "",
-        f"- MalwareBazaar first seen: `{source.get('first_seen')}`",
-        f"- Submitted filename: `{source.get('file_name')}`",
-        f"- Format / size: `{source.get('file_type')}` / `{source.get('file_size')}` bytes",
-        f"- Identified family: `{attribution['family']}`",
-        f"- Attribution confidence: `{attribution['confidence']}` (`{attribution['status']}`, score {attribution['score']})",
-        "- Execution/network: not performed", "",
-        "## Attribution evidence", "",
+        "## 概要", "",
+        f"- MalwareBazaar初回観測日時: `{source.get('first_seen')}`",
+        f"- 投稿時ファイル名: `{source.get('file_name')}`",
+        f"- 形式／サイズ: `{source.get('file_type')}`／`{source.get('file_size')}`バイト",
+        f"- 識別ファミリー: `{attribution['family']}`",
+        f"- 帰属確度: `{attribution['confidence']}`（状態: `{attribution['status']}`、スコア: {attribution['score']}）",
+        "- 実行／ネットワーク接続: 未実施", "",
+        "## 帰属根拠", "",
     ]
     if attribution["evidence"]:
-        lines.extend(
-            f"- `{item['source']}`: `{item['family']}` - {item['detail']}"
-            for item in attribution["evidence"]
-        )
+        for item in attribution["evidence"]:
+            detail = _EVIDENCE_DETAIL_JA.get(str(item["detail"]))
+            rendered_detail = detail if detail else f"`{item['detail']}`"
+            lines.append(
+                f"- 根拠種別 `{item['source']}`: ファミリー `{item['family']}`、"
+                f"詳細: {rendered_detail}"
+            )
     else:
-        lines.append("- No defensible family-specific evidence; retained as unknown.")
-    lines.extend(["", "## Static chain", "", f"- Root: `{case['root_unpack'].get('format')}` / `{case['root_unpack'].get('packing_classification')}`"])
-    for layer in case["layers"]:
-        lines.append(f"- Depth {layer['depth']}: `{layer['format']}` `{layer['sha256']}` ({layer['size']} bytes, {layer.get('status') or layer.get('unpack_status')})")
-    lines.extend(["", "## Network indicators", ""])
-    if case["iocs"]["urls"]:
-        lines.extend(f"- URL candidate: `{value}`" for value in case["iocs"]["urls"])
-    if case["iocs"]["ips"]:
-        lines.extend(f"- IP candidate: `{value}`" for value in case["iocs"]["ips"])
-    if not case["iocs"]["urls"] and not case["iocs"]["ips"]:
-        lines.append("- None recovered from static evidence.")
+        lines.append("- 防御可能なファミリー固有根拠がないため、`unknown`として保持しています。")
     lines.extend([
-        "", "## Detection considerations", "",
-        f"- High confidence / low false-positive risk: exact submitted SHA-256 `{case['sha256']}`.",
-        "- Medium confidence / medium false-positive risk: require two independent family-specific static observations or a reviewed structural signature.",
-        "- Low confidence / high false-positive risk: filename, generic Electron/NSIS/PyInstaller tags, imphash, or a URL alone.",
-        "- Sigma should combine process ancestry, extraction path, and script/runtime behavior; no process behavior was asserted from static data alone.",
-        "", "## Limitations", "",
+        "", "## 静的解析チェーン", "",
+        f"- ルート: `{case['root_unpack'].get('format')}`／"
+        f"`{case['root_unpack'].get('packing_classification')}`",
     ])
-    lines.extend(f"- {value}" for value in case["limitations"])
+    for layer in case["layers"]:
+        lines.append(
+            f"- 深さ{layer['depth']}: `{layer['format']}` `{layer['sha256']}`"
+            f"（{layer['size']}バイト、状態: "
+            f"`{layer.get('status') or layer.get('unpack_status')}`）"
+        )
+    lines.extend(["", "## ネットワーク指標", ""])
+    if case["iocs"]["urls"]:
+        lines.extend(f"- URL候補: `{value}`" for value in case["iocs"]["urls"])
+    if case["iocs"]["ips"]:
+        lines.extend(f"- IP候補: `{value}`" for value in case["iocs"]["ips"])
+    if not case["iocs"]["urls"] and not case["iocs"]["ips"]:
+        lines.append("- 静的根拠からは復元されませんでした。")
+    lines.extend([
+        "", "## 検出時の考慮事項", "",
+        f"- 高確度／低誤検知リスク: 投稿検体の完全一致SHA-256 `{case['sha256']}`。",
+        "- 中確度／中誤検知リスク: 独立したファミリー固有の静的観測を2件以上、"
+        "またはレビュー済み構造シグネチャを必要とします。",
+        "- 低確度／高誤検知リスク: ファイル名、一般的なElectron/NSIS/PyInstallerタグ、"
+        "imphash、または単独のURL。",
+        "- Sigmaではプロセスの親子関係、展開先パス、スクリプト／ランタイム挙動を"
+        "組み合わせる必要があります。静的データだけからプロセス挙動を断定していません。",
+        "", "## 制約", "",
+    ])
+    lines.extend(f"- {_LIMITATION_JA.get(str(value), f'`{value}`')}" for value in case["limitations"])
     return "\n".join(lines) + "\n"
 
 
@@ -783,21 +850,32 @@ def normalize_case_structure(case: dict) -> dict:
     return case
 
 
-def render_summary(summary: dict) -> str:
-    """Render the aggregate newest-first collection and family distribution."""
+def render_summary(
+    summary: dict, case_links: dict[str, str] | None = None
+) -> str:
+    """新しい順の集約コレクションとファミリー分布を日本語で生成する。"""
+    case_links = case_links or {}
+
+    def case_link(case: dict) -> str:
+        digest = case["sha256"]
+        return case_links.get(digest, f"cases/{digest}/README.md")
+
     lines = [
-        "# MalwareBazaar unknown/stealer static classification", "",
-        "This batch contains the newest 100 MalwareBazaar entries whose family signature was empty and whose tags included `unknown`, `stealer`, or `infostealer`. Samples were parsed statically; no sample or recovered payload was executed, and no extracted infrastructure was contacted.", "",
-        "## Collection", "",
-        f"- Samples: {summary['counts']['total']}",
-        f"- First-seen range: `{summary['newest_first_seen']}` to `{summary['oldest_first_seen']}`",
-        f"- Analysis errors: {summary['counts']['errors']}",
-        f"- Identified (including provisional low confidence): {summary['counts']['identified']}",
-        f"- Supported at medium/high confidence: {summary['counts']['supported']}",
-        f"- Provisional external-only/low-confidence leads: {summary['counts']['provisional']}",
-        f"- Remaining unknown: {summary['counts']['unknown']}", "",
-        "## Attribution distribution", "",
-        "| Family | Confidence | Count |", "|---|---|---:|",
+        "# MalwareBazaar未分類／Stealer検体の静的分類", "",
+        "このバッチには、ファミリーシグネチャが空で、タグに`unknown`、`stealer`、"
+        "または`infostealer`を含むMalwareBazaarの新しい順のエントリを収録しています。"
+        "検体は静的に解析し、検体や復元ペイロードの実行、および抽出インフラへの接続は"
+        "行っていません。", "",
+        "## コレクション", "",
+        f"- 検体数: {summary['counts']['total']}件",
+        f"- 初回観測範囲: `{summary['newest_first_seen']}`～`{summary['oldest_first_seen']}`",
+        f"- 解析エラー: {summary['counts']['errors']}件",
+        f"- 識別済み（暫定的な低確度を含む）: {summary['counts']['identified']}件",
+        f"- 中／高確度の裏付けあり: {summary['counts']['supported']}件",
+        f"- 外部根拠のみ／低確度の暫定候補: {summary['counts']['provisional']}件",
+        f"- 未識別: {summary['counts']['unknown']}件", "",
+        "## 帰属分布", "",
+        "| ファミリー | 確度 | 件数 |", "|---|---|---:|",
     ]
     for key, count in summary["attribution_counts"].items():
         family, confidence = key.split("|", 1)
@@ -807,36 +885,71 @@ def render_summary(summary: dict) -> str:
         if "error" not in case and case["attribution"]["family"] != "unknown"
         and case["attribution"]["confidence"] in {"medium", "high"}
     ]
-    lines.extend(["", "## Supported family attributions", "", "| SHA-256 | Family | Confidence | Internal support |", "|---|---|---|---|"])
+    lines.extend([
+        "", "## 裏付けのあるファミリー帰属", "",
+        "| SHA-256 | ファミリー | 確度 | 内部根拠 |",
+        "|---|---|---|---|",
+    ])
     for case in supported:
         support = ", ".join(sorted({
             item["source"] for item in case["attribution"]["evidence"]
             if item["source"].startswith("internal_")
-        })) or "none"
-        lines.append(f"| [{case['sha256']}](cases/{case['sha256']}/README.md) | {case['attribution']['family']} | {case['attribution']['confidence']} | {support} |")
+        })) or "なし"
+        lines.append(
+            f"| [{case['sha256']}]({case_link(case)}) | "
+            f"`{case['attribution']['family']}` | `{case['attribution']['confidence']}` | "
+            f"`{support}` |"
+        )
     lines.extend([
-        "", "## Detection rules", "",
-        "- [IRAHook Fabric mod structure](rules/yara/irahook_fabric_mod_2026.yar): medium confidence, low expected false-positive risk after the full package-path conjunction.",
-        "- [Electron credential-loader ASAR structure](rules/yara/electron_credential_loader_asar_2026.yar): medium confidence, medium expected false-positive risk; apply to a recovered ASAR or loader script.",
-        "- No Sigma rule is asserted from this static-only batch because no process or event telemetry was collected.",
+        "", "## 検出ルール", "",
+        "- [IRAHook Fabric mod構造](rules/yara/irahook_fabric_mod_2026.yar): "
+        "中確度。パッケージパスの全条件を組み合わせた場合、想定誤検知リスクは低です。",
+        "- [Electron認証情報ローダーASAR構造](rules/yara/electron_credential_loader_asar_2026.yar): "
+        "中確度、想定誤検知リスクは中程度です。復元したASARまたはローダースクリプトへ"
+        "適用してください。",
+        "- プロセスまたはイベントのテレメトリを収集していないため、"
+        "この静的解析専用バッチからSigmaルールを断定していません。",
     ])
     network = sorted({
         value
         for case in summary["cases"] if "error" not in case
         for value in ((case.get("iocs") or {}).get("ips") or []) + ((case.get("iocs") or {}).get("urls") or [])
     })
-    lines.extend(["", "## Static network candidates", "", "These values were recovered from static strings or configuration-like data. They were not contacted and are not confirmed C2 endpoints.", ""])
+    lines.extend([
+        "", "## 静的ネットワーク候補", "",
+        "以下の値は静的文字列または設定形式のデータから復元したものです。"
+        "接続は行っておらず、確認済みC2エンドポイントではありません。", "",
+    ])
     if network:
         lines.extend(f"- `{value}`" for value in network)
     else:
-        lines.append("- None recovered.")
-    lines.extend(["", "## Case index", "", "| First seen | SHA-256 | Family | Confidence |", "|---|---|---|---|"])
+        lines.append("- 復元された候補はありません。")
+    lines.extend([
+        "", "## ケース索引", "",
+        "| 初回観測 | SHA-256 | ファミリー | 確度 |",
+        "|---|---|---|---|",
+    ])
     for case in summary["cases"]:
         if "error" in case:
-            lines.append(f"| {case.get('first_seen')} | [{case['sha256']}](cases/{case['sha256']}/README.md) | error | low |")
+            lines.append(
+                f"| {case.get('first_seen')} | [{case['sha256']}]({case_link(case)}) | "
+                "`error` | `low` |"
+            )
         else:
-            lines.append(f"| {case['source'].get('first_seen')} | [{case['sha256']}](cases/{case['sha256']}/README.md) | {case['attribution']['family']} | {case['attribution']['confidence']} |")
-    lines.extend(["", "## Interpretation", "", "Family names based only on a source tag or external public rule remain provisional. A medium/high result requires internal detector/YARA/structure evidence. `unknown` or `conflicting` cases are intentionally not force-labeled. Network values are static candidates, not confirmed C2 infrastructure."])
+            lines.append(
+                f"| {case['source'].get('first_seen')} | "
+                f"[{case['sha256']}]({case_link(case)}) | "
+                f"`{case['attribution']['family']}` | "
+                f"`{case['attribution']['confidence']}` |"
+            )
+    lines.extend([
+        "", "## 解釈", "",
+        "情報源タグまたは外部公開ルールだけに基づくファミリー名は暫定情報です。"
+        "中／高確度とするには、内部検出器、YARA、または構造上の根拠が必要です。"
+        "`unknown`または`conflicting`のケースには、意図的にファミリー名を"
+        "強制付与していません。ネットワーク値は静的候補であり、確認済みC2インフラでは"
+        "ありません。",
+    ])
     return "\n".join(lines) + "\n"
 
 

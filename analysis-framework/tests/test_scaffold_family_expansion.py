@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import sys
 
+import yaml
+
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
@@ -15,11 +17,24 @@ import scaffold_family_expansion as scaffold  # noqa: E402
 
 def test_grouping_renderers_and_parser() -> None:
     """Normalize requested signatures and render documented definitions."""
-    profiles = {"asyncrat": {"aliases": ["async-rat"], "display_name": "AsyncRAT", "markers": ["a", "b", "c"], "category": "rat", "transport": "tcp", "confirmation": "decode"}}
+    profiles = {"asyncrat": {"aliases": ["async-rat"], "display_name": "AsyncRAT", "markers": ["asyncrat", "asyncrat server", "hwid"], "minimum_markers": 2, "config_keys": ["host", "port"], "category": "rat", "transport": "tcp", "confirmation": "decode"}}
     grouped = scaffold.family_items({"items": [{"requested_signature": "Async-RAT", "sha256": "a" * 64}]}, profiles)
     assert list(grouped) == ["asyncrat"]
     assert "def detect" in scaffold.detector_source("asyncrat", "AsyncRAT")
-    assert "fallback_pipeline" in scaffold.malware_definition("asyncrat", profiles["asyncrat"])
+    definition = scaffold.malware_definition("asyncrat", profiles["asyncrat"])
+    assert "fallback_pipeline" in definition
+    assert "profile-marker-1" in definition
+    assert "weight: 35" in definition
+    assert 'contains_any: ["host", "port"]' in definition
+    parsed = yaml.safe_load(definition)
+    assert parsed["classification"]["family"]["rules"][1]["when"]["all"]
+    short_rule = parsed["classification"]["family"]["rules"][1]
+    assert short_rule["when"]["all"][1] == {
+        "not": {
+            "fact": "static.strings_ci",
+            "contains_any": ["asyncrat server"],
+        }
+    }
     assert "static.unpack.inspect" in scaffold.workflow_definition("asyncrat", profiles["asyncrat"])
     assert "share" in scaffold.family_readme(profiles["asyncrat"]).lower()
     assert scaffold.build_parser().parse_args(["--manifest", "x.json"]).manifest == Path("x.json")
@@ -31,7 +46,7 @@ def test_scaffold_writes_reviewed_hashes(tmp_path: Path, monkeypatch) -> None:
     profile_path = repository / "extractors" / "profiles" / "windows_family_profiles.json"
     profile_path.parent.mkdir(parents=True)
     profile_path.write_text("{}", encoding="utf-8")
-    profile = {"display_name": "AsyncRAT", "category": "rat", "aliases": [], "markers": ["a", "b", "c"], "transport": "tcp", "confirmation": "decode"}
+    profile = {"display_name": "AsyncRAT", "category": "rat", "aliases": [], "markers": ["a", "b", "c"], "minimum_markers": 2, "config_keys": ["host", "port"], "transport": "tcp", "confirmation": "decode"}
     monkeypatch.setattr(scaffold, "load_profiles", lambda _path: {"asyncrat": profile})
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"items": [{"requested_signature": "AsyncRAT", "sha256": "b" * 64}]}), encoding="utf-8")

@@ -1,41 +1,33 @@
-# Static unpackers
+# 静的 unpacker
 
-This directory contains the shared, bounded unpacking pipeline. It does not
-launch samples, recovered payloads, installer callbacks, scripts, or packer
-stubs, and it never contacts extracted infrastructure.
+この directory には、共通の上限付き unpack pipeline があります。検体、復元 payload、installer callback、script、packer stub を起動せず、抽出したインフラへ接続することもありません。
 
-## Supported recovery paths
+## 対応する復元経路
 
-| Layer | Static method | Result |
+| Layer | 静的方法 | 結果 |
 |---|---|---|
-| ZIP/CAB/7z/RAR | bounded 7-Zip inventory and extraction | retained members and recursive analysis |
-| NSIS | NSIS-aware 7-Zip script decompilation | `[NSIS].nsi`, members, and explicit script transformations |
-| NSIS hexadecimal XOR stream | reproduce `IntOp` + `IntFmt %08X` word decoding | System-plugin call stream |
-| NSIS native XOR loader | bounded x64 constant propagation, then dword XOR | intermediate loader; never executed |
-| UPX | run the trusted UPX utility against a quarantined input | unpacked PE when UPX validates the file |
-| PE resources and overlay | parse offsets and sizes; carve valid PE extents | child PE/resources |
-| .NET ResourceSet | parse serialized resources without deserializing objects | strings, byte arrays, and images |
-| .NET bitmap steganography | reproduce bounded RGB column traversal | embedded managed PE |
-| AutoIt A3X | decode literals, RC4, and LZNT1 when the script states the recipe | embedded PE |
-| JavaScript string-array obfuscation | parse the array, solve rotation, decode aliases, fold literals | readable script and URLs |
-| UTF-16 JavaScript droppers | fold numeric arrays, repeating Unicode key transforms, and environment chunks | PowerShell plus terminal PE |
-| JavaScript AES/GZip chain | parse embedded AES-CBC key/IV and GZip recipe | terminal managed PE |
-| CMD echo Base64 stream | group redirections by target, join chunks, then validate | terminal PE/archive without fragment noise |
-| Jadoo split bundle | validate manifest offsets and lengths | reconstructed file |
-| generic base64/hex | size- and format-gated decoding | child layer |
-| Mach-O | header and segment inventory | packing assessment only |
+| ZIP/CAB/7z/RAR | 上限付き 7-Zip inventory と抽出 | 保持対象 member と再帰解析 |
+| NSIS | NSIS 対応 7-Zip による script decompile | `[NSIS].nsi`、member、明示された script 変換 |
+| NSIS hexadecimal XOR stream | `IntOp` と `IntFmt %08X` の word decode を再現 | System plugin の call stream |
+| NSIS native XOR loader | 上限付き x64 定数伝播後に dword XOR | 実行しない中間 loader |
+| UPX | 隔離した入力に対して信頼済み UPX utility を実行 | UPX が file を検証できた場合の unpack 済み PE |
+| PE resource と overlay | offset と size を parse し、有効な PE 範囲を carve | child PE/resource |
+| .NET ResourceSet | object を deserialize せず serialized resource を parse | string、byte array、image |
+| .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
+| AutoIt A3X | script が手順を明示する場合に literal、RC4、LZNT1 を decode | 埋め込み PE |
+| JavaScript string array 難読化 | array を parse し、rotation を解き、alias を decode して literal を畳み込み | 可読化した script と URL |
+| UTF-16 JavaScript dropper | numeric array、repeating Unicode key 変換、environment chunk を畳み込み | PowerShell と terminal PE |
+| JavaScript AES/GZip chain | 埋め込み AES-CBC key/IV と GZip 手順を parse | terminal managed PE |
+| CMD echo Base64 stream | target 別に redirection をまとめ、chunk を連結して検証 | fragment noise を除いた terminal PE/archive |
+| Jadoo split bundle | manifest の offset と length を検証 | 再構築した file |
+| 一般的な base64/hex | size と format を gate とする decode | child layer |
+| Mach-O | header と segment の inventory | packing 評価だけ |
 
-static_unpacker.py is the orchestrator. javascript_obfuscator.py handles
-script encodings and string-array layers. javascript_dropper_unpacker.py
-handles numeric-array, Unicode environment, AES-CBC, and GZip chains.
-nsis_unpacker.py handles explicit NSIS script and native constant-XOR layers.
-`static_control_flow.py` provides bounded recursive x86/x64 entry-CFG triage.
-`managed_il_triage.py` inventories managed metadata, CIL, and resources without CLR loading.
+`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。
 
-## Tooling
+## 使用 tool
 
-The recommended 7-Zip binary is an NSIS-decompiling build. It is used only as a
-trusted archive parser; installers are never run.
+推奨する 7-Zip binary は NSIS decompile 対応 build です。信頼済み archive parser としてだけ使用し、installer は実行しません。
 
 ```powershell
 $Python = 'C:\Users\Administrator\Tools\Python313\python.exe'
@@ -49,72 +41,57 @@ $DiE = 'C:\Users\Administrator\Tools\DetectItEasy-3.21\die\diec.exe'
   --artifact-zip C:\analysis\recovered-artifacts.zip `
   --upx $UPX `
   --sevenzip $SevenZipNSIS `
+  --archive-password infected `
   --diec $DiE
 ```
 
-Recovered bytes are written only when `--artifact-zip` is supplied. The archive
-is AES-encrypted with the analysis password `infected`. Do not add it to Git.
-Reports contain hashes, sizes, formats, transformations, confidence, and the
-facts that the sample was not executed and no network was contacted.
+`--artifact-zip` を指定した場合だけ、復元 byte を書き出します。archive は解析 password `infected` を使って AES で暗号化します。Git へ追加しないでください。`--force-container-probe` は、レビュー済み inventory hint がある場合だけ使用します。この option は入力を実行せず、設定済み 7-Zip binary に PE/container の parse を要求します。archive password を公開 report へコピーすることはありません。
 
-The NSIS native constant analysis requires the Python `capstone` package. It
-performs linear propagation of register/immediate arithmetic only. It does not
-emulate memory, calls, branches, or the sample.
+report には hash、size、format、変換、信頼度、検体を実行していないこと、network 接続を行っていないことを記録します。
 
-## Recursive family pipeline
+NSIS native 定数解析には Python package `capstone` が必要です。register/immediate 演算の線形な伝播だけを行い、memory、call、branch、検体を emulate しません。
 
-Use the NSIS-aware binary for a complete offline family pass:
+## 再帰的 family pipeline
+
+family 全体を offline で解析する場合は、NSIS 対応 binary を使用します。収集日を directory 階層に混ぜず、private sample と隔離出力でも family/version の深さを揃えます。
 
 ```powershell
 & $Python .\analysis-framework\common\analyze_stealer_set.py `
-  --manifest C:\Users\Administrator\MalwareSamples\refresh-YYYYMMDD\RemcosRAT\manifest.json `
-  --output C:\Users\Administrator\malware-lab\refresh-YYYYMMDD\RemcosRAT `
+  --manifest C:\Users\Administrator\MalwareSamples\remcosrat\<version-key>\manifest.json `
+  --output C:\Users\Administrator\malware-lab\remcosrat\<version-key> `
   --definitions .\analysis-framework\definitions `
   --upx $UPX `
   --sevenzip $SevenZipNSIS `
   --diec $DiE
 ```
 
-The pipeline recursively inspects a maximum of two recovered generations and
-stores recovered bytes only in the encrypted local analysis archive.
+pipeline は復元 layer を最大 2 generation まで再帰的に検査し、復元 byte は暗号化したローカル解析 archive にだけ保存します。公開 case は `analysis-results/malware/remcosrat/versions/<version-key>/cases/<sha256>/` に保存し、収集元と収集日は `analysis-results/collections/<collection-id>/manifest.json` の membership として管理します。
 
-## Status interpretation
+## Status の解釈
 
-`artifacts_recovered` means that at least one inner layer was reconstructed. It
-does not mean that the final malware payload was unpacked. A case is fully
-unpacked only when the terminal executable or script is structurally valid and
-no additional packing/protection layer is evidenced.
+`artifacts_recovered` は inner layer を 1 つ以上再構築できたことを意味します。最終 malware payload の unpack 完了を意味しません。terminal executable または script が構造的に有効で、追加の packing/protection layer を示す根拠がない場合だけ、case を完全に unpack 済みとします。
 
-Use the following blocker classes in reports:
+report では次の blocker class を使用します。
 
-- `unsupported_static_transform`: the decoder is not yet implemented.
-- `native_control_flow_obfuscation`: a native loader remains after a verified
-  transform; execution or emulation would be required to continue reliably.
-- `runtime_derived_key`: the key depends on machine state, timing, or remote
-  content.
-- `missing_external_payload`: the delivery layer references content that is not
-  present in the submitted archive.
-- `encrypted_container`: a required password is unknown.
-- `corrupt_or_truncated`: declared bounds or headers cannot be validated.
-- `not_packed`: high entropy or obfuscation exists, but there is no separate
-  packer layer to remove.
+- `unsupported_static_transform`: decoder が未実装です。
+- `native_control_flow_obfuscation`: 検証済み変換後も native loader が残っており、確実に継続するには実行または emulation が必要です。
+- `runtime_derived_key`: key が machine state、timing、remote content に依存します。
+- `missing_external_payload`: delivery layer が、提出 archive に存在しない content を参照しています。
+- `encrypted_container`: 必要な password が不明です。
+- `corrupt_or_truncated`: 宣言された境界または header を検証できません。
+- `not_packed`: 高 entropy または難読化はありますが、除去できる独立した packer layer がありません。
 
-## Failure checks
+## 失敗時の確認
 
-1. Confirm that the outer archive is still AES-encrypted and readable with the
-   expected intake password.
-2. Use the NSIS-aware 7-Zip build; standard 7-Zip may extract files without the
-   decompiled `[NSIS].nsi` control flow.
-3. Check `inventory`, `retained_members`, `split_reassembly`, and
-   `nsis_script_recovery` before treating an empty `recovered` list as final.
-4. Compare the decoder offset, size, key, source offset, output SHA-256, and
-   magic with the report. Reject out-of-bounds or ambiguous transforms.
-5. Analyze every recovered layer recursively. A valid PE can itself be packed.
-6. Treat DiE/entropy findings as hints. They do not independently prove packing.
-7. If the remaining stage is a control-flow-obfuscated native loader, record the
-   blocker; do not silently label it fully unpacked.
+1. outer archive が引き続き AES で暗号化され、想定 intake password で読めることを確認します。
+2. NSIS 対応 7-Zip build を使用します。標準 7-Zip は、decompile 済み `[NSIS].nsi` control flow を生成せずに file だけを抽出する場合があります。
+3. 空の `recovered` list を最終結果とする前に、`inventory`、`retained_members`、`split_reassembly`、`nsis_script_recovery` を確認します。
+4. decoder の offset、size、key、source offset、出力 SHA-256、magic を report と比較します。範囲外または曖昧な変換は拒否します。
+5. 復元したすべての layer を再帰的に解析します。有効な PE 自体が pack されている場合があります。
+6. DiE/entropy の finding は hint として扱います。それだけでは packing の証明になりません。
+7. 残った stage が control flow を難読化した native loader なら、blocker を記録し、完全 unpack 済みと暗黙に分類しません。
 
-## Verification and API documentation
+## 検証と API 文書
 
 ```powershell
 & $Python -m pytest .\unpackers\tests -q
@@ -124,61 +101,38 @@ Use the following blocker classes in reports:
 & $Python -m pydoc unpackers.nsis_unpacker
 ```
 
-The unit tests cover bounded decoding, malformed input, exact hashes/sizes,
-JavaScript rotation, UTF-16 normalization, numeric-array and Unicode environment
-recovery, AES-CBC/GZip transforms, chunked CMD Base64 reconstruction, .NET
-bitmap recovery, AutoIt layers, split reconstruction, NSIS word decoding,
-static XOR-loop recognition, and end-to-end synthetic NSIS recovery.
+unit test は、上限付き decode、malformed input、正確な hash/size、JavaScript rotation、UTF-16 normalization、numeric array と Unicode environment の復元、AES-CBC/GZip 変換、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
 
-## PureHVNC and CHRD/Donut recovery
+## PureHVNC と CHRD/Donut の復元
 
-- `purehvnc_unpacker.py` finds structurally valid PE files behind the observed first-byte/index-XOR envelope, including sparse stride-four storage.
-- `donut_unpacker.py` supports the reviewed modern `0x290` and legacy `0x23c` Donut layouts, Chaskey CTR, uncompressed modules, and optional aPLib recovery.
-- `chrd_donut_unpacker.py` reconstructs the reviewed CHRD resource carrier through WAV, numeric segments, outer transform, Donut, a managed TripleDES/GZip resource loader, and the terminal PE.
+- `purehvnc_unpacker.py` は、観測済みの first-byte/index-XOR envelope の内側から、sparse stride-four storage を含む構造的に有効な PE を検索します。
+- `donut_unpacker.py` は、レビュー済みの modern `0x290` layout と legacy `0x23c` layout、Chaskey CTR、非圧縮 module、任意の aPLib 復元に対応します。
+- `chrd_donut_unpacker.py` は、WAV、numeric segment、outer transform、Donut、managed TripleDES/GZip resource loader、terminal PE の順に、レビュー済み CHRD resource carrier を再構築します。
 
-The CHRD integration fixture recovered terminal SHA-256 `c1a2b48d4f639b46cf6cde8322666f0991531ef32ffe571140418ae40342ffe8` without execution or networking. Generated binaries belong in a quarantine/output path and must not be committed.
+CHRD integration fixture は、実行も network 接続も行わずに terminal SHA-256 `c1a2b48d4f639b46cf6cde8322666f0991531ef32ffe571140418ae40342ffe8` を復元しました。生成 binary は隔離/output path に保存し、commit してはいけません。
 
-## APT-C-60 / SpyGlace recovery
+## APT-C-60 / SpyGlace の復元
 
-- apt_c60_delivery.py safely inspects LNK strings and strict Base64/TAR carriers, then reproduces only the explicit copy /b fragment concatenation.
-- spyglace_unpacker.py recognizes literal PE data and the two reviewed repeating-XOR envelopes, validates PE structure and assigns a static role.
-- Neither module launches LNK, JavaScript, Git, scripts, loaders or recovered PEs.
+- `apt_c60_delivery.py` は LNK string と厳密な Base64/TAR carrier を安全に検査し、明示された `copy /b` fragment 連結だけを再現します。
+- `spyglace_unpacker.py` は literal PE data と、レビュー済みの 2 種類の repeating XOR envelope を認識し、PE 構造を検証して静的 role を割り当てます。
+- どちらの module も LNK、JavaScript、Git、script、loader、復元 PE を起動しません。
 
-See docs/APT-C60-2026-WORKFLOW.md for command order and failure checks.
+command の順序と失敗時の確認は `docs/APT-C60-2026-WORKFLOW.md` を参照してください。
 
-## Current Donut, container, and large-file support
+## 現行 Donut、container、大容量 file への対応
 
-- `donut_unpacker.py` supports current `0x240` and `0x230` array layouts in
-  addition to the reviewed modern and legacy layouts. It validates the
-  call-over-instance prologue, API count, DLL basename list, decrypted PE
-  extent, and output hashes.
-- `donut_wrapper_unpacker.py` recovers the reviewed 32-byte XOR wrapper only
-  after validating its decoded `SystemRoot`, `System32\conhost.exe`, and
-  quoted-argument templates.
-- `container_recovery.py` handles concatenated XZ streams, bounded XML-plist
-  trailers, Mach-O FAT slices, and inflated PE certificate gaps.
-- `static_unpacker.py` treats Apple disk images and multi-member malware-owned
-  archives as recursive layers. Files larger than 64 MiB use deterministic
-  bounded entropy sampling and a bounded marker probe.
+- `donut_unpacker.py` は、レビュー済みの modern/legacy layout に加えて、現行の `0x240` と `0x230` array layout に対応します。call-over-instance prologue、API 数、DLL basename list、復号済み PE 範囲、出力 hash を検証します。
+- `donut_wrapper_unpacker.py` は、decode 後の `SystemRoot`、`System32\conhost.exe`、quoted argument template を検証してから、レビュー済み 32 byte XOR wrapper を復元します。
+- `container_recovery.py` は、連結 XZ stream、上限付き XML plist trailer、Mach-O FAT slice、拡張された PE certificate gap を処理します。
+- `static_unpacker.py` は Apple disk image と複数 member を持つ malware 所有 archive を再帰 layer として扱います。64 MiB を超える file には、決定的な上限付き entropy sampling と marker probe を使用します。
 
-All transformations are structure-validated and performed in memory or in
-quarantined temporary paths. A recovered PE is analyzed recursively but is
-never launched.
+すべての変換は構造を検証し、memory 内または隔離した一時 path で行います。復元 PE は再帰的に解析しますが、起動しません。
 
-## Electron ASAR and Java/Mach-O boundaries
+## Electron ASAR と Java/Mach-O の境界
 
-- `asar_unpacker.py` validates Chromium ASAR pickle boundaries, member offsets,
-  integrity metadata, traversal-safe names, and total output limits before it
-  returns in-memory members.
-- `electron_nsis_unpacker.py` uses 7-Zip only as a parser to locate a nested
-  Electron archive and recover `resources/app.asar`; it does not launch NSIS,
-  Electron, JavaScript, or a recovered payload.
-- `static_unpacker.py` applies both paths recursively and can deobfuscate the
-  reviewed plain JavaScript string-array rotation without evaluating JavaScript.
-- Java class files and universal Mach-O share the `CAFEBABE` magic. The format
-  detector now requires a plausible bounded Mach-O architecture table and
-  otherwise labels the object `java-class`.
+- `asar_unpacker.py` は、memory 内 member を返す前に Chromium ASAR pickle の境界、member offset、integrity metadata、path traversal を防ぐ name、総出力上限を検証します。
+- `electron_nsis_unpacker.py` は 7-Zip を parser としてだけ使用し、入れ子の Electron archive を特定して `resources/app.asar` を復元します。NSIS、Electron、JavaScript、復元 payload は起動しません。
+- `static_unpacker.py` は両経路を再帰的に適用し、JavaScript を評価せず、レビュー済みの plain JavaScript string array rotation を難読化解除できます。
+- Java class file と universal Mach-O は `CAFEBABE` magic を共有します。format detector は、妥当で上限付きの Mach-O architecture table を要求し、それ以外を `java-class` と分類します。
 
-Related tests are `test_asar_unpacker.py`, `test_electron_nsis_unpacker.py`,
-`test_javascript_plain_array.py`, and the Java/Mach-O regression in
-`test_static_unpacker.py`.
+関連 test は `test_asar_unpacker.py`、`test_electron_nsis_unpacker.py`、`test_javascript_plain_array.py`、`test_static_unpacker.py` の Java/Mach-O regression です。

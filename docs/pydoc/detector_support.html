@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module detector_support</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">detector_support</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cdetector_support.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\detector_support.py</a></td></tr></table>
+    <p><span class="code">Shared&nbsp;input&nbsp;normalization&nbsp;for&nbsp;conservative&nbsp;family&nbsp;detectors.</span></p>
+<p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-known_campaign_result"><strong>known_campaign_result</strong></a>(data: 'bytes', campaigns: 'dict[str, str]', signatures: 'list[tuple[bytes, str]]', *, minimum_signatures: 'int' = 2) -&gt; 'dict'</dt><dd><span class="code">Match&nbsp;an&nbsp;exact&nbsp;reviewed&nbsp;hash&nbsp;or&nbsp;at&nbsp;least&nbsp;two&nbsp;independent&nbsp;literals.<br>
+&nbsp;<br>
+Signature&nbsp;literals&nbsp;are&nbsp;correlation&nbsp;evidence&nbsp;only.&nbsp;A&nbsp;single&nbsp;runtime&nbsp;or<br>
+namespace&nbsp;string&nbsp;is&nbsp;retained&nbsp;in&nbsp;observations&nbsp;but&nbsp;cannot&nbsp;select&nbsp;a&nbsp;family.</span></dd></dl>
+ <dl><dt><a name="-unwrap_single_submission"><strong>unwrap_single_submission</strong></a>(data: 'bytes', password: 'str' = 'infected') -&gt; 'tuple[bytes, str, str | None]'</dt><dd><span class="code">Unwrap&nbsp;a&nbsp;single-member&nbsp;ZIP&nbsp;when&nbsp;possible,&nbsp;otherwise&nbsp;keep&nbsp;the&nbsp;original&nbsp;bytes.<br>
+&nbsp;<br>
+Multi-member&nbsp;ZIPs&nbsp;are&nbsp;intentionally&nbsp;returned&nbsp;unchanged&nbsp;for&nbsp;structural&nbsp;detectors.<br>
+The&nbsp;optional&nbsp;error&nbsp;is&nbsp;diagnostic&nbsp;and&nbsp;is&nbsp;not&nbsp;itself&nbsp;a&nbsp;family&nbsp;match.</span></dd></dl>
+</td></tr></table>
+</body></html>

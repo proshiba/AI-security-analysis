@@ -29,6 +29,7 @@
 <td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;offline&nbsp;batch-validation&nbsp;command-line&nbsp;parser.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Validate&nbsp;one&nbsp;batch&nbsp;and&nbsp;print&nbsp;its&nbsp;deterministic&nbsp;summary.</span></dd></dl>
  <dl><dt><a name="-validate"><strong>validate</strong></a>(manifest_path: 'Path', cache: 'Path', output_root: 'Path', run_id: 'str') -&gt; 'dict'</dt><dd><span class="code">Verify&nbsp;hashes,&nbsp;detector/extractor&nbsp;routing,&nbsp;public&nbsp;files,&nbsp;and&nbsp;offline&nbsp;safety&nbsp;flags.</span></dd></dl>
+ <dl><dt><a name="-validate_ioc_content"><strong>validate_ioc_content</strong></a>(path: 'Path', hashes: 'list[str]', findings: 'list[dict]', label: 'str', *, exact: 'bool' = False) -&gt; 'list[str]'</dt><dd><span class="code">Verify&nbsp;the&nbsp;five-column&nbsp;schema,&nbsp;safe&nbsp;normalization,&nbsp;and&nbsp;expected&nbsp;IOC&nbsp;rows.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -36,6 +37,14 @@
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>FORBIDDEN_RESULT_SUFFIXES</strong> = {'.bat', '.cab', '.cmd', '.com', '.dll', '.dylib', ...}<br>
+<strong>IOC_CONFIDENCE_LABELS</strong> = {'confirmed': '確認済み', 'high': '高', 'inferred': '推定', 'low': '低', 'medium': '中', 'recorded': '記録済み', 'unverified': '未検証'}<br>
+<strong>IOC_CONFIDENCE_VALUES</strong> = {'中': 'medium', '低': 'low', '推定': 'inferred', '未検証': 'unverified', '確認済み': 'confirmed', '記録済み': 'recorded', '高': 'high'}<br>
+<strong>IOC_HEADER</strong> = '| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |'<br>
+<strong>IOC_ROLE_LABELS</strong> = {'delivery': '配布'}<br>
+<strong>IOC_ROLE_VALUES</strong> = {'配布': 'delivery'}<br>
+<strong>IOC_SEPARATOR</strong> = '|---|---|---|---|---|'<br>
+<strong>IOC_TYPE_LABELS</strong> = {'domain': 'ドメイン', 'endpoint': '接続先'}<br>
+<strong>IOC_TYPE_VALUES</strong> = {'ドメイン': 'domain', '接続先': 'endpoint'}<br>
 <strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
-<strong>REQUIRED_CASE_FILES</strong> = {'IOC-LIST.md', 'README.md', 'c2-observation-plan.json', 'config.json', 'indicators.json'}</td></tr></table>
+<strong>REQUIRED_CASE_FILES</strong> = {'IOC-LIST.md', 'README.md', 'c2-observation-plan.json', 'config.json', 'indicators.json', 'metadata.json'}</td></tr></table>
 </body></html>

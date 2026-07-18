@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module audit_japanese_docs</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">audit_japanese_docs</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Caudit_japanese_docs.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\audit_japanese_docs.py</a></td></tr></table>
+    <p><span class="code">人が読む&nbsp;Markdown&nbsp;文書の日本語化状況を、リポジトリ内だけで監査する。<br>
+&nbsp;<br>
+コード、URL、ハッシュ、ファイルパス、機械可読な識別子は翻訳対象として<br>
+数えない。一方、日本語文字を一つも含まない文書と、英語だけで書かれた<br>
+見出し・説明行は、移行対象として完全な相対パスと行番号を返す。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_markdown"><strong>analyze_markdown</strong></a>(path: 'Path', repository: 'Path') -&gt; 'dict'</dt><dd><span class="code">一つの&nbsp;Markdown&nbsp;の日本語文字数と英語のみの説明行を返す。</span></dd></dl>
+ <dl><dt><a name="-audit_repository"><strong>audit_repository</strong></a>(repository: 'Path', roots: 'Iterable[Path] | None' = None) -&gt; 'dict'</dt><dd><span class="code">リポジトリの&nbsp;Markdown&nbsp;日本語化状況を集計して返す。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">文書日本語化監査&nbsp;CLI&nbsp;の引数パーサーを構築する。</span></dd></dl>
+ <dl><dt><a name="-discover_markdown"><strong>discover_markdown</strong></a>(repository: 'Path', roots: 'Iterable[Path] | None' = None) -&gt; 'list[Path]'</dt><dd><span class="code">監査対象の&nbsp;Markdown&nbsp;を、除外ディレクトリを避けて決定順で返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">監査&nbsp;CLI&nbsp;を実行し、未日本語化を要求時だけ非ゼロで通知する。</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(report: 'dict') -&gt; 'str'</dt><dd><span class="code">監査結果の短い日本語サマリーを&nbsp;Markdown&nbsp;として返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BARE_URL</strong> = re.compile('https?://\\S+')<br>
+<strong>DOTTED_IDENTIFIER</strong> = re.compile('\\b[A-Za-z_$&lt;&gt;][A-Za-z0-9_$&lt;&gt;]*(?:\\.[A-Za-z_$&lt;&gt;][A-Za-z0-9_$&lt;&gt;]*)+\\b')<br>
+<strong>ENGLISH_WORD</strong> = re.compile("[A-Za-z][A-Za-z'-]{1,}")<br>
+<strong>IGNORED_PARTS</strong> = {'.git', '.pytest_cache', '.venv', '.work', '__pycache__', 'node_modules'}<br>
+<strong>INLINE_CODE</strong> = re.compile('`[^`]*`')<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>JAPANESE</strong> = re.compile('[ぁ-んァ-ヶ一-龯々〆ヵヶー]')<br>
+<strong>LONG_HASH</strong> = re.compile('\\b[0-9a-fA-F]{12,}\\b')<br>
+<strong>MARKDOWN_TARGET</strong> = re.compile('\\]\\((?:[^()]|\\([^()]*\\))*\\)')<br>
+<strong>TABLE_SEPARATOR</strong> = re.compile('^\\s*\\|?(?:\\s*:?-+:?\\s*\\|)+\\s*$')<br>
+<strong>TECHNICAL_LIST</strong> = re.compile('^\\s*[-*+]\\s+[a-z][a-z0-9_.-]*(?:\\s*(?:、|,)\\s*[a-z][a-z0-9_.-]*)+\\s*$')<br>
+<strong>TECHNICAL_WORDS</strong> = {'api', 'c2', 'candidate', 'cli', 'config', 'confirmed', ...}<br>
+<strong>VERSION_HEADING</strong> = re.compile('^#{1,6}\\s+v?[0-9]+(?:\\.[0-9A-Za-z-]+)+(?:\\s*[（(][^）)]*[）)])?\\s*$', re.IGNORECASE)</td></tr></table>
+</body></html>

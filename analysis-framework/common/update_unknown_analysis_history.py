@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append idempotent static unknown-batch entries to ``analysis_history.yaml``."""
+"""未分類静的 batch の履歴を ``analysis_history.yaml`` へ冪等に追記する。"""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ import argparse
 import json
 from pathlib import Path
 import re
+
+from result_layout import canonical_malware_case_path
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -19,7 +21,8 @@ def yaml_scalar(value: str) -> str:
 def render_history_entries(summary: dict, result_root: str, analyzed_at: str) -> list[tuple[str, str]]:
     """Render one conservative history entry for every successful batch case."""
     entries: list[tuple[str, str]] = []
-    root = result_root.rstrip("/")
+    root = Path(result_root)
+    resolved_root = root.resolve()
     for case in summary.get("cases") or []:
         if "error" in case:
             continue
@@ -32,11 +35,17 @@ def render_history_entries(summary: dict, result_root: str, analyzed_at: str) ->
         supported = family != "unknown" and confidence in {"medium", "high"}
         malware_type = family if supported else "Unclassified"
         if supported:
-            note = f"{confidence.title()}-confidence static family attribution; extracted network values remain unconfirmed candidates. No sample execution or infrastructure contact."
+            note = f"{confidence} 信頼度の静的ファミリー帰属。抽出した通信値は未確認候補のままです。検体実行とインフラ接続は行っていません。"
         elif family != "unknown":
-            note = f"Provisional low-confidence {family} lead; not treated as confirmed family attribution or C2. No sample execution or infrastructure contact."
+            note = f"{family} は低信頼の暫定候補であり、確認済みファミリー帰属または C2 とは扱いません。検体実行とインフラ接続は行っていません。"
         else:
-            note = "No defensible family attribution from bounded static evidence. No sample execution or infrastructure contact."
+            note = "制限付き静的根拠から防御可能なファミリー帰属を得られませんでした。検体実行とインフラ接続は行っていません。"
+        case_path = canonical_malware_case_path(
+            resolved_root, "unclassified", sha256, "unknown"
+        )
+        result_path = (
+            root / case_path.relative_to(resolved_root)
+        ).as_posix().rstrip("/")
         file_type = str((case.get("source") or {}).get("file_type") or "unknown")
         lines = [
             f"  - malware_type: {yaml_scalar(malware_type)}",
@@ -50,7 +59,7 @@ def render_history_entries(summary: dict, result_root: str, analyzed_at: str) ->
             f"      - {yaml_scalar('format:' + file_type)}",
             "    c2: []",
             f"    notes: {yaml_scalar(note)}",
-            f"    result_path: {root}/cases/{sha256}/",
+            f"    result_path: {result_path}/",
         ]
         entries.append((sha256, "\n".join(lines)))
     return entries
@@ -74,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary", required=True, type=Path)
     parser.add_argument("--history", required=True, type=Path)
-    parser.add_argument("--result-root", required=True)
+    parser.add_argument("--result-root", default="analysis-results")
     parser.add_argument("--analyzed-at", required=True)
     return parser
 

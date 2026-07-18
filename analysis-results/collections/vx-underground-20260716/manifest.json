@@ -1,0 +1,382 @@
+{
+  "cases": [
+    {
+      "case_id": "sha256:02355d3fee5e217b25f9210ad0f6bacc3807b6ef1a59aa4d428c01017dcbcf28"
+    },
+    {
+      "case_id": "sha256:03e0ca10cbf06f45fefd102dc8e42665729d8891e047348dea7dcceb9b5559cc"
+    },
+    {
+      "case_id": "sha256:05f9553616bb5fdbf37bd4036c210929e08d7181de898c1bea1bdae7afb0766f"
+    },
+    {
+      "case_id": "sha256:0822d4c51c466544072ac07dd5c2dbf4143431fb6955a05911600fed50d0229a"
+    },
+    {
+      "case_id": "sha256:0c857501e3851072db666386136929c06bcf4c8d3160b41b7d82a3ce9afca1be"
+    },
+    {
+      "case_id": "sha256:0df79273aea792b72c2218a616b36324e31aaf7da59271969a23a0c392f58451"
+    },
+    {
+      "case_id": "sha256:119b0994bcf9c9494ce44f896b7ff4a489b62f31706be2cb6e4a9338b63cdfdb"
+    },
+    {
+      "case_id": "sha256:12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1"
+    },
+    {
+      "case_id": "sha256:142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be"
+    },
+    {
+      "case_id": "sha256:151247e9379a755e3bb260cca5c59977e4075d5404db4198f3cec82818412479"
+    },
+    {
+      "case_id": "sha256:1d8596310e2ea54b1bf5df1f82573c0a8af68ed4da1baf305bcfdeaf7cbf0061"
+    },
+    {
+      "case_id": "sha256:1dbbf81d6f4b2222b37594e8ff30672bf85fd360f347cbd20b1a5d7b841dd276"
+    },
+    {
+      "case_id": "sha256:232adaf8b3b2680c04df97c19c7d81edeb80444936741859b1a1f27245ed90c0"
+    },
+    {
+      "case_id": "sha256:23546ec67474ed6788a14c9410f3fc458b5c5ff8bd13885100fb4f3e930a30bf"
+    },
+    {
+      "case_id": "sha256:25f720e9b969bdbece357a4704d4575a47ab8230affefbc2bfc467cb317835f1"
+    },
+    {
+      "case_id": "sha256:28db05fffe5f32ee8df60a400c97d19270d23327ebb49ae86e455ea14d59f113"
+    },
+    {
+      "case_id": "sha256:2b44b68e36c30aa9096429eeb0456e3b34b09dc3ea2ce0bd81aee2393bb3cfe4"
+    },
+    {
+      "case_id": "sha256:2b46fc922a0e16552f09f9b2d1a9cbedfada367fa985e2c0a15b815acc03f806"
+    },
+    {
+      "case_id": "sha256:3243e67a2ebad9bfd8746d7c2d48eb8a7241fd09ca19c4c9adfc08fa4923c212"
+    },
+    {
+      "case_id": "sha256:326d297b441a40bb3f53bb55cb727e0fbed422470977ca167b1c919029be746b"
+    },
+    {
+      "case_id": "sha256:3418a369486e9bf2b57023dc0b02cb00f12a5214fca8bae20ff93586cc8c678a"
+    },
+    {
+      "case_id": "sha256:34aff1767909ff582d15949922549fddb5849f163260ad3efdc32d4f869fdf09"
+    },
+    {
+      "case_id": "sha256:363c46dfb252d7c40d9c3bb63bdc40c2eff0ce16c0c1b77f507d73058104c6e1"
+    },
+    {
+      "case_id": "sha256:38450cf934121c9f92785beffb73602919014752310960768324029d9ba91e13"
+    },
+    {
+      "case_id": "sha256:388021747b85453adff2680c8a0e13e230f4eeada1a1055e3fb8e09800d4fb79"
+    },
+    {
+      "case_id": "sha256:3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d"
+    },
+    {
+      "case_id": "sha256:3a950d7e6736f17c3df90844c76d934dc66c17ec76841a4ad58de07af7955f0f"
+    },
+    {
+      "case_id": "sha256:3d4fa915ede8b3a7d95155694abfe13c3ad26a65545fe1635797ff200ccdcb40"
+    },
+    {
+      "case_id": "sha256:3e0524346e447a3dcadc528ec3a009c8b34cf3c0d1c7423c4d168b432b2c8b72"
+    },
+    {
+      "case_id": "sha256:416b40630daa924136b9d10e0faa8c800a7a882416f4e5b7944f9bc2553a414b"
+    },
+    {
+      "case_id": "sha256:42054b960727fbd72bde57e8903881e4239e9500f1160ca298e10a1b438698a8"
+    },
+    {
+      "case_id": "sha256:43e67fbb1bc6ac4549c216476b2aa4e98a89e74ce4d51b8d72380fdd8cc4edb1"
+    },
+    {
+      "case_id": "sha256:4506917f5cd8be78ec581d74085c21b75b17c2ede56f0af2dc38bc3f09e96caf"
+    },
+    {
+      "case_id": "sha256:465f931e8a44b7f8dff8435255240b88f88f11e23bc73741b21c20be8673b6b7"
+    },
+    {
+      "case_id": "sha256:488385cd54d14790b03fa7c7dc997ebea3f7b2a8499e5927eb437a3791102a77"
+    },
+    {
+      "case_id": "sha256:49a7f82743a038d7a570d5d5d8ecb92f369f0e6dbba6532674c4789f0daf9b31"
+    },
+    {
+      "case_id": "sha256:4c17f7ee55f9bf6fa9acaeeb9574feab39ba4a3cccd4426dfa85aaf58b90ae73"
+    },
+    {
+      "case_id": "sha256:4c8f8899d02737d9c1c00f8848f73298a2749ff7a1a75a0ca2acd68117d2b515"
+    },
+    {
+      "case_id": "sha256:4d4f97f1621334e4075e0229265ac6c5da14754eff1378a7d77ea6d3821e8a33"
+    },
+    {
+      "case_id": "sha256:532bc078a68683ce70cb765191a128fadee2a23180b1a8e8a16b72f1a8ee291a"
+    },
+    {
+      "case_id": "sha256:535da28d4c95d3b379336314471f118dc99ce4a85d97fdf0b9cc6afb22da02d9"
+    },
+    {
+      "case_id": "sha256:54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de"
+    },
+    {
+      "case_id": "sha256:5562c6ad5765792def276e009395a57a6bf841c87cddefb6f8e8d75b74076e83"
+    },
+    {
+      "case_id": "sha256:572d806c0b56d27fe05562301de6a9ed45cda3f36aef2f6e370867d9f3847013"
+    },
+    {
+      "case_id": "sha256:5826867a6f14d608cc6989f7d3cb47834c4893fe5a9e0c91169f3a02347c01e1"
+    },
+    {
+      "case_id": "sha256:5aff860634fadee66a6e8220e67f7ebc88bfcde7a905a2753655706c0252afd1"
+    },
+    {
+      "case_id": "sha256:5bf3ab9c47d8152548db40516ff474a947393de01033b0be2a57409e08d4991c"
+    },
+    {
+      "case_id": "sha256:5cd0759c1e566b6e74ef3f29a49a34a08ded2dc44408fccd41b5a9845573a34c"
+    },
+    {
+      "case_id": "sha256:5cecb26a3f33c24b92a0c8f6f5175da0664b21d7c4216a41694e4a4cad233ca8"
+    },
+    {
+      "case_id": "sha256:5d36d2cbf0a92c31692861af5c43b7faee35a2c13a36a7d6f4bdca27d2fa1dbe"
+    },
+    {
+      "case_id": "sha256:5edc39cbd89d3ba70a4737f823933af93f3c182134af8e34e0af9a316afaaca8"
+    },
+    {
+      "case_id": "sha256:6091f2589fef42e0ab3d7975806cd8a0da012b519637c03b73f702f7586b21ef"
+    },
+    {
+      "case_id": "sha256:62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830"
+    },
+    {
+      "case_id": "sha256:65da6d9f781ff5fc2865b8850cfa64993b36f00151387fdce25859781c1eb711"
+    },
+    {
+      "case_id": "sha256:6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0"
+    },
+    {
+      "case_id": "sha256:6b89cdfe0d3ebc90994ee564aac9c88b0df80f25720aedadff660a0d079ad0c9"
+    },
+    {
+      "case_id": "sha256:6bd20157eb146f12887ccb49fa09ac5b0c817983edc43ca1b665f17ad3ebfb25"
+    },
+    {
+      "case_id": "sha256:7040402574a686f031c3af5fed37509d8979855397787aab70b2d1059099d2da"
+    },
+    {
+      "case_id": "sha256:707fc73f8e6494959b1b33c9f7c582335cda88397a0e7e3822f56ad0354996c6"
+    },
+    {
+      "case_id": "sha256:72db19a5ccc7e378e72bd3cf8339280fc47f05b5ff65b1fb3893be6369a5c8bf"
+    },
+    {
+      "case_id": "sha256:78305c8b5e8ead6989a0af09fc6ed8f2ff1b246c0487dfa78fb5b155b554cae9"
+    },
+    {
+      "case_id": "sha256:7970613a8bdc95bb97d4996d9302153feef816b64a6b1861045a2aec85dcdb8d"
+    },
+    {
+      "case_id": "sha256:7b217c20a30ab1bdc4534f4adb62df226d128ec4d03c0eb2feb5ab35d2b7dc9f"
+    },
+    {
+      "case_id": "sha256:7d05ae98fea42630b199a45f26e18a7196a8f3509ed703fc918416780fd1f661"
+    },
+    {
+      "case_id": "sha256:805b59e48af90504024f70124d850870a69b822b8e34d1ee551353c42a338bf7"
+    },
+    {
+      "case_id": "sha256:80f167003759e598fcd7cb868d90e60c77af4da5971afc9cda1f552d1325d2d7"
+    },
+    {
+      "case_id": "sha256:81bc69a33b33949809d630e4fa5cdb89d8c60cf0783f447680c3677cae7bb9bb"
+    },
+    {
+      "case_id": "sha256:8299972879ce911c095668360ea47e0be1dfaf17b62b64ada8a613eaaabd86ea"
+    },
+    {
+      "case_id": "sha256:87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6"
+    },
+    {
+      "case_id": "sha256:8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6"
+    },
+    {
+      "case_id": "sha256:8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197"
+    },
+    {
+      "case_id": "sha256:919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226"
+    },
+    {
+      "case_id": "sha256:931ac54db53c787f4138e73535db1664fc22cfbd9957b53d4c5135bc8a0dabd5"
+    },
+    {
+      "case_id": "sha256:93583dfa872b44e13e449cdfbbe20e64851dbe0e615f30b0313d2cb6a9b2309e"
+    },
+    {
+      "case_id": "sha256:9645a12079edffd20560d4631160a6052ae5728d6f73b7366588166ad281c534"
+    },
+    {
+      "case_id": "sha256:99e733391ac499e78e535a98551c4d27408abfad4e56fe4c46956636655df29c"
+    },
+    {
+      "case_id": "sha256:9e7fdc17150409d594eeed12705788fbc74b5c7f482a64d121395df781820f46"
+    },
+    {
+      "case_id": "sha256:9fad77b6c9968ccf160a20fee17c3ea0d944e91eda9a3ea937027618e2f9e54e"
+    },
+    {
+      "case_id": "sha256:a1b0074cbd56956cc94e6161361f8f7407075f2903d14d082c1006f411bec90a"
+    },
+    {
+      "case_id": "sha256:a459ce4bfb5d649410231bd4776c194b0891c8c5328bafc22184fe3111c0b3e7"
+    },
+    {
+      "case_id": "sha256:a547cff9991a713535e5c128a0711ca68acf9298cc2220c4ea0685d580f36811"
+    },
+    {
+      "case_id": "sha256:ac096895773aab31910cee9d9611fbf3fcf7b2ba76678237ecd676d350c91c9c"
+    },
+    {
+      "case_id": "sha256:acdf522657d533e0dcf36501913f029e6e18ee20d756dbb666701657f4a2226a"
+    },
+    {
+      "case_id": "sha256:aee22a35cbdac3f16c3ed742c0b1bfe9739a13469cf43b36fb2c63565111028c"
+    },
+    {
+      "case_id": "sha256:b00302c7a37d30e1d649945bce637c2be5ef5a1055e572df9866ef8281964b65"
+    },
+    {
+      "case_id": "sha256:b4c9aadd18c1b6f613bf9d6db71dcc010bbdfe8b770b4084eeb7d5c77d95f180"
+    },
+    {
+      "case_id": "sha256:b67bc78347918209973d633287c4e1f514a0917b8678c2cf2066ba80b2004f78"
+    },
+    {
+      "case_id": "sha256:b6b6df6abb52d7d2e2eb8496c04d76e2a01e51703b7ce44aa127d60ce53a0be7"
+    },
+    {
+      "case_id": "sha256:b740a321546671ad7ebdf540189cbea05a2307b0033f2e17535c23bb38217a91"
+    },
+    {
+      "case_id": "sha256:ba7570395a1adfa7dd22638402d994c2b36efb559d1a69ddc91503bb0b608839"
+    },
+    {
+      "case_id": "sha256:bb7cb5aea4192a035376d380682716235fdb4809d06b63b63d6d6d1061a5c231"
+    },
+    {
+      "case_id": "sha256:c72cbb4b668f0f56d9df6359e5d391908a9ef5bb21c8f8eb4445be9197c47ef0"
+    },
+    {
+      "case_id": "sha256:ca15d149f53a51592c80c57e64de73e090777749422525d22b3b096a1ae75a4a"
+    },
+    {
+      "case_id": "sha256:ce3c57e6c025911a916a61a716ff32f2699f3e3a84eb0ebbe892a5d4b8fb9c7a"
+    },
+    {
+      "case_id": "sha256:d04f0d88706837f7af27edf86b3c0e3241bad8ab43939ddda29dc6541b20eed2"
+    },
+    {
+      "case_id": "sha256:d38643133189bc880af537a371087e2e34fa36e0f96fd19a42969d3bc72fe95b"
+    },
+    {
+      "case_id": "sha256:d458a1459e865ba6faeca30447fba1f7813cf8e3e5e4c454c4d93d1a2b345805"
+    },
+    {
+      "case_id": "sha256:d8a5afdf8311eb92eae60c9774fc1b0b138f436affe99b2c64dbe93d8c07fcce"
+    },
+    {
+      "case_id": "sha256:d8b902568386f588fb2d42a77cd39062ada13c9a3fed0adf20ab6510f3b4a681"
+    },
+    {
+      "case_id": "sha256:d96239eb6f4f3af1613dbb8513d97b895dccf7b986adb6d2a94a3bd3064b471b"
+    },
+    {
+      "case_id": "sha256:da6ca4c2fc0ef28c2a59874164ce691e74a2f41329d59b0344282bfdf4eb2324"
+    },
+    {
+      "case_id": "sha256:db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77"
+    },
+    {
+      "case_id": "sha256:e3d16f3f69fa0857f966022387ee6f9408385ddf389d09ffe7dc44acc8ac1ad5"
+    },
+    {
+      "case_id": "sha256:e5aed4e2fdda9242d6a723ece8c6d7b2b2a3f1f82abcac66e1480b6794c23bfc"
+    },
+    {
+      "case_id": "sha256:e8263e35b92634d20e61a78c12bc95aab476381b5f03364d9fbb5d74b8fb2eb8"
+    },
+    {
+      "case_id": "sha256:e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb"
+    },
+    {
+      "case_id": "sha256:e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7"
+    },
+    {
+      "case_id": "sha256:ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10"
+    },
+    {
+      "case_id": "sha256:ea3b2c23df3162a6fa5c9d22d03f50db30542d7570ef769ded4ef106fb0255f4"
+    },
+    {
+      "case_id": "sha256:ead5ebf464c313176174ff0fdc3360a3477f6361d0947221d31287eeb04691b3"
+    },
+    {
+      "case_id": "sha256:ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677"
+    },
+    {
+      "case_id": "sha256:ef5db8b473e279620207777c42ef9ad14adf8b100ceb20dc4f7e1bd5271ecd3c"
+    },
+    {
+      "case_id": "sha256:f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df"
+    },
+    {
+      "case_id": "sha256:f419c4f9ee51391da7ef8b679683593ed76181b1a5702c58944ba64adeb25cd9"
+    },
+    {
+      "case_id": "sha256:fbaa36fbd8f43d80ecc3c8c26701de0beca3db8402af5e8ce27105a68e918082"
+    },
+    {
+      "case_id": "sha256:fc21a125287c3539e11408587bcaa6f3b54784d9d458facbc54994f05d7ef1b0"
+    },
+    {
+      "case_id": "sha256:fc4932314471c91434fde050e85967de31701e0b391440c1c5f9aa5d6fde615d"
+    },
+    {
+      "case_id": "sha256:fda0fc105ffd6faae12d08c243fe684be8c69696bd654d733f5caf487b59baae"
+    }
+  ],
+  "collection_id": "vx-underground-20260716",
+  "family_sources": [
+    {
+      "family": "amadey",
+      "path": "sources/amadey"
+    },
+    {
+      "family": "amosstealer",
+      "path": "sources/amosstealer"
+    },
+    {
+      "family": "donutloader",
+      "path": "sources/donutloader"
+    },
+    {
+      "family": "latrodectus",
+      "path": "sources/latrodectus"
+    },
+    {
+      "family": "vidar",
+      "path": "sources/vidar"
+    }
+  ],
+  "schema_version": 1
+}

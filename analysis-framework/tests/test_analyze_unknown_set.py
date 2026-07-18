@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 import analyze_unknown_set as unknown
 
 from analyze_unknown_set import (
@@ -104,3 +108,93 @@ def test_large_pe_uses_structural_mode_instead_of_root_skip(monkeypatch) -> None
     report, layers, retained, strings = unknown.recursive_layers(b"MZxx", "large.exe", None, False)
     assert observed and report["large_file_mode"] == "bounded_pe_structural_and_reachable_cfg"
     assert layers == [] and retained == [] and strings == []
+
+
+def test_detector_registry_paths_are_fail_closed(tmp_path) -> None:
+    """Reject traversal, family mismatch, and non-allowlisted detector files."""
+    registry = tmp_path / "registry.json"
+    for detector in (
+        "../outside.py",
+        "malware/agenttesla/detect.py",
+        "malware/valleyrat/helper.py",
+    ):
+        registry.write_text(
+            json.dumps({
+                "malware_types": {
+                    "valleyrat": {"detector": detector},
+                }
+            }),
+            encoding="utf-8",
+        )
+        with pytest.raises(unknown.DetectorPathError):
+            unknown.load_detectors(registry)
+
+
+def test_markdown_renderers_are_japanese_and_preserve_technical_values() -> None:
+    """Markdown本文を日本語化し、JSON上のenumや識別子は変更しない。"""
+    digest = "d" * 64
+    case = {
+        "sha256": digest,
+        "source": {
+            "first_seen": "2026-07-17 00:00:00",
+            "file_name": "sample.exe",
+            "file_type": "exe",
+            "file_size": 123,
+        },
+        "attribution": {
+            "family": "stealc",
+            "confidence": "medium",
+            "status": "supported",
+            "score": 7,
+            "evidence": [{
+                "source": "internal_detector",
+                "family": "stealc",
+                "detail": "registered detector matched",
+            }],
+        },
+        "root_unpack": {
+            "format": "pe",
+            "packing_classification": "suspected_packed",
+        },
+        "layers": [{
+            "depth": 1,
+            "format": "pe",
+            "sha256": "e" * 64,
+            "size": 99,
+            "unpack_status": "no_artifact_recovered",
+        }],
+        "iocs": {"urls": [], "ips": []},
+        "limitations": [
+            "Static-only attribution; low-confidence labels remain provisional.",
+        ],
+    }
+    snapshot = json.loads(json.dumps(case))
+    rendered = unknown.render_case_readme(case)
+    assert "## 概要" in rendered
+    assert "## 帰属根拠" in rendered
+    assert "登録済み検出器の一致" in rendered
+    assert "## Overview" not in rendered
+    assert "`stealc`" in rendered
+    assert case == snapshot
+
+    summary = {
+        "counts": {
+            "total": 1,
+            "errors": 0,
+            "identified": 1,
+            "supported": 1,
+            "provisional": 0,
+            "unknown": 0,
+        },
+        "newest_first_seen": "2026-07-17",
+        "oldest_first_seen": "2026-07-17",
+        "attribution_counts": {"stealc|medium": 1},
+        "cases": [case],
+    }
+    target = "../../../../malware/unclassified/case/README.md"
+    aggregate = unknown.render_summary(summary, {digest: target})
+    assert "# MalwareBazaar未分類／Stealer検体の静的分類" in aggregate
+    assert "| ファミリー | 確度 | 件数 |" in aggregate
+    assert f"]({target})" in aggregate
+    assert "`medium`" in aggregate
+    assert summary["cases"][0]["attribution"]["confidence"] == "medium"

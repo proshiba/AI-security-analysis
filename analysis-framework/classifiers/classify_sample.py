@@ -5,18 +5,61 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
+FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
+FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
 
 
-def load_detector(framework_root: Path, relative_path: str):
+class DetectorPathError(ValueError):
+    """Raised when registry metadata points outside the detector allowlist."""
+
+
+def _resolve_detector_path(
+    framework_root: Path,
+    family: str,
+    relative_path: str,
+) -> Path:
+    """Resolve the exact malware/family/detect.py path below the trusted root."""
+    trusted_root = FRAMEWORK_ROOT.resolve(strict=True)
+    supplied_root = framework_root.resolve(strict=True)
+    if supplied_root != trusted_root:
+        raise DetectorPathError(f"untrusted framework root: {supplied_root}")
+    if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
+        raise DetectorPathError(f"invalid detector family id: {family!r}")
+    if not isinstance(relative_path, str):
+        raise DetectorPathError("detector path must be a string")
+    requested = Path(relative_path)
+    expected = Path("malware") / family / "detect.py"
+    if requested.is_absolute() or requested != expected:
+        raise DetectorPathError(
+            f"detector path must be exactly {expected.as_posix()}: {relative_path!r}"
+        )
+    malware_root = (trusted_root / "malware").resolve(strict=True)
+    try:
+        resolved = (trusted_root / requested).resolve(strict=True)
+        relative = resolved.relative_to(malware_root)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise DetectorPathError(f"detector path escapes or does not exist: {relative_path!r}") from exc
+    if relative.parts != (family, "detect.py") or not resolved.is_file():
+        raise DetectorPathError(f"detector path is not allowlisted: {resolved}")
+    return resolved
+
+
+def load_detector(framework_root: Path, relative_path: str, family: str | None = None):
     """Load and return a registered malware detector function by relative path."""
-    common = str(framework_root / "common")
+    if family is None:
+        parts = Path(relative_path).parts if isinstance(relative_path, str) else ()
+        if len(parts) != 3:
+            raise DetectorPathError(f"cannot infer detector family from: {relative_path!r}")
+        family = parts[1]
+    path = _resolve_detector_path(framework_root, family, relative_path)
+    common = str(FRAMEWORK_ROOT / "common")
     if common not in sys.path:
         sys.path.insert(0, common)
-    path = framework_root / relative_path
     spec = importlib.util.spec_from_file_location(
         f"malware_detector_{path.parent.name}_{path.stem}", path
     )
@@ -24,7 +67,10 @@ def load_detector(framework_root: Path, relative_path: str):
         raise RuntimeError(f"cannot load detector: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.detect
+    detector = getattr(module, "detect", None)
+    if not callable(detector):
+        raise RuntimeError(f"detector has no callable detect(): {path}")
+    return detector
 
 
 def detection_uses_known_inner(detection: dict) -> bool:
@@ -74,14 +120,24 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
         registered = ", ".join(sorted(registry_data))
         raise ValueError(f"unknown malware type '{malware_type}'; registered: {registered}")
 
-    framework_root = registry.parent.parent
+    framework_root = FRAMEWORK_ROOT
     detections = []
     detector_errors: dict[str, str] = {}
     items = [(malware_type, registry_data[malware_type])] if malware_type else registry_data.items()
     for registered_type, metadata in items:
+        if not isinstance(metadata, dict):
+            detector_errors[registered_type] = (
+                "DetectorPathError: registry metadata must be an object"
+            )
+            continue
         try:
-            detector = load_detector(framework_root, metadata["detector"])
+            detector = load_detector(
+                framework_root, metadata.get("detector"), registered_type
+            )
             detection = detector(data, path)
+        except DetectorPathError as exc:
+            detector_errors[registered_type] = f"{type(exc).__name__}: {exc}"
+            continue
         except Exception as exc:
             detector_errors[registered_type] = f"{type(exc).__name__}: {exc}"
             detection = {"matched": False, "observations": {}, "campaigns": []}
@@ -119,11 +175,65 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
     if not detections:
         return _unknown_result(path, digest, len(data), detector_errors=detector_errors)
 
-    detections.sort(key=lambda item: CONFIDENCE_ORDER[item["malware_type_confidence"]])
+    detections.sort(
+        key=lambda item: (
+            CONFIDENCE_ORDER[item["malware_type_confidence"]],
+            item["malware_type"],
+        )
+    )
+    top_rank = CONFIDENCE_ORDER[detections[0]["malware_type_confidence"]]
+    top = [
+        item
+        for item in detections
+        if CONFIDENCE_ORDER[item["malware_type_confidence"]] == top_rank
+    ]
+    if malware_type is None and len(top) > 1:
+        return {
+            "sample": str(path),
+            "malware_type": "unknown",
+            "malware_type_confidence": "low",
+            "attribution_basis": "ambiguous_type_detection",
+            "campaign_type": "unknown",
+            "campaign_confidence": "low",
+            "campaign_resolution": "ambiguous_type_detection",
+            "candidates": [],
+            "observations": {
+                "sha256": digest,
+                "size": len(data),
+                "detector_errors": detector_errors,
+            },
+            "all_type_detections": detections,
+            "ambiguous_type_candidates": [
+                {
+                    "malware_type": item["malware_type"],
+                    "malware_type_confidence": item["malware_type_confidence"],
+                    "attribution_basis": item["attribution_basis"],
+                }
+                for item in top
+            ],
+            "family_label_used_to_select_campaign": False,
+            "explicit_malware_type": None,
+        }
     selected = detections[0]
-    campaigns = selected["detection"].get("campaigns", [])
-    campaigns.sort(key=lambda item: CONFIDENCE_ORDER.get(item.get("confidence", "low"), 2))
+    campaigns = sorted(
+        selected["detection"].get("campaigns", []),
+        key=lambda item: (
+            CONFIDENCE_ORDER.get(item.get("confidence", "low"), 2),
+            str(item.get("campaign_type", "")),
+        ),
+    )
     campaign = campaigns[0] if campaigns else {"campaign_type": "unknown", "confidence": "low"}
+    campaign_resolution = "selected"
+    if campaigns:
+        campaign_rank = CONFIDENCE_ORDER.get(campaign.get("confidence", "low"), 2)
+        tied_names = {
+            str(item.get("campaign_type", "unknown"))
+            for item in campaigns
+            if CONFIDENCE_ORDER.get(item.get("confidence", "low"), 2) == campaign_rank
+        }
+        if len(tied_names) > 1:
+            campaign = {"campaign_type": "unknown", "confidence": "low"}
+            campaign_resolution = "ambiguous_campaign_detection"
     return {
         "sample": str(path),
         "malware_type": selected["malware_type"],
@@ -131,6 +241,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
         "attribution_basis": selected["attribution_basis"],
         "campaign_type": campaign["campaign_type"],
         "campaign_confidence": campaign["confidence"],
+        "campaign_resolution": campaign_resolution,
         "candidates": campaigns,
         "observations": {
             "sha256": digest,

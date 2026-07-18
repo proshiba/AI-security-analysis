@@ -246,6 +246,72 @@ def test_exact_method_slice_and_single_signal_is_inconclusive(
     assert benign["managed_control_flow_flattening"]["status"] == "inconclusive"
     assert benign["resource_obfuscation"]["status"] == "inconclusive"
 
+
+def test_iterator_and_command_switches_are_not_cff_evidence() -> None:
+    """Exclude only the two dispatch methods reviewed in the exact sample."""
+    reviewed_sha256 = (
+        "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51"
+    )
+    candidates = [
+        {
+            "sample_sha256": reviewed_sha256,
+            "owner": "Definitions.<GetDefinitions>d__16",
+            "name": "MoveNext",
+            "max_switch_targets": 65,
+        },
+        {
+            "sample_sha256": reviewed_sha256,
+            "owner": "Commands.ControlStuff",
+            "name": "Input",
+            "max_switch_targets": 16,
+        },
+    ]
+    result = managed._assess_techniques(
+        [{"marker": "koi_vm", "sources": ["metadata_names"]}],
+        {
+            "methods_parsed": 2,
+            "proxy_method_candidates": 0,
+            "instructions_counted": 200,
+            "constant_loads": 0,
+        },
+        candidates,
+        [],
+    )
+    assessment = result["managed_control_flow_flattening"]
+    assert assessment["status"] == "inconclusive"
+    assert "excluded 2 reviewed semantic dispatch shape" in assessment["evidence"][0]
+    assert (
+        managed._known_semantic_dispatch_shape(candidates[0])
+        == "compiler_generated_iterator_state_machine"
+    )
+    assert (
+        managed._known_semantic_dispatch_shape(candidates[1])
+        == "application_command_dispatch"
+    )
+
+
+def test_attacker_named_command_handler_remains_cff_evidence() -> None:
+    """Do not suppress a high-fanout switch based on owner/method names alone."""
+    candidate = {
+        "sample_sha256": "b" * 64,
+        "owner": "Commands.Handler",
+        "name": "HandleCommand",
+        "max_switch_targets": 64,
+    }
+    assert managed._known_semantic_dispatch_shape(candidate) is None
+    result = managed._assess_techniques(
+        [{"marker": "koi_vm", "sources": ["metadata_names"]}],
+        {
+            "methods_parsed": 1,
+            "proxy_method_candidates": 0,
+            "instructions_counted": 100,
+            "constant_loads": 0,
+        },
+        [candidate],
+        [],
+    )
+    assert result["managed_control_flow_flattening"]["status"] == "suspected"
+
 def test_plan_managed_methods_is_ordered_and_static_only() -> None:
     """Route each managed technique to a non-executing static method."""
     techniques = {

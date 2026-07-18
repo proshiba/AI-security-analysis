@@ -53,6 +53,8 @@ ENTROPY_SAMPLE_WINDOW = 1 * 1024 * 1024
 MAX_EXTRACTED_TOTAL = 768 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 512
 MAX_RETAINED_MEMBERS = 128
+MAX_COMPRESSION_RATIO = 200.0
+ARCHIVE_READ_CHUNK_SIZE = 1024 * 1024
 MACHO_MAGICS = {
     b"\xcf\xfa\xed\xfe",
     b"\xfe\xed\xfa\xcf",
@@ -654,56 +656,191 @@ def recover_encoded_blobs(data: bytes) -> list[tuple[str, bytes]]:
     return artifacts[:128]
 
 
-def recover_zip(data: bytes) -> tuple[list[dict], list[tuple[str, bytes]]]:
-    """Inventory a bounded ZIP and retain recognized or script-like members."""
-    inventory, artifacts = [], []
+class _ZipQuotaExceeded(ValueError):
+    """Internal signal that discards every partially recovered ZIP artifact."""
+
+    def __init__(self, status: str, name: str, detail: str) -> None:
+        super().__init__(detail)
+        self.status = status
+        self.name = name
+        self.detail = detail
+
+
+def _read_standard_zip_member_capped(
+    archive: zipfile.ZipFile,
+    info: zipfile.ZipInfo,
+    *,
+    name: str,
+    max_member_size: int,
+    remaining_total: int,
+    max_compression_ratio: float,
+    chunk_size: int,
+) -> bytes:
+    """Read one ZIP member in bounded chunks and reject forged metadata."""
+
+    declared_size = int(info.file_size)
+    compressed_size = int(info.compress_size)
+    if compressed_size < 0:
+        raise _ZipQuotaExceeded(
+            "malformed_metadata", name, "negative compressed size"
+        )
+    ratio_output_limit = int(compressed_size * max_compression_ratio)
+    output_limit = min(
+        declared_size,
+        max_member_size,
+        remaining_total,
+        ratio_output_limit,
+    )
+    output_size = 0
+    chunks: list[bytes] = []
+    with archive.open(info, "r") as handle:
+        while True:
+            read_size = min(chunk_size, output_limit - output_size + 1)
+            chunk = handle.read(max(1, read_size))
+            if not chunk:
+                break
+            output_size += len(chunk)
+            if output_size > declared_size:
+                raise _ZipQuotaExceeded(
+                    "size_mismatch",
+                    name,
+                    f"declared {declared_size} bytes but output exceeded it",
+                )
+            if output_size > max_member_size:
+                raise _ZipQuotaExceeded(
+                    "size_blocked", name, f"member exceeded {max_member_size} bytes"
+                )
+            if output_size > remaining_total:
+                raise _ZipQuotaExceeded(
+                    "total_size_blocked",
+                    name,
+                    "archive exceeded cumulative extracted-byte limit",
+                )
+            if output_size > ratio_output_limit:
+                raise _ZipQuotaExceeded(
+                    "ratio_blocked",
+                    name,
+                    f"member exceeded compression ratio {max_compression_ratio:g}",
+                )
+            chunks.append(chunk)
+    if output_size != declared_size:
+        raise _ZipQuotaExceeded(
+            "size_mismatch",
+            name,
+            f"declared {declared_size} bytes but produced {output_size}",
+        )
+    return b"".join(chunks)
+
+
+def recover_zip(
+    data: bytes,
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+    max_compression_ratio: float = MAX_COMPRESSION_RATIO,
+    read_chunk_size: int = ARCHIVE_READ_CHUNK_SIZE,
+) -> tuple[list[dict], list[tuple[str, bytes]]]:
+    """Inventory a ZIP under member, total-byte, and compression-ratio quotas."""
+
+    for value, label in (
+        (max_members, "max_members"),
+        (max_member_size, "max_member_size"),
+        (max_total_size, "max_total_size"),
+        (max_compression_ratio, "max_compression_ratio"),
+        (read_chunk_size, "read_chunk_size"),
+    ):
+        if isinstance(value, bool) or value <= 0:
+            raise ValueError(f"{label} must be positive")
+
+    inventory: list[dict] = []
+    artifacts: list[tuple[str, bytes]] = []
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         infos = [item for item in archive.infolist() if not item.is_dir()]
-        selected = infos
-        if len(infos) > 512:
-            suffixes = {
-                ".exe",
-                ".dll",
-                ".bin",
-                ".dat",
-                ".js",
-                ".vbs",
-                ".ps1",
-                ".hta",
-                ".macho",
-                ".dylib",
-                ".zip",
-            }
-            selected = [
-                item for item in infos if Path(item.filename).suffix.lower() in suffixes
-            ][:128]
-            inventory.append(
+        if len(infos) > max_members:
+            return [
                 {
                     "name": "__archive__",
                     "status": "member_limit_applied",
+                    "member_limit": max_members,
                     "total_members": len(infos),
-                    "selected_members": len(selected),
+                    "selected_members": 0,
                 }
-            )
-        for info in selected:
+            ], []
+
+        prepared: list[tuple[zipfile.ZipInfo, str]] = []
+        declared_total = 0
+        for info in infos:
             name = safe_member_name(info.filename)
-            if info.file_size > MAX_ARTIFACT:
-                inventory.append(
-                    {"name": name, "size": info.file_size, "status": "size_blocked"}
-                )
-                continue
-            if info.compress_size and info.file_size / info.compress_size > 200:
-                inventory.append(
-                    {"name": name, "size": info.file_size, "status": "ratio_blocked"}
-                )
-                continue
+            declared_size = int(info.file_size)
+            compressed_size = int(info.compress_size)
+            if declared_size < 0 or compressed_size < 0:
+                return [
+                    {
+                        "name": name,
+                        "status": "malformed_metadata",
+                        "size": declared_size,
+                        "compressed_size": compressed_size,
+                    }
+                ], []
+            if declared_size > max_member_size:
+                return [
+                    {
+                        "name": name,
+                        "status": "size_blocked",
+                        "size": declared_size,
+                        "member_size_limit": max_member_size,
+                    }
+                ], []
+            declared_total += declared_size
+            if declared_total > max_total_size:
+                return [
+                    {
+                        "name": "__archive__",
+                        "status": "total_size_blocked",
+                        "declared_total_size": declared_total,
+                        "total_size_limit": max_total_size,
+                    }
+                ], []
+            ratio_output_limit = int(compressed_size * max_compression_ratio)
+            if declared_size > ratio_output_limit:
+                return [
+                    {
+                        "name": name,
+                        "status": "ratio_blocked",
+                        "size": declared_size,
+                        "compressed_size": compressed_size,
+                        "compression_ratio_limit": max_compression_ratio,
+                    }
+                ], []
+            prepared.append((info, name))
+
+        extracted_total = 0
+        for info, name in prepared:
             try:
-                blob = archive.read(info)
+                blob = _read_standard_zip_member_capped(
+                    archive,
+                    info,
+                    name=name,
+                    max_member_size=max_member_size,
+                    remaining_total=max_total_size - extracted_total,
+                    max_compression_ratio=max_compression_ratio,
+                    chunk_size=read_chunk_size,
+                )
             except RuntimeError:
                 inventory.append(
                     {"name": name, "size": info.file_size, "status": "encrypted"}
                 )
                 continue
+            except _ZipQuotaExceeded as exc:
+                return [
+                    {
+                        "name": exc.name,
+                        "status": exc.status,
+                        "detail": exc.detail,
+                    }
+                ], []
+            extracted_total += len(blob)
             kind = detect_format(blob, name)
             inventory.append(
                 {
@@ -968,6 +1105,9 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             "total_members": len(paths),
             "declared_total_size": sum(declared_sizes),
             "password_attempted": bool(password),
+            # Safe public alias retained by report sanitizers that intentionally
+            # remove every field whose name contains "password".
+            "archive_unlock_attempted": bool(password),
         }
 
 
@@ -1058,7 +1198,20 @@ def sevenzip_extract(
     password: str = "",
 ) -> tuple[dict, list[tuple[str, bytes]]]:
     """Extract a recognized container with path, count, and byte-count bounds."""
-    listing = sevenzip_inventory(data, executable, password)
+    # Supplying an unrelated archive password to a PE/NSIS image makes 7-Zip
+    # omit its synthetic [NSIS].nsi decompilation stream. Probe without a
+    # password first and keep that mode for NSIS; other archive types retain
+    # the caller-provided password for encrypted RAR/7z/ZIP cases.
+    unkeyed_listing = sevenzip_inventory(data, executable, "")
+    unkeyed_types = {
+        str(value).lower() for value in unkeyed_listing.get("archive_types", [])
+    }
+    effective_password = "" if "nsis" in unkeyed_types else password
+    listing = (
+        unkeyed_listing
+        if not effective_password
+        else sevenzip_inventory(data, executable, effective_password)
+    )
     if listing["status"] == "unavailable":
         return listing, []
     extractable_types = {
@@ -1088,8 +1241,8 @@ def sevenzip_extract(
         source, output = root / f"input{suffix}", root / "out"
         source.write_bytes(data)
         command = [str(executable), "x", "-y", "-bd", "-bb0"]
-        if password:
-            command.append(f"-p{password}")
+        if effective_password:
+            command.append(f"-p{effective_password}")
         command.extend([f"-o{output}", "--", str(source)])
         try:
             completed = subprocess.run(
@@ -1184,8 +1337,16 @@ def unpack_bytes(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    force_container_probe: bool = False,
+    archive_password: str = "",
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Run the bounded static recovery pipeline and return metadata plus artifacts."""
+    """Run bounded static recovery and return metadata plus artifacts.
+
+    The force flag is for reviewed inventory hints such as a known NSIS
+    carrier whose PE layout does not satisfy the generic container heuristic.
+    It never executes the input; it only allows the configured archive parser
+    to inspect it.
+    """
     kind = detect_format(data, name)
     report = {
         "schema_version": 2,
@@ -1235,9 +1396,16 @@ def unpack_bytes(
                 artifacts.append(("upx", blob))
         elif upx:
             report["upx"] = {"status": "skipped_no_upx_evidence"}
-        if sevenzip and report["pe"]["containerized"]:
-            report["sevenzip"], recovered = sevenzip_extract(static_data, sevenzip, name)
+        if sevenzip and (
+            report["pe"]["containerized"] or force_container_probe
+        ):
+            report["sevenzip"], recovered = sevenzip_extract(
+                static_data, sevenzip, name, archive_password
+            )
             artifacts.extend(recovered)
+            report["sevenzip"]["forced_by_reviewed_hint"] = bool(
+                force_container_probe and not report["pe"]["containerized"]
+            )
     elif kind == "macho":
         report["macho"] = macho_summary(data)
         report["macho_slices"], recovered = recover_macho_slices(data)
@@ -1250,11 +1418,28 @@ def unpack_bytes(
         try:
             report["zip"], recovered = recover_zip(data)
             artifacts.extend(recovered)
+            if any(
+                item.get("status")
+                in {
+                    "member_limit_applied",
+                    "size_blocked",
+                    "total_size_blocked",
+                    "ratio_blocked",
+                    "malformed_metadata",
+                    "size_mismatch",
+                }
+                for item in report["zip"]
+            ):
+                report["unpack_status"] = "bounded_limit"
+                report["recovered"] = []
+                return report, []
         except (ValueError, zipfile.BadZipFile) as exc:
             report["zip_error"] = str(exc)
             report["unpack_status"] = "bounded_limit"
     elif kind in {"7z", "apple-disk-image", "cab", "rar"} and sevenzip:
-        report["sevenzip"], recovered = sevenzip_extract(data, sevenzip, name)
+        report["sevenzip"], recovered = sevenzip_extract(
+            data, sevenzip, name, archive_password
+        )
         artifacts.extend(recovered)
     elif kind == "autoit-a3x":
         report["autoit"], recovered = recover_autoit_script(data)
@@ -1320,6 +1505,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--upx", type=Path)
     parser.add_argument("--sevenzip", type=Path)
     parser.add_argument("--diec", type=Path)
+    parser.add_argument("--force-container-probe", action="store_true")
+    parser.add_argument("--archive-password", default="")
     return parser
 
 
@@ -1329,7 +1516,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.input.resolve() == args.output.resolve():
         raise ValueError("input and output paths must differ")
     report, artifacts = unpack_bytes(
-        args.input.read_bytes(), args.input.name, args.upx, args.sevenzip, args.diec
+        args.input.read_bytes(),
+        args.input.name,
+        args.upx,
+        args.sevenzip,
+        args.diec,
+        args.force_container_probe,
+        args.archive_password,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

@@ -1,125 +1,141 @@
-# APT-C-60 / SpyGlace offline analysis workflow
+# APT-C-60 / SpyGlace オフライン解析ワークフロー
 
-This procedure turns an acquired delivery artifact or a local mirror of a public attacker repository into publish-safe hashes, layer metadata, SpyGlace configuration and detection pivots. It never requires malware execution or live C2 access.
+この手順は、取得済みの delivery artifact または公開された攻撃者 repository のローカル mirror から、公開可能な hash、layer metadata、SpyGlace config、検知用 pivot を生成します。malware の実行や live C2 への接続は不要です。
 
-## Preconditions
+## 前提条件
 
-- Work from an isolated analysis directory outside Git.
-- Treat every downloaded blob, archive, LNK and recovered PE as malicious.
-- Set PYTHONPATH to the repository root and analysis-framework/src.
-- Keep Ghidra MCP on localhost, pass an explicit program selector and leave arbitrary script execution disabled.
-- Record acquisition source and time before transforming any artifact.
+- Git の外にある隔離された解析 directory で作業します。
+- download した blob、archive、LNK、復元した PE はすべて悪性として扱います。
+- `PYTHONPATH` に repository root と `analysis-framework/src` を設定します。
+- Ghidra MCP は localhost だけで待ち受け、明示的な program selector を渡し、任意 script 実行は無効のままにします。
+- artifact を変換する前に、取得元と取得時刻を記録します。
 
-PowerShell setup:
+PowerShell の設定例です。
 
-    $Repo = 'C:\Users\Administrator\AI-security-analysis'
-    $Python = 'C:\Users\Administrator\Tools\Python313\python.exe'
-    $env:PYTHONPATH = "$Repo;$Repo\analysis-framework\src;$Repo\analysis-framework\common"
-    Set-Location $Repo
+```powershell
+$Repo = 'C:\Users\Administrator\AI-security-analysis'
+$Python = 'C:\Users\Administrator\Tools\Python313\python.exe'
+$env:PYTHONPATH = "$Repo;$Repo\analysis-framework\src;$Repo\analysis-framework\common"
+Set-Location $Repo
+```
 
-## Execution order
+## 実行順序
 
-### 1. Inventory a local Git mirror
+### 1. ローカル Git mirror の棚卸し
 
-Acquire a mirror only when collection is authorized, then inventory every reachable historical blob:
+収集が許可されている場合にだけ mirror を取得し、到達可能な過去の blob をすべて棚卸しします。
 
-    & $Python .\analysis-framework\common\repository_history_collector.py --git-dir C:\analysis\mirrors\owner__repo.git --output C:\analysis\inventory\owner__repo.json --export-dir C:\analysis\blobs\owner__repo
+```powershell
+& $Python .\analysis-framework\common\repository_history_collector.py --git-dir C:\analysis\mirrors\owner__repo.git --output C:\analysis\inventory\owner__repo.json --export-dir C:\analysis\blobs\owner__repo
+```
 
-Expected output includes commit_count, commit metadata, every unique blob and its paths, SHA-256, format and literal IOC candidates. The collector does not execute content.
+想定出力には、`commit_count`、commit metadata、重複を除いた全 blob とその path、SHA-256、format、literal IOC 候補が含まれます。collector は content を実行しません。
 
-Failure checks:
+失敗時は次を確認します。
 
-- "not a git repository": point --git-dir at the bare mirror directory containing HEAD and objects.
-- Missing deleted content: confirm the mirror includes all refs and rerun git rev-list --all.
-- skipped maximum_blob_size: increase the explicit bound only after confirming available quarantine storage.
-- Empty repository: retain the liveness result; do not infer that it was never used.
+- `not a git repository`: `--git-dir` が、`HEAD` と `objects` を含む bare mirror directory を指しているか確認します。
+- 削除済み content がない: mirror がすべての ref を含むことを確認し、`git rev-list --all` を再実行します。
+- `skipped maximum_blob_size`: 隔離 storage の空き容量を確認した後にだけ、明示的な上限を引き上げます。
+- 空の repository: liveness の結果を保持し、一度も使われなかったとは推測しません。
 
-### 2. Inspect LNK and delivery archives
+### 2. LNK と delivery archive の検査
 
-Inspect an LNK without opening it:
+LNK を開かずに検査します。
 
-    & $Python .\unpackers\apt_c60_delivery.py --input C:\analysis\quarantine\sample.lnk --kind lnk --report C:\analysis\reports\lnk.json
+```powershell
+& $Python .\unpackers\apt_c60_delivery.py --input C:\analysis\quarantine\sample.lnk --kind lnk --report C:\analysis\reports\lnk.json
+```
 
-For a strict Base64 carrier containing the TAR bundle:
+TAR bundle を含む厳密な Base64 carrier は、次のように処理します。
 
-    & $Python .\unpackers\apt_c60_delivery.py --input C:\analysis\quarantine\contributing.txt --kind base64-tar --payload-output C:\analysis\quarantine\iconcache.dat --report C:\analysis\reports\delivery.json
+```powershell
+& $Python .\unpackers\apt_c60_delivery.py --input C:\analysis\quarantine\contributing.txt --kind base64-tar --payload-output C:\analysis\quarantine\iconcache.dat --report C:\analysis\reports\delivery.json
+```
 
-Expected delivery output identifies embedded URLs/actions or the TAR, install script, ordered TMI fragments, destination and reconstructed payload hash.
+delivery の想定出力には、埋め込まれた URL/action または TAR、install script、順序付き TMI fragment、destination、再構築した payload hash が含まれます。
 
-Failure checks:
+失敗時は次を確認します。
 
-- carrier is not strict Base64: verify that the correct historical blob was selected and was not HTML or Git LFS metadata.
-- decoded data is not a TAR archive: keep the hash and classify the layer as an unknown carrier; do not use permissive deserialization.
-- unsafe TAR member or TAR links: stop extraction and report the path-safety violation.
-- missing fragments: locate the matching commit/version; do not concatenate fragments from unrelated commits.
-- copy /b not found: inspect script encodings and filenames statically, then add a reviewed parser fixture before changing production logic.
+- carrier が厳密な Base64 ではない: 正しい過去 blob を選んだこと、および HTML や Git LFS metadata でないことを確認します。
+- decode 後の data が TAR archive ではない: hash を保持し、layer を未知の carrier と分類します。寛容な deserialization は使用しません。
+- 安全でない TAR member または TAR link: 抽出を中止し、path safety 違反を報告します。
+- fragment が不足: 対応する commit/version を探します。無関係な commit の fragment を連結しません。
+- `copy /b` がない: script encoding と filename を静的に確認し、production logic を変更する前にレビュー済み parser fixture を追加します。
 
-### 3. Recover repository envelopes
+### 3. Repository envelope の復元
 
-The unified extractor can recover known envelopes in memory, so writing a decoded PE is optional. For reverse engineering only, write the PE to quarantine:
+統合 extractor は既知の envelope を memory 内で復元できるため、decode 済み PE の書き出しは任意です。reverse engineering のためにだけ書き出す場合は、PE を隔離領域へ保存します。
 
-    & $Python .\unpackers\spyglace_unpacker.py --input C:\analysis\blobs\encoded.tmp --output C:\analysis\quarantine\recovered.bin --report C:\analysis\reports\unpack.json
+```powershell
+& $Python .\unpackers\spyglace_unpacker.py --input C:\analysis\blobs\encoded.tmp --output C:\analysis\quarantine\recovered.bin --report C:\analysis\reports\unpack.json
+```
 
-Expected output is method, input/payload SHA-256, size and role. Supported transforms are a literal PE and repeating XOR with sgznqhtgnghvmzxponum or AadDDRTaSPtyAG57er#$ad!lDKTOPLTEL78pE.
+想定出力は、method、入力と payload の SHA-256、size、role です。対応する変換は literal PE、および `sgznqhtgnghvmzxponum` または `AadDDRTaSPtyAG57er#$ad!lDKTOPLTEL78pE` を使う repeating XOR です。
 
-Failure checks:
+失敗時は次を確認します。
 
-- no supported envelope: verify the blob hash and file generation, then test it as a container or script instead of guessing a key.
-- role unknown_pe: preserve the decoded hash and run generic static PE inspection; do not force a SpyGlace label.
-- invalid PE: reject out-of-bounds headers or an implausible section count.
+- 対応 envelope がない: blob hash と file generation を確認し、key を推測するのではなく container または script として検査します。
+- role が `unknown_pe`: decode 済み hash を保持し、一般的な静的 PE 検査を実行します。SpyGlace label を強制しません。
+- 無効な PE: 範囲外の header または不自然な section 数を拒否します。
 
-### 4. Extract SpyGlace configuration
+### 4. SpyGlace config の抽出
 
-Run directly against either the encoded repository blob or decoded PE:
+encode 済み repository blob または decode 済み PE のどちらかを直接入力します。
 
-    & $Python -m extractors.config_extractor --family spyglace --input C:\analysis\blobs\encoded.tmp --output C:\analysis\reports\config.json
+```powershell
+& $Python -m extractors.config_extractor --family spyglace --input C:\analysis\blobs\encoded.tmp --output C:\analysis\reports\config.json
+```
 
-Expected output includes C2 IP, user ID, request paths, mutex, command/API set, custom-RC4 key, persistence strings, payload hash, envelope method and explicit no-execution/no-network fields.
+想定出力には、C2 IP、user ID、request path、mutex、command/API set、custom RC4 key、persistence string、payload hash、envelope method、実行なし・network 接続なしを示す明示 field が含まれます。
 
-Failure checks:
+失敗時は次を確認します。
 
-- variant unrecognized: confirm a valid SpyGlace PE was recovered and inspect both transform domains.
-- C2 missing but commands present: treat it as a possible version/config-layout change and add a hash-scoped fixture before widening regex.
-- paths missing: search decoded strings for bounded ASP-like values and verify references in Ghidra.
-- AES constants null: null means they were not literal in that binary; do not populate them only because an older report documented them.
-- inferred URLs: an IP plus a path is a pivot, not evidence that HTTP or that endpoint is live.
+- variant を認識できない: 有効な SpyGlace PE が復元されたことを確認し、両方の transform domain を検査します。
+- command はあるが C2 がない: version/config layout の変更候補として扱い、regex を広げる前に hash-scoped fixture を追加します。
+- path がない: decode 済み string から長さを制限した ASP 風の値を探し、Ghidra で参照を検証します。
+- AES 定数が null: その binary に literal として存在しなかったことを意味します。古い report に記載があるという理由だけで値を補いません。
+- 推定 URL: IP と path の組合せは pivot であり、HTTP または endpoint が live である根拠ではありません。
 
-### 5. Reverse engineer a novel build
+### 5. 新規 build の reverse engineering
 
-Import only the quarantined decoded PE. In Ghidra MCP calls, always specify the exact program. Confirm:
+隔離した decode 済み PE だけを import します。Ghidra MCP の各 call では、必ず正確な program を指定し、次を確認します。
 
-1. The command/API decoder implements (encoded XOR 3) minus 1.
-2. The config decoder implements (encoded XOR 2) minus 1.
-3. References to WinHTTP APIs and each recovered ASP path.
-4. Command dispatch comparisons and process, file, screenshot and extension handlers.
-5. Loader persistence CLSIDs and payload paths.
+1. command/API decoder が「encode 値と 3 の XOR 後に 1 を減算」を実装していること。
+2. config decoder が「encode 値と 2 の XOR 後に 1 を減算」を実装していること。
+3. WinHTTP API と、復元した各 ASP path への参照。
+4. command dispatch の比較処理と、process、file、screenshot、extension handler。
+5. loader persistence の CLSID と payload path。
 
-Use FLOSS static mode as a secondary string source. A decoded-string timeout or no decoded strings is a tool limitation, not proof that strings are absent.
+FLOSS の static mode を二次的な string 情報源として使用します。decode string の timeout や decode string が 0 件であることは tool の制約であり、string が存在しない証明ではありません。
 
-### 6. Generate passive infrastructure pivots
+### 6. 受動的なインフラ pivot の生成
 
-    & $Python .\analysis-framework\malware\spyglace\c2_detector.py --input C:\analysis\blobs\encoded.tmp --output C:\analysis\reports\passive-c2.json
+```powershell
+& $Python .\analysis-framework\malware\spyglace\c2_detector.py --input C:\analysis\blobs\encoded.tmp --output C:\analysis\reports\passive-c2.json
+```
 
-This step emits Shodan query text only. It does not probe a host. Leave banner hash, title, certificate hash and JARM null unless obtained from an authorized passive source with provenance and observation time.
+この手順は Shodan query text だけを出力し、host を probe しません。provenance と観測時刻を伴う、許可された passive source から得た場合を除き、banner hash、title、certificate hash、JARM は null のままにします。
 
-### 7. Validate detections and regression tests
+### 7. 検知と regression test の検証
 
-    & $Python -m pytest .\unpackers\tests\test_spyglace_unpacker.py .\unpackers\tests\test_apt_c60_delivery.py .\extractors\tests\test_spyglace_extractor.py .\emulators\spyglace\tests\test_lab.py .\analysis-framework\malware\spyglace\tests\test_detection.py -q
+```powershell
+& $Python -m pytest .\unpackers\tests\test_spyglace_unpacker.py .\unpackers\tests\test_apt_c60_delivery.py .\extractors\tests\test_spyglace_extractor.py .\emulators\spyglace\tests\test_lab.py .\analysis-framework\malware\spyglace\tests\test_detection.py -q
+```
 
-Validate every Sigma document with a YAML parser and compile the YARA file when yara is available. A detection release must include false-positive analysis at high, medium and low confidence.
+すべての Sigma 文書を YAML parser で検証し、`yara` が利用できる場合は YARA file を compile します。検知 release には、高・中・低の各信頼度について false positive 解析を含めます。
 
-## Publish-safe output
+## 公開可能な出力
 
-Commit only:
+commit するのは次の項目だけです。
 
-- config/report JSON without raw sample bytes, secrets or victim data;
-- acquisition hashes and transformation provenance;
-- repository liveness at a stated time;
-- IOC CSV, Sigma/YARA, family/campaign definitions and limitations;
-- unit tests and pydoc.
+- raw sample byte、secret、victim data を含まない config/report JSON。
+- 取得 hash と変換 provenance。
+- 明示した時刻における repository liveness。
+- IOC CSV、Sigma/YARA、family/campaign 定義、制約。
+- unit test と pydoc。
 
-Never commit raw/decoded malware, repository mirrors, task files named after victim devices, packet captures containing victim data or a live-response body.
+raw または decode 済み malware、repository mirror、victim device 名を付けた task file、victim data を含む packet capture、live response body は絶対に commit しません。
 
-## Escalation path for new variants
+## 新規 variant の escalation 手順
 
-When a version does not match existing logic, preserve the unknown result and add a separate campaign/layout branch. Do not weaken the existing classifier globally. Create a minimal non-malicious fixture, document the new transform, add unit tests for success and malformed input, regenerate pydoc and rerun the prior v3.1.15 cases.
+version が既存 logic に一致しない場合は、未知という結果を保持し、別の campaign/layout branch を追加します。既存 classifier 全体を緩めません。悪性でない最小 fixture を作成し、新しい transform を文書化し、成功入力と malformed input の unit test を追加して、pydoc を再生成し、以前の v3.1.15 case を再実行します。

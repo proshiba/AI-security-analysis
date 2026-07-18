@@ -97,6 +97,7 @@ _MARKERS: tuple[tuple[str, tuple[bytes, ...]], ...] = (
     (".NET Reactor", (b".net reactor", b"eziriz")),
     ("SmartAssembly", (b"smartassembly", b"powered by smartassembly")),
     ("nsPack", (b"nspack", b".nsp")),
+    ("MPRESS", (b"mpress1", b"mpress2")),
     ("UPX", (b"upx!", b"$info: this file is packed with the upx")),
 )
 
@@ -155,6 +156,15 @@ def _raw_code_layers(value: object, field: str) -> dict[str, int]:
     return dict(sorted(result.items()))
 
 
+def _boolean(value: object, field: str) -> bool:
+    """Validate an optional inventory boolean without truthy string coercion."""
+    if value is None:
+        return False
+    if not isinstance(value, bool):
+        raise ValueError(f"{field} must be a boolean")
+    return value
+
+
 def _normalize_case(value: Mapping[str, Any], index: int) -> dict[str, Any]:
     """Normalize one expanded inventory case."""
 
@@ -171,6 +181,9 @@ def _normalize_case(value: Mapping[str, Any], index: int) -> dict[str, Any]:
         ),
         "raw_code_layers": _raw_code_layers(
             value.get("raw_code_layers"), f"cases[{index}].raw_code_layers"
+        ),
+        "container_probe": _boolean(
+            value.get("container_probe"), f"cases[{index}].container_probe"
         ),
     }
     return normalized
@@ -213,6 +226,7 @@ def expand_inventory(document: Mapping[str, Any]) -> list[dict[str, Any]]:
             "blockers": group.get("blockers", []),
             "expected_children": group.get("expected_children", []),
             "raw_code_layers": group.get("raw_code_layers", {}),
+            "container_probe": group.get("container_probe", False),
         }
         for digest in hashes:
             if digest in expanded:
@@ -236,6 +250,7 @@ def expand_inventory(document: Mapping[str, Any]) -> list[dict[str, Any]]:
             "blockers",
             "expected_children",
             "raw_code_layers",
+            "container_probe",
         ):
             if key in case:
                 merged[key] = case[key]
@@ -360,6 +375,20 @@ def _contextual_markers(
         ) or ("UPX!" in exact and packed_classification)
         if kind != "pe" or not corroborated:
             selected.discard("UPX")
+    if "MPRESS" in selected:
+        pe = unpack.get("pe") if isinstance(unpack, Mapping) else None
+        pe = pe if isinstance(pe, Mapping) else {}
+        exact = {str(value).upper() for value in pe.get("packer_markers", [])}
+        section_names = {
+            str(item.get("name", "")).upper()
+            for item in pe.get("sections", [])
+            if isinstance(item, Mapping)
+        }
+        corroborated = "MPRESS" in exact or any(
+            name.startswith(".MPRESS") for name in section_names
+        )
+        if kind != "pe" or not corroborated:
+            selected.discard("MPRESS")
     return sorted(selected)
 
 
@@ -582,13 +611,33 @@ def _static_layer_analysis(
     digest: str,
     raw_code_layers: Mapping[str, int],
     *,
+    upx: Path | None,
+    sevenzip: Path | None,
+    diec: Path | None,
+    force_container_probe: bool,
+    archive_password: str,
     max_blocks: int,
     max_instructions: int,
     max_block_bytes: int,
 ) -> tuple[dict[str, Any], list[tuple[str, bytes]]]:
     """Run static unpacking and optional bounded control-flow analysis."""
 
-    report, artifacts = unpack_bytes(data, f"{digest}.bin")
+    unpack_options: dict[str, Any] = {}
+    if upx is not None:
+        unpack_options["upx"] = upx
+    if sevenzip is not None:
+        unpack_options["sevenzip"] = sevenzip
+    if diec is not None:
+        unpack_options["diec"] = diec
+    if force_container_probe:
+        unpack_options["force_container_probe"] = True
+    if archive_password:
+        unpack_options["archive_password"] = archive_password
+    # Preserve a PE-like suffix for external static container parsers. 7-Zip's
+    # NSIS handler exposes the synthetic [NSIS].nsi stream for an executable
+    # input but may omit it when identical bytes are named as generic .bin.
+    suffix = ".exe" if data.startswith(b"MZ") else ".bin"
+    report, artifacts = unpack_bytes(data, f"{digest}{suffix}", **unpack_options)
     kind = str(report.get("format", "unknown"))
     markers = _contextual_markers(scan_protector_markers(data), report, kind)
     control_flow: dict[str, Any] | None = None
@@ -624,6 +673,10 @@ def analyze_case(
     max_nodes: int = DEFAULT_MAX_NODES,
     max_input_size: int = DEFAULT_MAX_INPUT_SIZE,
     max_total_layer_bytes: int = DEFAULT_MAX_TOTAL_LAYER_BYTES,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    archive_password: str = "",
     max_blocks: int = DEFAULT_MAX_BLOCKS,
     max_instructions: int = DEFAULT_MAX_INSTRUCTIONS,
     max_block_bytes: int = DEFAULT_MAX_BLOCK_BYTES,
@@ -699,7 +752,8 @@ def analyze_case(
     queue: list[tuple[int, str, str, bytes]] = [(0, "root", digest, data)]
     scheduled = {digest}
     scheduled_bytes = len(data)
-    observed = {digest}
+    discovered = {digest}
+    analyzed_layers: set[str] = set()
     budget_limited = False
     while queue:
         depth, relation, layer_hash, layer_data = queue.pop(0)
@@ -715,6 +769,13 @@ def analyze_case(
                 layer_data,
                 layer_hash,
                 normalized["raw_code_layers"],
+                upx=upx,
+                sevenzip=sevenzip,
+                diec=diec,
+                force_container_probe=bool(
+                    depth == 0 and normalized["container_probe"]
+                ),
+                archive_password=archive_password,
                 max_blocks=max_blocks,
                 max_instructions=max_instructions,
                 max_block_bytes=max_block_bytes,
@@ -733,7 +794,7 @@ def analyze_case(
 
         for artifact_kind, artifact in artifacts:
             child_hash = hashlib.sha256(artifact).hexdigest()
-            observed.add(child_hash)
+            discovered.add(child_hash)
             child = {
                 "kind": str(artifact_kind),
                 "sha256": child_hash,
@@ -760,14 +821,21 @@ def analyze_case(
                     queue.append((depth + 1, str(artifact_kind), child_hash, artifact))
             node["children"].append(child)
         result["nodes"].append(node)
+        analyzed_layers.add(layer_hash)
 
     expected = normalized["expected_children"]
-    missing = [value for value in expected if value not in observed]
+    missing = [value for value in expected if value not in discovered]
+    not_analyzed = [
+        value for value in expected if value in discovered and value not in analyzed_layers
+    ]
     result["expected_children"] = {
         "declared": expected,
-        "observed": [value for value in expected if value in observed],
+        "observed": [value for value in expected if value in discovered],
+        "analyzed": [value for value in expected if value in analyzed_layers],
         "missing": missing,
+        "not_analyzed": not_analyzed,
         "all_observed": not missing,
+        "all_analyzed": not missing and not not_analyzed,
     }
     result["budget_limited"] = budget_limited
     result["budget_usage"] = {
@@ -809,6 +877,10 @@ def run_inventory(
     max_nodes: int = DEFAULT_MAX_NODES,
     max_input_size: int = DEFAULT_MAX_INPUT_SIZE,
     max_total_layer_bytes: int = DEFAULT_MAX_TOTAL_LAYER_BYTES,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    archive_password: str = "",
     max_blocks: int = DEFAULT_MAX_BLOCKS,
     max_instructions: int = DEFAULT_MAX_INSTRUCTIONS,
     max_block_bytes: int = DEFAULT_MAX_BLOCK_BYTES,
@@ -826,6 +898,10 @@ def run_inventory(
             max_nodes=max_nodes,
             max_input_size=max_input_size,
             max_total_layer_bytes=max_total_layer_bytes,
+            upx=upx,
+            sevenzip=sevenzip,
+            diec=diec,
+            archive_password=archive_password,
             max_blocks=max_blocks,
             max_instructions=max_instructions,
             max_block_bytes=max_block_bytes,
@@ -858,19 +934,39 @@ def _markdown(value: object) -> str:
     return str(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
 
 
+def _markdown_identifier(value: object) -> str:
+    """Render a machine-readable identifier as inline code in human output."""
+
+    rendered = _markdown(value)
+    if rendered == "-":
+        return rendered
+    return f"`{rendered.replace('`', '&#96;')}`"
+
+
 def render_markdown(report: Mapping[str, Any]) -> str:
     """Render a sanitized human-readable summary without raw bytes or paths."""
 
     report = _normalize_report_findings(_sanitize_public(report))
     summary = report.get("summary", {})
+    summary_labels = {
+        "total": "総ケース数",
+        "analyzed": "解析完了",
+        "partial": "部分解析",
+        "not_found": "入力未発見",
+        "input_errors": "入力エラー",
+        "layers_analyzed": "解析済みレイヤー",
+        "budget_limited_cases": "解析上限到達ケース",
+        "protector_marker_cases": "保護・難読化マーカー検出ケース",
+        "expected_children_missing_cases": "想定子レイヤー不足ケース",
+    }
     lines = [
-        "# Deep static triage",
+        "# 深層静的トリアージ",
         "",
-        "This report was produced without sample execution, emulation, network contact, or raw-artifact persistence.",
+        "このレポートは、検体の実行、エミュレーション、ネットワーク接続、生 artifact の永続化を行わずに生成しました。",
         "",
-        "## Summary",
+        "## 概要",
         "",
-        "| Metric | Count |",
+        "| 指標 | 件数 |",
         "|---|---:|",
     ]
     for key in (
@@ -884,13 +980,16 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         "protector_marker_cases",
         "expected_children_missing_cases",
     ):
-        lines.append(f"| {_markdown(key)} | {_markdown(summary.get(key, 0))} |")
+        lines.append(
+            f"| {_markdown(summary_labels[key])} | "
+            f"{_markdown(summary.get(key, 0))} |"
+        )
     lines.extend(
         [
             "",
-            "## Cases",
+            "## ケース一覧",
             "",
-            "| SHA-256 | Family | Category | Status | Layers | Markers | Missing expected layers |",
+            "| SHA-256 | ファミリ | 分類 | 状態 | レイヤー数 | マーカー | 不足している想定レイヤー |",
             "|---|---|---|---|---:|---|---|",
         ]
     )
@@ -910,28 +1009,29 @@ def render_markdown(report: Mapping[str, Any]) -> str:
                 _markdown(value)
                 for value in (
                     case.get("sha256"),
-                    case.get("family"),
-                    case.get("category"),
-                    item.get("status"),
+                    _markdown_identifier(case.get("family")),
+                    _markdown_identifier(case.get("category")),
+                    _markdown_identifier(item.get("status")),
                     len(item.get("nodes", [])),
-                    markers,
-                    missing,
+                    _markdown_identifier(markers),
+                    _markdown_identifier(missing),
                 )
             )
             + " |"
         )
-    lines.extend(["", "## Case details", ""])
+    lines.extend(["", "## ケース詳細", ""])
     for item in report.get("cases", []):
         case = item.get("case", {})
         lines.extend(
             [
                 f"### {_markdown(case.get('sha256'))}",
                 "",
-                f"- Family: {_markdown(case.get('family'))}",
-                f"- Priority: {_markdown(case.get('priority'))}",
-                f"- Blockers: {_markdown(case.get('blockers', []))}",
-                f"- Status: {_markdown(item.get('status'))}",
-                f"- Budget limited: {_markdown(item.get('budget_limited', False))}",
+                f"- ファミリ: {_markdown_identifier(case.get('family'))}",
+                f"- 優先度: {_markdown(case.get('priority'))}",
+                f"- 阻害要因: {_markdown_identifier(case.get('blockers', []))}",
+                f"- 状態: {_markdown_identifier(item.get('status'))}",
+                "- 解析上限到達: "
+                + ("はい" if item.get("budget_limited", False) else "いいえ"),
             ]
         )
         for node in item.get("nodes", []):
@@ -951,11 +1051,11 @@ def render_markdown(report: Mapping[str, Any]) -> str:
                 if assessment.get("status") == "suspected"
             ]
             lines.append(
-                f"- Layer {_markdown(node.get('sha256'))}: "
-                f"format={_markdown(node.get('format'))}; "
-                f"markers={_markdown(node.get('markers', []))}; "
-                f"native-routing={_markdown(native_routing)}; "
-                f"managed-routing={_markdown(managed_routing)}"
+                f"- レイヤー {_markdown(node.get('sha256'))}: "
+                f"形式={_markdown_identifier(node.get('format'))}; "
+                f"マーカー={_markdown_identifier(node.get('markers', []))}; "
+                f"native 調査経路={_markdown_identifier(native_routing)}; "
+                f"managed 調査経路={_markdown_identifier(managed_routing)}"
             )
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -986,6 +1086,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--root", required=True, action="append", type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--password", default="infected")
+    parser.add_argument("--upx", type=Path)
+    parser.add_argument("--sevenzip", type=Path)
+    parser.add_argument("--diec", type=Path)
+    parser.add_argument("--archive-password", default="")
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
     parser.add_argument("--max-nodes", type=int, default=DEFAULT_MAX_NODES)
     parser.add_argument("--max-input-size", type=int, default=DEFAULT_MAX_INPUT_SIZE)
@@ -1009,6 +1113,10 @@ def main(argv: list[str] | None = None) -> int:
         max_nodes=args.max_nodes,
         max_input_size=args.max_input_size,
         max_total_layer_bytes=args.max_total_layer_bytes,
+        upx=args.upx,
+        sevenzip=args.sevenzip,
+        diec=args.diec,
+        archive_password=args.archive_password,
         max_blocks=args.max_blocks,
         max_instructions=args.max_instructions,
         max_block_bytes=args.max_block_bytes,

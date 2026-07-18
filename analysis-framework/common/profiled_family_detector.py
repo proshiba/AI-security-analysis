@@ -12,7 +12,7 @@ REPO = Path(__file__).parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from extractors.profiled_family import extract_family, profile_for  # noqa: E402
+from extractors.profiled_family import _independent_marker_hits, extract_family, profile_for  # noqa: E402
 
 SCRIPT_SUFFIXES = {".js", ".jse", ".vbs", ".vbe", ".ps1", ".hta", ".bat", ".cmd"}
 
@@ -45,10 +45,8 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
     digest = hashlib.sha256(data).hexdigest()
     exact = digest in known_hashes(profile["family"])
     marker_probe = data[: 8 * 1024 * 1024].lower()
-    prefilter_hits = [
-        marker for marker in profile["markers"] if marker.lower().encode() in marker_probe
-    ]
-    if not exact and len(prefilter_hits) < int(profile["minimum_markers"]):
+    prefilter_hits = _independent_marker_hits(profile["markers"], marker_probe.decode("latin1"))
+    if not exact and len(prefilter_hits) < max(2, int(profile["minimum_markers"])):
         return {
             "matched": False,
             "observations": {
@@ -58,6 +56,8 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
                 "marker_hits": prefilter_hits,
                 "observed_config_keys": [],
                 "network_candidate_count": 0,
+                "profile_literal_correlation": False,
+                "decoded_config_recovered": False,
                 "static_config_recovered": False,
                 "prefilter": "insufficient_family_markers",
                 "executed": False,
@@ -67,14 +67,15 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
         }
     result = extract_family(profile["family"], data, path.name)
     config = result["config"]
-    structural = bool(config.get("static_config_recovered"))
-    matched = exact or structural
-    campaign = campaign_type(profile["family"], path, profile["category"], structural)
+    profile_correlated = bool(config.get("profile_literal_correlation"))
+    decoded_config = bool(config.get("decoded_config_recovered"))
+    matched = exact or profile_correlated
+    campaign = campaign_type(profile["family"], path, profile["category"], decoded_config)
     reasons = []
     if exact:
         reasons.append("reviewed exact SHA-256 from the MalwareBazaar acquisition set")
-    if structural:
-        reasons.append("profile marker threshold plus sanitized network candidate")
+    if profile_correlated:
+        reasons.append("independent profile literals plus sanitized network candidate; config not decoded")
     return {
         "matched": matched,
         "observations": {
@@ -84,7 +85,9 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
             "marker_hits": config.get("marker_hits") or [],
             "observed_config_keys": config.get("observed_config_keys") or [],
             "network_candidate_count": len(result.get("findings") or []),
-            "static_config_recovered": structural,
+            "profile_literal_correlation": profile_correlated,
+            "decoded_config_recovered": decoded_config,
+            "static_config_recovered": decoded_config,
             "executed": False,
             "network_contacted": False,
         },

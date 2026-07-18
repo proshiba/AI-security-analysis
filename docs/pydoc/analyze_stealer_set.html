@@ -17,10 +17,11 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="hashlib.html">hashlib</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="re.html">re</a><br>
 </td><td class="multicolumn"><a href="sys.html">sys</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
@@ -28,7 +29,7 @@
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-analyze_directory"><strong>analyze_directory</strong></a>(family: 'str', input_root: 'Path', output: 'Path', definitions: 'Path', signature: 'str | None' = None, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, max_depth: 'int' = 3) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;all&nbsp;unique&nbsp;files&nbsp;below&nbsp;a&nbsp;directory&nbsp;as&nbsp;one&nbsp;offline&nbsp;family&nbsp;batch.</span></dd></dl>
  <dl><dt><a name="-analyze_file"><strong>analyze_file</strong></a>(family: 'str', sample: 'Path', output_root: 'Path', definitions: 'Path', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, max_depth: 'int' = 3, data: 'bytes | None' = None) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;raw&nbsp;local&nbsp;sample,&nbsp;optionally&nbsp;reusing&nbsp;caller-supplied&nbsp;bytes.</span></dd></dl>
- <dl><dt><a name="-analyze_item"><strong>analyze_item</strong></a>(family: 'str', archive: 'Path', output: 'Path', definitions: 'Path', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;authenticated&nbsp;archive&nbsp;without&nbsp;executing&nbsp;or&nbsp;networking&nbsp;it.</span></dd></dl>
+ <dl><dt><a name="-analyze_item"><strong>analyze_item</strong></a>(family: 'str', archive: 'Path', output: 'Path', definitions: 'Path', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, *, expected_sha256: 'str | None' = None) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;authenticated&nbsp;archive&nbsp;without&nbsp;executing&nbsp;or&nbsp;networking&nbsp;it.</span></dd></dl>
  <dl><dt><a name="-analyze_layers"><strong>analyze_layers</strong></a>(family: 'str', artifacts: 'list[tuple[str, bytes]]', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, max_depth: 'int' = 3) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Recursively&nbsp;analyze&nbsp;bounded&nbsp;recovered&nbsp;layers&nbsp;and&nbsp;deduplicate&nbsp;artifacts.</span></dd></dl>
  <dl><dt><a name="-analyze_manifest"><strong>analyze_manifest</strong></a>(manifest_path: 'Path', output: 'Path', definitions: 'Path', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;every&nbsp;item&nbsp;in&nbsp;one&nbsp;bounded&nbsp;MalwareBazaar&nbsp;family&nbsp;manifest.</span></dd></dl>
  <dl><dt><a name="-analyze_payload"><strong>analyze_payload</strong></a>(family: 'str', data: 'bytes', name: 'str', source_path: 'Path', output: 'Path', definitions: 'Path', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, max_depth: 'int' = 3, archive_recovered: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;in-memory&nbsp;payload&nbsp;without&nbsp;execution&nbsp;or&nbsp;network&nbsp;access.</span></dd></dl>
@@ -38,6 +39,15 @@
  <dl><dt><a name="-family_id"><strong>family_id</strong></a>(signature: 'str') -&gt; 'str'</dt><dd><span class="code">Map&nbsp;exact&nbsp;source&nbsp;signatures&nbsp;to&nbsp;declarative&nbsp;family&nbsp;IDs.</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;one&nbsp;manifest&nbsp;or&nbsp;raw&nbsp;directory&nbsp;and&nbsp;print&nbsp;aggregate&nbsp;counts.</span></dd></dl>
  <dl><dt><a name="-merge_findings"><strong>merge_findings</strong></a>(results: 'list[dict]') -&gt; 'list[dict]'</dt><dd><span class="code">Deduplicate&nbsp;findings&nbsp;from&nbsp;root&nbsp;and&nbsp;recovered&nbsp;layers&nbsp;in&nbsp;stable&nbsp;order.</span></dd></dl>
+ <dl><dt><a name="-resolve_case_output"><strong>resolve_case_output</strong></a>(output: 'Path', claimed_sha256: 'str') -&gt; 'Path'</dt><dd><span class="code">Build&nbsp;a&nbsp;hash-keyed&nbsp;output&nbsp;directory&nbsp;and&nbsp;prove&nbsp;containment&nbsp;before&nbsp;writes.</span></dd></dl>
+ <dl><dt><a name="-resolve_manifest_archive"><strong>resolve_manifest_archive</strong></a>(manifest_path: 'Path', value: 'object') -&gt; 'Path'</dt><dd><span class="code">Resolve&nbsp;one&nbsp;manifest&nbsp;archive&nbsp;without&nbsp;allowing&nbsp;traversal&nbsp;or&nbsp;symlink&nbsp;escape.<br>
+&nbsp;<br>
+Existing&nbsp;manifests&nbsp;use&nbsp;either&nbsp;an&nbsp;absolute&nbsp;archive&nbsp;path&nbsp;or&nbsp;a&nbsp;repository-CWD<br>
+relative&nbsp;path.&nbsp;A&nbsp;manifest-local&nbsp;relative&nbsp;path&nbsp;is&nbsp;also&nbsp;accepted,&nbsp;but&nbsp;an<br>
+ambiguous&nbsp;relative&nbsp;path&nbsp;that&nbsp;resolves&nbsp;to&nbsp;two&nbsp;different&nbsp;files&nbsp;is&nbsp;rejected.<br>
+In&nbsp;every&nbsp;case,&nbsp;the&nbsp;authenticated&nbsp;archive&nbsp;must&nbsp;remain&nbsp;below&nbsp;the&nbsp;manifest's<br>
+own&nbsp;storage&nbsp;directory.</span></dd></dl>
+ <dl><dt><a name="-validate_claimed_sha256"><strong>validate_claimed_sha256</strong></a>(value: 'object', field: 'str' = 'sha256') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;one&nbsp;canonical&nbsp;SHA-256&nbsp;identity&nbsp;or&nbsp;fail&nbsp;closed.</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -47,6 +57,7 @@
 <td class="singlecolumn"><strong>COMMON</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')<br>
 <strong>DECLARATIVE_SIZE_LIMIT</strong> = 134217728<br>
 <strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
 <strong>SIGNATURE_IDS</strong> = {'AMOS': 'amosstealer', 'AgentTesla': 'agenttesla', 'Amadey': 'amadey', 'AmosStealer': 'amosstealer', 'DonutLoader': 'donutloader', 'Formbook': 'formbook', 'Latrodectus': 'latrodectus', 'LummaStealer': 'lummastealer', 'RemcosRAT': 'remcosrat', 'RemusStealer': 'remusstealer', ...}<br>
 <strong>SRC</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')<br>
 <strong>location</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')</td></tr></table>

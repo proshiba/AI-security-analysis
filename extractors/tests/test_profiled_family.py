@@ -19,6 +19,23 @@ def test_profiles_normalization_and_validation(tmp_path) -> None:
     invalid.write_text(json.dumps({"schema_version": 2}), encoding="utf-8")
     with pytest.raises(ValueError, match="invalid"):
         profiled_family.load_profiles(invalid)
+    duplicate = tmp_path / "duplicate.json"
+    duplicate.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "profiles": {
+                    "fixture": {
+                        "markers": ["Marker", "marker"],
+                        "minimum_markers": 2,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="marker threshold"):
+        profiled_family.load_profiles(duplicate)
 
 
 def test_bounded_strings_uses_three_windows(monkeypatch) -> None:
@@ -32,8 +49,8 @@ def test_bounded_strings_uses_three_windows(monkeypatch) -> None:
     assert profiled_family.bounded_strings(data, 0) == []
 
 
-def test_url_sanitization_and_profile_extraction() -> None:
-    """Redact URL secrets and emit only candidate AsyncRAT infrastructure."""
+def test_url_sanitization_and_profile_literal_correlation() -> None:
+    """Separate correlated AsyncRAT literals from a decoded configuration."""
     assert profiled_family.sanitize_network_url("https://user:pass@evil.example.org/a?q=secret#x") == "https://evil.example.org/a"
     assert profiled_family.sanitize_network_url("http://127.0.0.1/test") is None
     data = b"AsyncRAT Server HWID Hosts Ports https://evil.example.org/gate?token=redacted"
@@ -46,7 +63,9 @@ def test_url_sanitization_and_profile_extraction() -> None:
     assert profiled_family.url_role("c2_candidate", "https://onedrive.live.com/download") == "stage_url_candidate"
     assert profiled_family.url_role("c2_candidate", "https://evil.example.org/payload.exe") == "stage_url_candidate"
     assert result["family"] == "asyncrat"
-    assert result["config"]["static_config_recovered"] is True
+    assert result["config"]["profile_literal_correlation"] is True
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["static_config_recovered"] is False
     assert result["findings"][0]["value"] == "https://evil.example.org/gate"
     assert result["network_contacted"] is False
 
@@ -58,3 +77,14 @@ def test_extractor_factory_and_candidate_confidence() -> None:
     assert result["family"] == "hijackloader"
     assert result["findings"][0]["confidence"] == "candidate"
     assert result["config"]["static_config_recovered"] is False
+
+
+def test_overlapping_profile_literal_counts_once() -> None:
+    """Do not count a longer family literal and its substring as two markers."""
+    result = profiled_family.extract_family(
+        "asyncrat",
+        b"AsyncRAT Server Hosts https://evil.example.org/gate",
+        "fixture.exe",
+    )
+    assert result["config"]["marker_hits"] == ["asyncrat server"]
+    assert result["config"]["profile_literal_correlation"] is False

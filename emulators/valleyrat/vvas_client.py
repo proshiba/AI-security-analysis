@@ -2,8 +2,9 @@
 """Bounded ValleyRAT vvaS protocol emulator.
 
 This tool emulates the observed ValleyRAT vvaS check-in without executing any
-sample code.  By default it reads only the small response header/prefix needed
-for protocol confirmation and never downloads the declared stage payload.
+sample code. By default it emits a preflight result without network contact.
+An explicitly enabled live probe reads only the small response header/prefix
+needed for protocol confirmation and never downloads the declared stage payload.
 """
 from __future__ import annotations
 
@@ -69,7 +70,7 @@ def banner_metadata(raw: bytes) -> dict[str, Any] | None:
     }
 
 
-def probe_vvas_target(
+def preflight_vvas_target(
     host: str,
     port: int,
     send_hex: str,
@@ -80,9 +81,60 @@ def probe_vvas_target(
     allow_stage_download: bool = False,
     risk_accepted: bool = False,
 ) -> dict[str, Any]:
-    """Connect to a vvaS target, send the check-in, and collect bounded metadata."""
+    """Describe a bounded vvaS probe without resolving or contacting its target."""
     if allow_stage_download and not risk_accepted:
         raise ValueError("--allow-stage-download requires --i-understand-stage-download-risk")
+    bytes.fromhex(send_hex)
+    effective_max_read = max_read if allow_stage_download else min(max_read, DEFAULT_MAX_READ)
+    return {
+        "schema_version": 1,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "host": host,
+        "port": port,
+        "protocol": "vvas",
+        "send_hex": send_hex.lower(),
+        "expected_stage2_size": expected_stage_size,
+        "expected_header_size": expected_header_size,
+        "timeout_seconds": timeout,
+        "maximum_response_bytes": effective_max_read,
+        "stage_download_requested": allow_stage_download,
+        "stage_download_permitted": allow_stage_download and risk_accepted,
+        "network_contacted": False,
+        "application_data_sent": False,
+        "alive": False,
+        "c2_confirmed": False,
+        "status": "dry_run",
+        "required_network_opt_in": "--allow-network",
+    }
+
+
+def probe_vvas_target(
+    host: str,
+    port: int,
+    send_hex: str,
+    expected_stage_size: int,
+    expected_header_size: int,
+    max_read: int,
+    timeout: float,
+    allow_stage_download: bool = False,
+    risk_accepted: bool = False,
+    allow_network: bool = False,
+) -> dict[str, Any]:
+    """Preflight by default; explicitly connect and collect bounded metadata when allowed."""
+    if allow_stage_download and not risk_accepted:
+        raise ValueError("--allow-stage-download requires --i-understand-stage-download-risk")
+    if not allow_network:
+        return preflight_vvas_target(
+            host,
+            port,
+            send_hex,
+            expected_stage_size,
+            expected_header_size,
+            max_read,
+            timeout,
+            allow_stage_download,
+            risk_accepted,
+        )
     # Safe default: collect only the response header/prefix. Reading more than
     # 64 bytes requires the explicit stage-download risk flags below.
     effective_max_read = max_read if allow_stage_download else min(max_read, DEFAULT_MAX_READ)
@@ -155,21 +207,27 @@ def load_profile_targets(profile_path: Path, target_index: int | None = None) ->
     return normalized
 
 
-def dry_run_result(targets: list[dict[str, Any]]) -> dict[str, Any]:
-    results = []
-    for target in targets:
-        results.append({
-            "schema_version": 1,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "host": target["host"],
-            "port": target["port"],
-            "protocol": "vvas",
-            "send_hex": target["send_hex"].lower(),
-            "expected_stage2_size": target["expected_stage_size"],
-            "expected_header_size": target["expected_header_size"],
-            "network_contacted": False,
-            "status": "dry_run",
-        })
+def dry_run_result(
+    targets: list[dict[str, Any]],
+    max_read: int = DEFAULT_MAX_READ,
+    timeout: float = DEFAULT_TIMEOUT,
+    allow_stage_download: bool = False,
+    risk_accepted: bool = False,
+) -> dict[str, Any]:
+    results = [
+        preflight_vvas_target(
+            target["host"],
+            target["port"],
+            target["send_hex"],
+            target["expected_stage_size"],
+            target["expected_header_size"],
+            max_read,
+            timeout,
+            allow_stage_download,
+            risk_accepted,
+        )
+        for target in targets
+    ]
     return {"schema_version": 1, "results": results} if len(results) != 1 else results[0]
 
 
@@ -193,14 +251,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-read", type=int, default=DEFAULT_MAX_READ)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--dry-run", action="store_true", help="Load and render target configuration without network contact.")
+    parser.add_argument("--allow-network", action="store_true", help="Explicitly allow the bounded live vvaS probe.")
+    parser.add_argument("--dry-run", action="store_true", help="Force preflight even when --allow-network is present.")
     parser.add_argument("--allow-stage-download", action="store_true", help="Dangerous: allow reading more than the safe header/prefix.")
     parser.add_argument("--i-understand-stage-download-risk", action="store_true", help="Required with --allow-stage-download.")
     return parser
 
 
 def main() -> int:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.allow_stage_download and not args.i_understand_stage_download_risk:
+        parser.error("--allow-stage-download requires --i-understand-stage-download-risk")
     if args.profile:
         targets = load_profile_targets(args.profile, args.target_index)
     else:
@@ -213,8 +275,17 @@ def main() -> int:
             "expected_stage_size": args.expected_stage_size,
             "expected_header_size": args.expected_header_size,
         }]
-    if args.dry_run:
-        write_json_result(dry_run_result(targets), args.output)
+    if args.dry_run or not args.allow_network:
+        write_json_result(
+            dry_run_result(
+                targets,
+                args.max_read,
+                args.timeout,
+                args.allow_stage_download,
+                args.i_understand_stage_download_risk,
+            ),
+            args.output,
+        )
         return 0
     results = [
         probe_vvas_target(
@@ -227,6 +298,7 @@ def main() -> int:
             args.timeout,
             args.allow_stage_download,
             args.i_understand_stage_download_risk,
+            args.allow_network,
         )
         for target in targets
     ]

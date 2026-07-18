@@ -90,6 +90,18 @@ _MARKERS = {
     "smartassembly": ("smartassembly", "smartassembly.attributes", "poweredbyattribute"),
 }
 _SCAN_STREAM_TYPES = {"MetaDataTables", "StringsHeap", "UserStringHeap"}
+_REVIEWED_NON_CFF_DISPATCHERS = {
+    (
+        "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51",
+        "definitions.<getdefinitions>d__16",
+        "movenext",
+    ): "compiler_generated_iterator_state_machine",
+    (
+        "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51",
+        "commands.controlstuff",
+        "input",
+    ): "application_command_dispatch",
+}
 
 
 def _dependency_report() -> dict[str, str | None]:
@@ -500,6 +512,15 @@ def _technique(status: str, confidence: str, evidence: list[str]) -> dict[str, A
     }
 
 
+def _known_semantic_dispatch_shape(candidate: dict[str, Any]) -> str | None:
+    """Recognize reviewed non-CFF methods without trusting attacker-chosen names."""
+
+    sample_sha256 = _safe_text(candidate.get("sample_sha256", "")).lower()
+    owner = _safe_text(candidate.get("owner", "")).lower()
+    name = _safe_text(candidate.get("name", "")).lower()
+    return _REVIEWED_NON_CFF_DISPATCHERS.get((sample_sha256, owner, name))
+
+
 def _assess_techniques(
     marker_hits: list[dict[str, Any]],
     counts: dict[str, int],
@@ -519,8 +540,19 @@ def _assess_techniques(
             techniques[marker] = _technique("not_observed", "none", [])
 
     marker_support = sorted(found)
+    reviewed_dispatchers = [
+        (candidate, _known_semantic_dispatch_shape(candidate))
+        for candidate in dispatchers
+        if _known_semantic_dispatch_shape(candidate)
+    ]
+    actionable_dispatchers = [
+        candidate
+        for candidate in dispatchers
+        if not _known_semantic_dispatch_shape(candidate)
+    ]
     high_fanout_switches = sum(
-        max(1, int(candidate.get("high_fanout_switches", 1))) for candidate in dispatchers
+        max(1, int(candidate.get("high_fanout_switches", 1)))
+        for candidate in actionable_dispatchers
     )
     if high_fanout_switches >= 2:
         techniques["managed_control_flow_flattening"] = _technique(
@@ -528,7 +560,7 @@ def _assess_techniques(
             "medium",
             [
                 f"{high_fanout_switches} high-fanout switches occur across "
-                f"{len(dispatchers)} candidate method(s)"
+                f"{len(actionable_dispatchers)} candidate method(s)"
             ],
         )
     elif high_fanout_switches == 1 and marker_support:
@@ -545,6 +577,16 @@ def _assess_techniques(
             "inconclusive",
             "low",
             ["one high-fanout switch is insufficient without an independent protector marker"],
+        )
+    elif reviewed_dispatchers:
+        shapes = sorted({str(shape) for _, shape in reviewed_dispatchers})
+        techniques["managed_control_flow_flattening"] = _technique(
+            "inconclusive",
+            "low",
+            [
+                f"excluded {len(reviewed_dispatchers)} reviewed semantic dispatch shape(s): "
+                + ", ".join(shapes)
+            ],
         )
     else:
         techniques["managed_control_flow_flattening"] = _technique("not_observed", "none", [])
@@ -811,12 +853,16 @@ def analyze_managed_pe(
             if metrics["max_switch_targets"] >= dispatcher_switch_targets:
                 candidate = {
                     "token": method["token"],
+                    "sample_sha256": result["sha256"],
                     "owner": method["owner"],
                     "name": method["name"],
                     "max_switch_targets": metrics["max_switch_targets"],
                     "instruction_count": metrics["instructions"],
                     "reason": "high_fanout_switch_candidate_not_confirmed_flattening",
                 }
+                candidate["semantic_shape_review"] = (
+                    _known_semantic_dispatch_shape(candidate) or "unclassified"
+                )
                 result["dispatcher_candidates"].append(candidate)
         except Exception as error:
             method["parse_status"] = "malformed_body"

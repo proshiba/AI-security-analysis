@@ -1,37 +1,39 @@
-# C2 liveness and Shodan fingerprint collection
+# C2稼働確認とShodan fingerprint収集
 
-`c2_detector.py` performs bounded, profile-driven liveness checks and writes JSON suitable for case reports.
+`c2_detector.py` の既定動作は通信を行わない事前確認です。明示的に `--allow-network` を指定した場合だけ、profileに基づく範囲限定の稼働確認を実行し、case report用のJSONを書き出します。
 
-Supported probes:
+対応するprobeは次のとおりです。
 
-- `tcp`: connect and optionally send explicit hex; bounded banner capture.
-- `vvas`: send the recovered three-byte check-in, read at most 64 bytes, and require the expected header/stage size before setting `c2_confirmed=true`.
-- `n520`: negotiate TLS, send no application data, read exactly the 44-byte server-first handshake, and require both its CRC32 and session-derived magic to match before setting `c2_confirmed=true`.
-- `http` / `https`: one GET, no redirect, bounded body, status/title/header extraction.
-- `tls`: TLS negotiation and certificate metadata without an HTTP request.
-- optional Salesforce JARM invocation for TLS services.
+- `tcp`：接続し、必要な場合だけ明示したhex値を送信して、上限付きでbannerを取得します。
+- `vvas`：復元済みの3 byte check-inを送信し、最大64 byteを読み、期待headerとstage sizeが一致した場合だけ `c2_confirmed=true` とします。
+- `n520`：TLSを確立してapplication dataを送らず、server-firstの44 byte handshakeを厳密に読みます。CRC32とsession由来magicの両方が一致した場合だけ `c2_confirmed=true` とします。
+- `http`／`https`：redirectなしでGETを1回だけ行い、上限付きbody、status、title、headerを取得します。
+- `tls`：HTTP requestを送らず、TLS確立と証明書metadataを取得します。
+- TLS serviceに対して、任意でSalesforce JARMを呼び出せます。
 
-Collected detection fields include raw-banner SHA-256, signed MurmurHash3 x86_32 for Shodan `hash:`, HTTP title, TLS version/cipher, certificate SHA-256, JARM, DNS resolution, and generated Shodan query candidates.
+JARM helperが保持するのはstdout最大64 KiB、stderr最大16 KiBです。出力超過またはtimeout時はhelperを終了し、fingerprintを返しません。
 
-N520 server-first detection can be run directly after the target has been reviewed:
+収集する検知fieldには、raw bannerのSHA-256、Shodan `hash:` 用の符号付きMurmurHash3 x86_32、HTTP title、TLS version／cipher、証明書SHA-256、JARM、DNS解決結果、生成したShodan query候補が含まれます。
 
-```powershell
-python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --sni update.microsoft.com --output n520-c2.json
-```
-
-This mode sends only the TLS handshake. It does not send the encrypted N520 endpoint check-in.
-
-An explicitly authorized, bounded collection can send one empty command-1 registration and store encrypted frames or command-16/18 plugin payloads only in an AES ZIP:
+N520のserver-first検知は、対象をレビューした後に直接実行できます。
 
 ```powershell
-python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --n520-checkin --n520-wait 15 --artifact-zip n520-artifacts.zip --output n520-collection.json
+python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --sni update.microsoft.com --allow-network --output n520-c2.json
 ```
 
-The collector sends no station ID, accepts at most 16 MiB for at most 30 seconds, never executes a response, and does not emulate operator/admin commands.
+このmodeが送信するのはTLS handshakeだけです。暗号化されたN520 endpoint check-inは送信しません。
 
-## Workflow integration
+明示的に許可された範囲限定の収集では、空のcommand-1 registrationを1回送り、暗号化frameまたはcommand-16／18 plugin payloadをAES ZIP内にだけ保存できます。
 
-Live checks are not implicit. A reviewed profile must contain `live_c2_targets`, and the operator must pass `-AllowLiveC2Check`:
+```powershell
+python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --n520-checkin --n520-wait 15 --artifact-zip n520-artifacts.zip --allow-network --output n520-collection.json
+```
+
+collectorはstation IDを送信せず、最大16 MiB、最大30秒だけ受信します。応答を実行せず、operator／admin commandも模倣しません。
+
+## workflowへの統合
+
+稼働確認は暗黙に実行しません。レビュー済みprofileに `live_c2_targets` を定義し、operatorが `-AllowLiveC2Check` を渡す必要があります。
 
 ```powershell
 .\analysis-framework\Invoke-Analysis.ps1 `
@@ -41,25 +43,24 @@ Live checks are not implicit. A reviewed profile must contain `live_c2_targets`,
   -AllowLiveC2Check -CollectJarm
 ```
 
-Outputs are written below `<OutputDirectory>/c2-live/`. `-CollectJarm` causes ten active TLS ClientHello probes and is ignored for non-TLS protocols.
+出力先は `<OutputDirectory>/c2-live/` です。`-CollectJarm` は10回のactive TLS ClientHello probeを行い、TLS以外のprotocolでは無視されます。
 
-## Interpretation
+## 判定方法
 
-- `alive=true` means the transport/application endpoint responded sufficiently to the selected probe.
-- `c2_confirmed=true` is stricter and requires a malware-protocol-specific match.
-- N520 confirmation does not perform the encrypted endpoint check-in or disclose host telemetry; it validates only the server-first handshake.
-- HTTP/TLS reachability alone does not prove C2 ownership.
-- An all-zero JARM represents no fingerprint and must never become a Shodan query.
-- A custom-protocol banner hash is useful in Shodan only if Shodan used a compatible probe payload.
-- Store timestamped results and do not overwrite historical DNS/IP/certificate observations.
+- `alive=true` は、選択したprobeに対してtransport／application endpointから十分な応答があったことを示します。
+- `c2_confirmed=true` はより厳格で、マルウェア固有protocolとの一致が必要です。
+- N520確認では暗号化endpoint check-inやhost telemetryの送信を行わず、server-first handshakeだけを検証します。
+- HTTP／TLSへ到達できることだけでは、C2の所有者を証明できません。
+- 全byteが0のJARMはfingerprintではなく、Shodan queryへ変換してはいけません。
+- custom protocolのbanner hashがShodanで有効なのは、Shodan側が互換probe payloadを使った場合だけです。
+- 結果にはtimestampを付け、過去のDNS／IP／証明書観測を上書きしません。
 
-## MX-Go local-only protocol mode
+## MX-Goのlocalhost限定protocol mode
 
-`mxgo` is a containment-first lab mode. `preview` renders a synthetic heartbeat description without DNS or network activity. `checkin` and `recipients` are accepted only for `localhost`, `127.0.0.1`, or `::1` and require `--mxgo-allow-loopback-network`. The recipient result contains count/hash only. See `emulators/unclassified/mx_go/README.md`.
+`mxgo` は封じ込めを優先したlab modeです。`preview` はDNSやnetwork activityなしで合成heartbeatの説明を生成します。`checkin` と `recipients` は `localhost`、`127.0.0.1`、`::1` だけを受け付け、`--mxgo-allow-loopback-network` を必須とします。recipient結果には件数とhashだけを含めます。詳細は [MX-Go emulator](../../emulators/unclassified/mx_go/README.md) を参照してください。
 
-This mode intentionally cannot check in to a live third-party MX-Go server or retrieve real recipient data.
+このmodeから第三者の稼働中MX-Go serverへcheck-inしたり、実際のrecipient dataを取得したりすることは意図的にできません。
 
+## offlineのstealer候補mode
 
-## Offline stealer candidate mode
-
-c2_candidate_detector.py consumes config-extractor JSON and creates passive Shodan pivots without DNS, TCP, HTTP, or Shodan access. The five newly added stealer families use this offline mode by default. Their active protocol behavior is represented only by the loopback-only synthetic lab in emulators/stealers/.
+`c2_candidate_detector.py` はconfig extractorのJSONを読み、DNS、TCP、HTTP、Shodanへ接続せずに受動的Shodan pivotを作成します。追加した5つのstealer familyは既定でこのoffline modeを使用します。active protocol behaviorは、[`emulators/stealers/`](../../emulators/stealers/README.md) のloopback限定synthetic labでだけ表現します。

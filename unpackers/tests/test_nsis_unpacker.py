@@ -102,3 +102,80 @@ FileRead $_52_ $_53_ {len(encoded_commands)}
     report, artifacts = recover_nsis_scripted_layers(files)
     assert report["stage_recovery"]["status"] == "intermediate_recovered"
     assert artifacts[-1] == ("nsis-static-dword-xor-stage", decoded_payload)
+
+
+def test_recover_nsis_layers_without_decompiled_script() -> None:
+    """Use a corroborated encoded call stream when 7-Zip omits [NSIS].nsi."""
+    pytest.importorskip("capstone")
+    stub = _xor_loop_stub()
+    key = 0x11223344
+    decoded_payload = b"static-layer-123"
+    encoded_payload = apply_dword_xor(decoded_payload, key, len(decoded_payload))
+    command_stream = (
+        b"KERNEL32::VirtualAlloc(i0,i 16,i 0x3000,i 0x40)Q"
+        b"KERNEL32::SetFilePointer(ir5,i 16,i 0,i 0)Q"
+        b"KERNEL32::ReadFile(ir5,i r1,i "
+        + str(len(stub)).encode()
+        + b",*i 0,i 0)Q"
+        b"KERNEL32::SetFilePointer(ir5,i 64,i 0,i 0)Q"
+    )
+    command_stream += b"Q" * ((4 - len(command_stream) % 4) % 4)
+    encoded_commands = _encode_words(command_stream)
+    payload = bytearray(64 + len(encoded_payload))
+    payload[16 : 16 + len(stub)] = stub
+    payload[64:] = encoded_payload
+    files = {
+        "Pengeoverfrsel/Drbler": b"0" * 12 + encoded_commands,
+        "Flagskibene": bytes(payload),
+        "LargerUnrelated": b"Z" * 4096,
+    }
+    report, artifacts = recover_nsis_scripted_layers(files)
+    assert report["recovery_basis"] == "corroborated_encoded_command_stream"
+    assert report["stage_recovery"]["status"] == "intermediate_recovered"
+    assert report["stage_recovery"]["payload_data"] == "Flagskibene"
+    assert artifacts[-1] == ("nsis-static-dword-xor-stage", decoded_payload)
+
+
+def test_scriptless_nsis_recovery_rejects_ambiguous_payloads() -> None:
+    """Fail closed when two payload files pass bounds and XOR-loop validation."""
+    pytest.importorskip("capstone")
+    stub = _xor_loop_stub()
+    command_stream = (
+        b"KERNEL32::VirtualAlloc(i0,i 16,i 0x3000,i 0x40)Q"
+        b"KERNEL32::SetFilePointer(ir5,i 16,i 0,i 0)Q"
+        b"KERNEL32::ReadFile(ir5,i r1,i "
+        + str(len(stub)).encode()
+        + b",*i 0,i 0)Q"
+        b"KERNEL32::SetFilePointer(ir5,i 64,i 0,i 0)Q"
+    )
+    command_stream += b"Q" * ((4 - len(command_stream) % 4) % 4)
+    encoded_commands = _encode_words(command_stream)
+    payload = bytearray(80)
+    payload[16 : 16 + len(stub)] = stub
+    files = {
+        "Pengeoverfrsel/Drbler": b"0" * 12 + encoded_commands,
+        "ValidOne": bytes(payload),
+        "ValidTwo": bytes(payload),
+    }
+    report, artifacts = recover_nsis_scripted_layers(files)
+    assert report["stage_recovery"] == {
+        "status": "ambiguous_scriptless_payload_candidates",
+        "candidate_count": 2,
+        "candidate_names": ["ValidOne", "ValidTwo"],
+    }
+    assert [name for name, _ in artifacts] == ["nsis-xor-command-stream"]
+
+
+def test_scriptless_nsis_recovery_rejects_ambiguous_streams() -> None:
+    """Fail closed when more than one file matches the command-stream shape."""
+    command_stream = (
+        b"KERNEL32::VirtualAlloc(i0,i 16,i 0x3000,i 0x40)Q"
+        b"KERNEL32::SetFilePointer(ir5,i 16,i 0,i 0)Q"
+        b"KERNEL32::ReadFile(ir5,i r1,i 16,*i 0,i 0)Q"
+    )
+    command_stream += b"Q" * ((4 - len(command_stream) % 4) % 4)
+    encoded = b"0" * 12 + _encode_words(command_stream)
+    report, artifacts = recover_nsis_scripted_layers({"one": encoded, "two": encoded})
+    assert report["status"] == "ambiguous_scriptless_command_stream"
+    assert report["candidate_count"] == 2
+    assert artifacts == []

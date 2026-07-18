@@ -5,13 +5,18 @@ import json
 import subprocess
 from pathlib import Path
 import sys
+import time
+from types import SimpleNamespace
 import zlib
+
+import pytest
 
 
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
+import c2_detector  # noqa: E402
 from c2_detector import build_mxgo_heartbeat, mxgo_loopback_target, parse_n520_handshake  # noqa: E402
 
 
@@ -95,3 +100,163 @@ def test_mxgo_cli_rejects_external_active_target() -> None:
     )
     assert completed.returncode == 2
     assert "loopback-only" in completed.stderr
+
+
+def test_direct_probe_defaults_to_offline_preflight(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep direct API callers offline when the acknowledgement is absent."""
+    monkeypatch.setattr(
+        c2_detector.socket,
+        "getaddrinfo",
+        lambda *args, **kwargs: pytest.fail("DNS must not run during preflight"),
+    )
+    monkeypatch.setattr(
+        c2_detector.socket,
+        "create_connection",
+        lambda *args, **kwargs: pytest.fail("socket must not open during preflight"),
+    )
+    result = c2_detector.probe(SimpleNamespace(
+        host="203.0.113.10",
+        port=443,
+        protocol="tcp",
+        timeout=1.0,
+        max_bytes=64,
+    ))
+    assert result["status"] == "dry_run"
+    assert result["network_contacted"] is False
+    assert result["application_data_sent"] is False
+
+
+def test_cli_defaults_to_offline_preflight() -> None:
+    """Return a useful plan instead of contacting an external target by default."""
+    script = COMMON / "c2_detector.py"
+    completed = subprocess.run(
+        [sys.executable, str(script), "203.0.113.10", "443", "--protocol", "https"],
+        capture_output=True, text=True, check=True, timeout=5,
+    )
+    result = json.loads(completed.stdout)
+    assert result["status"] == "dry_run"
+    assert result["network_contacted"] is False
+    assert result["http_request_preview"]["host"] == "203.0.113.10"
+
+
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--http-host", "example.test\r\nX-Injected: yes"),
+        ("--http-path", "/safe\nInjected: yes"),
+    ],
+)
+def test_cli_rejects_http_crlf(option: str, value: str) -> None:
+    """Reject request-line and Host-header injection before any network opt-in."""
+    script = COMMON / "c2_detector.py"
+    completed = subprocess.run(
+        [
+            sys.executable, str(script), "203.0.113.10", "80", "--protocol", "http",
+            option, value,
+        ],
+        capture_output=True, text=True, check=False, timeout=5,
+    )
+    assert completed.returncode == 2
+    assert "must not contain CR/LF" in completed.stderr
+
+
+def test_collect_jarm_accepts_small_fingerprint_output(tmp_path: Path) -> None:
+    """Recover a valid fingerprint while retaining only bounded helper output."""
+    script = tmp_path / "small_jarm.py"
+    script.write_text("print('a' * 62)\n", encoding="utf-8")
+    result = c2_detector.collect_jarm(
+        "fixture.invalid", 443, script, 0.1, allow_network=True,
+    )
+    assert result["status"] == "collected"
+    assert result["fingerprint"] == "a" * 62
+    assert result["stdout_retained_bytes"] <= c2_detector.JARM_STDOUT_LIMIT_BYTES
+    assert result["stderr_retained_bytes"] <= c2_detector.JARM_STDERR_LIMIT_BYTES
+    assert result["stdout_truncated"] is False
+    assert result["stderr_truncated"] is False
+
+
+def test_collect_jarm_defaults_to_offline_without_spawning(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Do not start the external helper when direct callers omit network opt-in."""
+    script = tmp_path / "unused_jarm.py"
+    script.write_text("raise AssertionError('must not execute')\n", encoding="utf-8")
+    monkeypatch.setattr(
+        c2_detector.subprocess,
+        "Popen",
+        lambda *args, **kwargs: pytest.fail("JARM helper must not start offline"),
+    )
+    result = c2_detector.collect_jarm("fixture.invalid", 443, script, 0.1)
+    assert result == {
+        "status": "not_collected",
+        "reason": "network collection disabled",
+        "network_contacted": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("stream_expression", "prefix"),
+    [
+        ("sys.stdout.buffer", "stdout"),
+        ("sys.stderr.buffer", "stderr"),
+    ],
+)
+def test_collect_jarm_bounds_huge_helper_output(
+    tmp_path: Path,
+    stream_expression: str,
+    prefix: str,
+) -> None:
+    """Stop the helper when either output pipe exceeds its fixed retention cap."""
+    script = tmp_path / f"huge_{prefix}_jarm.py"
+    script.write_text(
+        "import sys\n"
+        f"stream = {stream_expression}\n"
+        "stream.write(b'Z' * (256 * 1024))\n"
+        "stream.flush()\n",
+        encoding="utf-8",
+    )
+    result = c2_detector.collect_jarm(
+        "fixture.invalid", 443, script, 0.1, allow_network=True,
+    )
+    assert result["status"] == "output_limit"
+    assert result["fingerprint"] is None
+    assert result[f"{prefix}_truncated"] is True
+    assert result[f"{prefix}_retained_bytes"] <= getattr(
+        c2_detector, f"JARM_{prefix.upper()}_LIMIT_BYTES",
+    )
+    assert result["stdout_retained_bytes"] <= c2_detector.JARM_STDOUT_LIMIT_BYTES
+    assert result["stderr_retained_bytes"] <= c2_detector.JARM_STDERR_LIMIT_BYTES
+    assert len(result["output_tail"].encode("utf-8")) <= 1000
+
+
+def test_collect_jarm_timeout_terminates_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Wait for timeout cleanup and prevent a terminated child from continuing."""
+    monkeypatch.setattr(c2_detector, "JARM_MIN_PROCESS_TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(c2_detector, "JARM_PROCESS_TIMEOUT_MULTIPLIER", 1.0)
+    marker_base = tmp_path / "timeout-child"
+    marker = Path(f"{marker_base}.done")
+    script = tmp_path / "slow_jarm.py"
+    script.write_text(
+        "from pathlib import Path\n"
+        "import sys\n"
+        "import time\n"
+        "time.sleep(0.75)\n"
+        "Path(sys.argv[-1] + '.done').write_text('escaped', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    started = time.monotonic()
+    result = c2_detector.collect_jarm(
+        str(marker_base), 443, script, 0.1, allow_network=True,
+    )
+    elapsed = time.monotonic() - started
+    assert result["status"] == "timeout"
+    assert result["fingerprint"] is None
+    assert result["cleanup_action"] in {"terminated", "killed"}
+    assert result["exit_code"] is not None
+    assert elapsed < 3.0
+    time.sleep(0.9)
+    assert not marker.exists()

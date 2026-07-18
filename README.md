@@ -1,6 +1,6 @@
-# AI Security Analysis
+# AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2/IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現時点の主な対象は **ValleyRAT** で、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は27の既知マルウェアファミリ、未分類検体、サプライチェーン調査を含む554件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -16,13 +16,16 @@ analysis-framework/              # 解析・分類を実行するコード
 emulators/                      # 防御目的のプロトコルエミュレータ
   <malware-type>/               # マルウェア種別ごとの安全な通信再現ツール
 analysis-results/                # 検体を含まない公開可能な解析結果
-  <malware-type>/cases/<sha256>/ # 検体SHA-256ごとのレポートと成果物
+  malware/<family>/              # マルウェアファミリー別の概要
+    versions/<version-key>/cases/<sha256>/ # 版・検体SHA-256ごとのレポートと成果物
+  collections/<collection-id>/   # 収集元・収集日別の検体集合と集約成果物
+  research/<topic>/              # キャンペーン、脆弱性、ニュース、横断調査
   IOC-INDEX.md                    # 全解析のIOC-only一覧への索引
 analysis_history.yaml            # 過去解析の一覧とREADME用サマリの元データ
 README.md                        # このファイル
 ```
 
-新しいマルウェア種を追加するときは、独立したトップレベルディレクトリを増やさず、解析コードを `analysis-framework/malware/<type>/`、結果を `analysis-results/<type>/`、防御目的の通信再現ツールを `emulators/<type>/` に追加します。共通化できる処理や識別器は `analysis-framework/common/` または `analysis-framework/classifiers/` へ昇格します。
+新しいマルウェア種を追加するときは、独立したトップレベルディレクトリを増やさず、解析コードを `analysis-framework/malware/<type>/`、結果を `analysis-results/malware/<family>/versions/<version-key>/`、防御目的の通信再現ツールを `emulators/<type>/` に追加します。共通化できる処理や識別器は `analysis-framework/common/` または `analysis-framework/classifiers/` へ昇格します。
 
 ## インストール方法
 
@@ -68,7 +71,7 @@ python .\common\c2_detector.py --help
 1. 検体を隔離環境に置き、検体のSHA-256を控えます。
 2. `classify_sample.py` が `analysis-framework/registry/malware_types.json` に登録された detector を読み込み、`malware_type` と `campaign_type` を選びます。
 3. `Invoke-Analysis.ps1` が campaign handler を呼び出し、復号、MSI/CAB解析、C2抽出などを行います。
-4. 結果を `analysis-results/<malware-type>/cases/<sample-sha256>/` に整理し、検体・復号バイナリなど保存禁止物が含まれないことを確認します。
+4. 結果を `analysis-results/malware/<family>/versions/<version-key>/cases/<sample-sha256>/` に整理し、検体・復号バイナリなど保存禁止物が含まれないことを確認します。
 5. `analysis_history.yaml` に解析履歴を1件追加し、READMEの履歴サマリも更新します。
 6. IOC-only一覧を再生成し、`--check` で全解析との同期を確認します。
 
@@ -128,7 +131,7 @@ MSI/CAB custom action 系のケース:
 
 ### 結果ディレクトリ
 
-`analysis-results/<malware-type>/cases/<sha256>/` 配下の `README.md` が人間向けの入口です。各case READMEでは、少なくとも以下を確認します。
+`analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>/` 配下の `README.md` が人間向けの入口です。各ケースのREADMEでは、少なくとも以下を確認します。
 
 - **判定とチェーン**: malware type、campaign type、感染/実行チェーン、信頼度。
 - **ファイルIOC**: submitted sample、embedded object、loader、payload、decoyなどのSHA-256。
@@ -143,7 +146,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository .
 python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ```
 
-生成一覧は `Type / Value / Role / Confidence / Source` だけを持ち、URLの資格情報・query・fragment、正規署名付きhost、context-only値、Shodan/Sigma/YARAクエリを除外します。公開可能なIOCがない解析にも空の標準表を生成します。
+生成一覧は `種別 / 値 / 役割 / 確度 / 根拠` の5列だけを持ち、URLの資格情報・クエリ・フラグメント、正規署名付きホスト、文脈専用値、Shodan/Sigma/YARAクエリを除外します。公開可能なIOCがない解析にも空の標準表を生成します。
 
 ### 自動解析出力の代表例
 
@@ -168,31 +171,31 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
-| ValleyRAT | 12 | 2026-07-16 | prior patterns plus `cefclient_libcef_sideload_malspam` |
+| ValleyRAT | 12 | 2026-07-16 | 従来パターンと `cefclient_libcef_sideload_malspam` |
 | AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
-| RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTA loaders, direct PE, ISO double-extension delivery |
-| MX-Go (unclassified) | 1 | 2026-07-15 | Go bulk-mail engine, remote content/config, HTTP campaign control, Japan environment gate |
-| npm supply-chain | 1 | 2026-07-16 | `axios_plain_crypto_js` static postinstall decode |
-| AtlasCross / Atlas RAT | 1 | 2026-07-16 | `silver_fox_vpn_2026` config algorithm and protocol evidence |
-| ShadowPad | 8 | 2026-07-16 | ScatterBee OLEVIEW chain; x86/x64 Casper config; nsPack exact-hash correlation |
-| StealC | 41 | 2026-07-16 | 5 v1 configs decoded; 36 protected/wrapped outer layers retained as unresolved static cases |
+| RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTAローダー、直接PE、ISO二重拡張子による配布 |
+| MX-Go（未分類） | 1 | 2026-07-15 | Go製一括メール送信エンジン、遠隔コンテンツ／設定、HTTPキャンペーン制御、日本環境ゲート |
+| npmサプライチェーン | 1 | 2026-07-16 | `axios_plain_crypto_js` のpostinstall静的復号 |
+| AtlasCross / Atlas RAT | 1 | 2026-07-16 | `silver_fox_vpn_2026` の設定アルゴリズムとプロトコル証拠 |
+| ShadowPad | 8 | 2026-07-16 | ScatterBee OLEVIEWチェーン、x86/x64 Casper設定、nsPack完全一致ハッシュ相関 |
+| StealC | 41 | 2026-07-16 | v1設定を5件復号、保護／ラップ済み外層36件を静的解析の未解決ケースとして保持 |
 
 ### ValleyRAT 解析履歴
 
 | 解析日 | SHA-256 prefix | Campaign / chain | 解析レベル | 主なC2 |
 |---|---|---|---|---|
-| 2026-07-12 | `8bf54a76` | `dll_sideload_vvas_bundle` | deep static + limited live C2 | `202.95.8.27:6666`, `202.95.8.27:8888` |
-| 2026-07-10 | `b433ecdf` | `msi_embedded_cab_custom_actions` | deep static + sandbox evidence | `www.tq8j.com:443`, `103.45.64.246:443` |
-| 2026-07-12 | `942be7e0` | `installer_overlay_dropper` | static + sandbox evidence | `150.158.50.175:443` |
-| 2026-07-12 | `eab4918e` | `single_pe_direct` | static + sandbox evidence | `154.81.37.130:4444`, `154.81.37.130:5555` |
+| 2026-07-12 | `8bf54a76` | `dll_sideload_vvas_bundle` | 静的深掘り＋限定的なライブC2確認 | `202.95.8.27:6666`, `202.95.8.27:8888` |
+| 2026-07-10 | `b433ecdf` | `msi_embedded_cab_custom_actions` | 静的深掘り＋サンドボックス証拠 | `www.tq8j.com:443`, `103.45.64.246:443` |
+| 2026-07-12 | `942be7e0` | `installer_overlay_dropper` | 静的解析＋サンドボックス証拠 | `150.158.50.175:443` |
+| 2026-07-12 | `eab4918e` | `single_pe_direct` | 静的解析＋サンドボックス証拠 | `154.81.37.130:4444`, `154.81.37.130:5555` |
 | 2026-07-12 | `15015ac7` | `dll_sideload_vvas_bundle` | static decode | `134.122.128.66:6666`, `134.122.128.66:8888` |
-| 2026-07-11 | `5bdcf2d4` | `installer_overlay_dropper` | static + sandbox evidence | `27.124.18.166:63016`, `27.124.18.166:63026` |
-| 2026-07-11 | `0e4931df` | `msi_embedded_pe_staged_download` | static + sandbox evidence | `8.210.15.149:28300` |
-| 2026-07-15 | `d11e7931` | `single_pe_n520_managed` | deep static + bounded protocol validation | config `118.107.21.88:9000`; C2 `118.107.21.88:9999` |
-| 2026-07-15 | `df603ed5` | `inno_installer_silverfox_unresolved` | static + public evidence correlation | inferred `oidng2.duoshit.com:443` / `51.79.18.52:443` |
-| 2026-07-15 | `6546aad6` | `upx_nrv2e_silverfox_http_bundle` | deep static recovery | distribution `43.198.235.91:80`; final C2 unresolved |
-| 2026-07-15 | `32146526` | `qt_static_obfuscated_silverfox` | static + DNS correlation | `cqbxbkj.cn` / `18.167.91.239`; port `8880` unverified |
-| 2026-07-16 | `f543dcf4` | `cefclient_libcef_sideload_malspam` | source/public-artifact correlation | `ljowqjd.cn`; final config unavailable |
+| 2026-07-11 | `5bdcf2d4` | `installer_overlay_dropper` | 静的解析＋サンドボックス証拠 | `27.124.18.166:63016`, `27.124.18.166:63026` |
+| 2026-07-11 | `0e4931df` | `msi_embedded_pe_staged_download` | 静的解析＋サンドボックス証拠 | `8.210.15.149:28300` |
+| 2026-07-15 | `d11e7931` | `single_pe_n520_managed` | 静的深掘り＋範囲限定プロトコル検証 | 設定 `118.107.21.88:9000`、C2 `118.107.21.88:9999` |
+| 2026-07-15 | `df603ed5` | `inno_installer_silverfox_unresolved` | 静的解析＋公開証拠の相関 | 推定 `oidng2.duoshit.com:443` / `51.79.18.52:443` |
+| 2026-07-15 | `6546aad6` | `upx_nrv2e_silverfox_http_bundle` | 静的深掘りによる復元 | 配布 `43.198.235.91:80`、最終C2は未解決 |
+| 2026-07-15 | `32146526` | `qt_static_obfuscated_silverfox` | 静的解析＋DNS相関 | `cqbxbkj.cn` / `18.167.91.239`、ポート `8880` は未検証 |
+| 2026-07-16 | `f543dcf4` | `cefclient_libcef_sideload_malspam` | 情報源／公開成果物の相関 | `ljowqjd.cn`、最終設定は取得不能 |
 
 ### AgentTesla / RemcosRAT 解析履歴
 
@@ -216,85 +219,66 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 - [analysis-framework/malware/valleyrat/README.md](analysis-framework/malware/valleyrat/README.md): ValleyRAT固有解析
 - [analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md](analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md): ValleyRAT解析ワークフロー
 - [analysis-results/README.md](analysis-results/README.md): 公開可能な結果の保存方針
-- [analysis-results/valleyrat/README.md](analysis-results/valleyrat/README.md): ValleyRAT結果一覧
-- [analysis-results/valleyrat/BEHAVIOR-C2.md](analysis-results/valleyrat/BEHAVIOR-C2.md): 感染チェーン別の挙動、C2役割、確度、N520 protocol
+- [analysis-results/malware/valleyrat/README.md](analysis-results/malware/valleyrat/README.md): ValleyRAT結果一覧
+- [analysis-results/malware/valleyrat/BEHAVIOR-C2.md](analysis-results/malware/valleyrat/BEHAVIOR-C2.md): 感染チェーン別の挙動、C2役割、確度、N520プロトコル
 
 ### 新規開発メモ: マルウェア種指定とSandbox evidence
 
 - `analysis-framework/classifiers/classify_sample.py` は `--malware-type <registered-type>` を受け付け、登録済み detector のうち指定種別だけを実行できます。種別指定は handler 選択の補助であり、campaign type は引き続き構造証跡に基づいて選びます。
 - `analysis-framework/Invoke-Analysis.ps1` では `-MalwareType` で同じ指定ができます。
 - `analysis-framework/common/vt_sandbox.py` は VirusTotal の file behaviours relationship から sandbox verdict、process、domain/IP を正規化し、`virustotal-sandbox.json` として保存します。VirusTotal 情報は相関用 evidence であり、IP/domain 単独では C2 確定に使いません。
-- [analysis-results/agenttesla/README.md](analysis-results/agenttesla/README.md): AgentTesla結果一覧
-- [analysis-results/remcosrat/README.md](analysis-results/remcosrat/README.md): RemcosRAT結果一覧
+- [analysis-results/malware/agenttesla/README.md](analysis-results/malware/agenttesla/README.md): AgentTesla結果一覧
+- [analysis-results/malware/remcosrat/README.md](analysis-results/malware/remcosrat/README.md): RemcosRAT結果一覧
 
-## VenomRAT (2026-07-15)
+## VenomRATの解析（2026-07-15）
 
-Seven reviewed cases are documented under `analysis-results/venomrat`: four user-provided Japan-observed Triage submissions and three MalwareBazaar static-analysis samples. The reusable detector and resource/configuration triage tool are under `analysis-framework/malware/venomrat`.
+レビュー済み7ケースを `analysis-results/malware/venomrat/` 配下に記録しています。内訳は、ユーザー提供の日本国内観測Triage提出物4件と、MalwareBazaarから取得して静的解析した検体3件です。再利用可能な検出器とリソース／設定トリアージツールは `analysis-framework/malware/venomrat/` 配下にあります。
 
-## MX-Go unclassified cluster (2026-07-15)
+## MX-Go未分類クラスタ（2026-07-15）
 
-One Triage submission was recovered and statically analyzed. The payload is a Go 1.26.1 remotely controlled bulk-email spam bot, not a general-purpose RAT. Analysis tools are under `analysis-framework/malware/unclassified/mx_go`; normalized results, C2/content infrastructure, and Sigma/YARA material are under `analysis-results/unclassified/mx-go`. A loopback-only C2/content server and client emulator are under `emulators/unclassified/mx_go`; active MX-Go modes in `c2_detector.py` are also loopback-only.
+Triage提出物1件を復元して静的解析しました。ペイロードはGo 1.26.1製の遠隔制御型一括メール送信スパムボットであり、汎用RATではありません。解析ツールは `analysis-framework/malware/unclassified/mx_go/`、正規化済み結果、C2／コンテンツ基盤、Sigma／YARA材料は `analysis-results/malware/unclassified/groups/mx-go/` 配下にあります。ループバック限定のC2／コンテンツサーバーとクライアントエミュレーターは `emulators/unclassified/mx_go/` 配下にあり、`c2_detector.py` の能動MX-Goモードもループバックだけを許可します。
 
-## Declarative analysis design
+## 宣言型解析の設計
 
 - [次期宣言型解析基盤の設計・スキーマ・移行計画](analysis-framework/docs/README.md)
 
-## Declarative engine and config extractors
+## 宣言型エンジンと設定抽出器
 
-- `analysis-framework/src/asa/`: strict YAML validation, condition DSL, family/campaign scoring, DAG compilation, and offline policy enforcement
-- `analysis-framework/definitions/`: thirteen malware definitions, fifteen pipelines, and the default offline policy
-- `extractors/`: common-contract config extractors including SpyGlace/APT-C-60, ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, MX-Go, Formbook, Vidar, LummaStealer, RemusStealer, AMOS, PureHVNC, and DonutLoader
-- `docs/pydoc/`: generated Python API documentation
+- `analysis-framework/src/asa/`: 厳格なYAML検証、条件DSL、ファミリー／キャンペーン採点、DAGコンパイル、オフラインポリシー適用
+- `analysis-framework/definitions/`: 29件のマルウェア定義、31件のワークフロー、既定のオフラインポリシー。現在は21ファミリーを `analysis-framework/registry/malware_types.json` に登録済み
+- `extractors/`: SpyGlace／APT-C-60、ValleyRAT、AgentTesla、RemcosRAT、VenomRAT、MX-Go、Formbook、Vidar、LummaStealer、RemusStealer、AMOS、PureHVNC、DonutLoaderなど、共通契約に従う設定抽出器
+- `docs/pydoc/`: 自動生成したPython API文書
 
-The current engine validates and compiles plans, then executes allowlisted offline static-analysis steps. It never launches samples or contacts external infrastructure; FLOSS and Ghidra MCP integrations are preflight-only.
+現行エンジンは計画を検証・コンパイルした後、許可リストにあるオフライン静的解析手順を実行します。検体の起動や外部インフラへの接続は行わず、FLOSSとGhidra MCPの連携も事前確認だけです。
 
+## スティーラー一括解析（2026-07-15）
 
-## Stealer batch analysis (2026-07-15)
+MalwareBazaarの最近の提出物50件を静的解析しました。内訳はFormbook、Vidar、LummaStealer、RemusStealer、Atomic macOS Stealer（AMOS）が各10件です。結果は `analysis-results/malware/<family>/`、共有静的アンパック処理は `unpackers/`、オフラインC2評価は `analysis-framework/common/c2_candidate_detector.py`、合成プロトコル検証環境はループバック限定で `emulators/stealers/` 配下にあります。
 
-Fifty recent MalwareBazaar submissions were statically analyzed: ten each for Formbook, Vidar, LummaStealer, RemusStealer, and Atomic macOS Stealer (AMOS). Results are under analysis-results/<family>/; shared static unpacking is under unpackers/; offline C2 assessment is in analysis-framework/common/c2_candidate_detector.py; the synthetic protocol lab is loopback-only under emulators/stealers/.
-## MalwareBazaar refresh (2026-07-15)
+## MalwareBazaar再収集（2026-07-15）
 
-Ninety previously uncollected MalwareBazaar submissions were statically analyzed: ten each for ValleyRAT, AgentTesla, RemcosRAT, VenomRAT, Formbook, Vidar, LummaStealer, RemusStealer, and AMOS. All 90 declarative runs completed with `ready`; no sample or extracted infrastructure was contacted. See [the cross-family refresh report](analysis-results/REFRESH-2026-07-15.md) and the family-specific `refresh-20260715/` directories.
+未収集だったMalwareBazaar提出物90件を静的解析しました。内訳はValleyRAT、AgentTesla、RemcosRAT、VenomRAT、Formbook、Vidar、LummaStealer、RemusStealer、AMOSが各10件です。宣言型実行90件はすべて `ready` で完了し、検体や抽出インフラには接続していません。[ファミリー横断の再収集レポート](analysis-results/collections/refresh-20260715/REPORT.md)と、同コレクションの `sources/<family>/` を参照してください。ケース本体は各ファミリーの固定階層へ保存します。
 
-The acquisition tool now excludes hashes from prior result trees, and the common pipeline covers all nine named families. Public manifests omit local sample paths.
+取得ツールは既存結果ツリーのハッシュを除外し、共通パイプラインは上記9ファミリーすべてに対応します。公開マニフェストからはローカル検体パスを除外します。
 
-## PureHVNC and DonutLoader support
+## PureHVNCとDonutLoaderへの対応
 
-The repository now includes declarative family/workflow definitions, static unpackers, configuration extractors, a passive C2 search-plan generator, a loopback-only protocol lab, pydoc, tests, and case reports for native PureHVNC and CHRD/WAV DonutLoader-to-PureRAT chains. No raw or recovered executable is stored in the repository.
+ネイティブPureHVNCと、CHRD／WAVを用いるDonutLoaderからPureRATへ至るチェーンについて、宣言型ファミリー／ワークフロー定義、静的アンパッカー、設定抽出器、受動的C2検索計画生成器、ループバック限定プロトコル検証環境、Python API文書、テスト、ケースレポートを追加しました。生の実行可能ファイルや復元済み実行可能ファイルはリポジトリに保存していません。
 
-## APT-C-60 / SpyGlace 2026
+## APT-C-60／SpyGlaceの2026年解析
 
-The JPCERT/CC 2026 delivery chain is covered end to end with repository-history inventory, safe LNK/Base64/TAR reconstruction, repeating-XOR PE recovery, a v3.1.15 config extractor, passive C2 pivots, a loopback-only protocol lab, declarative YAML, tests, pydoc, Sigma/YARA and publish-safe results. See [the campaign report](analysis-results/spyglace/campaigns/apt-c60-2026/README.md) and [offline workflow](docs/APT-C60-2026-WORKFLOW.md). Four v3.1.15 artifacts were config-extracted; no malware or C2 was executed or contacted.
+JPCERT/CCが報告した2026年の配布チェーンについて、リポジトリ履歴インベントリ、安全なLNK／Base64／TAR再構築、反復XORによるPE復元、v3.1.15設定抽出器、受動的C2ピボット、ループバック限定プロトコル検証環境、宣言型YAML、テスト、Python API文書、Sigma／YARA、公開可能な結果までを一貫して扱います。[キャンペーンレポート](analysis-results/research/campaigns/spyglace/apt-c60-2026/README.md)と[オフラインワークフロー](docs/APT-C60-2026-WORKFLOW.md)を参照してください。v3.1.15成果物4件から設定を抽出済みで、マルウェアやC2の実行・接続は行っていません。
 
-## VX-Underground family analysis, 2026-07-16
+## VX-Undergroundファミリー解析（2026-07-16）
 
-The shared offline pipeline was exercised against 118 submissions: DonutLoader
-2, AMOS 2, Vidar 25, Amadey 35, and Latrodectus 54. Current-layout Donut and an
-XOR wrapper were statically recovered, concatenated XZ/Apple disk image and
-universal Mach-O layers were reconstructed, and validated Amadey, Latrodectus,
-and Vidar configurations were extracted where present.
+共有オフラインパイプラインを提出物118件へ適用しました。内訳はDonutLoader 2件、AMOS 2件、Vidar 25件、Amadey 35件、Latrodectus 54件です。現行形式のDonutとXORラッパーを静的に復元し、連結されたXZ／AppleディスクイメージとユニバーサルMach-Oの各レイヤーを再構築しました。取得できたAmadey、Latrodectus、Vidarの設定は検証後に抽出しました。
 
-Results are under each family's `vx-underground-20260716/` directory. Raw and
-recovered binaries are excluded. No sample was executed and no extracted
-infrastructure was contacted.
+ケースは各ファミリーの `analysis-results/malware/<family>/versions/<version-key>/cases/`、収集元との対応と集約成果物は `analysis-results/collections/vx-underground-20260716/` 配下にあります。生バイナリと復元バイナリは除外しています。検体を実行せず、抽出したインフラにも接続していません。
 
-## Unclassified MalwareBazaar newest-100 (2026-07-17)
+## MalwareBazaar未分類最新100件（2026-07-17）
 
-The newest 100 unseen MalwareBazaar entries with an empty family signature and
-`unknown`/`stealer`/`infostealer` discovery tags were analyzed statically in
-descending `first_seen` order. Seven cases have medium-confidence internal
-support, 63 retain provisional low-confidence family leads, and 30 remain
-unclassified. The results, static IOC candidates, and YARA material are under
-[analysis-results/unclassified/malwarebazaar-unknown-20260717](analysis-results/unclassified/malwarebazaar-unknown-20260717/README.md).
-No sample or recovered payload was executed and no extracted infrastructure was contacted.
+ファミリーシグネチャが空で、発見タグが `unknown`、`stealer`、`infostealer` のいずれかである未解析のMalwareBazaar最新100件を、`first_seen` の降順で静的解析しました。7件には中確度の内部根拠があり、63件には低確度の暫定ファミリー候補が残り、30件は未分類のままです。結果、静的IOC候補、YARA材料は[MalwareBazaar未分類コレクション](analysis-results/collections/malwarebazaar-unknown-20260717/sources/unclassified/README.md)にあります。検体や復元ペイロードを実行せず、抽出したインフラにも接続していません。
 
-## Profile-defined family expansion (2026-07-17)
+## プロファイル定義によるファミリー拡張（2026-07-17）
 
-AsyncRAT, XWorm, QuasarRAT, njRAT, DarkComet, DCRat, RedLine Stealer,
-Snake Keylogger, GuLoader, and HijackLoader now share profile-driven detection,
-config extraction, passive C2 planning, declarative YAML, and a synthetic
-loopback-only emulator. Ten newest MalwareBazaar samples per family were analyzed
-statically and all 100 passed final integrity/safety validation. Acquisition now
-persists a retry queue so time- or rate-limited hashes can be resumed after other
-analysis completes. See
-[the relationship and workflow document](analysis-framework/docs/PROFILED-FAMILY-EXPANSION.md).
+AsyncRAT、XWorm、QuasarRAT、njRAT、DarkComet、DCRat、RedLine Stealer、Snake Keylogger、GuLoader、HijackLoaderは現在、プロファイル駆動の検出、設定抽出、受動的C2計画、宣言型YAML、合成データ用ループバック限定エミュレーターを共有しています。各ファミリーについてMalwareBazaarの最新10検体を静的解析し、計100件が最終的な完全性／安全性検証に合格しました。取得処理は再試行キューを永続化するため、時間制限または回数制限に達したハッシュをほかの解析後に再開できます。[関係とワークフロー文書](analysis-framework/docs/PROFILED-FAMILY-EXPANSION.md)を参照してください。

@@ -55,3 +55,10 @@ def test_pure_extractor_keeps_unrecognized_input_explicit() -> None:
     result = extract_pure(b"unrelated", "fixture")
     assert result["config"]["variant"] == "unrecognized"
     assert result["findings"] == []
+    for literal in (b"CHRD", b"MZ CHRD", b"PayloadSource.zip", b"v4.0.30319"):
+        pure = extract_pure(literal, "single-literal")
+        assert pure["config"]["variant"] == "unrecognized"
+        assert pure["findings"] == []
+        donut = extract_donut(literal, "single-literal", deep=False)
+        assert donut["config"]["delivery_profile"] == "unrecognized"
+        assert donut["config"]["donut_confirmed"] is False

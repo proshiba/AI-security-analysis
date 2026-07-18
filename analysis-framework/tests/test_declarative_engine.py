@@ -14,6 +14,7 @@ from asa.compiler import compile_plan, rank_families, select_campaign, select_fa
 from asa.conditions import evaluate_condition, resolve_fact, score_rules
 from asa.loader import index_definitions, load_definition_tree, load_yaml, parse_definition
 from asa.models import Condition, MalwareDefinition, PipelineDefinition, PolicyDefinition, Rule
+from extractors.profiled_family import _independent_marker_hits, load_profiles
 
 DEFINITIONS = Path(__file__).parents[1] / "definitions"
 
@@ -129,8 +130,149 @@ def test_compiler_functions_and_policy() -> None:
     assert plan.status == "ready" and not plan.executed and not plan.network_contacted
     unknown = compile_plan(malware, pipelines, policy, {})
     assert unknown.status == "needs_review"
+    assert unknown.pipeline == "unknown.family_static"
+    assert [step.id for step in unknown.steps] == ["intake", "inventory", "strings", "iocs", "report"]
     blocked_policy = policy.model_copy(update={"deny": [*policy.deny, "filesystem.sample.read"]})
     assert compile_plan(malware, pipelines, blocked_policy, facts).status == "blocked"
+    assert compile_plan(malware, pipelines, blocked_policy, {}).status == "blocked"
+
+
+def test_donut_and_purehvnc_reject_single_cross_family_literals() -> None:
+    """Keep runtime/resource/carrier literals below family thresholds alone."""
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    for literal in ("v4.0.30319", "payloadsource.zip", "chrd"):
+        family, candidates = select_family(
+            malware,
+            {"classification": {"family_hint": None}, "static": {"strings_ci": [literal]}},
+        )
+        assert family is None
+        scores = {candidate.id: candidate.score for candidate in candidates}
+        assert scores["donutloader"] < 70
+        assert scores["purehvnc"] < 70
+    family, _ = select_family(
+        malware,
+        {
+            "classification": {"family_hint": None},
+            "static": {"strings_ci": ["chrd", "payloadsource.zip"]},
+        },
+    )
+    assert family and family.metadata.id == "donutloader"
+
+
+def test_profile_definitions_require_n_of_m_plus_config_literal() -> None:
+    """Keep each generated profile below threshold until N family markers correlate."""
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    profiles = load_profiles()
+    for family_id, profile in profiles.items():
+        independent = _independent_marker_hits(
+            profile["markers"],
+            chr(10).join(profile["markers"]),
+        )
+        minimum = max(2, int(profile["minimum_markers"]))
+        selected_markers = [marker.lower() for marker in independent[:minimum]]
+        marker_set = {marker.lower() for marker in profile["markers"]}
+        config_key = next(
+            key.lower()
+            for key in profile["config_keys"]
+            if key.lower() not in marker_set
+        )
+
+        single_scores = {
+            item.id: item.score
+            for item in rank_families(
+                malware,
+                {
+                    "classification": {"family_hint": None},
+                    "static": {"strings_ci": [selected_markers[0], config_key]},
+                },
+            )
+        }
+        assert single_scores[family_id] < 70
+
+        correlated_scores = {
+            item.id: item.score
+            for item in rank_families(
+                malware,
+                {
+                    "classification": {"family_hint": None},
+                    "static": {"strings_ci": [*selected_markers, config_key]},
+                },
+            )
+        }
+        assert correlated_scores[family_id] >= 70
+
+
+def test_profile_definition_does_not_double_count_substring_aliases() -> None:
+    """Match runtime marker independence for a short and expanded alias pair."""
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    overlapping = {
+        item.id: item.score
+        for item in rank_families(
+            malware,
+            {
+                "classification": {"family_hint": None},
+                "static": {
+                    "strings_ci": ["asyncrat", "asyncrat server", "hosts"]
+                },
+            },
+        )
+    }
+    assert overlapping["asyncrat"] < 70
+    independent = {
+        item.id: item.score
+        for item in rank_families(
+            malware,
+            {
+                "classification": {"family_hint": None},
+                "static": {
+                    "strings_ci": ["asyncrat server", "hwid", "hosts"]
+                },
+            },
+        )
+    }
+    assert independent["asyncrat"] >= 70
+
+
+def test_other_family_definitions_reject_single_literals() -> None:
+    """Apply the same correlation invariant to non-profile family definitions."""
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    fixtures = {
+        "amosstealer": ["ledger/live/", "keychain"],
+        "agenttesla": ["agenttesla", "appdomain"],
+        "formbook": ["formbook", "ntsetcontextthread"],
+        "lummastealer": ["lummac2", "build_id"],
+        "remcosrat": ["remcos agent", "rmc-"],
+        "remusstealer": ["remusstealer", "login data"],
+        "venomrat": ["quasar.client", "xclient.core", "reconnectdelay"],
+        "vidar": ["information.txt", "wallet"],
+    }
+    for family_id, evidence in fixtures.items():
+        single_scores = {
+            item.id: item.score
+            for item in rank_families(
+                malware,
+                {
+                    "classification": {"family_hint": None},
+                    "static": {"strings_ci": [evidence[0]]},
+                },
+            )
+        }
+        assert single_scores[family_id] < 70
+        correlated_scores = {
+            item.id: item.score
+            for item in rank_families(
+                malware,
+                {
+                    "classification": {"family_hint": None},
+                    "static": {"strings_ci": evidence},
+                },
+            )
+        }
+        assert correlated_scores[family_id] >= 70
 
 
 def test_topology_errors() -> None:
