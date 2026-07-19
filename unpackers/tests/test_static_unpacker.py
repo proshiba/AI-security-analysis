@@ -1,4 +1,4 @@
-"""Unit tests for every public static-unpacker function."""
+"""静的展開器の全公開関数に対する単体試験。"""
 
 from __future__ import annotations
 
@@ -16,18 +16,19 @@ from unpackers import static_unpacker as unpacker
 
 
 def minimal_macho() -> bytes:
-    """Build a minimal little-endian Mach-O 64 header."""
+    """最小のリトルエンディアンMach-O 64ヘッダーを構築する。"""
     return b"\xcf\xfa\xed\xfe" + struct.pack("<IIIIIII", 0x01000007, 3, 2, 0, 0, 0, 0)
 
 
 def test_hash_entropy_format_and_names() -> None:
-    """Cover common primitives and traversal rejection."""
+    """共通プリミティブとパストラバーサル拒否を試験する。"""
     assert len(unpacker.sha256_bytes(b"x")) == 64
     assert unpacker.entropy(b"\0" * 100) == 0
     assert unpacker.detect_format(minimal_macho(), "x") == "macho"
     java_class = b"\xca\xfe\xba\xbe\x00\x00\x00\x34" + b"\x00" * 32
     assert unpacker.detect_format(java_class, "Fixture.class") == "java-class"
     assert unpacker.detect_format(b"7z\xbc\xaf'\x1c", "x") == "7z"
+    assert unpacker.detect_format(b"\x7fELF" + b"\0" * 64, "x") == "elf"
     assert unpacker.detect_format(b"ER\x02\x00" + b"\0" * 28, "x") == "apple-disk-image"
     assert unpacker.detect_format(b"Rar!\x1a\x07\x01\x00", "x") == "rar"
     assert unpacker.detect_format(b"var x = 1", "x.js") == "script"
@@ -37,8 +38,20 @@ def test_hash_entropy_format_and_names() -> None:
         unpacker.safe_member_name("../x")
 
 
+def test_repetitive_padding_detection() -> None:
+    """反復PEオーバーレイと埋め込みペイロードを区別する。"""
+    report = unpacker.repetitive_padding(b"pqrs" * 4096)
+    assert report == {
+        "period": 4,
+        "pattern_hex": "70717273",
+        "repetitions": 4096,
+        "trailing_bytes": 0,
+    }
+    assert unpacker.repetitive_padding(bytes(range(256)) * 16) is None
+
+
 def test_macho_and_encoded_blob() -> None:
-    """Parse Mach-O metadata and recover only meaningful script base64."""
+    """Mach-Oメタデータを解析し、有意なスクリプトBase64だけを復元する。"""
     assert unpacker.macho_summary(minimal_macho())["kind"] == "macho64"
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
@@ -51,7 +64,7 @@ def test_macho_and_encoded_blob() -> None:
 
 
 def test_chunked_echo_base64_reassembly() -> None:
-    """Reassemble a CMD payload emitted in Base64 chunks to one target."""
+    """1つの出力先へBase64断片として出力されたCMDペイロードを再構築する。"""
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("payload.js", b"var payload = true")
@@ -70,7 +83,7 @@ def test_chunked_echo_base64_reassembly() -> None:
 
 
 def test_zip_recovery_and_write(tmp_path: Path) -> None:
-    """Recover recognized ZIP members and encrypt output artifacts."""
+    """認識済みZIPメンバーを復元し、出力アーティファクトを暗号化する。"""
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("payload.js", b"var x = 1")
@@ -89,7 +102,7 @@ def test_zip_recovery_and_write(tmp_path: Path) -> None:
 
 
 def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
-    """Reject the whole archive before retaining any partial artifact."""
+    """部分アーティファクトを保持する前にアーカイブ全体を拒否する。"""
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("one.js", b"12345678")
@@ -115,7 +128,7 @@ def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
 
 
 def test_zip_malformed_and_streaming_size_mismatch_fail_closed() -> None:
-    """Reject malformed metadata after only one byte beyond the declared size."""
+    """宣言サイズを1バイトだけ超える不正メタデータも拒否する。"""
     with pytest.raises(zipfile.BadZipFile):
         unpacker.recover_zip(b"not a zip archive")
 
@@ -147,7 +160,7 @@ def test_zip_malformed_and_streaming_size_mismatch_fail_closed() -> None:
 
 
 def test_valid_pe_carving_and_cab_detection(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Validate bounded PE carving and CAB recognition without a real sample."""
+    """実検体を使わず、上限付きPE切り出しとCAB認識を検証する。"""
     fake = SimpleNamespace(
         FILE_HEADER=SimpleNamespace(NumberOfSections=1),
         OPTIONAL_HEADER=SimpleNamespace(
@@ -171,7 +184,7 @@ def test_valid_pe_carving_and_cab_detection(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_split_reassembly_and_external_extract_preflight(tmp_path: Path) -> None:
-    """Reassemble validated split payloads and reject a missing 7-Zip binary."""
+    """検証済み分割ペイロードを再構築し、7-Zip不在を拒否する。"""
     manifest = {
         "file_name": "payload.exe",
         "file_size": 6,
@@ -194,7 +207,7 @@ def test_split_reassembly_and_external_extract_preflight(tmp_path: Path) -> None
 
 
 def test_autoit_xor_and_rc4_lznt1_recovery(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Recover a synthetic PE-shaped AutoIt RC4 then LZNT1 payload."""
+    """合成PE形式のAutoIt RC4・LZNT1ペイロードを復元する。"""
     from Cryptodome.Cipher import ARC4
     from refinery.units.compression.lznt1 import lznt1
 
@@ -216,7 +229,7 @@ def test_autoit_xor_and_rc4_lznt1_recovery(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_dotnet_bitmap_payload_recovery(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Mirror column-major Bitmap.GetPixel extraction from a ResourceSet entry."""
+    """ResourceSetエントリからBitmap.GetPixelの列優先抽出を再現する。"""
     pixel = bytes((0x41, 0x5A, 0x4D, 0xFF))  # BGRA becomes RGB ``MZA``.
     header = bytearray(54)
     header[:2] = b"BM"
@@ -242,7 +255,7 @@ def test_dotnet_bitmap_payload_recovery(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:
-    """Reject non-PE bytes and report unavailable external tools."""
+    """PE以外のバイト列を拒否し、利用不能な外部ツールを報告する。"""
     with pytest.raises(pefile.PEFormatError):
         unpacker.pe_summary(b"MZbad")
     malformed, malformed_artifacts = unpacker.unpack_bytes(b"MZbad", "bad.exe")
@@ -266,7 +279,7 @@ def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:
 def test_reviewed_container_hint_forces_bounded_archive_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Probe a reviewed NSIS-like PE even when generic layout routing is false."""
+    """汎用レイアウト分岐が偽でも、レビュー済みNSIS類似PEを検査する。"""
     monkeypatch.setattr(unpacker, "detect_format", lambda *_args: "pe")
     monkeypatch.setattr(
         unpacker, "recover_inflated_pe", lambda _data: ({"status": "none"}, None)
@@ -312,7 +325,7 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
 def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Do not pass an unrelated archive password to an NSIS PE."""
+    """無関係なアーカイブパスワードをNSIS PEへ渡さない。"""
     inventory_passwords: list[str] = []
     commands: list[list[str]] = []
 
@@ -344,7 +357,7 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
 
 
 def test_unpack_and_cli(tmp_path: Path) -> None:
-    """Exercise orchestration, parser, and CLI output."""
+    """オーケストレーション、パーサー、CLI出力を試験する。"""
     source = tmp_path / "sample.osascript"
     source.write_bytes(b'tell application "Finder"')
     report, artifacts = unpacker.unpack_bytes(source.read_bytes(), source.name)

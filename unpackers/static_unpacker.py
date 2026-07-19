@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded static unpacking and artifact recovery without sample execution."""
+"""検体を実行せず、上限付きで静的展開とアーティファクト復元を行う。"""
 
 from __future__ import annotations
 
@@ -96,12 +96,12 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
 
 
 def sha256_bytes(data: bytes) -> str:
-    """Return the lowercase SHA-256 digest for bytes."""
+    """バイト列の小文字SHA-256ダイジェストを返す。"""
     return hashlib.sha256(data).hexdigest()
 
 
 def entropy(data: bytes) -> float:
-    """Return bounded deterministic Shannon entropy rounded to four decimals."""
+    """上限付きで決定的に算出し、小数4桁へ丸めたShannonエントロピーを返す。"""
     if not data:
         return 0.0
     sample = data
@@ -127,10 +127,12 @@ def entropy(data: bytes) -> float:
 
 
 def detect_format(data: bytes, name: str = "sample") -> str:
-    """Identify formats supported by the static recovery pipeline."""
+    """静的復元パイプラインが対応する形式を識別する。"""
     suffix = Path(name).suffix.lower()
     if data.startswith(b"MZ"):
         return "pe"
+    if data.startswith(b"\x7fELF"):
+        return "elf"
     if is_asar(data):
         return "asar"
     if data[:4] in MACHO_MAGICS:
@@ -173,13 +175,29 @@ def detect_format(data: bytes, name: str = "sample") -> str:
     return "data"
 
 
+def repetitive_padding(data: bytes, max_period: int = 32) -> dict[str, object] | None:
+    """短いバイトパターンの反復だけで構成されたバッファ全体を識別する。"""
+    if len(data) < 4096:
+        return None
+    for period in range(1, min(max_period, len(data)) + 1):
+        pattern = data[:period]
+        if pattern * (len(data) // period) + pattern[: len(data) % period] == data:
+            return {
+                "period": period,
+                "pattern_hex": pattern.hex(),
+                "repetitions": len(data) // period,
+                "trailing_bytes": len(data) % period,
+            }
+    return None
+
+
 def safe_member_name(name: str) -> str:
-    """Reject archive traversal and absolute or drive-qualified member names."""
+    """アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。"""
     return validate_member_name(name, "archive")
 
 
 def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
-    """Return the bounded on-disk PE extent at *offset*, or ``None``."""
+    """*offset*にあるPEの上限付きファイル範囲を返し、無効なら``None``を返す。"""
     if offset < 0 or offset + 0x40 > len(data) or data[offset : offset + 2] != b"MZ":
         return None
     try:
@@ -200,7 +218,7 @@ def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
 
 
 def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
-    """Carve validated non-leading PE images without executing their stubs."""
+    """スタブを実行せず、先頭以外にある検証済みPEイメージを切り出す。"""
     artifacts: list[tuple[str, bytes]] = []
     seen: set[str] = set()
     cursor = 1
@@ -222,7 +240,7 @@ def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
 
 
 def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Classify PE packing evidence and recover bounded embedded artifacts."""
+    """PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。"""
     pe = pefile.PE(data=data, fast_load=False)
     sections = []
     for section in pe.sections:
@@ -256,7 +274,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     artifacts: list[tuple[str, bytes]] = []
     overlay = data[overlay_offset:] if overlay_offset is not None else b""
     overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
-    if overlay and overlay_format != "data":
+    overlay_padding = repetitive_padding(overlay) if overlay else None
+    if overlay and overlay_format != "data" and overlay_padding is None:
         artifacts.append((f"pe-overlay-{overlay_format}", overlay))
     artifacts.extend(carve_embedded_pes(overlay))
     resource_count = 0
@@ -395,6 +414,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "packing_suspected": packed,
             "overlay_size": len(overlay),
             "overlay_format": overlay_format,
+            "overlay_repetitive_padding": overlay_padding,
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
             "archive_resources_recovered": archive_resources,
@@ -409,7 +429,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
 def recover_dotnet_resources(
     data: bytes,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Inventory .NET manifest resources and retain opaque encoded payload material."""
+    """.NET manifestリソースを棚卸しし、不透明な符号化ペイロード素材を保持する。"""
     try:
         image = dnfile.dnPE(data=data)
     except Exception as exc:  # dnfile raises several parser-specific exceptions
@@ -466,7 +486,7 @@ def recover_dotnet_resources(
 
 
 def _resource_entry_bounds(resource_set: object, index: int) -> tuple[int, int]:
-    """Return one ResourceSet entry's bounded serialized-data interval."""
+    """ResourceSetエントリ1件の上限付きシリアライズデータ範囲を返す。"""
     entries = list(getattr(resource_set, "entries", []) or [])
     raw = getattr(resource_set, "_data", b"")
     header = getattr(resource_set, "struct", None)
@@ -483,7 +503,7 @@ def _resource_entry_bounds(resource_set: object, index: int) -> tuple[int, int]:
 
 
 def _decode_bmp_rgb_columns(data: bytes) -> bytes:
-    """Mirror Bitmap.GetPixel column-major RGB extraction for an embedded BMP."""
+    """埋め込みBMPに対するBitmap.GetPixelの列優先RGB抽出を再現する。"""
     if len(data) < 54 or data[:2] != b"BM":
         raise ValueError("not a BMP")
     declared_size = struct.unpack_from("<I", data, 2)[0]
@@ -519,7 +539,7 @@ def _decode_bmp_rgb_columns(data: bytes) -> bytes:
 def recover_dotnet_bitmap_payloads(
     resource_set: object,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Recover PE streams hidden in serialized .NET Bitmap resource RGB pixels."""
+    """シリアライズ済み.NET BitmapリソースのRGB画素に隠されたPEストリームを復元する。"""
     entries = list(getattr(resource_set, "entries", []) or [])
     raw = getattr(resource_set, "_data", b"")
     bitmap_entries = [
@@ -567,7 +587,7 @@ def recover_dotnet_bitmap_payloads(
 
 
 def macho_summary(data: bytes) -> dict:
-    """Parse bounded Mach-O or universal-binary header metadata."""
+    """上限付きでMach-Oまたはユニバーサルバイナリのヘッダーメタデータを解析する。"""
     magic = data[:4]
     if magic not in MACHO_MAGICS:
         raise ValueError("not a Mach-O image")
@@ -595,7 +615,7 @@ def macho_summary(data: bytes) -> dict:
 
 
 def _encoded_blob_kind(blob: bytes) -> str | None:
-    """Return a supported kind only when decoded bytes are structurally useful."""
+    """復号バイト列が構造上有用な場合だけ、対応種別を返す。"""
     kind = detect_format(blob)
     if kind == "pe" and valid_pe_extent(blob) is None:
         return None
@@ -603,11 +623,11 @@ def _encoded_blob_kind(blob: bytes) -> str | None:
 
 
 def recover_encoded_blobs(data: bytes) -> list[tuple[str, bytes]]:
-    """Recover bounded, structurally meaningful base64 blobs from scripts.
+    """スクリプトから構造上有意なBase64ブロブを上限付きで復元する。
 
-    Command files often emit one payload through many echo lines before using
-    certutil -decode. Those chunks are reassembled by redirection target.
-    Random high-entropy arguments are not retained individually.
+    コマンドファイルはcertutil -decodeの前に、多数のecho行で1つのペイロードを
+    出力することがある。これらの断片はリダイレクト先ごとに再構築する。
+    無作為な高エントロピー引数は個別に保持しない。
     """
     text = decode_script_text(data)
     artifacts: list[tuple[str, bytes]] = []
@@ -657,7 +677,7 @@ def recover_encoded_blobs(data: bytes) -> list[tuple[str, bytes]]:
 
 
 class _ZipQuotaExceeded(ValueError):
-    """Internal signal that discards every partially recovered ZIP artifact."""
+    """部分的に復元したZIPアーティファクトをすべて破棄する内部シグナル。"""
 
     def __init__(self, status: str, name: str, detail: str) -> None:
         super().__init__(detail)
@@ -676,7 +696,7 @@ def _read_standard_zip_member_capped(
     max_compression_ratio: float,
     chunk_size: int,
 ) -> bytes:
-    """Read one ZIP member in bounded chunks and reject forged metadata."""
+    """ZIPメンバー1件を上限付きの断片で読み、偽装メタデータを拒否する。"""
 
     declared_size = int(info.file_size)
     compressed_size = int(info.compress_size)
@@ -741,7 +761,7 @@ def recover_zip(
     max_compression_ratio: float = MAX_COMPRESSION_RATIO,
     read_chunk_size: int = ARCHIVE_READ_CHUNK_SIZE,
 ) -> tuple[list[dict], list[tuple[str, bytes]]]:
-    """Inventory a ZIP under member, total-byte, and compression-ratio quotas."""
+    """メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。"""
 
     for value, label in (
         (max_members, "max_members"),
@@ -858,7 +878,7 @@ def recover_zip(
 def run_upx(
     data: bytes, executable: Path, timeout: float = 120.0
 ) -> tuple[dict, bytes | None]:
-    """Invoke UPX decompression as a data transform and validate the output PE."""
+    """データ変換としてUPX展開を呼び出し、出力PEを検証する。"""
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}, None
     with tempfile.TemporaryDirectory(prefix="asa-upx-") as temp:
@@ -887,7 +907,7 @@ def run_upx(
 
 
 def decode_autoit_xor_literals(script: bytes) -> list[str]:
-    """Decode repeated-key XOR string calls in decompiled AutoIt source."""
+    """逆コンパイル済みAutoItソース内の反復鍵XOR文字列呼び出しを復号する。"""
     text = script.decode("utf-8", errors="ignore")
     pattern = re.compile(
         r"[A-Za-z_][A-Za-z0-9_]*\(\"0x([0-9A-Fa-f]+)\",\s*\"([^\"]+)\"\)"
@@ -911,7 +931,7 @@ def decode_autoit_xor_literals(script: bytes) -> list[str]:
 def recover_autoit_rc4_lznt1(
     script: bytes,
 ) -> tuple[list[dict], list[tuple[str, bytes]]]:
-    """Recover PE payloads from AutoIt RC4 then LZNT1 loader expressions."""
+    """AutoItのRC4・LZNT1ローダー式からPEペイロードを復元する。"""
     from Cryptodome.Cipher import ARC4
     from refinery.units.compression.lznt1 import lznt1
 
@@ -982,7 +1002,7 @@ def recover_autoit_rc4_lznt1(
 
 
 def recover_autoit_script(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Decompile AutoIt A3X and statically recover XOR/RC4/LZNT1 layers."""
+    """AutoIt A3Xを逆コンパイルし、XOR・RC4・LZNT1層を静的に復元する。"""
     try:
         from refinery.units.formats.a3xs import a3xs
 
@@ -1031,7 +1051,7 @@ def run_die(
     name: str = "sample.bin",
     timeout: float = 120.0,
 ) -> dict:
-    """Run Detect It Easy as a static classifier and parse its JSON evidence."""
+    """Detect It Easyを静的分類器として実行し、JSON証拠を解析する。"""
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-die-") as temp:
@@ -1068,7 +1088,7 @@ def run_die(
 
 
 def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
-    """Use 7-Zip only to identify and list a possible archive container."""
+    """アーカイブ候補の識別と一覧化だけに7-Zipを使用する。"""
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-7z-list-") as temp:
@@ -1114,7 +1134,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
 def reassemble_split_parts(
     files: dict[str, bytes],
 ) -> tuple[list[dict], list[tuple[str, bytes]]]:
-    """Reassemble Jadoo-style split files after validating offsets and lengths."""
+    """オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。"""
     reports: list[dict] = []
     artifacts: list[tuple[str, bytes]] = []
     by_basename: dict[str, list[tuple[str, bytes]]] = {}
@@ -1197,7 +1217,7 @@ def sevenzip_extract(
     name: str = "input.bin",
     password: str = "",
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Extract a recognized container with path, count, and byte-count bounds."""
+    """認識済みコンテナをパス、件数、バイト数の上限付きで展開する。"""
     # Supplying an unrelated archive password to a PE/NSIS image makes 7-Zip
     # omit its synthetic [NSIS].nsi decompilation stream. Probe without a
     # password first and keep that mode for NSIS; other archive types retain
@@ -1340,12 +1360,11 @@ def unpack_bytes(
     force_container_probe: bool = False,
     archive_password: str = "",
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Run bounded static recovery and return metadata plus artifacts.
+    """上限付き静的復元を実行し、メタデータとアーティファクトを返す。
 
-    The force flag is for reviewed inventory hints such as a known NSIS
-    carrier whose PE layout does not satisfy the generic container heuristic.
-    It never executes the input; it only allows the configured archive parser
-    to inspect it.
+    forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、
+    レビュー済みインベントリの手掛かりに使用する。入力は実行せず、
+    設定済みアーカイブパーサーによる検査だけを許可する。
     """
     kind = detect_format(data, name)
     report = {
@@ -1485,7 +1504,7 @@ def unpack_bytes(
 def write_artifacts(
     path: Path, artifacts: list[tuple[str, bytes]], password: str = "infected"
 ) -> None:
-    """Store recovered bytes only in an AES-encrypted quarantine archive."""
+    """復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     with pyzipper.AESZipFile(
         path, "w", compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES
@@ -1497,7 +1516,7 @@ def write_artifacts(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the static unpacker command-line parser."""
+    """静的展開器のコマンドラインパーサーを構築する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -1511,7 +1530,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Analyze one raw artifact and optionally archive recovered layers."""
+    """生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。"""
     args = build_parser().parse_args(argv)
     if args.input.resolve() == args.output.resolve():
         raise ValueError("input and output paths must differ")

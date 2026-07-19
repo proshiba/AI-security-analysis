@@ -301,6 +301,15 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "157dcb521adc7226e4739391a479eca2c921b84d1e368f22a53ba3c36d3c723b": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/157dcb521adc7226e4739391a479eca2c921b84d1e368f22a53ba3c36d3c723b",
+      "case_id": "sha256:157dcb521adc7226e4739391a479eca2c921b84d1e368f22a53ba3c36d3c723b",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "booking-clickfix-nativeaot",
+      "version_key": "unknown"
+    },
     "165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e": {
       "canonical_path": "analysis-results/malware/venomrat/versions/unknown/cases/165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e",
       "case_id": "sha256:165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e",
@@ -499,6 +508,13 @@
       "case_kind": "malware",
       "family": "latrodectus",
       "version_key": "v1.2.12"
+    },
+    "233bbf027793e88ee6d548f2b18e5e2e29c9943bee6c50ed6c1160ac9d68c39a": {
+      "canonical_path": "analysis-results/malware/jomangy/versions/unknown/cases/233bbf027793e88ee6d548f2b18e5e2e29c9943bee6c50ed6c1160ac9d68c39a",
+      "case_id": "sha256:233bbf027793e88ee6d548f2b18e5e2e29c9943bee6c50ed6c1160ac9d68c39a",
+      "case_kind": "malware",
+      "family": "jomangy",
+      "version_key": "unknown"
     },
     "233e22ea1259c85e521ab9ec1f92ad3c95ac98433e0bcdc5b7c21888ae8317d1": {
       "canonical_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/233e22ea1259c85e521ab9ec1f92ad3c95ac98433e0bcdc5b7c21888ae8317d1",
@@ -825,6 +841,15 @@
       "case_id": "sha256:3b328b13d6925bb86cfa46b58586530dd14e6f0f627ec92a1f14ef162d5712ec",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "3b65185390624b4222b0ef816bc01b735096429ca8da8e2a040c5a61e6b44752": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/3b65185390624b4222b0ef816bc01b735096429ca8da8e2a040c5a61e6b44752",
+      "case_id": "sha256:3b65185390624b4222b0ef816bc01b735096429ca8da8e2a040c5a61e6b44752",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "booking-clickfix-nativeaot",
       "version_key": "unknown"
     },
     "3c742975836a7071afbb7d23820029f89a48d99f79b85291658a710eb096f9b3": {
@@ -1365,6 +1390,15 @@
       "family": "agenttesla",
       "version_key": "unknown"
     },
+    "58f45441bc2e9b98470a8548f20a68042265aa4a875c099f65989aa9c065fea8": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/58f45441bc2e9b98470a8548f20a68042265aa4a875c099f65989aa9c065fea8",
+      "case_id": "sha256:58f45441bc2e9b98470a8548f20a68042265aa4a875c099f65989aa9c065fea8",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "booking-clickfix-nativeaot",
+      "version_key": "unknown"
+    },
     "5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86",
       "case_id": "sha256:5a43e67720eb299fccc8a096a20ab298009e37fc6febe048b617c5017347da86",
@@ -1537,6 +1571,13 @@
       "case_id": "sha256:64da4c1638c0e1a6435e2026155f9092e7532235e1a38a8b1c8b9fc85c469f9a",
       "case_kind": "malware",
       "family": "njrat",
+      "version_key": "unknown"
+    },
+    "64fa25e0e80a527b9caec41f68d96f696ca41467ab4e5edefc1bf1795ee3ffad": {
+      "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/64fa25e0e80a527b9caec41f68d96f696ca41467ab4e5edefc1bf1795ee3ffad",
+      "case_id": "sha256:64fa25e0e80a527b9caec41f68d96f696ca41467ab4e5edefc1bf1795ee3ffad",
+      "case_kind": "malware",
+      "family": "wannacry",
       "version_key": "unknown"
     },
     "651859b30c796cf59166ca018a2b4f18c996af4e688d302466ae56a5712b72a7": {
@@ -2383,6 +2424,13 @@
       "family": "snakekeylogger",
       "version_key": "unknown"
     },
+    "9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786": {
+      "canonical_path": "analysis-results/malware/jomangy/versions/unknown/cases/9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786",
+      "case_id": "sha256:9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786",
+      "case_kind": "malware",
+      "family": "jomangy",
+      "version_key": "unknown"
+    },
     "97aee10761650a3b2aada9753a35f06be366ef054b523cfc33a2cab5acdd4c50": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/97aee10761650a3b2aada9753a35f06be366ef054b523cfc33a2cab5acdd4c50",
@@ -2396,6 +2444,15 @@
       "case_id": "sha256:9817c80e1108f291efd2eb04a7b5abc8ca5895788b8a3934d1c3dded97d4b124",
       "case_kind": "malware",
       "family": "lummastealer",
+      "version_key": "unknown"
+    },
+    "9826cca77d8ba2f478a5e338ed4ecb4c2accde968e0b89a9ccd4295beb91b207": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/9826cca77d8ba2f478a5e338ed4ecb4c2accde968e0b89a9ccd4295beb91b207",
+      "case_id": "sha256:9826cca77d8ba2f478a5e338ed4ecb4c2accde968e0b89a9ccd4295beb91b207",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "linux-single-stage-downloader",
       "version_key": "unknown"
     },
     "98287949544f5d5e814f0febc7e87f3085a24405c3f193f60514d7231ea19bce": {
@@ -3702,6 +3759,13 @@
       "family": "stealc",
       "version_key": "unknown"
     },
+    "e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40": {
+      "canonical_path": "analysis-results/malware/xmrig/versions/unknown/cases/e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40",
+      "case_id": "sha256:e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40",
+      "case_kind": "malware",
+      "family": "xmrig",
+      "version_key": "unknown"
+    },
     "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/unknown/cases/e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
       "case_id": "sha256:e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
@@ -3934,6 +3998,15 @@
       "family": "amosstealer",
       "version_key": "unknown"
     },
+    "f3fc5b4616bae1839e5239c9ec494dfdefa366c49b8ec5a7bc166821c174fa6a": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/f3fc5b4616bae1839e5239c9ec494dfdefa366c49b8ec5a7bc166821c174fa6a",
+      "case_id": "sha256:f3fc5b4616bae1839e5239c9ec494dfdefa366c49b8ec5a7bc166821c174fa6a",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "booking-clickfix-nativeaot",
+      "version_key": "unknown"
+    },
     "f419c4f9ee51391da7ef8b679683593ed76181b1a5702c58944ba64adeb25cd9": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/unknown/cases/f419c4f9ee51391da7ef8b679683593ed76181b1a5702c58944ba64adeb25cd9",
       "case_id": "sha256:f419c4f9ee51391da7ef8b679683593ed76181b1a5702c58944ba64adeb25cd9",
@@ -4053,6 +4126,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "genesisstealer",
+      "version_key": "unknown"
+    },
+    "fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347": {
+      "canonical_path": "analysis-results/malware/jomangy/versions/unknown/cases/fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347",
+      "case_id": "sha256:fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347",
+      "case_kind": "malware",
+      "family": "jomangy",
       "version_key": "unknown"
     },
     "fbaa36fbd8f43d80ecc3c8c26701de0beca3db8402af5e8ce27105a68e918082": {
