@@ -4494,3 +4494,203 @@ analyses:
     c2: ["217.60.195.187:18129/udp"]
     notes: "重複排除した空UDP検証は無応答。サービス稼働とC2成立は未確認。検体は未実行。"
     result_path: analysis-results/malware/softbot/versions/unknown/cases/8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208/
+
+  - malware_type: "カスタム保護PEローダー（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 23dc32bb9108bab987f480651c64830f4fb78235e67821a25db976aa8ab96347
+    analysis_level: deep_static_protected_pe_review
+    campaign_type: protected_pe_loader_unresolved
+    matched_patterns: ["高エントロピーPE外層", "次段・設定・C2未復元"]
+    c2: []
+    notes: "完全一致ターゲットがなく接続検証不能。検体は未実行。"
+    result_path: analysis-results/malware/protected-pe-loader/versions/unknown/cases/23dc32bb9108bab987f480651c64830f4fb78235e67821a25db976aa8ab96347/
+
+  - malware_type: "Sobfox Launcher（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: e20a48b1fff9af6ad8464c5c6313fb6a6031b45c9dce872d090fdc45994bda17
+    analysis_level: deep_static_launcher_review
+    campaign_type: sobfox_launcher_unresolved
+    matched_patterns: ["ランチャー構造", "次段・設定・C2未復元"]
+    c2: []
+    notes: "最終能力を推測で補完せず未解決として保持。検体は未実行。"
+    result_path: analysis-results/malware/sobfox-launcher/versions/unknown/cases/e20a48b1fff9af6ad8464c5c6313fb6a6031b45c9dce872d090fdc45994bda17/
+
+  - malware_type: "HTML認証情報フィッシング"
+    analyzed_at: 2026-07-19
+    sample_sha256: 8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385
+    analysis_level: deep_static_html_form_role_validation
+    campaign_type: credential_phishing_shared_form
+    matched_patterns: ["認証情報フォーム", "共有フォームサービスへの送信"]
+    c2: []
+    notes: "TLS接続だけを確認しフォーム本文を送信していない。共有サービスはC2ではない。"
+    result_path: analysis-results/malware/credential-phishing-html/versions/unknown/cases/8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385/
+
+  - malware_type: "MIG Logcleaner"
+    analyzed_at: 2026-07-19
+    sample_sha256: ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49
+    analysis_level: deep_static_log_record_mutation_review
+    campaign_type: mig_logcleaner_v2
+    matched_patterns: ["MIG Logcleaner v2.0", "wtmp・utmp・lastlog操作"]
+    c2: []
+    notes: "ネットワーク機能なし。ログ改変処理を未実行の静的解析で確認。"
+    result_path: analysis-results/malware/mig-logcleaner/versions/v2.0/cases/ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49/
+
+  - malware_type: "Efimer"
+    analyzed_at: 2026-07-19
+    sample_sha256: 830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080
+    analysis_level: deep_static_pyinstaller_pyarmor_plus_bounded_tor_validation
+    campaign_type: efimer_cryptostealer
+    matched_patterns: ["PyInstaller・PyArmor・XOR復号", "3件のTor v3 endpoint"]
+    c2: ["gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80", "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80", "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"]
+    notes: "ローカルTor停止で未到達。アプリケーションデータ未送信。検体は未実行。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080/
+
+  - malware_type: "インフラ用デコイHTA（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 317d8295d587349de63afc35a2e5ad3eb165d6825e8d8fbc76ae2df3c161bddb
+    analysis_level: deep_static_negative_capability_review
+    campaign_type: infrastructure_decoy_hta
+    matched_patterns: ["HTA外形", "能動コード・C2・次段なし"]
+    c2: []
+    notes: "能動要素を確認できないため悪性能力を推測しない。検体は未実行。"
+    result_path: analysis-results/malware/infrastructure-decoy-hta/versions/unknown/cases/317d8295d587349de63afc35a2e5ad3eb165d6825e8d8fbc76ae2df3c161bddb/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 0cc04fbf0c3c6b33914852fba88eee6f375a0230d19ca573447af21702bc01ab
+    analysis_level: deep_static_multiarch_protocol_review
+    campaign_type: eclipse_ddos_i586
+    matched_patterns: ["i586登録", "改行区切りDDoS命令・永続化・競合排除"]
+    c2: ["45.66.228.114:7000"]
+    notes: "重複排除したTCP到達のみ。登録・命令未送信でC2未確定。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/0cc04fbf0c3c6b33914852fba88eee6f375a0230d19ca573447af21702bc01ab/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: c66b83d2e4f021f73b630d23f3dde7042358e0447b42ff3c213c6ce61d11a58b
+    analysis_level: deep_static_multiarch_protocol_review
+    campaign_type: eclipse_ddos_armv4l
+    matched_patterns: ["armv4l登録", "改行区切りDDoS命令・永続化・競合排除"]
+    c2: ["45.66.228.114:7000"]
+    notes: "i586版と重複排除したTCP確認を共有。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/c66b83d2e4f021f73b630d23f3dde7042358e0447b42ff3c213c6ce61d11a58b/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 275b9450462c7661b71d61bdf4186f279c932c7651cba7818a04215ee3f0844f
+    analysis_level: deep_static_multiarch_protocol_review
+    campaign_type: eclipse_ddos_m68k
+    matched_patterns: ["m68k登録", "改行区切りDDoS命令・永続化・競合排除"]
+    c2: ["45.66.228.114:7000"]
+    notes: "i586版と重複排除したTCP確認を共有。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/275b9450462c7661b71d61bdf4186f279c932c7651cba7818a04215ee3f0844f/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c
+    analysis_level: deep_static_multiarch_protocol_review
+    campaign_type: eclipse_ddos_mipsel
+    matched_patterns: ["mipsel登録", "改行区切りDDoS命令・永続化・競合排除"]
+    c2: ["45.66.228.114:7000"]
+    notes: "i586版と重複排除したTCP確認を共有。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c/
+
+  - malware_type: "Efimer"
+    analyzed_at: 2026-07-19
+    sample_sha256: dfc5d6c8933546d48bbc67df144418385e5eeda07db0fead7664c07c0b1474f7
+    analysis_level: deep_static_pyinstaller_pyarmor_plus_bounded_tor_validation
+    campaign_type: efimer_clickfix_cryptostealer
+    matched_patterns: ["XOR位相iscFpWAuvdK6", "1分タスク・同梱Tor・3 onion"]
+    c2: ["gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80", "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80", "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"]
+    notes: "ローカルTor停止で未到達。HTTP要求未送信。検体は未実行。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/dfc5d6c8933546d48bbc67df144418385e5eeda07db0fead7664c07c0b1474f7/
+
+  - malware_type: "PUTA v3（Putita）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf
+    analysis_level: deep_static_ghidra_authenticated_config_review
+    campaign_type: putita_v3_x86_plain
+    matched_patterns: ["PUTA-V3-OK・13攻撃ID", "ChaCha20-Poly1305設定・多重永続化"]
+    c2: ["64.89.163.215:666"]
+    notes: "TCP接続拒否。HARDENEDやボットデータ未送信。検体は未実行。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf/
+
+  - malware_type: "PUTA v3（Putita、UPX）"
+    analyzed_at: 2026-07-19
+    sample_sha256: ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190
+    analysis_level: deep_static_upx_lineage_plus_putita_review
+    campaign_type: putita_v3_x86_upx
+    matched_patterns: ["UPX展開後73ad9a...と完全一致", "同一C2・プロトコル・攻撃ID"]
+    c2: ["64.89.163.215:666"]
+    notes: "梱包差だけで別版にしない。重複排除した接続確認を共有。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6
+    analysis_level: deep_static_ghidra_xor_table_review
+    campaign_type: genddos_armv6
+    matched_patterns: ["XOR 0x22・genddos.st:6742", "watchdog・競合排除・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "主候補TCP到達、fallback timeout。データ未送信でC2未確定。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 00e4d6eef2089f774e0b1369eabe9df9696005cb2415eebe3eb1496a1aed8a91
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_mipsel
+    matched_patterns: ["mipsel登録・TCP/7000", "UDP・SYN・HTTP2 DDoSと永続化"]
+    c2: ["45.66.228.114:7000"]
+    notes: "TCP到達のみ。登録や命令未送信でC2未確定。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/00e4d6eef2089f774e0b1369eabe9df9696005cb2415eebe3eb1496a1aed8a91/
+
+  - malware_type: "JackSkid"
+    analyzed_at: 2026-07-19
+    sample_sha256: be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57
+    analysis_level: deep_static_ghidra_custom_cipher_ens_sns_review
+    campaign_type: jackskid_2026_07_ens_sns
+    matched_patterns: ["独自RC4/LFSR派生テーブル", "meower.eth・roanoke.sol・Telnet走査・anti-VM"]
+    c2: ["deformed.su:9018"]
+    notes: "主C2のENS/SNS現在値は未照会。副次シェル候補はDNS解決不能。検体は未実行。"
+    result_path: analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57/
+
+  - malware_type: "PUTA v3（Putita）"
+    analyzed_at: 2026-07-19
+    sample_sha256: e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89
+    analysis_level: deep_static_ghidra_authenticated_config_review
+    campaign_type: putita_v3_armv5_plain
+    matched_patterns: ["PUTA-V3-OK・13攻撃ID", "ChaCha20-Poly1305設定・多重永続化"]
+    c2: ["64.89.163.215:666"]
+    notes: "TCP接続拒否。ボットデータ未送信。検体は未実行。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-19
+    sample_sha256: 0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e
+    analysis_level: deep_static_recursive_base64_role_review
+    campaign_type: freepbx_k_php_post_exploitation
+    matched_patterns: ["9個のBase64静的復号層", "WebShell・管理者・3分cron・設定窃取"]
+    c2: []
+    notes: "配布・更新・窃取先をC2と分離。埋め込み秘密値は非公開。Bash/PHP未実行。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414
+    analysis_level: deep_static_ghidra_symbols_xor_table_review
+    campaign_type: genddos_armv7
+    matched_patterns: ["シンボル付き14攻撃ハンドラ", "XOR 0x22・genddos.st:6742・fallback"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "ARMv6と重複排除した接続確認を共有。アプリデータ未送信。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414/
+
+  - malware_type: "PUTA v3（Putita、UPX）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e
+    analysis_level: deep_static_upx_lineage_plus_putita_review
+    campaign_type: putita_v3_armv5_upx
+    matched_patterns: ["UPX展開後e8ba80...と完全一致", "同一C2・プロトコル・攻撃ID"]
+    c2: ["64.89.163.215:666"]
+    notes: "梱包差だけで別版にしない。重複排除した接続確認を共有。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e/

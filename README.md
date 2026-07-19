@@ -182,7 +182,17 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | Condi | 5 | 2026-07-18 | XOR設定、攻撃・スキャナー・killer、UPX系譜、配布ローダー |
 | Linux ENS/SNS Bot（暫定） | 1 | 2026-07-18 | ENSによる動的IP解決、暗号化記述子、静的ポート表 |
 | CHUD Bot（暫定） | 4 | 2026-07-19 | PowerPC/ARM、UPX系譜、複数init永続化、ループバックchallenge/tagプロトコル |
-| Efimer | 2 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
+| Efimer | 4 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
+| PUTA v3（Putita） | 4 | 2026-07-19 | x86/ARMv5、UPX系譜、認証付き設定復号、暗号化C2、13攻撃ID |
+| GendDDoS（Ohshitクラスタ） | 2 | 2026-07-19 | ARMv6/ARMv7、XORテーブル、DNS fallback、14攻撃ハンドラ |
+| Eclipse DDoS Bot（暫定） | 6 | 2026-07-19 | x86-64/i586/ARM/M68K/MIPS LE、平文命令、永続化、競合排除 |
+| JackSkid | 1 | 2026-07-19 | 独自テーブル暗号、ENS/SNS名前解決、Telnet走査、anti-VM |
+| FreePBX K.php侵害スクリプト | 1 | 2026-07-19 | 再帰Base64、WebShell、管理者追加、cron再感染、設定窃取 |
+| MIG Logcleaner | 1 | 2026-07-19 | v2.0、wtmp/utmp/lastlog改変、ネットワーク機能なし |
+| HTML認証情報フィッシング | 1 | 2026-07-19 | form送信先抽出、秘密値非保持、共有サービスとC2の分離 |
+| カスタム保護PEローダー（暫定） | 1 | 2026-07-19 | 保護外層、次段・設定・C2未解決 |
+| Sobfox Launcher（暫定） | 1 | 2026-07-19 | ランチャー外層、次段・設定・C2未解決 |
+| インフラ用デコイHTA（暫定） | 1 | 2026-07-19 | 能動コード・次段・C2を確認できないnegative capability評価 |
 | WannaCry | 3 | 2026-07-19 | PlayGame外層、内包PE・暗号化XIA、キルスイッチ、Tor v2 C2 |
 | JOMANGY | 4 | 2026-07-19 | 多層Base64/ROT13、FreePBX webshell、UID 0/cron永続化、設定窃取相と配布相の分離 |
 | Linux複数ペイロードBotローダー（暫定） | 3 | 2026-07-19 | `/proc`競合排除、5次段配布、`pdvr`/`lilin`引数、配布先と最終C2の分離 |
