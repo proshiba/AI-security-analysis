@@ -10,3 +10,4 @@ ruff>=0.15.21
 dnfile>=0.18.0
 dncil>=1.0.2
 pydantic>=2.8
+pyinstaller>=6.21.0

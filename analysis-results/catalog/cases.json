@@ -199,6 +199,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "0cc04fbf0c3c6b33914852fba88eee6f375a0230d19ca573447af21702bc01ab": {
+      "canonical_path": "analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/0cc04fbf0c3c6b33914852fba88eee6f375a0230d19ca573447af21702bc01ab",
+      "case_id": "sha256:0cc04fbf0c3c6b33914852fba88eee6f375a0230d19ca573447af21702bc01ab",
+      "case_kind": "malware",
+      "family": "eclipse-ddos-bot",
+      "version_key": "unknown"
+    },
     "0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97": {
       "canonical_path": "analysis-results/malware/asyncrat/versions/unknown/cases/0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97",
       "case_id": "sha256:0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97",
@@ -435,12 +442,10 @@
       "version_key": "unknown"
     },
     "1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee": {
-      "attribution_status": "provisional",
-      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee",
+      "canonical_path": "analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee",
       "case_id": "sha256:1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee",
-      "case_kind": "unclassified",
-      "family": "unclassified",
-      "provisional_cluster_id": "eclipse-ddos-bot",
+      "case_kind": "malware",
+      "family": "eclipse-ddos-bot",
       "version_key": "unknown"
     },
     "1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379": {
@@ -585,6 +590,13 @@
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
     },
+    "23dc32bb9108bab987f480651c64830f4fb78235e67821a25db976aa8ab96347": {
+      "canonical_path": "analysis-results/malware/protected-pe-loader/versions/unknown/cases/23dc32bb9108bab987f480651c64830f4fb78235e67821a25db976aa8ab96347",
+      "case_id": "sha256:23dc32bb9108bab987f480651c64830f4fb78235e67821a25db976aa8ab96347",
+      "case_kind": "malware",
+      "family": "protected-pe-loader",
+      "version_key": "unknown"
+    },
     "23eda9f78b427fc4f1c53aba2326bcf471a4852d0fd176ada019c0aa5a07f716": {
       "attribution_status": "provisional",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/23eda9f78b427fc4f1c53aba2326bcf471a4852d0fd176ada019c0aa5a07f716",
@@ -620,6 +632,13 @@
       "case_id": "sha256:272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d",
       "case_kind": "malware",
       "family": "valleyrat",
+      "version_key": "unknown"
+    },
+    "275b9450462c7661b71d61bdf4186f279c932c7651cba7818a04215ee3f0844f": {
+      "canonical_path": "analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/275b9450462c7661b71d61bdf4186f279c932c7651cba7818a04215ee3f0844f",
+      "case_id": "sha256:275b9450462c7661b71d61bdf4186f279c932c7651cba7818a04215ee3f0844f",
+      "case_kind": "malware",
+      "family": "eclipse-ddos-bot",
       "version_key": "unknown"
     },
     "281d4d60fc99cf7f54819defb1c7c14b9202d46890936c4c6b9ebe3ddc75dd2f": {
@@ -750,6 +769,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "irahook",
+      "version_key": "unknown"
+    },
+    "317d8295d587349de63afc35a2e5ad3eb165d6825e8d8fbc76ae2df3c161bddb": {
+      "canonical_path": "analysis-results/malware/infrastructure-decoy-hta/versions/unknown/cases/317d8295d587349de63afc35a2e5ad3eb165d6825e8d8fbc76ae2df3c161bddb",
+      "case_id": "sha256:317d8295d587349de63afc35a2e5ad3eb165d6825e8d8fbc76ae2df3c161bddb",
+      "case_kind": "malware",
+      "family": "infrastructure-decoy-hta",
       "version_key": "unknown"
     },
     "31806a4d42c9adfcab0b03872b9391ee349d38de1418b2b2339b75ff33a22c73": {
@@ -2236,6 +2262,13 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080",
+      "case_id": "sha256:830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
+    },
     "846ccf956dabc8c403a9532fe3788cbb89191139091751cd0da782844b6db4d8": {
       "canonical_path": "analysis-results/malware/asyncrat/versions/unknown/cases/846ccf956dabc8c403a9532fe3788cbb89191139091751cd0da782844b6db4d8",
       "case_id": "sha256:846ccf956dabc8c403a9532fe3788cbb89191139091751cd0da782844b6db4d8",
@@ -2292,6 +2325,13 @@
       "case_id": "sha256:86bc655cc2d621be255c11459364357fcc424636630586bcea1c1c4b6f220460",
       "case_kind": "malware",
       "family": "stealc",
+      "version_key": "unknown"
+    },
+    "87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c": {
+      "canonical_path": "analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c",
+      "case_id": "sha256:87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c",
+      "case_kind": "malware",
+      "family": "eclipse-ddos-bot",
       "version_key": "unknown"
     },
     "87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6": {
@@ -2412,6 +2452,13 @@
       "case_id": "sha256:8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208",
       "case_kind": "malware",
       "family": "softbot",
+      "version_key": "unknown"
+    },
+    "8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385": {
+      "canonical_path": "analysis-results/malware/credential-phishing-html/versions/unknown/cases/8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385",
+      "case_id": "sha256:8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385",
+      "case_kind": "malware",
+      "family": "credential-phishing-html",
       "version_key": "unknown"
     },
     "8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197": {
@@ -3374,6 +3421,13 @@
       "family": "remcosrat",
       "version_key": "unknown"
     },
+    "c66b83d2e4f021f73b630d23f3dde7042358e0447b42ff3c213c6ce61d11a58b": {
+      "canonical_path": "analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/c66b83d2e4f021f73b630d23f3dde7042358e0447b42ff3c213c6ce61d11a58b",
+      "case_id": "sha256:c66b83d2e4f021f73b630d23f3dde7042358e0447b42ff3c213c6ce61d11a58b",
+      "case_kind": "malware",
+      "family": "eclipse-ddos-bot",
+      "version_key": "unknown"
+    },
     "c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4": {
       "canonical_path": "analysis-results/malware/hijackloader/versions/unknown/cases/c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4",
       "case_id": "sha256:c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4",
@@ -3837,6 +3891,13 @@
       "family": "stealc",
       "version_key": "unknown"
     },
+    "e20a48b1fff9af6ad8464c5c6313fb6a6031b45c9dce872d090fdc45994bda17": {
+      "canonical_path": "analysis-results/malware/sobfox-launcher/versions/unknown/cases/e20a48b1fff9af6ad8464c5c6313fb6a6031b45c9dce872d090fdc45994bda17",
+      "case_id": "sha256:e20a48b1fff9af6ad8464c5c6313fb6a6031b45c9dce872d090fdc45994bda17",
+      "case_kind": "malware",
+      "family": "sobfox-launcher",
+      "version_key": "unknown"
+    },
     "e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233": {
       "canonical_path": "analysis-results/malware/amosstealer/versions/unknown/cases/e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
       "case_id": "sha256:e3b5a5dbbccab4cf36c7abf5cb5ae83062dd1b5dee7db04bddbf53fc9ebdb233",
@@ -4041,6 +4102,13 @@
       "case_id": "sha256:ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f",
       "case_kind": "malware",
       "family": "softbot",
+      "version_key": "unknown"
+    },
+    "ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49": {
+      "canonical_path": "analysis-results/malware/mig-logcleaner/versions/unknown/cases/ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49",
+      "case_id": "sha256:ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49",
+      "case_kind": "malware",
+      "family": "mig-logcleaner",
       "version_key": "unknown"
     },
     "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3": {
