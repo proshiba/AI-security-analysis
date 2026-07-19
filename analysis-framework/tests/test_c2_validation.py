@@ -161,6 +161,39 @@ def test_tor_candidate_uses_loopback_socks5(
     assert sample["candidate_results"][0]["transport"] == "tor-socks5"
 
 
+def test_udp_candidate_is_allowed_only_with_direct_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value = manifest()
+    value["samples"] = [{
+        "sha256": "9" * 64,
+        "family": "softbot",
+        "c2_resolution_status": "recovered",
+        "candidates": [{
+            "host": "217.60.195.187",
+            "port": 18129,
+            "protocol": "udp",
+            "role": "c2",
+            "source": "静的sockaddr",
+        }],
+    }]
+    calls = []
+    monkeypatch.setattr(
+        c2_validation,
+        "probe",
+        lambda args: calls.append(args) or {
+            "status": "udp_no_response_indeterminate",
+            "network_contacted": True,
+            "application_data_sent": False,
+            "target_role": args.target_role,
+            "sample_sha256s": args.sample_sha256,
+        },
+    )
+    result = c2_validation.validate_candidates(value, allow_network=True)
+    assert calls[0].protocol == "udp"
+    assert result["samples"][0]["connection_validation_status"] == "performed"
+
+
 @pytest.mark.parametrize(
     "candidate",
     [

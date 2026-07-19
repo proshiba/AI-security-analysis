@@ -4374,3 +4374,123 @@ analyses:
     c2: ["ewqqwt.duckdns.org:43833", "ewqqwt2.duckdns.org:43833"]
     notes: "両C2はDNS解決不能で接続未成立。C2プロトコルを推測しない。検体は未実行。"
     result_path: analysis-results/malware/mirai-derived-ens-doh-bot/versions/v1/cases/c1c9c2e2936bf0492c896647531f6212d9271f1881c8b95d692d4aee48b4d472/
+
+  - malware_type: "Proxyrack PoPクライアント不正デプロイヤー"
+    analyzed_at: 2026-07-19
+    sample_sha256: f1a5a73fc8dc8876da560a5d8ad966eff34fbc630a649dc3b7ac6da9f9690f96
+    analysis_level: deep_static_dotnet_resource_and_child_go_review
+    campaign_type: proxyrack_pop_unauthorized_deployment
+    matched_patterns:
+      - ".NET外層、埋め込みPoP_go.exe、64文字ID、最高権限ログオンタスク"
+      - "point-of-presence.sock.sh:443とproxyrack-pop-client起動引数"
+    c2: []
+    notes: "商用サービス先はC2ではない。TLS/443到達を確認したが悪性IOCにしない。検体・子PEは未実行。"
+    result_path: analysis-results/malware/proxyrack-pop-deployer/versions/unknown/cases/f1a5a73fc8dc8876da560a5d8ad966eff34fbc630a649dc3b7ac6da9f9690f96/
+
+  - malware_type: "TraffMonetizer不正デプロイヤー"
+    analyzed_at: 2026-07-19
+    sample_sha256: 06e3950cfa439625ead51e1c47c4ebe9e1762910c91ee77687f85dbe02d3f437
+    analysis_level: deep_static_dotnet_resource_sfx_and_managed_child_review
+    campaign_type: traffmonetizer_unauthorized_deployment
+    matched_patterns:
+      - ".NET外層、Rar5 SFX、システム領域、最高権限ログオンタスク"
+      - "事前設定トークン、Base.dllのTLS/TCP/UDPとロードバランサー解決"
+    c2: []
+    notes: "トークン値は非公開。商用ロードバランサーTLS/443到達を確認したがC2ではない。全子ファイル未実行。"
+    result_path: analysis-results/malware/traffmonetizer-deployer/versions/unknown/cases/06e3950cfa439625ead51e1c47c4ebe9e1762910c91ee77687f85dbe02d3f437/
+
+  - malware_type: "ProtectionAgent保護.NETローダー"
+    analyzed_at: 2026-07-19
+    sample_sha256: efab45e445f7f3895ae26f54819eb30e7fdbe0b289e12d8f7c077f895efbe2d4
+    analysis_level: deep_static_protected_dotnet_hard_case_review
+    campaign_type: protected_dotnet_loader_unresolved
+    matched_patterns:
+      - "重複#GUID/#Strings/#Blob、高エントロピー主セクション"
+      - "ProtectionAgent.*.mpマーカーとAgent.exe候補、MethodDef未復元"
+    c2: []
+    notes: "次段・設定・C2・最終能力は未復元。完全一致ターゲットがないため接続検証不能。検体は未実行。"
+    result_path: analysis-results/malware/protection-agent-loader/versions/unknown/cases/efab45e445f7f3895ae26f54819eb30e7fdbe0b289e12d8f7c077f895efbe2d4/
+
+  - malware_type: "SoftBot（Mirai派生）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 07e2eca37d83df539f2f000955008c37e91c4734bc6091cdfb1ea6188cd929f8
+    analysis_level: deep_static_ghidra_softbot_udp_protocol_review
+    campaign_type: softbot_mipsel_plain
+    matched_patterns:
+      - "im in deep sorrow.標識、Mirai系killer/scanner/watchdog"
+      - "4バイト標識・Bot ID登録とBE16長付き最大0x400コマンド"
+    c2: ["217.60.195.187:18129/udp"]
+    notes: "空UDPデータグラム1件へ無応答。登録データは未送信でC2成立未確認。検体は未実行。"
+    result_path: analysis-results/malware/softbot/versions/unknown/cases/07e2eca37d83df539f2f000955008c37e91c4734bc6091cdfb1ea6188cd929f8/
+
+  - malware_type: "SoftBot（Mirai派生、UPX梱包）"
+    analyzed_at: 2026-07-19
+    sample_sha256: ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f
+    analysis_level: deep_static_upx_lineage_plus_softbot_review
+    campaign_type: softbot_mipsel_upx_outer
+    matched_patterns:
+      - "UPX展開後SHA-256が07e2eca3…29f8と完全一致"
+      - "展開先のUDP C2、登録形式、killer/scanner/watchdogを継承"
+    c2: ["217.60.195.187:18129/udp"]
+    notes: "梱包差だけで別版にしない。重複排除した空UDP検証は無応答。検体は未実行。"
+    result_path: analysis-results/malware/softbot/versions/unknown/cases/ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f/
+
+  - malware_type: "Linux ENS/SNS resolver bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3
+    analysis_level: deep_static_ghidra_encrypted_config_multiarch_review
+    campaign_type: linux_ens_sns_bot_arm
+    matched_patterns:
+      - "ARM、既存x86と同じ鍵・53復号文字列・101ポート表"
+      - "meower.eth/ipv4、SNS、STUN、Telnet探索、代表39419/TCP"
+    c2: ["172.233.124.230:39419", "45.154.98.115:39419"]
+    notes: "2026-07-18観測ENS値を再検証し両TCP到達。bannerなし、アプリデータなし、C2成立未確認。検体は未実行。"
+    result_path: analysis-results/malware/linux-ens-sns-bot/versions/unknown/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3/
+
+  - malware_type: "CHUD bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f
+    analysis_level: deep_static_multiarch_persistence_protocol_review
+    campaign_type: chud_arm_local_controller_bot
+    matched_patterns:
+      - "ARM、CHUD-HANDSHAKE-V2、12バイトchallenge、最大0x400コマンド"
+      - "systemd/SysV/OpenWrt/cron/rc.local/profile永続化とchattr"
+    c2: []
+    notes: "127.0.0.2:23はローカル制御先で外部C2ではない。接続はタイムアウト。検体は未実行。"
+    result_path: analysis-results/malware/chud-bot/versions/unknown/cases/becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f/
+
+  - malware_type: "CHUD bot（暫定、UPX梱包）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f
+    analysis_level: deep_static_upx_lineage_plus_multiarch_review
+    campaign_type: chud_arm_upx_outer
+    matched_patterns:
+      - "UPX展開後SHA-256がbecb06a6…103fと完全一致"
+      - "展開先の永続化・ローカル制御プロトコルを継承"
+    c2: []
+    notes: "梱包差だけで別版にしない。ローカル制御先のみで検体は未実行。"
+    result_path: analysis-results/malware/chud-bot/versions/unknown/cases/0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f/
+
+  - malware_type: "JiProxy UDP relay（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 9596a1e85f5148a13aafd997f56e58f3ff90385d242a21d7885fbaf9a1408e59
+    analysis_level: deep_static_ghidra_custom_cipher_udp_relay_review
+    campaign_type: jiproxy_mipsbe_udp_relay
+    matched_patterns:
+      - "独自暗号でtracker/upstream/markerを復号、165要素中155有効ポート"
+      - "UDP双方向relay、tracker JSON状態報告、UPnP AddPortMapping"
+    c2: ["tracker.persistfromchicago.com:9000/udp", "n1.persistfromchicago.com:12543/udp"]
+    notes: "代表2先へ空UDPデータグラム1件ずつ送信し無応答。155ポートは走査せず、検体は未実行。"
+    result_path: analysis-results/malware/jiproxy-relay/versions/unknown/cases/9596a1e85f5148a13aafd997f56e58f3ff90385d242a21d7885fbaf9a1408e59/
+
+  - malware_type: "SoftBot（Mirai派生）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208
+    analysis_level: deep_static_ghidra_softbot_udp_protocol_review
+    campaign_type: softbot_x86_plain
+    matched_patterns:
+      - "ファイル名x86_64に反して32ビットx86 ELF"
+      - "MIPS版と同じ標識、UDP C2、登録・コマンド形式、Mirai系機能"
+    c2: ["217.60.195.187:18129/udp"]
+    notes: "重複排除した空UDP検証は無応答。サービス稼働とC2成立は未確認。検体は未実行。"
+    result_path: analysis-results/malware/softbot/versions/unknown/cases/8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208/

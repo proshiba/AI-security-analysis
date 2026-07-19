@@ -65,6 +65,13 @@
       "family": "remcosrat",
       "version_key": "unknown"
     },
+    "0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f": {
+      "canonical_path": "analysis-results/malware/chud-bot/versions/unknown/cases/0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f",
+      "case_id": "sha256:0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f",
+      "case_kind": "malware",
+      "family": "chud-bot",
+      "version_key": "unknown"
+    },
     "049300aa5dd774d6c984779a0570f59610399c71864b5d5c2605906db46ddeb9": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/049300aa5dd774d6c984779a0570f59610399c71864b5d5c2605906db46ddeb9",
@@ -94,6 +101,13 @@
       "family": "lummastealer",
       "version_key": "unknown"
     },
+    "06e3950cfa439625ead51e1c47c4ebe9e1762910c91ee77687f85dbe02d3f437": {
+      "canonical_path": "analysis-results/malware/traffmonetizer-deployer/versions/unknown/cases/06e3950cfa439625ead51e1c47c4ebe9e1762910c91ee77687f85dbe02d3f437",
+      "case_id": "sha256:06e3950cfa439625ead51e1c47c4ebe9e1762910c91ee77687f85dbe02d3f437",
+      "case_kind": "malware",
+      "family": "traffmonetizer-deployer",
+      "version_key": "unknown"
+    },
     "0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3": {
       "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3",
       "case_id": "sha256:0708ae4eb0d2957b40f9162d2fb35cc94a334a6a039860034c27e99b92c8f6e3",
@@ -106,6 +120,13 @@
       "case_id": "sha256:07c295310759ecd7a42fbf3cb96ca1c5b7f45c7e59ac9704b78431000fae5a87",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "07e2eca37d83df539f2f000955008c37e91c4734bc6091cdfb1ea6188cd929f8": {
+      "canonical_path": "analysis-results/malware/softbot/versions/unknown/cases/07e2eca37d83df539f2f000955008c37e91c4734bc6091cdfb1ea6188cd929f8",
+      "case_id": "sha256:07e2eca37d83df539f2f000955008c37e91c4734bc6091cdfb1ea6188cd929f8",
+      "case_kind": "malware",
+      "family": "softbot",
       "version_key": "unknown"
     },
     "0822d4c51c466544072ac07dd5c2dbf4143431fb6955a05911600fed50d0229a": {
@@ -2386,6 +2407,13 @@
       "family": "redlinestealer",
       "version_key": "unknown"
     },
+    "8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208": {
+      "canonical_path": "analysis-results/malware/softbot/versions/unknown/cases/8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208",
+      "case_id": "sha256:8ec3a5eeb2249aad19b85e78e23d799109654cd56c7e1caff3881a0d3f97f208",
+      "case_kind": "malware",
+      "family": "softbot",
+      "version_key": "unknown"
+    },
     "8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197",
       "case_id": "sha256:8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197",
@@ -2490,6 +2518,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "beavertail",
+      "version_key": "unknown"
+    },
+    "9596a1e85f5148a13aafd997f56e58f3ff90385d242a21d7885fbaf9a1408e59": {
+      "canonical_path": "analysis-results/malware/jiproxy-relay/versions/unknown/cases/9596a1e85f5148a13aafd997f56e58f3ff90385d242a21d7885fbaf9a1408e59",
+      "case_id": "sha256:9596a1e85f5148a13aafd997f56e58f3ff90385d242a21d7885fbaf9a1408e59",
+      "case_kind": "malware",
+      "family": "jiproxy-relay",
       "version_key": "unknown"
     },
     "9645a12079edffd20560d4631160a6052ae5728d6f73b7366588166ad281c534": {
@@ -3103,6 +3138,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3": {
+      "canonical_path": "analysis-results/malware/linux-ens-sns-bot/versions/unknown/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
+      "case_id": "sha256:b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
+      "case_kind": "malware",
+      "family": "linux-ens-sns-bot",
+      "version_key": "unknown"
+    },
     "b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf",
       "case_id": "sha256:b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf",
@@ -3220,6 +3262,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "genesisstealer",
+      "version_key": "unknown"
+    },
+    "becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f": {
+      "canonical_path": "analysis-results/malware/chud-bot/versions/unknown/cases/becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f",
+      "case_id": "sha256:becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f",
+      "case_kind": "malware",
+      "family": "chud-bot",
       "version_key": "unknown"
     },
     "bf02bd3f34a3f9526386a8fd7eb5d7d58dd30dfb3a1f4767df0ffccd85150180": {
@@ -3987,6 +4036,13 @@
       "family": "jomangy",
       "version_key": "unknown"
     },
+    "ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f": {
+      "canonical_path": "analysis-results/malware/softbot/versions/unknown/cases/ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f",
+      "case_id": "sha256:ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f",
+      "case_kind": "malware",
+      "family": "softbot",
+      "version_key": "unknown"
+    },
     "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3",
       "case_id": "sha256:ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3",
@@ -4049,6 +4105,13 @@
       "case_kind": "malware",
       "family": "latrodectus",
       "version_key": "v1.1.10"
+    },
+    "efab45e445f7f3895ae26f54819eb30e7fdbe0b289e12d8f7c077f895efbe2d4": {
+      "canonical_path": "analysis-results/malware/protection-agent-loader/versions/unknown/cases/efab45e445f7f3895ae26f54819eb30e7fdbe0b289e12d8f7c077f895efbe2d4",
+      "case_id": "sha256:efab45e445f7f3895ae26f54819eb30e7fdbe0b289e12d8f7c077f895efbe2d4",
+      "case_kind": "malware",
+      "family": "protection-agent-loader",
+      "version_key": "unknown"
     },
     "efb7d77b5a5489ab803d4b7c5075d0f7a1fac09c96847c28267318205a6937ab": {
       "canonical_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/efb7d77b5a5489ab803d4b7c5075d0f7a1fac09c96847c28267318205a6937ab",
@@ -4131,6 +4194,13 @@
       "case_id": "sha256:f1a1c2a13764f2621ec0181696fcf7e6f74886ec7bf7f4ef4f56ba986c782b6d",
       "case_kind": "malware",
       "family": "formbook",
+      "version_key": "unknown"
+    },
+    "f1a5a73fc8dc8876da560a5d8ad966eff34fbc630a649dc3b7ac6da9f9690f96": {
+      "canonical_path": "analysis-results/malware/proxyrack-pop-deployer/versions/unknown/cases/f1a5a73fc8dc8876da560a5d8ad966eff34fbc630a649dc3b7ac6da9f9690f96",
+      "case_id": "sha256:f1a5a73fc8dc8876da560a5d8ad966eff34fbc630a649dc3b7ac6da9f9690f96",
+      "case_kind": "malware",
+      "family": "proxyrack-pop-deployer",
       "version_key": "unknown"
     },
     "f1e8f4fba1da25cc02d0673f8cc3962c7419d769cb139f818f8f1e4d56a891df": {

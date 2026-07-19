@@ -351,6 +351,61 @@ def read_bounded(sock: socket.socket, maximum: int) -> bytes:
     return b"".join(chunks)
 
 
+def probe_udp(args, result: dict, started: float) -> dict:
+    """空データグラム1件だけでUDP到達性を限定確認する。"""
+    if getattr(args, "proxy_host", None):
+        raise ValueError("UDP probe does not support SOCKS5 CONNECT")
+    raw = b""
+    datagram: socket.socket | None = None
+    try:
+        addresses = socket.getaddrinfo(
+            args.host, args.port, type=socket.SOCK_DGRAM,
+        )
+        if not addresses:
+            raise OSError("UDP target did not resolve")
+        family, socket_type, protocol, _canonical, sockaddr = addresses[0]
+        datagram = socket.socket(family, socket_type, protocol)
+        datagram.settimeout(args.timeout)
+        result["network_contacted"] = True
+        result["target_contact_attempted"] = True
+        datagram.connect(sockaddr)
+        result["udp_socket_connected"] = True
+        result["target_connection_established"] = False
+        datagram.send(b"")
+        result["empty_datagram_sent"] = True
+        result["datagram_payload_length"] = 0
+        try:
+            raw = datagram.recv(args.max_bytes)
+        except (socket.timeout, TimeoutError):
+            result["status"] = "udp_no_response_indeterminate"
+        except ConnectionResetError as exc:
+            result.update({"status": "udp_port_unreachable", "error": str(exc)})
+        else:
+            result.update({
+                "status": "udp_response_received",
+                "alive": True,
+                "target_connection_established": True,
+            })
+    except Exception as exc:
+        result.update({"status": "error", "error": f"{type(exc).__name__}: {exc}"})
+    finally:
+        if datagram is not None:
+            datagram.close()
+    if raw:
+        result["banner"] = {
+            "length": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "shodan_mmh3": murmur3_32(raw),
+            "prefix_base64": base64.b64encode(raw[:256]).decode(),
+        }
+    result["udp_interpretation"] = (
+        "応答またはICMPエラーがない場合、UDPサービスの稼働状態は判定不能"
+    )
+    result["shodan"] = build_shodan_queries(args, result)
+    result["elapsed_ms"] = round((time.perf_counter() - started) * 1000, 2)
+    return result
+
+
 def read_for_duration(sock: socket.socket, maximum: int, duration: float) -> bytes:
     """Read a bounded N520 response window and stop cleanly on idle timeout."""
     chunks, total = [], 0
@@ -683,9 +738,12 @@ def probe(args) -> dict:
         return result
     if not getattr(args, "proxy_host", None):
         try:
-            result["resolved_ips"] = sorted({item[4][0] for item in socket.getaddrinfo(args.host, args.port, type=socket.SOCK_STREAM)})
+            socket_type = socket.SOCK_DGRAM if args.protocol == "udp" else socket.SOCK_STREAM
+            result["resolved_ips"] = sorted({item[4][0] for item in socket.getaddrinfo(args.host, args.port, type=socket_type)})
         except OSError as exc:
             result["resolution_error"] = f"{type(exc).__name__}: {exc}"
+    if args.protocol == "udp":
+        return probe_udp(args, result, started)
     raw = b""
     tls = None
     try:
@@ -874,7 +932,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
     parser.add_argument("host")
     parser.add_argument("port", type=int)
-    parser.add_argument("--protocol", choices=["tcp", "vvas", "n520", "http", "https", "tls", "mxgo"], default="tcp")
+    parser.add_argument("--protocol", choices=["tcp", "udp", "vvas", "n520", "http", "https", "tls", "mxgo"], default="tcp")
     parser.add_argument("--timeout", type=float, default=5.0)
     parser.add_argument("--max-bytes", type=int, default=65536)
     parser.add_argument("--send-hex")

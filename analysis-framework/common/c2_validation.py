@@ -14,7 +14,7 @@ from c2_detector import probe
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 HOST_RE = re.compile(r"(?=.{1,253}$)[A-Za-z0-9.-]+")
-ALLOWED_PROTOCOLS = {"tcp", "http", "https", "tls"}
+ALLOWED_PROTOCOLS = {"tcp", "udp", "http", "https", "tls"}
 ALLOWED_TRANSPORTS = {"direct", "tor-socks5"}
 ALLOWED_ROLES = {
     "c2", "distribution", "kill_switch", "local_proxy", "local_controller", "unknown",
@@ -85,6 +85,8 @@ def validate_manifest(value: dict) -> dict:
             transport = candidate.get("transport", "direct")
             if transport not in ALLOWED_TRANSPORTS:
                 raise ManifestError(f"invalid transport: {transport}")
+            if protocol == "udp" and transport != "direct":
+                raise ManifestError("UDP candidates require direct transport")
             if host.lower().endswith(".onion") and transport != "tor-socks5":
                 raise ManifestError(".onion candidates require tor-socks5 transport")
             timeout = float(candidate.get("timeout", 3.0))
