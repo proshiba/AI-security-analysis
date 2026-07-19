@@ -118,6 +118,58 @@ def mxgo_loopback_target(host: str) -> bool:
     return host.lower() in {"localhost", "127.0.0.1", "::1"}
 
 
+def is_public_shodan_address(value: str) -> bool:
+    """Return whether an IP address is meaningful as a Shodan Internet pivot."""
+    try:
+        return ipaddress.ip_address(value).is_global
+    except ValueError:
+        return False
+
+
+def build_shodan_queries(args, result: dict, tls: dict | None = None) -> dict:
+    """Build passive pivots without emitting private, loopback, or reserved IP filters."""
+    queries: list[str] = []
+    try:
+        parsed_host = ipaddress.ip_address(args.host)
+    except ValueError:
+        parsed_host = None
+        if not args.host.lower().endswith(".onion"):
+            queries.append(f"hostname:{args.host} port:{args.port}")
+    else:
+        if parsed_host.is_global:
+            queries.append(f"ip:{args.host} port:{args.port}")
+    for resolved_ip in result.get("resolved_ips", []):
+        if not is_public_shodan_address(resolved_ip):
+            continue
+        query = f"ip:{resolved_ip} port:{args.port}"
+        if query not in queries:
+            queries.append(query)
+    if result.get("banner"):
+        queries.append(f"hash:{result['banner']['shodan_mmh3']}")
+    if result.get("http", {}).get("title"):
+        title = result["http"]["title"].replace('"', '\\"')
+        queries.append(f'http.title:"{title}"')
+    cert_hash = (tls or {}).get("certificate_sha256")
+    if cert_hash:
+        queries.append(f"ssl.cert.fingerprint:{cert_hash}")
+    jarm = result.get("jarm", {}).get("fingerprint")
+    if jarm:
+        queries.append(f"ssl.jarm:{jarm}")
+    target_queries = [query for query in queries if query.startswith(("ip:", "hostname:"))]
+    fingerprint_queries = [query for query in queries if query not in target_queries]
+    combination = " ".join(target_queries[-1:] + fingerprint_queries) or None
+    return {
+        "applicable": bool(queries),
+        "banner_hash_algorithm": "signed MurmurHash3 x86_32 of captured raw banner bytes",
+        "queries": queries,
+        "recommended_combination": combination,
+        "warning": (
+            "Revalidate fields in Shodan before operational use; banner, IP, certificate "
+            "and JARM can change or be shared."
+        ),
+    }
+
+
 def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
     """Build a synthetic heartbeat without collecting host identifiers."""
     return {
@@ -166,6 +218,8 @@ def preflight_probe(args) -> dict:
         "c2_confirmed": False,
         "network_contacted": False,
         "application_data_sent": False,
+        "target_role": getattr(args, "target_role", "c2"),
+        "sample_sha256s": list(getattr(args, "sample_sha256", []) or []),
         "status": "dry_run",
         "required_network_opt_in": "--allow-network",
     }
@@ -202,6 +256,84 @@ def preflight_probe(args) -> dict:
         }
     result["elapsed_ms"] = round((time.perf_counter() - started) * 1000, 2)
     return result
+
+
+def read_exact(sock: socket.socket, size: int) -> bytes:
+    """Read an exact, small protocol field or fail closed."""
+    chunks: list[bytes] = []
+    remaining = size
+    while remaining:
+        chunk = sock.recv(remaining)
+        if not chunk:
+            raise ConnectionError("connection closed during SOCKS5 negotiation")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+def socks5_connect(
+    proxy_host: str,
+    proxy_port: int,
+    target_host: str,
+    target_port: int,
+    timeout: float,
+) -> socket.socket:
+    """Open a SOCKS5 CONNECT tunnel without proxy authentication."""
+    connection = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
+    try:
+        connection.settimeout(timeout)
+        connection.sendall(b"\x05\x01\x00")
+        if read_exact(connection, 2) != b"\x05\x00":
+            raise ConnectionError("SOCKS5 proxy rejected no-authentication mode")
+        try:
+            parsed = ipaddress.ip_address(target_host)
+        except ValueError:
+            encoded = target_host.encode("idna")
+            if not 1 <= len(encoded) <= 255:
+                raise ValueError("SOCKS5 target hostname length is invalid")
+            address = b"\x03" + bytes([len(encoded)]) + encoded
+        else:
+            address = (b"\x01" if parsed.version == 4 else b"\x04") + parsed.packed
+        request = b"\x05\x01\x00" + address + struct.pack(">H", target_port)
+        connection.sendall(request)
+        head = read_exact(connection, 4)
+        if head[0] != 5:
+            raise ConnectionError("SOCKS5 proxy returned an invalid version")
+        if head[1] != 0:
+            raise ConnectionError(f"SOCKS5 CONNECT failed with reply {head[1]}")
+        if head[3] == 1:
+            read_exact(connection, 4)
+        elif head[3] == 4:
+            read_exact(connection, 16)
+        elif head[3] == 3:
+            read_exact(connection, read_exact(connection, 1)[0])
+        else:
+            raise ConnectionError("SOCKS5 proxy returned an invalid address type")
+        read_exact(connection, 2)
+        return connection
+    except Exception:
+        connection.close()
+        raise
+
+
+def open_bounded_connection(args, result: dict) -> socket.socket:
+    """Open either a direct socket or a localhost SOCKS5 tunnel."""
+    proxy_host = getattr(args, "proxy_host", None)
+    if proxy_host:
+        if proxy_host.lower() not in {"localhost", "127.0.0.1", "::1"}:
+            raise ValueError("SOCKS5 proxy must be loopback")
+        result["transport"] = "socks5"
+        result["proxy"] = {"host": proxy_host, "port": args.proxy_port}
+        result["network_contacted"] = True
+        result["proxy_control_data_sent"] = True
+        result["target_contact_attempted"] = True
+        connection = socks5_connect(proxy_host, args.proxy_port, args.host, args.port, args.timeout)
+        result["target_connection_established"] = True
+        return connection
+    result["transport"] = "direct"
+    result["network_contacted"] = True
+    result["target_contact_attempted"] = True
+    return socket.create_connection((args.host, args.port), timeout=args.timeout)
 
 
 def read_bounded(sock: socket.socket, maximum: int) -> bytes:
@@ -524,7 +656,13 @@ def probe(args) -> dict:
         "host": args.host, "port": args.port, "protocol": args.protocol,
         "timeout_seconds": args.timeout,
         "maximum_response_bytes": 64 if args.protocol == "vvas" else (44 if args.protocol == "n520" else args.max_bytes),
-        "alive": False, "c2_confirmed": False, "network_contacted": True,
+        "alive": False, "c2_confirmed": False, "network_contacted": False,
+        "target_contact_attempted": False,
+        "target_connection_established": False,
+        "transport": "socks5" if getattr(args, "proxy_host", None) else "direct",
+        "application_data_sent": False,
+        "target_role": getattr(args, "target_role", "c2"),
+        "sample_sha256s": list(getattr(args, "sample_sha256", []) or []),
     }
     if args.protocol == "mxgo" and args.mxgo_mode == "preview":
         body = json.dumps(build_mxgo_heartbeat(args.mxgo_client_id), separators=(",", ":")).encode()
@@ -543,17 +681,19 @@ def probe(args) -> dict:
             },
         })
         return result
-    try:
-        result["resolved_ips"] = sorted({item[4][0] for item in socket.getaddrinfo(args.host, args.port, type=socket.SOCK_STREAM)})
-    except OSError as exc:
-        result["resolution_error"] = f"{type(exc).__name__}: {exc}"
+    if not getattr(args, "proxy_host", None):
+        try:
+            result["resolved_ips"] = sorted({item[4][0] for item in socket.getaddrinfo(args.host, args.port, type=socket.SOCK_STREAM)})
+        except OSError as exc:
+            result["resolution_error"] = f"{type(exc).__name__}: {exc}"
     raw = b""
     tls = None
     try:
-        with socket.create_connection((args.host, args.port), timeout=args.timeout) as base:
+        with open_bounded_connection(args, result) as base:
             base.settimeout(args.timeout)
             result["tcp_status"] = "open"
             result["alive"] = True
+            result["target_connection_established"] = True
             connection: socket.socket = base
             if args.protocol in {"https", "tls", "n520"}:
                 context = ssl.create_default_context()
@@ -621,6 +761,7 @@ def probe(args) -> dict:
             elif args.protocol == "vvas":
                 payload = bytes.fromhex(args.send_hex or "333200")
                 connection.sendall(payload)
+                result["application_data_sent"] = True
                 raw = read_bounded(connection, min(args.max_bytes, 64))
                 expected = args.expected_stage_size
                 declared = struct.unpack("<I", raw[:4])[0] if len(raw) >= 4 else None
@@ -688,6 +829,7 @@ def probe(args) -> dict:
                 host_header = args.http_host or args.sni or args.host
                 request = f"GET {args.http_path} HTTP/1.1\r\nHost: {host_header}\r\nUser-Agent: c2-detector/2\r\nAccept: text/html,*/*;q=0.1\r\nConnection: close\r\n\r\n".encode()
                 connection.sendall(request)
+                result["application_data_sent"] = True
                 raw = read_bounded(connection, args.max_bytes)
                 status, headers, body = parse_headers(raw)
                 parser = TitleParser()
@@ -697,6 +839,7 @@ def probe(args) -> dict:
             else:
                 if args.send_hex:
                     connection.sendall(bytes.fromhex(args.send_hex))
+                    result["application_data_sent"] = True
                 raw = read_bounded(connection, args.max_bytes)
                 result["status"] = "banner_received" if raw else "tcp_open_no_banner"
     except ConnectionRefusedError as exc:
@@ -721,33 +864,7 @@ def probe(args) -> dict:
             allow_network=True,
         )
 
-    try:
-        ipaddress.ip_address(args.host)
-        target_filter = f"ip:{args.host}"
-    except ValueError:
-        target_filter = f"hostname:{args.host}"
-    queries = [f"{target_filter} port:{args.port}"]
-    for resolved_ip in result.get("resolved_ips", []):
-        query = f"ip:{resolved_ip} port:{args.port}"
-        if query not in queries:
-            queries.append(query)
-    if result.get("banner"):
-        queries.append(f"hash:{result['banner']['shodan_mmh3']}")
-    if result.get("http", {}).get("title"):
-        title = result["http"]["title"].replace('"', '\\"')
-        queries.append(f'http.title:"{title}"')
-    cert_hash = (tls or {}).get("certificate_sha256")
-    if cert_hash:
-        queries.append(f"ssl.cert.fingerprint:{cert_hash}")
-    jarm = result.get("jarm", {}).get("fingerprint")
-    if jarm:
-        queries.append(f"ssl.jarm:{jarm}")
-    result["shodan"] = {
-        "banner_hash_algorithm": "signed MurmurHash3 x86_32 of captured raw banner bytes",
-        "queries": queries,
-        "recommended_combination": " ".join(queries[1:]) if len(queries) > 1 else queries[0],
-        "warning": "Revalidate fields in Shodan before operational use; banner, IP, certificate and JARM can change or be shared.",
-    }
+    result["shodan"] = build_shodan_queries(args, result, tls)
     result["elapsed_ms"] = round((time.perf_counter() - started) * 1000, 2)
     return result
 
@@ -779,13 +896,23 @@ def main() -> int:
     parser.add_argument("--collect-jarm", action="store_true")
     parser.add_argument("--jarm-script", type=Path, default=Path(r"C:\Users\Administrator\Tools\Salesforce-JARM\jarm.py"))
     parser.add_argument("--allow-network", action="store_true", help="explicitly allow the bounded live probe")
+    parser.add_argument("--proxy-host", choices=["localhost", "127.0.0.1", "::1"])
+    parser.add_argument("--proxy-port", type=int, default=9050)
+    parser.add_argument(
+        "--target-role",
+        choices=["c2", "distribution", "kill_switch", "local_proxy", "local_controller", "unknown"],
+        default="c2",
+    )
+    parser.add_argument("--sample-sha256", action="append", default=[])
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         validate_http_request_fields(args)
     except ValueError as exc:
         parser.error(str(exc))
-    if not 1 <= args.port <= 65535 or not 0.1 <= args.timeout <= 30 or not 1 <= args.max_bytes <= 1048576:
+    if any(not re.fullmatch(r"[0-9a-fA-F]{64}", value) for value in args.sample_sha256):
+        parser.error("--sample-sha256 must be a 64-character hexadecimal digest")
+    if not 1 <= args.port <= 65535 or not 1 <= args.proxy_port <= 65535 or not 0.1 <= args.timeout <= 30 or not 1 <= args.max_bytes <= 1048576:
         parser.error("port, timeout, or max-bytes is outside the allowed range")
     if not 1 <= args.n520_wait <= 30 or not 1 <= args.n520_max_bytes <= 16 * 1024 * 1024 or not 1 <= args.n520_max_frames <= 64:
         parser.error("N520 collection bounds are outside the allowed range")

@@ -77,6 +77,98 @@ def test_mxgo_active_target_is_loopback_only() -> None:
     assert mxgo_loopback_target("43.165.179.173") is False
 
 
+def test_shodan_queries_exclude_loopback_and_private_addresses() -> None:
+    args = SimpleNamespace(host="127.0.0.2", port=23)
+    value = c2_detector.build_shodan_queries(
+        args,
+        {"resolved_ips": ["127.0.0.2", "10.0.0.1", "192.0.2.10"]},
+    )
+    assert value["applicable"] is False
+    assert value["queries"] == []
+    assert value["recommended_combination"] is None
+
+
+def test_shodan_queries_keep_public_hostname_and_address() -> None:
+    args = SimpleNamespace(host="c2.example", port=69)
+    value = c2_detector.build_shodan_queries(
+        args,
+        {"resolved_ips": ["41.216.189.236", "127.0.0.1"]},
+    )
+    assert value["queries"] == [
+        "hostname:c2.example port:69",
+        "ip:41.216.189.236 port:69",
+    ]
+    assert "127.0.0.1" not in json.dumps(value)
+
+
+def test_shodan_query_does_not_treat_onion_as_public_hostname() -> None:
+    args = SimpleNamespace(
+        host="exampleexampleexampleexampleexampleexampleexampleexample.onion",
+        port=80,
+    )
+    value = c2_detector.build_shodan_queries(args, {"resolved_ips": []})
+    assert value["applicable"] is False
+    assert value["queries"] == []
+
+
+def test_socks5_connect_negotiates_exact_target(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeSocket:
+        def __init__(self) -> None:
+            self.sent: list[bytes] = []
+            self.responses = [
+                b"\x05\x00",
+                b"\x05\x00\x00\x01",
+                b"\x7f\x00\x00\x01",
+                b"\x23\x5a",
+            ]
+            self.closed = False
+
+        def settimeout(self, _timeout: float) -> None:
+            pass
+
+        def sendall(self, value: bytes) -> None:
+            self.sent.append(value)
+
+        def recv(self, _size: int) -> bytes:
+            return self.responses.pop(0)
+
+        def close(self) -> None:
+            self.closed = True
+
+    fake = FakeSocket()
+    monkeypatch.setattr(
+        c2_detector.socket,
+        "create_connection",
+        lambda *_args, **_kwargs: fake,
+    )
+    result = c2_detector.socks5_connect(
+        "127.0.0.1", 9050,
+        "exampleexampleexampleexampleexampleexampleexampleexample.onion",
+        80, 3.0,
+    )
+    assert result is fake
+    assert fake.sent[0] == b"\x05\x01\x00"
+    assert fake.sent[1].startswith(b"\x05\x01\x00\x03")
+    assert fake.sent[1].endswith(b"\x00\x50")
+    assert b".onion" in fake.sent[1]
+
+
+def test_cli_records_target_role_and_sample_association() -> None:
+    script = COMMON / "c2_detector.py"
+    digest = "a" * 64
+    completed = subprocess.run(
+        [
+            sys.executable, str(script), "203.0.113.10", "443",
+            "--target-role", "distribution", "--sample-sha256", digest,
+        ],
+        capture_output=True, text=True, check=True, timeout=5,
+    )
+    result = json.loads(completed.stdout)
+    assert result["target_role"] == "distribution"
+    assert result["sample_sha256s"] == [digest]
+    assert result["application_data_sent"] is False
+
+
 def test_mxgo_cli_preview_does_not_contact_network() -> None:
     script = COMMON / "c2_detector.py"
     completed = subprocess.run(

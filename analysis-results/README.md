@@ -1,6 +1,6 @@
 # 解析成果物
 
-静的解析、設定抽出、IOC評価、OSINT調査の公開用成果物です。検体本体、復元バイナリ、資格情報、ローカル解析パス、プロバイダーの生応答は含めません。検体の実行、CPU／CILエミュレーション、実インフラへの接続も行っていません。
+静的解析、設定抽出、IOC評価、OSINT調査の公開用成果物です。検体本体、復元バイナリ、資格情報、ローカル解析パス、プロバイダーの生応答は含めません。検体の実行とCPU／CILエミュレーションは行いません。batch-0001以降のC2接続検証は、静的に復元した正確な候補だけに無送信・短時間・応答上限付きで行い、TCP到達だけではC2確定としません。
 
 ## フォルダ構成
 
@@ -26,13 +26,13 @@ analysis-results/
 
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 554 |
-| 既知マルウェアファミリ | 452 |
+| SHA-256で一意な全case | 564 |
+| 既知・暫定マルウェアファミリ | 462 |
 | 未分類 | 101 |
 | サプライチェーンpayload | 1 |
 | 版を静的根拠で確認済み | 58 |
 | exact sampleの外部報告で版を特定 | 4 |
-| 版不明（既知ファミリ） | 390 |
+| 版不明（既知・暫定ファミリ） | 400 |
 | 版不明（未分類） | 101 |
 
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
@@ -48,13 +48,17 @@ analysis-results/
 - [Atomic macOS Stealer（AMOS、アトミックmacOSスティーラー）](malware/amosstealer/README.md)
 - [AsyncRAT](malware/asyncrat/README.md)
 - [AtlasCross／Atlas RAT](malware/atlascross/README.md)
+- [CHUD Bot（暫定）](malware/chud-bot/README.md)
+- [Condi](malware/condi/README.md)
 - [DarkComet](malware/darkcomet/README.md)
 - [DCRat](malware/dcrat/README.md)
 - [DonutLoader](malware/donutloader/README.md)
+- [Efimer](malware/efimer/README.md)
 - [Formbook](malware/formbook/README.md)
 - [GuLoader](malware/guloader/README.md)
 - [HijackLoader](malware/hijackloader/README.md)
 - [Latrodectus](malware/latrodectus/README.md)
+- [Linux ENS/SNS Bot（暫定）](malware/linux-ens-sns-bot/README.md)
 - [Lumma Stealer](malware/lummastealer/README.md)
 - [njRAT](malware/njrat/README.md)
 - [PureHVNC／PureRAT](malware/purehvnc/README.md)
@@ -69,6 +73,7 @@ analysis-results/
 - [ValleyRAT](malware/valleyrat/README.md)
 - [VenomRAT](malware/venomrat/README.md)
 - [Vidar](malware/vidar/README.md)
+- [WannaCry](malware/wannacry/README.md)
 - [XWorm](malware/xworm/README.md)
 - [未分類検体](malware/unclassified/README.md)
 
@@ -80,6 +85,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
+- [MalwareBazaar 1000検体解析（進行中、batch-0001：10件）](collections/malwarebazaar-1000/README.md)
 
 ## 横断調査
 
