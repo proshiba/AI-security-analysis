@@ -26,13 +26,14 @@ analysis-results/
 
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 603 |
-| 既知・暫定マルウェアファミリ | 488 |
+| SHA-256で一意な全case | 633 |
+| 既知・暫定マルウェアファミリ | 518 |
 | 未分類 | 114 |
 | サプライチェーンpayload | 1 |
-| 版を静的根拠で確認済み | 62 |
+| 版を静的根拠で確認済み | 69 |
 | exact sampleの外部報告で版を特定 | 4 |
-| 版不明（既知・暫定ファミリ） | 422 |
+| 構成世代を静的・OSINT相関で推定 | 4 |
+| 版不明（既知・暫定ファミリ） | 441 |
 | 版不明（未分類） | 114 |
 
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
@@ -60,7 +61,7 @@ analysis-results/
 - [JiProxy UDP relay（暫定）](malware/jiproxy-relay/README.md)
 - [Latrodectus](malware/latrodectus/README.md)
 - [JOMANGY](malware/jomangy/README.md)
-- [Linux ENS/SNS Bot（暫定）](malware/linux-ens-sns-bot/README.md)
+- [JackSkid](malware/jackskid/README.md)
 - [Lumma Stealer](malware/lummastealer/README.md)
 - [njRAT](malware/njrat/README.md)
 - [Mirai派生ENS/DoH Bot](malware/mirai-derived-ens-doh-bot/README.md)

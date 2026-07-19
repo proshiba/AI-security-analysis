@@ -4040,19 +4040,19 @@ analyses:
     notes: "検体は実行していない。展開後SHA-256で帰属し、重複排除した接続検証を共有する。TCP到達のみでC2は未確定。"
     result_path: analysis-results/malware/condi/versions/unknown/cases/7243738e2b27922cd5daed7bb1e9382e87196583976c7a54372f2f149eec3596/
 
-  - malware_type: "Linux ENS/SNS Bot（暫定）"
+  - malware_type: "JackSkid"
     analyzed_at: 2026-07-18
     sample_sha256: 1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379
-    analysis_level: deep_static_ghidra_plus_bounded_c2_validation
-    campaign_type: dynamic_ens_resolver_bot
+    analysis_level: deep_static_ghidra_custom_cipher_ens_sns_review
+    campaign_type: jackskid_2026_07_ens_sns
     matched_patterns:
-      - "暗号化された文字列、RPC、STUN記述子53件"
-      - "meower.ethのipv4値を用いる動的接続先解決と静的101ポート表"
+      - "JackSkid独自暗号とRPC・STUN記述子53件"
+      - "meower.eth/ipv4、roanoke.sol、Telnet/ADB伝播、副次シェル"
     c2:
       - "172.233.124.230:39419"
       - "45.154.98.115:39419"
-    notes: "正確なファミリー名は未確定。検体は実行せず、101ポートを走査せず代表1ポートだけを無送信検証した。TCP到達のみでC2は未確定。"
-    result_path: analysis-results/malware/linux-ens-sns-bot/versions/unknown/cases/1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379/
+    notes: "旧暫定分類をJackSkidへ再帰属。ENS値は2026-07-18時点の観測で、101ポートを走査せず代表1ポートだけを無送信検証した。TCP到達のみでC2未確定。"
+    result_path: analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379/
 
   - malware_type: "Condi"
     analyzed_at: 2026-07-18
@@ -4435,17 +4435,17 @@ analyses:
     notes: "梱包差だけで別版にしない。重複排除した空UDP検証は無応答。検体は未実行。"
     result_path: analysis-results/malware/softbot/versions/unknown/cases/ebb529ad09a2a23b9327e0e2482f597ca94ea4867fe42a6e70a38184340bbc8f/
 
-  - malware_type: "Linux ENS/SNS resolver bot（暫定）"
+  - malware_type: "JackSkid"
     analyzed_at: 2026-07-19
     sample_sha256: b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3
-    analysis_level: deep_static_ghidra_encrypted_config_multiarch_review
-    campaign_type: linux_ens_sns_bot_arm
+    analysis_level: deep_static_ghidra_custom_cipher_ens_sns_multiarch_review
+    campaign_type: jackskid_2026_07_ens_sns
     matched_patterns:
-      - "ARM、既存x86と同じ鍵・53復号文字列・101ポート表"
-      - "meower.eth/ipv4、SNS、STUN、Telnet探索、代表39419/TCP"
+      - "ARM、JackSkid x86版と同じ鍵・53復号文字列・101ポート表"
+      - "meower.eth/ipv4、roanoke.sol、STUN、Telnet/ADB伝播"
     c2: ["172.233.124.230:39419", "45.154.98.115:39419"]
-    notes: "2026-07-18観測ENS値を再検証し両TCP到達。bannerなし、アプリデータなし、C2成立未確認。検体は未実行。"
-    result_path: analysis-results/malware/linux-ens-sns-bot/versions/unknown/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3/
+    notes: "旧暫定分類をJackSkidへ再帰属。2026-07-18観測ENS値の両TCP到達はbanner・アプリデータなしで、C2成立未確認。検体は未実行。"
+    result_path: analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3/
 
   - malware_type: "CHUD bot（暫定）"
     analyzed_at: 2026-07-19
@@ -4694,3 +4694,103 @@ analyses:
     c2: ["64.89.163.215:666"]
     notes: "梱包差だけで別版にしない。重複排除した接続確認を共有。"
     result_path: analysis-results/malware/putita-v3/versions/v3/cases/9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 23a3e7fc7099fd75f7bfb7c0ca426278f1d8b26af8e90fd9c861409b99e5b39e
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_i686
+    matched_patterns: ["i686登録・TCP/7000", "改行フレーム・PING/PONG・4攻撃命令"]
+    c2: ["45.66.228.114:7000"]
+    notes: "TCP接続成立。登録行・命令未送信でC2未確定。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/23a3e7fc7099fd75f7bfb7c0ca426278f1d8b26af8e90fd9c861409b99e5b39e/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 1e55ecd233043bea9f7b1850cb560acf58d10d0fea04c097b54ef0488aaefe4c
+    analysis_level: deep_static_arc_xor_table_review
+    campaign_type: genddos_arc
+    matched_patterns: ["ARC Compact・XOR 0x22・genddos.st:6742", "watchdog・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742"]
+    notes: "Ghidra ARC言語定義がなく逆コンパイル未実施。主候補TCP接続成立、データ未送信でC2未確定。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/1e55ecd233043bea9f7b1850cb560acf58d10d0fea04c097b54ef0488aaefe4c/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 30b37af8712dec58014f16686fd105d736883646d1ecaa55f256698230712502
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_armv7l
+    matched_patterns: ["armv7l登録・TCP/7000", "改行フレーム・PING/PONG・4攻撃命令"]
+    c2: ["45.66.228.114:7000"]
+    notes: "i686版と重複排除したTCP確認を共有。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/30b37af8712dec58014f16686fd105d736883646d1ecaa55f256698230712502/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430
+    analysis_level: deep_static_ghidra_xor_table_fallback_review
+    campaign_type: genddos_mips_be
+    matched_patterns: ["MIPS BE・XOR 0x22・genddos.st:6742", "DNS失敗時65.222.202.53:80・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "主候補TCP接続成立、fallback timeout。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430/
+
+  - malware_type: "PUTA v3（Putita）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4
+    analysis_level: deep_static_ghidra_authenticated_config_review
+    campaign_type: putita_v3_mipsel_plain
+    matched_patterns: ["MIPS LE・PUTA-V3-OK・13攻撃ID", "ChaCha20-Poly1305認証付き設定・設定鍵とセッション鍵の分離"]
+    c2: ["64.89.163.215:666"]
+    notes: "TCP接続拒否。HARDENED・鍵・時刻・認証タグ未送信。検体は未実行。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4/
+
+  - malware_type: "PUTA v3（Putita、UPX）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c
+    analysis_level: deep_static_upx_lineage_plus_putita_review
+    campaign_type: putita_v3_mipsel_upx
+    matched_patterns: ["UPX展開後11ce110d…と完全一致", "同一C2・暗号設定・13攻撃ID"]
+    c2: ["64.89.163.215:666"]
+    notes: "梱包差だけで別版にしない。重複排除した接続確認を共有。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: ac4b0373be4ff4de4e778f1363a4d0675a672d16fd11e8aa5b202701e2a6b747
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_x86_64
+    matched_patterns: ["x86_64登録・TCP/7000", "改行フレーム・PING/PONG・4攻撃命令"]
+    c2: ["45.66.228.114:7000"]
+    notes: "i686版と重複排除したTCP確認を共有。登録・命令未送信。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/ac4b0373be4ff4de4e778f1363a4d0675a672d16fd11e8aa5b202701e2a6b747/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-19
+    sample_sha256: 112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76
+    analysis_level: deep_static_recursive_base64_variant_review
+    campaign_type: freepbx_wr_php_post_exploitation
+    matched_patterns: ["5個のBase64静的復号層", "23 WebShell・13設定対象・cron・root相当アカウント"]
+    c2: []
+    notes: "配布・窃取先をC2と分離。秘密値非公開、HTTP要求・収集データ未送信。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76/
+
+  - malware_type: "JackSkid"
+    analyzed_at: 2026-07-19
+    sample_sha256: aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3
+    analysis_level: deep_static_ghidra_custom_cipher_ens_sns_multiarch_review
+    campaign_type: jackskid_2026_07_ens_sns
+    matched_patterns: ["ARM・独自RC4/LFSR派生53文字列", "meower.eth・roanoke.sol・Telnet/ADB・anti-VM"]
+    c2: ["deformed.su:9018"]
+    notes: "主C2のENS/SNS現在値は未照会。副次候補DNS解決不能、データ未送信。"
+    result_path: analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-19
+    sample_sha256: c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5
+    analysis_level: deep_static_recursive_base64_variant_review
+    campaign_type: freepbx_wr_php_post_exploitation
+    matched_patterns: ["112b検体との差分は中間Base64表現だけ", "同一URL・23 WebShell・13設定対象・秘密パターン"]
+    c2: []
+    notes: "配布・窃取先をC2と分離。秘密値非公開、HTTP要求・収集データ未送信。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5/

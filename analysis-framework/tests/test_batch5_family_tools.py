@@ -136,19 +136,20 @@ def test_batch5_publication_has_ten_unique_canonical_cases() -> None:
     assert len(samples) == 10
     assert len({sample["sha256"] for sample in samples}) == 10
     for sample in samples:
+        version = sample.get("version") or "unknown"
         case = (
             REPOSITORY
             / "analysis-results"
             / "malware"
             / sample["family"]
             / "versions"
-            / "unknown"
+            / version
             / "cases"
             / sample["sha256"]
         )
         metadata = json.loads((case / "metadata.json").read_text(encoding="utf-8"))
         assert metadata["sha256"] == sample["sha256"]
-        assert metadata["malware_version"]["status"] == "unknown"
+        assert metadata["malware_version"]["normalized_key"] == version
         assert metadata["canonical_path"].endswith(f"/cases/{sample['sha256']}")
         assert (case / "README.md").is_file()
         assert (case / "IOC-LIST.md").is_file()

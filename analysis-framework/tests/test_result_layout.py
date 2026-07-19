@@ -16,7 +16,7 @@ import result_layout as layout
 
 @pytest.fixture
 def short_tmp() -> Path:
-    base = Path(r"C:\tmp") if os.name == "nt" else None
+    base = Path.home() / ".work" if os.name == "nt" else None
     if base is not None:
         base.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="rl-", dir=base) as value:
