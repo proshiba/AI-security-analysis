@@ -85,7 +85,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
-- [MalwareBazaar 1000検体解析（進行中、batch-0001：10件）](collections/malwarebazaar-1000/README.md)
+- [MalwareBazaar 1000検体解析（進行中、batch-0001～0003：29件解析済み／1件取得待ち）](collections/malwarebazaar-1000/README.md)
 
 ## 横断調査
 

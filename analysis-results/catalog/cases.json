@@ -413,6 +413,15 @@
       "family": "amadey",
       "version_key": "unknown"
     },
+    "1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee",
+      "case_id": "sha256:1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "eclipse-ddos-bot",
+      "version_key": "unknown"
+    },
     "1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379": {
       "canonical_path": "analysis-results/malware/linux-ens-sns-bot/versions/unknown/cases/1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
       "case_id": "sha256:1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
@@ -461,6 +470,15 @@
       "case_id": "sha256:1f557a73f974bff5ced48e7b0beb82cd748976495be537ea5dd63a2b202ae077",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "1f95f829dcfea47cc5ff79212d2b08254c4acf71ca70263dafdb7a9ab5c01292": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1f95f829dcfea47cc5ff79212d2b08254c4acf71ca70263dafdb7a9ab5c01292",
+      "case_id": "sha256:1f95f829dcfea47cc5ff79212d2b08254c4acf71ca70263dafdb7a9ab5c01292",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "etherhiding-arweave-loader",
       "version_key": "unknown"
     },
     "1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed": {
@@ -659,6 +677,15 @@
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
     },
+    "2e44d415d83aaf79514ba2398d43095cea216fd048fbd4c3cb7111fa1d1663ec": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/2e44d415d83aaf79514ba2398d43095cea216fd048fbd4c3cb7111fa1d1663ec",
+      "case_id": "sha256:2e44d415d83aaf79514ba2398d43095cea216fd048fbd4c3cb7111fa1d1663ec",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "linux-multi-payload-bot-loader",
+      "version_key": "unknown"
+    },
     "2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab",
       "case_id": "sha256:2e5dfbff8ab5200fb4d41562186deb2b720d68ce17c7dee49500a155857e99ab",
@@ -811,6 +838,13 @@
       "case_id": "sha256:3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3": {
+      "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3",
+      "case_id": "sha256:3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3",
+      "case_kind": "malware",
+      "family": "wannacry",
       "version_key": "unknown"
     },
     "3a950d7e6736f17c3df90844c76d934dc66c17ec76841a4ad58de07af7955f0f": {
@@ -2352,6 +2386,15 @@
       "family": "snakekeylogger",
       "version_key": "unknown"
     },
+    "9165775115574e755cc95bd2aa1a0b3efe2b20c720fb056cfe90669bf8c1d6ec": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/9165775115574e755cc95bd2aa1a0b3efe2b20c720fb056cfe90669bf8c1d6ec",
+      "case_id": "sha256:9165775115574e755cc95bd2aa1a0b3efe2b20c720fb056cfe90669bf8c1d6ec",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "quickfetch-go-synthetic",
+      "version_key": "unknown"
+    },
     "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226": {
       "canonical_path": "analysis-results/malware/amadey/versions/v4.12/cases/919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
       "case_id": "sha256:919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
@@ -2566,6 +2609,13 @@
       "case_id": "sha256:9d924e9bd656a47ca6503d98f389ae94b83a1dd1cc459eefa00d914f61c1acbe",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5": {
+      "canonical_path": "analysis-results/malware/jomangy/versions/unknown/cases/9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5",
+      "case_id": "sha256:9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5",
+      "case_kind": "malware",
+      "family": "jomangy",
       "version_key": "unknown"
     },
     "9e7fdc17150409d594eeed12705788fbc74b5c7f482a64d121395df781820f46": {
@@ -2872,6 +2922,15 @@
       "case_id": "sha256:b00335a75190fd3b930329adf19c93b483975cb24cc056bea62b0ef359abe3fa",
       "case_kind": "malware",
       "family": "stealc",
+      "version_key": "unknown"
+    },
+    "b1287ab346d488cf587ff52932119e02113403b9b9a7231e5c95fa0143de1a39": {
+      "attribution_status": "provisional",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/b1287ab346d488cf587ff52932119e02113403b9b9a7231e5c95fa0143de1a39",
+      "case_id": "sha256:b1287ab346d488cf587ff52932119e02113403b9b9a7231e5c95fa0143de1a39",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "provisional_cluster_id": "etherhiding-arweave-loader",
       "version_key": "unknown"
     },
     "b16debf39bf10feff2c0f541547bd5583a62df7c219f3e40007172a7e12b5056": {
@@ -3546,6 +3605,13 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e",
+      "case_id": "sha256:dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
+    },
     "db023a90f2815b9ae7200d024ed8c75b3fa219104b26e2a30da0767721773615": {
       "attribution_status": "provisional",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/db023a90f2815b9ae7200d024ed8c75b3fa219104b26e2a30da0767721773615",
@@ -3760,11 +3826,11 @@
       "version_key": "unknown"
     },
     "e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40": {
-      "canonical_path": "analysis-results/malware/xmrig/versions/unknown/cases/e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40",
+      "canonical_path": "analysis-results/malware/xmrig/versions/v6.26.0/cases/e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40",
       "case_id": "sha256:e981d296a7034bc03a3a84185b5ac07d26afc01004f55cafadfaad1c42d70f40",
       "case_kind": "malware",
       "family": "xmrig",
-      "version_key": "unknown"
+      "version_key": "v6.26.0"
     },
     "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/unknown/cases/e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7",
@@ -3836,6 +3902,13 @@
       "case_id": "sha256:eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
       "case_kind": "malware",
       "family": "stealc",
+      "version_key": "unknown"
+    },
+    "eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42": {
+      "canonical_path": "analysis-results/malware/jomangy/versions/unknown/cases/eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42",
+      "case_id": "sha256:eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42",
+      "case_kind": "malware",
+      "family": "jomangy",
       "version_key": "unknown"
     },
     "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3": {

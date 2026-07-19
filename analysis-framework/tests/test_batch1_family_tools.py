@@ -84,6 +84,22 @@ def test_efimer_xor_phase_and_literal_collapse() -> None:
     )
 
 
+def test_efimer_accepts_rotated_or_new_key_only_after_xml_validation() -> None:
+    module = load_family_module("efimer")
+    xml = (
+        '﻿<?xml version="1.0" encoding="UTF-16"?>'
+        '<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">'
+        '<Triggers><TimeTrigger /></Triggers><Actions><Exec /></Actions></Task>'
+    ).encode("utf-16-le")
+    new_key = b"c2MIdLA5PdAD"
+    encrypted = module.xor_repeating(xml, new_key)
+    assert module.derive_stream_phase(encrypted) == new_key
+
+    malformed = module.xor_repeating(module.KNOWN_XML_PREFIX + b"not-xml", new_key)
+    with pytest.raises(ValueError, match="002.xml"):
+        module.derive_stream_phase(malformed)
+
+
 def test_passive_detector_separates_endpoint_and_protocol_confirmation() -> None:
     profile = {
         "family": "fixture",

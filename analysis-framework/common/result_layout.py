@@ -64,6 +64,7 @@ _VERSION_SOURCES: dict[
     "remcosrat": (("indicators.json", ("version",), "$.version", "confirmed", "family_config_or_process_attributed_evidence", "high"),),
     "spyglace": (("config.json", ("config", "version"), "$.config.version", "confirmed", "sample_specific_static_family_config", "high"),),
     "venomrat": (("indicators.json", ("version",), "$.version", "reported", "external_sandbox_process_attributed_report", "medium"),),
+    "xmrig": (("config.json", ("version",), "$.version", "confirmed", "sample_embedded_version_and_official_release_match", "high"),),
 }
 _VERSION_VALUE_RE = {
     "amadey": re.compile(r"^\d+\.\d+$"),
@@ -72,6 +73,7 @@ _VERSION_VALUE_RE = {
     "remcosrat": re.compile(r"^\d+\.\d+\.\d+ Pro$"),
     "spyglace": re.compile(r"^\d+\.\d+\.\d+$"),
     "venomrat": re.compile(r"^\d+\.\d+\.\d+$"),
+    "xmrig": re.compile(r"^\d+\.\d+\.\d+$"),
 }
 
 

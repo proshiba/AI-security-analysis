@@ -76,6 +76,7 @@ NON_IOC_MARKERS = {"context_only", "not_ioc", "not_c2", "dual-use"}
 IOC_TYPE_LABELS = {
     "domain": "ドメイン",
     "endpoint": "接続先",
+    "ethereum_address": "Ethereumアドレス",
 }
 IOC_CONFIDENCE_LABELS = {
     "confirmed": "確認済み",
@@ -132,6 +133,8 @@ def indicator_type(value: str) -> str | None:
         return "sha1"
     if re.fullmatch(r"[0-9a-f]{32}", lowered):
         return "md5"
+    if re.fullmatch(r"0x[0-9a-f]{40}", lowered):
+        return "ethereum_address"
     if lowered.startswith(("http://", "https://")):
         return "url"
     match = ENDPOINT_RE.fullmatch(lowered)
@@ -179,7 +182,7 @@ def normalize_value(value: str) -> tuple[str, str] | None:
             return None
     if kind == "domain" and cleaned.lower() in REFERENCE_HOSTS:
         return None
-    return kind, cleaned.lower() if kind in {"domain", "endpoint", "ipv4", "ipv6"} else cleaned
+    return kind, cleaned.lower() if kind in {"domain", "endpoint", "ipv4", "ipv6", "ethereum_address"} else cleaned
 
 
 def confidence_from_text(text: str, default: str = "recorded") -> str:

@@ -4145,3 +4145,120 @@ analyses:
     c2: []
     notes: "キルスイッチはC2ではない。無送信の短時間確認でHTTP 302を観測した。内部アーカイブ欠損のため正確なonion C2は未復元。検体は実行していない。"
     result_path: analysis-results/malware/wannacry/versions/unknown/cases/55c28ae706e71466105213f097ade42c5022792c67dcfc29e354a1ade36fd4fe/
+
+  - malware_type: "WannaCry"
+    analyzed_at: 2026-07-19
+    sample_sha256: 3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3
+    analysis_level: deep_static_resource_zipcrypto_plus_bounded_tor_validation
+    campaign_type: wannacry_complete_outer_dll
+    matched_patterns:
+      - "x64外層W/101、tasksche PE、R/1831、暗号化XIA/2058"
+      - "c.wnryから5件のTor v2 onion C2を静的回収"
+    c2:
+      - "57g7spgrzlojinas.onion:80"
+      - "76jdd2ir2embyv47.onion:80"
+      - "cwwnhwhlz52maqm7.onion:80"
+      - "gx7ekbenv2riucmf.onion:80"
+      - "xxlvbrloxvriy2c5.onion:80"
+    notes: "検体は実行していない。現行TorでSOCKS CONNECTは全件不成立。v2廃止のためC2不存在の証明ではない。"
+    result_path: analysis-results/malware/wannacry/versions/unknown/cases/3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee
+    analysis_level: deep_static_ghidra_plus_tcp_connect_validation
+    campaign_type: linux_plaintext_ddos_bot
+    matched_patterns:
+      - "x86_64登録、改行区切り平文命令、UDP/SYN/HTTP2 DDoS"
+      - "子プロセス攻撃管理と5～300秒再接続バックオフ"
+    c2:
+      - "45.66.228.114:7000"
+    notes: "TCP到達のみ確認し、登録値や命令は送信していない。Eclipse名は原名由来の暫定クラスタ。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1dc2367d36d0761e95721337b1edc05259b19ff58383f799d6802bf338c1e9ee/
+
+  - malware_type: "QuickFetch Go合成ワークロード（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 9165775115574e755cc95bd2aa1a0b3efe2b20c720fb056cfe90669bf8c1d6ec
+    analysis_level: deep_static_ghidra_negative_capability_review
+    campaign_type: synthetic_or_decoy_workload
+    matched_patterns:
+      - "Go製気候・領域データ合成、集計、JSON/Base64、ハッシュ計算"
+      - "ネットワーク、プロセス起動、永続化、C2を確認できず"
+    c2: []
+    notes: "悪性未確定。自己署名や掲載元だけでマルウェアと断定しない。検体は実行していない。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9165775115574e755cc95bd2aa1a0b3efe2b20c720fb056cfe90669bf8c1d6ec/
+
+  - malware_type: "Efimer"
+    analyzed_at: 2026-07-19
+    sample_sha256: dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e
+    analysis_level: deep_static_pyinstaller_pyarmor_plus_bounded_tor_validation
+    campaign_type: efimer_cryptostealer
+    matched_patterns:
+      - "検体固有XOR鍵c2MIdLA5PdAD、JavaScript回転143/187"
+      - "暗号資産置換、BIP39・秘密鍵探索、WordPress総当たり、Tor"
+    c2:
+      - "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80"
+      - "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80"
+      - "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"
+    notes: "検体は実行していない。公式Torから3件すべてSOCKSトンネル成立、アプリケーションデータ未送信でC2未確認。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e/
+
+  - malware_type: "EtherHiding/Arweave Loader（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: b1287ab346d488cf587ff52932119e02113403b9b9a7231e5c95fa0143de1a39
+    analysis_level: deep_static_msi_powershell_blockchain_loader
+    campaign_type: sepolia_arweave_encrypted_loader
+    matched_patterns:
+      - "VC++偽装MSI、HKCU Run、10分周期タスク"
+      - "Sepoliaコントラクト、Arweave参照、PBKDF2/HMAC/AES-CBC"
+    c2: []
+    notes: "共有RPC・ゲートウェイはIOC/C2にしない。最終ペイロードとC2は未回収。検体は実行していない。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b1287ab346d488cf587ff52932119e02113403b9b9a7231e5c95fa0143de1a39/
+
+  - malware_type: "EtherHiding/Arweave Loader（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 1f95f829dcfea47cc5ff79212d2b08254c4acf71ca70263dafdb7a9ab5c01292
+    analysis_level: deep_static_msi_powershell_blockchain_loader
+    campaign_type: sepolia_arweave_encrypted_loader
+    matched_patterns:
+      - "別外層MSIとSHA-256 50fd596d…ad10の静的復号ランナー"
+      - "ケース1と同じコントラクト、セレクタ、暗号方式"
+    c2: []
+    notes: "共有サービス到達を攻撃インフラ確認としない。最終ペイロードとC2は未回収。検体は実行していない。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1f95f829dcfea47cc5ff79212d2b08254c4acf71ca70263dafdb7a9ab5c01292/
+
+  - malware_type: "Linux複数ペイロードBotローダー（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 2e44d415d83aaf79514ba2398d43095cea216fd048fbd4c3cb7111fa1d1663ec
+    analysis_level: deep_static_shell_role_validation
+    campaign_type: multi_payload_bot_distribution_loader
+    matched_patterns:
+      - "/proc競合排除と5件の次段取得・pdvr引数実行"
+      - "配布先と最終C2の役割分離"
+    c2: []
+    notes: "129.121.110.105:80は配布先でC2ではない。子ペイロードは取得・実行せず、最終C2未回収。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2e44d415d83aaf79514ba2398d43095cea216fd048fbd4c3cb7111fa1d1663ec/
+
+  - malware_type: "JOMANGY"
+    analyzed_at: 2026-07-19
+    sample_sha256: 9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5
+    analysis_level: deep_static_multilayer_shell_role_validation
+    campaign_type: jomangy_wr_distribution_persistence
+    matched_patterns:
+      - "Base64/ROT13、FreePBX系webshell、UID 0アカウント、cron自己修復"
+      - "配布相のみで/hima_data/index.php設定窃取POSTなし"
+    c2: []
+    notes: "45.95.147.178と160.119.69.4は本検体では配布先。前者到達、後者タイムアウト。検体は実行していない。"
+    result_path: analysis-results/malware/jomangy/versions/unknown/cases/9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5/
+
+  - malware_type: "JOMANGY"
+    analyzed_at: 2026-07-19
+    sample_sha256: eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42
+    analysis_level: deep_static_multilayer_shell_role_validation
+    campaign_type: jomangy_wr_distribution_persistence
+    matched_patterns:
+      - "9d930798と同じ主要復号レイヤー、webshell、権限維持"
+      - "外層差分を別ケースで保持し、設定窃取相を継承しない"
+    c2: []
+    notes: "配布先をC2へ昇格しない。検体は実行していない。"
+    result_path: analysis-results/malware/jomangy/versions/unknown/cases/eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42/

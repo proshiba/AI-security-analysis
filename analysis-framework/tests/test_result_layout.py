@@ -118,6 +118,12 @@ def test_version_resolver_uses_only_family_specific_evidence(tmp_path: Path) -> 
             _sha("f"),
             document=("config.json", {"config": {"version_candidates": ["4.4.1"]}}),
         ),
+        "xmrig": _case(
+            repository,
+            "xmrig",
+            _sha("2"),
+            document=("config.json", {"family": "XMRig", "version": "6.26.0"}),
+        ),
         "other": _case(
             repository,
             "other",
@@ -146,6 +152,8 @@ def test_version_resolver_uses_only_family_specific_evidence(tmp_path: Path) -> 
     assert values["purehvnc"]["reason"] == "terminal_managed_static_config"
     assert values["venomrat"]["status"] == "reported"
     assert values["venomrat"]["confidence"] == "medium"
+    assert values["xmrig"]["normalized_key"] == "v6.26.0"
+    assert values["xmrig"]["reason"] == "sample_embedded_version_and_official_release_match"
     assert values["other"]["status"] == "unknown"
     assert {value["status"] for value in values.values()} <= {
         "confirmed",
