@@ -26,18 +26,18 @@ analysis-results/
 
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 564 |
-| 既知・暫定マルウェアファミリ | 462 |
-| 未分類 | 101 |
+| SHA-256で一意な全case | 593 |
+| 既知・暫定マルウェアファミリ | 478 |
+| 未分類 | 114 |
 | サプライチェーンpayload | 1 |
-| 版を静的根拠で確認済み | 58 |
+| 版を静的根拠で確認済み | 62 |
 | exact sampleの外部報告で版を特定 | 4 |
-| 版不明（既知・暫定ファミリ） | 400 |
-| 版不明（未分類） | 101 |
+| 版不明（既知・暫定ファミリ） | 412 |
+| 版不明（未分類） | 114 |
 
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
-未分類101件は既知ファミリへ無理に帰属させていません。71件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
+未分類114件は既知ファミリへ無理に帰属させていません。84件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
 
 ## マルウェアファミリ
 
@@ -58,9 +58,11 @@ analysis-results/
 - [GuLoader](malware/guloader/README.md)
 - [HijackLoader](malware/hijackloader/README.md)
 - [Latrodectus](malware/latrodectus/README.md)
+- [JOMANGY](malware/jomangy/README.md)
 - [Linux ENS/SNS Bot（暫定）](malware/linux-ens-sns-bot/README.md)
 - [Lumma Stealer](malware/lummastealer/README.md)
 - [njRAT](malware/njrat/README.md)
+- [Mirai派生ENS/DoH Bot](malware/mirai-derived-ens-doh-bot/README.md)
 - [PureHVNC／PureRAT](malware/purehvnc/README.md)
 - [QuasarRAT](malware/quasarrat/README.md)
 - [RedLine Stealer](malware/redlinestealer/README.md)
@@ -76,6 +78,7 @@ analysis-results/
 - [WannaCry](malware/wannacry/README.md)
 - [XWorm](malware/xworm/README.md)
 - [未分類検体](malware/unclassified/README.md)
+- [XMRig](malware/xmrig/README.md)
 
 ## 収集単位
 
@@ -85,7 +88,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
-- [MalwareBazaar 1000検体解析（進行中、batch-0001～0003：29件解析済み／1件取得待ち）](collections/malwarebazaar-1000/README.md)
+- [MalwareBazaar 1000検体解析（進行中、batch-0001～0004：39件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査
 

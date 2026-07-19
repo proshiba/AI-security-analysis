@@ -60,6 +60,7 @@ _VERSION_SOURCES: dict[
             "high",
         ),
     ),
+    "mirai-derived-ens-doh-bot": (("config.json", ("configuration", "bot_version"), "$.configuration.bot_version", "confirmed", "sample_embedded_bot_version", "high"),),
     "purehvnc": (("config.json", ("config", "version_candidates", 0), "$.config.version_candidates[0]", "confirmed", "terminal_managed_static_config", "high"),),
     "remcosrat": (("indicators.json", ("version",), "$.version", "confirmed", "family_config_or_process_attributed_evidence", "high"),),
     "spyglace": (("config.json", ("config", "version"), "$.config.version", "confirmed", "sample_specific_static_family_config", "high"),),
@@ -69,6 +70,7 @@ _VERSION_SOURCES: dict[
 _VERSION_VALUE_RE = {
     "amadey": re.compile(r"^\d+\.\d+$"),
     "latrodectus": re.compile(r"^\d+\.\d+\.\d+$"),
+    "mirai-derived-ens-doh-bot": re.compile(r"^\d+$"),
     "purehvnc": re.compile(r"^\d+\.\d+\.\d+$"),
     "remcosrat": re.compile(r"^\d+\.\d+\.\d+ Pro$"),
     "spyglace": re.compile(r"^\d+\.\d+\.\d+$"),

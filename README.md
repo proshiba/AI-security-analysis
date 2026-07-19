@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は32の既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む564件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は34の既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む593件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -181,10 +181,13 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | StealC | 41 | 2026-07-16 | v1設定を5件復号、保護／ラップ済み外層36件を静的解析の未解決ケースとして保持 |
 | Condi | 5 | 2026-07-18 | XOR設定、攻撃・スキャナー・killer、UPX系譜、配布ローダー |
 | Linux ENS/SNS Bot（暫定） | 1 | 2026-07-18 | ENSによる動的IP解決、暗号化記述子、静的ポート表 |
-| CHUD Bot（暫定） | 2 | 2026-07-18 | PowerPC、ループバック制御先、challenge/tagプロトコル |
+| CHUD Bot（暫定） | 4 | 2026-07-19 | PowerPC/ARM、UPX系譜、複数init永続化、ループバックchallenge/tagプロトコル |
 | Efimer | 2 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
 | WannaCry | 3 | 2026-07-19 | PlayGame外層、内包PE・暗号化XIA、キルスイッチ、Tor v2 C2 |
-| JOMANGY | 5 | 2026-07-19 | Base64/ROT13、FreePBX webshell、設定窃取相と配布相の分離 |
+| JOMANGY | 4 | 2026-07-19 | 多層Base64/ROT13、FreePBX webshell、UID 0/cron永続化、設定窃取相と配布相の分離 |
+| Linux複数ペイロードBotローダー（暫定） | 3 | 2026-07-19 | `/proc`競合排除、5次段配布、`pdvr`/`lilin`引数、配布先と最終C2の分離 |
+| Electronペイロードローダー（暫定） | 1 | 2026-07-19 | NSIS/Electron難読化、Defender除外、子Go合成ワークロード |
+| Mirai派生ENS/DoH Bot | 3 | 2026-07-19 | PowerPC/MIPS/ARM、ChaCha20設定、TCP C2、DoH/ENS補助解決、Telnet走査 |
 
 ### ValleyRAT 解析履歴
 

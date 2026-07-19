@@ -4262,3 +4262,115 @@ analyses:
     c2: []
     notes: "配布先をC2へ昇格しない。検体は実行していない。"
     result_path: analysis-results/malware/jomangy/versions/unknown/cases/eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42/
+
+  - malware_type: "Linux複数ペイロードBotローダー（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 7323bcc98fb1b23e201b6a775ab791634601dc5110ad1557b6dac94ceda14545
+    analysis_level: deep_static_shell_role_validation
+    campaign_type: multi_payload_bot_distribution_loader
+    matched_patterns:
+      - "/proc競合排除とClq/DS2/F8dj/HR2d/MfzI取得"
+      - "lilin引数実行、配布先と最終C2の役割分離"
+    c2: []
+    notes: "129.121.110.105:80は配布先。TCP到達のみでC2とは扱わない。子ペイロードは未回収、検体は未実行。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7323bcc98fb1b23e201b6a775ab791634601dc5110ad1557b6dac94ceda14545/
+
+  - malware_type: "Electronペイロードローダー（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 94df53908e7c6d0bcced95241d450bcf49105dba9e65c0277ba9a9ac579c1bcf
+    analysis_level: deep_static_nsis_electron_deobfuscation_plus_child_review
+    campaign_type: electron_fake_installer_payload_loader
+    matched_patterns:
+      - "文字列配列回転・Base64難読化、Defender除外、固定URLダウンロード"
+      - "子Go PEのスタックVM、階乗・最大公約数計算、SVG出力、ネットワーク機能なし"
+    c2: []
+    notes: "配布先TCP/80へ到達し、子PEをダウンロードしたが実行していない。親は悪性ローダー、子は悪性未確定。Telegram設定は空。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/94df53908e7c6d0bcced95241d450bcf49105dba9e65c0277ba9a9ac579c1bcf/
+
+  - malware_type: "JOMANGY"
+    analyzed_at: 2026-07-19
+    sample_sha256: 6d9ada5925ac865f4e390ea613c151b4f597c2753dcd00c925bb8fd89ba8eba9
+    analysis_level: deep_static_multilayer_shell_role_validation
+    campaign_type: jomangy_wr_distribution_persistence
+    matched_patterns:
+      - "多層Base64、FreePBXセッション奪取、webshell、UID 0アカウント"
+      - "cron自己修復と4配布URL"
+    c2: []
+    notes: "最終復号SHA-256は8f2044cf…0dd8。配布先のみで情報窃取先や対話型C2はない。検体は未実行。"
+    result_path: analysis-results/malware/jomangy/versions/unknown/cases/6d9ada5925ac865f4e390ea613c151b4f597c2753dcd00c925bb8fd89ba8eba9/
+
+  - malware_type: "CHUD bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: d74eee5b755266dbf51bb2a63a8489a12e255b0c06c528be7defb71e61336abb
+    analysis_level: deep_static_multiarch_persistence_protocol_review
+    campaign_type: chud_arm_local_controller_bot
+    matched_patterns:
+      - "ARM、CHUD-HANDSHAKE-V2、12-byte challenge、最大0x400-byte command"
+      - "systemd/SysV/OpenWrt/cron/rc.local/profile永続化とchattr"
+    c2: []
+    notes: "127.0.0.2:23はローカル制御先で外部C2ではない。接続拒否を確認。検体は未実行。"
+    result_path: analysis-results/malware/chud-bot/versions/unknown/cases/d74eee5b755266dbf51bb2a63a8489a12e255b0c06c528be7defb71e61336abb/
+
+  - malware_type: "CHUD bot（暫定、UPX梱包）"
+    analyzed_at: 2026-07-19
+    sample_sha256: b344517661f610615e73e816fd83bc81168dddbd086dc19098aa801bbb5462cc
+    analysis_level: deep_static_upx_lineage_plus_multiarch_review
+    campaign_type: chud_arm_upx_outer
+    matched_patterns:
+      - "UPX展開後SHA-256がd74eee5b…36abbと完全一致"
+      - "展開後の永続化・ローカル制御プロトコルを共有"
+    c2: []
+    notes: "梱包差だけで別版とはしない。ローカル制御先のみ。検体は未実行。"
+    result_path: analysis-results/malware/chud-bot/versions/unknown/cases/b344517661f610615e73e816fd83bc81168dddbd086dc19098aa801bbb5462cc/
+
+  - malware_type: "Linux複数ペイロードBotローダー（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: dd2fce7dad57958a7dec2c781a26c8fe8f7597696ba80dae921cd7744886972f
+    analysis_level: deep_static_shell_role_validation
+    campaign_type: multi_payload_bot_distribution_loader
+    matched_patterns:
+      - "/proc競合排除とClq/DS2/F8dj/HR2d/MfzI取得"
+      - "pdvr引数実行、7323bcc9…との差分確認"
+    c2: []
+    notes: "配布先TCP/80到達。子ペイロードと最終C2は未回収、検体は未実行。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/dd2fce7dad57958a7dec2c781a26c8fe8f7597696ba80dae921cd7744886972f/
+
+  - malware_type: "Mirai派生ENS/DoH Bot"
+    analyzed_at: 2026-07-19
+    sample_sha256: 23315993c5c7df358f6d9082d74d72774b613310ebafd0272f5efdf04d3ce9a6
+    analysis_level: deep_static_chacha20_config_multiarch_plus_bounded_c2_validation
+    campaign_type: mirai_derived_ens_doh_powerpc
+    matched_patterns: ["PowerPC、ChaCha20設定、Telnet走査、killer、watchdog、cron", "DoH/ENS補助解決とbot_version=1"]
+    c2: ["ewqqwt.duckdns.org:43833", "ewqqwt2.duckdns.org:43833"]
+    notes: "両C2はDNS解決不能で接続未成立。共有DoH/ENS基盤はIOCにしない。検体は未実行。"
+    result_path: analysis-results/malware/mirai-derived-ens-doh-bot/versions/v1/cases/23315993c5c7df358f6d9082d74d72774b613310ebafd0272f5efdf04d3ce9a6/
+
+  - malware_type: "Mirai派生ENS/DoH Bot"
+    analyzed_at: 2026-07-19
+    sample_sha256: 7607a6631a90eb57ad892bb0cca2bd6618940822daed745392676f6aec4a33f4
+    analysis_level: deep_static_chacha20_config_multiarch_plus_bounded_c2_validation
+    campaign_type: mirai_derived_ens_doh_mipsel
+    matched_patterns: ["MIPS LE、ciphertext/nonce/key配置", "PowerPC/ARM版と同一復号設定・機能"]
+    c2: ["ewqqwt.duckdns.org:43833", "ewqqwt2.duckdns.org:43833"]
+    notes: "両C2はDNS解決不能で接続未成立。検体は未実行。"
+    result_path: analysis-results/malware/mirai-derived-ens-doh-bot/versions/v1/cases/7607a6631a90eb57ad892bb0cca2bd6618940822daed745392676f6aec4a33f4/
+
+  - malware_type: "JOMANGY"
+    analyzed_at: 2026-07-19
+    sample_sha256: bf70cfa5cd5fc2b5c4f8ebb4d8dfba9451e113a21ad3b32cce20566f7eebedb8
+    analysis_level: deep_static_multilayer_shell_role_validation
+    campaign_type: jomangy_wr_distribution_persistence
+    matched_patterns: ["6d9ada59…とは外層が異なる", "最終復号SHA-256と侵害後ロジックは完全一致"]
+    c2: []
+    notes: "配布先のみで情報窃取先や対話型C2はない。検体は未実行。"
+    result_path: analysis-results/malware/jomangy/versions/unknown/cases/bf70cfa5cd5fc2b5c4f8ebb4d8dfba9451e113a21ad3b32cce20566f7eebedb8/
+
+  - malware_type: "Mirai派生ENS/DoH Bot"
+    analyzed_at: 2026-07-19
+    sample_sha256: c1c9c2e2936bf0492c896647531f6212d9271f1881c8b95d692d4aee48b4d472
+    analysis_level: deep_static_chacha20_config_multiarch_plus_bounded_c2_validation
+    campaign_type: mirai_derived_ens_doh_arm
+    matched_patterns: ["ARM、key/nonce/ciphertext配置", "PowerPC/MIPS版と同一復号設定・機能"]
+    c2: ["ewqqwt.duckdns.org:43833", "ewqqwt2.duckdns.org:43833"]
+    notes: "両C2はDNS解決不能で接続未成立。C2プロトコルを推測しない。検体は未実行。"
+    result_path: analysis-results/malware/mirai-derived-ens-doh-bot/versions/v1/cases/c1c9c2e2936bf0492c896647531f6212d9271f1881c8b95d692d4aee48b4d472/
