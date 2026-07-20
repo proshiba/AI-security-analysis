@@ -985,6 +985,13 @@
       "family": "latrodectus",
       "version_key": "v1.1.4"
     },
+    "388a9e43f9baec112abc28f1e058072e5ee847b0331388896f71517b832aff0d": {
+      "canonical_path": "analysis-results/malware/condi/versions/unknown/cases/388a9e43f9baec112abc28f1e058072e5ee847b0331388896f71517b832aff0d",
+      "case_id": "sha256:388a9e43f9baec112abc28f1e058072e5ee847b0331388896f71517b832aff0d",
+      "case_kind": "malware",
+      "family": "condi",
+      "version_key": "unknown"
+    },
     "398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5",
       "case_id": "sha256:398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5",
@@ -1800,6 +1807,21 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "628492c45cbb8e26f573675db32cb5687a40b2b4dd6d5e1c73a37c14558bb9a6": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/628492c45cbb8e26f573675db32cb5687a40b2b4dd6d5e1c73a37c14558bb9a6",
+      "case_id": "sha256:628492c45cbb8e26f573675db32cb5687a40b2b4dd6d5e1c73a37c14558bb9a6",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d",
+      "case_id": "sha256:6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
+    },
     "635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414": {
       "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414",
       "case_id": "sha256:635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414",
@@ -1926,6 +1948,13 @@
       "family": "unclassified",
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
+    },
+    "6afda92c73f89ddce818f752d2d3fb7f39cef34c53478ecd993cd42936a12efc": {
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/6afda92c73f89ddce818f752d2d3fb7f39cef34c53478ecd993cd42936a12efc",
+      "case_id": "sha256:6afda92c73f89ddce818f752d2d3fb7f39cef34c53478ecd993cd42936a12efc",
+      "case_kind": "malware",
+      "family": "jackskid",
+      "version_key": "2026-07-ens-sns"
     },
     "6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0": {
       "canonical_path": "analysis-results/malware/amosstealer/versions/unknown/cases/6b0bde56810f7c0295d57c41ffa746544a5370cedbe514e874cf2cd04582f4b0",
@@ -2485,6 +2514,13 @@
       "case_id": "sha256:84fdf69c7381701415d366808450de41e3127d15c497a196bd51cc3ecf3eeaea",
       "case_kind": "malware",
       "family": "lummastealer",
+      "version_key": "unknown"
+    },
+    "850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079",
+      "case_id": "sha256:850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079",
+      "case_kind": "malware",
+      "family": "genddos-bot",
       "version_key": "unknown"
     },
     "856195def0cae78be549ea750168bc950593d131f52b1e0c30aa490856a2bf39": {
@@ -3241,6 +3277,13 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "aee705055f820ed7147ce7ecd39f293ee56e71a2118d5bd0ca21584bfb89124f": {
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/aee705055f820ed7147ce7ecd39f293ee56e71a2118d5bd0ca21584bfb89124f",
+      "case_id": "sha256:aee705055f820ed7147ce7ecd39f293ee56e71a2118d5bd0ca21584bfb89124f",
+      "case_kind": "malware",
+      "family": "putita-v3",
+      "version_key": "v3"
+    },
     "af694f8e3d5f1eca4abb657c6c8c21a730488c4352649e6c9902556d08ea1bc2": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/af694f8e3d5f1eca4abb657c6c8c21a730488c4352649e6c9902556d08ea1bc2",
@@ -3606,11 +3649,25 @@
       "family": "quasarrat",
       "version_key": "unknown"
     },
+    "c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd",
+      "case_id": "sha256:c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd",
+      "case_kind": "malware",
+      "family": "genddos-bot",
+      "version_key": "unknown"
+    },
     "c08d7b0a6a2c416b664182e5715c49ceb62efa0eea3181f684d308a7e1fa3bd1": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/c08d7b0a6a2c416b664182e5715c49ceb62efa0eea3181f684d308a7e1fa3bd1",
       "case_id": "sha256:c08d7b0a6a2c416b664182e5715c49ceb62efa0eea3181f684d308a7e1fa3bd1",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "c125bbd2333186b24a2dc74b99c7f3db4fca9fbe86af42e68cc4999252453a2a": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/c125bbd2333186b24a2dc74b99c7f3db4fca9fbe86af42e68cc4999252453a2a",
+      "case_id": "sha256:c125bbd2333186b24a2dc74b99c7f3db4fca9fbe86af42e68cc4999252453a2a",
+      "case_kind": "malware",
+      "family": "efimer",
       "version_key": "unknown"
     },
     "c19ececd55e07469d7b9f6a4b64cd209cfa21f3b61edd0c03f71e44e0222ed63": {
@@ -4306,6 +4363,13 @@
       "family": "putita-v3",
       "version_key": "v3"
     },
+    "e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756": {
+      "canonical_path": "analysis-results/malware/maskgram-stealer/versions/unknown/cases/e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756",
+      "case_id": "sha256:e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756",
+      "case_kind": "malware",
+      "family": "maskgram-stealer",
+      "version_key": "unknown"
+    },
     "e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb",
       "case_id": "sha256:e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb",
@@ -4697,6 +4761,13 @@
       "case_id": "sha256:f73771a1b9887ebe85ce70b6dc459e0ce05ff6f71ba5833b5385a9e0a81af3df",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "f77256eb64c144a1f433705087bcefffbf59c79f6953a39d7c0d745ceab31573": {
+      "canonical_path": "analysis-results/malware/condi/versions/unknown/cases/f77256eb64c144a1f433705087bcefffbf59c79f6953a39d7c0d745ceab31573",
+      "case_id": "sha256:f77256eb64c144a1f433705087bcefffbf59c79f6953a39d7c0d745ceab31573",
+      "case_kind": "malware",
+      "family": "condi",
       "version_key": "unknown"
     },
     "f7c5c2b4cde3e19047279a18e6e9179e653c94af93967b0423fad65f50e16420": {
