@@ -973,6 +973,7 @@ def main() -> int:
     parser.add_argument("--collect-jarm", action="store_true")
     parser.add_argument("--jarm-script", type=Path, default=Path(r"C:\Users\Administrator\Tools\Salesforce-JARM\jarm.py"))
     parser.add_argument("--allow-network", action="store_true", help="explicitly allow the bounded live probe")
+    parser.add_argument("--connect-only", action="store_true", help="TCP接続の成否だけを確認し、送受信しない")
     parser.add_argument("--proxy-host", choices=["localhost", "127.0.0.1", "::1"])
     parser.add_argument("--proxy-port", type=int, default=9050)
     parser.add_argument(
@@ -993,6 +994,8 @@ def main() -> int:
         parser.error("port, timeout, or max-bytes is outside the allowed range")
     if not 1 <= args.n520_wait <= 30 or not 1 <= args.n520_max_bytes <= 16 * 1024 * 1024 or not 1 <= args.n520_max_frames <= 64:
         parser.error("N520 collection bounds are outside the allowed range")
+    if args.connect_only and (args.protocol != "tcp" or args.send_hex):
+        parser.error("--connect-only requires --protocol tcp and forbids --send-hex")
     if args.protocol == "mxgo" and args.mxgo_mode != "preview":
         if not mxgo_loopback_target(args.host):
             parser.error("active MX-Go emulation is loopback-only")

@@ -164,6 +164,13 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90": {
+      "canonical_path": "analysis-results/malware/blackhorse-miner-agent/versions/unknown/cases/08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
+      "case_id": "sha256:08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
+      "case_kind": "malware",
+      "family": "blackhorse-miner-agent",
+      "version_key": "unknown"
+    },
     "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
       "case_id": "sha256:09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
@@ -422,11 +429,25 @@
       "family": "screenconnect-rmm",
       "version_key": "v26.4.3.9662"
     },
+    "174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a": {
+      "canonical_path": "analysis-results/malware/nsis-obfuscated-loader/versions/unknown/cases/174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
+      "case_id": "sha256:174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
+      "case_kind": "malware",
+      "family": "nsis-obfuscated-loader",
+      "version_key": "unknown"
+    },
     "176384807e08ef03d707d11a1dde23cb61c5a78d187fd8b9870a6f773f880ee0": {
       "canonical_path": "analysis-results/malware/njrat/versions/unknown/cases/176384807e08ef03d707d11a1dde23cb61c5a78d187fd8b9870a6f773f880ee0",
       "case_id": "sha256:176384807e08ef03d707d11a1dde23cb61c5a78d187fd8b9870a6f773f880ee0",
       "case_kind": "malware",
       "family": "njrat",
+      "version_key": "unknown"
+    },
+    "183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f": {
+      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
+      "case_id": "sha256:183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
+      "case_kind": "malware",
+      "family": "png-registry-loader",
       "version_key": "unknown"
     },
     "18768e002f6f953ad6b9f3265d6e438ec19d0ffa05afaf28a72a04417c35528c": {
@@ -725,6 +746,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-unicode-separator/cases/2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
+      "case_id": "sha256:2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-unicode-separator"
+    },
     "262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
       "case_id": "sha256:262a400b339deea5089433709ce559d23253e23d23c07595b515755114147e2f",
@@ -810,6 +838,13 @@
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "v3.70"
+    },
+    "2c8bc292d127ec5fb5da2a9c8cbb8e4ec911f6b62437cb5f3a082ac196dc5784": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/2c8bc292d127ec5fb5da2a9c8cbb8e4ec911f6b62437cb5f3a082ac196dc5784",
+      "case_id": "sha256:2c8bc292d127ec5fb5da2a9c8cbb8e4ec911f6b62437cb5f3a082ac196dc5784",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
     },
     "2cdedb9e87b19f3da82e49563e2f3ca9b1e9f4e195a89b2e60e24e380261e2ef": {
       "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/2cdedb9e87b19f3da82e49563e2f3ca9b1e9f4e195a89b2e60e24e380261e2ef",
@@ -1046,6 +1081,13 @@
       "case_id": "sha256:398c754446396f89ad511e95760c90f9b72e1ce96b105b642b1f853b874f80c5",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "39ec954d66b2484f72787a62cc472fc1c8cf95042c2dae1e045f972731ee51e2": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/39ec954d66b2484f72787a62cc472fc1c8cf95042c2dae1e045f972731ee51e2",
+      "case_id": "sha256:39ec954d66b2484f72787a62cc472fc1c8cf95042c2dae1e045f972731ee51e2",
+      "case_kind": "malware",
+      "family": "efimer",
       "version_key": "unknown"
     },
     "3a521823d79686fad0595f9e90940c8a7451f7343bf64f4dbfcdcbde9115957d": {
@@ -1393,6 +1435,13 @@
       "family": "linux-reverse-shell",
       "version_key": "unknown"
     },
+    "4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5": {
+      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
+      "case_id": "sha256:4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
+      "case_kind": "malware",
+      "family": "png-registry-loader",
+      "version_key": "unknown"
+    },
     "4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47",
@@ -1427,6 +1476,13 @@
       "case_id": "sha256:4c958205aa4c56b148377b2bd984a7b3b6525bbc914cf8e5aaa34ce91f71d4cc",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f": {
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f",
+      "case_id": "sha256:4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f",
+      "case_kind": "malware",
+      "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
     "4d4f97f1621334e4075e0229265ac6c5da14754eff1378a7d77ea6d3821e8a33": {
@@ -2230,6 +2286,13 @@
       "provisional_cluster_id": "beavertail",
       "version_key": "unknown"
     },
+    "714f761f1994d2c647aa8feeee06272f5ede71dc704842d9bee2141fa94c22a8": {
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/714f761f1994d2c647aa8feeee06272f5ede71dc704842d9bee2141fa94c22a8",
+      "case_id": "sha256:714f761f1994d2c647aa8feeee06272f5ede71dc704842d9bee2141fa94c22a8",
+      "case_kind": "malware",
+      "family": "putita-v3",
+      "version_key": "v3"
+    },
     "71911c8f6eacf5ba5414bc8a66ac83a981aaf4d1141f5117ed6c2ad196c558fc": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/71911c8f6eacf5ba5414bc8a66ac83a981aaf4d1141f5117ed6c2ad196c558fc",
       "case_id": "sha256:71911c8f6eacf5ba5414bc8a66ac83a981aaf4d1141f5117ed6c2ad196c558fc",
@@ -2756,6 +2819,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-xor-stager/cases/8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
+      "case_id": "sha256:8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-xor-stager"
+    },
     "8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6",
       "case_id": "sha256:8babde64a6d3b85c2c4315205ae58884ee01f6364477a777f09d5b9c3ceef2a6",
@@ -2944,6 +3014,13 @@
       "family": "unclassified",
       "provisional_cluster_id": "electron-payload-loader",
       "version_key": "unknown"
+    },
+    "950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502": {
+      "canonical_path": "analysis-results/malware/catddos/versions/v2.0.4-socks5/cases/950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
+      "case_id": "sha256:950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
+      "case_kind": "malware",
+      "family": "catddos",
+      "version_key": "v2.0.4-socks5"
     },
     "956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430": {
       "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430",
@@ -3206,6 +3283,13 @@
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "unknown"
+    },
+    "a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654": {
+      "canonical_path": "analysis-results/malware/suomi-agent/versions/2026-07-dga-v1/cases/a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
+      "case_id": "sha256:a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
+      "case_kind": "malware",
+      "family": "suomi-agent",
+      "version_key": "2026-07-dga-v1"
     },
     "a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696": {
       "canonical_path": "analysis-results/malware/mirai/versions/unknown/cases/a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696",
@@ -3520,6 +3604,13 @@
       "family": "lummastealer",
       "version_key": "unknown"
     },
+    "b30b4b58eb215b60a8526c506d689ffab91ed43124709bc20b4085edf9d5361b": {
+      "canonical_path": "analysis-results/malware/macos-stealer-v2/versions/v256/cases/b30b4b58eb215b60a8526c506d689ffab91ed43124709bc20b4085edf9d5361b",
+      "case_id": "sha256:b30b4b58eb215b60a8526c506d689ffab91ed43124709bc20b4085edf9d5361b",
+      "case_kind": "malware",
+      "family": "macos-stealer-v2",
+      "version_key": "v256"
+    },
     "b32f71c40fffc53327ca712d82ad9349d2a4f396826fac9940824f48c878461f": {
       "canonical_path": "analysis-results/malware/freepbx-k-php/versions/unknown/cases/b32f71c40fffc53327ca712d82ad9349d2a4f396826fac9940824f48c878461f",
       "case_id": "sha256:b32f71c40fffc53327ca712d82ad9349d2a4f396826fac9940824f48c878461f",
@@ -3549,12 +3640,26 @@
       "family": "signed-dht-bot",
       "version_key": "2026-07-19-signed-dht"
     },
+    "b393bd767c142e171dd1b2928bae16fff2f63b3d319b2c1acb37129d8d538cc9": {
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/b393bd767c142e171dd1b2928bae16fff2f63b3d319b2c1acb37129d8d538cc9",
+      "case_id": "sha256:b393bd767c142e171dd1b2928bae16fff2f63b3d319b2c1acb37129d8d538cc9",
+      "case_kind": "malware",
+      "family": "dotnet-resource-loader",
+      "version_key": "unknown"
+    },
     "b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb": {
       "canonical_path": "analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb",
       "case_id": "sha256:b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb",
       "case_kind": "malware",
       "family": "remcosrat",
       "version_key": "v7.2.6-pro"
+    },
+    "b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc": {
+      "canonical_path": "analysis-results/malware/catddos/versions/v2.0.4-socks5/cases/b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
+      "case_id": "sha256:b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
+      "case_kind": "malware",
+      "family": "catddos",
+      "version_key": "v2.0.4-socks5"
     },
     "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
@@ -4093,6 +4198,13 @@
       "family": "amadey",
       "version_key": "unknown"
     },
+    "d08cf8c8f95b4df31198be8583cdbcf5f8e5beda95487e4aaed26cd2529e255d": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-javascript-unicode-separator/cases/d08cf8c8f95b4df31198be8583cdbcf5f8e5beda95487e4aaed26cd2529e255d",
+      "case_id": "sha256:d08cf8c8f95b4df31198be8583cdbcf5f8e5beda95487e4aaed26cd2529e255d",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-javascript-unicode-separator"
+    },
     "d0c75fc6832d501cafa08ee2b0e7af722542da38116be5c9d1f86f28c54b1f6e": {
       "attribution_status": "provisional",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d0c75fc6832d501cafa08ee2b0e7af722542da38116be5c9d1f86f28c54b1f6e",
@@ -4482,6 +4594,13 @@
       "family": "formbook",
       "version_key": "unknown"
     },
+    "e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
+      "case_id": "sha256:e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
+    },
     "e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611",
       "case_id": "sha256:e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611",
@@ -4560,6 +4679,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
+    },
+    "e88bf785ff3ee84df31a16ce5b6f9ecfc38cce7e5c01bdfb2dcdca21f33dbbf0": {
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/e88bf785ff3ee84df31a16ce5b6f9ecfc38cce7e5c01bdfb2dcdca21f33dbbf0",
+      "case_id": "sha256:e88bf785ff3ee84df31a16ce5b6f9ecfc38cce7e5c01bdfb2dcdca21f33dbbf0",
+      "case_kind": "malware",
+      "family": "putita-v3",
+      "version_key": "v3"
     },
     "e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37": {
       "canonical_path": "analysis-results/malware/donutloader/versions/unknown/cases/e8a4f2026d5aac1b74acbf7033ea0ec626055d3dbf5d645c9f741a75ad17ea37",
@@ -4744,6 +4870,13 @@
       "case_kind": "malware",
       "family": "remusstealer",
       "version_key": "unknown"
+    },
+    "eda99519f7e5ef015a4450927bc96f26f837f07e54eb692eaa4ad12ed2a837a1": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-javascript-unicode-separator/cases/eda99519f7e5ef015a4450927bc96f26f837f07e54eb692eaa4ad12ed2a837a1",
+      "case_id": "sha256:eda99519f7e5ef015a4450927bc96f26f837f07e54eb692eaa4ad12ed2a837a1",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-javascript-unicode-separator"
     },
     "ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677",
@@ -5178,81 +5311,18 @@
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
     },
+    "ff5a682bad6c911fd08c90622b7fa13ab22a608e501eed511a40fe43a9b53a1e": {
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/ff5a682bad6c911fd08c90622b7fa13ab22a608e501eed511a40fe43a9b53a1e",
+      "case_id": "sha256:ff5a682bad6c911fd08c90622b7fa13ab22a608e501eed511a40fe43a9b53a1e",
+      "case_kind": "malware",
+      "family": "putita-v3",
+      "version_key": "v3"
+    },
     "ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a",
       "case_id": "sha256:ffa78f3d4b1dafb9723e6a68456e42a57c0a109b9b8246196e1a8a6d6d2d6f5a",
       "case_kind": "malware",
       "family": "remusstealer",
-      "version_key": "unknown"
-    },
-    "4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5": {
-      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
-      "case_id": "sha256:4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
-      "case_kind": "malware",
-      "family": "png-registry-loader",
-      "version_key": "unknown"
-    },
-    "183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f": {
-      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
-      "case_id": "sha256:183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
-      "case_kind": "malware",
-      "family": "png-registry-loader",
-      "version_key": "unknown"
-    },
-    "a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654": {
-      "canonical_path": "analysis-results/malware/suomi-agent/versions/2026-07-dga-v1/cases/a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
-      "case_id": "sha256:a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
-      "case_kind": "malware",
-      "family": "suomi-agent",
-      "version_key": "2026-07-dga-v1"
-    },
-    "08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90": {
-      "canonical_path": "analysis-results/malware/blackhorse-miner-agent/versions/unknown/cases/08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
-      "case_id": "sha256:08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
-      "case_kind": "malware",
-      "family": "blackhorse-miner-agent",
-      "version_key": "unknown"
-    },
-    "2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13": {
-      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-unicode-separator/cases/2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
-      "case_id": "sha256:2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
-      "case_kind": "malware",
-      "family": "windows-script-stager",
-      "version_key": "2026-07-unicode-separator"
-    },
-    "e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326": {
-      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
-      "case_id": "sha256:e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
-      "case_kind": "malware",
-      "family": "efimer",
-      "version_key": "unknown"
-    },
-    "950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502": {
-      "canonical_path": "analysis-results/malware/catddos/versions/2.0.4_socks5/cases/950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
-      "case_id": "sha256:950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
-      "case_kind": "malware",
-      "family": "catddos",
-      "version_key": "2.0.4_socks5"
-    },
-    "b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc": {
-      "canonical_path": "analysis-results/malware/catddos/versions/2.0.4_socks5/cases/b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
-      "case_id": "sha256:b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
-      "case_kind": "malware",
-      "family": "catddos",
-      "version_key": "2.0.4_socks5"
-    },
-    "8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d": {
-      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-xor-stager/cases/8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
-      "case_id": "sha256:8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
-      "case_kind": "malware",
-      "family": "windows-script-stager",
-      "version_key": "2026-07-xor-stager"
-    },
-    "174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a": {
-      "canonical_path": "analysis-results/malware/nsis-obfuscated-loader/versions/unknown/cases/174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
-      "case_id": "sha256:174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
-      "case_kind": "malware",
-      "family": "nsis-obfuscated-loader",
       "version_key": "unknown"
     }
   },
