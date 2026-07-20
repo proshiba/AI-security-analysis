@@ -4794,3 +4794,103 @@ analyses:
     c2: []
     notes: "配布・窃取先をC2と分離。秘密値非公開、HTTP要求・収集データ未送信。"
     result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5/
+
+  - malware_type: "PUTA v3（Putita）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29
+    analysis_level: deep_static_ghidra_authenticated_config_review
+    campaign_type: putita_v3_armv6_plain
+    matched_patterns: ["ARMv6・PUTA-V3-OK・13攻撃ID", "ChaCha20-Poly1305認証付き設定・127.0.0.2:23ローカル制御"]
+    c2: ["64.89.163.215:666"]
+    notes: "TCP接続拒否。認証情報・アプリケーションデータ未送信。検体は未実行。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29/
+
+  - malware_type: "PUTA v3（Putita、UPX）"
+    analyzed_at: 2026-07-19
+    sample_sha256: f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff
+    analysis_level: deep_static_upx_lineage_plus_putita_review
+    campaign_type: putita_v3_armv6_upx
+    matched_patterns: ["UPX展開後70005bbb…と完全一致", "同一C2・暗号設定・13攻撃ID"]
+    c2: ["64.89.163.215:666"]
+    notes: "梱包差だけで別版にしない。非圧縮版と重複排除した接続確認を共有。"
+    result_path: analysis-results/malware/putita-v3/versions/v3/cases/f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: 4280445841f4898c26f409239f1a623304b637363087bd88a6ee9506e0256463
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_armv6l
+    matched_patterns: ["armv6l登録・TCP/7000", "改行フレーム・PING/PONG・UPDATE・BROADCAST"]
+    c2: ["45.66.228.114:7000"]
+    notes: "TCP接続はタイムアウト。登録行・命令未送信でC2未確定。検体は未実行。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/4280445841f4898c26f409239f1a623304b637363087bd88a6ee9506e0256463/
+
+  - malware_type: "Eclipse DDoS Bot（暫定）"
+    analyzed_at: 2026-07-19
+    sample_sha256: a832528ba9cac310fd4e5bcb7f8523865a6a19b2c95891515f323009910f610e
+    analysis_level: deep_static_ghidra_multiarch_protocol_review
+    campaign_type: eclipse_ddos_armv7l
+    matched_patterns: ["armv7l登録・TCP/7000", "改行フレーム・PING/PONG・UPDATE・BROADCAST"]
+    c2: ["45.66.228.114:7000"]
+    notes: "ARMv6版と重複排除したTCP確認を共有。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/eclipse-ddos-bot/versions/unknown/cases/a832528ba9cac310fd4e5bcb7f8523865a6a19b2c95891515f323009910f610e/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-19
+    sample_sha256: 2d0ae80f9689433e7b84ee280e11ce5263f918f6f23288c3d9bfe6ea187408b2
+    analysis_level: deep_static_recursive_base64_variant_review
+    campaign_type: freepbx_wr_php_post_exploitation
+    matched_patterns: ["5個のBase64静的復号層", "23 WebShell・cron・特権アカウント・秘密値3件を伏字化"]
+    c2: []
+    notes: "配布先をC2と分離。秘密値非公開、HTTP要求・収集データ未送信。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/2d0ae80f9689433e7b84ee280e11ce5263f918f6f23288c3d9bfe6ea187408b2/
+
+  - malware_type: "Phorpiexラベル付きダウンローダー"
+    analyzed_at: 2026-07-19
+    sample_sha256: 2ac492ce3b66a7979ceba5f26c594f0a69698d19b2ffdb56ac8b741dc30f8e5e
+    analysis_level: deep_static_ghidra_downloader_persistence_review
+    campaign_type: phorpiex_fixed_http_downloader
+    matched_patterns: ["winsvc.exe・HKCU Run永続化", "Content-Length変化監視・grabit.exe取得"]
+    c2: []
+    notes: "178.16.54.109:80は配布先。TCP接続のみ確認し、HTTP要求とペイロード取得は未実施。"
+    result_path: analysis-results/malware/phorpiex-downloader/versions/unknown/cases/2ac492ce3b66a7979ceba5f26c594f0a69698d19b2ffdb56ac8b741dc30f8e5e/
+
+  - malware_type: "BlazeTrack（暫定クラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022
+    analysis_level: deep_static_iexpress_autoit_terminal_payload_review
+    campaign_type: blazetrack_multichannel_loader
+    matched_patterns: ["IExpress・CAB・AutoIt A3X・RC4/LZNT1・x86終端PE", "FireGuard Dynamics Ltd永続化・Workers JSON制御候補"]
+    c2: ["dry-band-ae8f.zavrayah.workers.dev:443", "gentle-pond-2294.zavrayah.workers.dev:443", "ray-wildflower-59b3.zavrayah.workers.dev:443", "frosty-union-ff75.laserkusym.workers.dev:443"]
+    notes: "共有サービスへTLS接続のみ確認。HTTP・JSONデータ未送信でC2未確定。正式ファミリー帰属は保留。"
+    result_path: analysis-results/malware/blazetrack/versions/unknown/cases/b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022/
+
+  - malware_type: "InfectedSlurs/TBOT候補"
+    analyzed_at: 2026-07-19
+    sample_sha256: 932e3c4ae1d5404ceade8dfd386182800b91eb93794c914b7f09b094996b061e
+    analysis_level: deep_static_ghidra_mips_protocol_osint_review
+    campaign_type: infectedslurs_tbot_candidate
+    matched_patterns: ["TBOT・TOASTER・組み込みTelnet・NVR認証情報", "固定IP・8ポート表・2-byte BE全長フレーム"]
+    c2: ["193.46.218.20:34661", "193.46.218.20:57193", "193.46.218.20:45422", "193.46.218.20:1907", "193.46.218.20:43893", "193.46.218.20:65404", "193.46.218.20:5504", "193.46.218.20:42370"]
+    notes: "8ポートは全て接続拒否。公開報告との差異があるため候補帰属を維持。検体は未実行。"
+    result_path: analysis-results/malware/infectedslurs-tbot/versions/unknown/cases/932e3c4ae1d5404ceade8dfd386182800b91eb93794c914b7f09b094996b061e/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-19
+    sample_sha256: 726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572
+    analysis_level: deep_static_recursive_base64_exfiltration_review
+    campaign_type: freepbx_k_php_post_exploitation
+    matched_patterns: ["9個のBase64静的復号層", "14 WebShell・PBX管理者・cron・設定収集・データ送信"]
+    c2: []
+    notes: "配布先とデータ送信先をC2と分離。秘密値7件を伏字化し、HTTPデータ未送信。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-19
+    sample_sha256: c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca
+    analysis_level: deep_static_ghidra_x86_xor_table_fallback_review
+    campaign_type: genddos_x86
+    matched_patterns: ["x86・XOR 0x22・genddos.st:6742", "DNS失敗時65.222.202.53:80・2-byte長フレーム"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "主候補TCP接続成立、fallback timeout。アプリケーションデータ未送信でC2未確定。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca/
