@@ -75,3 +75,50 @@ def test_register_batch_rejects_missing_case(tmp_path: Path) -> None:
         register.register_batch(
             tmp_path, classification, "test-collection", write=False
         )
+
+def test_register_batch_accepts_unclassified_case_kind(tmp_path: Path) -> None:
+    digest = "c" * 64
+    case = (
+        tmp_path
+        / "analysis-results/malware/unclassified/versions/unknown/cases"
+        / digest
+    )
+    case.mkdir(parents=True)
+    _write_json(
+        case / "metadata.json",
+        {
+            "case_id": f"sha256:{digest}",
+            "sha256": digest,
+            "case_kind": "unclassified",
+            "family": "unclassified",
+            "canonical_path": case.relative_to(tmp_path).as_posix(),
+            "malware_version": {
+                "normalized_key": "unknown",
+                "status": "unknown",
+                "reported": None,
+                "confidence": "none",
+                "reason": "終端家族が未解決",
+                "evidence": [],
+            },
+        },
+    )
+    classification = tmp_path / "classification.json"
+    _write_json(
+        classification,
+        {
+            "samples": [
+                {
+                    "sha256": digest,
+                    "family": "unclassified",
+                    "version": "unknown",
+                }
+            ]
+        },
+    )
+    result = register.register_batch(
+        tmp_path, classification, "test-collection", write=True
+    )
+    assert result["cases"] == 1
+    metadata = json.loads((case / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["case_kind"] == "unclassified"
+    assert metadata["collections"] == ["test-collection"]

@@ -89,7 +89,7 @@ def register_batch(
         expected = {
             "case_id": f"sha256:{digest}",
             "sha256": digest,
-            "case_kind": "malware",
+            "case_kind": "unclassified" if family == "unclassified" else "malware",
             "family": family,
             "canonical_path": canonical,
         }
