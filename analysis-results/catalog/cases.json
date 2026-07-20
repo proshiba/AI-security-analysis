@@ -5184,6 +5184,76 @@
       "case_kind": "malware",
       "family": "remusstealer",
       "version_key": "unknown"
+    },
+    "4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5": {
+      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
+      "case_id": "sha256:4adf2ecf694884886667c15a1b86b5d937c35089a97afc585ad524660d85c1b5",
+      "case_kind": "malware",
+      "family": "png-registry-loader",
+      "version_key": "unknown"
+    },
+    "183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f": {
+      "canonical_path": "analysis-results/malware/png-registry-loader/versions/unknown/cases/183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
+      "case_id": "sha256:183def10cfe9473eb4ac24b08c39418253d770eef9a196e42115fef79072db9f",
+      "case_kind": "malware",
+      "family": "png-registry-loader",
+      "version_key": "unknown"
+    },
+    "a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654": {
+      "canonical_path": "analysis-results/malware/suomi-agent/versions/2026-07-dga-v1/cases/a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
+      "case_id": "sha256:a1e14e2b06dc859053cb63cfa9e76b4ef43540a35d736dc9fb1c39986bf67654",
+      "case_kind": "malware",
+      "family": "suomi-agent",
+      "version_key": "2026-07-dga-v1"
+    },
+    "08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90": {
+      "canonical_path": "analysis-results/malware/blackhorse-miner-agent/versions/unknown/cases/08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
+      "case_id": "sha256:08cb5a6819ac46d34c1baae74d978949237c7a7e22592a221bbcd04c74a1af90",
+      "case_kind": "malware",
+      "family": "blackhorse-miner-agent",
+      "version_key": "unknown"
+    },
+    "2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-unicode-separator/cases/2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
+      "case_id": "sha256:2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-unicode-separator"
+    },
+    "e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
+      "case_id": "sha256:e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
+    },
+    "950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502": {
+      "canonical_path": "analysis-results/malware/catddos/versions/2.0.4_socks5/cases/950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
+      "case_id": "sha256:950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
+      "case_kind": "malware",
+      "family": "catddos",
+      "version_key": "2.0.4_socks5"
+    },
+    "b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc": {
+      "canonical_path": "analysis-results/malware/catddos/versions/2.0.4_socks5/cases/b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
+      "case_id": "sha256:b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc",
+      "case_kind": "malware",
+      "family": "catddos",
+      "version_key": "2.0.4_socks5"
+    },
+    "8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-xor-stager/cases/8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
+      "case_id": "sha256:8aab978be727a120faf9ab28932c621808c141c6c4100651d7aecce70870a91d",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-xor-stager"
+    },
+    "174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a": {
+      "canonical_path": "analysis-results/malware/nsis-obfuscated-loader/versions/unknown/cases/174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
+      "case_id": "sha256:174047faedae187b42c666c6c34ba1fdb1791b16f1c63f6bd2258fbd6409b77a",
+      "case_kind": "malware",
+      "family": "nsis-obfuscated-loader",
+      "version_key": "unknown"
     }
   },
   "schema_version": 1
