@@ -45,6 +45,33 @@ def test_validate_monotonic_rejects_existing_entry_change() -> None:
         )
 
 
+def test_validate_monotonic_accepts_safe_version_relocation() -> None:
+    digest = "a" * 64
+    existing = {"schema_version": 1, "cases": {digest: _entry(digest)}}
+    relocated = _entry(digest)
+    relocated["version_key"] = "v3"
+    relocated["canonical_path"] = (
+        f"analysis-results/malware/test/versions/v3/cases/{digest}"
+    )
+
+    assert catalog.validate_monotonic(
+        existing, {"schema_version": 1, "cases": {digest: relocated}}
+    ) == ()
+
+
+def test_validate_monotonic_rejects_noncanonical_relocation() -> None:
+    digest = "a" * 64
+    existing = {"schema_version": 1, "cases": {digest: _entry(digest)}}
+    relocated = _entry(digest)
+    relocated["version_key"] = "v3"
+    relocated["canonical_path"] = f"analysis-results/malware/test/{digest}"
+
+    with pytest.raises(catalog.CatalogSyncError, match="would change"):
+        catalog.validate_monotonic(
+            existing, {"schema_version": 1, "cases": {digest: relocated}}
+        )
+
+
 def test_validate_monotonic_rejects_deletion() -> None:
     digest = "a" * 64
     existing = {"schema_version": 1, "cases": {digest: _entry(digest)}}

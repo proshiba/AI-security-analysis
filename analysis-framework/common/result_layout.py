@@ -298,6 +298,55 @@ def resolve_malware_version(
     }
 
 
+def _canonical_metadata_version(
+    case_directory: Path,
+    *,
+    results_root: Path,
+    family: str,
+    sha256: str,
+) -> dict[str, Any] | None:
+    """固定レイアウト済みcaseの自己整合した版メタデータを返す。
+
+    手動レビューで確定した版を再同期時に ``unknown`` へ戻さないため、
+    directory、metadata、SHA-256、family、version key がすべて一致する場合だけ
+    metadataの値を信頼する。旧レイアウトには適用しない。
+    """
+
+    relative = case_directory.relative_to(results_root)
+    parts = relative.parts
+    if (
+        len(parts) != 6
+        or parts[0] != "malware"
+        or parts[1] != family
+        or parts[2] != "versions"
+        or parts[4] != "cases"
+        or parts[5].lower() != sha256
+    ):
+        return None
+    version_key = parts[3]
+    if not VERSION_KEY_RE.fullmatch(version_key):
+        raise LayoutPlanError(f"unsafe canonical version key: {version_key!r}")
+    if version_key == "unknown":
+        return None
+    metadata = _safe_json(case_directory / "metadata.json")
+    if not isinstance(metadata, dict):
+        return None
+    version = metadata.get("malware_version")
+    expected_path = case_directory.relative_to(results_root.parent).as_posix()
+    if (
+        metadata.get("schema_version") != SCHEMA_VERSION
+        or metadata.get("sha256") != sha256
+        or metadata.get("case_id") != f"sha256:{sha256}"
+        or metadata.get("family") != family
+        or metadata.get("case_kind") != "malware"
+        or metadata.get("canonical_path") != expected_path
+        or not isinstance(version, dict)
+        or version.get("normalized_key") != version_key
+    ):
+        raise LayoutPlanError(f"canonical case metadata mismatch: {sha256}")
+    return version
+
+
 def _case_context(case_directory: Path, results_root: Path) -> tuple[str, list[str], str | None]:
     relative = case_directory.relative_to(results_root)
     parts = list(relative.parts)
@@ -1106,7 +1155,14 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                 / digest
             ).resolve()
         else:
-            version = resolve_malware_version(source, family, repository)
+            version = (
+                _canonical_metadata_version(
+                    source,
+                    results_root=results_root,
+                    family=family,
+                    sha256=digest,
+                ) if case_kind == "malware" else None
+            ) or resolve_malware_version(source, family, repository)
             version_key = version["normalized_key"]
             target = canonical_malware_case_path(
                 results_root, family, digest, version_key

@@ -36,21 +36,46 @@ def resource_blobs(data: bytes) -> tuple[list[dict], list[str]]:
         return [], [f".NET リソース表を読めませんでした: {type(exc).__name__}"]
 
     results: list[dict] = []
-    for index, resource in enumerate(resources, 1):
+    output_index = 0
+    for resource in resources:
         raw = resource.data if isinstance(resource.data, bytes) else None
-        if raw is None:
-            warnings.append(f"{resource.name}: 複合 .resources 形式のため直接抽出していません。")
+        if raw is not None:
+            output_index += 1
+            results.append(
+                {
+                    "index": output_index,
+                    "original_name": str(resource.name),
+                    "container_name": None,
+                    "resource_type": "manifest_blob",
+                    "output_name": safe_name(str(resource.name), output_index),
+                    "size": len(raw),
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "data": raw,
+                }
+            )
             continue
-        results.append(
-            {
-                "index": index,
-                "original_name": str(resource.name),
-                "output_name": safe_name(str(resource.name), index),
-                "size": len(raw),
-                "sha256": hashlib.sha256(raw).hexdigest(),
-                "data": raw,
-            }
-        )
+        entries = getattr(resource.data, "entries", None)
+        if entries is None:
+            warnings.append(f"{resource.name}: 未対応の複合 .resources 形式です。")
+            continue
+        for entry in entries:
+            value = getattr(entry, "value", None)
+            if not isinstance(value, bytes):
+                continue
+            output_index += 1
+            entry_name = str(getattr(entry, "name", f"entry-{output_index:04d}"))
+            results.append(
+                {
+                    "index": output_index,
+                    "original_name": entry_name,
+                    "container_name": str(resource.name),
+                    "resource_type": str(getattr(entry, "type_name", "unknown")),
+                    "output_name": safe_name(entry_name, output_index),
+                    "size": len(value),
+                    "sha256": hashlib.sha256(value).hexdigest(),
+                    "data": value,
+                }
+            )
     return results, warnings
 
 
@@ -76,6 +101,8 @@ def extract(input_path: Path, output_dir: Path, expected_sha256: str) -> dict:
             {
                 "index": item["index"],
                 "original_name": item["original_name"],
+                "container_name": item["container_name"],
+                "resource_type": item["resource_type"],
                 "output_name": name,
                 "size": item["size"],
                 "sha256": item["sha256"],

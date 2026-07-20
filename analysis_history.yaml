@@ -4894,3 +4894,103 @@ analyses:
     c2: ["genddos.st:6742", "65.222.202.53:80"]
     notes: "主候補TCP接続成立、fallback timeout。アプリケーションデータ未送信でC2未確定。"
     result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca/
+
+  - malware_type: "署名付きDHTボット（暫定）"
+    analyzed_at: 2026-07-20
+    sample_sha256: 310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3
+    analysis_level: deep_static_upx_repair_armv5_signed_bep44_review
+    campaign_type: signed_dht_bot_20260719
+    matched_patterns: ["Ed25519署名付きBEP44 mutable DHT", "2-byte BE長・9命令ID・5待受ポート"]
+    c2: []
+    notes: "正確な現行endpointは未復元。公開DHT bootstrapをC2扱いせず、DHT照会・検体実行とも未実施。"
+    result_path: analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-20
+    sample_sha256: 517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50
+    analysis_level: deep_static_ghidra_armv7_xor_table_review
+    campaign_type: genddos_armv7
+    matched_patterns: ["ARMv7・XOR 0x22・genddos.st:6742", "DNS失敗時65.222.202.53:80・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "主候補TCP接続成立、fallback timeout。アプリケーションデータ未送信でC2未確定。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50/
+
+  - malware_type: "JackSkid"
+    analyzed_at: 2026-07-20
+    sample_sha256: d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215
+    analysis_level: deep_static_ghidra_custom_cipher_ens_sns_review
+    campaign_type: jackskid_2026_07_ens_sns
+    matched_patterns: ["独自RC4/LFSR派生テーブル", "meower.eth・roanoke.sol・Telnet走査・anti-VM"]
+    c2: ["nvms9000.online:9018"]
+    notes: "副次endpointのみTCP接続成立しserver-first応答を観測。主C2のENS/SNS現在値は未照会、アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215/
+
+  - malware_type: "署名付きDHTボット（暫定）"
+    analyzed_at: 2026-07-20
+    sample_sha256: 24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef
+    analysis_level: deep_static_ghidra_m68k_signed_bep44_review
+    campaign_type: signed_dht_bot_20260719
+    matched_patterns: ["M68K・Ed25519署名付きBEP44 mutable DHT", "2-byte BE長・9命令ID・5待受ポート"]
+    c2: []
+    notes: "正確な現行endpointは未復元。DHT照会・推測接続・検体実行は未実施。"
+    result_path: analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef/
+
+  - malware_type: "署名付きDHTボット（暫定）"
+    analyzed_at: 2026-07-20
+    sample_sha256: 12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae
+    analysis_level: deep_static_upx_repair_x86_signed_bep44_review
+    campaign_type: signed_dht_bot_20260719
+    matched_patterns: ["x86・Ed25519署名付きBEP44 mutable DHT", "2-byte BE長・9命令ID・5待受ポート"]
+    c2: []
+    notes: "正確な現行endpointは未復元。DHT照会・推測接続・検体実行は未実施。"
+    result_path: analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae/
+
+  - malware_type: "Formbookローダー"
+    analyzed_at: 2026-07-20
+    sample_sha256: eef5c5fa574616e79c45b3901e6d843172b8c7bebed1fd797c35f23155b7db9b
+    analysis_level: deep_static_dotnet_resourceset_pbkdf2_aes_review
+    campaign_type: formbook_dotnet_loader
+    matched_patterns: ["ResourceSet内bartia.m4a", "PBKDF2-SHA1・1000回・AES-256-CBC・子PE復元"]
+    c2: []
+    notes: "子PE SHA-256を静的復元。正確な現行C2は未復元のため接続せず、検体も未実行。"
+    result_path: analysis-results/malware/formbook/versions/unknown/cases/eef5c5fa574616e79c45b3901e6d843172b8c7bebed1fd797c35f23155b7db9b/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-20
+    sample_sha256: ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638
+    analysis_level: deep_static_ghidra_x86_64_xor_table_review
+    campaign_type: genddos_x86_64
+    matched_patterns: ["x86-64・XOR 0x22・genddos.st:6742", "DNS失敗時65.222.202.53:80・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "主候補TCP接続成立、fallback timeout。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-20
+    sample_sha256: 13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb
+    analysis_level: deep_static_m68k_xor_table_review
+    campaign_type: genddos_m68k
+    matched_patterns: ["M68K・XOR 0x22・genddos.st:6742", "fallback・watchdog・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "他architectureと重複排除した接続確認を共有。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb/
+
+  - malware_type: "GendDDoS（Ohshitクラスタ）"
+    analyzed_at: 2026-07-20
+    sample_sha256: f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee
+    analysis_level: deep_static_sh4_xor_table_review
+    campaign_type: genddos_sh4
+    matched_patterns: ["SH4・XOR 0x22・genddos.st:6742", "fallback・watchdog・14攻撃ハンドラ"]
+    c2: ["genddos.st:6742", "65.222.202.53:80"]
+    notes: "他architectureと重複排除した接続確認を共有。アプリケーションデータ未送信。"
+    result_path: analysis-results/malware/genddos-bot/versions/unknown/cases/f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee/
+
+  - malware_type: "FreePBX K.php侵害スクリプト"
+    analyzed_at: 2026-07-20
+    sample_sha256: 3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f
+    analysis_level: deep_static_recursive_base64_wr_php_review
+    campaign_type: freepbx_wr_php_post_exploitation
+    matched_patterns: ["多層Base64静的復号", "WebShell・cron・特権アカウント・設定収集"]
+    c2: []
+    notes: "配布・窃取先をC2と分離。2つのHTTP先は到達性のみ確認し、HTTP要求・データ送信・PHP実行は未実施。"
+    result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f/

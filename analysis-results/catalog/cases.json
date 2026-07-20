@@ -316,11 +316,11 @@
       "version_key": "unknown"
     },
     "11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4",
       "case_id": "sha256:11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
@@ -329,12 +329,26 @@
       "family": "stealc",
       "version_key": "unknown"
     },
+    "12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae",
+      "case_id": "sha256:12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
+    },
     "12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1": {
       "canonical_path": "analysis-results/malware/amadey/versions/v4.13/cases/12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1",
       "case_id": "sha256:12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1",
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "v4.13"
+    },
+    "13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb",
+      "case_id": "sha256:13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb",
+      "case_kind": "malware",
+      "family": "genddos-bot",
+      "version_key": "unknown"
     },
     "142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/142cbad8b9d400380c78935e60db104ec080812b1a298f9753a41b2811c856be",
@@ -418,11 +432,11 @@
       "version_key": "unknown"
     },
     "195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c",
       "case_id": "sha256:195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "1a3ea22e0c4a68379e164c35d8d5bc438d9624fb575756194c8419121e2d265a": {
       "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/1a3ea22e0c4a68379e164c35d8d5bc438d9624fb575756194c8419121e2d265a",
@@ -484,11 +498,11 @@
       "version_key": "unknown"
     },
     "1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379": {
-      "canonical_path": "analysis-results/malware/jackskid/versions/unknown/cases/1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
       "case_id": "sha256:1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
       "case_kind": "malware",
       "family": "jackskid",
-      "version_key": "unknown"
+      "version_key": "2026-07-ens-sns"
     },
     "1e06fd5b9aa0e5260369e52ec2d9f87060941de835234afd198b1d4c0b161678": {
       "canonical_path": "analysis-results/malware/shadowpad/versions/unknown/cases/1e06fd5b9aa0e5260369e52ec2d9f87060941de835234afd198b1d4c0b161678",
@@ -654,6 +668,13 @@
       "family": "unclassified",
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
+    },
+    "24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef",
+      "case_id": "sha256:24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
     },
     "2500305d3a21671212f9d98de0d4750cdda70afa6f55b4ea3f141932c2b9338f": {
       "canonical_path": "analysis-results/malware/dcrat/versions/unknown/cases/2500305d3a21671212f9d98de0d4750cdda70afa6f55b4ea3f141932c2b9338f",
@@ -823,6 +844,13 @@
       "case_kind": "malware",
       "family": "eclipse-ddos-bot",
       "version_key": "unknown"
+    },
+    "310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3",
+      "case_id": "sha256:310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
     },
     "311294dee731688c8762cfa6e5865b8a989fcddb3166737f137416db6f46e515": {
       "attribution_status": "unresolved",
@@ -1046,6 +1074,13 @@
       "case_id": "sha256:3e0524346e447a3dcadc528ec3a009c8b34cf3c0d1c7423c4d168b432b2c8b72",
       "case_kind": "malware",
       "family": "latrodectus",
+      "version_key": "unknown"
+    },
+    "3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f": {
+      "canonical_path": "analysis-results/malware/freepbx-k-php/versions/unknown/cases/3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f",
+      "case_id": "sha256:3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f",
+      "case_kind": "malware",
+      "family": "freepbx-k-php",
       "version_key": "unknown"
     },
     "3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02": {
@@ -1385,6 +1420,13 @@
       "case_id": "sha256:507b83e920cc500779125e8862eb9fb8fef6440256842ba0b49c6d018a0e4e21",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50",
+      "case_id": "sha256:517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50",
+      "case_kind": "malware",
+      "family": "genddos-bot",
       "version_key": "unknown"
     },
     "523dd77b85d0b0cedc99ca23bc7225d4137b9e562a71a2d6d5e163e703680e2e": {
@@ -1968,11 +2010,11 @@
       "version_key": "unknown"
     },
     "70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29",
       "case_id": "sha256:70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "7027022df85d800ddd5d2ecfe5650d9ab535e782f11c11cdadff498a896037c0": {
       "canonical_path": "analysis-results/malware/dcrat/versions/unknown/cases/7027022df85d800ddd5d2ecfe5650d9ab535e782f11c11cdadff498a896037c0",
@@ -2085,11 +2127,11 @@
       "version_key": "unknown"
     },
     "73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf",
       "case_id": "sha256:73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "746c06f05b8e3bc93d6495a6c447c3c1874bd77011c33b0bcfe74ae27addbfaf": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/746c06f05b8e3bc93d6495a6c447c3c1874bd77011c33b0bcfe74ae27addbfaf",
@@ -2606,11 +2648,11 @@
       "version_key": "unknown"
     },
     "9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e",
       "case_id": "sha256:9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226": {
       "canonical_path": "analysis-results/malware/amadey/versions/v4.12/cases/919ae827ff59fcbe3dbaea9e62855a4d27690818189f696cfb5916a88c823226",
@@ -3029,11 +3071,11 @@
       "version_key": "unknown"
     },
     "aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3": {
-      "canonical_path": "analysis-results/malware/jackskid/versions/unknown/cases/aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3",
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3",
       "case_id": "sha256:aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3",
       "case_kind": "malware",
       "family": "jackskid",
-      "version_key": "unknown"
+      "version_key": "2026-07-ens-sns"
     },
     "ab267488d2c0a6300b61b5c9046cb86fe4a9ac3fe9a615acd374465b3a4b26c2": {
       "canonical_path": "analysis-results/malware/amosstealer/versions/unknown/cases/ab267488d2c0a6300b61b5c9046cb86fe4a9ac3fe9a615acd374465b3a4b26c2",
@@ -3347,11 +3389,11 @@
       "version_key": "unknown"
     },
     "b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3": {
-      "canonical_path": "analysis-results/malware/jackskid/versions/unknown/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
       "case_id": "sha256:b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
       "case_kind": "malware",
       "family": "jackskid",
-      "version_key": "unknown"
+      "version_key": "2026-07-ens-sns"
     },
     "b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/b731e3399691950d41e03d76c269ec2a60ca68ed7a2eee4d76635b458f5fbedf",
@@ -3473,11 +3515,11 @@
       "version_key": "unknown"
     },
     "be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57": {
-      "canonical_path": "analysis-results/malware/jackskid/versions/unknown/cases/be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57",
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57",
       "case_id": "sha256:be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57",
       "case_kind": "malware",
       "family": "jackskid",
-      "version_key": "unknown"
+      "version_key": "2026-07-ens-sns"
     },
     "becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f": {
       "canonical_path": "analysis-results/malware/chud-bot/versions/unknown/cases/becb06a6690d4066674d9d67a2589d29e8667700d640dd1c5bfa862c23d7103f",
@@ -3762,6 +3804,13 @@
       "case_kind": "malware",
       "family": "valleyrat",
       "version_key": "unknown"
+    },
+    "d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215": {
+      "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215",
+      "case_id": "sha256:d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215",
+      "case_kind": "malware",
+      "family": "jackskid",
+      "version_key": "2026-07-ens-sns"
     },
     "d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/d1f04b4bea67cbc6f469855826505a16e706b514858fa73c123df263ad34a292",
@@ -4180,11 +4229,11 @@
       "version_key": "unknown"
     },
     "e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89",
       "case_id": "sha256:e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb",
@@ -4301,11 +4350,11 @@
       "version_key": "unknown"
     },
     "ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49": {
-      "canonical_path": "analysis-results/malware/mig-logcleaner/versions/unknown/cases/ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49",
+      "canonical_path": "analysis-results/malware/mig-logcleaner/versions/v2.0/cases/ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49",
       "case_id": "sha256:ebcb74a49add3f34c8c916839c0bc2c9f7646263ef91b4377156e078385a3f49",
       "case_kind": "malware",
       "family": "mig-logcleaner",
-      "version_key": "unknown"
+      "version_key": "v2.0"
     },
     "ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3",
@@ -4357,10 +4406,24 @@
       "version_key": "unknown"
     },
     "ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190",
       "case_id": "sha256:ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190",
       "case_kind": "malware",
       "family": "putita-v3",
+      "version_key": "v3"
+    },
+    "ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638",
+      "case_id": "sha256:ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638",
+      "case_kind": "malware",
+      "family": "genddos-bot",
+      "version_key": "unknown"
+    },
+    "eef5c5fa574616e79c45b3901e6d843172b8c7bebed1fd797c35f23155b7db9b": {
+      "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/eef5c5fa574616e79c45b3901e6d843172b8c7bebed1fd797c35f23155b7db9b",
+      "case_id": "sha256:eef5c5fa574616e79c45b3901e6d843172b8c7bebed1fd797c35f23155b7db9b",
+      "case_kind": "malware",
+      "family": "formbook",
       "version_key": "unknown"
     },
     "ef3e41ec91f8be146c3588321f98be8d3db3933d3881112554898e7eefb8b017": {
@@ -4452,11 +4515,11 @@
       "version_key": "unknown"
     },
     "f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff": {
-      "canonical_path": "analysis-results/malware/putita-v3/versions/unknown/cases/f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff",
+      "canonical_path": "analysis-results/malware/putita-v3/versions/v3/cases/f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff",
       "case_id": "sha256:f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff",
       "case_kind": "malware",
       "family": "putita-v3",
-      "version_key": "unknown"
+      "version_key": "v3"
     },
     "f101fda6093f12758efae630bc265d6bad71479249685b7503c05e707424a276": {
       "attribution_status": "provisional",
@@ -4591,6 +4654,13 @@
       "case_id": "sha256:f913434f31b44c0e9df986028468ed3d6d28fd86d6d88aab48f2ef3841609386",
       "case_kind": "malware",
       "family": "formbook",
+      "version_key": "unknown"
+    },
+    "f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee": {
+      "canonical_path": "analysis-results/malware/genddos-bot/versions/unknown/cases/f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee",
+      "case_id": "sha256:f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee",
+      "case_kind": "malware",
+      "family": "genddos-bot",
       "version_key": "unknown"
     },
     "fa38f6539af74b5b355c532a3c71c588960d34abd825442fea98c2177375d010": {

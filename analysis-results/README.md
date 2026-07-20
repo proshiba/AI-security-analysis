@@ -26,19 +26,19 @@ analysis-results/
 
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 633 |
-| 既知・暫定マルウェアファミリ | 518 |
-| 未分類 | 114 |
+| SHA-256で一意な全case | 653 |
+| 既知・暫定マルウェアファミリ | 539 |
+| 未分類 | 113 |
 | サプライチェーンpayload | 1 |
-| 版を静的根拠で確認済み | 69 |
+| 版を静的根拠で確認済み | 74 |
 | exact sampleの外部報告で版を特定 | 4 |
-| 構成世代を静的・OSINT相関で推定 | 4 |
-| 版不明（既知・暫定ファミリ） | 441 |
-| 版不明（未分類） | 114 |
+| 構成世代を静的・OSINT相関で推定 | 5 |
+| 版不明（既知・暫定ファミリ） | 456 |
+| 版不明（未分類） | 113 |
 
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
-未分類114件は既知ファミリへ無理に帰属させていません。84件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
+未分類113件は既知ファミリへ無理に帰属させていません。83件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
 
 ## マルウェアファミリ
 
@@ -74,6 +74,7 @@ analysis-results/
 - [Remus Stealer](malware/remusstealer/README.md)
 - [ShadowPad](malware/shadowpad/README.md)
 - [Snake Keylogger](malware/snakekeylogger/README.md)
+- [署名付きDHTボット（暫定）](malware/signed-dht-bot/README.md)
 - [SoftBot（Mirai派生）](malware/softbot/README.md)
 - [SpyGlace](malware/spyglace/README.md)
 - [StealC](malware/stealc/README.md)
@@ -94,7 +95,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
-- [MalwareBazaar 1000検体解析（進行中、batch-0001～0009：89件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
+- [MalwareBazaar 1000検体解析（進行中、batch-0001～0010：99件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査
 

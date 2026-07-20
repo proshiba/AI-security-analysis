@@ -83,7 +83,7 @@ def test_jackskid_absorbs_the_previous_provisional_ens_sns_profiles() -> None:
     assert digest in module.HASH_PROFILES
     assert module.HASH_PROFILES[digest]["architecture"] == "armv4l"
     assert "再帰属" in module.HASH_PROFILES[digest]["profile_relation"]
-    assert len(module.HASH_PROFILES) == 4
+    assert len(module.HASH_PROFILES) == 5
 
 def test_layout_accepts_a_dated_inferred_configuration_generation() -> None:
     module = load_module(FRAMEWORK / "common" / "result_layout.py", "batch8_result_layout")
