@@ -94,10 +94,12 @@ def test_dotnet_resource_extractor_supports_nested_byte_entries(
 
     blobs, warnings = extractor.resource_blobs(b"synthetic")
     assert warnings == []
-    assert [item["data"] for item in blobs] == [b"plain", b"cipher"]
+    assert [item["data"] for item in blobs] == [b"plain", b"cipher", b"text"]
     assert blobs[1]["container_name"] == "container.resources"
     assert blobs[1]["resource_type"] == "System.Stream"
     assert blobs[1]["output_name"] == "bartia.m4a"
+    assert blobs[2]["resource_type"] == "System.String"
+    assert blobs[2]["value_encoding"] == "utf-8"
 
 
 def test_new_emulators_and_network_detector_are_nonexecuting() -> None:

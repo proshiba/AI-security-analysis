@@ -999,6 +999,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171": {
+      "canonical_path": "analysis-results/malware/freepbx-k-php/versions/unknown/cases/366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171",
+      "case_id": "sha256:366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171",
+      "case_kind": "malware",
+      "family": "freepbx-k-php",
+      "version_key": "unknown"
+    },
     "3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac": {
       "canonical_path": "analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac",
       "case_id": "sha256:3682d8c438017249510aba8865e979b666265be3ffae760d503f17ccb391afac",
@@ -1379,6 +1386,13 @@
       "family": "putita-v3",
       "version_key": "v3"
     },
+    "4ad616e69c44ec02ab7f1a35de0bad65d5ceab158f3a7478e7a9b8cbcc8ed1ed": {
+      "canonical_path": "analysis-results/malware/linux-reverse-shell/versions/unknown/cases/4ad616e69c44ec02ab7f1a35de0bad65d5ceab158f3a7478e7a9b8cbcc8ed1ed",
+      "case_id": "sha256:4ad616e69c44ec02ab7f1a35de0bad65d5ceab158f3a7478e7a9b8cbcc8ed1ed",
+      "case_kind": "malware",
+      "family": "linux-reverse-shell",
+      "version_key": "unknown"
+    },
     "4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/4bf7d834fe3a018692e15958e1e49131b359cd3b81cf3d1c23dd593f79ab7f47",
@@ -1392,6 +1406,13 @@
       "case_id": "sha256:4c17f7ee55f9bf6fa9acaeeb9574feab39ba4a3cccd4426dfa85aaf58b90ae73",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "4c6004ee13730aafe6af680f6781bcb18f5c290080076cad1cb184807db4e6ef": {
+      "canonical_path": "analysis-results/malware/mirai-derived-ens-doh-bot/versions/unknown/cases/4c6004ee13730aafe6af680f6781bcb18f5c290080076cad1cb184807db4e6ef",
+      "case_id": "sha256:4c6004ee13730aafe6af680f6781bcb18f5c290080076cad1cb184807db4e6ef",
+      "case_kind": "malware",
+      "family": "mirai-derived-ens-doh-bot",
       "version_key": "unknown"
     },
     "4c8f8899d02737d9c1c00f8848f73298a2749ff7a1a75a0ca2acd68117d2b515": {
@@ -1821,6 +1842,13 @@
       "family": "remusstealer",
       "version_key": "unknown"
     },
+    "5eb4973ce58ca8d691309fe57959dfb2f43d9f9cb4e094b23b6aa0ff173bb12a": {
+      "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/5eb4973ce58ca8d691309fe57959dfb2f43d9f9cb4e094b23b6aa0ff173bb12a",
+      "case_id": "sha256:5eb4973ce58ca8d691309fe57959dfb2f43d9f9cb4e094b23b6aa0ff173bb12a",
+      "case_kind": "malware",
+      "family": "agenttesla",
+      "version_key": "unknown"
+    },
     "5edc39cbd89d3ba70a4737f823933af93f3c182134af8e34e0af9a316afaaca8": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/v1.1.4/cases/5edc39cbd89d3ba70a4737f823933af93f3c182134af8e34e0af9a316afaaca8",
       "case_id": "sha256:5edc39cbd89d3ba70a4737f823933af93f3c182134af8e34e0af9a316afaaca8",
@@ -1876,6 +1904,13 @@
       "case_id": "sha256:628492c45cbb8e26f573675db32cb5687a40b2b4dd6d5e1c73a37c14558bb9a6",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "629b71238160765c0311731c527f79150766088a22a462a63338b9ff61e977e8": {
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/629b71238160765c0311731c527f79150766088a22a462a63338b9ff61e977e8",
+      "case_id": "sha256:629b71238160765c0311731c527f79150766088a22a462a63338b9ff61e977e8",
+      "case_kind": "malware",
+      "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
     "6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d": {
@@ -2544,6 +2579,13 @@
       "family": "latrodectus",
       "version_key": "unknown"
     },
+    "81c1d1cdeaf0e551444a1ac4eb79e14b048e2fd439fa808868524dc8e6751721": {
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/81c1d1cdeaf0e551444a1ac4eb79e14b048e2fd439fa808868524dc8e6751721",
+      "case_id": "sha256:81c1d1cdeaf0e551444a1ac4eb79e14b048e2fd439fa808868524dc8e6751721",
+      "case_kind": "malware",
+      "family": "efimer",
+      "version_key": "unknown"
+    },
     "81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9": {
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
       "case_id": "sha256:81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
@@ -2720,6 +2762,13 @@
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "unknown"
+    },
+    "8be4b164cca3f97f85398cc7f0cdd140bcd013b865b28546618f162cf474e0f0": {
+      "canonical_path": "analysis-results/malware/linux-downloader/versions/2026-07-mirai-multiarc/cases/8be4b164cca3f97f85398cc7f0cdd140bcd013b865b28546618f162cf474e0f0",
+      "case_id": "sha256:8be4b164cca3f97f85398cc7f0cdd140bcd013b865b28546618f162cf474e0f0",
+      "case_kind": "malware",
+      "family": "linux-downloader",
+      "version_key": "2026-07-mirai-multiarc"
     },
     "8befee725051508cc4651f95dcef53b60b0ccc20921c4b0b3cdc574ca0ad48c5": {
       "attribution_status": "unresolved",
@@ -3156,6 +3205,13 @@
       "case_id": "sha256:a1b0074cbd56956cc94e6161361f8f7407075f2903d14d082c1006f411bec90a",
       "case_kind": "malware",
       "family": "amadey",
+      "version_key": "unknown"
+    },
+    "a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696": {
+      "canonical_path": "analysis-results/malware/mirai/versions/unknown/cases/a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696",
+      "case_id": "sha256:a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696",
+      "case_kind": "malware",
+      "family": "mirai",
       "version_key": "unknown"
     },
     "a302ee498b5d963a36a5514efadaaf154ecb1a5f5e8f57b7d9a9c9f928fd0470": {
@@ -4909,6 +4965,13 @@
       "family": "guloader",
       "version_key": "unknown"
     },
+    "f61da9f4b26d57e5659ff399913313cfa85cd4161a124da2fd7caedb8246b954": {
+      "canonical_path": "analysis-results/malware/mirai/versions/unknown/cases/f61da9f4b26d57e5659ff399913313cfa85cd4161a124da2fd7caedb8246b954",
+      "case_id": "sha256:f61da9f4b26d57e5659ff399913313cfa85cd4161a124da2fd7caedb8246b954",
+      "case_kind": "malware",
+      "family": "mirai",
+      "version_key": "unknown"
+    },
     "f6ebd5e13f84b18c6db1607e6cb3b69ba6efeb10456bad83657523e13e51d7d0": {
       "attribution_status": "provisional",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/f6ebd5e13f84b18c6db1607e6cb3b69ba6efeb10456bad83657523e13e51d7d0",
@@ -5033,6 +5096,13 @@
       "case_id": "sha256:fbaa36fbd8f43d80ecc3c8c26701de0beca3db8402af5e8ce27105a68e918082",
       "case_kind": "malware",
       "family": "latrodectus",
+      "version_key": "unknown"
+    },
+    "fbe6afe9bf94217b4bec7bf9d27bb01f68bdf6d67e5bf5500ff3541db322a2ad": {
+      "canonical_path": "analysis-results/malware/mirai/versions/unknown/cases/fbe6afe9bf94217b4bec7bf9d27bb01f68bdf6d67e5bf5500ff3541db322a2ad",
+      "case_id": "sha256:fbe6afe9bf94217b4bec7bf9d27bb01f68bdf6d67e5bf5500ff3541db322a2ad",
+      "case_kind": "malware",
+      "family": "mirai",
       "version_key": "unknown"
     },
     "fbf7be017043471582fbe888052ad018d759c3d5ff25c27db07e4fce65a3d120": {

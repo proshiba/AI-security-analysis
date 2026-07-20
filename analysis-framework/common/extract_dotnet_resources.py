@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""".NET マニフェストリソースを実行せずに抽出し、ハッシュ一覧を作成する。"""
+""".NETマニフェストリソースを実行せず抽出し、ハッシュ一覧を作成する。"""
 
 from __future__ import annotations
 
@@ -21,70 +21,78 @@ def safe_name(value: str, index: int) -> str:
     return name or f"resource-{index:04d}.bin"
 
 
+def _entry_bytes(value: object) -> tuple[bytes, str] | None:
+    if isinstance(value, bytes):
+        return value, "binary"
+    if isinstance(value, str):
+        return value.encode("utf-8"), "utf-8"
+    return None
+
+
 def resource_blobs(data: bytes) -> tuple[list[dict], list[str]]:
-    """抽出可能なバイト列リソースと、解析上の警告を返す。"""
+    """抽出可能なblob/stringリソースと解析上の警告を返す。"""
     warnings: list[str] = []
     try:
         pe = dnfile.dnPE(data=data)
     except Exception as exc:
-        return [], [f"dnfile が PE を解析できませんでした: {type(exc).__name__}"]
+        return [], [f"dnfileでPEを解析できませんでした: {type(exc).__name__}"]
     if pe.net is None:
-        return [], ["CLR ヘッダーがないため .NET リソースを解析できません。"]
+        return [], ["CLRヘッダーがないため.NETリソースを解析できません。"]
     try:
         resources = list(pe.net.resources or [])
     except Exception as exc:
-        return [], [f".NET リソース表を読めませんでした: {type(exc).__name__}"]
+        return [], [f".NETリソース表を読めませんでした: {type(exc).__name__}"]
 
     results: list[dict] = []
     output_index = 0
     for resource in resources:
-        raw = resource.data if isinstance(resource.data, bytes) else None
-        if raw is not None:
+        direct = _entry_bytes(resource.data)
+        if direct is not None:
+            raw, encoding = direct
             output_index += 1
-            results.append(
-                {
-                    "index": output_index,
-                    "original_name": str(resource.name),
-                    "container_name": None,
-                    "resource_type": "manifest_blob",
-                    "output_name": safe_name(str(resource.name), output_index),
-                    "size": len(raw),
-                    "sha256": hashlib.sha256(raw).hexdigest(),
-                    "data": raw,
-                }
-            )
+            results.append({
+                "index": output_index,
+                "original_name": str(resource.name),
+                "container_name": None,
+                "resource_type": "manifest_blob" if encoding == "binary" else "System.String",
+                "value_encoding": encoding,
+                "output_name": safe_name(str(resource.name), output_index),
+                "size": len(raw),
+                "sha256": hashlib.sha256(raw).hexdigest(),
+                "data": raw,
+            })
             continue
         entries = getattr(resource.data, "entries", None)
         if entries is None:
-            warnings.append(f"{resource.name}: 未対応の複合 .resources 形式です。")
+            warnings.append(f"{resource.name}: 未対応の複合.resources形式です。")
             continue
         for entry in entries:
-            value = getattr(entry, "value", None)
-            if not isinstance(value, bytes):
+            converted = _entry_bytes(getattr(entry, "value", None))
+            if converted is None:
                 continue
+            value, encoding = converted
             output_index += 1
             entry_name = str(getattr(entry, "name", f"entry-{output_index:04d}"))
-            results.append(
-                {
-                    "index": output_index,
-                    "original_name": entry_name,
-                    "container_name": str(resource.name),
-                    "resource_type": str(getattr(entry, "type_name", "unknown")),
-                    "output_name": safe_name(entry_name, output_index),
-                    "size": len(value),
-                    "sha256": hashlib.sha256(value).hexdigest(),
-                    "data": value,
-                }
-            )
+            results.append({
+                "index": output_index,
+                "original_name": entry_name,
+                "container_name": str(resource.name),
+                "resource_type": str(getattr(entry, "type_name", "unknown")),
+                "value_encoding": encoding,
+                "output_name": safe_name(entry_name, output_index),
+                "size": len(value),
+                "sha256": hashlib.sha256(value).hexdigest(),
+                "data": value,
+            })
     return results, warnings
 
 
 def extract(input_path: Path, output_dir: Path, expected_sha256: str) -> dict:
-    """入力ハッシュを検証してから、抽出物と機械可読マニフェストを作る。"""
+    """入力ハッシュを検証してから抽出物と機械可読manifestを作る。"""
     data = input_path.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
     if digest != expected_sha256.lower():
-        raise ValueError(f"SHA-256 不一致: expected={expected_sha256.lower()} actual={digest}")
+        raise ValueError(f"SHA-256不一致: expected={expected_sha256.lower()} actual={digest}")
 
     resources, warnings = resource_blobs(data)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -97,20 +105,10 @@ def extract(input_path: Path, output_dir: Path, expected_sha256: str) -> dict:
         used_names.add(name.lower())
         target = output_dir / name
         target.write_bytes(item["data"])
-        public_resources.append(
-            {
-                "index": item["index"],
-                "original_name": item["original_name"],
-                "container_name": item["container_name"],
-                "resource_type": item["resource_type"],
-                "output_name": name,
-                "size": item["size"],
-                "sha256": item["sha256"],
-            }
-        )
+        public_resources.append({key: value for key, value in item.items() if key != "data"} | {"output_name": name})
 
     result = {
-        "schema_version": 1,
+        "schema_version": 2,
         "parent_sha256": digest,
         "resource_count": len(public_resources),
         "resources": public_resources,
