@@ -277,12 +277,17 @@ def socks5_connect(
     target_host: str,
     target_port: int,
     timeout: float,
+    result: dict | None = None,
 ) -> socket.socket:
     """Open a SOCKS5 CONNECT tunnel without proxy authentication."""
     connection = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
     try:
+        if result is not None:
+            result["proxy_connection_established"] = True
         connection.settimeout(timeout)
         connection.sendall(b"\x05\x01\x00")
+        if result is not None:
+            result["proxy_control_data_sent"] = True
         if read_exact(connection, 2) != b"\x05\x00":
             raise ConnectionError("SOCKS5 proxy rejected no-authentication mode")
         try:
@@ -295,6 +300,8 @@ def socks5_connect(
         else:
             address = (b"\x01" if parsed.version == 4 else b"\x04") + parsed.packed
         request = b"\x05\x01\x00" + address + struct.pack(">H", target_port)
+        if result is not None:
+            result["target_contact_attempted"] = True
         connection.sendall(request)
         head = read_exact(connection, 4)
         if head[0] != 5:
@@ -324,10 +331,13 @@ def open_bounded_connection(args, result: dict) -> socket.socket:
             raise ValueError("SOCKS5 proxy must be loopback")
         result["transport"] = "socks5"
         result["proxy"] = {"host": proxy_host, "port": args.proxy_port}
+        result["proxy_connection_established"] = False
+        result["proxy_control_data_sent"] = False
         result["network_contacted"] = True
-        result["proxy_control_data_sent"] = True
-        result["target_contact_attempted"] = True
-        connection = socks5_connect(proxy_host, args.proxy_port, args.host, args.port, args.timeout)
+        connection = socks5_connect(
+            proxy_host, args.proxy_port, args.host, args.port, args.timeout,
+            result=result,
+        )
         result["target_connection_established"] = True
         return connection
     result["transport"] = "direct"

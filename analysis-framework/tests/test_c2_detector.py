@@ -143,16 +143,48 @@ def test_socks5_connect_negotiates_exact_target(monkeypatch: pytest.MonkeyPatch)
         "create_connection",
         lambda *_args, **_kwargs: fake,
     )
-    result = c2_detector.socks5_connect(
+    metadata = {}
+    connection = c2_detector.socks5_connect(
         "127.0.0.1", 9050,
         "exampleexampleexampleexampleexampleexampleexampleexample.onion",
-        80, 3.0,
+        80, 3.0, result=metadata,
     )
-    assert result is fake
+    assert connection is fake
     assert fake.sent[0] == b"\x05\x01\x00"
     assert fake.sent[1].startswith(b"\x05\x01\x00\x03")
     assert fake.sent[1].endswith(b"\x00\x50")
     assert b".onion" in fake.sent[1]
+    assert metadata == {
+        "proxy_connection_established": True,
+        "proxy_control_data_sent": True,
+        "target_contact_attempted": True,
+    }
+
+
+def test_socks5_proxy_refusal_is_not_recorded_as_target_attempt(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(*_args, **_kwargs):
+        raise ConnectionRefusedError("proxy unavailable")
+
+    monkeypatch.setattr(c2_detector.socket, "create_connection", refuse)
+    args = SimpleNamespace(
+        proxy_host="127.0.0.1",
+        proxy_port=9050,
+        host="exampleexampleexampleexampleexampleexampleexampleexample.onion",
+        port=80,
+        timeout=3.0,
+    )
+    metadata = {
+        "network_contacted": False,
+        "target_contact_attempted": False,
+        "target_connection_established": False,
+    }
+    with pytest.raises(ConnectionRefusedError):
+        c2_detector.open_bounded_connection(args, metadata)
+    assert metadata["network_contacted"] is True
+    assert metadata["proxy_connection_established"] is False
+    assert metadata["proxy_control_data_sent"] is False
+    assert metadata["target_contact_attempted"] is False
+    assert metadata["target_connection_established"] is False
 
 
 def test_cli_records_target_role_and_sample_association() -> None:

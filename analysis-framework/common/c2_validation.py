@@ -138,9 +138,21 @@ def _probe_args(candidate: dict, sample_sha256s: list[str], allow_network: bool)
 def _connection_status(results: list[dict], allow_network: bool, empty_status: str) -> str:
     if not results:
         return empty_status
-    if any(item.get("target_contact_attempted") or item.get("network_contacted") for item in results):
+    if any(item.get("target_contact_attempted") for item in results):
+        return "performed"
+    if any(
+        "target_contact_attempted" not in item and item.get("network_contacted")
+        for item in results
+    ):
         return "performed"
     if allow_network:
+        if any(
+            item.get("network_contacted") and item.get("transport") == "tor-socks5"
+            for item in results
+        ):
+            return "not_performed_proxy_unavailable"
+        if any(item.get("network_contacted") for item in results):
+            return "performed"
         return "not_performed_by_policy"
     return "dry_run"
 

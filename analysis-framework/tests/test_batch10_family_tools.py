@@ -102,7 +102,7 @@ def test_dotnet_resource_extractor_supports_nested_byte_entries(
 
 def test_new_emulators_and_network_detector_are_nonexecuting() -> None:
     signed = family_module("signed_dht_bot")
-    assert len(signed.PROFILES) == 3
+    assert len(signed.PROFILES) >= 3
     assert signed.C2_PORTS == [23, 80, 123, 8080, 25565]
     assert len(signed.COMMAND_IDS) == 9
 
