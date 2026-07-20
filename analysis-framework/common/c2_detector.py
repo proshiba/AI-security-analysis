@@ -158,16 +158,17 @@ def build_shodan_queries(args, result: dict, tls: dict | None = None) -> dict:
     target_queries = [query for query in queries if query.startswith(("ip:", "hostname:"))]
     fingerprint_queries = [query for query in queries if query not in target_queries]
     combination = " ".join(target_queries[-1:] + fingerprint_queries) or None
-    return {
+    metadata = {
         "applicable": bool(queries),
-        "banner_hash_algorithm": "signed MurmurHash3 x86_32 of captured raw banner bytes",
         "queries": queries,
         "recommended_combination": combination,
         "warning": (
-            "Revalidate fields in Shodan before operational use; banner, IP, certificate "
-            "and JARM can change or be shared."
+            "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
         ),
     }
+    if result.get("banner"):
+        metadata["banner_hash_algorithm"] = "取得した raw banner の signed MurmurHash3 x86_32"
+    return metadata
 
 
 def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
@@ -729,6 +730,8 @@ def probe(args) -> dict:
         "target_role": getattr(args, "target_role", "c2"),
         "sample_sha256s": list(getattr(args, "sample_sha256", []) or []),
     }
+    if getattr(args, "connect_only", False):
+        result["maximum_response_bytes"] = 0
     if args.protocol == "mxgo" and args.mxgo_mode == "preview":
         body = json.dumps(build_mxgo_heartbeat(args.mxgo_client_id), separators=(",", ":")).encode()
         result.update({
@@ -905,11 +908,17 @@ def probe(args) -> dict:
                 result["http"] = {"status": status, "title": parser.title, "headers": headers, "path": args.http_path, "redirect_followed": False}
                 result["status"] = "http_response" if status else ("protocol_mismatch" if raw else "connected_no_response")
             else:
-                if args.send_hex:
+                if getattr(args, "connect_only", False):
+                    result["status"] = "tcp_connect_only"
+                    result["server_data_read"] = False
+                elif args.send_hex:
                     connection.sendall(bytes.fromhex(args.send_hex))
                     result["application_data_sent"] = True
-                raw = read_bounded(connection, args.max_bytes)
-                result["status"] = "banner_received" if raw else "tcp_open_no_banner"
+                    raw = read_bounded(connection, args.max_bytes)
+                    result["status"] = "banner_received" if raw else "tcp_open_no_banner"
+                else:
+                    raw = read_bounded(connection, args.max_bytes)
+                    result["status"] = "banner_received" if raw else "tcp_open_no_banner"
     except ConnectionRefusedError as exc:
         result.update({"status": "closed", "tcp_status": "closed", "error": str(exc)})
     except (socket.timeout, TimeoutError) as exc:

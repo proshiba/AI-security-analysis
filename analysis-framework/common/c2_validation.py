@@ -132,6 +132,7 @@ def _probe_args(candidate: dict, sample_sha256s: list[str], allow_network: bool)
         allow_network=allow_network,
         target_role=candidate.get("role", "c2"),
         sample_sha256=sample_sha256s,
+        connect_only=True,
     )
 
 
@@ -240,8 +241,9 @@ def validate_candidates(
             "exact_targets_only": True,
             "port_ranges_scanned": False,
             "application_payloads_allowed": False,
+            "server_data_read": False,
             "maximum_timeout_seconds": 5,
-            "maximum_response_bytes": 256,
+            "maximum_response_bytes": 0,
             "network_enabled": allow_network,
             "non_c2_roles_included": include_non_c2,
             "tcp_reachability_confirms_c2": False,

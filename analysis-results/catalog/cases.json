@@ -101,6 +101,13 @@
       "family": "stealc",
       "version_key": "unknown"
     },
+    "05a0ca0ac2527c0faddc2a8ec456e69fc1f0e0c9fff9d2d396327faf3f876c30": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/05a0ca0ac2527c0faddc2a8ec456e69fc1f0e0c9fff9d2d396327faf3f876c30",
+      "case_id": "sha256:05a0ca0ac2527c0faddc2a8ec456e69fc1f0e0c9fff9d2d396327faf3f876c30",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
+    },
     "05f9553616bb5fdbf37bd4036c210929e08d7181de898c1bea1bdae7afb0766f": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/05f9553616bb5fdbf37bd4036c210929e08d7181de898c1bea1bdae7afb0766f",
       "case_id": "sha256:05f9553616bb5fdbf37bd4036c210929e08d7181de898c1bea1bdae7afb0766f",
@@ -845,6 +852,13 @@
       "family": "remcosrat",
       "version_key": "unknown"
     },
+    "2f629fe23ca77f503da68de0825c9b8a957f795b0f0cd16eec5acbb555520109": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-persistence-stager/cases/2f629fe23ca77f503da68de0825c9b8a957f795b0f0cd16eec5acbb555520109",
+      "case_id": "sha256:2f629fe23ca77f503da68de0825c9b8a957f795b0f0cd16eec5acbb555520109",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-persistence-stager"
+    },
     "308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279": {
       "canonical_path": "analysis-results/malware/quasarrat/versions/unknown/cases/308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279",
       "case_id": "sha256:308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279",
@@ -1322,6 +1336,13 @@
       "case_kind": "malware",
       "family": "venomrat",
       "version_key": "unknown"
+    },
+    "49279ff36b563b4cd568c4b836fe28275090f0712af4c36d1469cf5a1f5b0977": {
+      "canonical_path": "analysis-results/malware/agenttesla/versions/2026-07-js-aes-runpe-ftp/cases/49279ff36b563b4cd568c4b836fe28275090f0712af4c36d1469cf5a1f5b0977",
+      "case_id": "sha256:49279ff36b563b4cd568c4b836fe28275090f0712af4c36d1469cf5a1f5b0977",
+      "case_kind": "malware",
+      "family": "agenttesla",
+      "version_key": "2026-07-js-aes-runpe-ftp"
     },
     "4992cb5f29594ae1cea78e028a2e6a51d571a610ceeb4442b605953b916dd1c4": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/4992cb5f29594ae1cea78e028a2e6a51d571a610ceeb4442b605953b916dd1c4",
@@ -1821,6 +1842,13 @@
       "family": "condi",
       "version_key": "unknown"
     },
+    "621da58b9aee9a07b42dfc239e6d0bc99344e28c05fb829358691f7cb268e4ac": {
+      "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/621da58b9aee9a07b42dfc239e6d0bc99344e28c05fb829358691f7cb268e4ac",
+      "case_id": "sha256:621da58b9aee9a07b42dfc239e6d0bc99344e28c05fb829358691f7cb268e4ac",
+      "case_kind": "malware",
+      "family": "agenttesla",
+      "version_key": "unknown"
+    },
     "62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/unknown/cases/62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
       "case_id": "sha256:62536e1486be7e31df6c111ed96777b9e3f2a912a2d7111253ae6a5519e71830",
@@ -1936,6 +1964,13 @@
       "case_kind": "malware",
       "family": "guloader",
       "version_key": "unknown"
+    },
+    "66be8e49609157729ebb8489935b76eb505cc1ad0b0a6db664bf5277ebf386c7": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-xor-stager/cases/66be8e49609157729ebb8489935b76eb505cc1ad0b0a6db664bf5277ebf386c7",
+      "case_id": "sha256:66be8e49609157729ebb8489935b76eb505cc1ad0b0a6db664bf5277ebf386c7",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-xor-stager"
     },
     "68822ae592a4e44984186eb70b76fa1e7563f83b0c89bf9fbb231acfd9122f49": {
       "attribution_status": "provisional",
@@ -2816,6 +2851,13 @@
       "case_kind": "malware",
       "family": "spyglace",
       "version_key": "v3.1.15"
+    },
+    "93e31494eb014f25761668498b2b5b3e80d953b8bbc7b365d19ad3e51de4cd54": {
+      "canonical_path": "analysis-results/malware/panchan/versions/vgo1.18-lineage-inferred/cases/93e31494eb014f25761668498b2b5b3e80d953b8bbc7b365d19ad3e51de4cd54",
+      "case_id": "sha256:93e31494eb014f25761668498b2b5b3e80d953b8bbc7b365d19ad3e51de4cd54",
+      "case_kind": "malware",
+      "family": "panchan",
+      "version_key": "vgo1.18-lineage-inferred"
     },
     "942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0": {
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0",
@@ -4063,6 +4105,13 @@
       "family": "agenttesla",
       "version_key": "unknown"
     },
+    "d5d41bf6ec3d3bfe82546234a095654cfa4200fefec12889689ac4d609076a95": {
+      "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/d5d41bf6ec3d3bfe82546234a095654cfa4200fefec12889689ac4d609076a95",
+      "case_id": "sha256:d5d41bf6ec3d3bfe82546234a095654cfa4200fefec12889689ac4d609076a95",
+      "case_kind": "malware",
+      "family": "signed-dht-bot",
+      "version_key": "2026-07-19-signed-dht"
+    },
     "d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d",
       "case_id": "sha256:d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d",
@@ -4942,6 +4991,14 @@
       "family": "latrodectus",
       "version_key": "v1.1.6"
     },
+    "fcd959770e20be2a9d6ff33c27678f52e67940ac9f6d24fde9276e13fc8832b8": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/fcd959770e20be2a9d6ff33c27678f52e67940ac9f6d24fde9276e13fc8832b8",
+      "case_id": "sha256:fcd959770e20be2a9d6ff33c27678f52e67940ac9f6d24fde9276e13fc8832b8",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "fd5a48693a99cbb7c49f5f4245f3090ffeec58ce3f9d9bcf7f6c7eade62769f1": {
       "canonical_path": "analysis-results/malware/signed-dht-bot/versions/2026-07-19-signed-dht/cases/fd5a48693a99cbb7c49f5f4245f3090ffeec58ce3f9d9bcf7f6c7eade62769f1",
       "case_id": "sha256:fd5a48693a99cbb7c49f5f4245f3090ffeec58ce3f9d9bcf7f6c7eade62769f1",
@@ -4955,6 +5012,13 @@
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "unknown"
+    },
+    "fe1b0a1cc8090e6394d778530d7536588247e9de6c9996e175ce509847ad0d96": {
+      "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-xor-stager/cases/fe1b0a1cc8090e6394d778530d7536588247e9de6c9996e175ce509847ad0d96",
+      "case_id": "sha256:fe1b0a1cc8090e6394d778530d7536588247e9de6c9996e175ce509847ad0d96",
+      "case_kind": "malware",
+      "family": "windows-script-stager",
+      "version_key": "2026-07-xor-stager"
     },
     "fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d": {
       "canonical_path": "analysis-results/malware/amosstealer/versions/unknown/cases/fe3859f076f3b34efc4155b7d724b024d193dd20ad2e4638985ffbe15992f27d",
