@@ -7,6 +7,7 @@ from extractors.common import (
     endpoint_candidates,
     extract_strings,
     ipv4_candidates,
+    valid_host,
 )
 
 
@@ -39,7 +40,14 @@ def decode_vvas_reversed_config(strings: list[str]) -> dict[str, str]:
         endpoints = {}
         for index in (1, 2, 3):
             host, port = fields.get(f"p{index}"), fields.get(f"o{index}")
-            if host and port and port.isdigit() and host != "127.0.0.1":
+            if (
+                host
+                and port
+                and port.isdigit()
+                and valid_host(host)
+                and host != "127.0.0.1"
+                and 0 < int(port) <= 65535
+            ):
                 endpoints[f"endpoint_{index}"] = f"{host}:{int(port)}"
         return endpoints
     return {}
@@ -64,8 +72,8 @@ def extract(data: bytes, name: str = "sample") -> dict:
         {
             "kind": "network.endpoint",
             "value": item,
-            "role": "candidate_c2",
-            "confidence": "confirmed" if decoded else "inferred",
+            "role": "static_config_c2" if decoded else "candidate_c2",
+            "confidence": "confirmed_static_config" if decoded else "inferred",
             "source": "decoded_vvas_config" if decoded else "static_string",
         }
         for item in endpoints
@@ -97,6 +105,8 @@ def extract(data: bytes, name: str = "sample") -> dict:
         {
             "variant": variant,
             "decoded_vvas": decoded,
+            "static_config_recovered": bool(decoded),
+            "c2_liveness_confirmed": False,
             "source_name": name,
             "endpoints": endpoints,
             "ipv4": ips,
@@ -104,7 +114,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
         },
         findings,
         [
-            "Static strings alone do not prove an endpoint is C2.",
-            "Campaign-specific decoded config should supersede candidates when available.",
+            "反転形式を構文どおり復号した値は静的設定として確認済みですが、現在の稼働状況や所有者は未確認です。",
+            "一般文字列だけから得た値はC2候補に留めます。",
         ],
     )

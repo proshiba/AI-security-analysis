@@ -31,7 +31,25 @@ WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){4,}")
 URL = re.compile(r"https?://[^\s\"'<>]{4,400}", re.I)
 IP = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?")
 DOMAIN = re.compile(r"(?<![\w.-])(?:[a-z0-9-]{1,63}\.)+[a-z]{2,24}(?::\d{1,5})?", re.I)
-SCRIPT_EXT = {".js", ".jse", ".vbs", ".vbe", ".hta", ".ps1", ".cmd", ".bat", ".wsf", ".html", ".htm"}
+SCRIPT_EXT = {
+    ".js",
+    ".jse",
+    ".vbs",
+    ".vbe",
+    ".hta",
+    ".ps1",
+    ".cmd",
+    ".bat",
+    ".sh",
+    ".php",
+    ".wsf",
+    ".html",
+    ".htm",
+}
+GENERIC_MAX_MEMBER_SIZE = 64 * 1024 * 1024
+GENERIC_MAX_MEMBERS = 256
+GENERIC_MAX_TOTAL_SIZE = 256 * 1024 * 1024
+GENERIC_MAX_COMPRESSION_RATIO = 100.0
 
 
 def entropy(data: bytes) -> float:
@@ -65,7 +83,15 @@ def extract_iocs(strings: list[dict]) -> dict:
     }
 
 
-def script_info(name: str, data: bytes, output_dir: Path) -> dict:
+def script_info(
+    name: str,
+    data: bytes,
+    output_dir: Path,
+    *,
+    persist_normalized_text: bool = True,
+) -> dict:
+    """スクリプトを実行せず解析し、必要な場合だけ正規化本文を保存する。"""
+
     text, encoding = decode_text(data)
     lowered = text.lower()
     indicators = {
@@ -99,8 +125,13 @@ def script_info(name: str, data: bytes, output_dir: Path) -> dict:
                 "magic": blob[:16].hex(),
             })
     filename = safe_output_name(name)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / f"{filename}.normalized.txt").write_text(text, encoding="utf-8", errors="replace")
+    normalized_text = None
+    if persist_normalized_text:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / f"{filename}.normalized.txt").write_text(
+            text, encoding="utf-8", errors="replace"
+        )
+        normalized_text = f"scripts/{filename}.normalized.txt"
     strings = [
         {"offset": match.start(), "encoding": "text", "value": match.group()}
         for match in re.finditer(r"[\x20-\x7e]{4,}", text)
@@ -111,7 +142,7 @@ def script_info(name: str, data: bytes, output_dir: Path) -> dict:
         "indicators": indicators,
         "base64_candidates": base64_hits[:100],
         "iocs": extract_iocs(strings),
-        "normalized_text": f"scripts/{filename}.normalized.txt",
+        "normalized_text": normalized_text,
     }
 
 
@@ -152,7 +183,19 @@ def pe_info(data: bytes) -> dict:
     }
 
 
-def analyze(name: str, data: bytes, output_dir: Path, depth: int = 0) -> dict:
+def analyze(
+    name: str,
+    data: bytes,
+    output_dir: Path,
+    depth: int = 0,
+    *,
+    persist_normalized_text: bool = True,
+    _archive_budget: dict[str, int] | None = None,
+) -> dict:
+    """1つのバイト列を上限付きで汎用静的トリアージする。"""
+
+    if _archive_budget is None:
+        _archive_budget = {"remaining": GENERIC_MAX_TOTAL_SIZE}
     result = {
         "name": name,
         "size": len(data),
@@ -162,7 +205,15 @@ def analyze(name: str, data: bytes, output_dir: Path, depth: int = 0) -> dict:
     }
     suffix = Path(name).suffix.lower()
     if suffix in SCRIPT_EXT or data[:32].lstrip().lower().startswith((b"<hta", b"<html", b"var ", b"function ")):
-        result.update(type="script", script=script_info(name, data, output_dir))
+        result.update(
+            type="script",
+            script=script_info(
+                name,
+                data,
+                output_dir,
+                persist_normalized_text=persist_normalized_text,
+            ),
+        )
     elif data.startswith(b"\x7fELF"):
         result["type"] = "elf"
         try:
@@ -193,11 +244,29 @@ def analyze(name: str, data: bytes, output_dir: Path, depth: int = 0) -> dict:
     elif depth < 4 and zipfile.is_zipfile(io.BytesIO(data)):
         result["type"] = "zip"
         try:
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                result["members"] = [
-                    analyze(validate_member_name(info.filename), archive.read(info), output_dir, depth + 1)
-                    for info in archive.infolist() if not info.is_dir()
-                ]
+            remaining = _archive_budget["remaining"]
+            if remaining <= 0:
+                raise ValueError("汎用ZIP展開の総量上限を使い切りました")
+            members = read_aes_zip_members(
+                data,
+                password="infected",
+                max_member_size=min(GENERIC_MAX_MEMBER_SIZE, remaining),
+                max_members=GENERIC_MAX_MEMBERS,
+                max_total_size=min(GENERIC_MAX_TOTAL_SIZE, remaining),
+                max_compression_ratio=GENERIC_MAX_COMPRESSION_RATIO,
+            )
+            _archive_budget["remaining"] -= sum(member.size for member in members)
+            result["members"] = [
+                analyze(
+                    validate_member_name(member.name),
+                    member.data,
+                    output_dir,
+                    depth + 1,
+                    persist_normalized_text=persist_normalized_text,
+                    _archive_budget=_archive_budget,
+                )
+                for member in members
+            ]
         except Exception as exc:
             result["parse_error"] = f"{type(exc).__name__}: {exc}"
     elif data.startswith(b"Rar!"):

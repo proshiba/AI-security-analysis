@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import hashlib
 import importlib.util
 import json
@@ -15,7 +16,7 @@ FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
 
 
 class DetectorPathError(ValueError):
-    """Raised when registry metadata points outside the detector allowlist."""
+    """レジストリが許可外の検出器を指した場合に送出する。"""
 
 
 def _resolve_detector_path(
@@ -23,7 +24,7 @@ def _resolve_detector_path(
     family: str,
     relative_path: str,
 ) -> Path:
-    """Resolve the exact malware/family/detect.py path below the trusted root."""
+    """信頼済みroot配下の正確なmalware/family/detect.pyだけを解決する。"""
     trusted_root = FRAMEWORK_ROOT.resolve(strict=True)
     supplied_root = framework_root.resolve(strict=True)
     if supplied_root != trusted_root:
@@ -49,8 +50,9 @@ def _resolve_detector_path(
     return resolved
 
 
+@lru_cache(maxsize=None)
 def load_detector(framework_root: Path, relative_path: str, family: str | None = None):
-    """Load and return a registered malware detector function by relative path."""
+    """登録済み相対pathを検証し、マルウェア検出関数を返す。"""
     if family is None:
         parts = Path(relative_path).parts if isinstance(relative_path, str) else ()
         if len(parts) != 3:
@@ -78,7 +80,7 @@ def load_detector(framework_root: Path, relative_path: str, family: str | None =
 
 
 def detection_uses_known_inner(detection: dict) -> bool:
-    """Return whether a detector matched a reviewed inner-object SHA-256."""
+    """検出器がレビュー済み内包SHA-256へ一致したか返す。"""
     return any(
         "known inner SHA-256" in candidate.get("reasons", [])
         for candidate in detection.get("campaigns", [])
@@ -92,7 +94,7 @@ def _unknown_result(
     basis: str = "none",
     detector_errors: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Build a normalized low-confidence unknown classification result."""
+    """低確度unknownの正規化済み分類結果を構築する。"""
     return {
         "sample": str(path),
         "malware_type": "unknown",
@@ -110,14 +112,14 @@ def _unknown_result(
     }
 
 
-def classify(path: Path, registry: Path, malware_type: str | None = None) -> dict[str, Any]:
-    """Classify using all detectors or one explicitly selected type.
+def evaluate_detectors(
+    data: bytes,
+    source: Path,
+    registry: Path,
+    malware_type: str | None = None,
+) -> dict[str, Any]:
+    """全登録検出器の適用可否を、失敗を分離しながら評価する。"""
 
-    An explicit type limits detector routing but does not independently select a
-    campaign. Detector failures are isolated so one optional family handler
-    cannot prevent the remaining registered detectors from running.
-    """
-    data = path.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
     registry_data = json.loads(registry.read_text(encoding="utf-8-sig"))["malware_types"]
     if malware_type and malware_type not in registry_data:
@@ -125,34 +127,85 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
         raise ValueError(f"unknown malware type '{malware_type}'; registered: {registered}")
 
     framework_root = FRAMEWORK_ROOT
-    detections = []
+    evaluations: list[dict[str, Any]] = []
     detector_errors: dict[str, str] = {}
     items = [(malware_type, registry_data[malware_type])] if malware_type else registry_data.items()
     for registered_type, metadata in items:
+        evaluation: dict[str, Any] = {
+            "malware_type": registered_type,
+            "detector": metadata.get("detector") if isinstance(metadata, dict) else None,
+            "known_outer_sha256": False,
+            "known_inner_sha256": False,
+            "detector_matched": False,
+            "applicable": False,
+            "error": None,
+            "detection": {"matched": False, "observations": {}, "campaigns": []},
+        }
         if not isinstance(metadata, dict):
-            detector_errors[registered_type] = (
-                "DetectorPathError: registry metadata must be an object"
-            )
+            error = "DetectorPathError: registry metadata must be an object"
+            detector_errors[registered_type] = error
+            evaluation["error"] = error
+            evaluations.append(evaluation)
             continue
+        known_outer = digest in {
+            value.lower() for value in metadata.get("known_sample_sha256", [])
+        }
+        evaluation["known_outer_sha256"] = known_outer
         try:
             detector = load_detector(
                 framework_root, metadata.get("detector"), registered_type
             )
-            detection = detector(data, path)
+            detection = detector(data, source)
+            if not isinstance(detection, dict):
+                raise TypeError("detector result must be an object")
         except DetectorPathError as exc:
-            detector_errors[registered_type] = f"{type(exc).__name__}: {exc}"
-            continue
+            error = f"{type(exc).__name__}: {exc}"
+            detector_errors[registered_type] = error
+            evaluation["error"] = error
+            detection = evaluation["detection"]
         except Exception as exc:
-            detector_errors[registered_type] = f"{type(exc).__name__}: {exc}"
+            error = f"{type(exc).__name__}: {exc}"
+            detector_errors[registered_type] = error
+            evaluation["error"] = error
             detection = {"matched": False, "observations": {}, "campaigns": []}
-
-        known_outer = digest in {value.lower() for value in metadata.get("known_sample_sha256", [])}
         known_inner = detection_uses_known_inner(detection)
-        if malware_type or known_outer or detection.get("matched"):
+        detector_matched = bool(detection.get("matched"))
+        evaluation.update(
+            known_inner_sha256=known_inner,
+            detector_matched=detector_matched,
+            applicable=bool(malware_type or known_outer or detector_matched),
+            detection=detection,
+        )
+        evaluations.append(evaluation)
+    return {
+        "sha256": digest,
+        "size": len(data),
+        "source_name": source.name,
+        "evaluations": evaluations,
+        "detector_errors": detector_errors,
+    }
+
+
+def _classify_evaluations(
+    source: Path,
+    assessment: dict[str, Any],
+    malware_type: str | None,
+) -> dict[str, Any]:
+    """正規化した検出器評価から曖昧性を保持した分類結果を構築する。"""
+
+    digest = assessment["sha256"]
+    size = assessment["size"]
+    detector_errors = assessment["detector_errors"]
+    detections = []
+    for evaluation in assessment["evaluations"]:
+        if evaluation["applicable"]:
+            known_outer = evaluation["known_outer_sha256"]
+            known_inner = evaluation["known_inner_sha256"]
+            detector_matched = evaluation["detector_matched"]
             confidence = (
                 "high"
                 if known_outer or known_inner
-                else ("medium" if detection.get("matched") else "low")
+                else ("medium" if detector_matched else "low")
             )
             basis = (
                 "known_outer_sha256"
@@ -162,22 +215,29 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
                     if known_inner
                     else (
                         "type_detector_structure"
-                        if detection.get("matched")
+                        if detector_matched
                         else "explicit_user_type_unmatched"
                     )
                 )
             )
             detections.append(
                 {
-                    "malware_type": registered_type,
+                    "malware_type": evaluation["malware_type"],
                     "malware_type_confidence": confidence,
                     "attribution_basis": basis,
-                    "detection": detection,
+                    "detection": evaluation["detection"],
                 }
             )
 
     if not detections:
-        return _unknown_result(path, digest, len(data), detector_errors=detector_errors)
+        result = _unknown_result(
+            source,
+            digest,
+            size,
+            detector_errors=detector_errors,
+        )
+        result["detector_evaluations"] = assessment["evaluations"]
+        return result
 
     detections.sort(
         key=lambda item: (
@@ -193,7 +253,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
     ]
     if malware_type is None and len(top) > 1:
         return {
-            "sample": str(path),
+            "sample": str(source),
             "malware_type": "unknown",
             "malware_type_confidence": "low",
             "attribution_basis": "ambiguous_type_detection",
@@ -203,7 +263,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
             "candidates": [],
             "observations": {
                 "sha256": digest,
-                "size": len(data),
+                "size": size,
                 "detector_errors": detector_errors,
             },
             "all_type_detections": detections,
@@ -217,6 +277,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
             ],
             "family_label_used_to_select_campaign": False,
             "explicit_malware_type": None,
+            "detector_evaluations": assessment["evaluations"],
         }
     selected = detections[0]
     campaigns = sorted(
@@ -239,7 +300,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
             campaign = {"campaign_type": "unknown", "confidence": "low"}
             campaign_resolution = "ambiguous_campaign_detection"
     return {
-        "sample": str(path),
+        "sample": str(source),
         "malware_type": selected["malware_type"],
         "malware_type_confidence": selected["malware_type_confidence"],
         "attribution_basis": selected["attribution_basis"],
@@ -249,27 +310,46 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
         "candidates": campaigns,
         "observations": {
             "sha256": digest,
-            "size": len(data),
+            "size": size,
             "type_detector": selected["detection"].get("observations", {}),
             "detector_errors": detector_errors,
         },
         "all_type_detections": detections,
         "family_label_used_to_select_campaign": False,
         "explicit_malware_type": malware_type,
+        "detector_evaluations": assessment["evaluations"],
     }
 
 
+def classify_bytes(
+    data: bytes,
+    source: Path,
+    registry: Path,
+    malware_type: str | None = None,
+) -> dict[str, Any]:
+    """ディスクへ検体を再保存せず、バイト列を登録済み検出器で分類する。"""
+
+    assessment = evaluate_detectors(data, source, registry, malware_type)
+    return _classify_evaluations(source, assessment, malware_type)
+
+
+def classify(path: Path, registry: Path, malware_type: str | None = None) -> dict[str, Any]:
+    """ファイルを1度だけ読み、登録済み検出器で分類する。"""
+
+    return classify_bytes(path.read_bytes(), path, registry, malware_type)
+
+
 def main() -> int:
-    """Parse CLI arguments, classify the sample, and write JSON output."""
+    """CLI引数を処理し、検体を分類してJSONへ保存する。"""
     parser = argparse.ArgumentParser(
-        description="Classify malware type via registered detectors, then select a campaign."
+        description="登録済み検出器でマルウェア種を分類し、キャンペーンを選択します。"
     )
     parser.add_argument("--sample", required=True, type=Path)
     parser.add_argument("--registry", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
         "--malware-type",
-        help="Restrict detection to one registered type without using its label to select a campaign.",
+        help="検出対象を登録済み1種へ限定します。ラベルだけでキャンペーンを選びません。",
     )
     args = parser.parse_args()
     result = classify(args.sample, args.registry, args.malware_type)

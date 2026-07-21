@@ -8,6 +8,9 @@ param(
     [string] $VirusTotalApiKey = $env:VT_API_KEY,
     [switch] $AllowLiveC2Check,
     [switch] $CollectJarm,
+    [ValidateSet('auto', 'raw', 'malwarebazaar')] [string] $ArchiveMode = 'auto',
+    [switch] $AssessmentOnly,
+    [switch] $LegacyValleyWorkflow,
     [string] $Python = 'C:\Users\Administrator\Tools\GhidraMCP\.venv\Scripts\python.exe'
 )
 
@@ -20,6 +23,28 @@ function Invoke-Python {
     param([Parameter(ValueFromRemainingArguments)] [string[]] $Arguments)
     & $Python @Arguments
     if ($LASTEXITCODE -ne 0) { throw "Python failed: $($Arguments -join ' ')" }
+}
+
+$legacyRequested = [bool](
+    $LegacyValleyWorkflow -or
+    $ProfilePath -or
+    $NetworkEvidence -or
+    $AllowLiveC2Check -or
+    $CollectJarm
+)
+
+if (-not $legacyRequested) {
+    $oneShotArgs = @(
+        (Join-Path $root 'common\analyze_sample.py'),
+        '--input', $Sample,
+        '--output', $OutputDirectory,
+        '--archive-mode', $ArchiveMode
+    )
+    if ($MalwareType) { $oneShotArgs += @('--family', $MalwareType) }
+    if ($AssessmentOnly) { $oneShotArgs += '--assessment-only' }
+    Invoke-Python @oneShotArgs
+    Write-Host "静的解析が完了しました（検体実行・外部接続なし）: $OutputDirectory" -ForegroundColor Green
+    return
 }
 
 $classifyArgs = @(

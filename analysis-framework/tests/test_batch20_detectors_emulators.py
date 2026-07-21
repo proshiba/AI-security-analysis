@@ -63,8 +63,18 @@ def test_nanocore_emulator_generates_no_packets() -> None:
 
 def test_yuanbao_detector_requires_all_correlated_host_stages() -> None:
     events = [
-        {"stage": stage, "yuanbao_chain_hash_or_path_correlation": True}
-        for stage in ("sfx_extract", "inno_extract", "dll_sideload", "png_read")
+        {"stage": "sfx_extract", "image_sha256": next(iter(YUANBAO_DETECTOR.PARENT_HASHES))},
+        {"stage": "inno_extract", "image_sha256": YUANBAO_DETECTOR.INNO_HASH},
+        {
+            "stage": "dll_sideload",
+            "process_sha256": YUANBAO_DETECTOR.HOST_HASH,
+            "module_sha256": YUANBAO_DETECTOR.DLL_HASH,
+        },
+        {
+            "stage": "png_read",
+            "process_sha256": YUANBAO_DETECTOR.HOST_HASH,
+            "file_sha256": YUANBAO_DETECTOR.PNG_HASH,
+        },
     ]
     result = YUANBAO_DETECTOR.detect(events)
     assert result["matched"] is True
@@ -73,6 +83,20 @@ def test_yuanbao_detector_requires_all_correlated_host_stages() -> None:
     assert emulator["files_written"] is False
     assert emulator["processes_started"] is False
     assert emulator["network_contacted"] is False
+
+
+def test_yuanbao_detector_rejects_uncorroborated_boolean() -> None:
+    events = [
+        {
+            "stage": stage,
+            "yuanbao_chain_hash_or_path_correlation": True,
+        }
+        for stage in ("sfx_extract", "inno_extract", "dll_sideload", "png_read")
+    ]
+    result = YUANBAO_DETECTOR.detect(events)
+    assert result["matched"] is False
+    assert result["observed_stages"] == []
+    assert result["rejected_uncorroborated_events"] == 4
 
 
 def test_offloader_detector_and_emulator_are_offline() -> None:

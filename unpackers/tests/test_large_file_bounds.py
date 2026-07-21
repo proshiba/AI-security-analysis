@@ -99,6 +99,50 @@ def test_protected_pe_routes_to_bounded_cfg_without_block_bloat(monkeypatch) -> 
     assert triage["metrics"]["basic_blocks"] == 1
 
 
+def test_single_custom_dll_many_imports_marks_encrypted_sideload_host(
+    monkeypatch,
+) -> None:
+    """高entropy entryと単一非標準DLLの多数importを見落とさない。"""
+
+    class Section:
+        Name = b".text\0\0\0"
+        SizeOfRawData = 0x4000
+        Misc_VirtualSize = 0x4000
+        Characteristics = 0x60000020
+        VirtualAddress = 0x1000
+
+        @staticmethod
+        def get_data() -> bytes:
+            return b"X" * 0x4000
+
+    directories = [SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(15)]
+    image = SimpleNamespace(
+        sections=[Section()],
+        OPTIONAL_HEADER=SimpleNamespace(
+            DATA_DIRECTORY=directories,
+            AddressOfEntryPoint=0x2000,
+        ),
+        FILE_HEADER=SimpleNamespace(Machine=0x8664),
+        DIRECTORY_ENTRY_IMPORT=[
+            SimpleNamespace(dll=b"uJQ.2w", imports=[object()] * 101)
+        ],
+        get_overlay_data_start_offset=lambda: None,
+    )
+    monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
+    monkeypatch.setattr(unpacker, "entropy", lambda _value: 7.999)
+    monkeypatch.setattr(
+        unpacker,
+        "analyze_pe_control_flow",
+        lambda _data: {"status": "analyzed", "blocks": [], "static_context": {}},
+    )
+
+    summary, _ = unpacker.pe_summary(b"MZ" + b"\0" * 64)
+
+    assert summary["classification"] == "suspected_encrypted_sideload_host"
+    assert summary["encrypted_sideload_host_shape"] is True
+    assert summary["import_libraries"] == ["ujq.2w"]
+
+
 def test_managed_pe_routes_to_bounded_il_summary(monkeypatch) -> None:
     """Keep managed counts and evidence while omitting large token inventories."""
     class Section:
