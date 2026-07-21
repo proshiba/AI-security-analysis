@@ -41,6 +41,7 @@ def test_sanitize_url_removes_secrets_and_tracking_data() -> None:
         ("203.0.113.8", "ipv4"),
         ("example.test:443", "endpoint"),
         ("example.test", "domain"),
+        ("0xB70dbaf0e42E51eDddbf3b6a1Bac28eD18227119", "ethereum_address"),
         (r"C:\\Users\\Public\\stage.dll", "file_path"),
         ("sha256:" + "b" * 64, "container_digest"),
     ],
@@ -148,6 +149,8 @@ def test_ioc_json_excludes_context_only_and_sanitizes_urls(tmp_path: Path) -> No
                 "network": [
                     {"value": "https://user:pw@c2.example/a?key=x", "role": "c2", "confidence": "confirmed"},
                     {"value": "benign.example", "role": "context_only", "confidence": "confirmed"},
+                    {"value": "kill-switch.example:80", "role": "not_c2_kill_switch", "confidence": "confirmed"},
+                    {"value": "0xB70dbaf0e42E51eDddbf3b6a1Bac28eD18227119", "role": "payload_contract", "confidence": "confirmed"},
                 ],
                 "certificate": {"sha1_thumbprint": "c" * 40, "role": "server_certificate"},
             }
@@ -157,7 +160,11 @@ def test_ioc_json_excludes_context_only_and_sanitizes_urls(tmp_path: Path) -> No
 
     values = indicators_from_ioc_json(path)
 
-    assert {item.value for item in values} == {"https://c2.example/a", "c" * 40}
+    assert {item.value for item in values} == {
+        "https://c2.example/a",
+        "0xb70dbaf0e42e51edddbf3b6a1bac28ed18227119",
+        "c" * 40,
+    }
 
 
 def test_config_json_excludes_context_only_findings(tmp_path: Path) -> None:

@@ -19,7 +19,9 @@ from typing import Any, Iterable
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
-VERSION_KEY_RE = re.compile(r"^(?:unknown|v[a-z0-9][a-z0-9.-]{0,47})$")
+VERSION_KEY_RE = re.compile(
+    r"^(?:unknown|v[a-z0-9][a-z0-9.-]{0,47}|20\d{2}-[a-z0-9][a-z0-9.-]{0,42})$"
+)
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 COLLECTION_RE = re.compile(
     r"^(?:refresh|vx-underground|malwarebazaar|malwarebazaar-unknown)-\d{8}$"
@@ -60,18 +62,22 @@ _VERSION_SOURCES: dict[
             "high",
         ),
     ),
+    "mirai-derived-ens-doh-bot": (("config.json", ("configuration", "bot_version"), "$.configuration.bot_version", "confirmed", "sample_embedded_bot_version", "high"),),
     "purehvnc": (("config.json", ("config", "version_candidates", 0), "$.config.version_candidates[0]", "confirmed", "terminal_managed_static_config", "high"),),
     "remcosrat": (("indicators.json", ("version",), "$.version", "confirmed", "family_config_or_process_attributed_evidence", "high"),),
     "spyglace": (("config.json", ("config", "version"), "$.config.version", "confirmed", "sample_specific_static_family_config", "high"),),
     "venomrat": (("indicators.json", ("version",), "$.version", "reported", "external_sandbox_process_attributed_report", "medium"),),
+    "xmrig": (("config.json", ("version",), "$.version", "confirmed", "sample_embedded_version_and_official_release_match", "high"),),
 }
 _VERSION_VALUE_RE = {
     "amadey": re.compile(r"^\d+\.\d+$"),
     "latrodectus": re.compile(r"^\d+\.\d+\.\d+$"),
+    "mirai-derived-ens-doh-bot": re.compile(r"^\d+$"),
     "purehvnc": re.compile(r"^\d+\.\d+\.\d+$"),
     "remcosrat": re.compile(r"^\d+\.\d+\.\d+ Pro$"),
     "spyglace": re.compile(r"^\d+\.\d+\.\d+$"),
     "venomrat": re.compile(r"^\d+\.\d+\.\d+$"),
+    "xmrig": re.compile(r"^\d+\.\d+\.\d+$"),
 }
 
 
@@ -290,6 +296,55 @@ def resolve_malware_version(
         "reason": evidence[0]["basis"],
         "evidence": evidence,
     }
+
+
+def _canonical_metadata_version(
+    case_directory: Path,
+    *,
+    results_root: Path,
+    family: str,
+    sha256: str,
+) -> dict[str, Any] | None:
+    """固定レイアウト済みcaseの自己整合した版メタデータを返す。
+
+    手動レビューで確定した版を再同期時に ``unknown`` へ戻さないため、
+    directory、metadata、SHA-256、family、version key がすべて一致する場合だけ
+    metadataの値を信頼する。旧レイアウトには適用しない。
+    """
+
+    relative = case_directory.relative_to(results_root)
+    parts = relative.parts
+    if (
+        len(parts) != 6
+        or parts[0] != "malware"
+        or parts[1] != family
+        or parts[2] != "versions"
+        or parts[4] != "cases"
+        or parts[5].lower() != sha256
+    ):
+        return None
+    version_key = parts[3]
+    if not VERSION_KEY_RE.fullmatch(version_key):
+        raise LayoutPlanError(f"unsafe canonical version key: {version_key!r}")
+    if version_key == "unknown":
+        return None
+    metadata = _safe_json(case_directory / "metadata.json")
+    if not isinstance(metadata, dict):
+        return None
+    version = metadata.get("malware_version")
+    expected_path = case_directory.relative_to(results_root.parent).as_posix()
+    if (
+        metadata.get("schema_version") != SCHEMA_VERSION
+        or metadata.get("sha256") != sha256
+        or metadata.get("case_id") != f"sha256:{sha256}"
+        or metadata.get("family") != family
+        or metadata.get("case_kind") != "malware"
+        or metadata.get("canonical_path") != expected_path
+        or not isinstance(version, dict)
+        or version.get("normalized_key") != version_key
+    ):
+        raise LayoutPlanError(f"canonical case metadata mismatch: {sha256}")
+    return version
 
 
 def _case_context(case_directory: Path, results_root: Path) -> tuple[str, list[str], str | None]:
@@ -1100,7 +1155,14 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                 / digest
             ).resolve()
         else:
-            version = resolve_malware_version(source, family, repository)
+            version = (
+                _canonical_metadata_version(
+                    source,
+                    results_root=results_root,
+                    family=family,
+                    sha256=digest,
+                ) if case_kind == "malware" else None
+            ) or resolve_malware_version(source, family, repository)
             version_key = version["normalized_key"]
             target = canonical_malware_case_path(
                 results_root, family, digest, version_key

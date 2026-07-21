@@ -57,9 +57,13 @@ def load_detector(framework_root: Path, relative_path: str, family: str | None =
             raise DetectorPathError(f"cannot infer detector family from: {relative_path!r}")
         family = parts[1]
     path = _resolve_detector_path(framework_root, family, relative_path)
-    common = str(FRAMEWORK_ROOT / "common")
-    if common not in sys.path:
-        sys.path.insert(0, common)
+    # 一部の既存検出器は ``extractors.*``、別の検出器は ``common`` 配下を
+    # トップレベルモジュールとして参照する。いずれも検証済みの固定ルートだけを
+    # 追加し、レジストリ値から任意の検索パスを注入しない。
+    for trusted_import_root in (FRAMEWORK_ROOT, FRAMEWORK_ROOT / "common"):
+        value = str(trusted_import_root)
+        if value not in sys.path:
+            sys.path.insert(0, value)
     spec = importlib.util.spec_from_file_location(
         f"malware_detector_{path.parent.name}_{path.stem}", path
     )

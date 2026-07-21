@@ -9,7 +9,7 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.static_unpacker</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cstatic_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\static_unpacker.py</a></td></tr></table>
-    <p><span class="code">Bounded&nbsp;static&nbsp;unpacking&nbsp;and&nbsp;artifact&nbsp;recovery&nbsp;without&nbsp;sample&nbsp;execution.</span></p>
+    <p><span class="code">検体を実行せず、上限付きで静的展開とアーティファクト復元を行う。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -38,39 +38,39 @@
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;static&nbsp;unpacker&nbsp;command-line&nbsp;parser.</span></dd></dl>
- <dl><dt><a name="-carve_embedded_pes"><strong>carve_embedded_pes</strong></a>(data: 'bytes', limit: 'int' = 16) -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">Carve&nbsp;validated&nbsp;non-leading&nbsp;PE&nbsp;images&nbsp;without&nbsp;executing&nbsp;their&nbsp;stubs.</span></dd></dl>
- <dl><dt><a name="-decode_autoit_xor_literals"><strong>decode_autoit_xor_literals</strong></a>(script: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">Decode&nbsp;repeated-key&nbsp;XOR&nbsp;string&nbsp;calls&nbsp;in&nbsp;decompiled&nbsp;AutoIt&nbsp;source.</span></dd></dl>
- <dl><dt><a name="-detect_format"><strong>detect_format</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'str'</dt><dd><span class="code">Identify&nbsp;formats&nbsp;supported&nbsp;by&nbsp;the&nbsp;static&nbsp;recovery&nbsp;pipeline.</span></dd></dl>
- <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;deterministic&nbsp;Shannon&nbsp;entropy&nbsp;rounded&nbsp;to&nbsp;four&nbsp;decimals.</span></dd></dl>
- <dl><dt><a name="-macho_summary"><strong>macho_summary</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Parse&nbsp;bounded&nbsp;Mach-O&nbsp;or&nbsp;universal-binary&nbsp;header&nbsp;metadata.</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Analyze&nbsp;one&nbsp;raw&nbsp;artifact&nbsp;and&nbsp;optionally&nbsp;archive&nbsp;recovered&nbsp;layers.</span></dd></dl>
- <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Classify&nbsp;PE&nbsp;packing&nbsp;evidence&nbsp;and&nbsp;recover&nbsp;bounded&nbsp;embedded&nbsp;artifacts.</span></dd></dl>
- <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Reassemble&nbsp;Jadoo-style&nbsp;split&nbsp;files&nbsp;after&nbsp;validating&nbsp;offsets&nbsp;and&nbsp;lengths.</span></dd></dl>
- <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;PE&nbsp;payloads&nbsp;from&nbsp;AutoIt&nbsp;RC4&nbsp;then&nbsp;LZNT1&nbsp;loader&nbsp;expressions.</span></dd></dl>
- <dl><dt><a name="-recover_autoit_script"><strong>recover_autoit_script</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Decompile&nbsp;AutoIt&nbsp;A3X&nbsp;and&nbsp;statically&nbsp;recover&nbsp;XOR/RC4/LZNT1&nbsp;layers.</span></dd></dl>
- <dl><dt><a name="-recover_dotnet_bitmap_payloads"><strong>recover_dotnet_bitmap_payloads</strong></a>(resource_set: 'object') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Recover&nbsp;PE&nbsp;streams&nbsp;hidden&nbsp;in&nbsp;serialized&nbsp;.NET&nbsp;Bitmap&nbsp;resource&nbsp;RGB&nbsp;pixels.</span></dd></dl>
- <dl><dt><a name="-recover_dotnet_resources"><strong>recover_dotnet_resources</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;.NET&nbsp;manifest&nbsp;resources&nbsp;and&nbsp;retain&nbsp;opaque&nbsp;encoded&nbsp;payload&nbsp;material.</span></dd></dl>
- <dl><dt><a name="-recover_encoded_blobs"><strong>recover_encoded_blobs</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">Recover&nbsp;bounded,&nbsp;structurally&nbsp;meaningful&nbsp;base64&nbsp;blobs&nbsp;from&nbsp;scripts.<br>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">静的展開器のコマンドラインパーサーを構築する。</span></dd></dl>
+ <dl><dt><a name="-carve_embedded_pes"><strong>carve_embedded_pes</strong></a>(data: 'bytes', limit: 'int' = 16) -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">スタブを実行せず、先頭以外にある検証済みPEイメージを切り出す。</span></dd></dl>
+ <dl><dt><a name="-decode_autoit_xor_literals"><strong>decode_autoit_xor_literals</strong></a>(script: 'bytes') -&gt; 'list[str]'</dt><dd><span class="code">逆コンパイル済みAutoItソース内の反復鍵XOR文字列呼び出しを復号する。</span></dd></dl>
+ <dl><dt><a name="-detect_format"><strong>detect_format</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'str'</dt><dd><span class="code">静的復元パイプラインが対応する形式を識別する。</span></dd></dl>
+ <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">上限付きで決定的に算出し、小数4桁へ丸めたShannonエントロピーを返す。</span></dd></dl>
+ <dl><dt><a name="-macho_summary"><strong>macho_summary</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">上限付きでMach-Oまたはユニバーサルバイナリのヘッダーメタデータを解析する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。</span></dd></dl>
+ <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。</span></dd></dl>
+ <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
+ <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoItのRC4・LZNT1ローダー式からPEペイロードを復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_autoit_script"><strong>recover_autoit_script</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoIt&nbsp;A3Xを逆コンパイルし、XOR・RC4・LZNT1層を静的に復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_dotnet_bitmap_payloads"><strong>recover_dotnet_bitmap_payloads</strong></a>(resource_set: 'object') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">シリアライズ済み.NET&nbsp;BitmapリソースのRGB画素に隠されたPEストリームを復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_dotnet_resources"><strong>recover_dotnet_resources</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">.NET&nbsp;manifestリソースを棚卸しし、不透明な符号化ペイロード素材を保持する。</span></dd></dl>
+ <dl><dt><a name="-recover_encoded_blobs"><strong>recover_encoded_blobs</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">スクリプトから構造上有意なBase64ブロブを上限付きで復元する。<br>
 &nbsp;<br>
-Command&nbsp;files&nbsp;often&nbsp;emit&nbsp;one&nbsp;payload&nbsp;through&nbsp;many&nbsp;echo&nbsp;lines&nbsp;before&nbsp;using<br>
-certutil&nbsp;-decode.&nbsp;Those&nbsp;chunks&nbsp;are&nbsp;reassembled&nbsp;by&nbsp;redirection&nbsp;target.<br>
-Random&nbsp;high-entropy&nbsp;arguments&nbsp;are&nbsp;not&nbsp;retained&nbsp;individually.</span></dd></dl>
- <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368, max_compression_ratio: 'float' = 200.0, read_chunk_size: 'int' = 1048576) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inventory&nbsp;a&nbsp;ZIP&nbsp;under&nbsp;member,&nbsp;total-byte,&nbsp;and&nbsp;compression-ratio&nbsp;quotas.</span></dd></dl>
- <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Run&nbsp;Detect&nbsp;It&nbsp;Easy&nbsp;as&nbsp;a&nbsp;static&nbsp;classifier&nbsp;and&nbsp;parse&nbsp;its&nbsp;JSON&nbsp;evidence.</span></dd></dl>
- <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Invoke&nbsp;UPX&nbsp;decompression&nbsp;as&nbsp;a&nbsp;data&nbsp;transform&nbsp;and&nbsp;validate&nbsp;the&nbsp;output&nbsp;PE.</span></dd></dl>
- <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;archive&nbsp;traversal&nbsp;and&nbsp;absolute&nbsp;or&nbsp;drive-qualified&nbsp;member&nbsp;names.</span></dd></dl>
- <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;recognized&nbsp;container&nbsp;with&nbsp;path,&nbsp;count,&nbsp;and&nbsp;byte-count&nbsp;bounds.</span></dd></dl>
- <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">Use&nbsp;7-Zip&nbsp;only&nbsp;to&nbsp;identify&nbsp;and&nbsp;list&nbsp;a&nbsp;possible&nbsp;archive&nbsp;container.</span></dd></dl>
- <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Return&nbsp;the&nbsp;lowercase&nbsp;SHA-256&nbsp;digest&nbsp;for&nbsp;bytes.</span></dd></dl>
- <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Run&nbsp;bounded&nbsp;static&nbsp;recovery&nbsp;and&nbsp;return&nbsp;metadata&nbsp;plus&nbsp;artifacts.<br>
+コマンドファイルはcertutil&nbsp;-decodeの前に、多数のecho行で1つのペイロードを<br>
+出力することがある。これらの断片はリダイレクト先ごとに再構築する。<br>
+無作為な高エントロピー引数は個別に保持しない。</span></dd></dl>
+ <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368, max_compression_ratio: 'float' = 200.0, read_chunk_size: 'int' = 1048576) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。</span></dd></dl>
+ <dl><dt><a name="-repetitive_padding"><strong>repetitive_padding</strong></a>(data: 'bytes', max_period: 'int' = 32) -&gt; 'dict[str, object] | None'</dt><dd><span class="code">短いバイトパターンの反復だけで構成されたバッファ全体を識別する。</span></dd></dl>
+ <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
+ <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">データ変換としてUPX展開を呼び出し、出力PEを検証する。</span></dd></dl>
+ <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。</span></dd></dl>
+ <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
+ <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">アーカイブ候補の識別と一覧化だけに7-Zipを使用する。</span></dd></dl>
+ <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">バイト列の小文字SHA-256ダイジェストを返す。</span></dd></dl>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = '') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">上限付き静的復元を実行し、メタデータとアーティファクトを返す。<br>
 &nbsp;<br>
-The&nbsp;force&nbsp;flag&nbsp;is&nbsp;for&nbsp;reviewed&nbsp;inventory&nbsp;hints&nbsp;such&nbsp;as&nbsp;a&nbsp;known&nbsp;NSIS<br>
-carrier&nbsp;whose&nbsp;PE&nbsp;layout&nbsp;does&nbsp;not&nbsp;satisfy&nbsp;the&nbsp;generic&nbsp;container&nbsp;heuristic.<br>
-It&nbsp;never&nbsp;executes&nbsp;the&nbsp;input;&nbsp;it&nbsp;only&nbsp;allows&nbsp;the&nbsp;configured&nbsp;archive&nbsp;parser<br>
-to&nbsp;inspect&nbsp;it.</span></dd></dl>
- <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">Return&nbsp;the&nbsp;bounded&nbsp;on-disk&nbsp;PE&nbsp;extent&nbsp;at&nbsp;*offset*,&nbsp;or&nbsp;``None``.</span></dd></dl>
- <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;recovered&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES-encrypted&nbsp;quarantine&nbsp;archive.</span></dd></dl>
+forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、<br>
+レビュー済みインベントリの手掛かりに使用する。入力は実行せず、<br>
+設定済みアーカイブパーサーによる検査だけを許可する。</span></dd></dl>
+ <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">*offset*にあるPEの上限付きファイル範囲を返し、無効なら``None``を返す。</span></dd></dl>
+ <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

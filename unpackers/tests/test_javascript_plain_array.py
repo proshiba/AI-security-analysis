@@ -20,6 +20,25 @@ function A(){const x=['10a','20b','https://example.test','/gate'];A=function(){r
     assert "https://example.test/gate" in report["urls"]
 
 
+def test_deobfuscates_linked_arithmetic_decoder_without_rotation() -> None:
+    """Resolve a linked decoder with arithmetic offsets and arithmetic calls."""
+    script = b"""
+var alias=decode;
+const endpoint=alias(0x30+0x2)+decode(0x33);
+function decode(i,unused){i=i-(-0x10+0x42);var values=ArrayData();return values[i];}
+function ArrayData(){var x=['https://example.test','/gate'];ArrayData=function(){return x;};return ArrayData();}
+function decoy(i){i=i-(1+1);var z=Other();return z[i];}
+function Other(){var x=['decoy'];Other=function(){return x;};return Other();}
+"""
+    report, transformed = deobfuscate_plain_string_array(script)
+    assert report["status"] == "deobfuscated"
+    assert report["rotation"] == 0
+    assert report["rotation_source"] == "not_present"
+    assert report["executed"] is False
+    assert transformed is not None
+    assert b"https://example.test/gate" in transformed
+
+
 def test_plain_array_pattern_not_found() -> None:
     """Leave ordinary JavaScript unresolved and never execute it."""
     report, transformed = deobfuscate_plain_string_array(b"const answer = 42;")

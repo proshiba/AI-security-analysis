@@ -24,6 +24,7 @@ from malware_io import (
     validate_member_name,
     write_json,
 )
+from elf_utils import parse_elf_layout
 
 PRINTABLE = re.compile(rb"[\x20-\x7e]{4,}")
 WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){4,}")
@@ -162,6 +163,27 @@ def analyze(name: str, data: bytes, output_dir: Path, depth: int = 0) -> dict:
     suffix = Path(name).suffix.lower()
     if suffix in SCRIPT_EXT or data[:32].lstrip().lower().startswith((b"<hta", b"<html", b"var ", b"function ")):
         result.update(type="script", script=script_info(name, data, output_dir))
+    elif data.startswith(b"\x7fELF"):
+        result["type"] = "elf"
+        try:
+            layout = parse_elf_layout(data)
+            strings = extract_strings(data)
+            result["elf"] = {
+                "bits": layout.bits,
+                "byte_order": layout.byte_order,
+                "machine": layout.machine,
+                "entry_point": hex(layout.entry_point),
+                "load_segments": [
+                    {
+                        "offset": segment.offset, "virtual_address": hex(segment.virtual_address),
+                        "file_size": segment.file_size, "memory_size": segment.memory_size,
+                    }
+                    for segment in layout.segments
+                ],
+                "iocs": extract_iocs(strings),
+            }
+        except Exception as exc:
+            result["elf_error"] = f"{type(exc).__name__}: {exc}"
     elif data.startswith(b"MZ"):
         result["type"] = "pe"
         try:

@@ -13,7 +13,12 @@ import pytest
 def short_tmp() -> Path:
     """短いOS一時rootを作成し、test後にそのrootだけを削除する。"""
 
-    base = Path("C:/tmp") if Path("C:/").exists() else Path(tempfile.gettempdir())
+    if Path("C:/").exists():
+        # 共有の C:\\tmp 直下は、残留物やACLの影響で名前生成が停止する場合が
+        # あるため、短いユーザー専用ディレクトリへテストを隔離する。
+        base = Path.home() / ".work"
+    else:
+        base = Path(tempfile.gettempdir()) / "ai-security-analysis-pytest"
     base.mkdir(parents=True, exist_ok=True)
     root = Path(tempfile.mkdtemp(prefix="asa-", dir=base))
     try:

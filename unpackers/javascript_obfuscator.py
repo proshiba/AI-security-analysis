@@ -270,17 +270,28 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
     if not all(isinstance(value, str) and len(value) <= 65536 for value in values):
         return {"status": "array_value_blocked", "executed": False}, None
 
-    decoder_match = re.search(
+    decoder_matches = re.finditer(
         r"function\s+([A-Za-z_$][\w$]*)\(\s*([A-Za-z_$][\w$]*)[^)]*\)\{"
-        r"\2\s*=\s*\2\s*-\s*(0x[0-9a-f]+|\d+)\s*;"
-        r".{0,512}?\[\s*\2\s*\]",
+        r"\2\s*=\s*\2\s*-\s*(\([^;]{1,256}\)|0x[0-9a-f]+|\d+)\s*;"
+        r".{0,1024}?\[\s*\2\s*\]",
         text,
         re.I | re.S,
     )
-    if not decoder_match:
+    decoder_match = next(
+        (
+            match
+            for match in decoder_matches
+            if re.search(r"\b" + re.escape(array_function) + r"\s*\(\s*\)", match.group(0))
+        ),
+        None,
+    )
+    if decoder_match is None:
         return {"status": "decoder_parse_failed", "executed": False}, None
     decoder_name = decoder_match.group(1)
-    decoder_offset = int(decoder_match.group(3), 0)
+    try:
+        decoder_offset = int(_safe_arithmetic(decoder_match.group(3)))
+    except (SyntaxError, ValueError, ZeroDivisionError):
+        return {"status": "decoder_offset_invalid", "executed": False}, None
 
     rotation_match = re.search(
         r"\(function\([^)]*\)\{.{0,8192}?try\{(?:const|let|var)\s+\w+=(.*?);"
@@ -290,59 +301,64 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
         text,
         re.S,
     )
-    if not rotation_match:
-        return {"status": "rotation_parse_failed", "executed": False}, None
     aliases = {decoder_name}
-    rotation_block = rotation_match.group(0)
     aliases.update(
         re.findall(
             r"(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
             + re.escape(decoder_name)
             + r"\b",
-            rotation_block,
+            text,
         )
     )
     alias_pattern = "|".join(map(re.escape, sorted(aliases)))
-    expression = re.sub(
-        r"parseInt\((?:" + alias_pattern + r")\((0x[0-9a-f]+|\d+)\)\)",
-        r"p(\1)",
-        rotation_match.group(1),
-    )
-    try:
-        target = _safe_arithmetic(rotation_match.group(2))
-    except (SyntaxError, ValueError, ZeroDivisionError):
-        return {"status": "rotation_target_invalid", "executed": False}, None
 
     rotated = list(values)
-    rotation = None
-    for count in range(len(rotated)):
-        def parse_at(index: int) -> float:
-            """Return JavaScript-like parseInt for one candidate array index."""
-            position = index - decoder_offset
-            if not 0 <= position < len(rotated):
-                return math.nan
-            return _javascript_parse_int(rotated[position])
-
+    rotation = 0
+    rotation_source = "not_present"
+    if rotation_match:
+        expression = re.sub(
+            r"parseInt\((?:" + alias_pattern + r")\((0x[0-9a-f]+|\d+)\)\)",
+            r"p(\1)",
+            rotation_match.group(1),
+        )
         try:
-            observed = _safe_arithmetic(expression, parse_at)
+            target = _safe_arithmetic(rotation_match.group(2))
         except (SyntaxError, ValueError, ZeroDivisionError):
-            observed = math.nan
-        if observed == target:
-            rotation = count
-            break
-        rotated.append(rotated.pop(0))
-    if rotation is None:
-        return {"status": "rotation_not_solved", "array_size": len(values), "executed": False}, None
+            return {"status": "rotation_target_invalid", "executed": False}, None
+        solved_rotation = None
+        for count in range(len(rotated)):
+            def parse_at(index: int) -> float:
+                """Return JavaScript-like parseInt for one candidate array index."""
+                position = index - decoder_offset
+                if not 0 <= position < len(rotated):
+                    return math.nan
+                return _javascript_parse_int(rotated[position])
+
+            try:
+                observed = _safe_arithmetic(expression, parse_at)
+            except (SyntaxError, ValueError, ZeroDivisionError):
+                observed = math.nan
+            if observed == target:
+                solved_rotation = count
+                break
+            rotated.append(rotated.pop(0))
+        if solved_rotation is None:
+            return {"status": "rotation_not_solved", "array_size": len(values), "executed": False}, None
+        rotation = solved_rotation
+        rotation_source = "sentinel"
 
     call_pattern = re.compile(
-        r"\b(?:" + alias_pattern + r")\((0x[0-9a-f]+|\d+)\)"
+        r"\b(?:" + alias_pattern + r")\(\s*([^,()]{1,160})\s*\)"
     )
     substitutions = 0
 
     def substitute(match: re.Match[str]) -> str:
         """Replace one bounded decoder call with its selected string literal."""
         nonlocal substitutions
-        index = int(match.group(1), 0) - decoder_offset
+        try:
+            index = int(_safe_arithmetic(match.group(1))) - decoder_offset
+        except (SyntaxError, ValueError, ZeroDivisionError):
+            return match.group()
         if not 0 <= index < len(rotated):
             return match.group()
         substitutions += 1
@@ -354,6 +370,7 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
         "status": "deobfuscated",
         "array_size": len(values),
         "rotation": rotation,
+        "rotation_source": rotation_source,
         "decoder_offset": decoder_offset,
         "aliases": sorted(aliases),
         "substitutions": substitutions,
