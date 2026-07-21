@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+import zlib
 from unpackers.path_safety import safe_member_name as validate_member_name
 
 import dnfile
@@ -61,6 +62,8 @@ MACHO_MAGICS = {
     b"\xca\xfe\xba\xbe",
     b"\xbe\xba\xfe\xca",
 }
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+MAX_PNG_CHUNKS = 4096
 SCRIPT_SUFFIXES = {
     ".js",
     ".nsi",
@@ -133,6 +136,8 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         return "pe"
     if data.startswith(b"\x7fELF"):
         return "elf"
+    if data.startswith(PNG_MAGIC):
+        return "png"
     if is_asar(data):
         return "asar"
     if data[:4] in MACHO_MAGICS:
@@ -173,6 +178,109 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         ):
             return "script"
     return "data"
+
+
+def recover_png_concealed_data(
+    data: bytes,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """PNGのIDAT内で画像zlib終端後に連結されたデータを上限付きで復元する。"""
+
+    if not data.startswith(PNG_MAGIC):
+        return {"status": "not_png"}, []
+    offset = len(PNG_MAGIC)
+    chunk_count = 0
+    width = height = None
+    idat = bytearray()
+    png_end_offset = None
+    while offset + 12 <= len(data):
+        if chunk_count >= MAX_PNG_CHUNKS:
+            return {"status": "chunk_limit_blocked", "chunk_count": chunk_count}, []
+        length = int.from_bytes(data[offset : offset + 4], "big")
+        chunk_type = data[offset + 4 : offset + 8]
+        payload_start = offset + 8
+        payload_end = payload_start + length
+        crc_end = payload_end + 4
+        if length > MAX_ARTIFACT or crc_end > len(data):
+            return {"status": "invalid_chunk_bounds", "chunk_count": chunk_count}, []
+        payload = data[payload_start:payload_end]
+        expected_crc = int.from_bytes(data[payload_end:crc_end], "big")
+        actual_crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+        if expected_crc != actual_crc:
+            return {
+                "status": "crc_mismatch",
+                "chunk_count": chunk_count,
+                "chunk_type": chunk_type.decode("ascii", errors="replace"),
+            }, []
+        chunk_count += 1
+        if chunk_type == b"IHDR":
+            if length != 13:
+                return {"status": "invalid_ihdr_length"}, []
+            width, height = struct.unpack(">II", payload[:8])
+        elif chunk_type == b"IDAT":
+            if len(idat) + length > MAX_ARTIFACT:
+                return {"status": "idat_size_blocked", "chunk_count": chunk_count}, []
+            idat.extend(payload)
+        elif chunk_type == b"IEND":
+            png_end_offset = crc_end
+            break
+        offset = crc_end
+    if png_end_offset is None or width is None or height is None or not idat:
+        return {"status": "incomplete_png", "chunk_count": chunk_count}, []
+
+    inflater = zlib.decompressobj()
+    try:
+        pixels = inflater.decompress(bytes(idat), MAX_ARTIFACT + 1)
+        if len(pixels) > MAX_ARTIFACT or not inflater.eof:
+            return {
+                "status": "decompressed_size_blocked",
+                "chunk_count": chunk_count,
+            }, []
+        pixels += inflater.flush()
+    except zlib.error as exc:
+        return {
+            "status": "invalid_zlib_stream",
+            "chunk_count": chunk_count,
+            "error": type(exc).__name__,
+        }, []
+    if len(pixels) > MAX_ARTIFACT:
+        return {"status": "decompressed_size_blocked", "chunk_count": chunk_count}, []
+
+    concealed = inflater.unused_data
+    report = {
+        "status": "concealed_data_recovered" if concealed else "valid_png_no_concealed_data",
+        "width": width,
+        "height": height,
+        "chunk_count": chunk_count,
+        "png_end_offset": png_end_offset,
+        "trailing_after_iend": len(data) - png_end_offset,
+        "idat_size": len(idat),
+        "zlib_stream_size": len(idat) - len(concealed),
+        "decompressed_image_size": len(pixels),
+        "concealed_size": len(concealed),
+        "concealed_sha256": sha256_bytes(concealed) if concealed else None,
+        "concealed_entropy": entropy(concealed) if concealed else None,
+        "concealed_prefix_hex": concealed[:16].hex(),
+        "concealed_content_in_report": False,
+    }
+    artifacts = [("png-idat-zlib-unused-data", concealed)] if concealed else []
+    return report, artifacts
+
+
+def pe_resource_children(
+    blob: bytes,
+) -> tuple[str, list[tuple[str, bytes]], dict[str, object] | None]:
+    """PEリソースを直接検査し、次層として意味がある内容だけを返す。"""
+
+    resource_format = detect_format(blob, "resource.bin")
+    if resource_format == "png":
+        png_report, concealed = recover_png_concealed_data(blob)
+        return resource_format, concealed, png_report
+
+    artifacts: list[tuple[str, bytes]] = []
+    if resource_format != "data":
+        artifacts.append((f"pe-resource-{resource_format}", blob))
+    artifacts.extend(carve_embedded_pes(blob))
+    return resource_format, artifacts, None
 
 
 def repetitive_padding(data: bytes, max_period: int = 32) -> dict[str, object] | None:
@@ -253,8 +361,14 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 "characteristics": hex(section.Characteristics),
             }
         )
-    imports = sum(
-        len(entry.imports) for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])
+    import_entries = list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
+    imports = sum(len(entry.imports) for entry in import_entries)
+    import_libraries = sorted(
+        {
+            entry.dll.decode("ascii", errors="replace").lower()
+            for entry in import_entries
+            if getattr(entry, "dll", None)
+        }
     )
     overlay_offset = pe.get_overlay_data_start_offset()
     image_end = overlay_offset if overlay_offset is not None else len(data)
@@ -281,6 +395,9 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     resource_count = 0
     opaque_resources = 0
     archive_resources = 0
+    png_resources_inspected = 0
+    png_resources_with_concealed_data = 0
+    invalid_png_resources = 0
     if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
         for type_entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
             for name_entry in getattr(type_entry.directory, "entries", []):
@@ -290,17 +407,19 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                     blob = pe.get_data(item.OffsetToData, item.Size)
                     if not 0 < len(blob) <= MAX_ARTIFACT:
                         continue
-                    resource_format = detect_format(blob, "resource.bin")
-                    if resource_format != "data":
-                        artifacts.append((f"pe-resource-{resource_format}", blob))
-                        archive_resources += int(
-                            resource_format in {"7z", "cab", "zip"}
-                        )
-                    carved = carve_embedded_pes(blob)
-                    artifacts.extend(carved)
+                    resource_format, children, png_report = pe_resource_children(blob)
+                    archive_resources += int(resource_format in {"7z", "cab", "zip"})
+                    if png_report is not None:
+                        png_resources_inspected += 1
+                        png_status = png_report["status"]
+                        if png_status == "concealed_data_recovered":
+                            png_resources_with_concealed_data += 1
+                        elif png_status != "valid_png_no_concealed_data":
+                            invalid_png_resources += 1
+                    artifacts.extend(children)
                     if (
                         resource_format == "data"
-                        and not carved
+                        and not children
                         and len(blob) >= 4096
                         and entropy(blob) >= 7.2
                         and opaque_resources < 32
@@ -355,6 +474,31 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         and bool(code_entropy)
         and entrypoint_section in code_entropy
     )
+    common_system_libraries = {
+        "advapi32.dll",
+        "comctl32.dll",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ole32.dll",
+        "shell32.dll",
+        "user32.dll",
+        "wininet.dll",
+        "winhttp.dll",
+        "ws2_32.dll",
+    }
+    single_non_system_import_library = (
+        len(import_libraries) == 1
+        and import_libraries[0] not in common_system_libraries
+        and not import_libraries[0].startswith(("api-ms-win-", "ext-ms-win-"))
+    )
+    encrypted_sideload_host_shape = (
+        not is_dotnet
+        and not is_go
+        and entrypoint_section in code_entropy
+        and imports >= 32
+        and single_non_system_import_library
+    )
     if containerized:
         classification = "self_extracting_container"
     elif is_dotnet and code_entropy:
@@ -363,6 +507,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         classification = "virtualized_or_packed"
     elif strong_section_marker or strong_string_markers:
         classification = "packed_or_protected"
+    elif encrypted_sideload_host_shape:
+        classification = "suspected_encrypted_sideload_host"
     elif not is_dotnet and not is_go and code_entropy and imports <= 8:
         classification = "suspected_packed"
     else:
@@ -371,6 +517,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "packed_or_protected",
         "suspected_packed",
         "virtualized_or_packed",
+        "suspected_encrypted_sideload_host",
     }
     control_flow = None
     if packed or classification == "managed_loader_or_obfuscated" or len(data) > 32 * 1024 * 1024:
@@ -402,6 +549,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "is_dotnet": is_dotnet,
             "is_go": is_go,
             "imports": imports,
+            "import_libraries": import_libraries,
             "sections": sections,
             "high_entropy_sections": high_entropy,
             "code_entropy_sections": code_entropy,
@@ -411,6 +559,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "entrypoint_section": entrypoint_section,
             "zero_raw_virtual_sections": zero_raw_virtual_sections,
             "virtualized_shape": virtualized_shape,
+            "encrypted_sideload_host_shape": encrypted_sideload_host_shape,
             "packing_suspected": packed,
             "overlay_size": len(overlay),
             "overlay_format": overlay_format,
@@ -418,6 +567,9 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
             "archive_resources_recovered": archive_resources,
+            "png_resources_inspected": png_resources_inspected,
+            "png_resources_with_concealed_data": png_resources_with_concealed_data,
+            "invalid_png_resources": invalid_png_resources,
             "control_flow_triage": control_flow,
             "managed_il_triage": managed_il,
         },
@@ -1428,6 +1580,9 @@ def unpack_bytes(
     elif kind == "macho":
         report["macho"] = macho_summary(data)
         report["macho_slices"], recovered = recover_macho_slices(data)
+        artifacts.extend(recovered)
+    elif kind == "png":
+        report["png"], recovered = recover_png_concealed_data(data)
         artifacts.extend(recovered)
     elif kind == "xz":
         report["xz"], recovered_blob = recover_xz(data)

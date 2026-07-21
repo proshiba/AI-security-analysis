@@ -2,7 +2,19 @@
 
 複数のマルウェア種と配布キャンペーンを、検体をローカル実行せずに整理するための解析基盤です。成果物は `analysis-results/malware/<family>/versions/<version-key>/cases/` に分離し、収集単位の集約物は `analysis-results/collections/<collection-id>/` に置きます。
 
-## 実行順
+## 推奨する一括静的解析
+
+現在の標準入口は `common/analyze_sample.py` です。ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、既存解析関数の棚卸し、汎用トリアージ、適用可能な設定抽出器の全層試行、SHA-256単位の統合レポート作成までを一括で行います。
+
+```powershell
+python .\common\analyze_sample.py `
+  --input C:\malware-lab\incoming `
+  --output C:\malware-lab\analysis-output
+```
+
+検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。出力、適用状態、安全境界、旧CLIとの関係は [一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md) を参照してください。
+
+## 従来のファミリー別実行順
 
 1. MalwareBazaarのパスワード付きZIPを `MalwareSamples/<Family>/<SHA256>/<SHA256>.zip` に置く。
 2. `Invoke-FamilyBatch.ps1` でAES認証、内側SHA-256、形式、スクリプト層、PEメタデータを抽出する。

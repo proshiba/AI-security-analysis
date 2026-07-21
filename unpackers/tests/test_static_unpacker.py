@@ -8,6 +8,7 @@ from pathlib import Path
 import struct
 from types import SimpleNamespace
 import zipfile
+import zlib
 
 import pefile
 import pytest
@@ -29,6 +30,7 @@ def test_hash_entropy_format_and_names() -> None:
     assert unpacker.detect_format(java_class, "Fixture.class") == "java-class"
     assert unpacker.detect_format(b"7z\xbc\xaf'\x1c", "x") == "7z"
     assert unpacker.detect_format(b"\x7fELF" + b"\0" * 64, "x") == "elf"
+    assert unpacker.detect_format(b"\x89PNG\r\n\x1a\n" + b"\0" * 16, "x.H") == "png"
     assert unpacker.detect_format(b"ER\x02\x00" + b"\0" * 28, "x") == "apple-disk-image"
     assert unpacker.detect_format(b"Rar!\x1a\x07\x01\x00", "x") == "rar"
     assert unpacker.detect_format(b"var x = 1", "x.js") == "script"
@@ -36,6 +38,49 @@ def test_hash_entropy_format_and_names() -> None:
     assert unpacker.safe_member_name("a/b") == "a/b"
     with pytest.raises(ValueError):
         unpacker.safe_member_name("../x")
+
+
+def _png_chunk(kind: bytes, payload: bytes) -> bytes:
+    return (
+        struct.pack(">I", len(payload))
+        + kind
+        + payload
+        + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+    )
+
+
+def test_png_idat_zlib_unused_data_is_recovered_as_bounded_layer() -> None:
+    """正常画像stream後のIDAT内データを公開本文ではなく復元層へ渡す。"""
+
+    hidden = bytes(range(256)) * 32
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0") + hidden)
+    png += _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.unpack_bytes(png, "Nmg5t7d.H")
+
+    assert report["format"] == "png"
+    assert report["png"]["status"] == "concealed_data_recovered"
+    assert report["png"]["concealed_size"] == len(hidden)
+    assert report["png"]["concealed_content_in_report"] is False
+    assert artifacts == [("png-idat-zlib-unused-data", hidden)]
+
+
+def test_plain_png_resource_is_inspected_without_becoming_a_layer() -> None:
+    """通常のPNGリソースは検査するが、次の解析層として複製しない。"""
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0"))
+    png += _png_chunk(b"IEND", b"")
+
+    kind, children, report = unpacker.pe_resource_children(png)
+
+    assert kind == "png"
+    assert children == []
+    assert report is not None
+    assert report["status"] == "valid_png_no_concealed_data"
 
 
 def test_repetitive_padding_detection() -> None:

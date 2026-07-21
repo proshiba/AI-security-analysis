@@ -11,6 +11,7 @@
 
 ## 現行基盤
 
+- [一括静的解析と解析器適用可否判定](ONE-SHOT-ANALYSIS.md)
 - [安全な提出物I/Oと一括処理ワークフロー](SAFE-SUBMISSION-IO.md)
 - [ValleyRAT感染チェーンのパターン設計](../malware/valleyrat/docs/PATTERN-DESIGN.md)
 - [プロファイル定義による10ファミリー拡張と構成要素の関係](PROFILED-FAMILY-EXPANSION.md)

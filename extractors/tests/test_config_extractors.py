@@ -68,6 +68,14 @@ def test_valleyrat_functions() -> None:
         "x",
     )
     assert duplicate["config"]["endpoints"] == ["103.43.11.40:1443"]
+    assert duplicate["config"]["static_config_recovered"] is True
+    assert duplicate["config"]["c2_liveness_confirmed"] is False
+    assert duplicate["findings"][0]["confidence"] == "confirmed_static_config"
+    invalid = valley_extract(
+        b"|99999:1o|999.43.11.40:1p|",
+        "x",
+    )
+    assert invalid["config"]["endpoints"] == []
     filtered = valley_extract(b"http://ocsp.digicert.com0A https://evil.example/stage.zip", "x")
     assert filtered["config"]["urls"] == ["https://evil.example/stage.zip"]
 

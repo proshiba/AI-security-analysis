@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む653件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む744件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -9,7 +9,7 @@ AIを補助的に使い、マルウェア検体の静的解析、キャンペー
 ```text
 analysis-framework/              # 解析・分類を実行するコード
   Invoke-Analysis.ps1            # 自動解析のエントリポイント
-  common/                        # ZIP/MSI/CAB/PE調査、C2確認、Ghidra連携などの共通処理
+  common/                        # 一括静的解析、ZIP/MSI/CAB/PE調査、C2確認などの共通処理
   classifiers/                   # 検体から malware_type / campaign_type を選ぶ分類器
   registry/                      # malware_type と detector の登録
   malware/<malware-type>/        # 種別固有の detector / campaign handler / config / docs / tests
@@ -58,6 +58,7 @@ pip install -r requirements.txt
 
 ```powershell
 python .\classifiers\classify_sample.py --help
+python .\common\analyze_sample.py --help
 python .\common\analyze_submission.py --help
 python .\common\c2_detector.py --help
 ```
@@ -69,8 +70,8 @@ python .\common\c2_detector.py --help
 ### 基本フロー
 
 1. 検体を隔離環境に置き、検体のSHA-256を控えます。
-2. `classify_sample.py` が `analysis-framework/registry/malware_types.json` に登録された detector を読み込み、`malware_type` と `campaign_type` を選びます。
-3. `Invoke-Analysis.ps1` が campaign handler を呼び出し、復号、MSI/CAB解析、C2抽出などを行います。
+2. `analyze_sample.py` が上限付きで静的復元し、ルート検体と復元層に対して全登録detectorを評価して、`malware_type` と `campaign_type` を選びます。
+3. 過去の解析スクリプトをASTで棚卸しして適用可否を判定し、一意に選択されたファミリーの標準解析器を全層へ試行します。`static-layers.json`、`classification.json`、`applicability.json`、汎用トリアージ、無害化済み設定抽出結果を生成します。
 4. 結果を `analysis-results/malware/<family>/versions/<version-key>/cases/<sample-sha256>/` に整理し、検体・復号バイナリなど保存禁止物が含まれないことを確認します。
 5. `analysis_history.yaml` に解析履歴を1件追加し、READMEの履歴サマリも更新します。
 6. IOC-only一覧を再生成し、`--check` で全解析との同期を確認します。
@@ -86,13 +87,32 @@ python .\analysis-framework\classifiers\classify_sample.py `
 
 分類結果には以下が含まれます。
 
-- `malware_type`: 登録済み種別。現在は主に `valleyrat`。
+- `malware_type`: 登録済み種別。全登録detectorの構造一致と既知SHA-256から選びます。
 - `campaign_type`: campaign handler を選ぶための分類。例: `dll_sideload_vvas_bundle`, `msi_embedded_cab_custom_actions`。
 - `*_confidence`: hash一致、構造一致などに基づく信頼度。
 - `candidates`: detector が見つけた候補と理由。
 - `observations`: SHA-256、サイズ、ZIP member、MSI/OLE構造など。
 
 ### 自動解析の実行
+
+ファイルまたはディレクトリを一括解析する標準コマンド:
+
+```powershell
+.\analysis-framework\Invoke-Analysis.ps1 `
+  -Sample C:\malware-lab\samples\sample.zip `
+  -OutputDirectory C:\malware-lab\out `
+  -Python .\analysis-framework\.venv\Scripts\python.exe
+```
+
+Pythonを直接使う場合は `--input` を繰り返して複数入力を指定できます。
+
+```powershell
+python .\analysis-framework\common\analyze_sample.py `
+  --input C:\malware-lab\samples `
+  --output C:\malware-lab\out
+```
+
+詳細は [一括静的解析と解析器適用可否判定](analysis-framework/docs/ONE-SHOT-ANALYSIS.md) を参照してください。以下はreviewed profileやライブ確認を必要とする旧ValleyRAT専用ワークフローです。
 
 DLL side-loading + vvaS bundle のように reviewed profile が必要なケース:
 
