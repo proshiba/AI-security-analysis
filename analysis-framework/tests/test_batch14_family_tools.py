@@ -18,7 +18,8 @@ def load(name: str, relative: str):
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     module_dir = str((ROOT / relative).parent)
-    if module_dir not in sys.path: sys.path.insert(0, module_dir)
+    if module_dir in sys.path: sys.path.remove(module_dir)
+    sys.path.insert(0, module_dir)
     spec.loader.exec_module(module)
     return module
 
@@ -147,7 +148,7 @@ def test_batch14_publication_uses_fixed_depth() -> None:
     classification = json.loads((batch / "classification.json").read_text(encoding="utf-8"))
     samples = classification["samples"]
     assert len(samples) == 10
-    assert sum(item["confidence"] == "pending_download" for item in samples) == 1
+    assert sum(item["confidence"] == "pending_download" for item in samples) == 0
 
     published = 0
     for item in samples:
@@ -164,7 +165,7 @@ def test_batch14_publication_uses_fixed_depth() -> None:
         assert metadata["canonical_path"] == case_dir.relative_to(ROOT).as_posix()
         assert metadata["collections"] == ["malwarebazaar-1000"]
         published += 1
-    assert published == 9
+    assert published == 10
 
 
 def test_batch14_c2_publication_preserves_connect_only_boundary() -> None:
@@ -175,7 +176,7 @@ def test_batch14_c2_publication_preserves_connect_only_boundary() -> None:
     assert policy["tcp_connect_only"] is True
     for key in ("application_data_sent", "server_data_read", "tls_handshake", "banner_read", "port_scanning"):
         assert policy[key] is False
-    assert len(validation["results"]) == 5
+    assert len(validation["results"]) == 6
     assert all(item["tcp_connected"] is True for item in validation["results"])
     assert all(item["c2_confirmed"] is False for item in validation["results"])
 
