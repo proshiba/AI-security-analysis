@@ -17,6 +17,7 @@ class StepSpec:
 PROFILED_FAMILIES = (
     "asyncrat",
     "darkcomet",
+    "gh0strat",
     "dcrat",
     "guloader",
     "hijackloader",

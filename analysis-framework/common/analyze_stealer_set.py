@@ -27,13 +27,16 @@ from unpackers.static_unpacker import unpack_bytes, write_artifacts  # noqa: E40
 
 SIGNATURE_IDS = {
     "ValleyRAT": "valleyrat",
+    "AsyncRAT": "asyncrat",
     "AgentTesla": "agenttesla",
     "RemcosRAT": "remcosrat",
     "VenomRAT": "venomrat",
     "Formbook": "formbook",
     "Vidar": "vidar",
+    "Gh0stRAT": "gh0strat",
     "LummaStealer": "lummastealer",
     "RemusStealer": "remusstealer",
+    "Stealc": "stealc",
     "AmosStealer": "amosstealer",
     "AMOS": "amosstealer",
     "Amadey": "amadey",
@@ -290,7 +293,7 @@ def analyze_payload(
     else:
         declarative_status = "skipped_size_limit"
     pe = unpack_report.get("pe", {})
-    return {
+    result = {
         "sha256": digest,
         "name": name,
         "family": family,
@@ -308,6 +311,8 @@ def analyze_payload(
         "sample_executed": False,
         "network_contacted": False,
     }
+    write_json(output / "case-summary.json", result)
+    return result
 
 
 def analyze_item(
@@ -342,6 +347,100 @@ def analyze_item(
         diec,
         archive_recovered=True,
     )
+
+
+def load_resumable_analysis(
+    output: Path,
+    digest: str,
+    family: str,
+) -> dict | None:
+    """安全フラグとSHA-256を検証した完了caseを専門バッチへ復元する。"""
+
+    required_names = (
+        "unpack.json",
+        "layers.json",
+        "config.json",
+        "c2-candidates.json",
+    )
+    if any(not (output / name).is_file() for name in required_names):
+        return None
+    if output.is_symlink() or any((output / name).is_symlink() for name in required_names):
+        raise ValueError(f"resumable case contains a symbolic link: {digest}")
+
+    def read_object(path: Path) -> dict:
+        """BOMなしUTF-8 JSON objectだけを再開根拠として読み込む。"""
+
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"invalid resumable JSON: {path.name}") from exc
+        if not isinstance(value, dict):
+            raise ValueError(f"resumable JSON is not an object: {path.name}")
+        return value
+
+    unpack = read_object(output / "unpack.json")
+    layers = read_object(output / "layers.json")
+    config = read_object(output / "config.json")
+    c2 = read_object(output / "c2-candidates.json")
+    if unpack.get("sha256") != digest or config.get("sample_sha256") != digest:
+        raise ValueError(f"resumable case SHA-256 mismatch: {digest}")
+    if config.get("family") != family or c2.get("family") != family:
+        raise ValueError(f"resumable case family mismatch: {digest}")
+    safety_values = (
+        unpack.get("executed"),
+        unpack.get("network_contacted"),
+        layers.get("sample_executed"),
+        layers.get("network_contacted"),
+        config.get("executed"),
+        config.get("network_contacted"),
+        c2.get("sample_executed"),
+        c2.get("network_contacted"),
+    )
+    if any(value is not False for value in safety_values):
+        raise ValueError(f"resumable case safety flag mismatch: {digest}")
+    summary_path = output / "case-summary.json"
+    if summary_path.is_file():
+        if summary_path.is_symlink():
+            raise ValueError(f"resumable summary is a symbolic link: {digest}")
+        result = read_object(summary_path)
+    else:
+        config_body = config.get("config")
+        findings = config.get("findings")
+        layer_items = layers.get("layers")
+        if not isinstance(config_body, dict) or not isinstance(findings, list):
+            raise ValueError(f"resumable config structure mismatch: {digest}")
+        if not isinstance(layer_items, list):
+            raise ValueError(f"resumable layer structure mismatch: {digest}")
+        recovered_configs = config_body.get("recovered_layer_configs")
+        if not isinstance(recovered_configs, list):
+            recovered_configs = []
+        pe = unpack.get("pe") if isinstance(unpack.get("pe"), dict) else {}
+        result = {
+            "sha256": digest,
+            "name": unpack.get("name", digest),
+            "family": family,
+            "campaign": "unknown",
+            "format": unpack.get("format", "unknown"),
+            "packing_suspected": bool(pe.get("packing_suspected")),
+            "packing_classification": pe.get("classification", "not_applicable"),
+            "unpack_status": unpack.get("unpack_status", "unknown"),
+            "recovered_artifacts": max(len(unpack.get("recovered", [])), len(layer_items)),
+            "recovered_configs": len(recovered_configs),
+            "static_config_recovered": bool(config_body.get("static_config_recovered")),
+            "config_findings": len(findings),
+            "c2_assessment": c2.get("assessment", "none"),
+            "declarative_status": "resumed_existing_output",
+            "sample_executed": False,
+            "network_contacted": False,
+        }
+    if (
+        result.get("sha256") != digest
+        or result.get("family") != family
+        or result.get("sample_executed") is not False
+        or result.get("network_contacted") is not False
+    ):
+        raise ValueError(f"resumable case summary mismatch: {digest}")
+    return {**result, "resumed": True}
 
 
 def analyze_file(
@@ -388,6 +487,7 @@ def build_summary(signature: str, family: str, cases: list[dict], source: str) -
             "with_recovered_artifacts": sum(item.get("recovered_artifacts", 0) > 0 for item in cases),
             "with_static_config": sum(bool(item.get("static_config_recovered")) for item in cases),
             "with_config_findings": sum(item.get("config_findings", 0) > 0 for item in cases),
+            "resumed": sum(bool(item.get("resumed")) for item in cases),
         },
         "sample_executed": False,
         "network_contacted": False,
@@ -401,6 +501,7 @@ def analyze_manifest(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    resume: bool = False,
 ) -> dict:
     """Analyze every item in one bounded MalwareBazaar family manifest."""
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -420,19 +521,24 @@ def analyze_manifest(
         archive = resolve_manifest_archive(manifest_path, item.get("zip_path"))
         case_output = resolve_case_output(output, claimed)
         validated.append((claimed, archive, case_output))
-    cases = [
-        analyze_item(
-            family,
-            archive,
-            case_output,
-            definitions,
-            upx,
-            sevenzip,
-            diec,
-            expected_sha256=claimed,
+    cases = []
+    for claimed, archive, case_output in validated:
+        resumed = load_resumable_analysis(case_output, claimed, family) if resume else None
+        if resumed is not None:
+            cases.append(resumed)
+            continue
+        cases.append(
+            analyze_item(
+                family,
+                archive,
+                case_output,
+                definitions,
+                upx,
+                sevenzip,
+                diec,
+                expected_sha256=claimed,
+            )
         )
-        for claimed, archive, case_output in validated
-    ]
     summary = build_summary(manifest["signature"], family, cases, "malwarebazaar")
     write_json(output / "summary.json", summary)
     return summary
@@ -505,6 +611,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sevenzip", type=Path)
     parser.add_argument("--diec", type=Path)
     parser.add_argument("--max-depth", type=int, default=3, choices=range(1, 6))
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="検証済みの完了caseを再利用し、未完了caseだけを解析する",
+    )
     return parser
 
 
@@ -519,6 +630,7 @@ def main(argv: list[str] | None = None) -> int:
             args.upx,
             args.sevenzip,
             args.diec,
+            args.resume,
         )
     else:
         if not args.family:

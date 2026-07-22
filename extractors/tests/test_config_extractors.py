@@ -76,7 +76,14 @@ def test_valleyrat_functions() -> None:
         "x",
     )
     assert invalid["config"]["endpoints"] == []
-    filtered = valley_extract(b"http://ocsp.digicert.com0A https://evil.example/stage.zip", "x")
+    filtered = valley_extract(
+        b"vvaS.bin LoggerCollector.dll http://ocsp.digicert.com0A "
+        b"https://evil.example/stage.zip",
+        "x",
+    )
+    unresolved = valley_extract(b"0.skz:7 https://jrsoftware.org/ishelp/index.php", "x")
+    assert unresolved["config"]["endpoints"] == []
+    assert unresolved["config"]["urls"] == []
     assert filtered["config"]["urls"] == ["https://evil.example/stage.zip"]
 
 
@@ -105,6 +112,10 @@ def test_venom_functions() -> None:
     ]
     result = venom_extract(b"Quasar.Client RECONNECTDELAY c2.example:4444")
     assert result["findings"][0]["confidence"] == "inferred"
+    weak = venom_extract(b"mutex xmp.did:4307 http://ns.adobe.com/xap/1.0/")
+    assert weak["config"]["endpoints"] == []
+    assert weak["config"]["urls"] == []
+    assert weak["findings"] == []
 
 
 def test_mx_go_functions() -> None:

@@ -10,9 +10,10 @@ from extractors import profiled_family
 
 
 def test_profiles_normalization_and_validation(tmp_path) -> None:
-    """Load the ten profiles, normalize aliases, and reject invalid documents."""
+    """Load the eleven profiles, normalize aliases, and reject invalid documents."""
     profiles = profiled_family.load_profiles()
-    assert len(profiles) == 10
+    assert len(profiles) == 11
+    assert profiled_family.normalize_family("Ghost-RAT", profiles) == "gh0strat"
     assert profiled_family.normalize_family("Quasar-RAT", profiles) == "quasarrat"
     assert profiled_family.profile_for("cloud eye")["family"] == "guloader"
     invalid = tmp_path / "invalid.json"
@@ -46,6 +47,8 @@ def test_bounded_strings_uses_three_windows(monkeypatch) -> None:
     values = profiled_family.bounded_strings(data)
     text = " ".join(values)
     assert "FIRST" in text and "LAST" in text
+    assert profiled_family.sanitize_network_url("http://ns.adobe.com/xap/1.0/") is None
+    assert profiled_family.sanitize_network_url("http://oneocsp.microsoft.com/ocsp0") is None
     assert profiled_family.bounded_strings(data, 0) == []
 
 
@@ -77,6 +80,26 @@ def test_extractor_factory_and_candidate_confidence() -> None:
     assert result["family"] == "hijackloader"
     assert result["findings"][0]["confidence"] == "candidate"
     assert result["config"]["static_config_recovered"] is False
+
+
+def test_gh0strat_requires_independent_markers() -> None:
+    """Reject one product literal and retain corroborated values as candidates."""
+    isolated = profiled_family.extract_family(
+        "gh0strat",
+        b"Gh0st Server Host Port https://node.example.org/gate",
+        "fixture.exe",
+    )
+    assert isolated["config"]["marker_hits"] == ["gh0st server"]
+    assert isolated["config"]["profile_literal_correlation"] is False
+    correlated = profiled_family.extract_family(
+        "gh0strat",
+        b"Gh0st Server GameOver Host Port https://node.example.org/gate",
+        "fixture.exe",
+    )
+    assert correlated["network_contacted"] is False
+    assert correlated["config"]["profile_literal_correlation"] is True
+    assert correlated["config"]["static_config_recovered"] is False
+    assert correlated["findings"][0]["confidence"] == "candidate"
 
 
 def test_overlapping_profile_literal_counts_once() -> None:

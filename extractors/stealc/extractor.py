@@ -271,7 +271,11 @@ def extract_xor_profile(data: bytes) -> DecodedProfile | None:
 def extract(data: bytes, source_name: str = "sample.bin") -> dict:
     """Return publish-safe StealC configuration and IOC findings."""
     profile = extract_rc4_profile(data) or extract_xor_profile(data)
-    config: dict = {"source_name": source_name, "profile": None}
+    config: dict = {
+        "source_name": source_name,
+        "profile": None,
+        "static_config_recovered": profile is not None,
+    }
     findings: list[dict] = []
     limitations = [
         "Static extraction only; the sample was not executed.",

@@ -129,170 +129,102 @@ def summarize_family(summary: dict, pipeline_root: Path) -> dict:
     }
 
 
-def render_case(item: dict, case: dict) -> str:
-    """Render a compact, evidence-qualified case README."""
-    findings = case["config"].get("findings", [])
-    finding_rows = (
-        "\n".join(
-            f"| `{row['value']}` | `{row['role']}` | `{row['confidence']}` | `{row['source']}` |" for row in findings
-        )
-        or "| 復元なし | - | - | 静的抽出が未完了 |"
-    )
-    limitations = (
-        "\n".join(f"- 制約事項: {value}" for value in case["config"].get("limitations", [])) or "- 特記事項なし"
-    )
-    layers = case["layers"].get("layers", [])
-    layer_rows = (
-        "\n".join(
-            f"| {row.get('depth', '-')} | `{row.get('kind', 'unknown')}` | "
-            f"`{row.get('sha256', 'unknown')}` | {row.get('size', 0)} | "
-            f"`{row.get('format', 'unknown')}` |"
-            for row in layers
-        )
-        or "| - | 復元なし | - | - | - |"
-    )
-    config = compact_config(case["config"].get("config", {}))
-    return f"""# {item["family"]} ケース {item["sha256"]}
-
-## 概要
-
-- 元ファイル名: `{item["name"]}`
-- SHA-256: `{item["sha256"]}`
-- キャンペーン形態: `{item["campaign"]}`
-- 形式: `{item["format"]}`
-- パッキングの疑い: `{str(item["packing_suspected"]).lower()}`
-- パッキング分類: `{item.get("packing_classification", "unknown")}`
-- アンパック状態: `{item.get("unpack_status", "unknown")}`
-- 復元した静的レイヤー数: {item["recovered_artifacts"]}
-- 検体の実行: `false`
-- ネットワーク接続: `false`
-
-## 設定とC2の証拠
-
-| 値 | 役割 | 確度 | 根拠 |
-|---|---|---|---|
-{finding_rows}
-
-埋め込み値だけでは、サーバーが稼働中であることや、このファミリーだけが制御していることを証明できません。
-
-## 静的設定のスナップショット
-
-```json
-{json.dumps(config, ensure_ascii=False, indent=2)}
-```
-
-範囲を限定した復号文字列の証拠を含む、正規化済み抽出器出力の完全版は `analysis.json` に保持します。
-
-## 復元したレイヤー
-
-| 深さ | 種別 | SHA-256 | サイズ | 形式 |
-|---:|---|---|---:|---|
-{layer_rows}
-
-復元したバイト列は意図的にコミットしません。
-
-## アンパックの詳細
-
-- ルートのエントロピー: {case["unpack"]["entropy"]}
-- ルートのパッキング評価: `{case["unpack"].get("pe", {}).get("packing_suspected", False)}`
-- 解析した再帰レイヤー数: {case["config"].get("layers_analyzed", 0)}
-- 7zの状態: `{case["unpack"].get("sevenzip", {}).get("status", "not_applicable")}`
-- UPXの状態: `{case["unpack"].get("upx", {}).get("status", "not_applicable")}`
-
-## 制約
-
-{limitations}
-"""
+from report_templates_ja import render_case, render_family  # noqa: E402
 
 
-def render_family(
-    value: dict, case_links: dict[str, str] | None = None
-) -> str:
-    """Render a family README with detection trade-offs and all case outcomes."""
-    links = case_links or {
-        item["sha256"]: f"cases/{item['sha256']}/README.md"
-        for item in value["cases"]
+def _sum_counts(left: dict, right: dict) -> dict:
+    """数値カウンターをキー単位で加算する。"""
+    keys = set(left) | set(right)
+    return {
+        key: int(left.get(key, 0)) + int(right.get(key, 0))
+        for key in sorted(keys)
     }
-    campaigns = "\n".join(f"- `{key}`: {count}" for key, count in value["campaigns"].items())
-    features = (
-        "\n".join(f"- `{key}`: {count}/{value['case_count']}" for key, count in value["features"].items())
-        or "- 静的に確認できる挙動特徴はありません"
+
+
+def _merge_counter_maps(left: dict, right: dict) -> dict:
+    """単層の名前別カウンターを加算する。"""
+    return _sum_counts(left, right)
+
+
+def _merge_config_values(left: dict, right: dict) -> dict:
+    """設定キー別の値カウンターを加算する。"""
+    return {
+        key: _sum_counts(left.get(key, {}), right.get(key, {}))
+        for key in sorted(set(left) | set(right))
+    }
+
+
+def merge_family_summaries(existing: dict, addition: dict) -> dict:
+    """既存ファミリ集計へ重複しない追加ケースを安全に統合する。"""
+    for key in ("schema_version", "family", "signature", "source"):
+        if existing.get(key) != addition.get(key):
+            raise ValueError(f"summary {key} mismatch")
+    if any(existing.get(key) or addition.get(key) for key in ("sample_executed", "network_contacted")):
+        raise ValueError("unsafe summary cannot be appended")
+    old_hashes = {item["sha256"] for item in existing.get("cases", [])}
+    new_hashes = {item["sha256"] for item in addition.get("cases", [])}
+    overlap = sorted(old_hashes & new_hashes)
+    if overlap:
+        raise ValueError(f"duplicate cases cannot be appended: {overlap[0]}")
+    findings = []
+    seen_findings = set()
+    for finding in [*existing.get("findings", []), *addition.get("findings", [])]:
+        identity = (finding.get("kind"), finding.get("value"), finding.get("role"))
+        if identity not in seen_findings:
+            seen_findings.add(identity)
+            findings.append(finding)
+    cases = sorted(
+        [*existing.get("cases", []), *addition.get("cases", [])],
+        key=lambda item: item["sha256"],
     )
-    findings = (
-        "\n".join(
-            f"| `{row['value']}` | `{row['role']}` | `{row['confidence']}` | `{row['source']}` |"
-            for row in value["findings"]
-        )
-        or "| 復元なし | - | - | パック／暗号化済み、またはリテラル設定なし |"
+    return {
+        "schema_version": 1,
+        "family": existing["family"],
+        "signature": existing["signature"],
+        "source": existing["source"],
+        "counts": _sum_counts(existing.get("counts", {}), addition.get("counts", {})),
+        "case_count": len(cases),
+        "campaigns": _merge_counter_maps(existing.get("campaigns", {}), addition.get("campaigns", {})),
+        "formats": _merge_counter_maps(existing.get("formats", {}), addition.get("formats", {})),
+        "features": _merge_counter_maps(existing.get("features", {}), addition.get("features", {})),
+        "config_values": _merge_config_values(existing.get("config_values", {}), addition.get("config_values", {})),
+        "findings": findings,
+        "cases": cases,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+
+
+def merge_public_manifests(existing: dict, addition: dict) -> dict:
+    """ローカルパスを含まない取得マニフェストをSHA-256単位で統合する。"""
+    old_items = {item["sha256"]: item for item in existing.get("items", [])}
+    new_items = {item["sha256"]: item for item in addition.get("items", [])}
+    overlap = sorted(set(old_items) & set(new_items))
+    if overlap:
+        raise ValueError(f"duplicate acquisition item cannot be appended: {overlap[0]}")
+    merged = {**existing, **addition}
+    items = [*(old_items.values()), *(new_items.values())]
+    items.sort(key=lambda item: item["sha256"])
+    merged["items"] = items
+    selected = {
+        str(value).lower()
+        for value in [
+            *existing.get("selected_hashes", []),
+            *addition.get("selected_hashes", []),
+        ]
+    }
+    if selected:
+        merged["selected_hashes"] = sorted(selected)
+    merged["requested"] = len(items)
+    merged["downloaded"] = len(items)
+    merged["pending"] = int(existing.get("pending", 0)) + int(addition.get("pending", 0))
+    merged["complete"] = bool(existing.get("complete", True) and addition.get("complete", True))
+    merged["archives_remain_encrypted"] = bool(
+        existing.get("archives_remain_encrypted", True)
+        and addition.get("archives_remain_encrypted", True)
     )
-    config_values = (
-        "\n".join(
-            f"- `{key}`: " + ", ".join(f"`{config_value}` ({count})" for config_value, count in values.items())
-            for key, values in value["config_values"].items()
-        )
-        or "- 検証済みファミリー設定値は復元されませんでした"
-    )
-    cases = "\n".join(
-        f"| [{item['sha256'][:12]}]({links[item['sha256']]}) | `{item['format']}` | "
-        f"`{item['campaign']}` | `{str(item['packing_suspected']).lower()}` | {item['recovered_artifacts']} | "
-        f"{item['config_findings']} |"
-        for item in value["cases"]
-    )
-    return f"""# {value["signature"]}解析
-
-`{value["source"]}` 由来の提出物{value["case_count"]}件を静的解析しました。ローダー、パッカー、運用者はそれぞれ独立して変化し得るため、配布形態とマルウェアファミリーを分離して扱います。
-
-## 一括解析の結果
-
-- ケース数: {value["case_count"]}
-- エラー数: {value["counts"].get("errors", 0)}
-- パッキングが疑われるケース数: {value["counts"].get("packing_suspected", 0)}
-- 成果物を復元したケース数: {value["counts"].get("with_recovered_artifacts", 0)}
-- 検証済み静的設定を持つケース数: {value["counts"].get("with_static_config", 0)}
-- 検体の実行: `false`
-- ネットワーク接続: `false`
-
-## キャンペーン／配布形態
-
-{campaigns}
-
-## 静的に観測した挙動特徴
-
-{features}
-
-## C2／設定の所見
-
-| 値 | 役割 | 確度 | 根拠 |
-|---|---|---|---|
-{findings}
-
-能動的なC2チェックインは実施していません。オフライン評価と受動的な照会生成には `analysis-framework/common/c2_candidate_detector.py` を使用してください。
-
-## 検証済み設定値
-
-{config_values}
-
-## ケース一覧
-
-| SHA-256 | 形式 | キャンペーン | パック済み | レイヤー数 | 所見数 |
-|---|---|---|---:|---:|---:|
-{cases}
-
-## 検知時の考慮事項
-
-- **誤検知リスク高:** ブラウザデータベース、ウォレット、`osascript` への一般的なアクセス、Goランタイム文字列、高エントロピーPEセクション。バックアップ、移行、企業資産管理、インストーラー、正規Goアプリケーションも一致し得ます。
-- **誤検知リスク中:** スクリプトインタープリター、ネットワークダウンロード、実行の組み合わせ、または複数のブラウザ／ウォレット保存領域を読む未署名プロセス。管理自動化やソフトウェア配布と重なる場合があります。
-- **誤検知リスク低:** ファミリー固有文字列、レビュー済み設定パス／ホスト、資格情報保存領域の収集、異常な親子関係またはネットワーク文脈を組み合わせます。ビルダー／バージョン変更による見逃しはなお起こり得ます。
-
-`rules/` 配下の検知ルールは出発点であり、環境に合わせた調整が必要です。C2リテラルは永続的なファミリーシグネチャではなく、短期間のIOC一致として使用してください。
-
-## 安全性と制約
-
-- 検体は一度も実行しておらず、復元レイヤーもコミットしていません。
-- 外部インフラには接続していません。
-- 未知のパッカーとパスワード保護された入れ子アーカイブは未解決です。
-- 情報源による帰属と検証済み静的証拠を分離して保持します。
-"""
+    merged["samples_executed"] = False
+    return merged
 
 
 def generate(
@@ -300,15 +232,27 @@ def generate(
     pipeline_root: Path,
     destination: Path,
     acquisition_manifest: Path | None = None,
+    append: bool = False,
 ) -> dict:
     """Write one family index plus normalized per-case reports and JSON."""
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    value = summarize_family(summary, pipeline_root)
+    addition = summarize_family(summary, pipeline_root)
     destination.mkdir(parents=True, exist_ok=True)
-    (destination / "summary.json").write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summary_output = destination / "summary.json"
+    if append and summary_output.is_file():
+        existing = json.loads(summary_output.read_text(encoding="utf-8"))
+        value = merge_family_summaries(existing, addition)
+    else:
+        value = addition
+    summary_output.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if acquisition_manifest:
         manifest = public_manifest(json.loads(acquisition_manifest.read_text(encoding="utf-8")))
-        (destination / "malwarebazaar-manifest.json").write_text(
+        manifest_output = destination / "malwarebazaar-manifest.json"
+        if append and manifest_output.is_file():
+            manifest = merge_public_manifests(
+                json.loads(manifest_output.read_text(encoding="utf-8")), manifest
+            )
+        manifest_output.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
     canonical_context = None
@@ -322,7 +266,7 @@ def generate(
             raise
     case_links: dict[str, str] = {}
     published_cases: list[Path] = []
-    for item in value["cases"]:
+    for item in addition["cases"]:
         case = load_case(pipeline_root / item["sha256"])
         if canonical_context is None:
             case_root = destination / "cases" / item["sha256"]
@@ -349,6 +293,24 @@ def generate(
             encoding="utf-8",
         )
         published_cases.append(case_root)
+    for item in value["cases"]:
+        if item["sha256"] in case_links:
+            continue
+        if canonical_context is None:
+            case_root = destination / "cases" / item["sha256"]
+            if not case_root.is_dir():
+                raise PublicationError(f"existing case is missing: {item['sha256']}")
+        else:
+            case_root, resolved_context = publication_case_path(
+                destination, canonical_context.family, item["sha256"]
+            )
+            if resolved_context != canonical_context or not case_root.is_dir():
+                raise PublicationError(
+                    f"existing canonical case is missing: {item['sha256']}"
+                )
+        case_links[item["sha256"]] = Path(
+            os.path.relpath(case_root / "README.md", destination)
+        ).as_posix()
     (destination / "README.md").write_text(
         render_family(value, case_links), encoding="utf-8"
     )
@@ -364,13 +326,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pipeline-root", required=True, type=Path)
     parser.add_argument("--destination", required=True, type=Path)
     parser.add_argument("--acquisition-manifest", type=Path)
+    parser.add_argument("--append", action="store_true", help="既存集計へ重複しないケースを追記する")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Generate one family report tree."""
     args = build_parser().parse_args(argv)
-    value = generate(args.summary, args.pipeline_root, args.destination, args.acquisition_manifest)
+    value = generate(args.summary, args.pipeline_root, args.destination, args.acquisition_manifest, args.append)
     print(json.dumps({"family": value["family"], "cases": value["case_count"]}))
     return 0
 

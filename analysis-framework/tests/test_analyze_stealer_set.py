@@ -31,9 +31,12 @@ def test_family_and_campaign_helpers() -> None:
     """Cover exact signature mapping and campaign-shape routing."""
     assert batch.family_id("Formbook") == "formbook"
     assert batch.family_id("ValleyRAT") == "valleyrat"
+    assert batch.family_id("AsyncRAT") == "asyncrat"
     assert batch.family_id("AgentTesla") == "agenttesla"
     assert batch.family_id("RemcosRAT") == "remcosrat"
     assert batch.family_id("VenomRAT") == "venomrat"
+    assert batch.family_id("Stealc") == "stealc"
+    assert batch.family_id("Gh0stRAT") == "gh0strat"
     with pytest.raises(ValueError):
         batch.family_id("unknown")
     assert batch.campaign_hint("amosstealer", "x.macho", b"\xcf\xfa\xed\xfe", {}) == "direct_macho"
@@ -62,6 +65,39 @@ def test_item_manifest_and_cli(tmp_path: Path) -> None:
     args = ["--manifest", str(manifest), "--output", str(tmp_path / "cli"), "--definitions", str(DEFINITIONS)]
     assert batch.build_parser().parse_args(args).manifest == manifest
     assert batch.main(args) == 0
+
+
+def test_manifest_resume_reuses_verified_completed_case(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """専門バッチ再開は検証済みcaseを再解析せずsummaryへ戻す。"""
+
+    archive = tmp_path / "sample.zip"
+    payload = b'resume fixture https://evil.example/gate'
+    encrypted_archive(archive, "sample.osascript", payload)
+    digest = hashlib.sha256(payload).hexdigest()
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "signature": "AmosStealer",
+                "items": [{"sha256": digest, "zip_path": str(archive)}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "batch"
+    first = batch.analyze_manifest(manifest, output, DEFINITIONS)
+    assert first["counts"]["resumed"] == 0
+
+    def fail_if_reanalyzed(*args, **kwargs):
+        raise AssertionError("完了caseを再解析してはいけません")
+
+    monkeypatch.setattr(batch, "analyze_item", fail_if_reanalyzed)
+    resumed = batch.analyze_manifest(manifest, output, DEFINITIONS, resume=True)
+    assert resumed["counts"]["total"] == 1
+    assert resumed["counts"]["resumed"] == 1
+    assert resumed["cases"][0]["resumed"] is True
 
 
 def test_manifest_rejects_noncanonical_or_mismatched_inner_hash(tmp_path: Path) -> None:

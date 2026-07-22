@@ -33,6 +33,7 @@ def test_findings_and_summary_helpers() -> None:
         "packing_suspected": 1,
         "with_recovered_artifacts": 1,
         "with_static_config": 1,
+        "resumed": 0,
         "with_config_findings": 1,
     }
 

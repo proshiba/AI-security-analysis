@@ -321,6 +321,32 @@ def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:
     )
 
 
+def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """7-Zipの非UTF-8出力がreader threadを停止させない設定を固定する。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    observed: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        observed["command"] = command
+        observed["kwargs"] = kwargs
+        return SimpleNamespace(
+            returncode=0,
+            stdout="Path = member-�.bin\nType = 7z\nSize = 4\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    report = unpacker.sevenzip_inventory(b"fixture", executable)
+    assert "-sccUTF-8" in observed["command"]
+    assert observed["kwargs"]["encoding"] == "utf-8"
+    assert observed["kwargs"]["errors"] == "replace"
+    assert report["members"] == ["member-�.bin"]
+
+
 def test_reviewed_container_hint_forces_bounded_archive_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

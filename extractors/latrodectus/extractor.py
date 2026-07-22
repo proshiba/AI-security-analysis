@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from contextlib import suppress
 import re
-import struct
 
 import pefile
 

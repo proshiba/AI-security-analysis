@@ -749,6 +749,74 @@ def analyze_unit(
     }
 
 
+def load_resumable_case(
+    output: Path,
+    digest: str,
+    *,
+    assessment_only: bool,
+) -> dict[str, Any] | None:
+    """検証済みの完了レポートを再開用case summaryへ復元する。"""
+
+    case_dir = output / "cases" / digest
+    report_path = case_dir / "report.json"
+    if not report_path.is_file():
+        return None
+    if case_dir.is_symlink() or report_path.is_symlink():
+        raise ValueError(f"再開対象caseにsymbolic linkがあります: {digest}")
+    required = (
+        "static-layers.json",
+        "classification.json",
+        "applicability.json",
+    )
+    if any(not (case_dir / name).is_file() for name in required):
+        raise ValueError(f"再開対象caseの必須成果物が不足しています: {digest}")
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"再開対象reportを検証できません: {digest}") from exc
+    if not isinstance(report, dict) or report.get("schema_version") != 1:
+        raise ValueError(f"再開対象reportのschemaが不正です: {digest}")
+    sample = report.get("sample")
+    classification = report.get("classification")
+    executions = report.get("handler_executions")
+    if not isinstance(sample, dict) or sample.get("sha256") != digest:
+        raise ValueError(f"再開対象reportのSHA-256が不一致です: {digest}")
+    if not isinstance(classification, dict) or not isinstance(executions, list):
+        raise ValueError(f"再開対象reportの構造が不正です: {digest}")
+    if report.get("executed_sample") is not False or report.get("network_contacted") is not False:
+        raise ValueError(f"再開対象reportの安全フラグが不正です: {digest}")
+    if report.get("assessment_only") is not assessment_only:
+        raise ValueError(f"再開対象reportの解析モードが一致しません: {digest}")
+    selected_families = classification.get("selected_families")
+    if not isinstance(selected_families, list) or any(
+        not isinstance(item, str) for item in selected_families
+    ):
+        raise ValueError(f"再開対象reportのfamily一覧が不正です: {digest}")
+    source_name = sample.get("source_name")
+    if not isinstance(source_name, str) or not source_name:
+        raise ValueError(f"再開対象reportのsource名が不正です: {digest}")
+    statuses = [
+        item.get("status")
+        for item in executions
+        if isinstance(item, dict)
+    ]
+    return {
+        "sha256": digest,
+        "source_name": source_name,
+        "family": classification.get("family"),
+        "selected_family": classification.get("selected_family"),
+        "selected_families": selected_families,
+        "campaign": classification.get("campaign"),
+        "handler_succeeded": sum(status == "succeeded" for status in statuses),
+        "handler_failed": sum(
+            status in {"failed", "preflight_failed"} for status in statuses
+        ),
+        "analysis_stage_failed": report.get("generic_triage") == "failed",
+        "report": f"cases/{digest}/report.json",
+        "resumed": True,
+    }
+
+
 def run_batch(
     inputs: list[Path],
     output: Path,
@@ -761,11 +829,14 @@ def run_batch(
     assessment_only: bool = False,
     max_files: int = DEFAULT_MAX_FILES,
     max_file_size: int = DEFAULT_MAX_FILE_SIZE,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。"""
 
     output.mkdir(parents=True, exist_ok=True)
     paths = collect_inputs(inputs, output, max_files)
+    if archive_mode == "malwarebazaar":
+        paths = [path for path in paths if path.suffix.casefold() == ".zip"]
     specs = discover_handlers()
     registered = _registered_families(registry)
     forced_family = normalize_family(forced_family) if forced_family else None
@@ -786,6 +857,15 @@ def run_batch(
                 duplicates.append({"source_name": path.name, "sha256": digest})
                 continue
             seen.add(digest)
+            if resume:
+                resumed = load_resumable_case(
+                    output,
+                    digest,
+                    assessment_only=assessment_only,
+                )
+                if resumed is not None:
+                    cases.append(resumed)
+                    continue
             cases.append(
                 analyze_unit(
                     unit,
@@ -817,6 +897,7 @@ def run_batch(
             "handler_successes": sum(item["handler_succeeded"] for item in cases),
             "handler_failures": sum(item["handler_failed"] for item in cases),
             "analysis_stage_failures": sum(item["analysis_stage_failed"] for item in cases),
+            "resumed": sum(bool(item.get("resumed")) for item in cases),
         },
         "catalog": catalog_summary(specs),
         "cases": cases,
@@ -829,6 +910,7 @@ def run_batch(
             "assessment_only": assessment_only,
             "max_files": max_files,
             "max_file_size": max_file_size,
+            "resume": resume,
         },
         "executed_sample": False,
         "network_contacted": False,
@@ -876,6 +958,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_MAX_FILE_SIZE,
         help="外装と内包検体それぞれのbyte上限。",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="安全フラグと必須成果物を検証できた完了caseを再利用します。",
+    )
     return parser
 
 
@@ -894,6 +981,7 @@ def main(argv: list[str] | None = None) -> int:
         assessment_only=args.assessment_only,
         max_files=args.max_files,
         max_file_size=args.max_file_size,
+        resume=args.resume,
     )
     print(json.dumps(summary["counts"], ensure_ascii=False, indent=2))
     failed = (
