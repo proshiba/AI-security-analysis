@@ -41,6 +41,7 @@ BEHAVIOR_HEADINGS = (
     "感染チェーン",
     "配送経路",
     "観測した",
+    "静的な処理能力の手掛かり",
 )
 EXCLUDED_HEADINGS = (
     "制約",
@@ -118,7 +119,12 @@ BEHAVIOR_VOCABULARY = (
     VocabularyFeature("execution:wscript", "実行", "WScript／CScriptによる処理", (r"wscript", r"cscript")),
     VocabularyFeature("execution:wmi", "実行", "WMIを介した実行", (r"\bwmi\b",)),
     VocabularyFeature("execution:runpe", "実行", "RunPE／プロセス置換", (r"runpe", r"process hollow")),
-    VocabularyFeature("execution:process_injection", "実行", "プロセス注入", (r"process injection", r"プロセス注入", r"virtualallocex", r"writeprocessmemory")),
+    VocabularyFeature("execution:process_creation", "実行", "プロセス起動API", (r"process_creation", r"プロセス起動api")),
+    VocabularyFeature("execution:process_injection", "実行", "プロセス注入", (r"process injection", r"process_injection", r"プロセス注入", r"virtualallocex", r"writeprocessmemory")),
+    VocabularyFeature("network:api_access", "通信", "ネットワークAPI", (r"network_access", r"ネットワーク接続・取得api")),
+    VocabularyFeature("persistence:registry_access", "永続化", "Registry更新API", (r"registry_access", r"registry更新api")),
+    VocabularyFeature("evasion:anti_debug", "防御回避", "デバッガ確認API", (r"anti_debug", r"デバッガ確認")),
+    VocabularyFeature("execution:cryptographic_api", "実行", "暗号処理API", (r"cryptography", r"暗号処理api")),
     VocabularyFeature("execution:dll_sideload", "実行", "DLLサイドロード実行", (r"dll side[- ]?load", r"dllサイドロード", r"sideload host")),
     VocabularyFeature("execution:single_instance_mutex", "実行", "mutexによる多重起動制御", (r"mutex", r"ミューテックス")),
     VocabularyFeature("persistence:auto_start", "永続化", "自動起動", (r"自動起動", r"auto[- ]?start")),
@@ -199,6 +205,10 @@ def _match_vocabulary(
         lowered = line.casefold()
         for feature in vocabulary:
             if feature.feature_id in output:
+                continue
+            if feature.feature_id == "runtime:dotnet" and re.search(
+                r"\.net\s*[:=]\s*`?(?:false|no|なし)\b", lowered, re.IGNORECASE
+            ):
                 continue
             if any(re.search(pattern, lowered, re.IGNORECASE) for pattern in feature.patterns):
                 output[feature.feature_id] = {

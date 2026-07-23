@@ -26,7 +26,6 @@ import yara  # noqa: E402
 from asa.discovery import infer_family  # noqa: E402
 from extractors.config_extractor import EXTRACTORS  # noqa: E402
 from malware_io import read_single_aes_zip_member, write_json  # noqa: E402
-from unpackers.asar_unpacker import recover_asar  # noqa: E402
 from unpackers.electron_nsis_unpacker import recover_electron_asars  # noqa: E402
 from unpackers.javascript_obfuscator import (  # noqa: E402
     deobfuscate_plain_string_array,
@@ -39,37 +38,80 @@ WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){5,}")
 URL = re.compile(r"https?://[^\s\"'`<>]{4,512}", re.I)
 IP = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?")
 GENERIC_LABELS = {
-    "unknown", "malware", "generic", "stealer", "infostealer", "loader",
-    "dropper", "rat", "trojan", "spyware", "exe", "dll", "js", "jar",
-    "python", "electron", "signed", "psw",
+    "unknown",
+    "malware",
+    "generic",
+    "stealer",
+    "infostealer",
+    "loader",
+    "dropper",
+    "rat",
+    "trojan",
+    "spyware",
+    "exe",
+    "dll",
+    "js",
+    "jar",
+    "python",
+    "electron",
+    "signed",
+    "psw",
 }
 FAMILY_ALIASES = {
-    "agenttesla": "agenttesla", "agent tesla": "agenttesla",
-    "amadey": "amadey", "amos": "amosstealer", "amosstealer": "amosstealer",
-    "atomicstealer": "amosstealer", "atomic stealer": "amosstealer",
-    "beavertail": "beavertail", "blankgrabber": "blankgrabber",
-    "blank grabber": "blankgrabber", "doenerium": "doenerium",
-    "formbook": "formbook", "xloader": "formbook",
-    "genesisstealer": "genesisstealer", "genesis stealer": "genesisstealer",
-    "irahook": "irahook", "latrodectus": "latrodectus",
-    "lumma": "lummastealer", "lummastealer": "lummastealer",
-    "medusastealer": "medusastealer", "nyxstealer": "nyxstealer",
-    "pysilon": "pysilon", "remcos": "remcosrat", "remcosrat": "remcosrat",
-    "remus": "remusstealer", "remusstealer": "remusstealer",
-    "salatstealer": "salatstealer", "stealc": "stealc",
-    "twizgrabber": "twizstealer", "twizstealer": "twizstealer",
-    "valleyrat": "valleyrat", "venomrat": "venomrat", "vidar": "vidar",
-    "wasp stealer": "waspstealer", "waspstealer": "waspstealer",
+    "agenttesla": "agenttesla",
+    "agent tesla": "agenttesla",
+    "amadey": "amadey",
+    "amos": "amosstealer",
+    "amosstealer": "amosstealer",
+    "atomicstealer": "amosstealer",
+    "atomic stealer": "amosstealer",
+    "beavertail": "beavertail",
+    "blankgrabber": "blankgrabber",
+    "blank grabber": "blankgrabber",
+    "doenerium": "doenerium",
+    "formbook": "formbook",
+    "xloader": "formbook",
+    "genesisstealer": "genesisstealer",
+    "genesis stealer": "genesisstealer",
+    "irahook": "irahook",
+    "latrodectus": "latrodectus",
+    "lumma": "lummastealer",
+    "lummastealer": "lummastealer",
+    "medusastealer": "medusastealer",
+    "nyxstealer": "nyxstealer",
+    "pysilon": "pysilon",
+    "remcos": "remcosrat",
+    "remcosrat": "remcosrat",
+    "remus": "remusstealer",
+    "remusstealer": "remusstealer",
+    "salatstealer": "salatstealer",
+    "stealc": "stealc",
+    "twizgrabber": "twizstealer",
+    "twizstealer": "twizstealer",
+    "valleyrat": "valleyrat",
+    "venomrat": "venomrat",
+    "vidar": "vidar",
+    "wasp stealer": "waspstealer",
+    "waspstealer": "waspstealer",
     "xworm": "xworm",
-    "asyncrat": "asyncrat", "async rat": "asyncrat",
-    "quasarrat": "quasarrat", "quasar rat": "quasarrat",
-    "njrat": "njrat", "bladabindi": "njrat",
-    "darkcomet": "darkcomet", "dark comet": "darkcomet",
-    "dcrat": "dcrat", "darkcrystalrat": "dcrat",
-    "redlinestealer": "redlinestealer", "redline stealer": "redlinestealer",
-    "snakekeylogger": "snakekeylogger", "snake keylogger": "snakekeylogger",
-    "guloader": "guloader", "gu loader": "guloader",
-    "hijackloader": "hijackloader", "hijack loader": "hijackloader",
+    "asyncrat": "asyncrat",
+    "async rat": "asyncrat",
+    "quasarrat": "quasarrat",
+    "quasar rat": "quasarrat",
+    "njrat": "njrat",
+    "bladabindi": "njrat",
+    "darkcomet": "darkcomet",
+    "dark comet": "darkcomet",
+    "dcrat": "dcrat",
+    "darkcrystalrat": "dcrat",
+    "redlinestealer": "redlinestealer",
+    "redline stealer": "redlinestealer",
+    "snakekeylogger": "snakekeylogger",
+    "snake keylogger": "snakekeylogger",
+    "guloader": "guloader",
+    "gu loader": "guloader",
+    "hijackloader": "hijackloader",
+    "hijack loader": "hijackloader",
 }
 SOURCE_WEIGHT = {
     "internal_detector": 4,
@@ -86,7 +128,8 @@ ROOT_FULL_SCAN_LIMIT = 32 * 1024 * 1024
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
 STRICT_INTERNAL_FORMATS = {
-    "agenttesla": {"pe"}, "stealc": {"pe"},
+    "agenttesla": {"pe"},
+    "stealc": {"pe"},
 }
 
 
@@ -103,9 +146,7 @@ def _resolve_detector_path(family: str, relative_path: object) -> Path:
     requested = Path(relative_path)
     expected = Path("malware") / family / "detect.py"
     if requested.is_absolute() or requested != expected:
-        raise DetectorPathError(
-            f"detector path must be exactly {expected.as_posix()}: {relative_path!r}"
-        )
+        raise DetectorPathError(f"detector path must be exactly {expected.as_posix()}: {relative_path!r}")
     framework = FRAMEWORK_ROOT.resolve(strict=True)
     malware_root = (framework / "malware").resolve(strict=True)
     try:
@@ -119,29 +160,77 @@ def _resolve_detector_path(family: str, relative_path: object) -> Path:
 
 
 BENIGN_URL_HOSTS = {
-    "api.ipify.org", "archiverjs.com", "axios-http.com", "blog.caustik.com",
-    "blog.izs.me", "caolan.github.io", "christalkington.com", "code.google.com",
-    "developer.mozilla.org", "dom.spec.whatwg.org", "editorconfig.org",
-    "en.wikipedia.org", "github.com", "invisible-island.net", "ipinfo.io",
-    "luajit.org", "narwhaljs.org", "nodejs.org", "oneocsp.microsoft.com",
-    "schemas.microsoft.com", "wiki.commonjs.org", "www.3waylabs.com",
-    "www.digicert.com", "www.ecma-international.org", "www.example.com",
-    "www.google.com", "www.midnight-commander.org", "www.unicode.org", "www.w3.org",
+    "api.ipify.org",
+    "archiverjs.com",
+    "axios-http.com",
+    "blog.caustik.com",
+    "blog.izs.me",
+    "caolan.github.io",
+    "christalkington.com",
+    "code.google.com",
+    "developer.mozilla.org",
+    "dom.spec.whatwg.org",
+    "editorconfig.org",
+    "en.wikipedia.org",
+    "github.com",
+    "invisible-island.net",
+    "ipinfo.io",
+    "luajit.org",
+    "narwhaljs.org",
+    "nodejs.org",
+    "oneocsp.microsoft.com",
+    "schemas.microsoft.com",
+    "wiki.commonjs.org",
+    "www.3waylabs.com",
+    "www.digicert.com",
+    "www.ecma-international.org",
+    "www.example.com",
+    "www.google.com",
+    "www.midnight-commander.org",
+    "www.unicode.org",
+    "www.w3.org",
 }
 BENIGN_HOST_PREFIXES = (
-    "cacerts.digicert.com", "crl.comodoca.com", "crl.sectigo.com", "crl.usertrust.com",
-    "crl3.digicert.com", "crl4.digicert.com", "crt.sectigo.com", "ocsp.comodoca.com",
-    "ocsp.digicert.com", "ocsp.sectigo.com", "ocsp.usertrust.com", "www.microsoft.com",
+    "cacerts.digicert.com",
+    "crl.comodoca.com",
+    "crl.sectigo.com",
+    "crl.usertrust.com",
+    "crl3.digicert.com",
+    "crl4.digicert.com",
+    "crt.sectigo.com",
+    "ocsp.comodoca.com",
+    "ocsp.digicert.com",
+    "ocsp.sectigo.com",
+    "ocsp.usertrust.com",
+    "www.microsoft.com",
 )
-BENIGN_URL_HOSTS.update({
-    "android.googlesource.com",
-    "connalle.blogspot.com", "fastcopy.jp", "api.fastcopy.jp", "fengmk2.com",
-    "gcc.gnu.org", "groups.google.com", "jrsoftware.org", "learn.microsoft.com",
-    "mathiasbynens.be", "medium.com", "mths.be", "mxr.mozilla.org",
-    "pubs.opengroup.org", "registry.npmjs.org", "sectigo.com", "server.net",
-    "sindresorhus.com", "tc39.es", "tools.ietf.org", "www.archiverjs.com",
-    "www.npmjs.com", "www.python.org",
-})
+BENIGN_URL_HOSTS.update(
+    {
+        "android.googlesource.com",
+        "connalle.blogspot.com",
+        "fastcopy.jp",
+        "api.fastcopy.jp",
+        "fengmk2.com",
+        "gcc.gnu.org",
+        "groups.google.com",
+        "jrsoftware.org",
+        "learn.microsoft.com",
+        "mathiasbynens.be",
+        "medium.com",
+        "mths.be",
+        "mxr.mozilla.org",
+        "pubs.opengroup.org",
+        "registry.npmjs.org",
+        "sectigo.com",
+        "server.net",
+        "sindresorhus.com",
+        "tc39.es",
+        "tools.ietf.org",
+        "www.archiverjs.com",
+        "www.npmjs.com",
+        "www.python.org",
+    }
+)
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -204,8 +293,7 @@ def ioc_worthy_url(value: str) -> bool:
     if not host or host == "localhost" or ("." not in host and not ip_host):
         return False
     if host in BENIGN_URL_HOSTS or any(
-        host == prefix or host.endswith("." + prefix) or host.startswith(prefix)
-        for prefix in BENIGN_HOST_PREFIXES
+        host == prefix or host.endswith("." + prefix) or host.startswith(prefix) for prefix in BENIGN_HOST_PREFIXES
     ):
         return False
     if host == "hooks.slack.com" and any(part in {"TXXX", "XX"} for part in parsed.path.split("/")):
@@ -236,10 +324,7 @@ def sanitize_ip_candidate(value: str) -> str | None:
 def extract_iocs(strings: list[str]) -> dict:
     """Return sanitized, bounded URL and IP candidates from static strings."""
     text = "\n".join(strings)
-    urls = sorted({
-        item for raw in URL.findall(text)
-        if (item := sanitize_url(raw)) and ioc_worthy_url(item)
-    })
+    urls = sorted({item for raw in URL.findall(text) if (item := sanitize_url(raw)) and ioc_worthy_url(item)})
     ips = sorted({item for raw in IP.findall(text) if (item := sanitize_ip_candidate(raw))})
     return {"urls": urls[:256], "ips": ips[:128]}
 
@@ -308,9 +393,7 @@ def compile_yara_rules(repository: Path):
     paths = sorted(repository.rglob("*.yar"))
     if not paths:
         return None
-    return yara.compile(
-        filepaths={f"rule_{index:04d}": str(path) for index, path in enumerate(paths)}
-    )
+    return yara.compile(filepaths={f"rule_{index:04d}": str(path) for index, path in enumerate(paths)})
 
 
 def scan_yara(data: bytes, rules) -> list[str]:
@@ -349,7 +432,9 @@ def internal_evidence(
             try:
                 result = detector(data, Path(name))
                 if result.get("matched"):
-                    evidence.append({"family": family, "source": "internal_detector", "detail": "registered detector matched"})
+                    evidence.append(
+                        {"family": family, "source": "internal_detector", "detail": "registered detector matched"}
+                    )
             except Exception as exc:
                 errors[family] = type(exc).__name__
         yara_matches = scan_yara(data, rules)
@@ -375,10 +460,7 @@ def irahook_shape(strings: list[str], root_format: str) -> bool:
     if root_format != "zip":
         return False
     text = "\n".join(value.lower().replace(".", "/") for value in strings)
-    return "ira/m/easysleep" in text and "fabric/mod/json" in text and (
-        "qprotect" in text or "modclass" in text
-    )
-
+    return "ira/m/easysleep" in text and "fabric/mod/json" in text and ("qprotect" in text or "modclass" in text)
 
 
 def resolve_attribution(evidence: list[dict]) -> dict:
@@ -400,7 +482,13 @@ def resolve_attribution(evidence: list[dict]) -> dict:
     ordered = sorted(scores, key=lambda family: (-scores[family], family))
     selected = ordered[0]
     if len(ordered) > 1 and scores[ordered[0]] == scores[ordered[1]]:
-        return {"family": "unknown", "confidence": "low", "status": "conflicting", "score": scores[selected], "evidence": unique}
+        return {
+            "family": "unknown",
+            "confidence": "low",
+            "status": "conflicting",
+            "score": scores[selected],
+            "evidence": unique,
+        }
     internal = any(source.startswith("internal_") for source in sources[selected])
     independent = len(sources[selected]) >= 2
     if internal and independent and scores[selected] >= 7:
@@ -409,7 +497,13 @@ def resolve_attribution(evidence: list[dict]) -> dict:
         confidence = "medium"
     else:
         confidence = "low"
-    return {"family": selected, "confidence": confidence, "status": "inferred", "score": scores[selected], "evidence": unique}
+    return {
+        "family": selected,
+        "confidence": confidence,
+        "status": "inferred",
+        "score": scores[selected],
+        "evidence": unique,
+    }
 
 
 def _public_recovered(items: list[dict] | None, limit: int = 64) -> list[dict]:
@@ -421,10 +515,14 @@ def _public_recovered(items: list[dict] | None, limit: int = 64) -> list[dict]:
             continue
         item = {key: raw[key] for key in allowed if key in raw}
         label = str(item.get("name") or item.get("path") or item.get("kind") or "").lower()
-        target = preferred if (
-            label.endswith((".js", ".json", ".node", ".exe", ".dll", ".ps1"))
-            or any(marker in label for marker in ("payload", "loader", "resource", "main", "index", "config"))
-        ) else other
+        target = (
+            preferred
+            if (
+                label.endswith((".js", ".json", ".node", ".exe", ".dll", ".ps1"))
+                or any(marker in label for marker in ("payload", "loader", "resource", "main", "index", "config"))
+            )
+            else other
+        )
         target.append(item)
     return (preferred + other)[:limit]
 
@@ -462,9 +560,10 @@ def _public_asar_summary(report: dict | None) -> dict | None:
     for item in inventory:
         name = str(item.get("name") or item.get("path") or "")
         lowered = name.lower()
-        if name and (lowered.endswith((".js", ".json", ".node")) or any(
-            marker in lowered for marker in ("payload", "resource", "loader", "main", "index")
-        )):
+        if name and (
+            lowered.endswith((".js", ".json", ".node"))
+            or any(marker in lowered for marker in ("payload", "resource", "loader", "main", "index"))
+        ):
             interesting.append(name)
         if len(interesting) >= 64:
             break
@@ -483,9 +582,18 @@ def _public_electron_summary(report: dict | None) -> dict | None:
     outer = report.get("outer_listing") or {}
     return {
         "status": report.get("status"),
-        "outer_listing": {"status": outer.get("status"), "types": outer.get("types") or [], "total_members": outer.get("total_members")},
+        "outer_listing": {
+            "status": outer.get("status"),
+            "types": outer.get("types") or [],
+            "total_members": outer.get("total_members"),
+        },
         "nested": [
-            {"nested_member": item.get("nested_member"), "status": item.get("status"), "total_members": (item.get("nested_listing") or {}).get("total_members"), "asars": item.get("asars") or []}
+            {
+                "nested_member": item.get("nested_member"),
+                "status": item.get("status"),
+                "total_members": (item.get("nested_listing") or {}).get("total_members"),
+                "asars": item.get("asars") or [],
+            }
             for item in (report.get("nested") or [])[:16]
         ],
         "sample_executed": False,
@@ -508,10 +616,7 @@ def recursive_layers(
             "format": detect_format(root_data, root_name),
             "entropy": None,
             "unpack_status": "targeted_electron_asar",
-            "recovered": [
-                {"kind": kind, "size": len(blob), "sha256": sha256_bytes(blob)}
-                for kind, blob in targeted
-            ],
+            "recovered": [{"kind": kind, "size": len(blob), "sha256": sha256_bytes(blob)} for kind, blob in targeted],
             "pe": {
                 "classification": "self_extracting_container",
                 "packing_suspected": False,
@@ -538,8 +643,7 @@ def recursive_layers(
                 root_report["full_file_detectors_skipped"] = True
         kind = root_report.get("format")
         needs_external = sevenzip and (
-            kind in {"7z", "rar", "cab", "apple-disk-image"}
-            or bool((root_report.get("pe") or {}).get("containerized"))
+            kind in {"7z", "rar", "cab", "apple-disk-image"} or bool((root_report.get("pe") or {}).get("containerized"))
         )
         if needs_external and len(root_data) <= ROOT_FULL_SCAN_LIMIT:
             root_report, artifacts = unpack_bytes(root_data, root_name, sevenzip=sevenzip)
@@ -556,7 +660,16 @@ def recursive_layers(
         seen.add(digest)
         fmt = detect_format(blob, f"{kind}.bin")
         if len(blob) > MAX_LAYER_SIZE and fmt not in {"asar", "script"}:
-            layers.append({"depth": depth, "kind": kind, "sha256": digest, "size": len(blob), "format": fmt, "status": "oversized_runtime_skipped"})
+            layers.append(
+                {
+                    "depth": depth,
+                    "kind": kind,
+                    "sha256": digest,
+                    "size": len(blob),
+                    "format": fmt,
+                    "status": "oversized_runtime_skipped",
+                }
+            )
             continue
         report, children = unpack_bytes(blob, f"{kind}.bin", sevenzip=sevenzip if fmt in {"7z", "rar", "cab"} else None)
         strings = extract_strings(blob)
@@ -568,18 +681,20 @@ def recursive_layers(
                     strings.extend(extract_strings(output))
                     transformed.append(decode_report)
         all_strings.extend(strings)
-        layers.append({
-            "depth": depth,
-            "kind": kind,
-            "sha256": digest,
-            "size": len(blob),
-            "format": report.get("format"),
-            "unpack_status": report.get("unpack_status"),
-            "recovered_total": _recovered_count(report.get("recovered")),
-            "recovered": _public_recovered(report.get("recovered")),
-            "deobfuscation": transformed,
-            "asar": _public_asar_summary(report.get("asar")),
-        })
+        layers.append(
+            {
+                "depth": depth,
+                "kind": kind,
+                "sha256": digest,
+                "size": len(blob),
+                "format": report.get("format"),
+                "unpack_status": report.get("unpack_status"),
+                "recovered_total": _recovered_count(report.get("recovered")),
+                "recovered": _public_recovered(report.get("recovered")),
+                "deobfuscation": transformed,
+                "asar": _public_asar_summary(report.get("asar")),
+            }
+        )
         retained.append((kind, blob))
         if depth < 4:
             for child_kind, child in children:
@@ -625,41 +740,52 @@ def analyze_item(item: dict, detectors: dict[str, object], rules, sevenzip: Path
     tags = [str(value).lower() for value in metadata.get("tags") or []]
     rule_names = [str(value.get("rule_name") or "").lower() for value in metadata.get("yara_rules") or []]
     electron_expected = "electron" in tags or any("genesisstealer_installer_nsis" in name for name in rule_names)
-    root_unpack, layers, retained, layer_strings = recursive_layers(member.data, member.name, sevenzip, electron_expected)
+    root_unpack, layers, retained, layer_strings = recursive_layers(
+        member.data, member.name, sevenzip, electron_expected
+    )
     evidence = external_evidence(metadata)
     internal, root_observations = internal_evidence(member.data, member.name, detectors, rules)
     evidence.extend(internal)
     internal_strings = root_observations["strings"] + layer_strings
     has_asar = any(layer.get("format") == "asar" for layer in layers)
     if genesis_shape(internal_strings, has_asar) and any(item["family"] == "genesisstealer" for item in evidence):
-        evidence.append({"family": "genesisstealer", "source": "internal_shape", "detail": "NSIS/Electron ASAR loader markers"})
+        evidence.append(
+            {"family": "genesisstealer", "source": "internal_shape", "detail": "NSIS/Electron ASAR loader markers"}
+        )
     for kind, blob in retained:
         layer_evidence, _ = internal_evidence(blob, f"{kind}.bin", detectors, rules)
     if irahook_shape(internal_strings, root_unpack.get("format")) and any(
         item["family"] == "irahook" for item in evidence
     ):
-        evidence.append({"family": "irahook", "source": "internal_shape", "detail": "IRAHook Fabric mod package and EasySleep class markers"})
+        evidence.append(
+            {
+                "family": "irahook",
+                "source": "internal_shape",
+                "detail": "IRAHook Fabric mod package and EasySleep class markers",
+            }
+        )
         evidence.extend(layer_evidence)
     attribution = resolve_attribution(evidence)
     strings = internal_strings[:100_000]
     iocs = extract_iocs(strings)
-    config_findings = safe_config_findings(
-        attribution["family"], [(member.name, member.data), *retained]
-    ) if attribution["confidence"] in {"high", "medium"} else []
+    config_findings = (
+        safe_config_findings(attribution["family"], [(member.name, member.data), *retained])
+        if attribution["confidence"] in {"high", "medium"}
+        else []
+    )
     for finding in config_findings:
         if finding["kind"] == "url":
             iocs["urls"] = sorted(set(iocs["urls"] + [finding["value"]]))
         elif finding["kind"] == "ip":
             iocs["ips"] = sorted(set(iocs["ips"] + [finding["value"]]))
     if str(metadata.get("file_type") or "").lower() in {"exe", "dll", "macho", "jar"}:
-        url_hosts = {
-            urlsplit(value).hostname
-            for value in iocs["urls"]
-            if urlsplit(value).hostname
+        url_hosts = {urlsplit(value).hostname for value in iocs["urls"] if urlsplit(value).hostname}
+        config_ips = {
+            finding["value"].split(":", 1)[0] for finding in config_findings if finding["kind"] in {"ip", "endpoint"}
         }
-        config_ips = {finding["value"].split(":", 1)[0] for finding in config_findings if finding["kind"] in {"ip", "endpoint"}}
         iocs["ips"] = [
-            value for value in iocs["ips"]
+            value
+            for value in iocs["ips"]
             if ":" in value or value.split(":", 1)[0] in url_hosts or value.split(":", 1)[0] in config_ips
         ]
     source = {
@@ -717,19 +843,15 @@ def cluster_cases(cases: list[dict]) -> dict[str, list[str]]:
 
 
 _LIMITATION_JA = {
-    "Static-only attribution; low-confidence labels remain provisional.":
-        "静的解析だけに基づく帰属であり、低確度のラベルは暫定情報です。",
-    "General string URLs are candidates, not confirmed C2 endpoints.":
-        "一般文字列から得たURLは候補であり、確認済みC2エンドポイントではありません。",
-    "Oversized Electron runtime binaries are inventoried but not recursively parsed.":
-        "大容量のElectronランタイムバイナリは一覧化のみ行い、再帰解析していません。",
+    "Static-only attribution; low-confidence labels remain provisional.": "静的解析だけに基づく帰属であり、低確度のラベルは暫定情報です。",
+    "General string URLs are candidates, not confirmed C2 endpoints.": "一般文字列から得たURLは候補であり、確認済みC2エンドポイントではありません。",
+    "Oversized Electron runtime binaries are inventoried but not recursively parsed.": "大容量のElectronランタイムバイナリは一覧化のみ行い、再帰解析していません。",
 }
 _EVIDENCE_DETAIL_JA = {
     "distinctive static markers": "固有の静的マーカー",
     "registered detector matched": "登録済み検出器の一致",
     "NSIS/Electron ASAR loader markers": "NSIS/Electron ASARローダーのマーカー",
-    "IRAHook Fabric mod package and EasySleep class markers":
-        "IRAHook Fabric modパッケージとEasySleepクラスのマーカー",
+    "IRAHook Fabric mod package and EasySleep class markers": "IRAHook Fabric modパッケージとEasySleepクラスのマーカー",
 }
 
 
@@ -737,31 +859,35 @@ def render_case_readme(case: dict) -> str:
     """帰属根拠と検出情報を含む、公開可能な日本語ケース報告を生成する。"""
     source, attribution = case["source"], case["attribution"]
     lines = [
-        f"# {case['sha256']}", "",
-        "## 概要", "",
+        f"# {case['sha256']}",
+        "",
+        "## 概要",
+        "",
         f"- MalwareBazaar初回観測日時: `{source.get('first_seen')}`",
         f"- 投稿時ファイル名: `{source.get('file_name')}`",
         f"- 形式／サイズ: `{source.get('file_type')}`／`{source.get('file_size')}`バイト",
         f"- 識別ファミリー: `{attribution['family']}`",
         f"- 帰属確度: `{attribution['confidence']}`（状態: `{attribution['status']}`、スコア: {attribution['score']}）",
-        "- 実行／ネットワーク接続: 未実施", "",
-        "## 帰属根拠", "",
+        "- 実行／ネットワーク接続: 未実施",
+        "",
+        "## 帰属根拠",
+        "",
     ]
     if attribution["evidence"]:
         for item in attribution["evidence"]:
             detail = _EVIDENCE_DETAIL_JA.get(str(item["detail"]))
             rendered_detail = detail if detail else f"`{item['detail']}`"
-            lines.append(
-                f"- 根拠種別 `{item['source']}`: ファミリー `{item['family']}`、"
-                f"詳細: {rendered_detail}"
-            )
+            lines.append(f"- 根拠種別 `{item['source']}`: ファミリー `{item['family']}`、詳細: {rendered_detail}")
     else:
         lines.append("- 防御可能なファミリー固有根拠がないため、`unknown`として保持しています。")
-    lines.extend([
-        "", "## 静的解析チェーン", "",
-        f"- ルート: `{case['root_unpack'].get('format')}`／"
-        f"`{case['root_unpack'].get('packing_classification')}`",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 静的解析チェーン",
+            "",
+            f"- ルート: `{case['root_unpack'].get('format')}`／`{case['root_unpack'].get('packing_classification')}`",
+        ]
+    )
     for layer in case["layers"]:
         lines.append(
             f"- 深さ{layer['depth']}: `{layer['format']}` `{layer['sha256']}`"
@@ -775,17 +901,22 @@ def render_case_readme(case: dict) -> str:
         lines.extend(f"- IP候補: `{value}`" for value in case["iocs"]["ips"])
     if not case["iocs"]["urls"] and not case["iocs"]["ips"]:
         lines.append("- 静的根拠からは復元されませんでした。")
-    lines.extend([
-        "", "## 検出時の考慮事項", "",
-        f"- 高確度／低誤検知リスク: 投稿検体の完全一致SHA-256 `{case['sha256']}`。",
-        "- 中確度／中誤検知リスク: 独立したファミリー固有の静的観測を2件以上、"
-        "またはレビュー済み構造シグネチャを必要とします。",
-        "- 低確度／高誤検知リスク: ファイル名、一般的なElectron/NSIS/PyInstallerタグ、"
-        "imphash、または単独のURL。",
-        "- Sigmaではプロセスの親子関係、展開先パス、スクリプト／ランタイム挙動を"
-        "組み合わせる必要があります。静的データだけからプロセス挙動を断定していません。",
-        "", "## 制約", "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 検出時の考慮事項",
+            "",
+            f"- 高確度／低誤検知リスク: 投稿検体の完全一致SHA-256 `{case['sha256']}`。",
+            "- 中確度／中誤検知リスク: 独立したファミリー固有の静的観測を2件以上、"
+            "またはレビュー済み構造シグネチャを必要とします。",
+            "- 低確度／高誤検知リスク: ファイル名、一般的なElectron/NSIS/PyInstallerタグ、imphash、または単独のURL。",
+            "- Sigmaではプロセスの親子関係、展開先パス、スクリプト／ランタイム挙動を"
+            "組み合わせる必要があります。静的データだけからプロセス挙動を断定していません。",
+            "",
+            "## 制約",
+            "",
+        ]
+    )
     lines.extend(f"- {_LIMITATION_JA.get(str(value), f'`{value}`')}" for value in case["limitations"])
     return "\n".join(lines) + "\n"
 
@@ -796,27 +927,23 @@ def write_case(case: dict, output: Path) -> None:
     write_json(output / "case.json", case)
     (output / "README.md").write_text(render_case_readme(case), encoding="utf-8")
     network = [
-        {"value": value, "role": "static_url_candidate", "confidence": "inferred"}
-        for value in case["iocs"]["urls"]
-    ] + [
-        {"value": value, "role": "static_ip_candidate", "confidence": "inferred"}
-        for value in case["iocs"]["ips"]
-    ]
-    write_json(output / "iocs.json", {
-        "schema_version": 1,
-        "files": [{"sha256": case["sha256"], "role": "submitted_sample", "confidence": "confirmed"}],
-        "network": network,
-        "network_contacted": False,
-    })
+        {"value": value, "role": "static_url_candidate", "confidence": "inferred"} for value in case["iocs"]["urls"]
+    ] + [{"value": value, "role": "static_ip_candidate", "confidence": "inferred"} for value in case["iocs"]["ips"]]
+    write_json(
+        output / "iocs.json",
+        {
+            "schema_version": 1,
+            "files": [{"sha256": case["sha256"], "role": "submitted_sample", "confidence": "confirmed"}],
+            "network": network,
+            "network_contacted": False,
+        },
+    )
 
 
 def normalize_case_iocs(case: dict) -> dict:
     """Re-sanitize cached case URLs after IOC policy or parser updates."""
     raw_urls = (case.get("iocs") or {}).get("urls") or []
-    urls = sorted({
-        item for raw in raw_urls
-        if (item := sanitize_url(str(raw))) and ioc_worthy_url(item)
-    })
+    urls = sorted({item for raw in raw_urls if (item := sanitize_url(str(raw))) and ioc_worthy_url(item)})
     case.setdefault("iocs", {})["urls"] = urls[:256]
     raw_ips = case["iocs"].get("ips") or []
     ips = sorted({item for raw in raw_ips if (item := sanitize_ip_candidate(str(raw)))})
@@ -828,7 +955,8 @@ def normalize_case_iocs(case: dict) -> dict:
             if finding.get("kind") in {"ip", "endpoint"}
         }
         ips = [
-            value for value in ips
+            value
+            for value in ips
             if ":" in value or value.split(":", 1)[0] in url_hosts or value.split(":", 1)[0] in config_ips
         ]
     case["iocs"]["ips"] = ips[:128]
@@ -850,9 +978,7 @@ def normalize_case_structure(case: dict) -> dict:
     return case
 
 
-def render_summary(
-    summary: dict, case_links: dict[str, str] | None = None
-) -> str:
+def render_summary(summary: dict, case_links: dict[str, str] | None = None) -> str:
     """新しい順の集約コレクションとファミリー分布を日本語で生成する。"""
     case_links = case_links or {}
 
@@ -861,80 +987,113 @@ def render_summary(
         return case_links.get(digest, f"cases/{digest}/README.md")
 
     lines = [
-        "# MalwareBazaar未分類／Stealer検体の静的分類", "",
+        "# MalwareBazaar未分類／Stealer検体の静的分類",
+        "",
         "このバッチには、ファミリーシグネチャが空で、タグに`unknown`、`stealer`、"
         "または`infostealer`を含むMalwareBazaarの新しい順のエントリを収録しています。"
         "検体は静的に解析し、検体や復元ペイロードの実行、および抽出インフラへの接続は"
-        "行っていません。", "",
-        "## コレクション", "",
+        "行っていません。",
+        "",
+        "## コレクション",
+        "",
         f"- 検体数: {summary['counts']['total']}件",
         f"- 初回観測範囲: `{summary['newest_first_seen']}`～`{summary['oldest_first_seen']}`",
         f"- 解析エラー: {summary['counts']['errors']}件",
         f"- 識別済み（暫定的な低確度を含む）: {summary['counts']['identified']}件",
         f"- 中／高確度の裏付けあり: {summary['counts']['supported']}件",
         f"- 外部根拠のみ／低確度の暫定候補: {summary['counts']['provisional']}件",
-        f"- 未識別: {summary['counts']['unknown']}件", "",
-        "## 帰属分布", "",
-        "| ファミリー | 確度 | 件数 |", "|---|---|---:|",
+        f"- 未識別: {summary['counts']['unknown']}件",
+        "",
+        "## 帰属分布",
+        "",
+        "| ファミリー | 確度 | 件数 |",
+        "|---|---|---:|",
     ]
     for key, count in summary["attribution_counts"].items():
         family, confidence = key.split("|", 1)
         lines.append(f"| {family} | {confidence} | {count} |")
     supported = [
-        case for case in summary["cases"]
-        if "error" not in case and case["attribution"]["family"] != "unknown"
+        case
+        for case in summary["cases"]
+        if "error" not in case
+        and case["attribution"]["family"] != "unknown"
         and case["attribution"]["confidence"] in {"medium", "high"}
     ]
-    lines.extend([
-        "", "## 裏付けのあるファミリー帰属", "",
-        "| SHA-256 | ファミリー | 確度 | 内部根拠 |",
-        "|---|---|---|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 裏付けのあるファミリー帰属",
+            "",
+            "| SHA-256 | ファミリー | 確度 | 内部根拠 |",
+            "|---|---|---|---|",
+        ]
+    )
     for case in supported:
-        support = ", ".join(sorted({
-            item["source"] for item in case["attribution"]["evidence"]
-            if item["source"].startswith("internal_")
-        })) or "なし"
+        support = (
+            ", ".join(
+                sorted(
+                    {
+                        item["source"]
+                        for item in case["attribution"]["evidence"]
+                        if item["source"].startswith("internal_")
+                    }
+                )
+            )
+            or "なし"
+        )
         lines.append(
             f"| [{case['sha256']}]({case_link(case)}) | "
             f"`{case['attribution']['family']}` | `{case['attribution']['confidence']}` | "
             f"`{support}` |"
         )
-    lines.extend([
-        "", "## 検出ルール", "",
-        "- [IRAHook Fabric mod構造](rules/yara/irahook_fabric_mod_2026.yar): "
-        "中確度。パッケージパスの全条件を組み合わせた場合、想定誤検知リスクは低です。",
-        "- [Electron認証情報ローダーASAR構造](rules/yara/electron_credential_loader_asar_2026.yar): "
-        "中確度、想定誤検知リスクは中程度です。復元したASARまたはローダースクリプトへ"
-        "適用してください。",
-        "- プロセスまたはイベントのテレメトリを収集していないため、"
-        "この静的解析専用バッチからSigmaルールを断定していません。",
-    ])
-    network = sorted({
-        value
-        for case in summary["cases"] if "error" not in case
-        for value in ((case.get("iocs") or {}).get("ips") or []) + ((case.get("iocs") or {}).get("urls") or [])
-    })
-    lines.extend([
-        "", "## 静的ネットワーク候補", "",
-        "以下の値は静的文字列または設定形式のデータから復元したものです。"
-        "接続は行っておらず、確認済みC2エンドポイントではありません。", "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 検出ルール",
+            "",
+            "- [IRAHook Fabric mod構造](rules/yara/irahook_fabric_mod_2026.yar): "
+            "中確度。パッケージパスの全条件を組み合わせた場合、想定誤検知リスクは低です。",
+            "- [Electron認証情報ローダーASAR構造](rules/yara/electron_credential_loader_asar_2026.yar): "
+            "中確度、想定誤検知リスクは中程度です。復元したASARまたはローダースクリプトへ"
+            "適用してください。",
+            "- プロセスまたはイベントのテレメトリを収集していないため、"
+            "この静的解析専用バッチからSigmaルールを断定していません。",
+        ]
+    )
+    network = sorted(
+        {
+            value
+            for case in summary["cases"]
+            if "error" not in case
+            for value in ((case.get("iocs") or {}).get("ips") or []) + ((case.get("iocs") or {}).get("urls") or [])
+        }
+    )
+    lines.extend(
+        [
+            "",
+            "## 静的ネットワーク候補",
+            "",
+            "以下の値は静的文字列または設定形式のデータから復元したものです。"
+            "接続は行っておらず、確認済みC2エンドポイントではありません。",
+            "",
+        ]
+    )
     if network:
         lines.extend(f"- `{value}`" for value in network)
     else:
         lines.append("- 復元された候補はありません。")
-    lines.extend([
-        "", "## ケース索引", "",
-        "| 初回観測 | SHA-256 | ファミリー | 確度 |",
-        "|---|---|---|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## ケース索引",
+            "",
+            "| 初回観測 | SHA-256 | ファミリー | 確度 |",
+            "|---|---|---|---|",
+        ]
+    )
     for case in summary["cases"]:
         if "error" in case:
-            lines.append(
-                f"| {case.get('first_seen')} | [{case['sha256']}]({case_link(case)}) | "
-                "`error` | `low` |"
-            )
+            lines.append(f"| {case.get('first_seen')} | [{case['sha256']}]({case_link(case)}) | `error` | `low` |")
         else:
             lines.append(
                 f"| {case['source'].get('first_seen')} | "
@@ -942,18 +1101,30 @@ def render_summary(
                 f"`{case['attribution']['family']}` | "
                 f"`{case['attribution']['confidence']}` |"
             )
-    lines.extend([
-        "", "## 解釈", "",
-        "情報源タグまたは外部公開ルールだけに基づくファミリー名は暫定情報です。"
-        "中／高確度とするには、内部検出器、YARA、または構造上の根拠が必要です。"
-        "`unknown`または`conflicting`のケースには、意図的にファミリー名を"
-        "強制付与していません。ネットワーク値は静的候補であり、確認済みC2インフラでは"
-        "ありません。",
-    ])
+    lines.extend(
+        [
+            "",
+            "## 解釈",
+            "",
+            "情報源タグまたは外部公開ルールだけに基づくファミリー名は暫定情報です。"
+            "中／高確度とするには、内部検出器、YARA、または構造上の根拠が必要です。"
+            "`unknown`または`conflicting`のケースには、意図的にファミリー名を"
+            "強制付与していません。ネットワーク値は静的候補であり、確認済みC2インフラでは"
+            "ありません。",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 
-def analyze_manifest(manifest_path: Path, output: Path, registry: Path, sevenzip: Path | None, *, force: bool = False, force_hashes: set[str] | None = None) -> dict:
+def analyze_manifest(
+    manifest_path: Path,
+    output: Path,
+    registry: Path,
+    sevenzip: Path | None,
+    *,
+    force: bool = False,
+    force_hashes: set[str] | None = None,
+) -> dict:
     """Analyze all manifest items in listed newest-first order and write reports."""
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     forced = {value.lower() for value in (force_hashes or set())}
@@ -980,7 +1151,10 @@ def analyze_manifest(manifest_path: Path, output: Path, registry: Path, sevenzip
                 "network_contacted": False,
             }
         cases.append(case)
-        print(f"[{index:03d}/{len(manifest['items']):03d}] {case['sha256']} {case.get('attribution', {}).get('family', case.get('error'))}", flush=True)
+        print(
+            f"[{index:03d}/{len(manifest['items']):03d}] {case['sha256']} {case.get('attribution', {}).get('family', case.get('error'))}",
+            flush=True,
+        )
     valid = [case for case in cases if "error" not in case]
     attribution_counts = Counter(
         f"{case['attribution']['family']}|{case['attribution']['confidence']}" for case in valid
@@ -997,8 +1171,14 @@ def analyze_manifest(manifest_path: Path, output: Path, registry: Path, sevenzip
             "errors": len(cases) - len(valid),
             "identified": sum(case["attribution"]["family"] != "unknown" for case in valid),
             "unknown": sum(case["attribution"]["family"] == "unknown" for case in valid),
-            "supported": sum(case["attribution"]["family"] != "unknown" and case["attribution"]["confidence"] in {"medium", "high"} for case in valid),
-            "provisional": sum(case["attribution"]["family"] != "unknown" and case["attribution"]["confidence"] == "low" for case in valid),
+            "supported": sum(
+                case["attribution"]["family"] != "unknown" and case["attribution"]["confidence"] in {"medium", "high"}
+                for case in valid
+            ),
+            "provisional": sum(
+                case["attribution"]["family"] != "unknown" and case["attribution"]["confidence"] == "low"
+                for case in valid
+            ),
         },
         "attribution_counts": dict(sorted(attribution_counts.items())),
         "clusters": cluster_cases(cases),
@@ -1027,7 +1207,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run the newest-first batch and print aggregate counts."""
     args = build_parser().parse_args(argv)
-    summary = analyze_manifest(args.manifest, args.output, args.registry, args.sevenzip, force=args.force, force_hashes=set(args.force_hash))
+    summary = analyze_manifest(
+        args.manifest, args.output, args.registry, args.sevenzip, force=args.force, force_hashes=set(args.force_hash)
+    )
     print(json.dumps(summary["counts"], indent=2))
     return 0
 

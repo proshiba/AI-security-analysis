@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "afterhours.click",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "chickenfriedwatermelonkoolaid.store",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "dynabot.monster",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "headlock.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "niggerdns.spamhaus-faggots.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "nightslikethis.club",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "poop.garden",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    }
+  ]
+}

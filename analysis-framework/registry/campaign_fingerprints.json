@@ -1,0 +1,8041 @@
+{
+  "schema_version": 1,
+  "description": "過去caseの強い共有証拠から生成した自動campaign label用fingerprint。",
+  "fingerprints": [
+    {
+      "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+      "families": [
+        "acrstealer",
+        "agenttesla",
+        "formbook",
+        "guloader",
+        "snakekeylogger",
+        "unclassified",
+        "valleyrat",
+        "venomrat",
+        "vidar"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "0xlab.org"
+        },
+        {
+          "type": "domain",
+          "value": "3system.resources.tools.stronglytypedresourcebui"
+        },
+        {
+          "type": "domain",
+          "value": "abilitiessoft.com"
+        },
+        {
+          "type": "domain",
+          "value": "ail.com"
+        },
+        {
+          "type": "domain",
+          "value": "altlinux.ru"
+        },
+        {
+          "type": "domain",
+          "value": "android-gifview.googlecode.com"
+        },
+        {
+          "type": "domain",
+          "value": "android.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "aomedia.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "assembler-arm.cc"
+        },
+        {
+          "type": "domain",
+          "value": "assembler-ia32.cc"
+        },
+        {
+          "type": "domain",
+          "value": "assembler-x64.cc"
+        },
+        {
+          "type": "domain",
+          "value": "assembler.cc"
+        },
+        {
+          "type": "domain",
+          "value": "b.ntl"
+        },
+        {
+          "type": "domain",
+          "value": "bbrox.org"
+        },
+        {
+          "type": "domain",
+          "value": "beto-core.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "bitbucket.org"
+        },
+        {
+          "type": "domain",
+          "value": "blakeembrey.com"
+        },
+        {
+          "type": "domain",
+          "value": "boringssl.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "cacerts.digicert.com"
+        },
+        {
+          "type": "domain",
+          "value": "cgit.freedesktop.org"
+        },
+        {
+          "type": "domain",
+          "value": "checkerframework.org"
+        },
+        {
+          "type": "domain",
+          "value": "chromium.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "cla.developers.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "cldr.unicode.org"
+        },
+        {
+          "type": "domain",
+          "value": "code.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "code.videolan.org"
+        },
+        {
+          "type": "domain",
+          "value": "courtesan.com"
+        },
+        {
+          "type": "domain",
+          "value": "crashpad.chromium.org"
+        },
+        {
+          "type": "domain",
+          "value": "creativecommons.org"
+        },
+        {
+          "type": "domain",
+          "value": "crl.globalsign.com"
+        },
+        {
+          "type": "domain",
+          "value": "crl3.digicert.com"
+        },
+        {
+          "type": "domain",
+          "value": "cryptsoft.com"
+        },
+        {
+          "type": "domain",
+          "value": "ctrio.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "daringfireball.net"
+        },
+        {
+          "type": "domain",
+          "value": "datanerds.net"
+        },
+        {
+          "type": "domain",
+          "value": "datatracker.ietf.org"
+        },
+        {
+          "type": "domain",
+          "value": "dawn.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "devel.freebsoft.org"
+        },
+        {
+          "type": "domain",
+          "value": "developer.android.com"
+        },
+        {
+          "type": "domain",
+          "value": "developer.intel.com"
+        },
+        {
+          "type": "domain",
+          "value": "developer.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "developers.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "digicertassuredidrootca.crl"
+        },
+        {
+          "type": "domain",
+          "value": "digicertassuredidrootca.crt"
+        },
+        {
+          "type": "domain",
+          "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crl"
+        },
+        {
+          "type": "domain",
+          "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crt"
+        },
+        {
+          "type": "domain",
+          "value": "digicerttrustedrootg4.crl"
+        },
+        {
+          "type": "domain",
+          "value": "digicerttrustedrootg4.crt"
+        },
+        {
+          "type": "domain",
+          "value": "drijf.net"
+        },
+        {
+          "type": "domain",
+          "value": "dsrootbeer.xsd"
+        },
+        {
+          "type": "domain",
+          "value": "dxr.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "eigen.tuxfamily.org"
+        },
+        {
+          "type": "domain",
+          "value": "elecard.net.ru"
+        },
+        {
+          "type": "domain",
+          "value": "en.wikipedia.org"
+        },
+        {
+          "type": "domain",
+          "value": "fedorahosted.org"
+        },
+        {
+          "type": "domain",
+          "value": "ffmpeg.org"
+        },
+        {
+          "type": "domain",
+          "value": "findbugs.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "firebase.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "freebsd.org"
+        },
+        {
+          "type": "domain",
+          "value": "freedesktop.org"
+        },
+        {
+          "type": "domain",
+          "value": "freetype.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "fsf.org"
+        },
+        {
+          "type": "domain",
+          "value": "g.co"
+        },
+        {
+          "type": "domain",
+          "value": "git.gnome.org"
+        },
+        {
+          "type": "domain",
+          "value": "git.linuxtv.org"
+        },
+        {
+          "type": "domain",
+          "value": "github.com"
+        },
+        {
+          "type": "domain",
+          "value": "gitlab.freedesktop.org"
+        },
+        {
+          "type": "domain",
+          "value": "gitlab.xiph.org"
+        },
+        {
+          "type": "domain",
+          "value": "gmail.com"
+        },
+        {
+          "type": "domain",
+          "value": "gramner.com"
+        },
+        {
+          "type": "domain",
+          "value": "gzip.org"
+        },
+        {
+          "type": "domain",
+          "value": "harfbuzz.org"
+        },
+        {
+          "type": "domain",
+          "value": "hsystem.drawing.bitmap"
+        },
+        {
+          "type": "domain",
+          "value": "hunspell.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "icu-project.org"
+        },
+        {
+          "type": "domain",
+          "value": "ieee754.cc"
+        },
+        {
+          "type": "domain",
+          "value": "intel.com"
+        },
+        {
+          "type": "domain",
+          "value": "ithinksw.com"
+        },
+        {
+          "type": "domain",
+          "value": "jelloween.deviantart.com"
+        },
+        {
+          "type": "domain",
+          "value": "jinja.palletsprojects.com"
+        },
+        {
+          "type": "domain",
+          "value": "joyent.com"
+        },
+        {
+          "type": "domain",
+          "value": "jquery.com"
+        },
+        {
+          "type": "domain",
+          "value": "jquery.org"
+        },
+        {
+          "type": "domain",
+          "value": "kmicrosoft.visualstudio.editors.settingsdesigner.settingssinglefilegenera"
+        },
+        {
+          "type": "domain",
+          "value": "kotlinlang.org"
+        },
+        {
+          "type": "domain",
+          "value": "labs.creativecommons.org"
+        },
+        {
+          "type": "domain",
+          "value": "lao-dictionary.googlecode.com"
+        },
+        {
+          "type": "domain",
+          "value": "libcxx.llvm.org"
+        },
+        {
+          "type": "domain",
+          "value": "libcxxabi.llvm.org"
+        },
+        {
+          "type": "domain",
+          "value": "libevent.org"
+        },
+        {
+          "type": "domain",
+          "value": "libpng.org"
+        },
+        {
+          "type": "domain",
+          "value": "libusb.org"
+        },
+        {
+          "type": "domain",
+          "value": "llvm.org"
+        },
+        {
+          "type": "domain",
+          "value": "lsystem.resources.resourcereader"
+        },
+        {
+          "type": "domain",
+          "value": "ltp.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "lubutu.com"
+        },
+        {
+          "type": "domain",
+          "value": "lxr.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "mansr.com"
+        },
+        {
+          "type": "domain",
+          "value": "microsoft.codeanalysis"
+        },
+        {
+          "type": "domain",
+          "value": "microsoft.visualbasic"
+        },
+        {
+          "type": "domain",
+          "value": "microsoft.visualbasic.compilerservices"
+        },
+        {
+          "type": "domain",
+          "value": "minilop.net"
+        },
+        {
+          "type": "domain",
+          "value": "mips.com"
+        },
+        {
+          "type": "domain",
+          "value": "modartt.com"
+        },
+        {
+          "type": "domain",
+          "value": "modp.com"
+        },
+        {
+          "type": "domain",
+          "value": "monkey.org"
+        },
+        {
+          "type": "domain",
+          "value": "mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "muppetlabs.com"
+        },
+        {
+          "type": "domain",
+          "value": "mxr.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "myapplication.app"
+        },
+        {
+          "type": "domain",
+          "value": "narod.ru"
+        },
+        {
+          "type": "domain",
+          "value": "netbsd.org"
+        },
+        {
+          "type": "domain",
+          "value": "netsplit.com"
+        },
+        {
+          "type": "domain",
+          "value": "nodejs.org"
+        },
+        {
+          "type": "domain",
+          "value": "nongnu.org"
+        },
+        {
+          "type": "domain",
+          "value": "ns.adobe.com"
+        },
+        {
+          "type": "domain",
+          "value": "nsis.sf.net"
+        },
+        {
+          "type": "domain",
+          "value": "nsurlparsers.cc"
+        },
+        {
+          "type": "domain",
+          "value": "nullsoft.nsis.exehead"
+        },
+        {
+          "type": "domain",
+          "value": "ocsp.digicert.com"
+        },
+        {
+          "type": "domain",
+          "value": "ocsp.globalsign.com"
+        },
+        {
+          "type": "domain",
+          "value": "one.ru"
+        },
+        {
+          "type": "domain",
+          "value": "openbsd.org"
+        },
+        {
+          "type": "domain",
+          "value": "opensource.org"
+        },
+        {
+          "type": "domain",
+          "value": "oss.sgi.com"
+        },
+        {
+          "type": "domain",
+          "value": "paint.net"
+        },
+        {
+          "type": "domain",
+          "value": "parse.cc"
+        },
+        {
+          "type": "domain",
+          "value": "planet-d.net"
+        },
+        {
+          "type": "domain",
+          "value": "polymer-library.polymer-project.org"
+        },
+        {
+          "type": "domain",
+          "value": "python.org"
+        },
+        {
+          "type": "domain",
+          "value": "qsystem.drawing"
+        },
+        {
+          "type": "domain",
+          "value": "quiche.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "quirkster.com"
+        },
+        {
+          "type": "domain",
+          "value": "raw.githubusercontent.com"
+        },
+        {
+          "type": "domain",
+          "value": "redhat.com"
+        },
+        {
+          "type": "domain",
+          "value": "registry.npmjs.org"
+        },
+        {
+          "type": "domain",
+          "value": "rootbeerfloat.properties"
+        },
+        {
+          "type": "domain",
+          "value": "rootbeerfloat.properties.resources"
+        },
+        {
+          "type": "domain",
+          "value": "rootbeerfloat.properties.resources.resources"
+        },
+        {
+          "type": "domain",
+          "value": "scripts.sil.org"
+        },
+        {
+          "type": "domain",
+          "value": "searchfox.org"
+        },
+        {
+          "type": "domain",
+          "value": "secure.globalsign.com"
+        },
+        {
+          "type": "domain",
+          "value": "semiconductor.samsung.com"
+        },
+        {
+          "type": "domain",
+          "value": "sigmasoft.com"
+        },
+        {
+          "type": "domain",
+          "value": "sites.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "skal.planet-d.net"
+        },
+        {
+          "type": "domain",
+          "value": "skia.org"
+        },
+        {
+          "type": "domain",
+          "value": "software.blackmagicdesign.com"
+        },
+        {
+          "type": "domain",
+          "value": "softweyr.com"
+        },
+        {
+          "type": "domain",
+          "value": "source.android.com"
+        },
+        {
+          "type": "domain",
+          "value": "source.chromium.org"
+        },
+        {
+          "type": "domain",
+          "value": "source.corp.google.com"
+        },
+        {
+          "type": "domain",
+          "value": "source.icu-project.org"
+        },
+        {
+          "type": "domain",
+          "value": "sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "sourceware.org"
+        },
+        {
+          "type": "domain",
+          "value": "sqlite.org"
+        },
+        {
+          "type": "domain",
+          "value": "src.chromium.org"
+        },
+        {
+          "type": "domain",
+          "value": "sussystem.runtime.interopservices.charset"
+        },
+        {
+          "type": "domain",
+          "value": "swiftshader.googlesource.com"
+        },
+        {
+          "type": "domain",
+          "value": "system.codedom.compiler"
+        },
+        {
+          "type": "domain",
+          "value": "system.collections"
+        },
+        {
+          "type": "domain",
+          "value": "system.collections.generic"
+        },
+        {
+          "type": "domain",
+          "value": "system.componentmodel"
+        },
+        {
+          "type": "domain",
+          "value": "system.configuration"
+        },
+        {
+          "type": "domain",
+          "value": "system.core"
+        },
+        {
+          "type": "domain",
+          "value": "system.data"
+        },
+        {
+          "type": "domain",
+          "value": "system.diagnostics"
+        },
+        {
+          "type": "domain",
+          "value": "system.drawing"
+        },
+        {
+          "type": "domain",
+          "value": "system.drawing.bitmap"
+        },
+        {
+          "type": "domain",
+          "value": "system.drawing.drawing"
+        },
+        {
+          "type": "domain",
+          "value": "system.drawing.imaging"
+        },
+        {
+          "type": "domain",
+          "value": "system.globalization"
+        },
+        {
+          "type": "domain",
+          "value": "system.io"
+        },
+        {
+          "type": "domain",
+          "value": "system.io.compression"
+        },
+        {
+          "type": "domain",
+          "value": "system.linq"
+        },
+        {
+          "type": "domain",
+          "value": "system.net"
+        },
+        {
+          "type": "domain",
+          "value": "system.object"
+        },
+        {
+          "type": "domain",
+          "value": "system.reflection"
+        },
+        {
+          "type": "domain",
+          "value": "system.reflection.emit"
+        },
+        {
+          "type": "domain",
+          "value": "system.resources"
+        },
+        {
+          "type": "domain",
+          "value": "system.resources.runtimeresourceset"
+        },
+        {
+          "type": "domain",
+          "value": "system.runtime.compilerservices"
+        },
+        {
+          "type": "domain",
+          "value": "system.runtime.interopservices"
+        },
+        {
+          "type": "domain",
+          "value": "system.runtime.remoting"
+        },
+        {
+          "type": "domain",
+          "value": "system.runtime.serialization"
+        },
+        {
+          "type": "domain",
+          "value": "system.runtime.versioning"
+        },
+        {
+          "type": "domain",
+          "value": "system.security"
+        },
+        {
+          "type": "domain",
+          "value": "system.security.cryptography"
+        },
+        {
+          "type": "domain",
+          "value": "system.security.cryptography.aescryptoserviceprovider"
+        },
+        {
+          "type": "domain",
+          "value": "system.security.permissions"
+        },
+        {
+          "type": "domain",
+          "value": "system.security.permissions.securitypermissionattrib"
+        },
+        {
+          "type": "domain",
+          "value": "system.text"
+        },
+        {
+          "type": "domain",
+          "value": "system.threading"
+        },
+        {
+          "type": "domain",
+          "value": "system.threading.tasks"
+        },
+        {
+          "type": "domain",
+          "value": "system.windows.forms"
+        },
+        {
+          "type": "domain",
+          "value": "tempuri.org"
+        },
+        {
+          "type": "domain",
+          "value": "ti.com"
+        },
+        {
+          "type": "domain",
+          "value": "timepedia.org"
+        },
+        {
+          "type": "domain",
+          "value": "tukaani.org"
+        },
+        {
+          "type": "domain",
+          "value": "uk.sun.com"
+        },
+        {
+          "type": "domain",
+          "value": "unity3d.com"
+        },
+        {
+          "type": "domain",
+          "value": "unlicense.org"
+        },
+        {
+          "type": "domain",
+          "value": "users.sourceforge.net"
+        },
+        {
+          "type": "domain",
+          "value": "utf.cc"
+        },
+        {
+          "type": "domain",
+          "value": "utils.cc"
+        },
+        {
+          "type": "domain",
+          "value": "uun.org"
+        },
+        {
+          "type": "domain",
+          "value": "valgrind.org"
+        },
+        {
+          "type": "domain",
+          "value": "webkit.org"
+        },
+        {
+          "type": "domain",
+          "value": "website-archive.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.7-zip.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.apache.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.apple.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.azillionmonkeys.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.chromium.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.dabeaz.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.daemonology.net"
+        },
+        {
+          "type": "domain",
+          "value": "www.digicert.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.elecard.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.epistemex.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.freedesktop.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.freetype.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.globalsign.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.gnu.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.gutenberg.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.ijg.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.jjb-software.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.khronos.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.linux-usb.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.linuxvideo.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.logilab.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.mesa3d.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.mojohaus.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.mozilla.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.netlib.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.nongnu.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.npmjs.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.openh264.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.openjsf.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.opensource.apple.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.opensource.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.openssl.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.ploscompbiol.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.pylint.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.samsung.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.strongtalk.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.suitable.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.swift.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.tex-tipografia.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.torchmobile.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.unicode.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.viewplus.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.w3.org"
+        },
+        {
+          "type": "domain",
+          "value": "www.webrtc.org"
+        },
+        {
+          "type": "domain",
+          "value": "x.org"
+        },
+        {
+          "type": "domain",
+          "value": "x.tmp"
+        },
+        {
+          "type": "domain",
+          "value": "x264.com"
+        },
+        {
+          "type": "domain",
+          "value": "xiph.org"
+        },
+        {
+          "type": "domain",
+          "value": "xmlsoft.org"
+        },
+        {
+          "type": "domain",
+          "value": "xvid.org"
+        },
+        {
+          "type": "domain",
+          "value": "z.fr"
+        },
+        {
+          "type": "domain",
+          "value": "zlib.net"
+        },
+        {
+          "type": "domain",
+          "value": "zoy.org"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:56"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:57"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:66"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:70"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:82"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.did:8636"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.iid:12665"
+        },
+        {
+          "type": "endpoint",
+          "value": "xmp.iid:66"
+        },
+        {
+          "type": "url",
+          "value": "ftp://sourceware.org/pub/newlib/newlib-2.0.0.tar.gz"
+        },
+        {
+          "type": "url",
+          "value": "http://android-gifview.googlecode.com/svn/!svn/bc/8/trunk/"
+        },
+        {
+          "type": "url",
+          "value": "http://brltty.app/"
+        },
+        {
+          "type": "url",
+          "value": "http://cacerts.digicert.com/digicertassuredidrootca.crt0e"
+        },
+        {
+          "type": "url",
+          "value": "http://cacerts.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crt0_"
+        },
+        {
+          "type": "url",
+          "value": "http://cacerts.digicert.com/digicerttrustedrootg4.crt0c"
+        },
+        {
+          "type": "url",
+          "value": "http://casper.beckman.uiuc.edu/~c-tsai4"
+        },
+        {
+          "type": "url",
+          "value": "http://cgit.freedesktop.org/xorg/xserver/tree/copying"
+        },
+        {
+          "type": "url",
+          "value": "http://chasen.aist-nara.ac.jp/chasen/distribution.html"
+        },
+        {
+          "type": "url",
+          "value": "http://cldr.unicode.org/index/downloads"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/angleproject/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/atinject/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/data-race-test/wiki/dynamicannotations"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/google-axs-chrome/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/google-jstemplate/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/lao-dictionary/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/libyuv/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/pdfium/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/smhasher/"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/v8"
+        },
+        {
+          "type": "url",
+          "value": "http://code.google.com/p/y2038"
+        },
+        {
+          "type": "url",
+          "value": "http://creativecommons.org/publicdomain/zero/1.0/"
+        },
+        {
+          "type": "url",
+          "value": "http://cristal.univ-lille.fr/~casiez/1euro/"
+        },
+        {
+          "type": "url",
+          "value": "http://crl.globalsign.com/codesigningrootr45.crl0v"
+        },
+        {
+          "type": "url",
+          "value": "http://crl.globalsign.com/gsgccr45codesignca2020.crl0"
+        },
+        {
+          "type": "url",
+          "value": "http://crl.globalsign.com/root-r3.crl0g"
+        },
+        {
+          "type": "url",
+          "value": "http://crl.globalsign.com/root.crl0g"
+        },
+        {
+          "type": "url",
+          "value": "http://crl3.digicert.com/digicertassuredidrootca.crl0"
+        },
+        {
+          "type": "url",
+          "value": "http://crl3.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crl0"
+        },
+        {
+          "type": "url",
+          "value": "http://crl3.digicert.com/digicerttrustedrootg4.crl0"
+        },
+        {
+          "type": "url",
+          "value": "http://ctrio.sourceforge.net/"
+        },
+        {
+          "type": "url",
+          "value": "http://daringfireball.net/"
+        },
+        {
+          "type": "url",
+          "value": "http://devel.freebsoft.org/speechd"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.android.com/ndk/index.html"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.android.com/sdk/index.html"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.android.com/tools/extras/support-library.html"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.intel.com/vtune/cbts/strmsimd/922down.htm"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.intel.com/vtune/cbts/strmsimd/appnotes.htm"
+        },
+        {
+          "type": "url",
+          "value": "http://developer.mozilla.org/en-us/docs/accessibility/at-apis"
+        },
+        {
+          "type": "url",
+          "value": "http://eigen.tuxfamily.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://en.wikipedia.org/wiki/mit_license"
+        },
+        {
+          "type": "url",
+          "value": "http://fedorahosted.org/lohit&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://ffmpeg.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://findbugs.sourceforge.net/"
+        },
+        {
+          "type": "url",
+          "value": "http://freedesktop.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://freetype.sourceforge.net/license.html:"
+        },
+        {
+          "type": "url",
+          "value": "http://fsf.org/&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://git.linuxtv.org/v4l-utils.git"
+        },
+        {
+          "type": "url",
+          "value": "http://github.com/google/closure-compiler"
+        },
+        {
+          "type": "url",
+          "value": "http://google.github.io/snappy/"
+        },
+        {
+          "type": "url",
+          "value": "http://harfbuzz.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://hunspell.sourceforge.net/"
+        },
+        {
+          "type": "url",
+          "value": "http://icu-project.org/userguide/icufaq.html"
+        },
+        {
+          "type": "url",
+          "value": "http://jquery.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://labs.creativecommons.org/licenses/zero-waive/1.0/us/legalcode&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary-license.txt"
+        },
+        {
+          "type": "url",
+          "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary.txt"
+        },
+        {
+          "type": "url",
+          "value": "http://lcamtuf.coredump.cx/afl/"
+        },
+        {
+          "type": "url",
+          "value": "http://libcxx.llvm.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://libcxxabi.llvm.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://libevent.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://libpng.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://libusb.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://llvm.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://llvm.org/docs/libfuzzer.html"
+        },
+        {
+          "type": "url",
+          "value": "http://ltp.sourceforge.net/coverage/lcov.php"
+        },
+        {
+          "type": "url",
+          "value": "http://lxr.mozilla.org/mozilla/source/toolkit/mozapps/update/src/updater/"
+        },
+        {
+          "type": "url",
+          "value": "http://modp.com/release/base64"
+        },
+        {
+          "type": "url",
+          "value": "http://mozilla.org/mpl/2.0/"
+        },
+        {
+          "type": "url",
+          "value": "http://mxr.mozilla.org/comm-central/source/mozilla/netwerk/base/src/nsurlparsers.cpp"
+        },
+        {
+          "type": "url",
+          "value": "http://ns.adobe.com/xap/1.0/"
+        },
+        {
+          "type": "url",
+          "value": "http://ns.adobe.com/xap/1.0/mm/"
+        },
+        {
+          "type": "url",
+          "value": "http://ns.adobe.com/xap/1.0/stype/resourceref"
+        },
+        {
+          "type": "url",
+          "value": "http://nsis.sf.net/nsis_error"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.digicert.com0/"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.digicert.com0a/"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.digicert.com0c/"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.globalsign.com/codesigningrootr450f"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.globalsign.com/gsgccr45codesignca20200v"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.globalsign.com/rootr103"
+        },
+        {
+          "type": "url",
+          "value": "http://ocsp.globalsign.com/rootr30"
+        },
+        {
+          "type": "url",
+          "value": "http://opensource.org/licenses/bsd-license.php"
+        },
+        {
+          "type": "url",
+          "value": "http://opensource.perlig.de/rjsmin/"
+        },
+        {
+          "type": "url",
+          "value": "http://oss.sgi.com/projects/freeb/"
+        },
+        {
+          "type": "url",
+          "value": "http://python.org/dev/peps/pep-0263/"
+        },
+        {
+          "type": "url",
+          "value": "http://scripts.sil.org/ofl"
+        },
+        {
+          "type": "url",
+          "value": "http://secure.globalsign.com/cacert/codesigningrootr45.crt0a"
+        },
+        {
+          "type": "url",
+          "value": "http://secure.globalsign.com/cacert/gsgccr45codesignca2020.crt0="
+        },
+        {
+          "type": "url",
+          "value": "http://secure.globalsign.com/cacert/root-r3.crt06"
+        },
+        {
+          "type": "url",
+          "value": "http://skal.planet-d.net/coding/dct.html"
+        },
+        {
+          "type": "url",
+          "value": "http://software.blackmagicdesign.com/decklink/v10.7/blackmagic_decklink_sdk_10.7.zip"
+        },
+        {
+          "type": "url",
+          "value": "http://source.android.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://source.android.com/compatibility"
+        },
+        {
+          "type": "url",
+          "value": "http://source.icu-project.org/repos/icu/icu/trunk/license.html"
+        },
+        {
+          "type": "url",
+          "value": "http://sourceware.org/ml/newlib/"
+        },
+        {
+          "type": "url",
+          "value": "http://sourceware.org/newlib/docs.html"
+        },
+        {
+          "type": "url",
+          "value": "http://src.chromium.org/viewvc/chrome/trunk/deps/third_party/xz/copying"
+        },
+        {
+          "type": "url",
+          "value": "http://tempuri.org/dsrootbeer.xsd"
+        },
+        {
+          "type": "url",
+          "value": "http://tukaani.org/xz/"
+        },
+        {
+          "type": "url",
+          "value": "http://unlicense.org/&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://valgrind.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://webkit.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://website-archive.mozilla.org/www.mozilla.org/mpl/mpl/npl/1.1/):"
+        },
+        {
+          "type": "url",
+          "value": "http://www.7-zip.org/sdk.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.apache.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.apache.org/licenses/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.apache.org/licenses/license-2.0"
+        },
+        {
+          "type": "url",
+          "value": "http://www.apple.com/legal/guidelinesfor3rdparties.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.azillionmonkeys.com/qed/hash.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.chromium.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.chromium.org/blink"
+        },
+        {
+          "type": "url",
+          "value": "http://www.cisl.ucar.edu/css/software/fftpack5/ftpk.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.dabeaz.com/ply/ply-3.11.tar.gz"
+        },
+        {
+          "type": "url",
+          "value": "http://www.daemonology.net/bsdiff/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.elecard.com/peter/idct.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.freedesktop.org/wiki/software/systemd/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.freedesktop.org/wiki/software/xdg-user-dirs"
+        },
+        {
+          "type": "url",
+          "value": "http://www.freetype.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.gnu.org/copyleft/lesser.txt"
+        },
+        {
+          "type": "url",
+          "value": "http://www.gnu.org/licenses/&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://www.gnu.org/licenses/gpl.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.gnu.org/philosophy/why-not-lgpl.html&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://www.gutenberg.org/ebooks/53"
+        },
+        {
+          "type": "url",
+          "value": "http://www.ijg.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.khronos.org/registry"
+        },
+        {
+          "type": "url",
+          "value": "http://www.kurims.kyoto-u.ac.jp/~ooura/fft.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.linux-usb.org/usb-ids.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.linuxvideo.org/mpeg2dec/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.logilab.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mesa3d.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mojohaus.org/animal-sniffer/animal-sniffer-annotations/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/mpl/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/mpl/2.0/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/mpl/2.0/faq.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/npl/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/projects/nspr/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.mozilla.org/projects/security/pki/nss/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.netlib.org/fdlibm/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.nongnu.org/freebangfont/downloads.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.openh264.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.opensource.apple.com/apsl/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.opensource.org/licenses/bsd-license.php"
+        },
+        {
+          "type": "url",
+          "value": "http://www.opensource.org/licenses/mit-license.php"
+        },
+        {
+          "type": "url",
+          "value": "http://www.openssl.org/)&quot"
+        },
+        {
+          "type": "url",
+          "value": "http://www.ploscompbiol.org/static/license"
+        },
+        {
+          "type": "url",
+          "value": "http://www.pylint.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.strongtalk.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.suitable.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.suitable.com/tools/smslib.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.suitable.com/tools/smslib.html&gt"
+        },
+        {
+          "type": "url",
+          "value": "http://www.tex-tipografia.com/spanish_hyphen.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.torchmobile.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.unicode.org/cldr/data/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.unicode.org/copyright.html"
+        },
+        {
+          "type": "url",
+          "value": "http://www.unicode.org/public/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.unicode.org/public/zipped/9.0.0/ucd.zip"
+        },
+        {
+          "type": "url",
+          "value": "http://www.unicode.org/reports/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns"
+        },
+        {
+          "type": "url",
+          "value": "http://www.webrtc.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://xmlsoft.org/"
+        },
+        {
+          "type": "url",
+          "value": "http://xmlsoft.org/xslt"
+        },
+        {
+          "type": "url",
+          "value": "http://zlib.net/"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/cts/+/master/tests/tests/provider/src/android/provider/cts/mediastoreutils.java"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/development/+/b356564/samples/support4demos/src/com/example/android/supportv4/media/mediacontroller.java"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/external/hyphenation-patterns/"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/external/perfetto/"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/external/puffin"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/external/setupdesign/"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/frameworks/base"
+        },
+        {
+          "type": "url",
+          "value": "https://android.googlesource.com/platform/frameworks/support"
+        },
+        {
+          "type": "url",
+          "value": "https://aomedia.googlesource.com/aom/"
+        },
+        {
+          "type": "url",
+          "value": "https://aomedia.googlesource.com/libavifinfo/"
+        },
+        {
+          "type": "url",
+          "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/"
+        },
+        {
+          "type": "url",
+          "value": "https://beto-core.googlesource.com/beto-core"
+        },
+        {
+          "type": "url",
+          "value": "https://bitbucket.org/jpommier/pffft/"
+        },
+        {
+          "type": "url",
+          "value": "https://boringssl.googlesource.com/boringssl"
+        },
+        {
+          "type": "url",
+          "value": "https://checkerframework.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/breakpad/breakpad"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/cast_core/public"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/chromium/src/+/head/third_party/liburlpattern"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/chromium/src/third_party/ipcz"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/chromiumos/platform/minigbm"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/chromiumos/platform2/libipp"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/codecs/libgav1/"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/deps/inspector_protocol/"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/devtools/devtools-frontend"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/external/google3/cros_components/"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/external/webrtc"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/openscreen"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/vulkan-deps/"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/webm/libvpx"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/webm/libwebm"
+        },
+        {
+          "type": "url",
+          "value": "https://chromium.googlesource.com/webm/libwebp"
+        },
+        {
+          "type": "url",
+          "value": "https://cla.developers.google.com/clas"
+        },
+        {
+          "type": "url",
+          "value": "https://code.videolan.org/videolan/dav1d"
+        },
+        {
+          "type": "url",
+          "value": "https://crashpad.chromium.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://creativecommons.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://creativecommons.org/compatiblelicenses"
+        },
+        {
+          "type": "url",
+          "value": "https://creativecommons.org/licenses/by/3.0/"
+        },
+        {
+          "type": "url",
+          "value": "https://datatracker.ietf.org/ipr/1524/"
+        },
+        {
+          "type": "url",
+          "value": "https://datatracker.ietf.org/ipr/1526/"
+        },
+        {
+          "type": "url",
+          "value": "https://datatracker.ietf.org/ipr/1914/"
+        },
+        {
+          "type": "url",
+          "value": "https://dawn.googlesource.com/dawn"
+        },
+        {
+          "type": "url",
+          "value": "https://dejavu-fonts.github.io/download.html"
+        },
+        {
+          "type": "url",
+          "value": "https://developer.android.com/guide/playcore"
+        },
+        {
+          "type": "url",
+          "value": "https://developer.android.com/topic/libraries/architecture/index.html"
+        },
+        {
+          "type": "url",
+          "value": "https://developers.google.com/android/guides/setup"
+        },
+        {
+          "type": "url",
+          "value": "https://developers.google.com/ar/develop/java/enable-arcore"
+        },
+        {
+          "type": "url",
+          "value": "https://dxr.mozilla.org/mozilla-central/source/security/manager/"
+        },
+        {
+          "type": "url",
+          "value": "https://easylist.to/)&quot"
+        },
+        {
+          "type": "url",
+          "value": "https://easylist.to/easylist/easylist.txt"
+        },
+        {
+          "type": "url",
+          "value": "https://errorprone.info/"
+        },
+        {
+          "type": "url",
+          "value": "https://firebase.google.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://fusejs.io/"
+        },
+        {
+          "type": "url",
+          "value": "https://git.gnome.org/browse/libsecret/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/aawc/unrar.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/abseil/abseil-cpp"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/acornjs/acorn"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/airbnb/lottie-ios.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/airbnb/lottie-web"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/aomediacodec/libavif"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/chjj/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/chromium/content_analysis_sdk"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/chromium/dom-distiller"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/cisco/libsrtp"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/client9/stringencoders"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/cls/libutf"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/codemirror/codemirror.next/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/codemirror/codemirror/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/cyan4973/xxhash"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/d3/d3"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/dequelabs/axe-core/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/dpranke/pyjson5"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/easylist"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/formatjs/formatjs"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google-ar/arcore-android-sdk"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/anonymous-tokens"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/brotli"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/cityhash"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/cld3"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/closure-library"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/compact_enc_det"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/cpu_features"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/crc32c"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/crubit"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/dagger"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/diff-match-patch/tree/master/javascript"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/distributed_point_functions"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/double-conversion"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/farmhash"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/flatbuffers"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/gemmlowp"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/glog"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/google-api-cpp-client/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/google-toolbox-for-mac"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/gson"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/guava"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/highway"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/j2objc/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/leveldb.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/libaddressinput"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/libprotobuf-mutator"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/maldoca.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/material-design-icons"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/nearby"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/pprof/tree/master/proto"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/private-join-and-compute"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/protobuf"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/re2"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/ruy"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/securemessage"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/shell-encryption"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/ukey2"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/woff2"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/wuffs-mirror-release-c"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/google/xnnpack"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlechromelabs/chromium-bidi/archive/0c27b24785077f8686057571f3395ca6a85cafe0.zip"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlechromelabs/pywebsocket3/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlechromelabs/text-fragments-polyfill"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlefonts/emoji-metadata"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlei18n/emoji-segmenter"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlei18n/google-input-tools.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlei18n/libphonenumber/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlevr/cardboard"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/googlevr/gvr-android-sdk"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/gpuopen-effects/fidelityfx-spd"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/gpuopen-librariesandsdks/vulkanmemoryallocator"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/grpc/grpc"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/grpc/grpc-java"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/intel/arm_neon_2_x86_sse"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/joyent/libuv"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/joyent/node"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/jquery/jquery-ui"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/jquery/jquery/blob/master/mit-license.txt"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/jquery/sizzle/blob/master/license"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/jrmuizel/qcms/tree/v4"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khaledhosny/ots.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/glslang"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/spirv-cross"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/spirv-headers.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/spirv-tools.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/vulkan-headers"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/vulkan-loader"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/vulkan-tools"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/khronosgroup/vulkan-validationlayers"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/kotlin/kotlinx.coroutines"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/libexpat/libexpat"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/libjpeg-turbo/libjpeg-turbo/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/liblouis/liblouis"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/linuxa11y/iaccessible2"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/lit/lit"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/maratyszcza/fp16"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/maratyszcza/fxdiv"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/maratyszcza/pthreadpool"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/markedjs/marked"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-components/material-components-android"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-components/material-components-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-components/material-components-web-components"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-color-utilities"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-font-disk-loader-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-internationalization-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-roboto-font-loader-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-sprited-animation-view-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-foundation/material-text-accessibility-ios"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-motion/motion-animator-objc"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-motion/motion-interchange-objc"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/material-motion/motion-transitioning-objc"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/microsoft/webauthn/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/mit-plv/fiat-crypto"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/mit-plv/fiat-crypto/blob/master/authors"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/nih-at/libzip"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/nodejs/node"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/open-source-parsers/jsoncpp"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/perfmark/perfmark"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/plume-lib/"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/protocolbuffers/protobuf/blob/master/java/lite.md"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/puppeteer/puppeteer/tree/main/packages/puppeteer-core"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/puppeteer/replay"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/pytorch/cpuinfo"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/rianhunter/zxcvbn-cpp"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/rober42539/lao-dictionary"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/rober42539/lao-dictionary/laodict.txt"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/rober42539/lao-dictionary/license.txt"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/seleniumhq/selenium/tree/trunk"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/simplejson/simplejson"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/squirrel/squirrel.mac"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/tensorflow/models"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/tensorflow/tensorflow"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/tensorflow/text.git"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/tensorflow/tflite-support"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/typetools/annotation-tools"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/typetools/jdk"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/typetools/stubparser"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/unicode-org/icu"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/wasdk/wasmparser"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/westes/flex"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/xiph/flac/archive/refs/tags/1.4.2.zip"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/xiph/rnnoise"
+        },
+        {
+          "type": "url",
+          "value": "https://github.com/y-256/libdivsufsort"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/libinput/libei"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/wayland/weston"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/xdg/xdgmime"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/xorg/lib/libx11"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.freedesktop.org/xorg/proto/xproto/"
+        },
+        {
+          "type": "url",
+          "value": "https://gitlab.xiph.org/xiph/opus"
+        },
+        {
+          "type": "url",
+          "value": "https://jelloween.deviantart.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://jinja.palletsprojects.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://joyent.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://jquery.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://kotlinlang.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://llvm.org/docs/developerpolicy.html"
+        },
+        {
+          "type": "url",
+          "value": "https://mathiasbynens.be/&gt"
+        },
+        {
+          "type": "url",
+          "value": "https://mozilla.org/mpl/2.0/"
+        },
+        {
+          "type": "url",
+          "value": "https://nodejs.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://nuxi.nl/"
+        },
+        {
+          "type": "url",
+          "value": "https://opensource.org/licenses/bsd-3-clause"
+        },
+        {
+          "type": "url",
+          "value": "https://opensource.org/licenses/bsd-3-clause):"
+        },
+        {
+          "type": "url",
+          "value": "https://opensource.org/licenses/zlib"
+        },
+        {
+          "type": "url",
+          "value": "https://pagure.io/lohit"
+        },
+        {
+          "type": "url",
+          "value": "https://pki.goog/roots.pem"
+        },
+        {
+          "type": "url",
+          "value": "https://polymer-library.polymer-project.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://quiche.googlesource.com/quiche"
+        },
+        {
+          "type": "url",
+          "value": "https://raw.githubusercontent.com/googlechrome/accessibility-developer-tools/master/dist/js/axs_testing.js"
+        },
+        {
+          "type": "url",
+          "value": "https://registry.npmjs.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://searchfox.org/mozilla-central/rev/0fec57c05d3996cc00c55a66f20dd5793a9bfb5d/security/manager/ssl/enterpriseroots.cpp"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870evo/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870qvo/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980pro/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/magician/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-shield/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-touch/"
+        },
+        {
+          "type": "url",
+          "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7/"
+        },
+        {
+          "type": "url",
+          "value": "https://sites.google.com/site/gaviotachessengine/home/endgame-tablebases-1"
+        },
+        {
+          "type": "url",
+          "value": "https://skia.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://source.android.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://source.corp.google.com/piper///depot/google3/third_party/tamachiyomi/readme.md"
+        },
+        {
+          "type": "url",
+          "value": "https://sourceforge.net/project/"
+        },
+        {
+          "type": "url",
+          "value": "https://sourceforge.net/projects/wtl/files/wtl%2010/"
+        },
+        {
+          "type": "url",
+          "value": "https://sqlite.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://swiftshader.googlesource.com/swiftshader"
+        },
+        {
+          "type": "url",
+          "value": "https://unity3d.com/legal/branding_trademarks"
+        },
+        {
+          "type": "url",
+          "value": "https://unity3d.com/legal/licenses/unity_companion_license"
+        },
+        {
+          "type": "url",
+          "value": "https://www.apache.org/licenses/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.apache.org/licenses/license-2.0"
+        },
+        {
+          "type": "url",
+          "value": "https://www.freetype.org/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.globalsign.com/repository/0"
+        },
+        {
+          "type": "url",
+          "value": "https://www.gnu.org/licenses/&gt"
+        },
+        {
+          "type": "url",
+          "value": "https://www.khronos.org/registry/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.nasm.us/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.npmjs.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.opensource.apple.com/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.samsung.com/semiconductor/minisite/ssd/product/consumer/980proheatsink/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.swift.org/download/"
+        },
+        {
+          "type": "url",
+          "value": "https://www.unicode.org/copyright.html"
+        },
+        {
+          "type": "url",
+          "value": "https://www.unicode.org/copyright.html&gt"
+        }
+      ],
+      "feature_ids": [
+        "persistence:registry_access"
+      ],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-acrstealer-blazetrack-3fa63f35a009",
+      "families": [
+        "acrstealer",
+        "blazetrack"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "03d.tmp"
+        },
+        {
+          "type": "domain",
+          "value": "again.ethe"
+        },
+        {
+          "type": "domain",
+          "value": "ay.ru"
+        },
+        {
+          "type": "domain",
+          "value": "command.com"
+        },
+        {
+          "type": "domain",
+          "value": "corrupted.qwindows"
+        },
+        {
+          "type": "domain",
+          "value": "file.athe"
+        },
+        {
+          "type": "domain",
+          "value": "msdownld.tmp"
+        },
+        {
+          "type": "domain",
+          "value": "running.sthe"
+        },
+        {
+          "type": "domain",
+          "value": "s.xsetup"
+        },
+        {
+          "type": "domain",
+          "value": "setup.kthat"
+        },
+        {
+          "type": "domain",
+          "value": "time.othe"
+        },
+        {
+          "type": "domain",
+          "value": "wextract.pdb"
+        },
+        {
+          "type": "domain",
+          "value": "wininit.ini"
+        },
+        {
+          "type": "domain",
+          "value": "writable.iyou"
+        },
+        {
+          "type": "url",
+          "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/"
+        }
+      ],
+      "feature_ids": [
+        "execution:autoit_payload",
+        "execution:payload_decode"
+      ],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+      "families": [
+        "acrstealer",
+        "hijackloader",
+        "remusstealer",
+        "unclassified",
+        "vidar"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "180123456789abcdefghijklmnopqrstuvwxyzstrings.builder.grow"
+        },
+        {
+          "type": "domain",
+          "value": "2mapiter.key"
+        },
+        {
+          "type": "domain",
+          "value": "a.out"
+        },
+        {
+          "type": "domain",
+          "value": "abi.addchecked"
+        },
+        {
+          "type": "domain",
+          "value": "abi.funcflag"
+        },
+        {
+          "type": "domain",
+          "value": "abi.funcid"
+        },
+        {
+          "type": "domain",
+          "value": "abi.functype"
+        },
+        {
+          "type": "domain",
+          "value": "abi.go"
+        },
+        {
+          "type": "domain",
+          "value": "abi.imethod"
+        },
+        {
+          "type": "domain",
+          "value": "abi.intargregbitmap"
+        },
+        {
+          "type": "domain",
+          "value": "abi.interfacetype"
+        },
+        {
+          "type": "domain",
+          "value": "abi.itab"
+        },
+        {
+          "type": "domain",
+          "value": "abi.kind"
+        },
+        {
+          "type": "domain",
+          "value": "abi.kind.string"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.data"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.datachecked"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.hastag"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.isblank"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.isembedded"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.isexported"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.name"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.readvarint"
+        },
+        {
+          "type": "domain",
+          "value": "abi.name.tag"
+        },
+        {
+          "type": "domain",
+          "value": "abi.nameoff"
+        },
+        {
+          "type": "domain",
+          "value": "abi.newname"
+        },
+        {
+          "type": "domain",
+          "value": "abi.noescape"
+        },
+        {
+          "type": "domain",
+          "value": "abi.ptrtype"
+        },
+        {
+          "type": "domain",
+          "value": "abi.regargs"
+        },
+        {
+          "type": "domain",
+          "value": "abi.tflag"
+        },
+        {
+          "type": "domain",
+          "value": "abi.type"
+        },
+        {
+          "type": "domain",
+          "value": "abi.typefor"
+        },
+        {
+          "type": "domain",
+          "value": "abi.typeof"
+        },
+        {
+          "type": "domain",
+          "value": "abi.typeoff"
+        },
+        {
+          "type": "domain",
+          "value": "abi.uncommontype"
+        },
+        {
+          "type": "domain",
+          "value": "abi.writevarint"
+        },
+        {
+          "type": "domain",
+          "value": "abs.go"
+        },
+        {
+          "type": "domain",
+          "value": "activesweepmheap.freespanlocked"
+        },
+        {
+          "type": "domain",
+          "value": "address.lib"
+        },
+        {
+          "type": "domain",
+          "value": "addressmspan.sweep"
+        },
+        {
+          "type": "domain",
+          "value": "aes.add"
+        },
+        {
+          "type": "domain",
+          "value": "aes.block"
+        },
+        {
+          "type": "domain",
+          "value": "aes.blockexpanded"
+        },
+        {
+          "type": "domain",
+          "value": "aes.cryptblocksdec"
+        },
+        {
+          "type": "domain",
+          "value": "aes.cryptblocksdecgeneric"
+        },
+        {
+          "type": "domain",
+          "value": "aes.cryptblocksenc"
+        },
+        {
+          "type": "domain",
+          "value": "aes.cryptblocksencgeneric"
+        },
+        {
+          "type": "domain",
+          "value": "aes.ctr"
+        },
+        {
+          "type": "domain",
+          "value": "aes.ctrblocks"
+        },
+        {
+          "type": "domain",
+          "value": "aes.decryptblock"
+        },
+        {
+          "type": "domain",
+          "value": "aes.decryptblockgeneric"
+        },
+        {
+          "type": "domain",
+          "value": "aes.encryptblock"
+        },
+        {
+          "type": "domain",
+          "value": "aes.encryptblockgeneric"
+        },
+        {
+          "type": "domain",
+          "value": "aes.expandkeygeneric"
+        },
+        {
+          "type": "domain",
+          "value": "aes.go"
+        },
+        {
+          "type": "domain",
+          "value": "aes.init"
+        },
+        {
+          "type": "domain",
+          "value": "aes.init.0.func"
+        },
+        {
+          "type": "domain",
+          "value": "aes.keysizeerror"
+        },
+        {
+          "type": "domain",
+          "value": "aes.keysizeerror.error"
+        },
+        {
+          "type": "domain",
+          "value": "aes.new"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newblock"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newblockexpanded"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newcbcdecrypter"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newcbcencrypter"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newctr"
+        },
+        {
+          "type": "domain",
+          "value": "aes.newoutlined"
+        },
+        {
+          "type": "domain",
+          "value": "aes.rotw"
+        },
+        {
+          "type": "domain",
+          "value": "aes.roundtoblock"
+        },
+        {
+          "type": "domain",
+          "value": "aes.subw"
+        },
+        {
+          "type": "domain",
+          "value": "alg.go"
+        },
+        {
+          "type": "domain",
+          "value": "alias.anyoverlap"
+        },
+        {
+          "type": "domain",
+          "value": "alias.go"
+        },
+        {
+          "type": "domain",
+          "value": "alias.inexactoverlap"
+        },
+        {
+          "type": "domain",
+          "value": "arena.go"
+        },
+        {
+          "type": "domain",
+          "value": "arenaruntime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "atob.go"
+        },
+        {
+          "type": "domain",
+          "value": "atoi.go"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.addint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.adduint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.align"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.and"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.bool"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.cas"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.casint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.casp"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.caspointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.casrel"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.casuintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.compareandswapint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.compareandswappointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.compareandswapuint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.compareandswapuintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.int"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.load"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loadacq"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loadacquintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loadint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loadp"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loadpointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loaduint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.loaduintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.nocopy"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.or"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.panicunaligned"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.store"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storeint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storepnowb"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storepointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storerel"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storereluintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storeuint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.storeuintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.swappointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.swapuintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.uint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.uintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.unsafepointer"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xadd"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xaddint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xadduintptr"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xchg"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xchgint"
+        },
+        {
+          "type": "domain",
+          "value": "atomic.xchguintptr"
+        },
+        {
+          "type": "domain",
+          "value": "attentionfindcloselocalfreemovefilewwritefilewsasendtod.nx"
+        },
+        {
+          "type": "domain",
+          "value": "b.rsrc"
+        },
+        {
+          "type": "domain",
+          "value": "b.symtab"
+        },
+        {
+          "type": "domain",
+          "value": "barrierwork.nwait"
+        },
+        {
+          "type": "domain",
+          "value": "base64.encoding"
+        },
+        {
+          "type": "domain",
+          "value": "base64.encoding.withpadding"
+        },
+        {
+          "type": "domain",
+          "value": "base64.go"
+        },
+        {
+          "type": "domain",
+          "value": "base64.init"
+        },
+        {
+          "type": "domain",
+          "value": "base64.newencoding"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.appendfileline"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.appendmarker"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.cond"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.dedup"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.fnv"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.fnvstring"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.fnvuint"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.go"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.hash"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.matcher"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.mu"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.new"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.parseerror"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.printmarker"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.printstack"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.recent"
+        },
+        {
+          "type": "domain",
+          "value": "bisect.writer"
+        },
+        {
+          "type": "domain",
+          "value": "bitmapmapiter.value"
+        },
+        {
+          "type": "domain",
+          "value": "bits.add"
+        },
+        {
+          "type": "domain",
+          "value": "bits.go"
+        },
+        {
+          "type": "domain",
+          "value": "bits.len"
+        },
+        {
+          "type": "domain",
+          "value": "bits.mul"
+        },
+        {
+          "type": "domain",
+          "value": "bits.rotateleft"
+        },
+        {
+          "type": "domain",
+          "value": "bits.trailingzeros"
+        },
+        {
+          "type": "domain",
+          "value": "blocksruntime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "boundarygccontrollerstate.findrunnable"
+        },
+        {
+          "type": "domain",
+          "value": "bucket.bpruntime"
+        },
+        {
+          "type": "domain",
+          "value": "bucket.mpbad"
+        },
+        {
+          "type": "domain",
+          "value": "buffer.go"
+        },
+        {
+          "type": "domain",
+          "value": "bufio.go"
+        },
+        {
+          "type": "domain",
+          "value": "bufio.newwriter"
+        },
+        {
+          "type": "domain",
+          "value": "bufio.newwritersize"
+        },
+        {
+          "type": "domain",
+          "value": "bufio.writer"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.comparestring"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.cutover"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.go"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.hashstr"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.indexbytestring"
+        },
+        {
+          "type": "domain",
+          "value": "bytealg.indexrabinkarp"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.beappenduint"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.beputuint"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.beuint"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.go"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.leputuint"
+        },
+        {
+          "type": "domain",
+          "value": "byteorder.leuint"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.buffer"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.equal"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.go"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.growslice"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.growslice.func"
+        },
+        {
+          "type": "domain",
+          "value": "bytes.readop"
+        },
+        {
+          "type": "domain",
+          "value": "bytesmspan.sweep"
+        },
+        {
+          "type": "domain",
+          "value": "bytesruntime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "cast.go"
+        },
+        {
+          "type": "domain",
+          "value": "cbc.go"
+        },
+        {
+          "type": "domain",
+          "value": "cgocall.go"
+        },
+        {
+          "type": "domain",
+          "value": "chacha8.go"
+        },
+        {
+          "type": "domain",
+          "value": "chacha8rand.block"
+        },
+        {
+          "type": "domain",
+          "value": "chacha8rand.qr"
+        },
+        {
+          "type": "domain",
+          "value": "chacha8rand.setup"
+        },
+        {
+          "type": "domain",
+          "value": "chacha8rand.state"
+        },
+        {
+          "type": "domain",
+          "value": "chan.go"
+        },
+        {
+          "type": "domain",
+          "value": "check.go"
+        },
+        {
+          "type": "domain",
+          "value": "check.init"
+        },
+        {
+          "type": "domain",
+          "value": "closedreflect.value.bytesreflect.value.fieldreflect.value.indexsettokeninformation"
+        },
+        {
+          "type": "domain",
+          "value": "cmp.compare"
+        },
+        {
+          "type": "domain",
+          "value": "cmp.go"
+        },
+        {
+          "type": "domain",
+          "value": "cmp.isnan"
+        },
+        {
+          "type": "domain",
+          "value": "cmp.less"
+        },
+        {
+          "type": "domain",
+          "value": "collectionsync.rwmutex.rlockgc"
+        },
+        {
+          "type": "domain",
+          "value": "compare.go"
+        },
+        {
+          "type": "domain",
+          "value": "complex128t.kind"
+        },
+        {
+          "type": "domain",
+          "value": "cpu-secondsruntime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.cpuid"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.doinit"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.getgoamd"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.go"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.indexbyte"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.init"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.initialize"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.isset"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.option"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.processoptions"
+        },
+        {
+          "type": "domain",
+          "value": "cpu.xgetbv"
+        },
+        {
+          "type": "domain",
+          "value": "crypto.go"
+        },
+        {
+          "type": "domain",
+          "value": "crypto.init"
+        },
+        {
+          "type": "domain",
+          "value": "crypto.registerhash"
+        },
+        {
+          "type": "domain",
+          "value": "ctr.go"
+        },
+        {
+          "type": "domain",
+          "value": "ctrdrbg.go"
+        },
+        {
+          "type": "domain",
+          "value": "debug.go"
+        },
+        {
+          "type": "domain",
+          "value": "debug.setmemorylimit"
+        },
+        {
+          "type": "domain",
+          "value": "debug.settraceback"
+        },
+        {
+          "type": "domain",
+          "value": "decimal.go"
+        },
+        {
+          "type": "domain",
+          "value": "decode.go"
+        },
+        {
+          "type": "domain",
+          "value": "digit.go"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.counter"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.increment"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.init"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.init.0.func"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.init.func"
+        },
+        {
+          "type": "domain",
+          "value": "drbg.newcounter"
+        },
+        {
+          "type": "domain",
+          "value": "emptymspanlist.removemspanlist.insertbad"
+        },
+        {
+          "type": "domain",
+          "value": "encode.go"
+        },
+        {
+          "type": "domain",
+          "value": "encoding.textmarshaler"
+        },
+        {
+          "type": "domain",
+          "value": "encoding.textunmarshaler"
+        },
+        {
+          "type": "domain",
+          "value": "entropy.depleted"
+        },
+        {
+          "type": "domain",
+          "value": "entropy.go"
+        },
+        {
+          "type": "domain",
+          "value": "eofunsafe.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "error.go"
+        },
+        {
+          "type": "domain",
+          "value": "errors.errorstring"
+        },
+        {
+          "type": "domain",
+          "value": "errors.go"
+        },
+        {
+          "type": "domain",
+          "value": "errors.init"
+        },
+        {
+          "type": "domain",
+          "value": "errors.is"
+        },
+        {
+          "type": "domain",
+          "value": "errors.new"
+        },
+        {
+          "type": "domain",
+          "value": "errorwork.nwait"
+        },
+        {
+          "type": "domain",
+          "value": "escape.go"
+        },
+        {
+          "type": "domain",
+          "value": "executable.go"
+        },
+        {
+          "type": "domain",
+          "value": "exithook.run"
+        },
+        {
+          "type": "domain",
+          "value": "exithook.run.deferwrap"
+        },
+        {
+          "type": "domain",
+          "value": "exithook.run.func"
+        },
+        {
+          "type": "domain",
+          "value": "extern.go"
+        },
+        {
+          "type": "domain",
+          "value": "failedruntime.preemptm"
+        },
+        {
+          "type": "domain",
+          "value": "fastlog2.go"
+        },
+        {
+          "type": "domain",
+          "value": "fd.go"
+        },
+        {
+          "type": "domain",
+          "value": "file.go"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.cast"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.fatal"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.getindicator"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.go"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.init"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.recordapproved"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.recordnonapproved"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.setindicator"
+        },
+        {
+          "type": "domain",
+          "value": "fips140.supported"
+        },
+        {
+          "type": "domain",
+          "value": "fips140only.go"
+        },
+        {
+          "type": "domain",
+          "value": "fips140only.init"
+        },
+        {
+          "type": "domain",
+          "value": "float.go"
+        },
+        {
+          "type": "domain",
+          "value": "floor.go"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.buffer"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.errorf"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.fmt"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.fmtflags"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.formatter"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.fprintf"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.fprintln"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.getfield"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.gostringer"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.init.func"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.intfromarg"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.newprinter"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.parseargnumber"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.parsenum"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.pp"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.printf"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.println"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.sprintf"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.state"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.stringer"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.toolarge"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.wraperror"
+        },
+        {
+          "type": "domain",
+          "value": "fmt.wraperrors"
+        },
+        {
+          "type": "domain",
+          "value": "fmtsort.compare"
+        },
+        {
+          "type": "domain",
+          "value": "fmtsort.keyvalue"
+        },
+        {
+          "type": "domain",
+          "value": "fmtsort.nilcompare"
+        },
+        {
+          "type": "domain",
+          "value": "fmtsort.sort"
+        },
+        {
+          "type": "domain",
+          "value": "fmtsort.sort.func"
+        },
+        {
+          "type": "domain",
+          "value": "fold.go"
+        },
+        {
+          "type": "domain",
+          "value": "format.go"
+        },
+        {
+          "type": "domain",
+          "value": "frame.sp"
+        },
+        {
+          "type": "domain",
+          "value": "freemheap.freespanlocked"
+        },
+        {
+          "type": "domain",
+          "value": "fs.go"
+        },
+        {
+          "type": "domain",
+          "value": "fs.init"
+        },
+        {
+          "type": "domain",
+          "value": "fs.patherror"
+        },
+        {
+          "type": "domain",
+          "value": "ftoa.go"
+        },
+        {
+          "type": "domain",
+          "value": "ftoaryu.go"
+        },
+        {
+          "type": "domain",
+          "value": "go.dev"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.bool"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.float"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.func"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.int"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.interface"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.string"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.struct"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.uint"
+        },
+        {
+          "type": "domain",
+          "value": "go.shape.uintptr"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.bisect"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.go"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.init"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.lookup"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.new"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.newincnondefault"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.parse"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.registermetric"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.runtimestderr"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.setnewincnondefault"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.setting"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.setupdate"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.text"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.update"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.update.deferwrap"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.update.func"
+        },
+        {
+          "type": "domain",
+          "value": "godebug.value"
+        },
+        {
+          "type": "domain",
+          "value": "godebugs.all"
+        },
+        {
+          "type": "domain",
+          "value": "godebugs.info"
+        },
+        {
+          "type": "domain",
+          "value": "godebugs.lookup"
+        },
+        {
+          "type": "domain",
+          "value": "goreflect.value.iszerogetadaptersaddress"
+        },
+        {
+          "type": "domain",
+          "value": "goroutinereflect.value.bytes"
+        },
+        {
+          "type": "domain",
+          "value": "goruntime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "gp.goid"
+        },
+        {
+          "type": "domain",
+          "value": "gp.parampanic"
+        },
+        {
+          "type": "domain",
+          "value": "gp.paramunknown"
+        },
+        {
+          "type": "domain",
+          "value": "graphic.go"
+        },
+        {
+          "type": "domain",
+          "value": "group.go"
+        },
+        {
+          "type": "domain",
+          "value": "hash.hash"
+        },
+        {
+          "type": "domain",
+          "value": "hash32.go"
+        },
+        {
+          "type": "domain",
+          "value": "hashtriemap.go"
+        },
+        {
+          "type": "domain",
+          "value": "hex.encode"
+        },
+        {
+          "type": "domain",
+          "value": "hex.encodetostring"
+        },
+        {
+          "type": "domain",
+          "value": "hex.go"
+        },
+        {
+          "type": "domain",
+          "value": "histogram.go"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.go"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.hmac"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.init"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.init.0.func"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.marshalable"
+        },
+        {
+          "type": "domain",
+          "value": "hmac.new"
+        },
+        {
+          "type": "domain",
+          "value": "hooks.go"
+        },
+        {
+          "type": "domain",
+          "value": "iface.go"
+        },
+        {
+          "type": "domain",
+          "value": "impl.implementation"
+        },
+        {
+          "type": "domain",
+          "value": "indent.go"
+        },
+        {
+          "type": "domain",
+          "value": "indicator.go"
+        },
+        {
+          "type": "domain",
+          "value": "indirinterfaceinheritedntdll.dllpsapi.dllpclmulqdqmath"
+        },
+        {
+          "type": "domain",
+          "value": "indirinterfaceinheritedpclmulqdqntdll.dllpsapi.dllmath"
+        },
+        {
+          "type": "domain",
+          "value": "intrinsics.go"
+        },
+        {
+          "type": "domain",
+          "value": "io.stringwriter"
+        },
+        {
+          "type": "domain",
+          "value": "io.writer"
+        },
+        {
+          "type": "domain",
+          "value": "iter.go"
+        },
+        {
+          "type": "domain",
+          "value": "iter.init"
+        },
+        {
+          "type": "domain",
+          "value": "iteratorreflect.value.addr"
+        },
+        {
+          "type": "domain",
+          "value": "itoa.go"
+        },
+        {
+          "type": "domain",
+          "value": "itoa.itoa"
+        },
+        {
+          "type": "domain",
+          "value": "itoa.uitoa"
+        },
+        {
+          "type": "domain",
+          "value": "json.addrmarshalerencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.addrtextmarshalerencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendcompact"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendcompact.deferwrap"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendfoldedname"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendhtmlescape"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendindent"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendindent.deferwrap"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendnewline"
+        },
+        {
+          "type": "domain",
+          "value": "json.appendstring"
+        },
+        {
+          "type": "domain",
+          "value": "json.arrayencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.arrayencoder.encode"
+        },
+        {
+          "type": "domain",
+          "value": "json.boolencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.cachedtypefields"
+        },
+        {
+          "type": "domain",
+          "value": "json.condaddrencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.condaddrencoder.encode"
+        },
+        {
+          "type": "domain",
+          "value": "json.dominantfield"
+        },
+        {
+          "type": "domain",
+          "value": "json.encodebyteslice"
+        },
+        {
+          "type": "domain",
+          "value": "json.encoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.encoderfunc"
+        },
+        {
+          "type": "domain",
+          "value": "json.encodestate"
+        },
+        {
+          "type": "domain",
+          "value": "json.encopts"
+        },
+        {
+          "type": "domain",
+          "value": "json.field"
+        },
+        {
+          "type": "domain",
+          "value": "json.floatencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.floatencoder.encode"
+        },
+        {
+          "type": "domain",
+          "value": "json.foldname"
+        },
+        {
+          "type": "domain",
+          "value": "json.foldrune"
+        },
+        {
+          "type": "domain",
+          "value": "json.freescanner"
+        },
+        {
+          "type": "domain",
+          "value": "json.index"
+        },
+        {
+          "type": "domain",
+          "value": "json.init"
+        },
+        {
+          "type": "domain",
+          "value": "json.init.func"
+        },
+        {
+          "type": "domain",
+          "value": "json.intencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.interfaceencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.invalidvalueencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.isemptyvalue"
+        },
+        {
+          "type": "domain",
+          "value": "json.isspace"
+        },
+        {
+          "type": "domain",
+          "value": "json.isvalidnumber"
+        },
+        {
+          "type": "domain",
+          "value": "json.isvalidtag"
+        },
+        {
+          "type": "domain",
+          "value": "json.iszero"
+        },
+        {
+          "type": "domain",
+          "value": "json.iszeroer"
+        },
+        {
+          "type": "domain",
+          "value": "json.jsonerror"
+        },
+        {
+          "type": "domain",
+          "value": "json.ks"
+        },
+        {
+          "type": "domain",
+          "value": "json.mapencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.marshaler"
+        },
+        {
+          "type": "domain",
+          "value": "json.marshalererror"
+        },
+        {
+          "type": "domain",
+          "value": "json.name"
+        },
+        {
+          "type": "domain",
+          "value": "json.namebytes"
+        },
+        {
+          "type": "domain",
+          "value": "json.nameeschtml"
+        },
+        {
+          "type": "domain",
+          "value": "json.namenonesc"
+        },
+        {
+          "type": "domain",
+          "value": "json.number"
+        },
+        {
+          "type": "domain",
+          "value": "json.omitempty"
+        },
+        {
+          "type": "domain",
+          "value": "json.omitzero"
+        },
+        {
+          "type": "domain",
+          "value": "json.ptrencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.quoted"
+        },
+        {
+          "type": "domain",
+          "value": "json.reflectwithstring"
+        },
+        {
+          "type": "domain",
+          "value": "json.scanner"
+        },
+        {
+          "type": "domain",
+          "value": "json.sliceencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.structencoder"
+        },
+        {
+          "type": "domain",
+          "value": "json.structfields"
+        },
+        {
+          "type": "domain",
+          "value": "json.syntaxerror"
+        },
+        {
+          "type": "domain",
+          "value": "json.tag"
+        },
+        {
+          "type": "domain",
+          "value": "json.typ"
+        },
+        {
+          "type": "domain",
+          "value": "json.unsupportedtypeerror"
+        },
+        {
+          "type": "domain",
+          "value": "json.unsupportedvalueerror"
+        },
+        {
+          "type": "domain",
+          "value": "kindruntime.semasleep"
+        },
+        {
+          "type": "domain",
+          "value": "largeabi.newname"
+        },
+        {
+          "type": "domain",
+          "value": "largelimiterevent.stop"
+        },
+        {
+          "type": "domain",
+          "value": "largereflect.value.interfacereflect.value.nummethod"
+        },
+        {
+          "type": "domain",
+          "value": "largesubtle.xorbytes"
+        },
+        {
+          "type": "domain",
+          "value": "limiterevent.stop"
+        },
+        {
+          "type": "domain",
+          "value": "listruntime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "map.group"
+        },
+        {
+          "type": "domain",
+          "value": "maps.groupsreference"
+        },
+        {
+          "type": "domain",
+          "value": "maps.map"
+        },
+        {
+          "type": "domain",
+          "value": "maps.table"
+        },
+        {
+          "type": "domain",
+          "value": "maps.unhashabletypeerror"
+        },
+        {
+          "type": "domain",
+          "value": "md5.digest"
+        },
+        {
+          "type": "domain",
+          "value": "memoryruntime.minit"
+        },
+        {
+          "type": "domain",
+          "value": "mheap.freespanlocked"
+        },
+        {
+          "type": "domain",
+          "value": "mheap.sweepgen"
+        },
+        {
+          "type": "domain",
+          "value": "mismatchsubtle.xorbytes"
+        },
+        {
+          "type": "domain",
+          "value": "mp.lockedint"
+        },
+        {
+          "type": "domain",
+          "value": "mspan.ensureswept"
+        },
+        {
+          "type": "domain",
+          "value": "mspan.sweep"
+        },
+        {
+          "type": "domain",
+          "value": "mspanlist.insert"
+        },
+        {
+          "type": "domain",
+          "value": "mspanlist.remove"
+        },
+        {
+          "type": "domain",
+          "value": "negativereflect.value.uintexceeded"
+        },
+        {
+          "type": "domain",
+          "value": "nilruntime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "notmapiter.next"
+        },
+        {
+          "type": "domain",
+          "value": "objectmheap.freespanlocked"
+        },
+        {
+          "type": "domain",
+          "value": "operationreflect.value.complex"
+        },
+        {
+          "type": "domain",
+          "value": "os.dirinfo"
+        },
+        {
+          "type": "domain",
+          "value": "os.file"
+        },
+        {
+          "type": "domain",
+          "value": "overflowruntime.main"
+        },
+        {
+          "type": "domain",
+          "value": "overlapbisect.hash"
+        },
+        {
+          "type": "domain",
+          "value": "overlappingmheap.freespanlocked"
+        },
+        {
+          "type": "domain",
+          "value": "p.gcmarkworkermode"
+        },
+        {
+          "type": "domain",
+          "value": "p.searchaddr"
+        },
+        {
+          "type": "domain",
+          "value": "pcheader.textstart"
+        },
+        {
+          "type": "domain",
+          "value": "pointerruntime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "poll.deadlineexceedederror"
+        },
+        {
+          "type": "domain",
+          "value": "poll.errfileclosing"
+        },
+        {
+          "type": "domain",
+          "value": "poll.errnetclosing"
+        },
+        {
+          "type": "domain",
+          "value": "poll.fd"
+        },
+        {
+          "type": "domain",
+          "value": "poll.fdmutex"
+        },
+        {
+          "type": "domain",
+          "value": "poll.fdmutexexpandenvironment"
+        },
+        {
+          "type": "domain",
+          "value": "poll.fdmutexunexpected"
+        },
+        {
+          "type": "domain",
+          "value": "poll.filekind"
+        },
+        {
+          "type": "domain",
+          "value": "poll.operation"
+        },
+        {
+          "type": "domain",
+          "value": "poll.polldesc"
+        },
+        {
+          "type": "domain",
+          "value": "rand.rngsource"
+        },
+        {
+          "type": "domain",
+          "value": "rand.source"
+        },
+        {
+          "type": "domain",
+          "value": "rangemapiter.key"
+        },
+        {
+          "type": "domain",
+          "value": "receivesynctest.runcleanup"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.abidesc"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.abiseq"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.abistep"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.abistepkind"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.bitvector"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.call"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.chandir"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.flag"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.kind"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.layoutkey"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.layouttype"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.makefuncctxt"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.method"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.methodvalue"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.ptrtype"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.rtype"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.setprocessprngmovefileex"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.structfield"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.structtag"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.type"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.bytes"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.elem"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.len"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.lenreflect"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.value.unsafepointer"
+        },
+        {
+          "type": "domain",
+          "value": "reflect.valueerror"
+        },
+        {
+          "type": "domain",
+          "value": "reflectlite.rtype"
+        },
+        {
+          "type": "domain",
+          "value": "reflectlite.type"
+        },
+        {
+          "type": "domain",
+          "value": "reflectlite.valueerror"
+        },
+        {
+          "type": "domain",
+          "value": "rotaterightreflect.makefuncstubtrace"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.abidesc"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.abipart"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.abipartkind"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.addrrange"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.ancestorinfo"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.bitvector"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.boundserror"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.boundserrorcode"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.cgocallers"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.cleanupblock"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.cleanupblockheader"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.coro"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.cpustats"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.cpustatsaggregate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.debugcallwrapargs"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.dlogperm"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.erroraddressstring"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.errorstring"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.frame"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.frames"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.func"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.funcinfo"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.functab"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.funcval"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcbgmarkworkernode"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcbgmarkworkernodepadded"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcbits"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gclinkptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcmarkworkermode"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcstatsaggregate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gcwork"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.glist"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gobuf"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.goexit"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.goroutineprofilestatehol"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gsignalstack"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.gtracestate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.guintptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.hchan"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.heapstatsaggregate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.heapstatsdelta"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.heldlockinfo"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.inittask"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.lfnode"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.libcall"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.limiterevent"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.localspanqueue"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.lockrank"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.lockrankstruct"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mcache"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.metricdata"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.metricfloat"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.metrickind"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.metricreader"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.metricvalue"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.minit"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mlockprofile"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.moduledata"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.modulehash"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mos"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mpadded"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mspan"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mspanlist"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mspanstatebox"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mtracestate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.muintptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mutex"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.mwaitlist"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.netpoll"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.newosprocinternal"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.note"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.notinheap"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.offaddr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.pagecache"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.panicnilerror"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.pcheader"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.pcvaluecache"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.pcvaluecacheent"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.persistentalloc"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.picontroller"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.plainerror"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.polldesc"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.preemptm"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.ptabentry"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.ptracestate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.puintptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.savedopendeferstate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.scavengerstate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.semacreateruntime.semawakeupreflect.value.elemreflect.value.typegetsidsubauthorityqu"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.semasleep"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.setfinalizer"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sigset"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sizeclassscanstats"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sliceinterfaceptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.spanclass"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.special"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.stack"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.stackfreelist"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.stataggregate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.statdepset"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.stringer"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.stringinterfaceptr"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sudog"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.synctestbubble"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.synctestdeadlockerror"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sysmontick"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.sysstatsaggregate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.textsect"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.throwtype"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.timer"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.timers"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.timerwhen"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.timetimer"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.traceblockreason"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.tracebuf"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.tracebufheader"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.traceframe"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.traceschedresourcestate"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.tracetime"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.typeassertionerror"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.uint"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.untracedg"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.waitq"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.waitreason"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.wbbuf"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.wincallback"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.wincallbackkey"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.winlibcall"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.workbuf"
+        },
+        {
+          "type": "domain",
+          "value": "runtime.workbufhdr"
+        },
+        {
+          "type": "domain",
+          "value": "s.alloccount"
+        },
+        {
+          "type": "domain",
+          "value": "s.base"
+        },
+        {
+          "type": "domain",
+          "value": "s.elem"
+        },
+        {
+          "type": "domain",
+          "value": "s.elemsize"
+        },
+        {
+          "type": "domain",
+          "value": "s.limit"
+        },
+        {
+          "type": "domain",
+          "value": "s.nelems"
+        },
+        {
+          "type": "domain",
+          "value": "s.nelemsbad"
+        },
+        {
+          "type": "domain",
+          "value": "s.nelemssweeper"
+        },
+        {
+          "type": "domain",
+          "value": "s.spanclass"
+        },
+        {
+          "type": "domain",
+          "value": "s.state"
+        },
+        {
+          "type": "domain",
+          "value": "s.sweepgen"
+        },
+        {
+          "type": "domain",
+          "value": "sched.safepointwait"
+        },
+        {
+          "type": "domain",
+          "value": "setmspan.sweep"
+        },
+        {
+          "type": "domain",
+          "value": "sha256.digest"
+        },
+        {
+          "type": "domain",
+          "value": "sha3.digest"
+        },
+        {
+          "type": "domain",
+          "value": "sha3.shake"
+        },
+        {
+          "type": "domain",
+          "value": "sha3.spongedirection"
+        },
+        {
+          "type": "domain",
+          "value": "sha512.digest"
+        },
+        {
+          "type": "domain",
+          "value": "slicereflect.value.bytes"
+        },
+        {
+          "type": "domain",
+          "value": "span.base"
+        },
+        {
+          "type": "domain",
+          "value": "span.limit"
+        },
+        {
+          "type": "domain",
+          "value": "span.list"
+        },
+        {
+          "type": "domain",
+          "value": "span.npages"
+        },
+        {
+          "type": "domain",
+          "value": "span.state"
+        },
+        {
+          "type": "domain",
+          "value": "spansreflect.value.interface"
+        },
+        {
+          "type": "domain",
+          "value": "stackunsafe.slice"
+        },
+        {
+          "type": "domain",
+          "value": "stepreflect.value.pointerbad"
+        },
+        {
+          "type": "domain",
+          "value": "summaryruntime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "sync.dequeuenil"
+        },
+        {
+          "type": "domain",
+          "value": "sync.eface"
+        },
+        {
+          "type": "domain",
+          "value": "sync.entry"
+        },
+        {
+          "type": "domain",
+          "value": "sync.equalfunc"
+        },
+        {
+          "type": "domain",
+          "value": "sync.hashfunc"
+        },
+        {
+          "type": "domain",
+          "value": "sync.hashtriemap"
+        },
+        {
+          "type": "domain",
+          "value": "sync.indirect"
+        },
+        {
+          "type": "domain",
+          "value": "sync.isentry"
+        },
+        {
+          "type": "domain",
+          "value": "sync.mutex"
+        },
+        {
+          "type": "domain",
+          "value": "sync.mutex.lockruntime.goschedmalloc"
+        },
+        {
+          "type": "domain",
+          "value": "sync.nocopy"
+        },
+        {
+          "type": "domain",
+          "value": "sync.node"
+        },
+        {
+          "type": "domain",
+          "value": "sync.once"
+        },
+        {
+          "type": "domain",
+          "value": "sync.pool"
+        },
+        {
+          "type": "domain",
+          "value": "sync.poolchain"
+        },
+        {
+          "type": "domain",
+          "value": "sync.poolchainelt"
+        },
+        {
+          "type": "domain",
+          "value": "sync.pooldequeue"
+        },
+        {
+          "type": "domain",
+          "value": "sync.poollocal"
+        },
+        {
+          "type": "domain",
+          "value": "sync.poollocalinternal"
+        },
+        {
+          "type": "domain",
+          "value": "sync.rwmutex.lockwait"
+        },
+        {
+          "type": "domain",
+          "value": "syncs.alloccount"
+        },
+        {
+          "type": "domain",
+          "value": "sys.nih"
+        },
+        {
+          "type": "domain",
+          "value": "sys.notinheap"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.dllerror"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.errno"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.guid"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.handle"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.lazydll"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.lazyproc"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.overlapped"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.proc"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.rawsockaddr"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.rawsockaddrany"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.sockaddr"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.wsabuf"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.wsaprotocolchain"
+        },
+        {
+          "type": "domain",
+          "value": "syscall.wsaprotocolinfo"
+        },
+        {
+          "type": "domain",
+          "value": "terminationsync.waitgroup.waitchan"
+        },
+        {
+          "type": "domain",
+          "value": "time.abbr"
+        },
+        {
+          "type": "domain",
+          "value": "time.dath"
+        },
+        {
+          "type": "domain",
+          "value": "time.duration"
+        },
+        {
+          "type": "domain",
+          "value": "time.location"
+        },
+        {
+          "type": "domain",
+          "value": "time.loch"
+        },
+        {
+          "type": "domain",
+          "value": "time.locl"
+        },
+        {
+          "type": "domain",
+          "value": "time.time"
+        },
+        {
+          "type": "domain",
+          "value": "time.utcl"
+        },
+        {
+          "type": "domain",
+          "value": "time.zone"
+        },
+        {
+          "type": "domain",
+          "value": "time.zonetrans"
+        },
+        {
+          "type": "domain",
+          "value": "timereflect.methodvaluecallbytes.buffer"
+        },
+        {
+          "type": "domain",
+          "value": "trace.seqlockinvalid"
+        },
+        {
+          "type": "domain",
+          "value": "type.implementsimpl"
+        },
+        {
+          "type": "domain",
+          "value": "type.implementssmall"
+        },
+        {
+          "type": "domain",
+          "value": "unicode.range"
+        },
+        {
+          "type": "domain",
+          "value": "unicode.rangetable"
+        },
+        {
+          "type": "domain",
+          "value": "unsafe.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "unsafe.slice"
+        },
+        {
+          "type": "domain",
+          "value": "unsafe.string"
+        },
+        {
+          "type": "domain",
+          "value": "unsafeheader.slice"
+        },
+        {
+          "type": "domain",
+          "value": "userarena.faultlist"
+        },
+        {
+          "type": "domain",
+          "value": "v.uh"
+        },
+        {
+          "type": "domain",
+          "value": "valids.freeindex"
+        },
+        {
+          "type": "domain",
+          "value": "validunsafe.string"
+        },
+        {
+          "type": "domain",
+          "value": "valuemapiter.next"
+        },
+        {
+          "type": "domain",
+          "value": "valueptrencoder.encode"
+        },
+        {
+          "type": "domain",
+          "value": "valuesruntime.pinner"
+        },
+        {
+          "type": "domain",
+          "value": "waitsync.cond.waits.alloccount"
+        },
+        {
+          "type": "domain",
+          "value": "waitsynctest.waitout"
+        },
+        {
+          "type": "domain",
+          "value": "windows.ntstatus"
+        },
+        {
+          "type": "domain",
+          "value": "windows.wsamsg"
+        },
+        {
+          "type": "domain",
+          "value": "work.full"
+        },
+        {
+          "type": "domain",
+          "value": "work.nproc"
+        },
+        {
+          "type": "domain",
+          "value": "work.nprocleft"
+        },
+        {
+          "type": "domain",
+          "value": "work.nprocs"
+        },
+        {
+          "type": "domain",
+          "value": "work.nwait"
+        },
+        {
+          "type": "domain",
+          "value": "zonesmheap.freespanlocked"
+        },
+        {
+          "type": "url",
+          "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/"
+        },
+        {
+          "type": "url",
+          "value": "https://go.dev/issue/66821):"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-agenttesla-4721f7464834",
+      "families": [
+        "agenttesla"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 1,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "server275.web-hosting.com:587"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-agenttesla-aa662ac5b0ef",
+      "families": [
+        "agenttesla"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 1,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/yipui"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-amadey-d27a1eebf320",
+      "families": [
+        "amadey"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "ip",
+          "value": "212.113.119.255"
+        },
+        {
+          "type": "url",
+          "value": "http://212.113.119.255/joomla/index.php"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-condi-0c21a99db5d6",
+      "families": [
+        "condi"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 1,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "jkqhdbbbqwiujkaz.hopto.org:69"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-condi-43b54d6f7682",
+      "families": [
+        "condi"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 1,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "jkqhdbbbqwiujkaz.hopto.org:69"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-dotnet-resource-loader-c1881c6000c2",
+      "families": [
+        "dotnet-resource-loader"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 1,
+      "indicators": [
+        {
+          "type": "artifact_hash",
+          "value": "c7b2d253001ad30d897a6bd36ad183a283f19c1f2b50c84f039327fe32ae9e28"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-eclipse-ddos-bot-97449ff85f19",
+      "families": [
+        "eclipse-ddos-bot"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "45.66.228.114:7000"
+        },
+        {
+          "type": "ip",
+          "value": "45.66.228.114"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-eclipse-ddos-bot-97a264ac07f5",
+      "families": [
+        "eclipse-ddos-bot"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "45.66.228.114:7000"
+        },
+        {
+          "type": "ip",
+          "value": "45.66.228.114"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-efimer-5bebcc52c2ef",
+      "families": [
+        "efimer"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"
+        },
+        {
+          "type": "url",
+          "value": "http://gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion/route.php"
+        },
+        {
+          "type": "url",
+          "value": "http://hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion/route.php"
+        },
+        {
+          "type": "url",
+          "value": "http://swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion/core/repla.php"
+        }
+      ],
+      "feature_ids": [
+        "execution:wscript",
+        "persistence:scheduled_task"
+      ],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+      "families": [
+        "efimer",
+        "unclassified"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "0.ll"
+        },
+        {
+          "type": "domain",
+          "value": "0.rh"
+        },
+        {
+          "type": "domain",
+          "value": "1u.qm"
+        },
+        {
+          "type": "domain",
+          "value": "57.eool"
+        },
+        {
+          "type": "domain",
+          "value": "5i.nv"
+        },
+        {
+          "type": "domain",
+          "value": "6.yb"
+        },
+        {
+          "type": "domain",
+          "value": "7.qs"
+        },
+        {
+          "type": "domain",
+          "value": "8.vqu"
+        },
+        {
+          "type": "domain",
+          "value": "8.zo"
+        },
+        {
+          "type": "domain",
+          "value": "a.dw"
+        },
+        {
+          "type": "domain",
+          "value": "b.yvg"
+        },
+        {
+          "type": "domain",
+          "value": "c.fz"
+        },
+        {
+          "type": "domain",
+          "value": "c.jfvuh"
+        },
+        {
+          "type": "domain",
+          "value": "c.ns"
+        },
+        {
+          "type": "domain",
+          "value": "c.xvct"
+        },
+        {
+          "type": "domain",
+          "value": "c.zi"
+        },
+        {
+          "type": "domain",
+          "value": "c.zy"
+        },
+        {
+          "type": "domain",
+          "value": "d.fow"
+        },
+        {
+          "type": "domain",
+          "value": "d.lm"
+        },
+        {
+          "type": "domain",
+          "value": "d.sh"
+        },
+        {
+          "type": "domain",
+          "value": "djq.rw"
+        },
+        {
+          "type": "domain",
+          "value": "e.ok"
+        },
+        {
+          "type": "domain",
+          "value": "e.ra"
+        },
+        {
+          "type": "domain",
+          "value": "e.si"
+        },
+        {
+          "type": "domain",
+          "value": "ei.ksy"
+        },
+        {
+          "type": "domain",
+          "value": "ep.pg"
+        },
+        {
+          "type": "domain",
+          "value": "f.ko"
+        },
+        {
+          "type": "domain",
+          "value": "g.kk"
+        },
+        {
+          "type": "domain",
+          "value": "gz.vt"
+        },
+        {
+          "type": "domain",
+          "value": "h.wn"
+        },
+        {
+          "type": "domain",
+          "value": "i.mv"
+        },
+        {
+          "type": "domain",
+          "value": "i.xvw"
+        },
+        {
+          "type": "domain",
+          "value": "i.yf"
+        },
+        {
+          "type": "domain",
+          "value": "init.tcl"
+        },
+        {
+          "type": "domain",
+          "value": "installer.py"
+        },
+        {
+          "type": "domain",
+          "value": "j.oi"
+        },
+        {
+          "type": "domain",
+          "value": "ky.te"
+        },
+        {
+          "type": "domain",
+          "value": "l.ri"
+        },
+        {
+          "type": "domain",
+          "value": "l.to"
+        },
+        {
+          "type": "domain",
+          "value": "m.bgi"
+        },
+        {
+          "type": "domain",
+          "value": "m.obgd"
+        },
+        {
+          "type": "domain",
+          "value": "m.on"
+        },
+        {
+          "type": "domain",
+          "value": "ml.ln"
+        },
+        {
+          "type": "domain",
+          "value": "n.en"
+        },
+        {
+          "type": "domain",
+          "value": "p.nb"
+        },
+        {
+          "type": "domain",
+          "value": "p.yp"
+        },
+        {
+          "type": "domain",
+          "value": "q.wv"
+        },
+        {
+          "type": "domain",
+          "value": "qw.ye"
+        },
+        {
+          "type": "domain",
+          "value": "r.hd"
+        },
+        {
+          "type": "domain",
+          "value": "s.ji"
+        },
+        {
+          "type": "domain",
+          "value": "s.pkg"
+        },
+        {
+          "type": "domain",
+          "value": "s.py"
+        },
+        {
+          "type": "domain",
+          "value": "sys.argv"
+        },
+        {
+          "type": "domain",
+          "value": "t.pj"
+        },
+        {
+          "type": "domain",
+          "value": "t.xn"
+        },
+        {
+          "type": "domain",
+          "value": "tk.tcl"
+        },
+        {
+          "type": "domain",
+          "value": "v.nb"
+        },
+        {
+          "type": "domain",
+          "value": "w.en"
+        },
+        {
+          "type": "domain",
+          "value": "w.hb"
+        },
+        {
+          "type": "domain",
+          "value": "w7.oxc"
+        },
+        {
+          "type": "domain",
+          "value": "x.he"
+        },
+        {
+          "type": "domain",
+          "value": "x.pco"
+        },
+        {
+          "type": "domain",
+          "value": "x.sj"
+        },
+        {
+          "type": "domain",
+          "value": "x.tu"
+        },
+        {
+          "type": "domain",
+          "value": "yu5a0.dj"
+        },
+        {
+          "type": "domain",
+          "value": "z.cs"
+        },
+        {
+          "type": "domain",
+          "value": "zqc.uc"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+      "families": [
+        "freepbx-k-php",
+        "jomangy"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "160.119.69.4:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "45.95.147.178:80"
+        },
+        {
+          "type": "ip",
+          "value": "160.119.69.4"
+        },
+        {
+          "type": "ip",
+          "value": "45.95.147.178"
+        },
+        {
+          "type": "url",
+          "value": "http://160.119.69.4/hima_data/index.php"
+        },
+        {
+          "type": "url",
+          "value": "http://160.119.69.4/x"
+        },
+        {
+          "type": "url",
+          "value": "http://160.119.69.4/z/post/noroot.php"
+        },
+        {
+          "type": "url",
+          "value": "http://45.95.147.178/hima_data/index.php"
+        },
+        {
+          "type": "url",
+          "value": "http://45.95.147.178/k.php"
+        },
+        {
+          "type": "url",
+          "value": "http://45.95.147.178/z/post/root.php"
+        },
+        {
+          "type": "url",
+          "value": "http://45.95.147.178/z/wr.php"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+      "families": [
+        "genddos-bot"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "65.222.202.53:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "genddos.st:6742"
+        },
+        {
+          "type": "ip",
+          "value": "65.222.202.53"
+        }
+      ],
+      "feature_ids": [
+        "impact:ddos"
+      ],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+      "families": [
+        "hijackloader",
+        "unclassified",
+        "valleyrat"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "1.pack"
+        },
+        {
+          "type": "domain",
+          "value": "4winapi.regstr"
+        },
+        {
+          "type": "domain",
+          "value": "6shared.verinfofunc"
+        },
+        {
+          "type": "domain",
+          "value": "8.tlist"
+        },
+        {
+          "type": "domain",
+          "value": "8compression.base"
+        },
+        {
+          "type": "domain",
+          "value": "ashared.encryptionfunc"
+        },
+        {
+          "type": "domain",
+          "value": "b.rsrc"
+        },
+        {
+          "type": "domain",
+          "value": "chacha20.pas"
+        },
+        {
+          "type": "domain",
+          "value": "compression.base"
+        },
+        {
+          "type": "domain",
+          "value": "compression.lzma"
+        },
+        {
+          "type": "domain",
+          "value": "dsystem.hash"
+        },
+        {
+          "type": "domain",
+          "value": "dsystem.sysconst"
+        },
+        {
+          "type": "domain",
+          "value": "fsystem.rtti"
+        },
+        {
+          "type": "domain",
+          "value": "hwinapi.urlmon"
+        },
+        {
+          "type": "domain",
+          "value": "isystem.internal.excutils"
+        },
+        {
+          "type": "domain",
+          "value": "jr.inno.setup"
+        },
+        {
+          "type": "domain",
+          "value": "jrsoftware.org"
+        },
+        {
+          "type": "domain",
+          "value": "kwinapi.psapi"
+        },
+        {
+          "type": "domain",
+          "value": "lazyloadattributes.makeclosure"
+        },
+        {
+          "type": "domain",
+          "value": "oshared.setupentfunc"
+        },
+        {
+          "type": "domain",
+          "value": "s.seek"
+        },
+        {
+          "type": "domain",
+          "value": "setupldrandsetup.instfunc"
+        },
+        {
+          "type": "domain",
+          "value": "setupldrandsetup.messages"
+        },
+        {
+          "type": "domain",
+          "value": "setupldrandsetup.xptheme"
+        },
+        {
+          "type": "domain",
+          "value": "shared.commonfunc"
+        },
+        {
+          "type": "domain",
+          "value": "shared.encryptionfunc"
+        },
+        {
+          "type": "domain",
+          "value": "shared.fileclass"
+        },
+        {
+          "type": "domain",
+          "value": "shared.setupentfunc"
+        },
+        {
+          "type": "domain",
+          "value": "shared.setupmessageids"
+        },
+        {
+          "type": "domain",
+          "value": "shared.struct"
+        },
+        {
+          "type": "domain",
+          "value": "shared.verinfofunc"
+        },
+        {
+          "type": "domain",
+          "value": "system.byte"
+        },
+        {
+          "type": "domain",
+          "value": "system.cardinal"
+        },
+        {
+          "type": "domain",
+          "value": "system.char"
+        },
+        {
+          "type": "domain",
+          "value": "system.character"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.iinterfacelist"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tbasicaction"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tbasicactionlink"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tcollectionitem"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tcomponent"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tfieldscache.tfields"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tintconst"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tpersistentclass"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tpropfixup"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.treggroup"
+        },
+        {
+          "type": "domain",
+          "value": "system.classes.tthread"
+        },
+        {
+          "type": "domain",
+          "value": "system.comp"
+        },
+        {
+          "type": "domain",
+          "value": "system.currency"
+        },
+        {
+          "type": "domain",
+          "value": "system.diagnostics"
+        },
+        {
+          "type": "domain",
+          "value": "system.double"
+        },
+        {
+          "type": "domain",
+          "value": "system.extended"
+        },
+        {
+          "type": "domain",
+          "value": "system.generics.collections"
+        },
+        {
+          "type": "domain",
+          "value": "system.generics.collections.tpair"
+        },
+        {
+          "type": "domain",
+          "value": "system.generics.collectionsd"
+        },
+        {
+          "type": "domain",
+          "value": "system.generics.collectionst"
+        },
+        {
+          "type": "domain",
+          "value": "system.generics.defaults"
+        },
+        {
+          "type": "domain",
+          "value": "system.hash"
+        },
+        {
+          "type": "domain",
+          "value": "system.iinterface"
+        },
+        {
+          "type": "domain",
+          "value": "system.integer"
+        },
+        {
+          "type": "domain",
+          "value": "system.internal.excutils"
+        },
+        {
+          "type": "domain",
+          "value": "system.math"
+        },
+        {
+          "type": "domain",
+          "value": "system.pinstitem"
+        },
+        {
+          "type": "domain",
+          "value": "system.pointer"
+        },
+        {
+          "type": "domain",
+          "value": "system.ppointer"
+        },
+        {
+          "type": "domain",
+          "value": "system.rawbytestring"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtlconsts"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.tmethodimplementation.tparamloc"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.tprivateheap.theapitem"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttifield"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttiindexedproperty"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttiinterfacetype"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttimanagedfield"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttimethod"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttiobject"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttipackage"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttiparameter"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttiproperty"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.trttitype"
+        },
+        {
+          "type": "domain",
+          "value": "system.rtti.tvalue"
+        },
+        {
+          "type": "domain",
+          "value": "system.single"
+        },
+        {
+          "type": "domain",
+          "value": "system.string"
+        },
+        {
+          "type": "domain",
+          "value": "system.syncobjs"
+        },
+        {
+          "type": "domain",
+          "value": "system.sysconst"
+        },
+        {
+          "type": "domain",
+          "value": "system.sysutils"
+        },
+        {
+          "type": "domain",
+          "value": "system.sysutils.tunithashentry"
+        },
+        {
+          "type": "domain",
+          "value": "system.sysutilsl"
+        },
+        {
+          "type": "domain",
+          "value": "system.tarray"
+        },
+        {
+          "type": "domain",
+          "value": "system.tclass"
+        },
+        {
+          "type": "domain",
+          "value": "system.tcustomattribute"
+        },
+        {
+          "type": "domain",
+          "value": "system.timespan"
+        },
+        {
+          "type": "domain",
+          "value": "system.tobject"
+        },
+        {
+          "type": "domain",
+          "value": "system.types"
+        },
+        {
+          "type": "domain",
+          "value": "system.types.tmultiwaitevent.twaitinfo"
+        },
+        {
+          "type": "domain",
+          "value": "system.typinfo"
+        },
+        {
+          "type": "domain",
+          "value": "system.typinfo.ptypeinfo"
+        },
+        {
+          "type": "domain",
+          "value": "system.typinfo.telementalias"
+        },
+        {
+          "type": "domain",
+          "value": "system.typinfo.tenumaliasentry"
+        },
+        {
+          "type": "domain",
+          "value": "system.uitypes"
+        },
+        {
+          "type": "domain",
+          "value": "system.variants"
+        },
+        {
+          "type": "domain",
+          "value": "system.varutils"
+        },
+        {
+          "type": "domain",
+          "value": "system.widestring"
+        },
+        {
+          "type": "domain",
+          "value": "system.widestrutils"
+        },
+        {
+          "type": "domain",
+          "value": "t.ht"
+        },
+        {
+          "type": "domain",
+          "value": "tcomponent.create"
+        },
+        {
+          "type": "domain",
+          "value": "tfieldscache.tfields"
+        },
+        {
+          "type": "domain",
+          "value": "tformatsettings.terainfo"
+        },
+        {
+          "type": "domain",
+          "value": "tinstitem.tbucketarray"
+        },
+        {
+          "type": "domain",
+          "value": "tlisthelper.tinternalcomparefunc"
+        },
+        {
+          "type": "domain",
+          "value": "tlisthelper.tinternalnotifyproc"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.pfirststageintercept"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.pinterceptframe"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tfirststageintercept"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tfloatreg"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tinterceptframe"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tinvokeinfo"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tinvokeinfok"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.tparamloc"
+        },
+        {
+          "type": "domain",
+          "value": "tmethodimplementation.truntimetypeinfos"
+        },
+        {
+          "type": "domain",
+          "value": "tmonitor.pwaitingthread"
+        },
+        {
+          "type": "domain",
+          "value": "tmonitor.tspinlock"
+        },
+        {
+          "type": "domain",
+          "value": "tmonitor.twaitingthread"
+        },
+        {
+          "type": "domain",
+          "value": "tmultiwaitevent.tmultiwaiter"
+        },
+        {
+          "type": "domain",
+          "value": "tmultiwaitevent.tmultiwaitert"
+        },
+        {
+          "type": "domain",
+          "value": "tmultiwaitevent.twaiterflag"
+        },
+        {
+          "type": "domain",
+          "value": "tmultiwaitevent.twaiterflags"
+        },
+        {
+          "type": "domain",
+          "value": "tmultiwaitevent.twaitinfo"
+        },
+        {
+          "type": "domain",
+          "value": "tobservers.tcanobserveevent"
+        },
+        {
+          "type": "domain",
+          "value": "tobservers.tobserveraddedevent"
+        },
+        {
+          "type": "domain",
+          "value": "tprivateheap.theapitem"
+        },
+        {
+          "type": "domain",
+          "value": "trttipool.getpackagelist.doupdate"
+        },
+        {
+          "type": "domain",
+          "value": "tthread.tsynchronizerecord"
+        },
+        {
+          "type": "domain",
+          "value": "tthread.tsystemtimes"
+        },
+        {
+          "type": "domain",
+          "value": "uh.qe"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.activex"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.commctrl"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.imagehlp"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.ipexport"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.messages"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.msxmlintf"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.objectarray"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.propsys"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.psapi"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.qos"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.regstr"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.shellapi"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.shfolder"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.shlobj"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.shlwapi"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.structuredquerycondition"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.urlmon"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.windows"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.windows.pkghelper"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.wininet"
+        },
+        {
+          "type": "domain",
+          "value": "winapi.winsock"
+        },
+        {
+          "type": "domain",
+          "value": "ywinapi.shlwapi"
+        },
+        {
+          "type": "url",
+          "value": "https://bazaar.abuse.ch/browse/signature/valleyrat/"
+        },
+        {
+          "type": "url",
+          "value": "https://jrsoftware.org/ishelp/index.php"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "cross_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-jackskid-52bbfd994f2b",
+      "families": [
+        "jackskid"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "meower.eth"
+        },
+        {
+          "type": "domain",
+          "value": "roanoke.sol"
+        },
+        {
+          "type": "endpoint",
+          "value": "172.233.124.230:39419"
+        },
+        {
+          "type": "endpoint",
+          "value": "45.154.98.115:39419"
+        },
+        {
+          "type": "endpoint",
+          "value": "deformed.su:9018"
+        },
+        {
+          "type": "endpoint",
+          "value": "nvms9000.online:9018"
+        },
+        {
+          "type": "ip",
+          "value": "172.233.124.230"
+        },
+        {
+          "type": "ip",
+          "value": "45.154.98.115"
+        }
+      ],
+      "feature_ids": [
+        "propagation:telnet_scan"
+      ],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-07f25a0194ab",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://stratimasesstr.com/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://winarkamaps.com/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-119609fcd1f4",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://skinnyjeanso.com/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://titnovacrion.top/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-16adde821df9",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://aytobusesre.com/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://scifimond.com/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-48ccbbb41b6f",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://aprettopizza.world/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://peermangoz.me/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://arsimonopa.com/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://lemonimonakio.com/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-529ef014e1b4",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://miistoria.com/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://plwskoret.top/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-5650492dc465",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://fluraresto.me/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://mastralakkot.live/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-90dd888eada9",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://drifajizo.fun/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://scifimond.com/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-latrodectus-d90e452386a7",
+      "families": [
+        "latrodectus"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "https://grunzalom.fun/live/"
+        },
+        {
+          "type": "url",
+          "value": "https://titnovacrion.top/live/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+      "families": [
+        "mirai-derived-ens-doh-bot"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "ewqqwt.duckdns.org:43833"
+        },
+        {
+          "type": "endpoint",
+          "value": "ewqqwt2.duckdns.org:43833"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-remcosrat-9856d4a51265",
+      "families": [
+        "remcosrat"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "37.27.30.5:2404"
+        },
+        {
+          "type": "endpoint",
+          "value": "37.27.30.5:2405"
+        },
+        {
+          "type": "endpoint",
+          "value": "37.27.30.5:2406"
+        },
+        {
+          "type": "ip",
+          "value": "37.27.30.5"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-remusstealer-8d56fe990dd4",
+      "families": [
+        "remusstealer"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "31.77.168.180:5000"
+        },
+        {
+          "type": "ip",
+          "value": "31.77.168.180"
+        },
+        {
+          "type": "url",
+          "value": "http://31.77.168.180:5000/umvbr.bin"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+      "families": [
+        "signed-dht-bot"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "afterhours.click"
+        },
+        {
+          "type": "domain",
+          "value": "chickenfriedwatermelonkoolaid.store"
+        },
+        {
+          "type": "domain",
+          "value": "dynabot.monster"
+        },
+        {
+          "type": "domain",
+          "value": "headlock.ru"
+        },
+        {
+          "type": "domain",
+          "value": "niggerdns.spamhaus-faggots.ru"
+        },
+        {
+          "type": "domain",
+          "value": "nightslikethis.club"
+        },
+        {
+          "type": "domain",
+          "value": "poop.garden"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-unclassified-140dc63f6cf6",
+      "families": [
+        "unclassified"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "url",
+          "value": "http://129.121.110.105/clq"
+        },
+        {
+          "type": "url",
+          "value": "http://129.121.110.105/ds2"
+        },
+        {
+          "type": "url",
+          "value": "http://129.121.110.105/f8dj"
+        },
+        {
+          "type": "url",
+          "value": "http://129.121.110.105/hr2d"
+        },
+        {
+          "type": "url",
+          "value": "http://129.121.110.105/mfzi"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-unclassified-18d330f0907e",
+      "families": [
+        "unclassified"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "b.rsrc"
+        },
+        {
+          "type": "domain",
+          "value": "icon.icoh"
+        }
+      ],
+      "feature_ids": [
+        "execution:cryptographic_api",
+        "network:api_access"
+      ],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-unclassified-70f6c8da86de",
+      "families": [
+        "unclassified"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "1.ib"
+        },
+        {
+          "type": "domain",
+          "value": "2.rqj"
+        },
+        {
+          "type": "domain",
+          "value": "5.su"
+        },
+        {
+          "type": "domain",
+          "value": "8.fb"
+        },
+        {
+          "type": "domain",
+          "value": "8.uch"
+        },
+        {
+          "type": "domain",
+          "value": "a.dw"
+        },
+        {
+          "type": "domain",
+          "value": "b.rr"
+        },
+        {
+          "type": "domain",
+          "value": "b.uah"
+        },
+        {
+          "type": "domain",
+          "value": "bce.eo"
+        },
+        {
+          "type": "domain",
+          "value": "bp.myt"
+        },
+        {
+          "type": "domain",
+          "value": "e.qr"
+        },
+        {
+          "type": "domain",
+          "value": "f.bf"
+        },
+        {
+          "type": "domain",
+          "value": "g.kw"
+        },
+        {
+          "type": "domain",
+          "value": "hw.ywf"
+        },
+        {
+          "type": "domain",
+          "value": "i.cr"
+        },
+        {
+          "type": "domain",
+          "value": "ic.lh"
+        },
+        {
+          "type": "domain",
+          "value": "m.jcc"
+        },
+        {
+          "type": "domain",
+          "value": "m.kq"
+        },
+        {
+          "type": "domain",
+          "value": "n.vd"
+        },
+        {
+          "type": "domain",
+          "value": "ng.if"
+        },
+        {
+          "type": "domain",
+          "value": "ng.spq"
+        },
+        {
+          "type": "domain",
+          "value": "o.ox"
+        },
+        {
+          "type": "domain",
+          "value": "p.yxc"
+        },
+        {
+          "type": "domain",
+          "value": "q.tw"
+        },
+        {
+          "type": "domain",
+          "value": "r.ml"
+        },
+        {
+          "type": "domain",
+          "value": "sfxrar.pdb"
+        },
+        {
+          "type": "domain",
+          "value": "shell.explorer"
+        },
+        {
+          "type": "domain",
+          "value": "t.ct"
+        },
+        {
+          "type": "domain",
+          "value": "u.ag"
+        },
+        {
+          "type": "domain",
+          "value": "vo.js"
+        },
+        {
+          "type": "domain",
+          "value": "vv.mi"
+        },
+        {
+          "type": "domain",
+          "value": "x.cev"
+        },
+        {
+          "type": "domain",
+          "value": "x.vy"
+        },
+        {
+          "type": "domain",
+          "value": "y.tf"
+        },
+        {
+          "type": "domain",
+          "value": "z.hw"
+        },
+        {
+          "type": "domain",
+          "value": "z.pq"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-unclassified-90d978be19ce",
+      "families": [
+        "unclassified"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "d.jpg"
+        },
+        {
+          "type": "domain",
+          "value": "icanhazip.com"
+        },
+        {
+          "type": "domain",
+          "value": "microsoft.vc90.crt"
+        },
+        {
+          "type": "domain",
+          "value": "s.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.binance.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.bitrefill.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.coinbase.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.crypto.com"
+        },
+        {
+          "type": "domain",
+          "value": "www.etoro.com"
+        },
+        {
+          "type": "domain",
+          "value": "yandex.ru"
+        },
+        {
+          "type": "domain",
+          "value": "zone.identifier"
+        },
+        {
+          "type": "url",
+          "value": "http://icanhazip.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.binance.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.bitrefill.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.coinbase.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.crypto.com/"
+        },
+        {
+          "type": "url",
+          "value": "http://www.etoro.com/"
+        }
+      ],
+      "feature_ids": [
+        "network:api_access"
+      ],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-valleyrat-570f481c0f42",
+      "families": [
+        "valleyrat"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "winspool.drv"
+        },
+        {
+          "type": "url",
+          "value": "https://bazaar.abuse.ch/browse/signature/valleyrat/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-venomrat-b8be79d70868",
+      "families": [
+        "venomrat"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "192.252.180.45:4449"
+        },
+        {
+          "type": "ip",
+          "value": "192.252.180.45"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-wannacry-63b40cc27704",
+      "families": [
+        "wannacry"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "0.oj"
+        },
+        {
+          "type": "domain",
+          "value": "1.ng"
+        },
+        {
+          "type": "domain",
+          "value": "18.noq"
+        },
+        {
+          "type": "domain",
+          "value": "2.uy"
+        },
+        {
+          "type": "domain",
+          "value": "53q.zl"
+        },
+        {
+          "type": "domain",
+          "value": "57g7spgrzlojinas.onion"
+        },
+        {
+          "type": "domain",
+          "value": "6.gz"
+        },
+        {
+          "type": "domain",
+          "value": "7.hk"
+        },
+        {
+          "type": "domain",
+          "value": "7.jce"
+        },
+        {
+          "type": "domain",
+          "value": "76jdd2ir2embyv47.onion"
+        },
+        {
+          "type": "domain",
+          "value": "8.ax"
+        },
+        {
+          "type": "domain",
+          "value": "8.uq"
+        },
+        {
+          "type": "domain",
+          "value": "a.pe"
+        },
+        {
+          "type": "domain",
+          "value": "ax.id"
+        },
+        {
+          "type": "domain",
+          "value": "b.wnryp"
+        },
+        {
+          "type": "domain",
+          "value": "b.ya"
+        },
+        {
+          "type": "domain",
+          "value": "bh.mr"
+        },
+        {
+          "type": "domain",
+          "value": "c.nc"
+        },
+        {
+          "type": "domain",
+          "value": "c.wnry"
+        },
+        {
+          "type": "domain",
+          "value": "cwwnhwhlz52maqm7.onion"
+        },
+        {
+          "type": "domain",
+          "value": "d.um"
+        },
+        {
+          "type": "domain",
+          "value": "d.yh"
+        },
+        {
+          "type": "domain",
+          "value": "dj.dy"
+        },
+        {
+          "type": "domain",
+          "value": "e.bt"
+        },
+        {
+          "type": "domain",
+          "value": "e.ip"
+        },
+        {
+          "type": "domain",
+          "value": "f.hy"
+        },
+        {
+          "type": "domain",
+          "value": "f.pk"
+        },
+        {
+          "type": "domain",
+          "value": "g.ro"
+        },
+        {
+          "type": "domain",
+          "value": "gx7ekbenv2riucmf.onion"
+        },
+        {
+          "type": "domain",
+          "value": "hs.uk"
+        },
+        {
+          "type": "domain",
+          "value": "i.gcvo"
+        },
+        {
+          "type": "domain",
+          "value": "i.zl"
+        },
+        {
+          "type": "domain",
+          "value": "ibg.yf"
+        },
+        {
+          "type": "domain",
+          "value": "j.jx"
+        },
+        {
+          "type": "domain",
+          "value": "j.td"
+        },
+        {
+          "type": "domain",
+          "value": "ld.yn"
+        },
+        {
+          "type": "domain",
+          "value": "m.co"
+        },
+        {
+          "type": "domain",
+          "value": "n.myj"
+        },
+        {
+          "type": "domain",
+          "value": "o.av"
+        },
+        {
+          "type": "domain",
+          "value": "o.otk"
+        },
+        {
+          "type": "domain",
+          "value": "os.fg"
+        },
+        {
+          "type": "domain",
+          "value": "oz.mzr"
+        },
+        {
+          "type": "domain",
+          "value": "p.vw"
+        },
+        {
+          "type": "domain",
+          "value": "pk.ks"
+        },
+        {
+          "type": "domain",
+          "value": "pph.datja"
+        },
+        {
+          "type": "domain",
+          "value": "psl.nw"
+        },
+        {
+          "type": "domain",
+          "value": "r.abd"
+        },
+        {
+          "type": "domain",
+          "value": "r.wnry"
+        },
+        {
+          "type": "domain",
+          "value": "s.wnry"
+        },
+        {
+          "type": "domain",
+          "value": "t.hc"
+        },
+        {
+          "type": "domain",
+          "value": "t.wnry"
+        },
+        {
+          "type": "domain",
+          "value": "u.my"
+        },
+        {
+          "type": "domain",
+          "value": "v.bi"
+        },
+        {
+          "type": "domain",
+          "value": "w.ceg"
+        },
+        {
+          "type": "domain",
+          "value": "w.ry"
+        },
+        {
+          "type": "domain",
+          "value": "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com"
+        },
+        {
+          "type": "domain",
+          "value": "x.ib"
+        },
+        {
+          "type": "domain",
+          "value": "xxlvbrloxvriy2c5.onion"
+        },
+        {
+          "type": "domain",
+          "value": "y.sn"
+        },
+        {
+          "type": "domain",
+          "value": "z.dq"
+        },
+        {
+          "type": "domain",
+          "value": "z.hevo"
+        },
+        {
+          "type": "domain",
+          "value": "zhn.ban"
+        },
+        {
+          "type": "url",
+          "value": "http://www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com/"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    }
+  ],
+  "safety": {
+    "samples_opened": false,
+    "samples_executed": false,
+    "network_contacted": false
+  }
+}

@@ -45,6 +45,28 @@
 - 配布先、decoy/正規アプリ通信、最終C2を混同しないこと。
 - 正規署名付きhostやdecoy installerは、bundle内の同居関係、悪性DLL load、process帰属付き通信などの相関なしに単体で悪性判定しないこと。
 
+## 関数ロジックとコード類似性の記録ルール
+
+- 新規case、または静的解析を更新した既存caseには、`static-logic.json`、`STATIC-LOGIC.md`、`OVERALL-LOGIC.md` を必ず置くこと。`FEATURES.md` は挙動・検体特徴、`STATIC-LOGIC.md` は特徴的な関数の内部処理、`OVERALL-LOGIC.md` は検体全体の処理段階とcall関係として分離すること。
+- binaryと静的に復元した実行可能layerは、Ghidra／CLR metadataから取得できる全関数／全managed methodをinventory化すること。external、thunk、CIL本体なしも分類付きでinventoryへ残すこと。ただし、全内部関数の逆コンパイルを完了条件にはしない。
+- Ghidraが関数本体を1件も認識しないprogramでは、架空の関数を作らないこと。entry point、import、export、string、segmentの取得証跡を残し、`program構造限定解析`として制約を明記すること。importから示す挙動は限定patternに一致する能力候補に限り、実行経路や悪性動作の成立と断定しないこと。
+- 逆コンパイルまたはCIL本文解析の対象は、entrypoint、設定decoder、復号・展開、通信、command dispatcher、永続化、anti-analysis、process／memory操作、主要handler、call graph中心関数、規模の大きい関数から代表として選定すること。関数ごとに選定理由とscoreを残すこと。
+- 小規模programでは内部関数全体を文脈として選定してよい。大規模programでは上限を設け、役割ごとの代表を先に確保してからcall graph中心性、関数規模、symbol名の情報量で補完すること。選定外件数と選定方針を公開成果物へ明示すること。
+- 選定した代表関数は、すべて逆コンパイル、CIL解析、または静的script構造解析を試行すること。未試行が1件でもある場合、または制約付き関数に失敗理由と次の解析方針がない場合は解析完了として扱わないこと。
+- addressや関数名の列挙だけで解析済みとしないこと。代表関数は処理順、主要分岐、loop、caller、callee、API、結果の利用先、未解決edgeを日本語で記述し、`confirmed`、`inferred`、`unverified`相当の確度を付けること。
+- `OVERALL-LOGIC.md`では、起動、設定・payload復元、解析回避、永続化、process・memory操作、通信、command分配、file操作のうち静的証跡がある段階を整理すること。観測call edgeがない段階間の実行順は断定せず、解析上の整理順と明記すること。
+- Ghidra MCPを使う場合は、各関数recordにtoolと明示的な `program_selector` を残すこと。複数programが開いている可能性がある状態でactive tabへ依存しないこと。
+- Ghidra MCPがHTTP 200で返すJSONに `error` がある場合も失敗として扱うこと。全programにMCP成功証跡が揃い、成功program数と対象program数が一致するまで解析完了として扱わないこと。
+- Ghidraのfull call graphが空または不完全な場合は元応答を保存し、取得済みの代表関数逆コンパイル本文のcall式から内部関数、import API、未解決callを補完すること。edgeごとにGhidra由来か逆コンパイル由来かを記録し、未解決edgeを削除しないこと。
+- code similarity追跡のため、公開する代表関数には正規化ロジックSHA-256、semantic sequence SHA-256、SimHash64を生成すること。具体的なaddress、数値、string literal、Ghidra自動名、local変数名は比較前に正規化すること。
+- fingerprint一致だけでファミリー、actor、campaignを確定しないこと。共通library、compiler生成処理、builder共有を考慮し、call graph、API、設定形式、配布文脈、IOCと相関すること。
+- 生の逆コンパイル全文、CIL命令列、具体的なC2 literal、資格情報、token、復号秘密値はリポジトリ外のアクセス制限された解析領域へ保存すること。取得済み成果物を方針変更によって削除せず、公開成果物には無害化した代表関数ロジックだけを記録すること。
+- 静的解析で取得または導出した内容は、表示上の都合による件数・文字数上限で破棄しないこと。人向けMarkdownを要約する場合も、取得済み全件を機械可読JSONまたはアクセス制限された生成果物へ残し、参照先と保持件数を明示すること。
+- offset／limit型のGhidra MCP endpointは、上限未満の終端pageまで取得すること。imports、exports、strings、segmentsは取得page数、全件数、明示的なprogram selector、終端確認を記録し、保存件数と一致するまで完全取得としないこと。
+- 一括解析では、生のGhidra index、全関数inventory、代表関数の逆コンパイル行、選定したmanaged methodのCIL命令列を `private-artifact-validation.json` で照合すること。欠落、不正JSON、program selector不一致、代表関数の未試行、ページング未完了が1件でもある場合は、公開または完了扱いにしないこと。
+- binaryの解析完了を宣言する前に `validate_function_analysis.py` を実行し、対象collectionの全caseが `complete: true` であることを確認すること。
+- 関数成果物を追加・更新した後は `generate_code_similarity_index.py --repository . --write` と `--check` を実行し、横断索引を同期すること。
+- 詳細なschemaと手順は `analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md` に従うこと。
 ## README と analysis_history.yaml の更新ルール
 
 - 過去解析の正本はルートの `analysis_history.yaml` とすること。

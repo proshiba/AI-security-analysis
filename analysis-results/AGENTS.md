@@ -16,6 +16,8 @@
 ## 個別解析の必須成果物
 
 - 個別のcase、campaign、incident解析ディレクトリには、人間向けの `README.md` とIOC専用の `IOC-LIST.md` を置きます。
+- 新規caseと静的解析を更新した既存caseには、関数・処理単位の `STATIC-LOGIC.md` と `static-logic.json` も置きます。binaryで関数解析が未実施なら `function_analysis_required` を明示し、完了扱いにしません。
+- 関数成果物には役割、処理順、caller／callee、API、制御構造、根拠、確度、正規化SHA-256／SimHashを含めます。生の逆コンパイル全文、C2 literal、資格情報は含めません。
 - `IOC-LIST.md` は `analysis-framework/common/generate_ioc_lists.py` から生成し、生成物を直接編集しません。
 - 公開可能なIOCがない場合も、空の標準表を持つ `IOC-LIST.md` を残します。
 - リポジトリ横断索引 `analysis-results/IOC-INDEX.md` も同じgeneratorで更新します。
@@ -59,6 +61,13 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ```
 
 generatorを変更した場合は対応するunit testとpydocを更新します。Markdown変更後は日本語監査、local link監査、`git diff --check` も実行します。
+
+関数ロジック成果物を変更した場合は、次も実行します。
+
+```powershell
+python .\analysis-framework\common\generate_code_similarity_index.py --repository . --write
+python .\analysis-framework\common\generate_code_similarity_index.py --repository . --check
+```
 
 日本語監査は、少なくとも次のコマンドをfail-closedで実行します。
 

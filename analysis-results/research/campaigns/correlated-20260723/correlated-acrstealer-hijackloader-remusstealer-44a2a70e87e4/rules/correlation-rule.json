@@ -1,0 +1,3052 @@
+{
+  "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+  "families": [
+    "acrstealer",
+    "hijackloader",
+    "remusstealer",
+    "unclassified",
+    "vidar"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "180123456789abcdefghijklmnopqrstuvwxyzstrings.builder.grow"
+    },
+    {
+      "type": "domain",
+      "value": "2mapiter.key"
+    },
+    {
+      "type": "domain",
+      "value": "a.out"
+    },
+    {
+      "type": "domain",
+      "value": "abi.addchecked"
+    },
+    {
+      "type": "domain",
+      "value": "abi.funcflag"
+    },
+    {
+      "type": "domain",
+      "value": "abi.funcid"
+    },
+    {
+      "type": "domain",
+      "value": "abi.functype"
+    },
+    {
+      "type": "domain",
+      "value": "abi.go"
+    },
+    {
+      "type": "domain",
+      "value": "abi.imethod"
+    },
+    {
+      "type": "domain",
+      "value": "abi.intargregbitmap"
+    },
+    {
+      "type": "domain",
+      "value": "abi.interfacetype"
+    },
+    {
+      "type": "domain",
+      "value": "abi.itab"
+    },
+    {
+      "type": "domain",
+      "value": "abi.kind"
+    },
+    {
+      "type": "domain",
+      "value": "abi.kind.string"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.data"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.datachecked"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.hastag"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.isblank"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.isembedded"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.isexported"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.name"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.readvarint"
+    },
+    {
+      "type": "domain",
+      "value": "abi.name.tag"
+    },
+    {
+      "type": "domain",
+      "value": "abi.nameoff"
+    },
+    {
+      "type": "domain",
+      "value": "abi.newname"
+    },
+    {
+      "type": "domain",
+      "value": "abi.noescape"
+    },
+    {
+      "type": "domain",
+      "value": "abi.ptrtype"
+    },
+    {
+      "type": "domain",
+      "value": "abi.regargs"
+    },
+    {
+      "type": "domain",
+      "value": "abi.tflag"
+    },
+    {
+      "type": "domain",
+      "value": "abi.type"
+    },
+    {
+      "type": "domain",
+      "value": "abi.typefor"
+    },
+    {
+      "type": "domain",
+      "value": "abi.typeof"
+    },
+    {
+      "type": "domain",
+      "value": "abi.typeoff"
+    },
+    {
+      "type": "domain",
+      "value": "abi.uncommontype"
+    },
+    {
+      "type": "domain",
+      "value": "abi.writevarint"
+    },
+    {
+      "type": "domain",
+      "value": "abs.go"
+    },
+    {
+      "type": "domain",
+      "value": "activesweepmheap.freespanlocked"
+    },
+    {
+      "type": "domain",
+      "value": "address.lib"
+    },
+    {
+      "type": "domain",
+      "value": "addressmspan.sweep"
+    },
+    {
+      "type": "domain",
+      "value": "aes.add"
+    },
+    {
+      "type": "domain",
+      "value": "aes.block"
+    },
+    {
+      "type": "domain",
+      "value": "aes.blockexpanded"
+    },
+    {
+      "type": "domain",
+      "value": "aes.cryptblocksdec"
+    },
+    {
+      "type": "domain",
+      "value": "aes.cryptblocksdecgeneric"
+    },
+    {
+      "type": "domain",
+      "value": "aes.cryptblocksenc"
+    },
+    {
+      "type": "domain",
+      "value": "aes.cryptblocksencgeneric"
+    },
+    {
+      "type": "domain",
+      "value": "aes.ctr"
+    },
+    {
+      "type": "domain",
+      "value": "aes.ctrblocks"
+    },
+    {
+      "type": "domain",
+      "value": "aes.decryptblock"
+    },
+    {
+      "type": "domain",
+      "value": "aes.decryptblockgeneric"
+    },
+    {
+      "type": "domain",
+      "value": "aes.encryptblock"
+    },
+    {
+      "type": "domain",
+      "value": "aes.encryptblockgeneric"
+    },
+    {
+      "type": "domain",
+      "value": "aes.expandkeygeneric"
+    },
+    {
+      "type": "domain",
+      "value": "aes.go"
+    },
+    {
+      "type": "domain",
+      "value": "aes.init"
+    },
+    {
+      "type": "domain",
+      "value": "aes.init.0.func"
+    },
+    {
+      "type": "domain",
+      "value": "aes.keysizeerror"
+    },
+    {
+      "type": "domain",
+      "value": "aes.keysizeerror.error"
+    },
+    {
+      "type": "domain",
+      "value": "aes.new"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newblock"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newblockexpanded"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newcbcdecrypter"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newcbcencrypter"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newctr"
+    },
+    {
+      "type": "domain",
+      "value": "aes.newoutlined"
+    },
+    {
+      "type": "domain",
+      "value": "aes.rotw"
+    },
+    {
+      "type": "domain",
+      "value": "aes.roundtoblock"
+    },
+    {
+      "type": "domain",
+      "value": "aes.subw"
+    },
+    {
+      "type": "domain",
+      "value": "alg.go"
+    },
+    {
+      "type": "domain",
+      "value": "alias.anyoverlap"
+    },
+    {
+      "type": "domain",
+      "value": "alias.go"
+    },
+    {
+      "type": "domain",
+      "value": "alias.inexactoverlap"
+    },
+    {
+      "type": "domain",
+      "value": "arena.go"
+    },
+    {
+      "type": "domain",
+      "value": "arenaruntime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "atob.go"
+    },
+    {
+      "type": "domain",
+      "value": "atoi.go"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.addint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.adduint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.align"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.and"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.bool"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.cas"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.casint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.casp"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.caspointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.casrel"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.casuintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.compareandswapint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.compareandswappointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.compareandswapuint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.compareandswapuintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.int"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.load"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loadacq"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loadacquintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loadint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loadp"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loadpointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loaduint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.loaduintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.nocopy"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.or"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.panicunaligned"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.store"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storeint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storepnowb"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storepointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storerel"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storereluintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storeuint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.storeuintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.swappointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.swapuintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.uint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.uintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.unsafepointer"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xadd"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xaddint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xadduintptr"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xchg"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xchgint"
+    },
+    {
+      "type": "domain",
+      "value": "atomic.xchguintptr"
+    },
+    {
+      "type": "domain",
+      "value": "attentionfindcloselocalfreemovefilewwritefilewsasendtod.nx"
+    },
+    {
+      "type": "domain",
+      "value": "b.rsrc"
+    },
+    {
+      "type": "domain",
+      "value": "b.symtab"
+    },
+    {
+      "type": "domain",
+      "value": "barrierwork.nwait"
+    },
+    {
+      "type": "domain",
+      "value": "base64.encoding"
+    },
+    {
+      "type": "domain",
+      "value": "base64.encoding.withpadding"
+    },
+    {
+      "type": "domain",
+      "value": "base64.go"
+    },
+    {
+      "type": "domain",
+      "value": "base64.init"
+    },
+    {
+      "type": "domain",
+      "value": "base64.newencoding"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.appendfileline"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.appendmarker"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.cond"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.dedup"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.fnv"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.fnvstring"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.fnvuint"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.go"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.hash"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.matcher"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.mu"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.new"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.parseerror"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.printmarker"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.printstack"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.recent"
+    },
+    {
+      "type": "domain",
+      "value": "bisect.writer"
+    },
+    {
+      "type": "domain",
+      "value": "bitmapmapiter.value"
+    },
+    {
+      "type": "domain",
+      "value": "bits.add"
+    },
+    {
+      "type": "domain",
+      "value": "bits.go"
+    },
+    {
+      "type": "domain",
+      "value": "bits.len"
+    },
+    {
+      "type": "domain",
+      "value": "bits.mul"
+    },
+    {
+      "type": "domain",
+      "value": "bits.rotateleft"
+    },
+    {
+      "type": "domain",
+      "value": "bits.trailingzeros"
+    },
+    {
+      "type": "domain",
+      "value": "blocksruntime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "boundarygccontrollerstate.findrunnable"
+    },
+    {
+      "type": "domain",
+      "value": "bucket.bpruntime"
+    },
+    {
+      "type": "domain",
+      "value": "bucket.mpbad"
+    },
+    {
+      "type": "domain",
+      "value": "buffer.go"
+    },
+    {
+      "type": "domain",
+      "value": "bufio.go"
+    },
+    {
+      "type": "domain",
+      "value": "bufio.newwriter"
+    },
+    {
+      "type": "domain",
+      "value": "bufio.newwritersize"
+    },
+    {
+      "type": "domain",
+      "value": "bufio.writer"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.comparestring"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.cutover"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.go"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.hashstr"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.indexbytestring"
+    },
+    {
+      "type": "domain",
+      "value": "bytealg.indexrabinkarp"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.beappenduint"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.beputuint"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.beuint"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.go"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.leputuint"
+    },
+    {
+      "type": "domain",
+      "value": "byteorder.leuint"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.buffer"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.equal"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.go"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.growslice"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.growslice.func"
+    },
+    {
+      "type": "domain",
+      "value": "bytes.readop"
+    },
+    {
+      "type": "domain",
+      "value": "bytesmspan.sweep"
+    },
+    {
+      "type": "domain",
+      "value": "bytesruntime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "cast.go"
+    },
+    {
+      "type": "domain",
+      "value": "cbc.go"
+    },
+    {
+      "type": "domain",
+      "value": "cgocall.go"
+    },
+    {
+      "type": "domain",
+      "value": "chacha8.go"
+    },
+    {
+      "type": "domain",
+      "value": "chacha8rand.block"
+    },
+    {
+      "type": "domain",
+      "value": "chacha8rand.qr"
+    },
+    {
+      "type": "domain",
+      "value": "chacha8rand.setup"
+    },
+    {
+      "type": "domain",
+      "value": "chacha8rand.state"
+    },
+    {
+      "type": "domain",
+      "value": "chan.go"
+    },
+    {
+      "type": "domain",
+      "value": "check.go"
+    },
+    {
+      "type": "domain",
+      "value": "check.init"
+    },
+    {
+      "type": "domain",
+      "value": "closedreflect.value.bytesreflect.value.fieldreflect.value.indexsettokeninformation"
+    },
+    {
+      "type": "domain",
+      "value": "cmp.compare"
+    },
+    {
+      "type": "domain",
+      "value": "cmp.go"
+    },
+    {
+      "type": "domain",
+      "value": "cmp.isnan"
+    },
+    {
+      "type": "domain",
+      "value": "cmp.less"
+    },
+    {
+      "type": "domain",
+      "value": "collectionsync.rwmutex.rlockgc"
+    },
+    {
+      "type": "domain",
+      "value": "compare.go"
+    },
+    {
+      "type": "domain",
+      "value": "complex128t.kind"
+    },
+    {
+      "type": "domain",
+      "value": "cpu-secondsruntime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.cpuid"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.doinit"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.getgoamd"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.go"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.indexbyte"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.init"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.initialize"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.isset"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.option"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.processoptions"
+    },
+    {
+      "type": "domain",
+      "value": "cpu.xgetbv"
+    },
+    {
+      "type": "domain",
+      "value": "crypto.go"
+    },
+    {
+      "type": "domain",
+      "value": "crypto.init"
+    },
+    {
+      "type": "domain",
+      "value": "crypto.registerhash"
+    },
+    {
+      "type": "domain",
+      "value": "ctr.go"
+    },
+    {
+      "type": "domain",
+      "value": "ctrdrbg.go"
+    },
+    {
+      "type": "domain",
+      "value": "debug.go"
+    },
+    {
+      "type": "domain",
+      "value": "debug.setmemorylimit"
+    },
+    {
+      "type": "domain",
+      "value": "debug.settraceback"
+    },
+    {
+      "type": "domain",
+      "value": "decimal.go"
+    },
+    {
+      "type": "domain",
+      "value": "decode.go"
+    },
+    {
+      "type": "domain",
+      "value": "digit.go"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.counter"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.increment"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.init"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.init.0.func"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.init.func"
+    },
+    {
+      "type": "domain",
+      "value": "drbg.newcounter"
+    },
+    {
+      "type": "domain",
+      "value": "emptymspanlist.removemspanlist.insertbad"
+    },
+    {
+      "type": "domain",
+      "value": "encode.go"
+    },
+    {
+      "type": "domain",
+      "value": "encoding.textmarshaler"
+    },
+    {
+      "type": "domain",
+      "value": "encoding.textunmarshaler"
+    },
+    {
+      "type": "domain",
+      "value": "entropy.depleted"
+    },
+    {
+      "type": "domain",
+      "value": "entropy.go"
+    },
+    {
+      "type": "domain",
+      "value": "eofunsafe.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "error.go"
+    },
+    {
+      "type": "domain",
+      "value": "errors.errorstring"
+    },
+    {
+      "type": "domain",
+      "value": "errors.go"
+    },
+    {
+      "type": "domain",
+      "value": "errors.init"
+    },
+    {
+      "type": "domain",
+      "value": "errors.is"
+    },
+    {
+      "type": "domain",
+      "value": "errors.new"
+    },
+    {
+      "type": "domain",
+      "value": "errorwork.nwait"
+    },
+    {
+      "type": "domain",
+      "value": "escape.go"
+    },
+    {
+      "type": "domain",
+      "value": "executable.go"
+    },
+    {
+      "type": "domain",
+      "value": "exithook.run"
+    },
+    {
+      "type": "domain",
+      "value": "exithook.run.deferwrap"
+    },
+    {
+      "type": "domain",
+      "value": "exithook.run.func"
+    },
+    {
+      "type": "domain",
+      "value": "extern.go"
+    },
+    {
+      "type": "domain",
+      "value": "failedruntime.preemptm"
+    },
+    {
+      "type": "domain",
+      "value": "fastlog2.go"
+    },
+    {
+      "type": "domain",
+      "value": "fd.go"
+    },
+    {
+      "type": "domain",
+      "value": "file.go"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.cast"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.fatal"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.getindicator"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.go"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.init"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.recordapproved"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.recordnonapproved"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.setindicator"
+    },
+    {
+      "type": "domain",
+      "value": "fips140.supported"
+    },
+    {
+      "type": "domain",
+      "value": "fips140only.go"
+    },
+    {
+      "type": "domain",
+      "value": "fips140only.init"
+    },
+    {
+      "type": "domain",
+      "value": "float.go"
+    },
+    {
+      "type": "domain",
+      "value": "floor.go"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.buffer"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.errorf"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.fmt"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.fmtflags"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.formatter"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.fprintf"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.fprintln"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.getfield"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.gostringer"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.init.func"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.intfromarg"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.newprinter"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.parseargnumber"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.parsenum"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.pp"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.printf"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.println"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.sprintf"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.state"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.stringer"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.toolarge"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.wraperror"
+    },
+    {
+      "type": "domain",
+      "value": "fmt.wraperrors"
+    },
+    {
+      "type": "domain",
+      "value": "fmtsort.compare"
+    },
+    {
+      "type": "domain",
+      "value": "fmtsort.keyvalue"
+    },
+    {
+      "type": "domain",
+      "value": "fmtsort.nilcompare"
+    },
+    {
+      "type": "domain",
+      "value": "fmtsort.sort"
+    },
+    {
+      "type": "domain",
+      "value": "fmtsort.sort.func"
+    },
+    {
+      "type": "domain",
+      "value": "fold.go"
+    },
+    {
+      "type": "domain",
+      "value": "format.go"
+    },
+    {
+      "type": "domain",
+      "value": "frame.sp"
+    },
+    {
+      "type": "domain",
+      "value": "freemheap.freespanlocked"
+    },
+    {
+      "type": "domain",
+      "value": "fs.go"
+    },
+    {
+      "type": "domain",
+      "value": "fs.init"
+    },
+    {
+      "type": "domain",
+      "value": "fs.patherror"
+    },
+    {
+      "type": "domain",
+      "value": "ftoa.go"
+    },
+    {
+      "type": "domain",
+      "value": "ftoaryu.go"
+    },
+    {
+      "type": "domain",
+      "value": "go.dev"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.bool"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.float"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.func"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.int"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.interface"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.string"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.struct"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.uint"
+    },
+    {
+      "type": "domain",
+      "value": "go.shape.uintptr"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.bisect"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.go"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.init"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.lookup"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.new"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.newincnondefault"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.parse"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.registermetric"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.runtimestderr"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.setnewincnondefault"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.setting"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.setupdate"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.text"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.update"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.update.deferwrap"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.update.func"
+    },
+    {
+      "type": "domain",
+      "value": "godebug.value"
+    },
+    {
+      "type": "domain",
+      "value": "godebugs.all"
+    },
+    {
+      "type": "domain",
+      "value": "godebugs.info"
+    },
+    {
+      "type": "domain",
+      "value": "godebugs.lookup"
+    },
+    {
+      "type": "domain",
+      "value": "goreflect.value.iszerogetadaptersaddress"
+    },
+    {
+      "type": "domain",
+      "value": "goroutinereflect.value.bytes"
+    },
+    {
+      "type": "domain",
+      "value": "goruntime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "gp.goid"
+    },
+    {
+      "type": "domain",
+      "value": "gp.parampanic"
+    },
+    {
+      "type": "domain",
+      "value": "gp.paramunknown"
+    },
+    {
+      "type": "domain",
+      "value": "graphic.go"
+    },
+    {
+      "type": "domain",
+      "value": "group.go"
+    },
+    {
+      "type": "domain",
+      "value": "hash.hash"
+    },
+    {
+      "type": "domain",
+      "value": "hash32.go"
+    },
+    {
+      "type": "domain",
+      "value": "hashtriemap.go"
+    },
+    {
+      "type": "domain",
+      "value": "hex.encode"
+    },
+    {
+      "type": "domain",
+      "value": "hex.encodetostring"
+    },
+    {
+      "type": "domain",
+      "value": "hex.go"
+    },
+    {
+      "type": "domain",
+      "value": "histogram.go"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.go"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.hmac"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.init"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.init.0.func"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.marshalable"
+    },
+    {
+      "type": "domain",
+      "value": "hmac.new"
+    },
+    {
+      "type": "domain",
+      "value": "hooks.go"
+    },
+    {
+      "type": "domain",
+      "value": "iface.go"
+    },
+    {
+      "type": "domain",
+      "value": "impl.implementation"
+    },
+    {
+      "type": "domain",
+      "value": "indent.go"
+    },
+    {
+      "type": "domain",
+      "value": "indicator.go"
+    },
+    {
+      "type": "domain",
+      "value": "indirinterfaceinheritedntdll.dllpsapi.dllpclmulqdqmath"
+    },
+    {
+      "type": "domain",
+      "value": "indirinterfaceinheritedpclmulqdqntdll.dllpsapi.dllmath"
+    },
+    {
+      "type": "domain",
+      "value": "intrinsics.go"
+    },
+    {
+      "type": "domain",
+      "value": "io.stringwriter"
+    },
+    {
+      "type": "domain",
+      "value": "io.writer"
+    },
+    {
+      "type": "domain",
+      "value": "iter.go"
+    },
+    {
+      "type": "domain",
+      "value": "iter.init"
+    },
+    {
+      "type": "domain",
+      "value": "iteratorreflect.value.addr"
+    },
+    {
+      "type": "domain",
+      "value": "itoa.go"
+    },
+    {
+      "type": "domain",
+      "value": "itoa.itoa"
+    },
+    {
+      "type": "domain",
+      "value": "itoa.uitoa"
+    },
+    {
+      "type": "domain",
+      "value": "json.addrmarshalerencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.addrtextmarshalerencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendcompact"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendcompact.deferwrap"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendfoldedname"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendhtmlescape"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendindent"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendindent.deferwrap"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendnewline"
+    },
+    {
+      "type": "domain",
+      "value": "json.appendstring"
+    },
+    {
+      "type": "domain",
+      "value": "json.arrayencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.arrayencoder.encode"
+    },
+    {
+      "type": "domain",
+      "value": "json.boolencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.cachedtypefields"
+    },
+    {
+      "type": "domain",
+      "value": "json.condaddrencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.condaddrencoder.encode"
+    },
+    {
+      "type": "domain",
+      "value": "json.dominantfield"
+    },
+    {
+      "type": "domain",
+      "value": "json.encodebyteslice"
+    },
+    {
+      "type": "domain",
+      "value": "json.encoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.encoderfunc"
+    },
+    {
+      "type": "domain",
+      "value": "json.encodestate"
+    },
+    {
+      "type": "domain",
+      "value": "json.encopts"
+    },
+    {
+      "type": "domain",
+      "value": "json.field"
+    },
+    {
+      "type": "domain",
+      "value": "json.floatencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.floatencoder.encode"
+    },
+    {
+      "type": "domain",
+      "value": "json.foldname"
+    },
+    {
+      "type": "domain",
+      "value": "json.foldrune"
+    },
+    {
+      "type": "domain",
+      "value": "json.freescanner"
+    },
+    {
+      "type": "domain",
+      "value": "json.index"
+    },
+    {
+      "type": "domain",
+      "value": "json.init"
+    },
+    {
+      "type": "domain",
+      "value": "json.init.func"
+    },
+    {
+      "type": "domain",
+      "value": "json.intencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.interfaceencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.invalidvalueencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.isemptyvalue"
+    },
+    {
+      "type": "domain",
+      "value": "json.isspace"
+    },
+    {
+      "type": "domain",
+      "value": "json.isvalidnumber"
+    },
+    {
+      "type": "domain",
+      "value": "json.isvalidtag"
+    },
+    {
+      "type": "domain",
+      "value": "json.iszero"
+    },
+    {
+      "type": "domain",
+      "value": "json.iszeroer"
+    },
+    {
+      "type": "domain",
+      "value": "json.jsonerror"
+    },
+    {
+      "type": "domain",
+      "value": "json.ks"
+    },
+    {
+      "type": "domain",
+      "value": "json.mapencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.marshaler"
+    },
+    {
+      "type": "domain",
+      "value": "json.marshalererror"
+    },
+    {
+      "type": "domain",
+      "value": "json.name"
+    },
+    {
+      "type": "domain",
+      "value": "json.namebytes"
+    },
+    {
+      "type": "domain",
+      "value": "json.nameeschtml"
+    },
+    {
+      "type": "domain",
+      "value": "json.namenonesc"
+    },
+    {
+      "type": "domain",
+      "value": "json.number"
+    },
+    {
+      "type": "domain",
+      "value": "json.omitempty"
+    },
+    {
+      "type": "domain",
+      "value": "json.omitzero"
+    },
+    {
+      "type": "domain",
+      "value": "json.ptrencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.quoted"
+    },
+    {
+      "type": "domain",
+      "value": "json.reflectwithstring"
+    },
+    {
+      "type": "domain",
+      "value": "json.scanner"
+    },
+    {
+      "type": "domain",
+      "value": "json.sliceencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.structencoder"
+    },
+    {
+      "type": "domain",
+      "value": "json.structfields"
+    },
+    {
+      "type": "domain",
+      "value": "json.syntaxerror"
+    },
+    {
+      "type": "domain",
+      "value": "json.tag"
+    },
+    {
+      "type": "domain",
+      "value": "json.typ"
+    },
+    {
+      "type": "domain",
+      "value": "json.unsupportedtypeerror"
+    },
+    {
+      "type": "domain",
+      "value": "json.unsupportedvalueerror"
+    },
+    {
+      "type": "domain",
+      "value": "kindruntime.semasleep"
+    },
+    {
+      "type": "domain",
+      "value": "largeabi.newname"
+    },
+    {
+      "type": "domain",
+      "value": "largelimiterevent.stop"
+    },
+    {
+      "type": "domain",
+      "value": "largereflect.value.interfacereflect.value.nummethod"
+    },
+    {
+      "type": "domain",
+      "value": "largesubtle.xorbytes"
+    },
+    {
+      "type": "domain",
+      "value": "limiterevent.stop"
+    },
+    {
+      "type": "domain",
+      "value": "listruntime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "map.group"
+    },
+    {
+      "type": "domain",
+      "value": "maps.groupsreference"
+    },
+    {
+      "type": "domain",
+      "value": "maps.map"
+    },
+    {
+      "type": "domain",
+      "value": "maps.table"
+    },
+    {
+      "type": "domain",
+      "value": "maps.unhashabletypeerror"
+    },
+    {
+      "type": "domain",
+      "value": "md5.digest"
+    },
+    {
+      "type": "domain",
+      "value": "memoryruntime.minit"
+    },
+    {
+      "type": "domain",
+      "value": "mheap.freespanlocked"
+    },
+    {
+      "type": "domain",
+      "value": "mheap.sweepgen"
+    },
+    {
+      "type": "domain",
+      "value": "mismatchsubtle.xorbytes"
+    },
+    {
+      "type": "domain",
+      "value": "mp.lockedint"
+    },
+    {
+      "type": "domain",
+      "value": "mspan.ensureswept"
+    },
+    {
+      "type": "domain",
+      "value": "mspan.sweep"
+    },
+    {
+      "type": "domain",
+      "value": "mspanlist.insert"
+    },
+    {
+      "type": "domain",
+      "value": "mspanlist.remove"
+    },
+    {
+      "type": "domain",
+      "value": "negativereflect.value.uintexceeded"
+    },
+    {
+      "type": "domain",
+      "value": "nilruntime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "notmapiter.next"
+    },
+    {
+      "type": "domain",
+      "value": "objectmheap.freespanlocked"
+    },
+    {
+      "type": "domain",
+      "value": "operationreflect.value.complex"
+    },
+    {
+      "type": "domain",
+      "value": "os.dirinfo"
+    },
+    {
+      "type": "domain",
+      "value": "os.file"
+    },
+    {
+      "type": "domain",
+      "value": "overflowruntime.main"
+    },
+    {
+      "type": "domain",
+      "value": "overlapbisect.hash"
+    },
+    {
+      "type": "domain",
+      "value": "overlappingmheap.freespanlocked"
+    },
+    {
+      "type": "domain",
+      "value": "p.gcmarkworkermode"
+    },
+    {
+      "type": "domain",
+      "value": "p.searchaddr"
+    },
+    {
+      "type": "domain",
+      "value": "pcheader.textstart"
+    },
+    {
+      "type": "domain",
+      "value": "pointerruntime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "poll.deadlineexceedederror"
+    },
+    {
+      "type": "domain",
+      "value": "poll.errfileclosing"
+    },
+    {
+      "type": "domain",
+      "value": "poll.errnetclosing"
+    },
+    {
+      "type": "domain",
+      "value": "poll.fd"
+    },
+    {
+      "type": "domain",
+      "value": "poll.fdmutex"
+    },
+    {
+      "type": "domain",
+      "value": "poll.fdmutexexpandenvironment"
+    },
+    {
+      "type": "domain",
+      "value": "poll.fdmutexunexpected"
+    },
+    {
+      "type": "domain",
+      "value": "poll.filekind"
+    },
+    {
+      "type": "domain",
+      "value": "poll.operation"
+    },
+    {
+      "type": "domain",
+      "value": "poll.polldesc"
+    },
+    {
+      "type": "domain",
+      "value": "rand.rngsource"
+    },
+    {
+      "type": "domain",
+      "value": "rand.source"
+    },
+    {
+      "type": "domain",
+      "value": "rangemapiter.key"
+    },
+    {
+      "type": "domain",
+      "value": "receivesynctest.runcleanup"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.abidesc"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.abiseq"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.abistep"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.abistepkind"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.bitvector"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.call"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.chandir"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.flag"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.kind"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.layoutkey"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.layouttype"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.makefuncctxt"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.method"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.methodvalue"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.ptrtype"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.rtype"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.setprocessprngmovefileex"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.structfield"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.structtag"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.type"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.bytes"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.elem"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.len"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.lenreflect"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.value.unsafepointer"
+    },
+    {
+      "type": "domain",
+      "value": "reflect.valueerror"
+    },
+    {
+      "type": "domain",
+      "value": "reflectlite.rtype"
+    },
+    {
+      "type": "domain",
+      "value": "reflectlite.type"
+    },
+    {
+      "type": "domain",
+      "value": "reflectlite.valueerror"
+    },
+    {
+      "type": "domain",
+      "value": "rotaterightreflect.makefuncstubtrace"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.abidesc"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.abipart"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.abipartkind"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.addrrange"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.ancestorinfo"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.bitvector"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.boundserror"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.boundserrorcode"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.cgocallers"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.cleanupblock"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.cleanupblockheader"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.coro"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.cpustats"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.cpustatsaggregate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.debugcallwrapargs"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.dlogperm"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.erroraddressstring"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.errorstring"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.frame"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.frames"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.func"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.funcinfo"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.functab"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.funcval"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcbgmarkworkernode"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcbgmarkworkernodepadded"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcbits"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gclinkptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcmarkworkermode"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcstatsaggregate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gcwork"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.glist"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gobuf"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.goexit"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.goroutineprofilestatehol"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gsignalstack"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.gtracestate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.guintptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.hchan"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.heapstatsaggregate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.heapstatsdelta"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.heldlockinfo"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.inittask"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.lfnode"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.libcall"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.limiterevent"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.localspanqueue"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.lockrank"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.lockrankstruct"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mcache"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.metricdata"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.metricfloat"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.metrickind"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.metricreader"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.metricvalue"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.minit"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mlockprofile"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.moduledata"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.modulehash"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mos"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mpadded"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mspan"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mspanlist"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mspanstatebox"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mtracestate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.muintptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mutex"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.mwaitlist"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.netpoll"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.newosprocinternal"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.note"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.notinheap"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.offaddr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.pagecache"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.panicnilerror"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.pcheader"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.pcvaluecache"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.pcvaluecacheent"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.persistentalloc"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.picontroller"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.plainerror"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.polldesc"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.preemptm"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.ptabentry"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.ptracestate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.puintptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.savedopendeferstate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.scavengerstate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.semacreateruntime.semawakeupreflect.value.elemreflect.value.typegetsidsubauthorityqu"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.semasleep"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.setfinalizer"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sigset"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sizeclassscanstats"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sliceinterfaceptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.spanclass"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.special"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.stack"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.stackfreelist"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.stataggregate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.statdepset"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.stringer"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.stringinterfaceptr"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sudog"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.synctestbubble"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.synctestdeadlockerror"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sysmontick"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.sysstatsaggregate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.textsect"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.throwtype"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.timer"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.timers"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.timerwhen"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.timetimer"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.traceblockreason"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.tracebuf"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.tracebufheader"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.traceframe"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.traceschedresourcestate"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.tracetime"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.typeassertionerror"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.uint"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.untracedg"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.waitq"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.waitreason"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.wbbuf"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.wincallback"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.wincallbackkey"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.winlibcall"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.workbuf"
+    },
+    {
+      "type": "domain",
+      "value": "runtime.workbufhdr"
+    },
+    {
+      "type": "domain",
+      "value": "s.alloccount"
+    },
+    {
+      "type": "domain",
+      "value": "s.base"
+    },
+    {
+      "type": "domain",
+      "value": "s.elem"
+    },
+    {
+      "type": "domain",
+      "value": "s.elemsize"
+    },
+    {
+      "type": "domain",
+      "value": "s.limit"
+    },
+    {
+      "type": "domain",
+      "value": "s.nelems"
+    },
+    {
+      "type": "domain",
+      "value": "s.nelemsbad"
+    },
+    {
+      "type": "domain",
+      "value": "s.nelemssweeper"
+    },
+    {
+      "type": "domain",
+      "value": "s.spanclass"
+    },
+    {
+      "type": "domain",
+      "value": "s.state"
+    },
+    {
+      "type": "domain",
+      "value": "s.sweepgen"
+    },
+    {
+      "type": "domain",
+      "value": "sched.safepointwait"
+    },
+    {
+      "type": "domain",
+      "value": "setmspan.sweep"
+    },
+    {
+      "type": "domain",
+      "value": "sha256.digest"
+    },
+    {
+      "type": "domain",
+      "value": "sha3.digest"
+    },
+    {
+      "type": "domain",
+      "value": "sha3.shake"
+    },
+    {
+      "type": "domain",
+      "value": "sha3.spongedirection"
+    },
+    {
+      "type": "domain",
+      "value": "sha512.digest"
+    },
+    {
+      "type": "domain",
+      "value": "slicereflect.value.bytes"
+    },
+    {
+      "type": "domain",
+      "value": "span.base"
+    },
+    {
+      "type": "domain",
+      "value": "span.limit"
+    },
+    {
+      "type": "domain",
+      "value": "span.list"
+    },
+    {
+      "type": "domain",
+      "value": "span.npages"
+    },
+    {
+      "type": "domain",
+      "value": "span.state"
+    },
+    {
+      "type": "domain",
+      "value": "spansreflect.value.interface"
+    },
+    {
+      "type": "domain",
+      "value": "stackunsafe.slice"
+    },
+    {
+      "type": "domain",
+      "value": "stepreflect.value.pointerbad"
+    },
+    {
+      "type": "domain",
+      "value": "summaryruntime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "sync.dequeuenil"
+    },
+    {
+      "type": "domain",
+      "value": "sync.eface"
+    },
+    {
+      "type": "domain",
+      "value": "sync.entry"
+    },
+    {
+      "type": "domain",
+      "value": "sync.equalfunc"
+    },
+    {
+      "type": "domain",
+      "value": "sync.hashfunc"
+    },
+    {
+      "type": "domain",
+      "value": "sync.hashtriemap"
+    },
+    {
+      "type": "domain",
+      "value": "sync.indirect"
+    },
+    {
+      "type": "domain",
+      "value": "sync.isentry"
+    },
+    {
+      "type": "domain",
+      "value": "sync.mutex"
+    },
+    {
+      "type": "domain",
+      "value": "sync.mutex.lockruntime.goschedmalloc"
+    },
+    {
+      "type": "domain",
+      "value": "sync.nocopy"
+    },
+    {
+      "type": "domain",
+      "value": "sync.node"
+    },
+    {
+      "type": "domain",
+      "value": "sync.once"
+    },
+    {
+      "type": "domain",
+      "value": "sync.pool"
+    },
+    {
+      "type": "domain",
+      "value": "sync.poolchain"
+    },
+    {
+      "type": "domain",
+      "value": "sync.poolchainelt"
+    },
+    {
+      "type": "domain",
+      "value": "sync.pooldequeue"
+    },
+    {
+      "type": "domain",
+      "value": "sync.poollocal"
+    },
+    {
+      "type": "domain",
+      "value": "sync.poollocalinternal"
+    },
+    {
+      "type": "domain",
+      "value": "sync.rwmutex.lockwait"
+    },
+    {
+      "type": "domain",
+      "value": "syncs.alloccount"
+    },
+    {
+      "type": "domain",
+      "value": "sys.nih"
+    },
+    {
+      "type": "domain",
+      "value": "sys.notinheap"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.dllerror"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.errno"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.guid"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.handle"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.lazydll"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.lazyproc"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.overlapped"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.proc"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.rawsockaddr"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.rawsockaddrany"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.sockaddr"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.wsabuf"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.wsaprotocolchain"
+    },
+    {
+      "type": "domain",
+      "value": "syscall.wsaprotocolinfo"
+    },
+    {
+      "type": "domain",
+      "value": "terminationsync.waitgroup.waitchan"
+    },
+    {
+      "type": "domain",
+      "value": "time.abbr"
+    },
+    {
+      "type": "domain",
+      "value": "time.dath"
+    },
+    {
+      "type": "domain",
+      "value": "time.duration"
+    },
+    {
+      "type": "domain",
+      "value": "time.location"
+    },
+    {
+      "type": "domain",
+      "value": "time.loch"
+    },
+    {
+      "type": "domain",
+      "value": "time.locl"
+    },
+    {
+      "type": "domain",
+      "value": "time.time"
+    },
+    {
+      "type": "domain",
+      "value": "time.utcl"
+    },
+    {
+      "type": "domain",
+      "value": "time.zone"
+    },
+    {
+      "type": "domain",
+      "value": "time.zonetrans"
+    },
+    {
+      "type": "domain",
+      "value": "timereflect.methodvaluecallbytes.buffer"
+    },
+    {
+      "type": "domain",
+      "value": "trace.seqlockinvalid"
+    },
+    {
+      "type": "domain",
+      "value": "type.implementsimpl"
+    },
+    {
+      "type": "domain",
+      "value": "type.implementssmall"
+    },
+    {
+      "type": "domain",
+      "value": "unicode.range"
+    },
+    {
+      "type": "domain",
+      "value": "unicode.rangetable"
+    },
+    {
+      "type": "domain",
+      "value": "unsafe.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "unsafe.slice"
+    },
+    {
+      "type": "domain",
+      "value": "unsafe.string"
+    },
+    {
+      "type": "domain",
+      "value": "unsafeheader.slice"
+    },
+    {
+      "type": "domain",
+      "value": "userarena.faultlist"
+    },
+    {
+      "type": "domain",
+      "value": "v.uh"
+    },
+    {
+      "type": "domain",
+      "value": "valids.freeindex"
+    },
+    {
+      "type": "domain",
+      "value": "validunsafe.string"
+    },
+    {
+      "type": "domain",
+      "value": "valuemapiter.next"
+    },
+    {
+      "type": "domain",
+      "value": "valueptrencoder.encode"
+    },
+    {
+      "type": "domain",
+      "value": "valuesruntime.pinner"
+    },
+    {
+      "type": "domain",
+      "value": "waitsync.cond.waits.alloccount"
+    },
+    {
+      "type": "domain",
+      "value": "waitsynctest.waitout"
+    },
+    {
+      "type": "domain",
+      "value": "windows.ntstatus"
+    },
+    {
+      "type": "domain",
+      "value": "windows.wsamsg"
+    },
+    {
+      "type": "domain",
+      "value": "work.full"
+    },
+    {
+      "type": "domain",
+      "value": "work.nproc"
+    },
+    {
+      "type": "domain",
+      "value": "work.nprocleft"
+    },
+    {
+      "type": "domain",
+      "value": "work.nprocs"
+    },
+    {
+      "type": "domain",
+      "value": "work.nwait"
+    },
+    {
+      "type": "domain",
+      "value": "zonesmheap.freespanlocked"
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/"
+    },
+    {
+      "type": "url",
+      "value": "https://go.dev/issue/66821):"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "cross_family_campaign_candidate"
+}

@@ -1,0 +1,1118 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "1.pack",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "4winapi.regstr",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "6shared.verinfofunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "8.tlist",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "8compression.base",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "ashared.encryptionfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "b.rsrc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "chacha20.pas",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "compression.base",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "compression.lzma",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "dsystem.hash",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "dsystem.sysconst",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "fsystem.rtti",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "hwinapi.urlmon",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "isystem.internal.excutils",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "jr.inno.setup",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "jrsoftware.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "kwinapi.psapi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "lazyloadattributes.makeclosure",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "oshared.setupentfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "s.seek",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.instfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.messages",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.xptheme",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.commonfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.encryptionfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.fileclass",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.setupentfunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.setupmessageids",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.struct",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "shared.verinfofunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.byte",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "system.cardinal",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.char",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "system.character",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.iinterfacelist",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tbasicaction",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tbasicactionlink",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tcollectionitem",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tcomponent",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tfieldscache.tfields",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tintconst",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tpersistentclass",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tpropfixup",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.treggroup",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tthread",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.comp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.currency",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.diagnostics",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.double",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.extended",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collections",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collections.tpair",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collectionsd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collectionst",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.defaults",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.hash",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.iinterface",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.integer",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.internal.excutils",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.math",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.pinstitem",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.pointer",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.ppointer",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rawbytestring",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtlconsts",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tmethodimplementation.tparamloc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tprivateheap.theapitem",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttifield",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiindexedproperty",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiinterfacetype",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttimanagedfield",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttimethod",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiobject",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttipackage",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiparameter",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiproperty",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttitype",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tvalue",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.single",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.string",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.syncobjs",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.sysconst",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutils",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutils.tunithashentry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutilsl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.tarray",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.tclass",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.tcustomattribute",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.timespan",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.tobject",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.types",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.types.tmultiwaitevent.twaitinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.ptypeinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.telementalias",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.tenumaliasentry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.uitypes",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.variants",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.varutils",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.widestring",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.widestrutils",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "t.ht",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "tcomponent.create",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tfieldscache.tfields",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tformatsettings.terainfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tinstitem.tbucketarray",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tlisthelper.tinternalcomparefunc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "tlisthelper.tinternalnotifyproc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.pfirststageintercept",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.pinterceptframe",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tfirststageintercept",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tfloatreg",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinterceptframe",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinvokeinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinvokeinfok",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tparamloc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.truntimetypeinfos",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.pwaitingthread",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.tspinlock",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.twaitingthread",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.tmultiwaiter",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.tmultiwaitert",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaiterflag",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaiterflags",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaitinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tobservers.tcanobserveevent",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tobservers.tobserveraddedevent",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tprivateheap.theapitem",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "trttipool.getpackagelist.doupdate",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tthread.tsynchronizerecord",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "tthread.tsystemtimes",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "uh.qe",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "winapi.activex",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.commctrl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.imagehlp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.ipexport",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.messages",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.msxmlintf",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.objectarray",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.propsys",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.psapi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.qos",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.regstr",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shellapi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shfolder",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shlobj",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shlwapi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.structuredquerycondition",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.urlmon",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.windows",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.windows.pkghelper",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "winapi.wininet",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "winapi.winsock",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ywinapi.shlwapi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/signature/valleyrat/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "https://jrsoftware.org/ishelp/index.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    }
+  ]
+}

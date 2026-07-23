@@ -1,0 +1,23 @@
+{
+  "campaign_id": "correlated-unclassified-18d330f0907e",
+  "families": [
+    "unclassified"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "b.rsrc"
+    },
+    {
+      "type": "domain",
+      "value": "icon.icoh"
+    }
+  ],
+  "feature_ids": [
+    "execution:cryptographic_api",
+    "network:api_access"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

@@ -39,9 +39,7 @@ class PublicationContext:
     aggregate_root: Path
 
 
-def detect_publication_context(
-    aggregate_root: Path, family: str
-) -> PublicationContext | None:
+def detect_publication_context(aggregate_root: Path, family: str) -> PublicationContext | None:
     """canonicalなcollection sourceならcontextを返し、それ以外はNoneを返す。"""
 
     aggregate = aggregate_root.resolve()
@@ -58,16 +56,12 @@ def detect_publication_context(
     except ValueError as exc:
         raise PublicationError("aggregate root escaped analysis-results") from exc
     if len(relative.parts) != 4 or relative.parts[0] != "collections" or relative.parts[2] != "sources":
-        raise PublicationError(
-            "result aggregate must use collections/<collection-id>/sources/<family>"
-        )
+        raise PublicationError("result aggregate must use collections/<collection-id>/sources/<family>")
     collection_id, path_family = relative.parts[1], relative.parts[3]
     if not SAFE_ID_RE.fullmatch(collection_id):
         raise PublicationError(f"unsafe collection identifier: {collection_id!r}")
     if path_family != family:
-        raise PublicationError(
-            f"aggregate family mismatch: path={path_family!r}, data={family!r}"
-        )
+        raise PublicationError(f"aggregate family mismatch: path={path_family!r}, data={family!r}")
     return PublicationContext(
         repository=results_root.parent,
         results_root=results_root,
@@ -77,9 +71,7 @@ def detect_publication_context(
     )
 
 
-def publication_case_path(
-    aggregate_root: Path, family: str, sha256: str
-) -> tuple[Path, PublicationContext | None]:
+def publication_case_path(aggregate_root: Path, family: str, sha256: str) -> tuple[Path, PublicationContext | None]:
     """case公開先を返し、canonical collection外ではlegacy互換先を返す。"""
 
     digest = sha256.lower()
@@ -116,9 +108,7 @@ def _read_json_document(path: Path, default: dict) -> tuple[dict, bytes | None]:
 
 
 def _json_bytes(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
-        "utf-8"
-    )
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _replace_documents(documents: dict[Path, tuple[bytes | None, bytes]]) -> None:
@@ -132,9 +122,7 @@ def _replace_documents(documents: dict[Path, tuple[bytes | None, bytes]]) -> Non
             current = path.read_bytes() if path.exists() else None
             if current != before:
                 raise PublicationError(f"index changed during publication: {path}")
-            with tempfile.NamedTemporaryFile(
-                prefix=".t-", suffix=".tmp", dir=path.parent, delete=False
-            ) as handle:
+            with tempfile.NamedTemporaryFile(prefix=".t-", suffix=".tmp", dir=path.parent, delete=False) as handle:
                 handle.write(content)
                 handle.flush()
                 os.fsync(handle.fileno())
@@ -177,7 +165,7 @@ def register_publication_cases(
     for raw_path in case_paths:
         path = raw_path.resolve()
         try:
-            relative = path.relative_to(context.results_root)
+            path.relative_to(context.results_root)
         except ValueError as exc:
             raise PublicationError("case path escaped analysis-results") from exc
         digest = path.name.lower()
@@ -190,12 +178,8 @@ def register_publication_cases(
         normalized[digest] = path
 
     catalog_path = context.results_root / "catalog" / "cases.json"
-    collection_path = canonical_collection_manifest_path(
-        context.results_root, context.collection_id
-    )
-    catalog, catalog_before = _read_json_document(
-        catalog_path, {"schema_version": 1, "cases": {}}
-    )
+    collection_path = canonical_collection_manifest_path(context.results_root, context.collection_id)
+    catalog, catalog_before = _read_json_document(catalog_path, {"schema_version": 1, "cases": {}})
     collection, collection_before = _read_json_document(
         collection_path,
         {
@@ -246,17 +230,12 @@ def register_publication_cases(
         if version.get("status") not in {"confirmed", "reported", "unknown"}:
             raise PublicationError(f"invalid malware_version status for {digest}")
         version_key = str(version.get("normalized_key") or "unknown")
-        expected_path = canonical_malware_case_path(
-            context.results_root, context.family, digest, version_key
-        )
+        expected_path = canonical_malware_case_path(context.results_root, context.family, digest, version_key)
         if path != expected_path:
-            raise PublicationError(
-                f"case path does not match metadata version for {digest}"
-            )
+            raise PublicationError(f"case path does not match metadata version for {digest}")
         existing_collections = metadata.get("collections") or []
         if not isinstance(existing_collections, list) or not all(
-            isinstance(value, str) and SAFE_ID_RE.fullmatch(value)
-            for value in existing_collections
+            isinstance(value, str) and SAFE_ID_RE.fullmatch(value) for value in existing_collections
         ):
             raise PublicationError(f"invalid collections metadata for {digest}")
         collections = sorted(
@@ -312,20 +291,11 @@ def register_publication_cases(
     for item in collection["family_sources"]:
         family = item.get("family") if isinstance(item, dict) else None
         source = item.get("path") if isinstance(item, dict) else None
-        if (
-            not isinstance(family, str)
-            or not FAMILY_RE.fullmatch(family)
-            or source != f"sources/{family}"
-        ):
+        if not isinstance(family, str) or not FAMILY_RE.fullmatch(family) or source != f"sources/{family}":
             raise PublicationError("invalid collection family source")
         source_map[family] = source
-    source_map[context.family] = context.aggregate_root.relative_to(
-        collection_path.parent
-    ).as_posix()
-    collection["family_sources"] = [
-        {"family": family, "path": source_map[family]}
-        for family in sorted(source_map)
-    ]
+    source_map[context.family] = context.aggregate_root.relative_to(collection_path.parent).as_posix()
+    collection["family_sources"] = [{"family": family, "path": source_map[family]} for family in sorted(source_map)]
     documents[catalog_path] = (catalog_before, _json_bytes(catalog))
     documents[collection_path] = (collection_before, _json_bytes(collection))
     _replace_documents(documents)

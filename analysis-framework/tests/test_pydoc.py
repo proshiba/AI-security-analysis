@@ -1,4 +1,4 @@
-"""Verify that every public function is documented by generated pydoc."""
+"""全公開関数が生成済みpydocへ記載されていることを検証する。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def test_all_public_functions_have_docstrings_and_pydoc() -> None:
-    """Require docstrings and generated HTML entries for every new public function."""
+    """全公開関数にdocstringと生成済みHTML項目を要求する。"""
     modules = [
         "asa.models",
         "asa.conditions",
@@ -42,6 +42,12 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "localize_result_markdown",
         "render_malware_family_docs",
         "sanitize_public_results",
+        "static_logic",
+        "record_static_logic",
+        "generate_code_similarity_index",
+        "backfill_static_logic",
+        "ghidra_function_batch",
+        "validate_function_analysis",
         "result_publication",
         "result_layout",
         "normalize_result_layout",

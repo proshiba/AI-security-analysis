@@ -1,0 +1,40 @@
+{
+  "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+  "families": [
+    "signed-dht-bot"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "afterhours.click"
+    },
+    {
+      "type": "domain",
+      "value": "chickenfriedwatermelonkoolaid.store"
+    },
+    {
+      "type": "domain",
+      "value": "dynabot.monster"
+    },
+    {
+      "type": "domain",
+      "value": "headlock.ru"
+    },
+    {
+      "type": "domain",
+      "value": "niggerdns.spamhaus-faggots.ru"
+    },
+    {
+      "type": "domain",
+      "value": "nightslikethis.club"
+    },
+    {
+      "type": "domain",
+      "value": "poop.garden"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

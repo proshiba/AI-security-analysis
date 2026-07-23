@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "case_id": "sha256:e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09",
+  "sha256": "e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09",
+  "family": "npm-supply-chain",
+  "campaign_type": "axios_plain_crypto_js",
+  "campaign_type_source": "analysis_history.yaml",
+  "sample_characteristics": [
+    {
+      "id": "format:script",
+      "category": "ファイル形式",
+      "label": "スクリプト",
+      "value": "observed",
+      "confidence": "documented",
+      "source": "README.md",
+      "evidence": "`stq[]` の値を逆順にし、`_` を Base64 のパディングへ戻して UTF-8 として復号した後、文字コードを `Number()` で正規化した `OrDeR_7077` および10進数333と排他的論理和する。抽出器は JavaScript の `NaN -> 0` というビット演算時の型変換を模擬し、Node.js を呼び出さない。"
+    },
+    {
+      "id": "version:status",
+      "category": "版管理",
+      "label": "版判定状態",
+      "value": "not_applicable",
+      "confidence": "observed",
+      "source": "metadata.json"
+    },
+    {
+      "id": "obfuscation:base64",
+      "category": "難読化・復号",
+      "label": "Base64",
+      "value": "observed",
+      "confidence": "documented",
+      "source": "README.md",
+      "evidence": "`stq[]` の値を逆順にし、`_` を Base64 のパディングへ戻して UTF-8 として復号した後、文字コードを `Number()` で正規化した `OrDeR_7077` および10進数333と排他的論理和する。抽出器は JavaScript の `NaN -> 0` というビット演算時の型変換を模擬し、Node.js を呼び出さない。"
+    }
+  ],
+  "behaviors": [],
+  "analysis_assessment": {
+    "status": "partial",
+    "score": 10,
+    "maximum_score": 12,
+    "checks": {
+      "identity": true,
+      "structured_or_detailed_static_analysis": true,
+      "sample_characteristics": true,
+      "behaviors": false,
+      "limitations": true,
+      "network_role_assessed": true,
+      "unpack_or_config_assessed": true,
+      "ioc_list": true,
+      "source_traceability": true,
+      "parseable_public_artifacts": true
+    },
+    "missing": [
+      "behaviors"
+    ],
+    "unresolved": [
+      "behavior_not_documented"
+    ],
+    "next_actions": [
+      "静的なcontrol flowまたはスクリプト処理順を根拠付きで記録する。"
+    ]
+  },
+  "source_artifacts": [
+    "IOC-LIST.md",
+    "README.md",
+    "config.json",
+    "iocs.json",
+    "metadata.json"
+  ],
+  "parse_errors": [],
+  "safety": {
+    "samples_opened": false,
+    "samples_executed": false,
+    "emulated": false,
+    "network_contacted": false,
+    "source_scope": "public_repository_artifacts_only"
+  }
+}

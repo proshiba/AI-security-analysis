@@ -1,0 +1,650 @@
+{
+  "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+  "families": [
+    "hijackloader",
+    "unclassified",
+    "valleyrat"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "1.pack"
+    },
+    {
+      "type": "domain",
+      "value": "4winapi.regstr"
+    },
+    {
+      "type": "domain",
+      "value": "6shared.verinfofunc"
+    },
+    {
+      "type": "domain",
+      "value": "8.tlist"
+    },
+    {
+      "type": "domain",
+      "value": "8compression.base"
+    },
+    {
+      "type": "domain",
+      "value": "ashared.encryptionfunc"
+    },
+    {
+      "type": "domain",
+      "value": "b.rsrc"
+    },
+    {
+      "type": "domain",
+      "value": "chacha20.pas"
+    },
+    {
+      "type": "domain",
+      "value": "compression.base"
+    },
+    {
+      "type": "domain",
+      "value": "compression.lzma"
+    },
+    {
+      "type": "domain",
+      "value": "dsystem.hash"
+    },
+    {
+      "type": "domain",
+      "value": "dsystem.sysconst"
+    },
+    {
+      "type": "domain",
+      "value": "fsystem.rtti"
+    },
+    {
+      "type": "domain",
+      "value": "hwinapi.urlmon"
+    },
+    {
+      "type": "domain",
+      "value": "isystem.internal.excutils"
+    },
+    {
+      "type": "domain",
+      "value": "jr.inno.setup"
+    },
+    {
+      "type": "domain",
+      "value": "jrsoftware.org"
+    },
+    {
+      "type": "domain",
+      "value": "kwinapi.psapi"
+    },
+    {
+      "type": "domain",
+      "value": "lazyloadattributes.makeclosure"
+    },
+    {
+      "type": "domain",
+      "value": "oshared.setupentfunc"
+    },
+    {
+      "type": "domain",
+      "value": "s.seek"
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.instfunc"
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.messages"
+    },
+    {
+      "type": "domain",
+      "value": "setupldrandsetup.xptheme"
+    },
+    {
+      "type": "domain",
+      "value": "shared.commonfunc"
+    },
+    {
+      "type": "domain",
+      "value": "shared.encryptionfunc"
+    },
+    {
+      "type": "domain",
+      "value": "shared.fileclass"
+    },
+    {
+      "type": "domain",
+      "value": "shared.setupentfunc"
+    },
+    {
+      "type": "domain",
+      "value": "shared.setupmessageids"
+    },
+    {
+      "type": "domain",
+      "value": "shared.struct"
+    },
+    {
+      "type": "domain",
+      "value": "shared.verinfofunc"
+    },
+    {
+      "type": "domain",
+      "value": "system.byte"
+    },
+    {
+      "type": "domain",
+      "value": "system.cardinal"
+    },
+    {
+      "type": "domain",
+      "value": "system.char"
+    },
+    {
+      "type": "domain",
+      "value": "system.character"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.iinterfacelist"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tbasicaction"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tbasicactionlink"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tcollectionitem"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tcomponent"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tfieldscache.tfields"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tintconst"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tpersistentclass"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tpropfixup"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.treggroup"
+    },
+    {
+      "type": "domain",
+      "value": "system.classes.tthread"
+    },
+    {
+      "type": "domain",
+      "value": "system.comp"
+    },
+    {
+      "type": "domain",
+      "value": "system.currency"
+    },
+    {
+      "type": "domain",
+      "value": "system.diagnostics"
+    },
+    {
+      "type": "domain",
+      "value": "system.double"
+    },
+    {
+      "type": "domain",
+      "value": "system.extended"
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collections"
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collections.tpair"
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collectionsd"
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.collectionst"
+    },
+    {
+      "type": "domain",
+      "value": "system.generics.defaults"
+    },
+    {
+      "type": "domain",
+      "value": "system.hash"
+    },
+    {
+      "type": "domain",
+      "value": "system.iinterface"
+    },
+    {
+      "type": "domain",
+      "value": "system.integer"
+    },
+    {
+      "type": "domain",
+      "value": "system.internal.excutils"
+    },
+    {
+      "type": "domain",
+      "value": "system.math"
+    },
+    {
+      "type": "domain",
+      "value": "system.pinstitem"
+    },
+    {
+      "type": "domain",
+      "value": "system.pointer"
+    },
+    {
+      "type": "domain",
+      "value": "system.ppointer"
+    },
+    {
+      "type": "domain",
+      "value": "system.rawbytestring"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtlconsts"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tmethodimplementation.tparamloc"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tprivateheap.theapitem"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttifield"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiindexedproperty"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiinterfacetype"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttimanagedfield"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttimethod"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiobject"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttipackage"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiparameter"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttiproperty"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.trttitype"
+    },
+    {
+      "type": "domain",
+      "value": "system.rtti.tvalue"
+    },
+    {
+      "type": "domain",
+      "value": "system.single"
+    },
+    {
+      "type": "domain",
+      "value": "system.string"
+    },
+    {
+      "type": "domain",
+      "value": "system.syncobjs"
+    },
+    {
+      "type": "domain",
+      "value": "system.sysconst"
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutils"
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutils.tunithashentry"
+    },
+    {
+      "type": "domain",
+      "value": "system.sysutilsl"
+    },
+    {
+      "type": "domain",
+      "value": "system.tarray"
+    },
+    {
+      "type": "domain",
+      "value": "system.tclass"
+    },
+    {
+      "type": "domain",
+      "value": "system.tcustomattribute"
+    },
+    {
+      "type": "domain",
+      "value": "system.timespan"
+    },
+    {
+      "type": "domain",
+      "value": "system.tobject"
+    },
+    {
+      "type": "domain",
+      "value": "system.types"
+    },
+    {
+      "type": "domain",
+      "value": "system.types.tmultiwaitevent.twaitinfo"
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo"
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.ptypeinfo"
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.telementalias"
+    },
+    {
+      "type": "domain",
+      "value": "system.typinfo.tenumaliasentry"
+    },
+    {
+      "type": "domain",
+      "value": "system.uitypes"
+    },
+    {
+      "type": "domain",
+      "value": "system.variants"
+    },
+    {
+      "type": "domain",
+      "value": "system.varutils"
+    },
+    {
+      "type": "domain",
+      "value": "system.widestring"
+    },
+    {
+      "type": "domain",
+      "value": "system.widestrutils"
+    },
+    {
+      "type": "domain",
+      "value": "t.ht"
+    },
+    {
+      "type": "domain",
+      "value": "tcomponent.create"
+    },
+    {
+      "type": "domain",
+      "value": "tfieldscache.tfields"
+    },
+    {
+      "type": "domain",
+      "value": "tformatsettings.terainfo"
+    },
+    {
+      "type": "domain",
+      "value": "tinstitem.tbucketarray"
+    },
+    {
+      "type": "domain",
+      "value": "tlisthelper.tinternalcomparefunc"
+    },
+    {
+      "type": "domain",
+      "value": "tlisthelper.tinternalnotifyproc"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.pfirststageintercept"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.pinterceptframe"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tfirststageintercept"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tfloatreg"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinterceptframe"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinvokeinfo"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tinvokeinfok"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.tparamloc"
+    },
+    {
+      "type": "domain",
+      "value": "tmethodimplementation.truntimetypeinfos"
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.pwaitingthread"
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.tspinlock"
+    },
+    {
+      "type": "domain",
+      "value": "tmonitor.twaitingthread"
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.tmultiwaiter"
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.tmultiwaitert"
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaiterflag"
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaiterflags"
+    },
+    {
+      "type": "domain",
+      "value": "tmultiwaitevent.twaitinfo"
+    },
+    {
+      "type": "domain",
+      "value": "tobservers.tcanobserveevent"
+    },
+    {
+      "type": "domain",
+      "value": "tobservers.tobserveraddedevent"
+    },
+    {
+      "type": "domain",
+      "value": "tprivateheap.theapitem"
+    },
+    {
+      "type": "domain",
+      "value": "trttipool.getpackagelist.doupdate"
+    },
+    {
+      "type": "domain",
+      "value": "tthread.tsynchronizerecord"
+    },
+    {
+      "type": "domain",
+      "value": "tthread.tsystemtimes"
+    },
+    {
+      "type": "domain",
+      "value": "uh.qe"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.activex"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.commctrl"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.imagehlp"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.ipexport"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.messages"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.msxmlintf"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.objectarray"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.propsys"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.psapi"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.qos"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.regstr"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shellapi"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shfolder"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shlobj"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.shlwapi"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.structuredquerycondition"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.urlmon"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.windows"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.windows.pkghelper"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.wininet"
+    },
+    {
+      "type": "domain",
+      "value": "winapi.winsock"
+    },
+    {
+      "type": "domain",
+      "value": "ywinapi.shlwapi"
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/signature/valleyrat/"
+    },
+    {
+      "type": "url",
+      "value": "https://jrsoftware.org/ishelp/index.php"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "cross_family_campaign_candidate"
+}

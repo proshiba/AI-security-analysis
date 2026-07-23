@@ -1,0 +1,62 @@
+{
+  "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "signed-dht-bot"
+  ],
+  "members": [
+    "12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae",
+    "24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef",
+    "310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3",
+    "6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d",
+    "b3512d6dd71746655648180b30a3812939c7adbcbb2958b3abf6ae004f691156",
+    "fd5a48693a99cbb7c49f5f4245f3090ffeec58ce3f9d9bcf7f6c7eade62769f1"
+  ],
+  "member_count": 6,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "afterhours.click",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "chickenfriedwatermelonkoolaid.store",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "dynabot.monster",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "headlock.ru",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "niggerdns.spamhaus-faggots.ru",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "nightslikethis.club",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "poop.garden",
+      "support": 6
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 15,
+  "maximum_pair_score": 24,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "campaign_id": "correlated-acrstealer-blazetrack-3fa63f35a009",
+  "families": [
+    "acrstealer",
+    "blazetrack"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "03d.tmp"
+    },
+    {
+      "type": "domain",
+      "value": "again.ethe"
+    },
+    {
+      "type": "domain",
+      "value": "ay.ru"
+    },
+    {
+      "type": "domain",
+      "value": "command.com"
+    },
+    {
+      "type": "domain",
+      "value": "corrupted.qwindows"
+    },
+    {
+      "type": "domain",
+      "value": "file.athe"
+    },
+    {
+      "type": "domain",
+      "value": "msdownld.tmp"
+    },
+    {
+      "type": "domain",
+      "value": "running.sthe"
+    },
+    {
+      "type": "domain",
+      "value": "s.xsetup"
+    },
+    {
+      "type": "domain",
+      "value": "setup.kthat"
+    },
+    {
+      "type": "domain",
+      "value": "time.othe"
+    },
+    {
+      "type": "domain",
+      "value": "wextract.pdb"
+    },
+    {
+      "type": "domain",
+      "value": "wininit.ini"
+    },
+    {
+      "type": "domain",
+      "value": "writable.iyou"
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/"
+    }
+  ],
+  "feature_ids": [
+    "execution:autoit_payload",
+    "execution:payload_decode"
+  ],
+  "classification": "cross_family_campaign_candidate"
+}

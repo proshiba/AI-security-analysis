@@ -1,0 +1,32 @@
+{
+  "campaign_id": "correlated-unclassified-140dc63f6cf6",
+  "families": [
+    "unclassified"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/clq"
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/ds2"
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/f8dj"
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/hr2d"
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/mfzi"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

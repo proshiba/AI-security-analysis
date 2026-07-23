@@ -1,0 +1,43 @@
+# campaign候補：correlated-genddos-bot-a74d6b3d1370
+
+- 分類: `same_family_campaign_candidate`
+- 確度: `high`
+- ファミリー: `genddos-bot`
+- case数: 15
+- 最大pair score: 13
+
+## 相関したcase
+
+- `13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb`
+- `338b19ba5a4d15cca22d48c02c298064164d9db9654e7473880d12211f3cd185`
+- `3bc7efeed4bbebc6a515be55736e6726dd3873553b00e70af513f8ab05761422`
+- `517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50`
+- `5c299c0278faf2fb51febdde019a7f24ea147e6c968b688cb05f7cef4d4f76a0`
+- `5f85a860b374bb803aff4cc9e1d928b5ad3d678c0e252b45e7b88d3bed88b152`
+- `635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414`
+- `850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079`
+- `956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430`
+- `b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6`
+- `c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd`
+- `c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca`
+- `e7889354c0d2cce6cc0c6a34ec13afd79bf361388e76ed2b3b987e0613d9c6a6`
+- `ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638`
+- `f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee`
+
+## 共有証拠
+
+| 種別 | 値 | case支持数 |
+|---|---|---:|
+| endpoint | `65.222.202.53:80` | 15 |
+| endpoint | `genddos.st:6742` | 15 |
+| ip | `65.222.202.53` | 8 |
+
+## 共有する挙動・検体特徴
+
+- `impact:ddos`
+
+## 制約
+
+- 同一アクターまたは同一運用者への帰属を意味しません。
+- 共有インフラが再利用・転売されている可能性を排除できません。
+- 収集バッチ、ファミリー名、ファイル名だけでは相関していません。

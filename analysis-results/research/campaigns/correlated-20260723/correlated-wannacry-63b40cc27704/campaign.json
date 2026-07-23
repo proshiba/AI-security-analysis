@@ -1,0 +1,341 @@
+{
+  "campaign_id": "correlated-wannacry-63b40cc27704",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "wannacry"
+  ],
+  "members": [
+    "32c9bf96fb8c0d6ad0d3a3d2707a8a9ae0b95ccefaa26ad0e33b518d9fd0a608",
+    "656f08c0cf09e32acc0729536a32da8ad61079d29fee18bcb3a1792e3ee5e5c6",
+    "88a9d62d3cc2290f33ecb40ed5d266792aaf0438b042e0e6998f88cd1b0e8d14",
+    "89f2bd29e1493bba4ca3d25a1a155cc1aa4ed3360a5855be06e90ad81fd28ae5",
+    "91cd12ce85d9e32f75f732ea090a1385ab4e31ef0dd6904ccdf7b5d1623ddba8"
+  ],
+  "member_count": 5,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "0.oj",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "1.ng",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "18.noq",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "2.uy",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "53q.zl",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "57g7spgrzlojinas.onion",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "6.gz",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "7.hk",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "7.jce",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "76jdd2ir2embyv47.onion",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "8.ax",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "8.uq",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "a.pe",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ax.id",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "b.wnryp",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "b.ya",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "bh.mr",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "c.nc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "c.wnry",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "cwwnhwhlz52maqm7.onion",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "d.um",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "d.yh",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "dj.dy",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "e.bt",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "e.ip",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "f.hy",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "f.pk",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "g.ro",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "gx7ekbenv2riucmf.onion",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "hs.uk",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "i.gcvo",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "i.zl",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "ibg.yf",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "j.jx",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "j.td",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ld.yn",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "m.co",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "n.myj",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "o.av",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "o.otk",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "os.fg",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "oz.mzr",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "p.vw",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "pk.ks",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "pph.datja",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "psl.nw",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "r.abd",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "r.wnry",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "s.wnry",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "t.hc",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "t.wnry",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "u.my",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "v.bi",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "w.ceg",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "w.ry",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "x.ib",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xxlvbrloxvriy2c5.onion",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "y.sn",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "z.dq",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "z.hevo",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "zhn.ban",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com/",
+      "support": 4
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 10,
+  "maximum_pair_score": 173,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む744件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む905件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -72,9 +72,11 @@ python .\common\c2_detector.py --help
 1. 検体を隔離環境に置き、検体のSHA-256を控えます。
 2. `analyze_sample.py` が上限付きで静的復元し、ルート検体と復元層に対して全登録detectorを評価して、`malware_type` と `campaign_type` を選びます。
 3. 過去の解析スクリプトをASTで棚卸しして適用可否を判定し、一意に選択されたファミリーの標準解析器を全層へ試行します。`static-layers.json`、`classification.json`、`applicability.json`、汎用トリアージ、無害化済み設定抽出結果を生成します。
-4. 結果を `analysis-results/malware/<family>/versions/<version-key>/cases/<sample-sha256>/` に整理し、検体・復号バイナリなど保存禁止物が含まれないことを確認します。
-5. `analysis_history.yaml` に解析履歴を1件追加し、READMEの履歴サマリも更新します。
-6. IOC-only一覧を再生成し、`--check` で全解析との同期を確認します。
+4. `static-logic.json`／`STATIC-LOGIC.md` に関数／スクリプト単位の役割、処理手順、呼出関係、API、制御フロー、正規化fingerprintと根拠を記録します。
+5. YARA／SigmaやIOC値と分離した `FEATURES.md`／`features.json` を生成し、強い共有証拠を持つ既知campaign fingerprintだけを `campaign-labels.json` へ付与します。
+6. 結果を `analysis-results/malware/<family>/versions/<version-key>/cases/<sample-sha256>/` に整理し、検体・復号バイナリなど保存禁止物が含まれないことを確認します。
+7. `analysis_history.yaml` に解析履歴を1件追加し、READMEの履歴サマリも更新します。
+8. IOC-only一覧とコード類似性索引を再生成し、`--check` で全解析との同期を確認します。
 
 ### 分類のみ実行
 
@@ -171,6 +173,9 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ### 自動解析出力の代表例
 
 - `classification.json`: detector による `malware_type` / `campaign_type` 選択結果。
+- `static-logic.json`／`STATIC-LOGIC.md`: 関数／スクリプト単位のロジック、呼出関係、正規化fingerprint、解析根拠。
+- `features.json`／`FEATURES.md`: IOC値と検知ルールを除いた、挙動・検体特徴の機械可読／人向け成果物。
+- `campaign-labels.json`: 登録済みcampaign fingerprintとの強い一致。一致なしも明示。
 - `run-summary.json`: 実行した handler、ローカル実行有無、ライブC2確認有無。
 - `submission-analysis.json`: ZIP/MSI/CAB/PEを再帰的に調べたメタデータ。
 - `extraction-result.json`: 安全展開の結果。
@@ -259,6 +264,8 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ## 参考ドキュメント
 
 - [analysis-framework/README.md](analysis-framework/README.md): 解析フレームワーク概要
+- [analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md](analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md): 関数ロジック記録、fingerprint、コード類似性索引
+- [analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md](analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md): 検体特徴、充足度監査、campaign相関、自動label
 - [analysis-framework/malware/valleyrat/README.md](analysis-framework/malware/valleyrat/README.md): ValleyRAT固有解析
 - [analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md](analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md): ValleyRAT解析ワークフロー
 - [analysis-results/README.md](analysis-results/README.md): 公開可能な結果の保存方針
@@ -331,3 +338,11 @@ AsyncRAT、XWorm、QuasarRAT、njRAT、DarkComet、DCRat、RedLine Stealer、Sna
 新着順から既処理SHA-256を除外し、選定を各バッチの初回取得時に固定して解析しています。batch-0001、0002、0004～0010は各10件完了し、batch-0003は9件解析済み・1件取得待ちです。現在は99件解析済み、1件取得待ちです。[第10バッチ](analysis-results/research/malwarebazaar/batches/batch-0010/README.md)では署名付きDHTボット、GendDDoS、JackSkid、Formbookローダー、FreePBX侵害スクリプトを解析しました。
 
 完全一致候補だけにTCP connectまでの限定検証を行い、アプリケーションデータ、認証情報、マルウェア登録値は送信していません。TCP到達をC2確定に使わず、配布先と共有サービスをC2から分離し、検体は一切実行していません。
+
+## MalwareBazaar最新Windows検体100件（2026-07-23）
+
+MalwareBazaarのEXE／DLL照会を統合し、既解析SHA-256を除外して`first_seen`の新しい順に100件を固定しました。対象期間は2026-07-23 04:16:04〜2026-07-22 02:52:08で、固定集合はすべてEXEです。暗号化ZIP 100件の転送SHA-256とZIP署名を照合し、欠損・重複・既解析との重複はいずれも0でした。
+
+ワンショット静的解析100件に加え、既存の自動handlerが対応する提供元報告22件へ明示family追加抽出を実施しました。21件はhandler成功、MaskGramStealer 1件は設定抽出未完了です。正規分類はEfimer 21件、HijackLoader 6件、AgentTesla／WannaCry各5件、Vidar 3件、RemusStealer 2件、ほか既存分類7件、未分類51件です。全binaryは関数境界・call graph・逆コンパイル未レビューを`function_analysis_required`として残しています。
+
+結果は[Windows最新100件collection](analysis-results/collections/malwarebazaar-windows-20260723-0100/README.md)、再実行手順は[Windows一括静的解析文書](analysis-framework/docs/MALWAREBAZAAR-WINDOWS-BATCH.md)を参照してください。検体、復元層、埋め込みpayloadは実行せず、C2や配布先へ接続していません。

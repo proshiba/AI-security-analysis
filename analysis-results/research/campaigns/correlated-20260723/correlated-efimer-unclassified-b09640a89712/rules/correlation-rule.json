@@ -1,0 +1,281 @@
+{
+  "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+  "families": [
+    "efimer",
+    "unclassified"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "0.ll"
+    },
+    {
+      "type": "domain",
+      "value": "0.rh"
+    },
+    {
+      "type": "domain",
+      "value": "1u.qm"
+    },
+    {
+      "type": "domain",
+      "value": "57.eool"
+    },
+    {
+      "type": "domain",
+      "value": "5i.nv"
+    },
+    {
+      "type": "domain",
+      "value": "6.yb"
+    },
+    {
+      "type": "domain",
+      "value": "7.qs"
+    },
+    {
+      "type": "domain",
+      "value": "8.vqu"
+    },
+    {
+      "type": "domain",
+      "value": "8.zo"
+    },
+    {
+      "type": "domain",
+      "value": "a.dw"
+    },
+    {
+      "type": "domain",
+      "value": "b.yvg"
+    },
+    {
+      "type": "domain",
+      "value": "c.fz"
+    },
+    {
+      "type": "domain",
+      "value": "c.jfvuh"
+    },
+    {
+      "type": "domain",
+      "value": "c.ns"
+    },
+    {
+      "type": "domain",
+      "value": "c.xvct"
+    },
+    {
+      "type": "domain",
+      "value": "c.zi"
+    },
+    {
+      "type": "domain",
+      "value": "c.zy"
+    },
+    {
+      "type": "domain",
+      "value": "d.fow"
+    },
+    {
+      "type": "domain",
+      "value": "d.lm"
+    },
+    {
+      "type": "domain",
+      "value": "d.sh"
+    },
+    {
+      "type": "domain",
+      "value": "djq.rw"
+    },
+    {
+      "type": "domain",
+      "value": "e.ok"
+    },
+    {
+      "type": "domain",
+      "value": "e.ra"
+    },
+    {
+      "type": "domain",
+      "value": "e.si"
+    },
+    {
+      "type": "domain",
+      "value": "ei.ksy"
+    },
+    {
+      "type": "domain",
+      "value": "ep.pg"
+    },
+    {
+      "type": "domain",
+      "value": "f.ko"
+    },
+    {
+      "type": "domain",
+      "value": "g.kk"
+    },
+    {
+      "type": "domain",
+      "value": "gz.vt"
+    },
+    {
+      "type": "domain",
+      "value": "h.wn"
+    },
+    {
+      "type": "domain",
+      "value": "i.mv"
+    },
+    {
+      "type": "domain",
+      "value": "i.xvw"
+    },
+    {
+      "type": "domain",
+      "value": "i.yf"
+    },
+    {
+      "type": "domain",
+      "value": "init.tcl"
+    },
+    {
+      "type": "domain",
+      "value": "installer.py"
+    },
+    {
+      "type": "domain",
+      "value": "j.oi"
+    },
+    {
+      "type": "domain",
+      "value": "ky.te"
+    },
+    {
+      "type": "domain",
+      "value": "l.ri"
+    },
+    {
+      "type": "domain",
+      "value": "l.to"
+    },
+    {
+      "type": "domain",
+      "value": "m.bgi"
+    },
+    {
+      "type": "domain",
+      "value": "m.obgd"
+    },
+    {
+      "type": "domain",
+      "value": "m.on"
+    },
+    {
+      "type": "domain",
+      "value": "ml.ln"
+    },
+    {
+      "type": "domain",
+      "value": "n.en"
+    },
+    {
+      "type": "domain",
+      "value": "p.nb"
+    },
+    {
+      "type": "domain",
+      "value": "p.yp"
+    },
+    {
+      "type": "domain",
+      "value": "q.wv"
+    },
+    {
+      "type": "domain",
+      "value": "qw.ye"
+    },
+    {
+      "type": "domain",
+      "value": "r.hd"
+    },
+    {
+      "type": "domain",
+      "value": "s.ji"
+    },
+    {
+      "type": "domain",
+      "value": "s.pkg"
+    },
+    {
+      "type": "domain",
+      "value": "s.py"
+    },
+    {
+      "type": "domain",
+      "value": "sys.argv"
+    },
+    {
+      "type": "domain",
+      "value": "t.pj"
+    },
+    {
+      "type": "domain",
+      "value": "t.xn"
+    },
+    {
+      "type": "domain",
+      "value": "tk.tcl"
+    },
+    {
+      "type": "domain",
+      "value": "v.nb"
+    },
+    {
+      "type": "domain",
+      "value": "w.en"
+    },
+    {
+      "type": "domain",
+      "value": "w.hb"
+    },
+    {
+      "type": "domain",
+      "value": "w7.oxc"
+    },
+    {
+      "type": "domain",
+      "value": "x.he"
+    },
+    {
+      "type": "domain",
+      "value": "x.pco"
+    },
+    {
+      "type": "domain",
+      "value": "x.sj"
+    },
+    {
+      "type": "domain",
+      "value": "x.tu"
+    },
+    {
+      "type": "domain",
+      "value": "yu5a0.dj"
+    },
+    {
+      "type": "domain",
+      "value": "z.cs"
+    },
+    {
+      "type": "domain",
+      "value": "zqc.uc"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "cross_family_campaign_candidate"
+}

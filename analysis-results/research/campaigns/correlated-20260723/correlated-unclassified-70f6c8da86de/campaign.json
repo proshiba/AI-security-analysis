@@ -1,0 +1,203 @@
+{
+  "campaign_id": "correlated-unclassified-70f6c8da86de",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "unclassified"
+  ],
+  "members": [
+    "2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c",
+    "4d94c1c41fdc9d7c77a4cd2eed5d03bebade3bc7f916f75c76fd5e3503f2df2c"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "1.ib",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "2.rqj",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "5.su",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "8.fb",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "8.uch",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "a.dw",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "b.rr",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "b.uah",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bce.eo",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bp.myt",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "e.qr",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "f.bf",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "g.kw",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "hw.ywf",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "i.cr",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ic.lh",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "m.jcc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "m.kq",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "n.vd",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ng.if",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ng.spq",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "o.ox",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "p.yxc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "q.tw",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "r.ml",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sfxrar.pdb",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "shell.explorer",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "t.ct",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "u.ag",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "vo.js",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "vv.mi",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.cev",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.vy",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "y.tf",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "z.hw",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "z.pq",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 109,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "description": "共有インフラ、共有子要素、非汎用の配布パターンを使い、同一攻撃キャンペーン候補を保守的に相関する。",
+  "thresholds": {
+    "same_family_min_score": 7,
+    "cross_family_min_score": 10,
+    "high_confidence_score": 12,
+    "max_indicator_prevalence": 30,
+    "max_feature_prevalence": 25,
+    "max_cluster_size": 30,
+    "cross_family_min_shared_indicators": 2
+  },
+  "weights": {
+    "artifact_hash": 7,
+    "url": 4,
+    "endpoint": 4,
+    "domain": 3,
+    "ip": 2,
+    "certificate_sha256": 5,
+    "same_family": 1,
+    "same_non_generic_campaign_type": 2,
+    "shared_rare_feature": 1
+  },
+  "generic_campaign_types": [
+    "unknown",
+    "none",
+    "direct_pe_or_pe_loader",
+    "direct_dll_or_loader",
+    "reviewed_direct_payload_or_wrapper",
+    "script_delivery",
+    "macro_office_delivery",
+    "office_delivery",
+    "staged_loader_or_container",
+    "unknown_or_nested_delivery",
+    "packed_native_pe",
+    "protected_wrapper",
+    "malwarebazaar_unsigned_newest_batch"
+  ],
+  "excluded_role_markers": [
+    "context_only",
+    "not_ioc",
+    "not_c2",
+    "dual-use",
+    "public_ip",
+    "documentation",
+    "reference"
+  ],
+  "excluded_indicator_hosts": [
+    "microsoft.com",
+    "symantec.com",
+    "thawte.com",
+    "verisign.com",
+    "dht.libtorrent.org",
+    "dht.transmissionbt.com",
+    "router.bittorrent.com",
+    "router.utorrent.com"
+  ],
+  "excluded_domain_suffixes": [
+    ".asp",
+    ".aspx",
+    ".bin",
+    ".dat",
+    ".dll",
+    ".exe",
+    ".json",
+    ".php",
+    ".txt",
+    ".xml"
+  ],
+  "safety": {
+    "collection_membership_is_campaign_evidence": false,
+    "family_name_alone_is_campaign_evidence": false,
+    "filename_alone_is_campaign_evidence": false,
+    "ip_alone_confirms_campaign": false
+  }
+}

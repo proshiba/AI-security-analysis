@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "0.oj",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "1.ng",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "18.noq",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "2.uy",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "53q.zl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "57g7spgrzlojinas.onion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "6.gz",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "7.hk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "7.jce",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "76jdd2ir2embyv47.onion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "8.ax",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "8.uq",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "a.pe",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ax.id",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "b.wnryp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "b.ya",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "bh.mr",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "c.nc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "c.wnry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "cwwnhwhlz52maqm7.onion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "d.um",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "d.yh",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "dj.dy",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "e.bt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "e.ip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "f.hy",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "f.pk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "g.ro",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "gx7ekbenv2riucmf.onion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "hs.uk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "i.gcvo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "i.zl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "ibg.yf",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "j.jx",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "j.td",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ld.yn",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "m.co",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "n.myj",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "o.av",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "o.otk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "os.fg",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "oz.mzr",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "p.vw",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "pk.ks",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "pph.datja",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "psl.nw",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "r.abd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "r.wnry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "s.wnry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "t.hc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "t.wnry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "u.my",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "v.bi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "w.ceg",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "w.ry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "x.ib",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xxlvbrloxvriy2c5.onion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "y.sn",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "z.dq",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "z.hevo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "zhn.ban",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    }
+  ]
+}

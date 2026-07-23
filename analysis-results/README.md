@@ -102,6 +102,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 ## 横断調査
 
 - [関数ロジックのコード類似性索引](catalog/CODE-SIMILARITY.md)
+- [過去924caseの静的ロジック補完監査](research/audits/static-logic-backfill-20260723/README.md)
 - [全905caseの挙動・検体特徴と解析充足度監査](research/audits/case-knowledge-20260723/README.md)
 - [公開artifact契約と解析カバレッジ監査](research/audits/static-analysis-audit-20260723/README.md)
 - [共有インフラ・子要素によるcampaign候補27群](research/campaigns/correlated-20260723/README.md)
@@ -123,7 +124,9 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 
 今後、新規作成または解析内容を更新する各caseには、`static-logic.json` と `STATIC-LOGIC.md` を置きます。関数／スクリプト単位で役割、処理手順、呼出元・呼出先、使用API、主要分岐・反復、正規化fingerprint、根拠と確度を残します。バイナリ検体について関数解析が未実施の自動生成結果は `function_analysis_required` とし、静的解析完了とは扱いません。
 
-横断索引は `catalog/code-similarity.json` と `catalog/CODE-SIMILARITY.md` です。意味トークン列のSHA-256とSimHashを併用し、同一ファミリー内の派生とファミリー横断の候補を分離します。生成方法、レビュー入力形式、閾値は[静的ロジック記録とコード類似性](../analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
+横断索引は `catalog/code-similarity.json` と `catalog/CODE-SIMILARITY.md` です。意味トークン列のSHA-256とSimHashを併用し、同一ファミリー内の派生とファミリー横断の候補を分離します。JSON版は関数recordを正規化してID参照とし、全候補を保持します。Markdown版は人間向けに上位1,000候補だけを表示します。Ghidra opcode hashは意味fingerprintと分け、異なるcase間の完全一致候補だけを記録します。生成方法、レビュー入力形式、閾値は[静的ロジック記録とコード類似性](../analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
+
+2026-07-23の一括補完では、924caseのうち既存レビュー済み20caseを保持し、904caseを再構成しました。866caseから1,752件の静的処理単位を補完し、98caseへ107件のGhidra program構造と131件の有効な上限付き関数hashを追加しています。処理単位とhashは関数の意味レビューを代替しないため、904caseは`function_analysis_required`のままです。詳細は[静的ロジック補完監査](research/audits/static-logic-backfill-20260723/README.md)を参照してください。
 
 ## IOCの再生成と検証
 

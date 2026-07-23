@@ -1,0 +1,28 @@
+{
+  "campaign_id": "correlated-dotnet-resource-loader-c1881c6000c2",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "dotnet-resource-loader"
+  ],
+  "members": [
+    "4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f",
+    "b393bd767c142e171dd1b2928bae16fff2f63b3d319b2c1acb37129d8d538cc9"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "artifact_hash",
+      "value": "c7b2d253001ad30d897a6bd36ad183a283f19c1f2b50c84f039327fe32ae9e28",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 8,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

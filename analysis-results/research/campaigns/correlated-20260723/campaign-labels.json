@@ -1,0 +1,1417 @@
+{
+  "schema_version": 1,
+  "labels": {
+    "00e4d6eef2089f774e0b1369eabe9df9696005cb2415eebe3eb1496a1aed8a91": [
+      {
+        "campaign_id": "correlated-eclipse-ddos-bot-97a264ac07f5",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386": [
+      {
+        "campaign_id": "correlated-venomrat-b8be79d70868",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "03e0ca10cbf06f45fefd102dc8e42665729d8891e047348dea7dcceb9b5559cc": [
+      {
+        "campaign_id": "correlated-latrodectus-529ef014e1b4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "08138715841b5e43cd0a1ec83ceeda599ccfd4149250a47604b5eeb49df7adf8": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "09308880c6b8e1ee5d6cc2561d25b49929af75ab9007c018c18c998a30732cc8": [
+      {
+        "campaign_id": "correlated-unclassified-90d978be19ce",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "12d21b742c5e2a9e28bf0fc232a3b8d8963cf0c6c4278d4d551bda774495c3ae": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "149ab46739ca442762502a69f0960365a7c5e7761c76f2e6c2997bd43744a62a": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "15788c62947475684edd84228a6167f915b68bb8ca81e9791a045995d72db38c": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "18cbee63748bff047d7d51ebc934409f8cb3ba1ea814daae638122272de1a314": [
+      {
+        "campaign_id": "correlated-condi-0c21a99db5d6",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed": [
+      {
+        "campaign_id": "correlated-agenttesla-aa662ac5b0ef",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "23315993c5c7df358f6d9082d74d72774b613310ebafd0272f5efdf04d3ce9a6": [
+      {
+        "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "233bbf027793e88ee6d548f2b18e5e2e29c9943bee6c50ed6c1160ac9d68c39a": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "24d8adc83594c77c97fe59a84db8ffda1fbe13faefb495e2075b1feb80018bef": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c": [
+      {
+        "campaign_id": "correlated-unclassified-70f6c8da86de",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "26eaf074c06ada6319109f04929df85bf2c83f9d17739da26c29b5cca6036d77": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "27ba087eecfcbf5265216a34eba2bb4a39cc52546b6f51aa0d4c4a23e9f9779b": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "2b46fc922a0e16552f09f9b2d1a9cbedfada367fa985e2c0a15b815acc03f806": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "2c8bc292d127ec5fb5da2a9c8cbb8e4ec911f6b62437cb5f3a082ac196dc5784": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "2d0ae80f9689433e7b84ee280e11ce5263f918f6f23288c3d9bfe6ea187408b2": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "30b37af8712dec58014f16686fd105d736883646d1ecaa55f256698230712502": [
+      {
+        "campaign_id": "correlated-eclipse-ddos-bot-97449ff85f19",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "310181ccdbc4129d5a8052af9101013df6e8e2871c6c42b6e86ef5a7f162caa3": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "326d297b441a40bb3f53bb55cb727e0fbed422470977ca167b1c919029be746b": [
+      {
+        "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "32b222165a61978b9d981cbd77eee2c24d7d366021ad3abfcfcd052d7a6e8d4e": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "32c9bf96fb8c0d6ad0d3a3d2707a8a9ae0b95ccefaa26ad0e33b518d9fd0a608": [
+      {
+        "campaign_id": "correlated-wannacry-63b40cc27704",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "338b19ba5a4d15cca22d48c02c298064164d9db9654e7473880d12211f3cd185": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "34aff1767909ff582d15949922549fddb5849f163260ad3efdc32d4f869fdf09": [
+      {
+        "campaign_id": "correlated-latrodectus-119609fcd1f4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "34c1dce15dfc0dfb9f57bb48cdcb0c31c400206647b58ad6c4ebc64f25caa06e": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "354bf39ac11e66c61d8236a4ecdf7231e9b458d2943b7868e01b03c267e90096": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "366e52b6d95d9478a73ffcd659a1807bdea901a0737b7b2532fe11145be03925": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "388021747b85453adff2680c8a0e13e230f4eeada1a1055e3fb8e09800d4fb79": [
+      {
+        "campaign_id": "correlated-latrodectus-16adde821df9",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "392571c5abe8c58b631fd44b1c2924f7854914754848cb2479ec6889ebce6b4c": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "39ec954d66b2484f72787a62cc472fc1c8cf95042c2dae1e045f972731ee51e2": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "3bc7efeed4bbebc6a515be55736e6726dd3873553b00e70af513f8ab05761422": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "3db527a58b83f8422fc10029f337d5663005d2ca1a1667fb221e6672ed5ba360": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "4049128f0308d05dcb8d24b668f69238d720199de32ba0d8304cd3c3b3bde1b9": [
+      {
+        "campaign_id": "correlated-remusstealer-8d56fe990dd4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "41fc136c41e7d0a88b800fa82ded8145e4fd01e80c1317c96d772cf7b9313b68": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "43b112c2bf170cb564047c064e9604dec8b28872e3171ec5c9c41f41baf92f53": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "448776210b0c1802fd3e5da66813e90e7469bcd365d64e11b2a992547bc2fd4a": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "4506917f5cd8be78ec581d74085c21b75b17c2ede56f0af2dc38bc3f09e96caf": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "465f931e8a44b7f8dff8435255240b88f88f11e23bc73741b21c20be8673b6b7": [
+      {
+        "campaign_id": "correlated-latrodectus-07f25a0194ab",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "46b70348d87262640dd2510b0b6c2d0d9ba9ea1de135c7112405fdf7d08a7efd": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "46f61eee6e2ab0bbbb1872139ea56d87c2427bd4fbfc540329fdc7530914a160": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "4814838500d5650f8ef755e26ca09cc09808209519a18b8758aaa2a3864c9601": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "4aa2d4adb660e621aa9a4a473aeb54825b0ef64e0206e3e85833f09b609bae32": [
+      {
+        "campaign_id": "correlated-unclassified-90d978be19ce",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "4c8f8899d02737d9c1c00f8848f73298a2749ff7a1a75a0ca2acd68117d2b515": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f": [
+      {
+        "campaign_id": "correlated-dotnet-resource-loader-c1881c6000c2",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "4d096a4d27f59f46ba928179f912d8df4467b32a7a7ecf70fac63f0d97fc5edf": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "4d94c1c41fdc9d7c77a4cd2eed5d03bebade3bc7f916f75c76fd5e3503f2df2c": [
+      {
+        "campaign_id": "correlated-unclassified-70f6c8da86de",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "52bd61ba2153572260fc9b8f7eac34b613272c428e715fe6b3505f96e4eacf5d": [
+      {
+        "campaign_id": "correlated-remcosrat-9856d4a51265",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d": [
+      {
+        "campaign_id": "correlated-venomrat-b8be79d70868",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "54cb86f9c1832999fcb4fb78bc5254c69de12cae15c60934b798858e1b27b934": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "5562c6ad5765792def276e009395a57a6bf841c87cddefb6f8e8d75b74076e83": [
+      {
+        "campaign_id": "correlated-latrodectus-d90e452386a7",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "56091719eeba4881f3db1f837feaa9d47a5a275bff6218186d97614e252e6d21": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92": [
+      {
+        "campaign_id": "correlated-valleyrat-570f481c0f42",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "59c292aaa6b81e0de85fd7f463c7042f680c49e00f7e0027e6d0940a0fc88d9e": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "5c299c0278faf2fb51febdde019a7f24ea147e6c968b688cb05f7cef4d4f76a0": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "5e3f1dfa4b61b2e89c747b24bb8872f3d6aca557c2e89f867fdd3be112b18481": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "5edc39cbd89d3ba70a4737f823933af93f3c182134af8e34e0af9a316afaaca8": [
+      {
+        "campaign_id": "correlated-latrodectus-16adde821df9",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "5f85a860b374bb803aff4cc9e1d928b5ad3d678c0e252b45e7b88d3bed88b152": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "5fbed74e14ac66724e9d88829ade0c3d7f640288d902f7721eca96eab632d165": [
+      {
+        "campaign_id": "correlated-acrstealer-blazetrack-3fa63f35a009",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "6091f2589fef42e0ab3d7975806cd8a0da012b519637c03b73f702f7586b21ef": [
+      {
+        "campaign_id": "correlated-latrodectus-119609fcd1f4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "6146a3981fca566f55e50a40999822d9f2b44a7161d5106a4570d323d575387f": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "61eb8e47031b9c5ac19f887926f3a03604ae1dec521dad76db3136a1469be7b6": [
+      {
+        "campaign_id": "correlated-condi-43b54d6f7682",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "6209b9f4af44f71e7b319c5b406603a6f15da3c7d8ca6bd06d434af65269990e": [
+      {
+        "campaign_id": "correlated-unclassified-18d330f0907e",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "62ed1c21a6a22ea2a35625659d6a208c8028c009b876e08e8915283b9c578ff3": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "6327eb7f0e774b2be50bcc9665bfcb4a35f120c101368d4800de7e0b94827b0d": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "656f08c0cf09e32acc0729536a32da8ad61079d29fee18bcb3a1792e3ee5e5c6": [
+      {
+        "campaign_id": "correlated-wannacry-63b40cc27704",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "65da6d9f781ff5fc2865b8850cfa64993b36f00151387fdce25859781c1eb711": [
+      {
+        "campaign_id": "correlated-latrodectus-119609fcd1f4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "695585351ff095b744dd04f3fbbbbdbfb40e381730faa2751a8fbc15da26a299": [
+      {
+        "campaign_id": "correlated-unclassified-18d330f0907e",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "6afda92c73f89ddce818f752d2d3fb7f39cef34c53478ecd993cd42936a12efc": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "6d9ada5925ac865f4e390ea613c151b4f597c2753dcd00c925bb8fd89ba8eba9": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7040402574a686f031c3af5fed37509d8979855397787aab70b2d1059099d2da": [
+      {
+        "campaign_id": "correlated-latrodectus-07f25a0194ab",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "707fc73f8e6494959b1b33c9f7c582335cda88397a0e7e3822f56ad0354996c6": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "7243738e2b27922cd5daed7bb1e9382e87196583976c7a54372f2f149eec3596": [
+      {
+        "campaign_id": "correlated-condi-43b54d6f7682",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "72db19a5ccc7e378e72bd3cf8339280fc47f05b5ff65b1fb3893be6369a5c8bf": [
+      {
+        "campaign_id": "correlated-latrodectus-529ef014e1b4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "7323bcc98fb1b23e201b6a775ab791634601dc5110ad1557b6dac94ceda14545": [
+      {
+        "campaign_id": "correlated-unclassified-140dc63f6cf6",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "746c06f05b8e3bc93d6495a6c447c3c1874bd77011c33b0bcfe74ae27addbfaf": [
+      {
+        "campaign_id": "correlated-remusstealer-8d56fe990dd4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "7607a6631a90eb57ad892bb0cca2bd6618940822daed745392676f6aec4a33f4": [
+      {
+        "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "78ef4cadec54dfda9055668975351cb20566d65be346536fa0f0eb7c8945203d": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7a3a1ea98dd7a705e7f213d1466aee55c010d418bab8a9c174fa9f46040d1e1e": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7b96c72519b154f91872c57287cacf149a6aabc6c404852a6ff01818019b5d69": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7d12e39e2b0c6bb9b259e1f697e30d9dc9983cd4acc02a847ad6bef75310339c": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "7f74240c041dde0a5a11382cd2142e22d7fcea25bc48566c98b1e153388f8cc6": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "805b59e48af90504024f70124d850870a69b822b8e34d1ee551353c42a338bf7": [
+      {
+        "campaign_id": "correlated-latrodectus-119609fcd1f4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "80cfaf9a9d39e106f520bab31f5e1455838fe74a49eef34751e1cb38c8cb805c": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "81c1d1cdeaf0e551444a1ac4eb79e14b048e2fd439fa808868524dc8e6751721": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "830418fab925fb6b34c1e819f7e099ee92d6b5205bf4c73586f0bf7430e72080": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "864b83647942f5dec0746fb5a40cdcc661bbbceea0b8cbe5df0beb9f30c30d0f": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "87a2fbd422bfc36691da037a288b6fd151bbb8631081c447e616c6fb55494e1c": [
+      {
+        "campaign_id": "correlated-eclipse-ddos-bot-97a264ac07f5",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "8836a9fbb659a8bcd2a400fd0f1b971d92b46cea173a583508010f6db52d3274": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "88a9d62d3cc2290f33ecb40ed5d266792aaf0438b042e0e6998f88cd1b0e8d14": [
+      {
+        "campaign_id": "correlated-wannacry-63b40cc27704",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "88b1992718e4ba9abeec72bb8be2945c402354ca6a1407dfe09de0a8b773dec3": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "89f2bd29e1493bba4ca3d25a1a155cc1aa4ed3360a5855be06e90ad81fd28ae5": [
+      {
+        "campaign_id": "correlated-wannacry-63b40cc27704",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "91cd12ce85d9e32f75f732ea090a1385ab4e31ef0dd6904ccdf7b5d1623ddba8": [
+      {
+        "campaign_id": "correlated-wannacry-63b40cc27704",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "92a067220d9901fc3607beac75cdd6a77154b37dda68fe126e1797f9b3045b29": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "93988577e3e325cdb5d1a136d08e6e92572014ad8bbc6f0b6220e456c593270b": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "942f2668e6611ce547411ba1a04224aefe461acf710f29a9ce7663607a125b41": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "9645a12079edffd20560d4631160a6052ae5728d6f73b7366588166ad281c534": [
+      {
+        "campaign_id": "correlated-latrodectus-07f25a0194ab",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "9992545ef435706e582bd516988195df8bae9985ff70d30ea2c20dc5206dfe3b": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "9e7fdc17150409d594eeed12705788fbc74b5c7f482a64d121395df781820f46": [
+      {
+        "campaign_id": "correlated-latrodectus-529ef014e1b4",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7": [
+      {
+        "campaign_id": "correlated-agenttesla-4721f7464834",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "a0e092065fee647bd449bc16bc2026d2cd42633929fb77cef69132822e595b70": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489": [
+      {
+        "campaign_id": "correlated-valleyrat-570f481c0f42",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "a4764c06b55f26d9c4fff0b6fb01fc17b0f9da1411f8659583310e03421c2bef": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "a547cff9991a713535e5c128a0711ca68acf9298cc2220c4ea0685d580f36811": [
+      {
+        "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e": [
+      {
+        "campaign_id": "correlated-agenttesla-4721f7464834",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "a832528ba9cac310fd4e5bcb7f8523865a6a19b2c95891515f323009910f610e": [
+      {
+        "campaign_id": "correlated-eclipse-ddos-bot-97449ff85f19",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "ac096895773aab31910cee9d9611fbf3fcf7b2ba76678237ecd676d350c91c9c": [
+      {
+        "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b134896ab4f8a75cb79f559a1f3aa65b5cae52a3c39fb95ac8371d600c2c92a9": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b172dbfbe82bb1ab9455c62688e47256a16233c21925ac450cab33b708c0ede8": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b24fefefe8a95d6a765caff9b0ae40ed480dfdbfe2e5a46848b1a9d895ec83e3": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b2ab8825b84e6f0209cf713dcf7156c93ae82f37a6d9f0ca9072e228825c8d63": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b32f71c40fffc53327ca712d82ad9349d2a4f396826fac9940824f48c878461f": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b3512d6dd71746655648180b30a3812939c7adbcbb2958b3abf6ae004f691156": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b393bd767c142e171dd1b2928bae16fff2f63b3d319b2c1acb37129d8d538cc9": [
+      {
+        "campaign_id": "correlated-dotnet-resource-loader-c1881c6000c2",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb": [
+      {
+        "campaign_id": "correlated-remcosrat-9856d4a51265",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b59926d8f62f2c71eabc66314c11ddee505f97e559c7c051b63e9d7b06c1b143": [
+      {
+        "campaign_id": "correlated-unclassified-90d978be19ce",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b740a321546671ad7ebdf540189cbea05a2307b0033f2e17535c23bb38217a91": [
+      {
+        "campaign_id": "correlated-latrodectus-90dd888eada9",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "b7dacc50bebb59e302a886e3585a521d61c38dd27cfc7de1522bce998cb173f3": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "b811dce1aae1c0e0da249d5eb19dfd5b2640214627c9603b97f6f79c25a22e97": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "bb7cb5aea4192a035376d380682716235fdb4809d06b63b63d6d6d1061a5c231": [
+      {
+        "campaign_id": "correlated-latrodectus-90dd888eada9",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "bcb032caab1a92fa1257409a53bfa6d4704d8ed02b02572b0c6db1d206f5f870": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "bec299c617dfa95b0b9ccb083ee9d2510b4b1c8f5785d1d6d9f389a1b9e4f9b9": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "bf70cfa5cd5fc2b5c4f8ebb4d8dfba9451e113a21ad3b32cce20566f7eebedb8": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c118f7037676c76b39d05c16c337158c0d714decee91af1c44f41c899233b265": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c125bbd2333186b24a2dc74b99c7f3db4fca9fbe86af42e68cc4999252453a2a": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c1c9c2e2936bf0492c896647531f6212d9271f1881c8b95d692d4aee48b4d472": [
+      {
+        "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c1dd7a5673962d108ec8d1b12b50604a134cc52cc95de6c3bbf680198e8f9cb6": [
+      {
+        "campaign_id": "correlated-condi-0c21a99db5d6",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c1dfd3712d6f927acf98a78f1b77367d0b57aefbcd6ea8a7120d61a2b8a76525": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c3ba74fb10475f9e9db534ad484bbcfaa7ee1fd571639b35f57906e1fca1d716": [
+      {
+        "campaign_id": "correlated-jackskid-52bbfd994f2b",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "c7fe4c7b2e1ddbdabce5f1c89ef97c8c40bd7a7a5a0ac07761fd8ebcf5ca7187": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "c954447ecf2b7e8877f73d9c53368c7cc41e4fac729cea8d0537d2cb922d4524": [
+      {
+        "campaign_id": "correlated-unclassified-90d978be19ce",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "ca15d149f53a51592c80c57e64de73e090777749422525d22b3b096a1ae75a4a": [
+      {
+        "campaign_id": "correlated-latrodectus-5650492dc465",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "cb336a6e3fc0e9aa62b5768bffc207c09b372546636a5c58057a1b6d0708df06": [
+      {
+        "campaign_id": "correlated-acrstealer-blazetrack-3fa63f35a009",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "cc947171d75e10754ecc10f1c560fbc9aa640e47fc10365d158a011677301310": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "d0285d9b5584f7af316b695a7a45f65c7a7f1c83dca76e4029ddfb97bce25049": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "d38643133189bc880af537a371087e2e34fa36e0f96fd19a42969d3bc72fe95b": [
+      {
+        "campaign_id": "correlated-latrodectus-48ccbbb41b6f",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "d458a1459e865ba6faeca30447fba1f7813cf8e3e5e4c454c4d93d1a2b345805": [
+      {
+        "campaign_id": "correlated-latrodectus-16adde821df9",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5": [
+      {
+        "campaign_id": "correlated-agenttesla-4721f7464834",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "d84bc0b76b8439105781d6048152cd31b2de1d26e3bb7a39787c081ec79dcc79": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "d8a5afdf8311eb92eae60c9774fc1b0b138f436affe99b2c64dbe93d8c07fcce": [
+      {
+        "campaign_id": "correlated-latrodectus-d90e452386a7",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "d8b902568386f588fb2d42a77cd39062ada13c9a3fed0adf20ab6510f3b4a681": [
+      {
+        "campaign_id": "correlated-latrodectus-48ccbbb41b6f",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "d96239eb6f4f3af1613dbb8513d97b895dccf7b986adb6d2a94a3bd3064b471b": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "da49d5a6abbb96438cd2daecd2643fb5f38122ce4d9cda6d072704e54c17d3ed": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "dabcffbdbfc660d8aa018fe76f73f30e244b10b7043b84f80faf52871e65884e": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "daf8f37785d226524b5403bc24e018955f01d5d2ce7d0952cb74c18bd79d09be": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "dd2fce7dad57958a7dec2c781a26c8fe8f7597696ba80dae921cd7744886972f": [
+      {
+        "campaign_id": "correlated-unclassified-140dc63f6cf6",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "dfc5d6c8933546d48bbc67df144418385e5eeda07db0fead7664c07c0b1474f7": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "e149f36cb6c001aa340c388d7684c8a055f59152026e8e0d1d678264d7c084d7": [
+      {
+        "campaign_id": "correlated-acrstealer-hijackloader-remusstealer-44a2a70e87e4",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "e3fd70ee3f7e5da3d77af2bde5e7eddbc6a9df6b3e8df62aafbd28fdcd65bd27": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "e5aed4e2fdda9242d6a723ece8c6d7b2b2a3f1f82abcac66e1480b6794c23bfc": [
+      {
+        "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "e7889354c0d2cce6cc0c6a34ec13afd79bf361388e76ed2b3b987e0613d9c6a6": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "e8263e35b92634d20e61a78c12bc95aab476381b5f03364d9fbb5d74b8fb2eb8": [
+      {
+        "campaign_id": "correlated-latrodectus-5650492dc465",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "ea07b2d53fa8793d39a63f4f787e3951cf3eb9fab05cc5a2b5cd3e303c241c10": [
+      {
+        "campaign_id": "correlated-amadey-d27a1eebf320",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "ebb62d8bb972d004cbe583b15bed4fccd7d003af90eb0530c5120c36cd7251a4": [
+      {
+        "campaign_id": "correlated-unclassified-90d978be19ce",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "ef5db8b473e279620207777c42ef9ad14adf8b100ceb20dc4f7e1bd5271ecd3c": [
+      {
+        "campaign_id": "correlated-latrodectus-5650492dc465",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "efadd757ffcdc156c9dbcac6745e70be5ca5174636d8853518839da82cf7e7b6": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296": [
+      {
+        "campaign_id": "correlated-agenttesla-aa662ac5b0ef",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "f12c120af203e20c35f019ff8eefc52a3cc5fae18b4a55e9a8c835d6ee88f098": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "f2bc804a84dfb3717534856402c6d6959d33d62dfdf7ca990e210f093da1318f": [
+      {
+        "campaign_id": "correlated-hijackloader-unclassified-valleyrat-a18f3baa7fdc",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "f2ed264a15b32c47d14b21ce2176a8412856ffcb3990f1904af283ac21850a99": [
+      {
+        "campaign_id": "correlated-acrstealer-blazetrack-3fa63f35a009",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "f5205c1729935d440fb9a9165d51ad78629f60b6d79da9a33ee445ce02e42570": [
+      {
+        "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "f5a92dcadc6bed2e1cf5efff18221929b0a3fbb7db1a69f26f53f4c7295fab35": [
+      {
+        "campaign_id": "correlated-efimer-unclassified-b09640a89712",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d": [
+      {
+        "campaign_id": "correlated-venomrat-b8be79d70868",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee": [
+      {
+        "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "fa1e42eccf2edbaa7306cd40636bf579a6588e3d0fa61584e1ccb92a00d01ecf": [
+      {
+        "campaign_id": "correlated-efimer-5bebcc52c2ef",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347": [
+      {
+        "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+        "confidence": "high",
+        "classification": "cross_family_campaign_candidate"
+      }
+    ],
+    "fc21a125287c3539e11408587bcaa6f3b54784d9d458facbc54994f05d7ef1b0": [
+      {
+        "campaign_id": "correlated-latrodectus-07f25a0194ab",
+        "confidence": "medium",
+        "classification": "same_family_campaign_candidate"
+      }
+    ],
+    "fd5a48693a99cbb7c49f5f4245f3090ffeec58ce3f9d9bcf7f6c7eade62769f1": [
+      {
+        "campaign_id": "correlated-signed-dht-bot-59446980ef66",
+        "confidence": "high",
+        "classification": "same_family_campaign_candidate"
+      }
+    ]
+  },
+  "safety": {
+    "samples_opened": false,
+    "samples_executed": false,
+    "network_contacted": false
+  }
+}
