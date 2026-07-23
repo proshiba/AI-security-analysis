@@ -20,7 +20,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_sample as one_shot  # noqa: E402
 import classify_sample  # noqa: E402
-from handler_catalog import discover_handlers, sanitize_public_value  # noqa: E402
+from handler_catalog import discover_handlers, load_handler, sanitize_public_value  # noqa: E402
 
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
@@ -71,6 +71,15 @@ def test_catalog_covers_legacy_scripts_and_marks_nonstandard_interfaces() -> Non
         and "encrypted_dir" in item.reason
         for item in specs
     )
+
+
+def test_dynamic_handler_loader_supports_dataclasses() -> None:
+    """dataclassを持つ許可済み解析器もプリフライトで読み込める。"""
+
+    spec = next(item for item in discover_handlers() if item.family == "acrstealer")
+    handler, invocation = load_handler(spec)
+    assert callable(handler)
+    assert invocation == "bytes_name"
 
 
 def test_registered_detector_paths_are_all_allowlisted() -> None:
@@ -167,7 +176,26 @@ def test_forced_family_runs_only_automatic_handlers(tmp_path: Path) -> None:
         )
     )
     assert generic["script"]["normalized_text"] is None
-    assert not (output / "cases" / case["sha256"] / "scripts").exists()
+    case_dir = output / "cases" / case["sha256"]
+    features = json.loads((case_dir / "features.json").read_text(encoding="utf-8"))
+    labels = json.loads((case_dir / "campaign-labels.json").read_text(encoding="utf-8"))
+    logic = json.loads((case_dir / "static-logic.json").read_text(encoding="utf-8"))
+    assert features["sha256"] == case["sha256"]
+    assert features["analysis_assessment"]["status"] in {
+        "complete",
+        "partial",
+        "insufficient",
+    }
+    assert (case_dir / "FEATURES.md").read_text(encoding="utf-8").startswith(
+        "# 挙動・検体特徴"
+    )
+    assert labels["status"] in {"matched", "no_strong_match"}
+    assert labels["safety"]["network_contacted"] is False
+    assert logic["status"] == "automated_script_structure"
+    assert logic["coverage"]["function_count"] >= 1
+    assert logic["safety"]["raw_pseudocode_exported"] is False
+    assert (case_dir / "STATIC-LOGIC.md").is_file()
+    assert not (case_dir / "scripts").exists()
 
 
 def test_auto_unwraps_only_encrypted_single_member_zip(tmp_path: Path) -> None:
@@ -191,6 +219,34 @@ def test_auto_unwraps_only_encrypted_single_member_zip(tmp_path: Path) -> None:
     assert unit.input_kind == "authenticated_single_member_zip"
     assert unit.source_name == "inner.bin"
     assert unit.data == b"one-shot-fixture"
+
+
+def test_malwarebazaar_directory_ignores_acquisition_manifests(tmp_path: Path) -> None:
+    """MalwareBazaar取得rootでは暗号化ZIPだけを検体入力にする。"""
+
+    archive = tmp_path / "sample.zip"
+    with pyzipper.AESZipFile(
+        archive,
+        "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES,
+    ) as handle:
+        handle.setpassword(b"infected")
+        handle.writestr("inner.bin", b"malwarebazaar-directory-fixture")
+    (tmp_path / "manifest.json").write_text(
+        '{"schema_version": 1}\n',
+        encoding="utf-8",
+    )
+    summary = one_shot.run_batch(
+        [tmp_path],
+        tmp_path / "out",
+        registry=REGISTRY,
+        archive_mode="malwarebazaar",
+        assessment_only=True,
+    )
+    assert summary["counts"]["input_files"] == 1
+    assert summary["counts"]["analyzed"] == 1
+    assert summary["counts"]["errors"] == 0
 
 
 def test_recovered_layer_is_classified_and_selected_for_extraction(
@@ -269,6 +325,36 @@ def test_batch_deduplicates_and_isolates_input_errors(tmp_path: Path) -> None:
     assert summary["counts"]["errors"] == 1
     assert summary["executed_sample"] is False
     assert summary["network_contacted"] is False
+
+
+def test_resume_reuses_only_valid_completed_case(tmp_path: Path, monkeypatch) -> None:
+    """再開時は安全に検証できた同一モードの完了caseだけを再利用する。"""
+
+    sample = tmp_path / "resume.bin"
+    sample.write_bytes(b"bounded-resume-fixture")
+    output = tmp_path / "out"
+    first = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        assessment_only=True,
+    )
+    assert first["counts"]["resumed"] == 0
+
+    def fail_if_reanalyzed(*args, **kwargs):
+        raise AssertionError("完了caseを再解析してはいけません")
+
+    monkeypatch.setattr(one_shot, "analyze_unit", fail_if_reanalyzed)
+    resumed = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        assessment_only=True,
+        resume=True,
+    )
+    assert resumed["counts"]["analyzed"] == 1
+    assert resumed["counts"]["resumed"] == 1
+    assert resumed["cases"][0]["resumed"] is True
 
 
 def test_generic_triage_failure_keeps_classification_and_handlers(

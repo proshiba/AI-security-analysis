@@ -1246,7 +1246,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
     with tempfile.TemporaryDirectory(prefix="asa-7z-list-") as temp:
         source = Path(temp) / "input.bin"
         source.write_bytes(data)
-        command = [str(executable), "l", "-slt"]
+        command = [str(executable), "l", "-slt", "-sccUTF-8"]
         if password:
             command.append(f"-p{password}")
         command.extend(["--", str(source)])
@@ -1254,6 +1254,8 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             command,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
             check=False,
         )
@@ -1412,7 +1414,7 @@ def sevenzip_extract(
         suffix = Path(name).suffix or ".bin"
         source, output = root / f"input{suffix}", root / "out"
         source.write_bytes(data)
-        command = [str(executable), "x", "-y", "-bd", "-bb0"]
+        command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
         if effective_password:
             command.append(f"-p{effective_password}")
         command.extend([f"-o{output}", "--", str(source)])
@@ -1421,6 +1423,8 @@ def sevenzip_extract(
                 command,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=180,
                 check=False,
             )

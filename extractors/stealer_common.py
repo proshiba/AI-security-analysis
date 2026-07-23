@@ -15,6 +15,7 @@ from extractors.common import (
 
 BENIGN_SUFFIXES = (
     "apple.com",
+    "jrsoftware.org",
     "digicert.com",
     "globalsign.com",
     "microsoft.com",
@@ -26,11 +27,13 @@ BENIGN_SUFFIXES = (
     "ocsp-certum.com",
     "thawte.com",
     "usertrust.com",
+    "symantec.com",
     "adobe.com",
     "purl.org",
     "curl.se",
     "docs.rs",
     "github.com",
+    "verisign.com",
     "ip-api.com",
     "ipinfo.io",
     "ipify.org",
@@ -55,6 +58,20 @@ BENIGN_SUFFIXES = (
     "symcd.com",
     "symauth.com",
     "xmlsoap.org",
+    "aka.ms",
+    "apache.org",
+    "chromium.org",
+    "divx.com",
+    "exslt.org",
+    "ibm.com",
+    "icl.com",
+    "java.com",
+    "jclark.com",
+    "openxmlformats.org",
+    "relaxng.org",
+    "unicode.org",
+    "real.com",
+    "xmlsoft.org",
 )
 REFERENCE_HOST_PREFIXES = (
     "cert.",
@@ -79,6 +96,14 @@ def clean_url(value: str) -> str | None:
     if not valid_host(host):
         return None
     if host.startswith(REFERENCE_HOST_PREFIXES):
+        return None
+    if host == "maps.googleapis.com" and parsed.path.startswith(
+        "/maps/api/browserlocation/"
+    ):
+        return None
+    if host == "www.google.com" and parsed.path.startswith(
+        ("/speech-api/", "/support/")
+    ):
         return None
     for suffix in BENIGN_SUFFIXES:
         if host == suffix or host.endswith("." + suffix):

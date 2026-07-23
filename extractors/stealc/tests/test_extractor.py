@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-
 from extractors.stealc.extractor import DecodedProfile, extract, extract_rc4_profile, extract_xor_profile, rc4_skip
 
 
@@ -48,3 +46,16 @@ def test_public_extractors_reject_non_pe() -> None:
     assert result["family"] == "stealc"
     assert result["config"]["profile"] is None
     assert result["executed"] is False and result["network_contacted"] is False
+    assert result["config"]["static_config_recovered"] is False
+
+
+def test_extract_marks_a_decoded_profile_as_static_config(monkeypatch) -> None:
+    profile = DecodedProfile(
+        "fixture", "https://node.example", "/gate.php", "/dll/", "A", 60
+    )
+    monkeypatch.setattr("extractors.stealc.extractor.extract_rc4_profile", lambda _data: profile)
+    monkeypatch.setattr("extractors.stealc.extractor.extract_xor_profile", lambda _data: None)
+    result = extract(b"MZ", "fixture.exe")
+    assert result["config"]["static_config_recovered"] is True
+    assert result["config"]["profile"]["c2_url"] == "https://node.example/gate.php"
+    assert all(item["confidence"] == "confirmed_static_config" for item in result["findings"])

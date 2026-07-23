@@ -46,6 +46,7 @@
  <dl><dt><a name="-entropy"><strong>entropy</strong></a>(data: 'bytes') -&gt; 'float'</dt><dd><span class="code">上限付きで決定的に算出し、小数4桁へ丸めたShannonエントロピーを返す。</span></dd></dl>
  <dl><dt><a name="-macho_summary"><strong>macho_summary</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">上限付きでMach-Oまたはユニバーサルバイナリのヘッダーメタデータを解析する。</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。</span></dd></dl>
+ <dl><dt><a name="-pe_resource_children"><strong>pe_resource_children</strong></a>(blob: 'bytes') -&gt; 'tuple[str, list[tuple[str, bytes]], dict[str, object] | None]'</dt><dd><span class="code">PEリソースを直接検査し、次層として意味がある内容だけを返す。</span></dd></dl>
  <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。</span></dd></dl>
  <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
  <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoItのRC4・LZNT1ローダー式からPEペイロードを復元する。</span></dd></dl>

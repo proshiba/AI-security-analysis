@@ -23,7 +23,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "script_loader": ("WScript.Shell", "ADODB.Stream", "PowerShell"),
         },
         [
-            "Formbook payload configuration is commonly encrypted and may require a recovered process image.",
-            "Loader URLs and certificate references are not promoted to confirmed C2.",
+            "Formbookのペイロード設定は暗号化されることが多く、復元したプロセスイメージが必要な場合があります。",
+            "ローダーURLと証明書参照先は、確定C2へ昇格しません。",
         ],
     )

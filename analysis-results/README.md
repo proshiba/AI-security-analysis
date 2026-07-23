@@ -15,7 +15,7 @@ analysis-results/
 │  ├─ TECHNICAL-ANALYSIS.md
 │  └─ versions/<version-key>/cases/<sha256>/
 ├─ collections/<collection-id>/
-├─ catalog/cases.json
+├─ catalog/{cases.json,code-similarity.json,CODE-SIMILARITY.md}
 ├─ research/{campaigns,supply-chain,vulnerabilities,news,audits}/
 └─ _shared/
 ```
@@ -26,25 +26,26 @@ analysis-results/
 
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 653 |
-| 既知・暫定マルウェアファミリ | 539 |
-| 未分類 | 113 |
+| SHA-256で一意な全case | 925 |
+| 既知・暫定マルウェアファミリ | 806 |
+| 未分類 | 118 |
 | サプライチェーンpayload | 1 |
-| 版を静的根拠で確認済み | 74 |
-| exact sampleの外部報告で版を特定 | 4 |
-| 構成世代を静的・OSINT相関で推定 | 5 |
-| 版不明（既知・暫定ファミリ） | 456 |
-| 版不明（未分類） | 113 |
+| 版を静的根拠で確認済み | 83 |
+| exact sampleの外部報告で版を特定 | 6 |
+| 構成世代・clusterを静的根拠で推定 | 27 |
+| 版不明または判定材料不足（既知・暫定ファミリ） | 690 |
+| 強い共有証拠でcampaign候補labelを付与 | 116 |
 
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
-未分類113件は既知ファミリへ無理に帰属させていません。83件は低信頼の暫定cluster、30件は未解決として区別し、いずれも版は不明です。
+未分類118件は既知ファミリへ無理に帰属させていません。個別caseの挙動・検体特徴と不足項目は `FEATURES.md`／`features.json` に分離し、ファミリー名や収集batchだけではcampaign labelを付けません。
 
 ## マルウェアファミリ
 
 各 `README.md` から、概要、開発・販売主体、利用アクター、コモディティ／MaaS性、過去の攻撃事例、技術解析、版情報へ移動できます。詳細なOSINTと出典は各 `OSINT.md` にあります。
 
 - [Agent Tesla](malware/agenttesla/README.md)
+- [ACRStealer／Amatera](malware/acrstealer/README.md)
 - [Amadey](malware/amadey/README.md)
 - [Atomic macOS Stealer（AMOS、アトミックmacOSスティーラー）](malware/amosstealer/README.md)
 - [AsyncRAT](malware/asyncrat/README.md)
@@ -95,11 +96,16 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-16 VX-Underground：118件](collections/vx-underground-20260716/README.md)
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
+- [2026-07-23 ValleyRAT／ACRStealer追加解析：20件](collections/valleyrat-acrstealer-20260723/README.md)
 - [MalwareBazaar 1000検体解析（進行中、batch-0001～0010：99件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査
 
-- [未完了・未スクリプト化項目の追加解析と全体監査](research/audits/static-analysis-audit-20260717/README.md)
+- [関数ロジックのコード類似性索引](catalog/CODE-SIMILARITY.md)
+- [全905caseの挙動・検体特徴と解析充足度監査](research/audits/case-knowledge-20260723/README.md)
+- [公開artifact契約と解析カバレッジ監査](research/audits/static-analysis-audit-20260723/README.md)
+- [共有インフラ・子要素によるcampaign候補27群](research/campaigns/correlated-20260723/README.md)
+- [過去の未完了・未スクリプト化項目の監査（2026-07-17時点）](research/audits/static-analysis-audit-20260717/README.md)
 - [難解析80件／静的解析155 layer](research/audits/static-hard-cases/README.md)
 - [unpacking再評価](research/audits/unpacking-reassessment-20260715.md)
 - [SpyGlace／APT-C-60攻撃キャンペーン](research/campaigns/spyglace/apt-c60-2026/README.md)
@@ -108,6 +114,16 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [Trivy／TeamPCPサプライチェーン事案](research/supply-chain/trivy-teampcp-2026/README.md)
 - [CVE-2026-3055](research/vulnerabilities/cve-2026-3055/README.md)
 - [2026-04-01セキュリティニュース調査](research/news/20260401/README.md)
+
+## 挙動・検体特徴とcampaign label
+
+各caseの `FEATURES.md` は、YARA／SigmaやIOC値を含めず、特徴的な静的挙動と検体特徴だけを示します。機械可読版は `features.json`、自動campaign判定は `campaign-labels.json` です。生成・相関基準は[検体特徴と攻撃キャンペーン相関](../analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
+
+## 関数ロジックとコード類似性
+
+今後、新規作成または解析内容を更新する各caseには、`static-logic.json` と `STATIC-LOGIC.md` を置きます。関数／スクリプト単位で役割、処理手順、呼出元・呼出先、使用API、主要分岐・反復、正規化fingerprint、根拠と確度を残します。バイナリ検体について関数解析が未実施の自動生成結果は `function_analysis_required` とし、静的解析完了とは扱いません。
+
+横断索引は `catalog/code-similarity.json` と `catalog/CODE-SIMILARITY.md` です。意味トークン列のSHA-256とSimHashを併用し、同一ファミリー内の派生とファミリー横断の候補を分離します。生成方法、レビュー入力形式、閾値は[静的ロジック記録とコード類似性](../analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
 
 ## IOCの再生成と検証
 

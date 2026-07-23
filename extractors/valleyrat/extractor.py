@@ -13,6 +13,7 @@ from extractors.common import (
 
 from extractors.stealer_common import infrastructure_urls
 
+
 def identify_variant(strings: list[str]) -> str:
     """Identify a config representation without assuming all ValleyRAT builds match."""
     lower = "\n".join(strings).lower()
@@ -59,6 +60,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
     variant = identify_variant(strings)
     decoded = decode_vvas_reversed_config(strings)
     endpoints, urls = endpoint_candidates(strings), infrastructure_urls(strings)
+    if not decoded and variant == "unresolved_variant":
+        endpoints = []
+        urls = []
     if decoded:
         endpoints = sorted(set(decoded.values()))
     ips = (
@@ -114,7 +118,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
         },
         findings,
         [
-            "反転形式を構文どおり復号した値は静的設定として確認済みですが、現在の稼働状況や所有者は未確認です。",
-            "一般文字列だけから得た値はC2候補に留めます。",
+            "反転形式を構造どおり復号した値だけを静的設定として確認済みにします。現在の稼働状態と所有者は未確認です。",
+            "一般文字列だけから得た値はC2候補に留め、未解決外層では公開しません。",
         ],
     )

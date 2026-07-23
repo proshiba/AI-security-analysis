@@ -1,6 +1,17 @@
 {
   "schema_version": 1,
   "profiles": {
+    "gh0strat": {
+      "display_name": "Gh0st RAT",
+      "category": "rat",
+      "aliases": ["gh0st", "gh0st-rat", "ghostrat", "ghost-rat"],
+      "markers": ["gh0st", "gh0st rat", "gh0st server", "gh0st client", "gh0st update", "gameover"],
+      "minimum_markers": 2,
+      "config_keys": ["Host", "Port", "Magic", "Proxy", "Version"],
+      "transport": "variant-dependent magic-prefixed TCP framing",
+      "endpoint_role": "c2_candidate",
+      "confirmation": "Recover the packet magic and length fields, then corroborate the controller endpoint with Gh0st-compatible framing."
+    },
     "asyncrat": {
       "display_name": "AsyncRAT",
       "category": "rat",

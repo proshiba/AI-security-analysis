@@ -25,6 +25,7 @@ SAMPLE_WINDOW = 2 * 1024 * 1024
 MAX_STRINGS = 50_000
 MAX_FINDINGS = 64
 BENIGN_HOSTS = {
+    "ns.adobe.com", "oneocsp.microsoft.com",
     "api.ipify.org", "freegeoip.net", "ip-api.com", "schemas.microsoft.com",
     "nsis.sf.net", "www.google.com", "www.microsoft.com", "support.microsoft.com",
     "aka.ms", "www.w3.org", "schemas.xmlsoap.org", "www.flexerasoftware.com",

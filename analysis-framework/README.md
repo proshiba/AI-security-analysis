@@ -4,7 +4,7 @@
 
 ## 推奨する一括静的解析
 
-現在の標準入口は `common/analyze_sample.py` です。ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、既存解析関数の棚卸し、汎用トリアージ、適用可能な設定抽出器の全層試行、SHA-256単位の統合レポート作成までを一括で行います。
+現在の標準入口は `common/analyze_sample.py` です。ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、既存解析関数の棚卸し、汎用トリアージ、適用可能な設定抽出器の全層試行、関数／スクリプト単位のロジック記録とfingerprint生成、挙動・検体特徴profile、campaign自動label、SHA-256単位の統合レポート作成までを一括で行います。
 
 ```powershell
 python .\common\analyze_sample.py `
@@ -12,7 +12,7 @@ python .\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output
 ```
 
-検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。出力、適用状態、安全境界、旧CLIとの関係は [一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md) を参照してください。
+検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。出力、適用状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴profileとcampaign相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
 ## 従来のファミリー別実行順
 
@@ -37,6 +37,9 @@ python .\common\analyze_sample.py `
 - `script-layers.json`: 文字コード、難読化候補、反復行、Base64候補
 - `triage-evidence.json`: 外部サンドボックス由来のC2、URL、プロセス（ローカル実行ではない）
 - `analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>/README.md`: 公開用の検体別結果
+
+
+ACRStealerタグ集合の巨大化PE、SFX／AutoIt、MSI、ネイティブローダーを安全に分離する手順は[ACRStealer静的解析基盤](malware/acrstealer/README.md)を参照してください。
 
 ## 失敗時の確認点
 

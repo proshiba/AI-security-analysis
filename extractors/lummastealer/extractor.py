@@ -19,7 +19,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "c2_api": ("/api/", "/gate", "hwid", "build_id"),
         },
         [
-            "Current Lumma deliveries often contain a loader or protected layer instead of plaintext final config.",
-            "Literal infrastructure remains candidate until family config use is established.",
+            "近年のLumma配布物は平文の最終設定ではなく、ローダーや保護層を含む場合があります。",
+            "文字列から得たインフラは、系統設定での用途を確認するまで候補として扱います。",
         ],
     )

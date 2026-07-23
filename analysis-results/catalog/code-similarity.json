@@ -1,0 +1,2515 @@
+{
+  "schema_version": 1,
+  "analysis_mode": "static_function_fingerprint_correlation",
+  "counts": {
+    "logic_files": 20,
+    "functions": 35,
+    "exact_groups": 4,
+    "similarity_pairs": 44
+  },
+  "exact_groups": [
+    {
+      "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+      "members": [
+        {
+          "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+          "family": "acrstealer",
+          "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+          "role": "file_pump_recovery",
+          "semantic_simhash64": "9cd4ada8c57ad50b",
+          "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_recoverpumpedpythonruntime",
+            "role_file_pump_recovery",
+            "step_e1c42d57cfebc698",
+            "step_pe",
+            "step_raw_size_virtual_size_8_16mib_section_alignment",
+            "step_security_directory_zero",
+            "summary_member_pe_section_directory"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+        },
+        {
+          "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+          "family": "acrstealer",
+          "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+          "role": "file_pump_recovery",
+          "semantic_simhash64": "9cd4ada8c57ad50b",
+          "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_recoverpumpedpythonruntime",
+            "role_file_pump_recovery",
+            "step_e1c42d57cfebc698",
+            "step_pe",
+            "step_raw_size_virtual_size_8_16mib_section_alignment",
+            "step_security_directory_zero",
+            "summary_member_pe_section_directory"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+        },
+        {
+          "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+          "family": "acrstealer",
+          "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+          "role": "file_pump_recovery",
+          "semantic_simhash64": "9cd4ada8c57ad50b",
+          "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_recoverpumpedpythonruntime",
+            "role_file_pump_recovery",
+            "step_e1c42d57cfebc698",
+            "step_pe",
+            "step_raw_size_virtual_size_8_16mib_section_alignment",
+            "step_security_directory_zero",
+            "summary_member_pe_section_directory"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+        },
+        {
+          "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+          "family": "acrstealer",
+          "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+          "role": "file_pump_recovery",
+          "semantic_simhash64": "9cd4ada8c57ad50b",
+          "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_recoverpumpedpythonruntime",
+            "role_file_pump_recovery",
+            "step_e1c42d57cfebc698",
+            "step_pe",
+            "step_raw_size_virtual_size_8_16mib_section_alignment",
+            "step_security_directory_zero",
+            "summary_member_pe_section_directory"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+        }
+      ]
+    },
+    {
+      "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+      "members": [
+        {
+          "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+          "family": "acrstealer",
+          "function_id": "PythonRuntimeEntry@101bc689",
+          "role": "python_runtime_entry",
+          "semantic_simhash64": "ffbff3fcb3a96778",
+          "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_pythonruntimeentry",
+            "role_python_runtime_entry",
+            "step_c2_entry",
+            "step_process_attach_runtime",
+            "step_reason_dll",
+            "summary_81664329dd059451"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+        },
+        {
+          "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+          "family": "acrstealer",
+          "function_id": "PythonRuntimeEntry@101bc689",
+          "role": "python_runtime_entry",
+          "semantic_simhash64": "ffbff3fcb3a96778",
+          "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_pythonruntimeentry",
+            "role_python_runtime_entry",
+            "step_c2_entry",
+            "step_process_attach_runtime",
+            "step_reason_dll",
+            "summary_81664329dd059451"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+        },
+        {
+          "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+          "family": "acrstealer",
+          "function_id": "PythonRuntimeEntry@101bc689",
+          "role": "python_runtime_entry",
+          "semantic_simhash64": "ffbff3fcb3a96778",
+          "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_pythonruntimeentry",
+            "role_python_runtime_entry",
+            "step_c2_entry",
+            "step_process_attach_runtime",
+            "step_reason_dll",
+            "summary_81664329dd059451"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+        },
+        {
+          "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+          "family": "acrstealer",
+          "function_id": "PythonRuntimeEntry@101bc689",
+          "role": "python_runtime_entry",
+          "semantic_simhash64": "ffbff3fcb3a96778",
+          "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_pythonruntimeentry",
+            "role_python_runtime_entry",
+            "step_c2_entry",
+            "step_process_attach_runtime",
+            "step_reason_dll",
+            "summary_81664329dd059451"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+        }
+      ]
+    },
+    {
+      "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+      "members": [
+        {
+          "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+          "family": "valleyrat",
+          "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+          "role": "high_entropy_installer",
+          "semantic_simhash64": "8d99f317afffebfa",
+          "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_analyzedeliveryorpayload",
+            "role_high_entropy_installer",
+            "step_1ce8454cd05bf339",
+            "step_c2",
+            "step_section",
+            "summary_439070782a9fee1a"
+          ],
+          "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+        },
+        {
+          "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+          "family": "valleyrat",
+          "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+          "role": "high_entropy_installer",
+          "semantic_simhash64": "8d99f317afffebfa",
+          "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+          "semantic_token_count": 6,
+          "api_calls": [
+            "function_analyzedeliveryorpayload",
+            "role_high_entropy_installer",
+            "step_1ce8454cd05bf339",
+            "step_c2",
+            "step_section",
+            "summary_439070782a9fee1a"
+          ],
+          "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+        }
+      ]
+    },
+    {
+      "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+      "members": [
+        {
+          "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+          "family": "acrstealer",
+          "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+          "role": "resource_recovery",
+          "semantic_simhash64": "ce9414a251fcf700",
+          "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_enumerateembeddedperesources",
+            "role_resource_recovery",
+            "step_mz_pe_header",
+            "step_pe",
+            "step_pe_sha_256_size",
+            "step_resource_directory",
+            "summary_pe_rsrc_size_valid_pe_hash"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+        },
+        {
+          "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+          "family": "acrstealer",
+          "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+          "role": "resource_recovery",
+          "semantic_simhash64": "ce9414a251fcf700",
+          "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_enumerateembeddedperesources",
+            "role_resource_recovery",
+            "step_mz_pe_header",
+            "step_pe",
+            "step_pe_sha_256_size",
+            "step_resource_directory",
+            "summary_pe_rsrc_size_valid_pe_hash"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+        },
+        {
+          "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+          "family": "acrstealer",
+          "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+          "role": "resource_recovery",
+          "semantic_simhash64": "ce9414a251fcf700",
+          "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_enumerateembeddedperesources",
+            "role_resource_recovery",
+            "step_mz_pe_header",
+            "step_pe",
+            "step_pe_sha_256_size",
+            "step_resource_directory",
+            "summary_pe_rsrc_size_valid_pe_hash"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+        },
+        {
+          "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+          "family": "acrstealer",
+          "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+          "role": "resource_recovery",
+          "semantic_simhash64": "ce9414a251fcf700",
+          "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+          "semantic_token_count": 7,
+          "api_calls": [
+            "function_enumerateembeddedperesources",
+            "role_resource_recovery",
+            "step_mz_pe_header",
+            "step_pe",
+            "step_pe_sha_256_size",
+            "step_resource_directory",
+            "summary_pe_rsrc_size_valid_pe_hash"
+          ],
+          "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+        }
+      ]
+    }
+  ],
+  "similarity_pairs": [
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "RecoverPumpedPythonRuntime@archive:python37.dll",
+        "role": "file_pump_recovery",
+        "semantic_simhash64": "9cd4ada8c57ad50b",
+        "semantic_sequence_sha256": "1970487aba933c9933570c0b8620581a740c9e2f06b7b31f57b0855b2c0f5213",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_recoverpumpedpythonruntime",
+          "role_file_pump_recovery",
+          "step_e1c42d57cfebc698",
+          "step_pe",
+          "step_raw_size_virtual_size_8_16mib_section_alignment",
+          "step_security_directory_zero",
+          "summary_member_pe_section_directory"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_recoverpumpedpythonruntime",
+        "role_file_pump_recovery",
+        "step_e1c42d57cfebc698",
+        "step_pe",
+        "step_raw_size_virtual_size_8_16mib_section_alignment",
+        "step_security_directory_zero",
+        "summary_member_pe_section_directory"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "PythonRuntimeEntry@101bc689",
+        "role": "python_runtime_entry",
+        "semantic_simhash64": "ffbff3fcb3a96778",
+        "semantic_sequence_sha256": "660ffdac2231f146bd7beda141cfb077eaaa1a2034c17ce92ee18679f0bb41d1",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_pythonruntimeentry",
+          "role_python_runtime_entry",
+          "step_c2_entry",
+          "step_process_attach_runtime",
+          "step_reason_dll",
+          "summary_81664329dd059451"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_pythonruntimeentry",
+        "role_python_runtime_entry",
+        "step_c2_entry",
+        "step_process_attach_runtime",
+        "step_reason_dll",
+        "summary_81664329dd059451"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8/static-logic.json"
+      },
+      "right": {
+        "sha256": "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+        "family": "acrstealer",
+        "function_id": "EnumerateEmbeddedPEResources@pe:.rsrc",
+        "role": "resource_recovery",
+        "semantic_simhash64": "ce9414a251fcf700",
+        "semantic_sequence_sha256": "cdee563d710f8a3b69a55eface557a845cf2b6311c6cc9dfd2904006e150af42",
+        "semantic_token_count": 7,
+        "api_calls": [
+          "function_enumerateembeddedperesources",
+          "role_resource_recovery",
+          "step_mz_pe_header",
+          "step_pe",
+          "step_pe_sha_256_size",
+          "step_resource_directory",
+          "summary_pe_rsrc_size_valid_pe_hash"
+        ],
+        "source": "analysis-results/malware/acrstealer/versions/unknown/cases/c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_enumerateembeddedperesources",
+        "role_resource_recovery",
+        "step_mz_pe_header",
+        "step_pe",
+        "step_pe_sha_256_size",
+        "step_resource_directory",
+        "summary_pe_rsrc_size_valid_pe_hash"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "similarity": 0.953125,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "similarity": 0.90625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "similarity": 0.953125,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "similarity": 0.9375,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.90625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "installer_protected_pe",
+        "semantic_simhash64": "8c99f317affbcbfa",
+        "semantic_sequence_sha256": "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_installer_protected_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.953125,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "multi_pe_software_bundle",
+        "semantic_simhash64": "8c9de3178fffebfa",
+        "semantic_sequence_sha256": "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_multi_pe_software_bundle",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92/static-logic.json"
+      },
+      "right": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "multi_pe_software_bundle",
+        "semantic_simhash64": "8c9de3178fffebfa",
+        "semantic_sequence_sha256": "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_multi_pe_software_bundle",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92/static-logic.json"
+      },
+      "right": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "similarity": 0.9375,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "multi_pe_software_bundle",
+        "semantic_simhash64": "8c9de3178fffebfa",
+        "semantic_sequence_sha256": "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_multi_pe_software_bundle",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "multi_pe_software_bundle",
+        "semantic_simhash64": "8c9de3178fffebfa",
+        "semantic_sequence_sha256": "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_multi_pe_software_bundle",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "multi_pe_software_bundle",
+        "semantic_simhash64": "8c9de3178fffebfa",
+        "semantic_sequence_sha256": "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_multi_pe_software_bundle",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.9375,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "right": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "right": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "similarity": 0.90625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "similarity": 0.890625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.890625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "msi_embedded_pe_delivery",
+        "semantic_simhash64": "8c99f3171ffbcbfa",
+        "semantic_sequence_sha256": "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_msi_embedded_pe_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.90625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "right": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "similarity": 0.890625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "similarity": 0.9375,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "resource_zip_pe_png_delivery",
+        "semantic_simhash64": "8c9df3179efbebba",
+        "semantic_sequence_sha256": "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_resource_zip_pe_png_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.890625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.953125,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 1.0,
+      "exact_semantic_sequence": true,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "role_high_entropy_installer",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "right": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "similarity": 0.90625,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_direct_pe",
+        "semantic_simhash64": "8c9df317aeffcbba",
+        "semantic_sequence_sha256": "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_direct_pe",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.921875,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    },
+    {
+      "left": {
+        "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "protected_pe_resource_delivery",
+        "semantic_simhash64": "8d9df3172fbfebfa",
+        "semantic_sequence_sha256": "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_protected_pe_resource_delivery",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489/static-logic.json"
+      },
+      "right": {
+        "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "family": "valleyrat",
+        "function_id": "AnalyzeDeliveryOrPayload@reviewed_static_unit",
+        "role": "high_entropy_installer",
+        "semantic_simhash64": "8d99f317afffebfa",
+        "semantic_sequence_sha256": "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "semantic_token_count": 6,
+        "api_calls": [
+          "function_analyzedeliveryorpayload",
+          "role_high_entropy_installer",
+          "step_1ce8454cd05bf339",
+          "step_c2",
+          "step_section",
+          "summary_439070782a9fee1a"
+        ],
+        "source": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b/static-logic.json"
+      },
+      "similarity": 0.953125,
+      "exact_semantic_sequence": false,
+      "same_family": true,
+      "shared_api_calls": [
+        "function_analyzedeliveryorpayload",
+        "step_1ce8454cd05bf339",
+        "step_c2",
+        "step_section",
+        "summary_439070782a9fee1a"
+      ],
+      "assessment": "code_similarity_candidate"
+    }
+  ],
+  "limitations": [
+    "類似性はコード共有、共通library、compiler生成処理でも生じます。",
+    "類似性だけでファミリー、actor、campaignを確定しません。",
+    "異なるdecompiler設定や難読化によりfingerprintが変化する可能性があります。"
+  ],
+  "safety": {
+    "samples_opened": false,
+    "samples_executed": false,
+    "network_contacted": false
+  }
+}

@@ -291,7 +291,19 @@ def load_handler(spec: HandlerSpec) -> tuple[Callable[..., Any], str]:
     if module_spec is None or module_spec.loader is None:
         raise HandlerLoadError(f"cannot load handler module: {path}")
     module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module)
+    # dataclasses、typing、picklingなどは、クラス定義中に
+    # sys.modules[cls.__module__] を参照する。動的moduleを登録せず
+    # exec_moduleすると、正当なdataclass使用handlerまでpreflightで失敗する。
+    previous_module = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+    try:
+        module_spec.loader.exec_module(module)
+    except Exception:
+        if previous_module is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous_module
+        raise
     callable_value = getattr(module, spec.callable_name, None)
     if not callable(callable_value):
         raise HandlerLoadError(f"callable not found: {spec.callable_name}")
