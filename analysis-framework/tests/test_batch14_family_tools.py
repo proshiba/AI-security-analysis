@@ -18,7 +18,8 @@ def load(name: str, relative: str):
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     module_dir = str((ROOT / relative).parent)
-    if module_dir in sys.path: sys.path.remove(module_dir)
+    if module_dir in sys.path:
+        sys.path.remove(module_dir)
     sys.path.insert(0, module_dir)
     spec.loader.exec_module(module)
     return module
@@ -39,7 +40,7 @@ def test_script_fragment_reconstruction_is_non_executing() -> None:
     module = load("batch14_script_extract", "analysis-framework/malware/windows_script_stager/extract_config.py")
     fragments = ["function tridmisalp{}Function Tamponsln{}Srinks"] + [""] * 9
     lines = [f'Stilsikre = "{fragments[0]}";'] + [f'Stilsikre = Stilsikre + "{value}";' for value in fragments[1:]]
-    text = '\n'.join(lines + ['skytt = "Srinks";', "var Legalist = 'e';"])
+    text = "\n".join(lines + ['skytt = "Srinks";', "var Legalist = 'e';"])
     powershell, evidence = module.reconstruct_javascript_powershell(text)
     assert powershell.endswith("e")
     assert evidence["fragment_count"] == 10
@@ -97,14 +98,14 @@ def test_agenttesla_powershell_layers_are_recovered_without_execution() -> None:
     key = b"review-key"
     inner = base64.b64encode(byte_payload)
     encrypted = bytes(value ^ key[index % len(key)] for index, value in enumerate(inner))
-    script = f'$key = "{key.decode()}"\n$payloadBase64 = \'{base64.b64encode(encrypted).decode()}\''.encode()
+    script = f"$key = \"{key.decode()}\"\n$payloadBase64 = '{base64.b64encode(encrypted).decode()}'".encode()
     layers = module.powershell_xor_base64(script)
     assert layers[0][1] == byte_payload
 
 
 def test_batch14_public_files_do_not_publish_agenttesla_credentials() -> None:
     public_roots = [ROOT / "analysis-framework", ROOT / "analysis-results"]
-    forbidden = ("BLACK" + "BOy76@@", "credentials_" + "published\": true")
+    forbidden = ("BLACK" + "BOy76@@", "credentials_" + 'published": true')
     for public_root in public_roots:
         for path in public_root.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in {".md", ".json", ".py", ".yar"}:
@@ -126,18 +127,35 @@ def test_new_json_files_are_valid() -> None:
 def test_c2_batch_validation_forces_connect_only() -> None:
     module = load("batch14_c2_validation", "analysis-framework/common/c2_validation.py")
     candidate = {
-        "host": "example.invalid", "port": 443, "protocol": "tcp", "role": "distribution",
-        "source": "合成テスト", "timeout": 3, "max_bytes": 64,
+        "host": "example.invalid",
+        "port": 443,
+        "protocol": "tcp",
+        "role": "distribution",
+        "source": "合成テスト",
+        "timeout": 3,
+        "max_bytes": 64,
     }
     args = module._probe_args(candidate, ["a" * 64], True)
     assert args.connect_only is True
-    manifest = {"batch_id": "test", "samples": [{
-        "sha256": "a" * 64, "c2_resolution_status": "not_recovered", "candidates": [candidate],
-    }]}
-    module.probe = lambda args: {"status": "tcp_connect_only", "network_contacted": True,
-                                 "target_contact_attempted": True, "application_data_sent": False,
-                                 "server_data_read": False, "target_role": args.target_role,
-                                 "sample_sha256s": args.sample_sha256}
+    manifest = {
+        "batch_id": "test",
+        "samples": [
+            {
+                "sha256": "a" * 64,
+                "c2_resolution_status": "not_recovered",
+                "candidates": [candidate],
+            }
+        ],
+    }
+    module.probe = lambda args: {
+        "status": "tcp_connect_only",
+        "network_contacted": True,
+        "target_contact_attempted": True,
+        "application_data_sent": False,
+        "server_data_read": False,
+        "target_role": args.target_role,
+        "sample_sha256s": args.sample_sha256,
+    }
     result = module.validate_candidates(manifest, allow_network=True, include_non_c2=True)
     assert result["policy"]["server_data_read"] is False
     assert result["policy"]["maximum_response_bytes"] == 0
@@ -155,8 +173,13 @@ def test_batch14_publication_uses_fixed_depth() -> None:
         if item["confidence"] == "pending_download":
             continue
         case_dir = (
-            ROOT / "analysis-results/malware" / item["family"] / "versions"
-            / (item["version"] or "unknown") / "cases" / item["sha256"]
+            ROOT
+            / "analysis-results/malware"
+            / item["family"]
+            / "versions"
+            / (item["version"] or "unknown")
+            / "cases"
+            / item["sha256"]
         )
         for name in ("README.md", "metadata.json", "config.json", "iocs.json", "IOC-LIST.md"):
             assert (case_dir / name).is_file(), case_dir / name

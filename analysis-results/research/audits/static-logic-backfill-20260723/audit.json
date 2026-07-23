@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "analysis_mode": "repository_static_evidence_backfill",
+  "counts": {
+    "cases": 1024,
+    "preserved": 120,
+    "backfilled": 904,
+    "cases_with_processing_units": 866,
+    "processing_units": 1752,
+    "ghidra_cases": 98,
+    "ghidra_programs": 107,
+    "ghidra_function_hashes": 131,
+    "artifact_count": 1810,
+    "status_counts": {
+      "function_analysis_required": 904
+    }
+  },
+  "safety": {
+    "samples_opened": false,
+    "samples_executed": false,
+    "network_contacted": false,
+    "raw_pseudocode_exported": false
+  }
+}

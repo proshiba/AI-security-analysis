@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module backfill_static_logic</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">backfill_static_logic</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cbackfill_static_logic.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\backfill_static_logic.py</a></td></tr></table>
+    <p><span class="code">過去caseの公開成果物から静的ロジック情報を証拠ベースで補完する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">日本語helpを持つ補完CLIを構築する。</span></dd></dl>
+ <dl><dt><a name="-discover_case_directories"><strong>discover_case_directories</strong></a>(results_root: 'Path') -&gt; 'list[Path]'</dt><dd><span class="code">固定depthのcaseディレクトリを決定的順序で列挙する。</span></dd></dl>
+ <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False, ghidra_inventory: 'Path | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">全caseの補完成果物と監査を生成する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>BACKFILL_SOURCE</strong> = 'repository_static_evidence_backfill_v1'<br>
+<strong>EXCLUDED_HEADINGS</strong> = ('c2', 'ioc', 'osint', 'shodan', 'yara', 'sigma', 'インフラ', 'ライブ', '接続検証', '検知', '出典', '参考', '既知ファミリー', '攻撃キャンペーン', '制約', '安全', '概要', '結論', '対象', 'ファイル', ...)<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>JAPANESE_RE</strong> = re.compile('[\\u3040-\\u30ff\\u3400-\\u9fff]')<br>
+<strong>LINK_RE</strong> = re.compile('\\[([^\\]]+)\\]\\([^)]*\\)')<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>SAFE_KEY_RE</strong> = re.compile('^[A-Za-z_][A-Za-z0-9_.-]{0,79}$')<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SECRET_KEY_PARTS</strong> = ('c2', 'credential', 'domain', 'email', 'hash', 'host', 'ioc', 'key', 'member', 'name', 'password', 'path', 'port', 'secret', 'sha', 'token', 'url')<br>
+<strong>SECTION_ROLES</strong> = (('静的解析', 'static_analysis_summary'), ('静的所見', 'static_analysis_summary'), ('技術解析', 'static_analysis_summary'), ('アンパック', 'unpacking_flow'), ('復元したレイヤー', 'layer_recovery'), ('復元レイヤー', 'layer_recovery'), ('復元関係', 'layer_recovery'), ('感染チェーン', 'delivery_chain'), ('実行チェーン', 'delivery_chain'), ('配布チェーン', 'delivery_chain'), ('処理フロー', 'processing_flow'), ('実行フロー', 'processing_flow'), ('ロジック', 'logic_summary'), ('構造', 'program_structure'), ('エントリ', 'entrypoint_logic'), ('ロード', 'loader_flow'), ('難読', 'protection_logic'), ('保護', 'protection_logic'), ('永続', 'persistence_logic'), ('コマンド', 'command_dispatch'), ...)<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$', re.IGNORECASE)<br>
+<strong>STATIC_JSON_NAMES</strong> = {'analysis.json', 'child-analysis.json', 'extraction-result.json', 'infection-chain-classification.json', 'msi-analysis.json', 'static-analysis.json', ...}<br>
+<strong>STRUCTURE_KEYS</strong> = {'address_size', 'architecture', 'archive_resources_recovered', 'archive_types', 'classification', 'compiler', ...}<br>
+<strong>TABLE_SEPARATOR_RE</strong> = re.compile('^\\|?(?:\\s*:?-+:?\\s*\\|)+\\s*$')</td></tr></table>
+</body></html>

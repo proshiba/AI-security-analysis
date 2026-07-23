@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module ghidra_function_batch</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">ghidra_function_batch</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cghidra_function_batch.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\ghidra_function_batch.py</a></td></tr></table>
+    <p><span class="code">Ghidra&nbsp;MCPとCIL&nbsp;parserで検体集合の代表関数と全体ロジックを記録する。<br>
+&nbsp;<br>
+検体は不活性byte列としてだけ読み込み、実行、emulation、外部通信を行わない。<br>
+Ghidra操作はlocalhostのMCP&nbsp;endpointだけを使用し、program単位の全requestへ<br>
+明示的なproject&nbsp;pathを渡す。生の逆コンパイル本文とCIL命令列はリポジトリ外へ<br>
+保持し、公開成果物には秘匿値を除去した処理構造とfingerprintだけを保存する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="dnfile.html">dnfile</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>(<a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>, <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="ghidra_function_batch.html#JapaneseArgumentParser">JapaneseArgumentParser</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="ghidra_function_batch.html#GhidraMcpError">GhidraMcpError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="ghidra_function_batch.html#GhidraMcpClient">GhidraMcpClient</a>
+</dt><dt class="heading-text"><a href="ghidra_function_batch.html#ProgramObject">ProgramObject</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GhidraMcpClient">class <strong>GhidraMcpClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GhidraMcpClient">GhidraMcpClient</a>(base_url:&nbsp;'str',&nbsp;*,&nbsp;timeout:&nbsp;'int'&nbsp;=&nbsp;180)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+localhost限定Ghidra&nbsp;MCP&nbsp;HTTP&nbsp;client。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GhidraMcpClient-__init__"><strong>__init__</strong></a>(self, base_url: 'str', *, timeout: 'int' = 180) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpClient-get"><strong>get</strong></a>(self, endpoint: 'str', **query: 'Any') -&gt; 'Any'</dt></dl>
+
+<dl><dt><a name="GhidraMcpClient-post"><strong>post</strong></a>(self, endpoint: 'str', body: 'Mapping[str, Any]', **query: 'Any') -&gt; 'Any'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GhidraMcpError">class <strong>GhidraMcpError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">Ghidra&nbsp;MCP&nbsp;requestの失敗を表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="ghidra_function_batch.html#GhidraMcpError">GhidraMcpError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="GhidraMcpError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="GhidraMcpError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="GhidraMcpError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="GhidraMcpError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GhidraMcpError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="GhidraMcpError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#GhidraMcpError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JapaneseArgumentParser">class <strong>JapaneseArgumentParser</strong></a>(<a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JapaneseArgumentParser">JapaneseArgumentParser</a>(prog=None,&nbsp;usage=None,&nbsp;description=None,&nbsp;epilog=None,&nbsp;parents=[],&nbsp;formatter_class=&amp;lt;class&nbsp;'argparse.HelpFormatter'&amp;gt;,&nbsp;prefix_chars='-',&nbsp;fromfile_prefix_chars=None,&nbsp;argument_default=None,&nbsp;conflict_handler='error',&nbsp;add_help=True,&nbsp;allow_abbrev=True,&nbsp;exit_on_error=True)<br>
+&nbsp;<br>
+argparseの固定見出しを日本語へ置換する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="ghidra_function_batch.html#JapaneseArgumentParser">JapaneseArgumentParser</a></dd>
+<dd><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a></dd>
+<dd><a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a></dd>
+<dd><a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JapaneseArgumentParser-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__init__"><strong>__init__</strong></a>(self, prog=None, usage=None, description=None, epilog=None, parents=[], formatter_class=&lt;class 'argparse.HelpFormatter'&gt;, prefix_chars='-', fromfile_prefix_chars=None, argument_default=None, conflict_handler='error', add_help=True, allow_abbrev=True, exit_on_error=True)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_subparsers"><strong>add_subparsers</strong></a>(self, **kwargs)</dt><dd><span class="code">#&nbsp;==================================<br>
+#&nbsp;Optional/Positional&nbsp;adding&nbsp;methods<br>
+#&nbsp;==================================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-convert_arg_line_to_args"><strong>convert_arg_line_to_args</strong></a>(self, arg_line)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-error"><strong>error</strong></a>(self, message)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-error">error</a>(message:&nbsp;string)<br>
+&nbsp;<br>
+Prints&nbsp;a&nbsp;usage&nbsp;message&nbsp;incorporating&nbsp;the&nbsp;message&nbsp;to&nbsp;stderr&nbsp;and<br>
+exits.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;override&nbsp;this&nbsp;in&nbsp;a&nbsp;subclass,&nbsp;it&nbsp;should&nbsp;not&nbsp;return&nbsp;--&nbsp;it<br>
+should&nbsp;either&nbsp;exit&nbsp;or&nbsp;raise&nbsp;an&nbsp;exception.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-exit"><strong>exit</strong></a>(self, status=0, message=None)</dt><dd><span class="code">#&nbsp;===============<br>
+#&nbsp;Exiting&nbsp;methods<br>
+#&nbsp;===============</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-format_usage"><strong>format_usage</strong></a>(self)</dt><dd><span class="code">#&nbsp;=======================<br>
+#&nbsp;Help-formatting&nbsp;methods<br>
+#&nbsp;=======================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_args"><strong>parse_args</strong></a>(self, args=None, namespace=None)</dt><dd><span class="code">#&nbsp;=====================================<br>
+#&nbsp;Command&nbsp;line&nbsp;argument&nbsp;parsing&nbsp;methods<br>
+#&nbsp;=====================================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_intermixed_args"><strong>parse_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_args"><strong>parse_known_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_intermixed_args"><strong>parse_known_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_help"><strong>print_help</strong></a>(self, file=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_usage"><strong>print_usage</strong></a>(self, file=None)</dt><dd><span class="code">#&nbsp;=====================<br>
+#&nbsp;Help-printing&nbsp;methods<br>
+#&nbsp;=====================</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-add_argument"><strong>add_argument</strong></a>(self, *args, **kwargs)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-add_argument">add_argument</a>(dest,&nbsp;...,&nbsp;name=value,&nbsp;...)<br>
+<a href="#JapaneseArgumentParser-add_argument">add_argument</a>(option_string,&nbsp;option_string,&nbsp;...,&nbsp;name=value,&nbsp;...)</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_argument_group"><strong>add_argument_group</strong></a>(self, *args, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_mutually_exclusive_group"><strong>add_mutually_exclusive_group</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-get_default"><strong>get_default</strong></a>(self, dest)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-register"><strong>register</strong></a>(self, registry_name, value, object)</dt><dd><span class="code">#&nbsp;====================<br>
+#&nbsp;Registration&nbsp;methods<br>
+#&nbsp;====================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-set_defaults"><strong>set_defaults</strong></a>(self, **kwargs)</dt><dd><span class="code">#&nbsp;==================================<br>
+#&nbsp;Namespace&nbsp;default&nbsp;accessor&nbsp;methods<br>
+#&nbsp;==================================</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProgramObject">class <strong>ProgramObject</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProgramObject">ProgramObject</a>(sha256:&nbsp;'str',&nbsp;input_path:&nbsp;'Path',&nbsp;size:&nbsp;'int',&nbsp;relationships:&nbsp;'list[dict[str,&nbsp;Any]]'&nbsp;=&nbsp;&amp;lt;factory&amp;gt;)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+1つのunique&nbsp;PE&nbsp;layerとcaseへの関係を保持する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProgramObject-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ProgramObject-__init__"><strong>__init__</strong></a>(self, sha256: 'str', input_path: 'Path', size: 'int', relationships: 'list[dict[str, Any]]' = &lt;factory&gt;) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProgramObject-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Readonly properties defined here:<br>
+<dl><dt><strong>primary</strong></dt>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'input_path': 'Path', 'relationships': 'list[dict[str, Any]]', 'sha256': 'str', 'size': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'input_path': Field(name='input_path',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'relationships': Field(name='relationships',type='list[dict[str, ...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='int',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__hash__</strong> = None</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('sha256', 'input_path', 'size', 'relationships')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_program"><strong>analyze_program</strong></a>(client: 'GhidraMcpClient', item: 'ProgramObject', private_output: 'Path', project_root: 'str', *, analysis_timeout: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">1つのPE&nbsp;layerをGhidra&nbsp;MCPで解析し、private&nbsp;raw成果物を保存する。</span></dd></dl>
+ <dl><dt><a name="-augment_private_call_graphs"><strong>augment_private_call_graphs</strong></a>(program_results: 'Mapping[str, dict[str, Any]]', private_output: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのcall&nbsp;graphを補完し、private成果物へ永続化する。</span></dd></dl>
+ <dl><dt><a name="-augment_program_result_call_graph"><strong>augment_program_result_call_graph</strong></a>(result: 'dict[str, Any]') -&gt; 'dict[str, int]'</dt><dd><span class="code">逆コンパイルcall式でGhidra&nbsp;call&nbsp;graphの欠落を補完する。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">CLI引数parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-ensure_characteristic_selection"><strong>ensure_characteristic_selection</strong></a>(result: 'dict[str, Any]') -&gt; 'list[str]'</dt><dd><span class="code">cacheを含むprogram結果へ代表関数選定情報を付与する。</span></dd></dl>
+ <dl><dt><a name="-load_prepared_inputs"><strong>load_prepared_inputs</strong></a>(sample_root: 'Path', private_output: 'Path') -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">SHA-256検証済みcacheから再展開せずprogram&nbsp;inventoryを復元する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI&nbsp;entrypoint。</span></dd></dl>
+ <dl><dt><a name="-prepare_inputs"><strong>prepare_inputs</strong></a>(repository: 'Path', collection_dir: 'Path', sample_root: 'Path', private_output: 'Path') -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。</span></dd></dl>
+ <dl><dt><a name="-publish_cases"><strong>publish_cases</strong></a>(repository: 'Path', collection_dir: 'Path', program_results: 'Mapping[str, Mapping[str, Any]]', non_pe: 'Mapping[str, list[dict[str, Any]]]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">対象caseの代表関数解析と全体ロジック成果物を更新する。</span></dd></dl>
+ <dl><dt><a name="-refresh_complete_program_artifacts"><strong>refresh_complete_program_artifacts</strong></a>(client: 'GhidraMcpClient', program_results: 'Mapping[str, dict[str, Any]]', private_output: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのページング対象を終端まで再取得し、生成果物へ保存する。</span></dd></dl>
+ <dl><dt><a name="-run"><strong>run</strong></a>(args: 'argparse.Namespace') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全入力を準備・解析・公開し、collection集計を返す。</span></dd></dl>
+ <dl><dt><a name="-select_characteristic_functions"><strong>select_characteristic_functions</strong></a>(functions: 'Iterable[Mapping[str, Any]]', call_graph: 'Mapping[str, Any]', entry_points: 'Any', opcode_hashes: 'Mapping[str, Any] | None' = None, *, max_count: 'int' = 32) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">役割の網羅と中心性を両立する代表関数集合を返す。</span></dd></dl>
+ <dl><dt><a name="-validate_prepared_scope"><strong>validate_prepared_scope</strong></a>(collection_dir: 'Path', private_output: 'Path') -&gt; 'None'</dt><dd><span class="code">再開cacheのcollection&nbsp;IDとcase集合が対象manifestに完全一致するか確認する。</span></dd></dl>
+ <dl><dt><a name="-validate_private_artifacts"><strong>validate_private_artifacts</strong></a>(program_results: 'Mapping[str, Mapping[str, Any]]', private_output: 'Path', *, expected_program_count: 'int | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">全programのinventoryと代表関数解析成果物が欠落なく保存されたか検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CALL_EXPRESSION_RE</strong> = re.compile('(?&lt;![\\w])([A-Za-z_?$][A-Za-z0-9_.$@?&lt;&gt;:-]*)\\s*\\(')<br>
+<strong>CHARACTERISTIC_PHASES</strong> = (('startup', '起動・初期化', {'entrypoint'}), ('configuration', '設定・payload復元', {'config_or_data_transform', 'cryptographic_transform'}), ('evasion', '解析回避・環境判定', {'anti_analysis'}), ('persistence', '永続化', {'persistence'}), ('execution', 'process・memory操作', {'process_or_memory_operation'}), ('communication', '通信', {'network_communication'}), ('dispatch', 'command分配・処理', {'command_dispatch_or_handler'}), ('file_activity', 'file操作', {'file_operation'}), ('support', '補助処理', {'compiler_or_library_code', 'external_api_or_thunk', 'general_internal_logic', 'managed_method_without_body'}))<br>
+<strong>DECOMPILE_BATCH_SIZE</strong> = 20<br>
+<strong>DECOMPILE_WORKERS</strong> = 3<br>
+<strong>DEFAULT_COLLECTION_ID</strong> = 'malwarebazaar-windows-20260723-0100'<br>
+<strong>DEFAULT_MCP_URL</strong> = 'http://127.0.0.1:8089'<br>
+<strong>DEFAULT_PROJECT_ROOT</strong> = '/Malware/MalwareBazaarWindows/20260723'<br>
+<strong>EMPTY_SHA256</strong> = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'<br>
+<strong>FATAL_DECOMPILE_MARKERS</strong> = ('decompilation failed', 'failed to decompile', 'timeout', 'no function')<br>
+<strong>FUNCTION_PAGE_SIZE</strong> = 10000<br>
+<strong>IGNORED_CALL_EXPRESSIONS</strong> = {'catch', 'for', 'if', 'return', 'sizeof', 'switch', ...}<br>
+<strong>IMPORT_CAPABILITY_PATTERNS</strong> = {'communication': re.compile('(?i)^(?:socket|connect|send|recv|sel...ame|inet_addr|URLDownloadToFile)', re.IGNORECASE), 'configuration': re.compile('(?i)^(?:Crypt(?:Decrypt|UnprotectDat...rypt|NCrypt|RtlDecompressBuffer)', re.IGNORECASE), 'evasion': re.compile('(?i)^(?:IsDebuggerPresent|CheckRemot...tTickCount(?:64)?|Sleep(?:Ex)?)$', re.IGNORECASE), 'execution': re.compile('(?i)^(?:VirtualAlloc(?:Ex)?|VirtualP...inExec|LoadLibrary|CreateThread)', re.IGNORECASE), 'file_activity': re.compile('(?i)^(?:CreateFile|ReadFile|WriteFil...ile|FindNextFile|PathFileExists)', re.IGNORECASE), 'persistence': re.compile('(?i)^(?:Reg(?:Create|Open|Set|Delete...OpenSCManager|CoCreateInstance)$', re.IGNORECASE)}<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>LIBRARY_RE</strong> = re.compile('(?i)^(?:__|_?mem(?:cpy|set|move|cmp)...tls_callback|\\.?ctor|\\.?cctor)', re.IGNORECASE)<br>
+<strong>LIMITED_DECOMPILE_MARKERS</strong> = ('control flow encountered bad instruction data', 'bad instruction', 'could not recover jumptable', 'truncating control flow')<br>
+<strong>LOCAL_MCP_HOSTS</strong> = {'127.0.0.1', '::1', 'localhost'}<br>
+<strong>MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM</strong> = 32<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>ROLE_PATTERNS</strong> = (('entrypoint', re.compile('(?i)(?:^|[_.&lt;&gt;])(main|winmain|wmain|dllmain|entry|startup)(?:$|[_.&lt;&gt;])', re.IGNORECASE)), ('network_communication', re.compile('(?i)(socket|connect|send|recv|http|i...oad|dns|ping|smtp|ftp|websocket)', re.IGNORECASE)), ('command_dispatch_or_handler', re.compile('(?i)(command|dispatch|handler|intera...|shell|execute|task|job|request)', re.IGNORECASE)), ('config_or_data_transform', re.compile('(?i)(config|setting|parse|decode|dec...ck|deserialize|resource|payload)', re.IGNORECASE)), ('cryptographic_transform', re.compile('(?i)(aes|rsa|rc4|chacha|xor|base64|crypt|cipher|hash|sha\\d*|md5)', re.IGNORECASE)), ('process_or_memory_operation', re.compile('(?i)(process|thread|inject|virtualal...rapc|loadlibrary|mapview|hollow)', re.IGNORECASE)), ('persistence', re.compile('(?i)(persist|startup|autorun|registry|regset|service|schtask|runkey)', re.IGNORECASE)), ('anti_analysis', re.compile('(?i)(anti|debug|isdebugger|virtualbo...rmance|cpuid|ntqueryinformation)', re.IGNORECASE)), ('file_operation', re.compile('(?i)(createfile|readfile|writefile|d...|directory|filepath|stream|file)', re.IGNORECASE)))<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
+<strong>STRUCTURE_PAGE_SIZE</strong> = 1000<br>
+<strong>SUMMARY_BY_ROLE</strong> = {'anti_analysis': 'debugger、仮想環境、sandbox、または時間差の確認に関係する関数です。', 'command_dispatch_or_handler': 'commandの解釈、分配、または個別処理を担当する関数です。', 'compiler_or_library_code': 'compiler生成処理または汎用library処理とみられる関数です。', 'config_or_data_transform': '設定、resource、payloadなどの解析・変換を行う関数です。', 'cryptographic_transform': '暗号、hash、encoding、または復号処理に関係する関数です。', 'entrypoint': '初期化と主要処理への分岐を行う入口関数です。', 'external_api_or_thunk': '外部APIまたはthunkであり、検体固有の関数本体を持ちません。', 'file_operation': 'fileまたはdirectoryの読書き・管理に関係する関数です。', 'general_internal_logic': '検体内部の一般処理を実装する関数です。', 'managed_method_without_body': 'metadata上に存在しますが、解析対象となるCIL本体を持たないmethodです。', ...}</td></tr></table>
+</body></html>

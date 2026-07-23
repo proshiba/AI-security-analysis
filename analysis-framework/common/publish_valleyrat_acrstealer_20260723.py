@@ -272,7 +272,7 @@ def publish_family(manifest_path: Path, one_shot: Path, family: str, results: Pa
         if not function_reviewed:
             logic["status"] = "function_logic_review_required"
             logic["coverage"]["function_bodies_reviewed"] = False
-            logic["limitations"] = ["配布・復元処理単位は記録しましたが、最終binaryの全関数逆コンパイルは完了していません。", "未復元保護層または別payloadの関数意味付けを、ACRStealer／ValleyRAT本体へ一般化しません。"]
+            logic["limitations"] = ["配布・復元処理単位は記録しましたが、最終binaryの特徴的関数の選定解析は完了していません。", "未復元保護層または別payloadの関数意味付けを、ACRStealer／ValleyRAT本体へ一般化しません。"]
         destination = family_root / digest
         destination.mkdir(parents=True, exist_ok=True)
 

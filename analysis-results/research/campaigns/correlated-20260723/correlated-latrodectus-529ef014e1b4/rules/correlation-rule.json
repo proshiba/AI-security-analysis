@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-latrodectus-529ef014e1b4",
+  "families": [
+    "latrodectus"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://miistoria.com/live/"
+    },
+    {
+      "type": "url",
+      "value": "https://plwskoret.top/live/"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

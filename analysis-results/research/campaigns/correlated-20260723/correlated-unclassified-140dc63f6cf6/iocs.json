@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/clq",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/ds2",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/f8dj",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/hr2d",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/mfzi",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    }
+  ]
+}

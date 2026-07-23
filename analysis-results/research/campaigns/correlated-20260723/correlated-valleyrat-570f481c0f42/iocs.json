@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "winspool.drv",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/signature/valleyrat/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

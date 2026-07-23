@@ -1,0 +1,82 @@
+{
+  "campaign_id": "correlated-unclassified-90d978be19ce",
+  "families": [
+    "unclassified"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "d.jpg"
+    },
+    {
+      "type": "domain",
+      "value": "icanhazip.com"
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.vc90.crt"
+    },
+    {
+      "type": "domain",
+      "value": "s.com"
+    },
+    {
+      "type": "domain",
+      "value": "www.binance.com"
+    },
+    {
+      "type": "domain",
+      "value": "www.bitrefill.com"
+    },
+    {
+      "type": "domain",
+      "value": "www.coinbase.com"
+    },
+    {
+      "type": "domain",
+      "value": "www.crypto.com"
+    },
+    {
+      "type": "domain",
+      "value": "www.etoro.com"
+    },
+    {
+      "type": "domain",
+      "value": "yandex.ru"
+    },
+    {
+      "type": "domain",
+      "value": "zone.identifier"
+    },
+    {
+      "type": "url",
+      "value": "http://icanhazip.com/"
+    },
+    {
+      "type": "url",
+      "value": "http://www.binance.com/"
+    },
+    {
+      "type": "url",
+      "value": "http://www.bitrefill.com/"
+    },
+    {
+      "type": "url",
+      "value": "http://www.coinbase.com/"
+    },
+    {
+      "type": "url",
+      "value": "http://www.crypto.com/"
+    },
+    {
+      "type": "url",
+      "value": "http://www.etoro.com/"
+    }
+  ],
+  "feature_ids": [
+    "network:api_access"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

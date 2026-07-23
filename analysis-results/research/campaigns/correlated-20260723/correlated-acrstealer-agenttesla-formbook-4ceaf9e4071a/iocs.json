@@ -1,0 +1,4821 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "0xlab.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "3system.resources.tools.stronglytypedresourcebui",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "abilitiessoft.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ail.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "altlinux.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "android-gifview.googlecode.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "android.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "aomedia.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-arm.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-ia32.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-x64.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "b.ntl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bbrox.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "beto-core.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bitbucket.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "blakeembrey.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "boringssl.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cacerts.digicert.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "cgit.freedesktop.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "checkerframework.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "chromium.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cla.developers.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cldr.unicode.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "code.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "code.videolan.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "courtesan.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "crashpad.chromium.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "creativecommons.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "crl.globalsign.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "crl3.digicert.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "cryptsoft.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ctrio.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "daringfireball.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "datanerds.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "datatracker.ietf.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dawn.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "devel.freebsoft.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.android.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.intel.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developers.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicertassuredidrootca.crl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "digicertassuredidrootca.crt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedrootg4.crl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedrootg4.crt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "drijf.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dsrootbeer.xsd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dxr.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "eigen.tuxfamily.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "elecard.net.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "en.wikipedia.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "fedorahosted.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ffmpeg.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "findbugs.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "firebase.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freebsd.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freedesktop.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freetype.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "fsf.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "g.co",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "git.gnome.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "git.linuxtv.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "github.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "gitlab.freedesktop.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gitlab.xiph.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gmail.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "gramner.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gzip.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "harfbuzz.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "hsystem.drawing.bitmap",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "hunspell.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "icu-project.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ieee754.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "intel.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ithinksw.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jelloween.deviantart.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jinja.palletsprojects.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "joyent.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jquery.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jquery.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "kmicrosoft.visualstudio.editors.settingsdesigner.settingssinglefilegenera",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "kotlinlang.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "labs.creativecommons.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lao-dictionary.googlecode.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libcxx.llvm.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libcxxabi.llvm.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libevent.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libpng.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libusb.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "llvm.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lsystem.resources.resourcereader",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "ltp.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lubutu.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lxr.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mansr.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.codeanalysis",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.visualbasic",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.visualbasic.compilerservices",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "minilop.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mips.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "modartt.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "modp.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "monkey.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "muppetlabs.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mxr.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "myapplication.app",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "narod.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "netbsd.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "netsplit.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nodejs.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nongnu.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ns.adobe.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nsis.sf.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "nsurlparsers.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nullsoft.nsis.exehead",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "ocsp.digicert.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ocsp.globalsign.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "one.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "openbsd.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "opensource.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "oss.sgi.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "paint.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "parse.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "planet-d.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "polymer-library.polymer-project.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "python.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "qsystem.drawing",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "quiche.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "quirkster.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "raw.githubusercontent.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "redhat.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "registry.npmjs.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties.resources",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties.resources.resources",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "scripts.sil.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "searchfox.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "secure.globalsign.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "semiconductor.samsung.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sigmasoft.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sites.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "skal.planet-d.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "skia.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "software.blackmagicdesign.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "softweyr.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.android.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.chromium.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.corp.google.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.icu-project.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sourceware.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sqlite.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "src.chromium.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sussystem.runtime.interopservices.charset",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "swiftshader.googlesource.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.codedom.compiler",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.collections",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.collections.generic",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "system.componentmodel",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.configuration",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.core",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.data",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.diagnostics",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.bitmap",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.drawing",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.imaging",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.globalization",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.io",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.io.compression",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.linq",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.object",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.reflection",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.reflection.emit",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.resources",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.resources.runtimeresourceset",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.compilerservices",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.interopservices",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.remoting",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.serialization",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.versioning",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.security",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.security.cryptography",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.security.cryptography.aescryptoserviceprovider",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.security.permissions",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.security.permissions.securitypermissionattrib",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.text",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.threading",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.threading.tasks",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.windows.forms",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "tempuri.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ti.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "timepedia.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "tukaani.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "uk.sun.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "unity3d.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "unlicense.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "users.sourceforge.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "utf.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "utils.cc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "uun.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "valgrind.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "webkit.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "website-archive.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.7-zip.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.apache.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.apple.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.azillionmonkeys.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.chromium.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.dabeaz.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.daemonology.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.digicert.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.elecard.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.epistemex.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.freedesktop.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.freetype.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.globalsign.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.gnu.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.gutenberg.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.ijg.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.jjb-software.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.khronos.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.linux-usb.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.linuxvideo.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.logilab.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mesa3d.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mojohaus.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mozilla.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.netlib.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.nongnu.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.npmjs.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openh264.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openjsf.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.opensource.apple.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.opensource.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openssl.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.ploscompbiol.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.pylint.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.samsung.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.strongtalk.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.suitable.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.swift.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.tex-tipografia.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.torchmobile.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.unicode.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.viewplus.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.w3.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.webrtc.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.tmp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "x264.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xiph.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xmlsoft.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xvid.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "z.fr",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "zlib.net",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "zoy.org",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:56",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:57",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:66",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:70",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:82",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:8636",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.iid:12665",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.iid:66",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "ftp://sourceware.org/pub/newlib/newlib-2.0.0.tar.gz",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://android-gifview.googlecode.com/svn/!svn/bc/8/trunk/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://brltty.app/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicertassuredidrootca.crt0e",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crt0_",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicerttrustedrootg4.crt0c",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://casper.beckman.uiuc.edu/~c-tsai4",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cgit.freedesktop.org/xorg/xserver/tree/copying",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://chasen.aist-nara.ac.jp/chasen/distribution.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cldr.unicode.org/index/downloads",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/angleproject/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/atinject/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/data-race-test/wiki/dynamicannotations",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/google-axs-chrome/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/google-jstemplate/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/lao-dictionary/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/libyuv/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/pdfium/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/smhasher/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/v8",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/y2038",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cristal.univ-lille.fr/~casiez/1euro/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/codesigningrootr45.crl0v",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/gsgccr45codesignca2020.crl0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/root-r3.crl0g",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/root.crl0g",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicertassuredidrootca.crl0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crl0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicerttrustedrootg4.crl0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ctrio.sourceforge.net/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://daringfireball.net/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://devel.freebsoft.org/speechd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/ndk/index.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/sdk/index.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/tools/extras/support-library.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.intel.com/vtune/cbts/strmsimd/922down.htm",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.intel.com/vtune/cbts/strmsimd/appnotes.htm",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.mozilla.org/en-us/docs/accessibility/at-apis",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://eigen.tuxfamily.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://en.wikipedia.org/wiki/mit_license",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://fedorahosted.org/lohit&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ffmpeg.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://findbugs.sourceforge.net/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://freedesktop.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://freetype.sourceforge.net/license.html:",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://fsf.org/&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://git.linuxtv.org/v4l-utils.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://github.com/google/closure-compiler",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://google.github.io/snappy/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://harfbuzz.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://hunspell.sourceforge.net/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://icu-project.org/userguide/icufaq.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://jquery.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://labs.creativecommons.org/licenses/zero-waive/1.0/us/legalcode&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary-license.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lcamtuf.coredump.cx/afl/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libcxx.llvm.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libcxxabi.llvm.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libevent.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libpng.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libusb.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://llvm.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://llvm.org/docs/libfuzzer.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ltp.sourceforge.net/coverage/lcov.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lxr.mozilla.org/mozilla/source/toolkit/mozapps/update/src/updater/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://modp.com/release/base64",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://mozilla.org/mpl/2.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://mxr.mozilla.org/comm-central/source/mozilla/netwerk/base/src/nsurlparsers.cpp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/mm/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/stype/resourceref",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://nsis.sf.net/nsis_error",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0a/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0c/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/codesigningrootr450f",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/gsgccr45codesignca20200v",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/rootr103",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/rootr30",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://opensource.org/licenses/bsd-license.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://opensource.perlig.de/rjsmin/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://oss.sgi.com/projects/freeb/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://python.org/dev/peps/pep-0263/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://scripts.sil.org/ofl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/codesigningrootr45.crt0a",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/gsgccr45codesignca2020.crt0=",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/root-r3.crt06",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://skal.planet-d.net/coding/dct.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://software.blackmagicdesign.com/decklink/v10.7/blackmagic_decklink_sdk_10.7.zip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.android.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.android.com/compatibility",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.icu-project.org/repos/icu/icu/trunk/license.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://sourceware.org/ml/newlib/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://sourceware.org/newlib/docs.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://src.chromium.org/viewvc/chrome/trunk/deps/third_party/xz/copying",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://tempuri.org/dsrootbeer.xsd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://tukaani.org/xz/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://unlicense.org/&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://valgrind.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://webkit.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://website-archive.mozilla.org/www.mozilla.org/mpl/mpl/npl/1.1/):",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.7-zip.org/sdk.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/licenses/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/licenses/license-2.0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.apple.com/legal/guidelinesfor3rdparties.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.azillionmonkeys.com/qed/hash.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.chromium.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.chromium.org/blink",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.cisl.ucar.edu/css/software/fftpack5/ftpk.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.dabeaz.com/ply/ply-3.11.tar.gz",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.daemonology.net/bsdiff/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.elecard.com/peter/idct.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freedesktop.org/wiki/software/systemd/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freedesktop.org/wiki/software/xdg-user-dirs",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freetype.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/copyleft/lesser.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/licenses/&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/licenses/gpl.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/philosophy/why-not-lgpl.html&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gutenberg.org/ebooks/53",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.ijg.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.khronos.org/registry",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.kurims.kyoto-u.ac.jp/~ooura/fft.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.linux-usb.org/usb-ids.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.linuxvideo.org/mpeg2dec/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.logilab.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mesa3d.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mojohaus.org/animal-sniffer/animal-sniffer-annotations/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/2.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/2.0/faq.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/npl/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/projects/nspr/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/projects/security/pki/nss/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.netlib.org/fdlibm/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.nongnu.org/freebangfont/downloads.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.openh264.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.apple.com/apsl/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.org/licenses/bsd-license.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.org/licenses/mit-license.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.openssl.org/)&quot",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.ploscompbiol.org/static/license",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.pylint.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.strongtalk.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/tools/smslib.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/tools/smslib.html&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.tex-tipografia.com/spanish_hyphen.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.torchmobile.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/cldr/data/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/copyright.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/public/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/public/zipped/9.0.0/ucd.zip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/reports/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.webrtc.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://xmlsoft.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://xmlsoft.org/xslt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://zlib.net/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/cts/+/master/tests/tests/provider/src/android/provider/cts/mediastoreutils.java",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/development/+/b356564/samples/support4demos/src/com/example/android/supportv4/media/mediacontroller.java",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/hyphenation-patterns/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/perfetto/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/puffin",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/setupdesign/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/frameworks/base",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/frameworks/support",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://aomedia.googlesource.com/aom/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://aomedia.googlesource.com/libavifinfo/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://beto-core.googlesource.com/beto-core",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bitbucket.org/jpommier/pffft/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://boringssl.googlesource.com/boringssl",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://checkerframework.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/breakpad/breakpad",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/cast_core/public",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromium/src/+/head/third_party/liburlpattern",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromium/src/third_party/ipcz",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromiumos/platform/minigbm",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromiumos/platform2/libipp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/codecs/libgav1/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/deps/inspector_protocol/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/devtools/devtools-frontend",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/google3/cros_components/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/webrtc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/openscreen",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/vulkan-deps/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libvpx",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libwebm",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libwebp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://cla.developers.google.com/clas",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://code.videolan.org/videolan/dav1d",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://crashpad.chromium.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/compatiblelicenses",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/licenses/by/3.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1524/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1526/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1914/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dawn.googlesource.com/dawn",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dejavu-fonts.github.io/download.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developer.android.com/guide/playcore",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developer.android.com/topic/libraries/architecture/index.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developers.google.com/android/guides/setup",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developers.google.com/ar/develop/java/enable-arcore",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dxr.mozilla.org/mozilla-central/source/security/manager/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://easylist.to/)&quot",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://easylist.to/easylist/easylist.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://errorprone.info/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://firebase.google.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://fusejs.io/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://git.gnome.org/browse/libsecret/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/aawc/unrar.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/abseil/abseil-cpp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/acornjs/acorn",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/airbnb/lottie-ios.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/airbnb/lottie-web",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/aomediacodec/libavif",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chjj/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chromium/content_analysis_sdk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chromium/dom-distiller",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cisco/libsrtp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/client9/stringencoders",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cls/libutf",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/codemirror/codemirror.next/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/codemirror/codemirror/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cyan4973/xxhash",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/d3/d3",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/dequelabs/axe-core/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/dpranke/pyjson5",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/easylist",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/formatjs/formatjs",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google-ar/arcore-android-sdk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/anonymous-tokens",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/brotli",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cityhash",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cld3",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/closure-library",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/compact_enc_det",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cpu_features",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/crc32c",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/crubit",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/dagger",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/diff-match-patch/tree/master/javascript",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/distributed_point_functions",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/double-conversion",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/farmhash",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/flatbuffers",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/gemmlowp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/glog",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/google-api-cpp-client/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/google-toolbox-for-mac",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/gson",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/guava",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/highway",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/j2objc/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/leveldb.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/libaddressinput",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/libprotobuf-mutator",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/maldoca.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/material-design-icons",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/nearby",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/pprof/tree/master/proto",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/private-join-and-compute",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/protobuf",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/re2",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/ruy",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/securemessage",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/shell-encryption",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/ukey2",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/woff2",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/wuffs-mirror-release-c",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/xnnpack",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/chromium-bidi/archive/0c27b24785077f8686057571f3395ca6a85cafe0.zip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/pywebsocket3/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/text-fragments-polyfill",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlefonts/emoji-metadata",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/emoji-segmenter",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/google-input-tools.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/libphonenumber/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlevr/cardboard",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlevr/gvr-android-sdk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/gpuopen-effects/fidelityfx-spd",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/gpuopen-librariesandsdks/vulkanmemoryallocator",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/grpc/grpc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/grpc/grpc-java",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/intel/arm_neon_2_x86_sse",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/joyent/libuv",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/joyent/node",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/jquery-ui",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/jquery/blob/master/mit-license.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/sizzle/blob/master/license",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jrmuizel/qcms/tree/v4",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khaledhosny/ots.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/glslang",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-cross",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-headers.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-tools.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-headers",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-loader",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-tools",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-validationlayers",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/kotlin/kotlinx.coroutines",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/libexpat/libexpat",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/libjpeg-turbo/libjpeg-turbo/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/liblouis/liblouis",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/linuxa11y/iaccessible2",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/lit/lit",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/fp16",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/fxdiv",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/pthreadpool",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/markedjs/marked",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-android",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-web-components",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-color-utilities",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-font-disk-loader-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-internationalization-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-roboto-font-loader-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-sprited-animation-view-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-text-accessibility-ios",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-animator-objc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-interchange-objc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-transitioning-objc",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/microsoft/webauthn/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/mit-plv/fiat-crypto",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/mit-plv/fiat-crypto/blob/master/authors",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/nih-at/libzip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/nodejs/node",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/open-source-parsers/jsoncpp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/perfmark/perfmark",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/plume-lib/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/protocolbuffers/protobuf/blob/master/java/lite.md",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/puppeteer/puppeteer/tree/main/packages/puppeteer-core",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/puppeteer/replay",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/pytorch/cpuinfo",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rianhunter/zxcvbn-cpp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary/laodict.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary/license.txt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/seleniumhq/selenium/tree/trunk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/simplejson/simplejson",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/squirrel/squirrel.mac",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/models",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/tensorflow",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/text.git",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/tflite-support",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/annotation-tools",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/jdk",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/stubparser",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/unicode-org/icu",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/wasdk/wasmparser",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/westes/flex",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/xiph/flac/archive/refs/tags/1.4.2.zip",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/xiph/rnnoise",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/y-256/libdivsufsort",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/libinput/libei",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/wayland/weston",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xdg/xdgmime",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/lib/libx11",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/proto/xproto/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.xiph.org/xiph/opus",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jelloween.deviantart.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jinja.palletsprojects.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://joyent.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jquery.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://kotlinlang.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://llvm.org/docs/developerpolicy.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://mathiasbynens.be/&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://mozilla.org/mpl/2.0/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://nodejs.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://nuxi.nl/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/bsd-3-clause",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/bsd-3-clause):",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/zlib",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://pagure.io/lohit",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://pki.goog/roots.pem",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://polymer-library.polymer-project.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://quiche.googlesource.com/quiche",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://raw.githubusercontent.com/googlechrome/accessibility-developer-tools/master/dist/js/axs_testing.js",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://registry.npmjs.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://searchfox.org/mozilla-central/rev/0fec57c05d3996cc00c55a66f20dd5793a9bfb5d/security/manager/ssl/enterpriseroots.cpp",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870evo/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870qvo/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980pro/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/magician/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-shield/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-touch/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sites.google.com/site/gaviotachessengine/home/endgame-tablebases-1",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://skia.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://source.android.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://source.corp.google.com/piper///depot/google3/third_party/tamachiyomi/readme.md",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sourceforge.net/project/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sourceforge.net/projects/wtl/files/wtl%2010/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sqlite.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://swiftshader.googlesource.com/swiftshader",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://unity3d.com/legal/branding_trademarks",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://unity3d.com/legal/licenses/unity_companion_license",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.apache.org/licenses/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.apache.org/licenses/license-2.0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.freetype.org/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.globalsign.com/repository/0",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://www.gnu.org/licenses/&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.khronos.org/registry/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.nasm.us/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.npmjs.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.opensource.apple.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.samsung.com/semiconductor/minisite/ssd/product/consumer/980proheatsink/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.swift.org/download/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.unicode.org/copyright.html",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.unicode.org/copyright.html&gt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    }
+  ]
+}

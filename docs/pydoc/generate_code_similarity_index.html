@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module generate_code_similarity_index</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">generate_code_similarity_index</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cgenerate_code_similarity_index.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\generate_code_similarity_index.py</a></td></tr></table>
+    <p><span class="code">static-logic.jsonから関数コード類似性の横断索引を生成する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_index"><strong>build_index</strong></a>(results_root: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">exact&nbsp;semantic列とLSH候補から保守的な関数類似pairを作る。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">日本語helpを持つコード類似性索引CLIを構築する。</span></dd></dl>
+ <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, output_json: 'Path', output_markdown: 'Path', write: 'bool' = False, check: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">横断索引を生成し、必要に応じて書込みまたは同期検証を行う。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、書込みまたは同期検証の終了codeを返す。</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">コード類似性索引を日本語Markdownへ描画する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>Iterable</strong> = typing.Iterable<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$', re.IGNORECASE)<br>
+<strong>SIMHASH64_RE</strong> = re.compile('^[0-9a-f]{16}$', re.IGNORECASE)</td></tr></table>
+</body></html>

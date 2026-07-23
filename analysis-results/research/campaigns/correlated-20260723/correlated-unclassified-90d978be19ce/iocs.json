@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "d.jpg",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "icanhazip.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.vc90.crt",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "s.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "www.binance.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "www.bitrefill.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "www.coinbase.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "www.crypto.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "www.etoro.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "yandex.ru",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "zone.identifier",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 5
+    },
+    {
+      "type": "url",
+      "value": "http://icanhazip.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://www.binance.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://www.bitrefill.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://www.coinbase.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://www.crypto.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://www.etoro.com/",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    }
+  ]
+}

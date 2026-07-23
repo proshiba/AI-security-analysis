@@ -17,9 +17,7 @@ URL_RE = re.compile(r"(?i)\b(?:https?|ftp)://[^\s<>`\"']+")
 EMAIL_RE = re.compile(r"(?i)\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,63}\b")
 IPV4_RE = re.compile(r"(?<![0-9])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![0-9])")
 FULL_HASH_RE = re.compile(r"(?i)(?<![0-9a-f])[0-9a-f]{32,64}(?![0-9a-f])")
-AUTO_SYMBOL_RE = re.compile(
-    r"(?i)\b(?:fun|sub|loc|lab|unk|off|byte|word|dword|qword)_[0-9a-f]+\b"
-)
+AUTO_SYMBOL_RE = re.compile(r"(?i)\b(?:fun|sub|loc|lab|unk|off|byte|word|dword|qword)_[0-9a-f]+\b")
 LOCAL_SYMBOL_RE = re.compile(r"(?i)\b(?:local|param|var|arg|tmp|stack)_[0-9a-f]+\b")
 NUMBER_RE = re.compile(r"(?i)\b(?:0x[0-9a-f]+|\d+)\b")
 TOKEN_RE = re.compile(
@@ -55,6 +53,12 @@ def _redact_public_text(value: str) -> str:
     output = EMAIL_RE.sub("[メール省略]", output)
     output = IPV4_RE.sub("[IP省略]", output)
     return FULL_HASH_RE.sub("[hash省略]", output)
+
+
+def redact_static_text(value: str) -> str:
+    """静的解析説明から具体的なIOC・メール・hashを除いて返す。"""
+
+    return _redact_public_text(value)
 
 
 def normalize_logic_text(value: str) -> str:
@@ -108,15 +112,13 @@ def _simhash64(tokens: Iterable[str]) -> str:
 def simhash_similarity(left: str, right: str) -> float:
     """2つの64-bit SimHash間の0.0～1.0類似度を返す。"""
 
-    if not re.fullmatch(r"[0-9a-f]{16}", left) or not re.fullmatch(
-        r"[0-9a-f]{16}", right
-    ):
+    if not re.fullmatch(r"[0-9a-f]{16}", left) or not re.fullmatch(r"[0-9a-f]{16}", right):
         raise ValueError("simhash must be a 16-character hexadecimal value")
     distance = (int(left, 16) ^ int(right, 16)).bit_count()
     return round(1.0 - (distance / 64.0), 6)
 
 
-def _string_list(value: Any, *, limit: int = 256) -> list[str]:
+def _string_list(value: Any, *, limit: int | None = None) -> list[str]:
     if not isinstance(value, list):
         return []
     output = []
@@ -124,8 +126,8 @@ def _string_list(value: Any, *, limit: int = 256) -> list[str]:
         if isinstance(item, (str, int, float)):
             rendered = _redact_public_text(str(item)).strip()
             if rendered:
-                output.append(rendered[:500])
-        if len(output) >= limit:
+                output.append(rendered)
+        if limit is not None and len(output) >= limit:
             break
     return output
 
@@ -139,7 +141,7 @@ def _extract_calls(value: str) -> list[str]:
         normalized = "<auto>" if AUTO_SYMBOL_RE.fullmatch(lowered) else lowered
         if normalized not in output:
             output.append(normalized)
-    return output[:256]
+    return output
 
 
 def _structural_identifier(value: str, *, prefix: str) -> str:
@@ -193,16 +195,10 @@ def normalize_function_record(record: Mapping[str, Any], index: int) -> dict[str
     function_id = str(record.get("function_id") or f"{name}@{address}")
     steps = _string_list(record.get("logic_steps_ja") or record.get("logic_steps"))
     role = str(record.get("role") or "unclassified")
-    summary = _redact_public_text(
-        str(record.get("summary_ja") or "処理内容は関数単位の追加レビューが必要です。")
-    )[:1000]
+    summary = _redact_public_text(str(record.get("summary_ja") or "処理内容は関数単位の追加レビューが必要です。"))
     callees = _string_list(record.get("callees"))
     api_calls = _string_list(record.get("api_calls"))
-    explicit_pseudocode = (
-        record.get("pseudocode")
-        or record.get("logic_text")
-        or record.get("normalized_logic")
-    )
+    explicit_pseudocode = record.get("pseudocode") or record.get("logic_text") or record.get("normalized_logic")
     pseudocode = (
         str(explicit_pseudocode)
         if explicit_pseudocode
@@ -230,8 +226,8 @@ def normalize_function_record(record: Mapping[str, Any], index: int) -> dict[str
         "logic_steps_ja": steps,
         "callers": _string_list(record.get("callers")),
         "callees": callees,
-        "api_calls": api_calls[:256],
-        "constants": _string_list(record.get("constants"), limit=64),
+        "api_calls": api_calls,
+        "constants": _string_list(record.get("constants")),
         "control_flow": (
             dict(record["control_flow"])
             if isinstance(record.get("control_flow"), Mapping)
@@ -239,19 +235,109 @@ def normalize_function_record(record: Mapping[str, Any], index: int) -> dict[str
         ),
         "fingerprints": {
             "normalized_logic_sha256": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
-            "semantic_sequence_sha256": hashlib.sha256(
-                "\n".join(tokens).encode("utf-8")
-            ).hexdigest(),
+            "semantic_sequence_sha256": hashlib.sha256("\n".join(tokens).encode("utf-8")).hexdigest(),
             "semantic_simhash64": _simhash64(tokens),
             "semantic_token_count": len(tokens),
         },
-        "normalized_logic": normalized[:4000],
+        "normalized_logic": normalized,
         "raw_pseudocode_exported": False,
+        "selection": {
+            "selected": record.get("selected_for_characteristic_analysis") is True,
+            "score": int(record.get("selection_score") or 0),
+            "reasons": _string_list(record.get("selection_reasons")),
+        },
         "evidence": {
             "source": str(record.get("source") or "analyst_review"),
             "tool": str(record.get("tool") or "unknown"),
             "program_selector": str(record.get("program_selector") or "not_recorded"),
             "confidence": str(record.get("confidence") or "review_required"),
+        },
+    }
+
+
+def normalize_processing_unit(record: Mapping[str, Any], index: int) -> dict[str, Any]:
+    """既存成果物から復元した処理単位を、関数recordと分離して標準化する。"""
+
+    unit_id = str(record.get("unit_id") or f"processing_unit_{index:04d}")
+    role = str(record.get("role") or "static_evidence")
+    summary = _redact_public_text(str(record.get("summary_ja") or "既存の静的解析成果物から復元した処理単位です。"))
+    steps = _string_list(record.get("logic_steps_ja") or record.get("logic_steps"))
+    return {
+        "unit_id": unit_id,
+        "role": role,
+        "summary_ja": summary,
+        "logic_steps_ja": steps,
+        "source_artifacts": _string_list(record.get("source_artifacts")),
+        "evidence_type": str(record.get("evidence_type") or "repository_static_artifact"),
+        "confidence": str(record.get("confidence") or "inferred_from_existing_static_artifact"),
+        "code_similarity_eligible": False,
+    }
+
+
+def normalize_program_evidence(record: Mapping[str, Any], index: int) -> dict[str, Any]:
+    """Ghidra MCPの無害化済みprogram構造をcase成果物へ取り込む。"""
+
+    entries = []
+    for item in record.get("entry_points", []):
+        if not isinstance(item, Mapping):
+            continue
+        entries.append(
+            {
+                "name": str(item.get("name") or "unknown"),
+                "address": str(item.get("address") or "unknown"),
+                "kind": str(item.get("kind") or "unknown"),
+            }
+        )
+        if len(entries) >= 64:
+            break
+    hashes = []
+    for item in record.get("function_hashes", []):
+        if not isinstance(item, Mapping):
+            continue
+        digest = str(item.get("hash") or "").casefold()
+        instruction_count = int(item.get("instruction_count") or 0)
+        if not SHA256_RE.fullmatch(digest) or instruction_count < 1 or digest == hashlib.sha256(b"").hexdigest():
+            continue
+        hashes.append(
+            {
+                "name": str(item.get("name") or "unknown"),
+                "address": str(item.get("address") or "unknown"),
+                "hash": digest,
+                "instruction_count": instruction_count,
+                "has_custom_name": bool(item.get("has_custom_name")),
+            }
+        )
+        if len(hashes) >= 512:
+            break
+    coverage = record.get("function_hash_coverage")
+    return {
+        "program_id": str(record.get("program_id") or f"program_{index:04d}"),
+        "program_selector": str(record.get("program_selector") or "not_recorded"),
+        "relationship": str(record.get("relationship") or "root_or_recovered_program"),
+        "name": str(record.get("name") or "unknown"),
+        "architecture": str(record.get("architecture") or "unknown"),
+        "compiler": str(record.get("compiler") or "unknown"),
+        "language": str(record.get("language") or "unknown"),
+        "endian": str(record.get("endian") or "unknown"),
+        "address_size": str(record.get("address_size") or "unknown"),
+        "base_address": str(record.get("base_address") or "unknown"),
+        "memory_blocks": int(record.get("memory_blocks") or 0),
+        "total_memory_size": int(record.get("total_memory_size") or 0),
+        "function_count": int(record.get("function_count") or 0),
+        "ghidra_function_count": int(record.get("ghidra_function_count") or 0),
+        "managed_method_count": int(record.get("managed_method_count") or 0),
+        "mcp_responses_valid": record.get("mcp_responses_valid") is True,
+        "symbol_count": int(record.get("symbol_count") or 0),
+        "entry_points": entries,
+        "imports": _string_list(record.get("imports")),
+        "retrieval_coverage": (
+            dict(record["retrieval_coverage"]) if isinstance(record.get("retrieval_coverage"), Mapping) else {}
+        ),
+        "function_hashes": hashes,
+        "function_hash_coverage": (dict(coverage) if isinstance(coverage, Mapping) else {}),
+        "evidence": {
+            "source": "ghidra-mcp",
+            "confidence": str(record.get("confidence") or "confirmed_program_structure"),
         },
     }
 
@@ -281,8 +367,14 @@ def _logic_steps_for_script(body: str) -> list[str]:
         (r"(?i)\baes(?:-cbc|-gcm)?\b", "AES関連の復号・暗号処理を含みます。"),
         (r"(?i)\bxor\b|\^", "XORを用いる変換処理を含みます。"),
         (r"(?i)powershell", "PowerShell処理を構築または呼び出します。"),
-        (r"(?i)process\.start|start-process|shellexecute|wscript\.shell", "子processまたはshellを起動する処理を含みます。"),
-        (r"(?i)download|stringdownload|webclient|invoke-webrequest|curl|wget", "外部resourceを取得する処理を含みます。"),
+        (
+            r"(?i)process\.start|start-process|shellexecute|wscript\.shell",
+            "子processまたはshellを起動する処理を含みます。",
+        ),
+        (
+            r"(?i)download|stringdownload|webclient|invoke-webrequest|curl|wget",
+            "外部resourceを取得する処理を含みます。",
+        ),
         (r"(?i)regwrite|currentversion\\run|schtasks|startup", "永続化に関係する設定変更を含みます。"),
         (r"(?i)virtualalloc|writeprocessmemory|createremotethread", "memory確保またはprocess注入APIを扱います。"),
     )
@@ -312,9 +404,9 @@ def extract_script_function_records(data: bytes, source_name: str) -> list[dict[
         for index, match in enumerate(definitions):
             name = next(value for value in match.groups() if value)
             end = definitions[index + 1].start() if index + 1 < len(definitions) else len(text)
-            spans.append((name, text[match.start() : end][:100_000]))
+            spans.append((name, text[match.start() : end]))
     else:
-        spans.append(("script_top_level", text[:200_000]))
+        spans.append(("script_top_level", text))
     return [
         {
             "function_id": f"script:{name}",
@@ -331,7 +423,7 @@ def extract_script_function_records(data: bytes, source_name: str) -> list[dict[
             "program_selector": "not_applicable",
             "confidence": "automated_static_structure",
         }
-        for name, body in spans[:512]
+        for name, body in spans
     ]
 
 
@@ -342,6 +434,8 @@ def build_static_logic_report(
     source_name: str,
     data: bytes | None = None,
     records: Iterable[Mapping[str, Any]] | None = None,
+    processing_units: Iterable[Mapping[str, Any]] | None = None,
+    program_evidence: Iterable[Mapping[str, Any]] | None = None,
     analysis_source: str = "one_shot_static_analysis",
 ) -> dict[str, Any]:
     """reviewed recordまたはscript構造からcase単位のロジック成果物を構築する。"""
@@ -359,6 +453,16 @@ def build_static_logic_report(
         for index, record in enumerate(source_records, start=1)
         if isinstance(record, Mapping)
     ]
+    normalized_units = [
+        normalize_processing_unit(record, index)
+        for index, record in enumerate(processing_units or [], start=1)
+        if isinstance(record, Mapping)
+    ]
+    normalized_programs = [
+        normalize_program_evidence(record, index)
+        for index, record in enumerate(program_evidence or [], start=1)
+        if isinstance(record, Mapping)
+    ]
     aliases: dict[str, str] = {}
     for item in functions:
         for alias in (
@@ -373,15 +477,13 @@ def build_static_logic_report(
             (item["function_id"], aliases[callee.casefold()])
             for item in functions
             for callee in item["callees"]
-            if callee.casefold() in aliases
-            and aliases[callee.casefold()] != item["function_id"]
+            if callee.casefold() in aliases and aliases[callee.casefold()] != item["function_id"]
         }
         | {
             (aliases[caller.casefold()], item["function_id"])
             for item in functions
             for caller in item["callers"]
-            if caller.casefold() in aliases
-            and aliases[caller.casefold()] != item["function_id"]
+            if caller.casefold() in aliases and aliases[caller.casefold()] != item["function_id"]
         }
     )
     review_complete = bool(functions) and all(
@@ -398,6 +500,16 @@ def build_static_logic_report(
             "関数境界、call graph、逆コンパイル結果はまだ記録されていません。",
             "binaryはGhidra MCP等による明示的な関数レビューが必要です。",
         ]
+        if normalized_units:
+            limitations.insert(
+                0,
+                "既存成果物から処理単位を補完しましたが、関数境界や逆コンパイル本文の確認結果ではありません。",
+            )
+        if normalized_programs:
+            limitations.insert(
+                0,
+                "Ghidra MCPでprogram構造と関数hashを確認しましたが、関数の役割と処理順は未レビューです。",
+            )
     elif automated:
         status = "automated_script_structure"
         limitations = [
@@ -412,9 +524,7 @@ def build_static_logic_report(
         ]
     else:
         status = "reviewed_function_logic"
-        limitations = [
-            "fingerprint一致はコード共有の手掛かりであり、同一actorや同一campaignを単独では証明しません。"
-        ]
+        limitations = ["fingerprint一致はコード共有の手掛かりであり、同一actorや同一campaignを単独では証明しません。"]
     return {
         "schema_version": SCHEMA_VERSION,
         "case_id": f"sha256:{digest}",
@@ -425,13 +535,16 @@ def build_static_logic_report(
         "coverage": {
             "function_count": len(functions),
             "call_edge_count": len(call_edges),
+            "processing_unit_count": len(normalized_units),
+            "ghidra_program_count": len(normalized_programs),
+            "ghidra_function_hash_count": sum(len(item["function_hashes"]) for item in normalized_programs),
             "function_bodies_reviewed": bool(functions and not automated and review_complete),
             "call_graph_recorded": bool(call_edges),
         },
         "functions": functions,
-        "call_edges": [
-            {"caller": caller, "callee": callee} for caller, callee in call_edges
-        ],
+        "processing_units": normalized_units,
+        "program_evidence": normalized_programs,
+        "call_edges": [{"caller": caller, "callee": callee} for caller, callee in call_edges],
         "limitations": limitations,
         "safety": {
             "sample_executed": False,
@@ -454,7 +567,10 @@ def render_static_logic_markdown(report: Mapping[str, Any]) -> str:
         "",
         f"- 状態: `{report['status']}`",
         f"- ファミリー: `{report['family']}`",
-        f"- 関数・処理単位: {report['coverage']['function_count']}",
+        f"- レビュー済み関数: {report['coverage']['function_count']}",
+        f"- 補完した処理単位: {report['coverage']['processing_unit_count']}",
+        f"- Ghidraプログラム: {report['coverage']['ghidra_program_count']}",
+        f"- Ghidra関数hash: {report['coverage']['ghidra_function_hash_count']}",
         f"- 呼出関係: {report['coverage']['call_edge_count']}",
         "",
         "## 関数一覧",
@@ -496,7 +612,84 @@ def render_static_logic_markdown(report: Mapping[str, Any]) -> str:
     lines.extend(["", "## 制約", ""])
     lines.extend(f"- {item}" for item in report.get("limitations", []))
     lines.append("")
-    return "\n".join(lines)
+    processing_units = report.get("processing_units") or []
+    lines.extend(
+        [
+            "## 既存成果物から補完した処理単位",
+            "",
+            f"補完した処理単位は{len(processing_units)}件です。関数境界の確認結果とは分離しています。",
+            "",
+        ]
+    )
+    if processing_units:
+        for unit in processing_units:
+            lines.extend(
+                [
+                    f"### `{unit['unit_id']}`",
+                    "",
+                    f"- 役割: `{unit['role']}`",
+                    f"- 要約: {unit['summary_ja']}",
+                    f"- 確度: `{unit['confidence']}`",
+                    f"- 根拠: {', '.join(f'`{item}`' for item in unit['source_artifacts']) or '未記録'}",
+                    "",
+                ]
+            )
+            if unit["logic_steps_ja"]:
+                lines.extend(f"{index}. {step}" for index, step in enumerate(unit["logic_steps_ja"], start=1))
+                lines.append("")
+    else:
+        lines.extend(["- 補完可能な処理単位はありません。", ""])
+    programs = report.get("program_evidence") or []
+    lines.extend(["## Ghidra program構造", ""])
+    if programs:
+        lines.extend(
+            [
+                "| program selector | 関係 | 言語 | 関数数 | 記録hash数 | entrypoint |",
+                "|---|---|---|---:|---:|---|",
+            ]
+        )
+        for program in programs:
+            entries = (
+                ", ".join(f"`{item['name']}@{item['address']}`" for item in program["entry_points"][:8]) or "未記録"
+            )
+            lines.append(
+                f"| `{program['program_selector']}` | `{program['relationship']}` | "
+                f"`{program['language']}` | {program['function_count']} | "
+                f"{len(program['function_hashes'])} | {entries} |"
+            )
+        hash_rows = [(program, function_hash) for program in programs for function_hash in program["function_hashes"]]
+        if hash_rows:
+            lines.extend(
+                [
+                    "",
+                    "### 上限付き関数hash",
+                    "",
+                    "| program selector | 関数 | address | 命令数 | opcode SHA-256 |",
+                    "|---|---|---|---:|---|",
+                ]
+            )
+            for program, function_hash in hash_rows:
+                selector = str(program["program_selector"]).replace("|", "\\|")
+                name = str(function_hash["name"]).replace("|", "\\|")
+                lines.append(
+                    f"| `{selector}` | `{name}` | `{function_hash['address']}` | "
+                    f"{function_hash['instruction_count']} | `{function_hash['hash']}` |"
+                )
+        lines.extend(
+            [
+                "",
+                "関数hashはopcode構造の一致候補を探す材料であり、役割、同一ファミリー、",
+                "同一campaignを単独では確定しません。",
+                "",
+            ]
+        )
+    else:
+        lines.extend(["- Ghidra MCPのprogram構造は未記録です。", ""])
+    return re.sub(
+        r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]",
+        lambda match: f"\\u{ord(match.group()):04x}",
+        "\n".join(lines),
+    )
 
 
 def load_function_records(path: Path) -> list[Mapping[str, Any]]:

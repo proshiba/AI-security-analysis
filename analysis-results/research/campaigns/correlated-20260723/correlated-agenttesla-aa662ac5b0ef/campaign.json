@@ -1,0 +1,28 @@
+{
+  "campaign_id": "correlated-agenttesla-aa662ac5b0ef",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "agenttesla"
+  ],
+  "members": [
+    "1fe1d42d293627441517749d73857f49a27224933844bd9cf512de12045e75ed",
+    "efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "url",
+      "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/yipui",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 7,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

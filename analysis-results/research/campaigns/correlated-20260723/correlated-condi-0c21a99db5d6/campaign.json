@@ -1,0 +1,28 @@
+{
+  "campaign_id": "correlated-condi-0c21a99db5d6",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "condi"
+  ],
+  "members": [
+    "18cbee63748bff047d7d51ebc934409f8cb3ba1ea814daae638122272de1a314",
+    "c1dd7a5673962d108ec8d1b12b50604a134cc52cc95de6c3bbf680198e8f9cb6"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "jkqhdbbbqwiujkaz.hopto.org:69",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 7,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

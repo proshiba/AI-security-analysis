@@ -1,0 +1,156 @@
+{
+  "campaign_id": "correlated-unclassified-70f6c8da86de",
+  "families": [
+    "unclassified"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "1.ib"
+    },
+    {
+      "type": "domain",
+      "value": "2.rqj"
+    },
+    {
+      "type": "domain",
+      "value": "5.su"
+    },
+    {
+      "type": "domain",
+      "value": "8.fb"
+    },
+    {
+      "type": "domain",
+      "value": "8.uch"
+    },
+    {
+      "type": "domain",
+      "value": "a.dw"
+    },
+    {
+      "type": "domain",
+      "value": "b.rr"
+    },
+    {
+      "type": "domain",
+      "value": "b.uah"
+    },
+    {
+      "type": "domain",
+      "value": "bce.eo"
+    },
+    {
+      "type": "domain",
+      "value": "bp.myt"
+    },
+    {
+      "type": "domain",
+      "value": "e.qr"
+    },
+    {
+      "type": "domain",
+      "value": "f.bf"
+    },
+    {
+      "type": "domain",
+      "value": "g.kw"
+    },
+    {
+      "type": "domain",
+      "value": "hw.ywf"
+    },
+    {
+      "type": "domain",
+      "value": "i.cr"
+    },
+    {
+      "type": "domain",
+      "value": "ic.lh"
+    },
+    {
+      "type": "domain",
+      "value": "m.jcc"
+    },
+    {
+      "type": "domain",
+      "value": "m.kq"
+    },
+    {
+      "type": "domain",
+      "value": "n.vd"
+    },
+    {
+      "type": "domain",
+      "value": "ng.if"
+    },
+    {
+      "type": "domain",
+      "value": "ng.spq"
+    },
+    {
+      "type": "domain",
+      "value": "o.ox"
+    },
+    {
+      "type": "domain",
+      "value": "p.yxc"
+    },
+    {
+      "type": "domain",
+      "value": "q.tw"
+    },
+    {
+      "type": "domain",
+      "value": "r.ml"
+    },
+    {
+      "type": "domain",
+      "value": "sfxrar.pdb"
+    },
+    {
+      "type": "domain",
+      "value": "shell.explorer"
+    },
+    {
+      "type": "domain",
+      "value": "t.ct"
+    },
+    {
+      "type": "domain",
+      "value": "u.ag"
+    },
+    {
+      "type": "domain",
+      "value": "vo.js"
+    },
+    {
+      "type": "domain",
+      "value": "vv.mi"
+    },
+    {
+      "type": "domain",
+      "value": "x.cev"
+    },
+    {
+      "type": "domain",
+      "value": "x.vy"
+    },
+    {
+      "type": "domain",
+      "value": "y.tf"
+    },
+    {
+      "type": "domain",
+      "value": "z.hw"
+    },
+    {
+      "type": "domain",
+      "value": "z.pq"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

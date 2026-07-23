@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://skinnyjeanso.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://titnovacrion.top/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    }
+  ]
+}

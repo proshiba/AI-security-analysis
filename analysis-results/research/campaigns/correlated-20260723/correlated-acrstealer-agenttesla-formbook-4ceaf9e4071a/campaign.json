@@ -1,0 +1,3495 @@
+{
+  "campaign_id": "correlated-acrstealer-agenttesla-formbook-4ceaf9e4071a",
+  "classification": "cross_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "acrstealer",
+    "agenttesla",
+    "formbook",
+    "guloader",
+    "snakekeylogger",
+    "unclassified",
+    "valleyrat",
+    "venomrat",
+    "vidar"
+  ],
+  "members": [
+    "1220d2250778f214b8ef2d37cf6c0904fb6080a42ad4e1e9bd253f84c8e7e10e",
+    "14ac0c55100d957d1b198583461b2605e6e72c2538039b54c538dc7e356ddce3",
+    "32b222165a61978b9d981cbd77eee2c24d7d366021ad3abfcfcd052d7a6e8d4e",
+    "46b70348d87262640dd2510b0b6c2d0d9ba9ea1de135c7112405fdf7d08a7efd",
+    "46f61eee6e2ab0bbbb1872139ea56d87c2427bd4fbfc540329fdc7530914a160",
+    "4d096a4d27f59f46ba928179f912d8df4467b32a7a7ecf70fac63f0d97fc5edf",
+    "59c292aaa6b81e0de85fd7f463c7042f680c49e00f7e0027e6d0940a0fc88d9e",
+    "6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8",
+    "7c9a76145f39a052020aed4eb60927ad678c792c15bdf4f192d36a569e0457f8",
+    "7f74240c041dde0a5a11382cd2142e22d7fcea25bc48566c98b1e153388f8cc6",
+    "864b83647942f5dec0746fb5a40cdcc661bbbceea0b8cbe5df0beb9f30c30d0f",
+    "93988577e3e325cdb5d1a136d08e6e92572014ad8bbc6f0b6220e456c593270b",
+    "942f2668e6611ce547411ba1a04224aefe461acf710f29a9ce7663607a125b41",
+    "9992545ef435706e582bd516988195df8bae9985ff70d30ea2c20dc5206dfe3b",
+    "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+    "b134896ab4f8a75cb79f559a1f3aa65b5cae52a3c39fb95ac8371d600c2c92a9",
+    "b24fefefe8a95d6a765caff9b0ae40ed480dfdbfe2e5a46848b1a9d895ec83e3",
+    "b811dce1aae1c0e0da249d5eb19dfd5b2640214627c9603b97f6f79c25a22e97",
+    "c118f7037676c76b39d05c16c337158c0d714decee91af1c44f41c899233b265",
+    "c4b117f30786d0b328d90c2818e4c454e81d29ed5921d8f8847e80333a12ee86",
+    "d0285d9b5584f7af316b695a7a45f65c7a7f1c83dca76e4029ddfb97bce25049",
+    "daf8f37785d226524b5403bc24e018955f01d5d2ce7d0952cb74c18bd79d09be",
+    "f12c120af203e20c35f019ff8eefc52a3cc5fae18b4a55e9a8c835d6ee88f098",
+    "f5205c1729935d440fb9a9165d51ad78629f60b6d79da9a33ee445ce02e42570"
+  ],
+  "member_count": 24,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "0xlab.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "3system.resources.tools.stronglytypedresourcebui",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "abilitiessoft.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ail.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "altlinux.ru",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "android-gifview.googlecode.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "android.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "aomedia.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-arm.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-ia32.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler-x64.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "assembler.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "b.ntl",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bbrox.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "beto-core.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "bitbucket.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "blakeembrey.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "boringssl.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cacerts.digicert.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "cgit.freedesktop.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "checkerframework.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "chromium.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cla.developers.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "cldr.unicode.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "code.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "code.videolan.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "courtesan.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "crashpad.chromium.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "creativecommons.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "crl.globalsign.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "crl3.digicert.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "cryptsoft.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ctrio.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "daringfireball.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "datanerds.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "datatracker.ietf.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dawn.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "devel.freebsoft.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.android.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.intel.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developer.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "developers.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicertassuredidrootca.crl",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "digicertassuredidrootca.crt",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crl",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedg4timestampingrsa4096sha2562025ca1.crt",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedrootg4.crl",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "digicerttrustedrootg4.crt",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "drijf.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dsrootbeer.xsd",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "dxr.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "eigen.tuxfamily.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "elecard.net.ru",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "en.wikipedia.org",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "fedorahosted.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ffmpeg.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "findbugs.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "firebase.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freebsd.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freedesktop.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "freetype.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "fsf.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "g.co",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "git.gnome.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "git.linuxtv.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "github.com",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "gitlab.freedesktop.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gitlab.xiph.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gmail.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "gramner.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "gzip.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "harfbuzz.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "hsystem.drawing.bitmap",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "hunspell.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "icu-project.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ieee754.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "intel.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ithinksw.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jelloween.deviantart.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jinja.palletsprojects.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "joyent.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jquery.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "jquery.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "kmicrosoft.visualstudio.editors.settingsdesigner.settingssinglefilegenera",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "kotlinlang.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "labs.creativecommons.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lao-dictionary.googlecode.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libcxx.llvm.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libcxxabi.llvm.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libevent.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libpng.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "libusb.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "llvm.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lsystem.resources.resourcereader",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "ltp.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lubutu.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "lxr.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mansr.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.codeanalysis",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.visualbasic",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "microsoft.visualbasic.compilerservices",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "minilop.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mips.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "modartt.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "modp.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "monkey.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "muppetlabs.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "mxr.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "myapplication.app",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "narod.ru",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "netbsd.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "netsplit.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nodejs.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nongnu.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ns.adobe.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nsis.sf.net",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "nsurlparsers.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "nullsoft.nsis.exehead",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "ocsp.digicert.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "ocsp.globalsign.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "one.ru",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "openbsd.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "opensource.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "oss.sgi.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "paint.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "parse.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "planet-d.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "polymer-library.polymer-project.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "python.org",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "qsystem.drawing",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "quiche.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "quirkster.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "raw.githubusercontent.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "redhat.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "registry.npmjs.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties.resources",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "rootbeerfloat.properties.resources.resources",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "scripts.sil.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "searchfox.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "secure.globalsign.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "semiconductor.samsung.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sigmasoft.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sites.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "skal.planet-d.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "skia.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "software.blackmagicdesign.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "softweyr.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.android.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.chromium.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.corp.google.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "source.icu-project.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sourceware.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sqlite.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "src.chromium.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "sussystem.runtime.interopservices.charset",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "swiftshader.googlesource.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.codedom.compiler",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.collections",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.collections.generic",
+      "support": 8
+    },
+    {
+      "type": "domain",
+      "value": "system.componentmodel",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.configuration",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.core",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.data",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.diagnostics",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.bitmap",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.drawing",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.drawing.imaging",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.globalization",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.io",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.io.compression",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.linq",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.object",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.reflection",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.reflection.emit",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.resources",
+      "support": 7
+    },
+    {
+      "type": "domain",
+      "value": "system.resources.runtimeresourceset",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.compilerservices",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.interopservices",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.remoting",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.serialization",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.runtime.versioning",
+      "support": 9
+    },
+    {
+      "type": "domain",
+      "value": "system.security",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.security.cryptography",
+      "support": 4
+    },
+    {
+      "type": "domain",
+      "value": "system.security.cryptography.aescryptoserviceprovider",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "system.security.permissions",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.security.permissions.securitypermissionattrib",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.text",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.threading",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "system.threading.tasks",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "system.windows.forms",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "tempuri.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "ti.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "timepedia.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "tukaani.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "uk.sun.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "unity3d.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "unlicense.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "users.sourceforge.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "utf.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "utils.cc",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "uun.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "valgrind.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "webkit.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "website-archive.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.7-zip.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.apache.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.apple.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.azillionmonkeys.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.chromium.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.dabeaz.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.daemonology.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.digicert.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.elecard.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.epistemex.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.freedesktop.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.freetype.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.globalsign.com",
+      "support": 3
+    },
+    {
+      "type": "domain",
+      "value": "www.gnu.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.gutenberg.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.ijg.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.jjb-software.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.khronos.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.linux-usb.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.linuxvideo.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.logilab.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mesa3d.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mojohaus.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.mozilla.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.netlib.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.nongnu.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.npmjs.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openh264.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openjsf.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.opensource.apple.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.opensource.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.openssl.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.ploscompbiol.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.pylint.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.samsung.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.strongtalk.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.suitable.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.swift.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.tex-tipografia.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.torchmobile.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.unicode.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.viewplus.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.w3.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "www.webrtc.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "x.tmp",
+      "support": 5
+    },
+    {
+      "type": "domain",
+      "value": "x264.com",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xiph.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xmlsoft.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "xvid.org",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "z.fr",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "zlib.net",
+      "support": 2
+    },
+    {
+      "type": "domain",
+      "value": "zoy.org",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:56",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:57",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:66",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:70",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:82",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.did:8636",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.iid:12665",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "xmp.iid:66",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "ftp://sourceware.org/pub/newlib/newlib-2.0.0.tar.gz",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://android-gifview.googlecode.com/svn/!svn/bc/8/trunk/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://brltty.app/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicertassuredidrootca.crt0e",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crt0_",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://cacerts.digicert.com/digicerttrustedrootg4.crt0c",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://casper.beckman.uiuc.edu/~c-tsai4",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cgit.freedesktop.org/xorg/xserver/tree/copying",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://chasen.aist-nara.ac.jp/chasen/distribution.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cldr.unicode.org/index/downloads",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/angleproject/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/atinject/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/data-race-test/wiki/dynamicannotations",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/google-axs-chrome/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/google-jstemplate/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/lao-dictionary/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/libyuv/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/pdfium/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/smhasher/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/v8",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://code.google.com/p/y2038",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://cristal.univ-lille.fr/~casiez/1euro/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/codesigningrootr45.crl0v",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/gsgccr45codesignca2020.crl0",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/root-r3.crl0g",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl.globalsign.com/root.crl0g",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicertassuredidrootca.crl0",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicerttrustedg4timestampingrsa4096sha2562025ca1.crl0",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://crl3.digicert.com/digicerttrustedrootg4.crl0",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ctrio.sourceforge.net/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://daringfireball.net/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://devel.freebsoft.org/speechd",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/ndk/index.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/sdk/index.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.android.com/tools/extras/support-library.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.intel.com/vtune/cbts/strmsimd/922down.htm",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.intel.com/vtune/cbts/strmsimd/appnotes.htm",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://developer.mozilla.org/en-us/docs/accessibility/at-apis",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://eigen.tuxfamily.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://en.wikipedia.org/wiki/mit_license",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://fedorahosted.org/lohit&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ffmpeg.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://findbugs.sourceforge.net/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://freedesktop.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://freetype.sourceforge.net/license.html:",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://fsf.org/&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://git.linuxtv.org/v4l-utils.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://github.com/google/closure-compiler",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://google.github.io/snappy/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://harfbuzz.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://hunspell.sourceforge.net/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://icu-project.org/userguide/icufaq.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://jquery.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://labs.creativecommons.org/licenses/zero-waive/1.0/us/legalcode&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary-license.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lao-dictionary.googlecode.com/git/lao-dictionary.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lcamtuf.coredump.cx/afl/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libcxx.llvm.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libcxxabi.llvm.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libevent.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libpng.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://libusb.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://llvm.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://llvm.org/docs/libfuzzer.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ltp.sourceforge.net/coverage/lcov.php",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://lxr.mozilla.org/mozilla/source/toolkit/mozapps/update/src/updater/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://modp.com/release/base64",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://mozilla.org/mpl/2.0/",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://mxr.mozilla.org/comm-central/source/mozilla/netwerk/base/src/nsurlparsers.cpp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/mm/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://ns.adobe.com/xap/1.0/stype/resourceref",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://nsis.sf.net/nsis_error",
+      "support": 8
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0/",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0a/",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.digicert.com0c/",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/codesigningrootr450f",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/gsgccr45codesignca20200v",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/rootr103",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://ocsp.globalsign.com/rootr30",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://opensource.org/licenses/bsd-license.php",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://opensource.perlig.de/rjsmin/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://oss.sgi.com/projects/freeb/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://python.org/dev/peps/pep-0263/",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://scripts.sil.org/ofl",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/codesigningrootr45.crt0a",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/gsgccr45codesignca2020.crt0=",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://secure.globalsign.com/cacert/root-r3.crt06",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://skal.planet-d.net/coding/dct.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://software.blackmagicdesign.com/decklink/v10.7/blackmagic_decklink_sdk_10.7.zip",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.android.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.android.com/compatibility",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://source.icu-project.org/repos/icu/icu/trunk/license.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://sourceware.org/ml/newlib/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://sourceware.org/newlib/docs.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://src.chromium.org/viewvc/chrome/trunk/deps/third_party/xz/copying",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://tempuri.org/dsrootbeer.xsd",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://tukaani.org/xz/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://unlicense.org/&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://valgrind.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://webkit.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://website-archive.mozilla.org/www.mozilla.org/mpl/mpl/npl/1.1/):",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.7-zip.org/sdk.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/licenses/",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.apache.org/licenses/license-2.0",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://www.apple.com/legal/guidelinesfor3rdparties.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.azillionmonkeys.com/qed/hash.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.chromium.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.chromium.org/blink",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.cisl.ucar.edu/css/software/fftpack5/ftpk.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.dabeaz.com/ply/ply-3.11.tar.gz",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.daemonology.net/bsdiff/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.elecard.com/peter/idct.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freedesktop.org/wiki/software/systemd/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freedesktop.org/wiki/software/xdg-user-dirs",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.freetype.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/copyleft/lesser.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/licenses/&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/licenses/gpl.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gnu.org/philosophy/why-not-lgpl.html&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.gutenberg.org/ebooks/53",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.ijg.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.khronos.org/registry",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.kurims.kyoto-u.ac.jp/~ooura/fft.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.linux-usb.org/usb-ids.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.linuxvideo.org/mpeg2dec/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.logilab.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mesa3d.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mojohaus.org/animal-sniffer/animal-sniffer-annotations/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/2.0/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/mpl/2.0/faq.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/npl/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/projects/nspr/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.mozilla.org/projects/security/pki/nss/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.netlib.org/fdlibm/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.nongnu.org/freebangfont/downloads.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.openh264.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.apple.com/apsl/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.org/licenses/bsd-license.php",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.opensource.org/licenses/mit-license.php",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.openssl.org/)&quot",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.ploscompbiol.org/static/license",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.pylint.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.strongtalk.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/tools/smslib.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.suitable.com/tools/smslib.html&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.tex-tipografia.com/spanish_hyphen.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.torchmobile.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/cldr/data/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/copyright.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/public/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/public/zipped/9.0.0/ucd.zip",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.unicode.org/reports/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://www.webrtc.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://xmlsoft.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://xmlsoft.org/xslt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://zlib.net/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/cts/+/master/tests/tests/provider/src/android/provider/cts/mediastoreutils.java",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/development/+/b356564/samples/support4demos/src/com/example/android/supportv4/media/mediacontroller.java",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/hyphenation-patterns/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/perfetto/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/puffin",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/external/setupdesign/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/frameworks/base",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://android.googlesource.com/platform/frameworks/support",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://aomedia.googlesource.com/aom/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://aomedia.googlesource.com/libavifinfo/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bazaar.abuse.ch/browse/tag/acrstealer/",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://beto-core.googlesource.com/beto-core",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://bitbucket.org/jpommier/pffft/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://boringssl.googlesource.com/boringssl",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://checkerframework.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/breakpad/breakpad",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/cast_core/public",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromium/src/+/head/third_party/liburlpattern",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromium/src/third_party/ipcz",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromiumos/platform/minigbm",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/chromiumos/platform2/libipp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/codecs/libgav1/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/deps/inspector_protocol/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/devtools/devtools-frontend",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/google3/cros_components/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/external/webrtc",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/openscreen",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/vulkan-deps/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libvpx",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libwebm",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://chromium.googlesource.com/webm/libwebp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://cla.developers.google.com/clas",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://code.videolan.org/videolan/dav1d",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://crashpad.chromium.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/compatiblelicenses",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://creativecommons.org/licenses/by/3.0/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1524/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1526/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://datatracker.ietf.org/ipr/1914/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dawn.googlesource.com/dawn",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dejavu-fonts.github.io/download.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developer.android.com/guide/playcore",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developer.android.com/topic/libraries/architecture/index.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developers.google.com/android/guides/setup",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://developers.google.com/ar/develop/java/enable-arcore",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://dxr.mozilla.org/mozilla-central/source/security/manager/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://easylist.to/)&quot",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://easylist.to/easylist/easylist.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://errorprone.info/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://firebase.google.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://fusejs.io/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://git.gnome.org/browse/libsecret/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/aawc/unrar.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/abseil/abseil-cpp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/acornjs/acorn",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/airbnb/lottie-ios.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/airbnb/lottie-web",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/aomediacodec/libavif",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chjj/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chromium/content_analysis_sdk",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/chromium/dom-distiller",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cisco/libsrtp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/client9/stringencoders",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cls/libutf",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/codemirror/codemirror.next/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/codemirror/codemirror/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/cyan4973/xxhash",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/d3/d3",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/dequelabs/axe-core/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/dpranke/pyjson5",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/easylist",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/formatjs/formatjs",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google-ar/arcore-android-sdk",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/anonymous-tokens",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/brotli",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cityhash",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cld3",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/closure-library",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/compact_enc_det",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/cpu_features",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/crc32c",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/crubit",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/dagger",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/diff-match-patch/tree/master/javascript",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/distributed_point_functions",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/double-conversion",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/farmhash",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/flatbuffers",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/gemmlowp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/glog",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/google-api-cpp-client/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/google-toolbox-for-mac",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/gson",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/guava",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/highway",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/j2objc/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/leveldb.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/libaddressinput",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/libprotobuf-mutator",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/maldoca.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/material-design-icons",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/nearby",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/pprof/tree/master/proto",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/private-join-and-compute",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/protobuf",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/re2",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/ruy",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/securemessage",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/shell-encryption",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/ukey2",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/woff2",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/wuffs-mirror-release-c",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/google/xnnpack",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/chromium-bidi/archive/0c27b24785077f8686057571f3395ca6a85cafe0.zip",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/pywebsocket3/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlechromelabs/text-fragments-polyfill",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlefonts/emoji-metadata",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/emoji-segmenter",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/google-input-tools.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlei18n/libphonenumber/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlevr/cardboard",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/googlevr/gvr-android-sdk",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/gpuopen-effects/fidelityfx-spd",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/gpuopen-librariesandsdks/vulkanmemoryallocator",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/grpc/grpc",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/grpc/grpc-java",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/intel/arm_neon_2_x86_sse",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/joyent/libuv",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/joyent/node",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/jquery-ui",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/jquery/blob/master/mit-license.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jquery/sizzle/blob/master/license",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/jrmuizel/qcms/tree/v4",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khaledhosny/ots.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/glslang",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-cross",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-headers.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/spirv-tools.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-headers",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-loader",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-tools",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/khronosgroup/vulkan-validationlayers",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/kotlin/kotlinx.coroutines",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/libexpat/libexpat",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/libjpeg-turbo/libjpeg-turbo/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/liblouis/liblouis",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/linuxa11y/iaccessible2",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/lit/lit",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/fp16",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/fxdiv",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/maratyszcza/pthreadpool",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/markedjs/marked",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-android",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-components/material-components-web-components",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-color-utilities",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-font-disk-loader-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-internationalization-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-roboto-font-loader-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-sprited-animation-view-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-foundation/material-text-accessibility-ios",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-animator-objc",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-interchange-objc",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/material-motion/motion-transitioning-objc",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/microsoft/webauthn/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/mit-plv/fiat-crypto",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/mit-plv/fiat-crypto/blob/master/authors",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/nih-at/libzip",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/nodejs/node",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/open-source-parsers/jsoncpp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/perfmark/perfmark",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/plume-lib/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/protocolbuffers/protobuf/blob/master/java/lite.md",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/puppeteer/puppeteer/tree/main/packages/puppeteer-core",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/puppeteer/replay",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/pytorch/cpuinfo",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rianhunter/zxcvbn-cpp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary/laodict.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/rober42539/lao-dictionary/license.txt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/seleniumhq/selenium/tree/trunk",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/simplejson/simplejson",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/squirrel/squirrel.mac",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/models",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/tensorflow",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/text.git",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/tensorflow/tflite-support",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/annotation-tools",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/jdk",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/typetools/stubparser",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/unicode-org/icu",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/wasdk/wasmparser",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/westes/flex",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/xiph/flac/archive/refs/tags/1.4.2.zip",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/xiph/rnnoise",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://github.com/y-256/libdivsufsort",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/libinput/libei",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/wayland/weston",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xdg/xdgmime",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/lib/libx11",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.freedesktop.org/xorg/proto/xproto/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://gitlab.xiph.org/xiph/opus",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jelloween.deviantart.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jinja.palletsprojects.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://joyent.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://jquery.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://kotlinlang.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://llvm.org/docs/developerpolicy.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://mathiasbynens.be/&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://mozilla.org/mpl/2.0/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://nodejs.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://nuxi.nl/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/bsd-3-clause",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/bsd-3-clause):",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://opensource.org/licenses/zlib",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://pagure.io/lohit",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://pki.goog/roots.pem",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://polymer-library.polymer-project.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://quiche.googlesource.com/quiche",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://raw.githubusercontent.com/googlechrome/accessibility-developer-tools/master/dist/js/axs_testing.js",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://registry.npmjs.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://searchfox.org/mozilla-central/rev/0fec57c05d3996cc00c55a66f20dd5793a9bfb5d/security/manager/ssl/enterpriseroots.cpp",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870evo/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/870qvo/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/internal-ssd/980pro/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/magician/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-shield/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7-touch/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://semiconductor.samsung.com/consumer-storage/portable-ssd/t7/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sites.google.com/site/gaviotachessengine/home/endgame-tablebases-1",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://skia.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://source.android.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://source.corp.google.com/piper///depot/google3/third_party/tamachiyomi/readme.md",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sourceforge.net/project/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sourceforge.net/projects/wtl/files/wtl%2010/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://sqlite.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://swiftshader.googlesource.com/swiftshader",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://unity3d.com/legal/branding_trademarks",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://unity3d.com/legal/licenses/unity_companion_license",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.apache.org/licenses/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.apache.org/licenses/license-2.0",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.freetype.org/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.globalsign.com/repository/0",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://www.gnu.org/licenses/&gt",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.khronos.org/registry/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.nasm.us/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.npmjs.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.opensource.apple.com/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.samsung.com/semiconductor/minisite/ssd/product/consumer/980proheatsink/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.swift.org/download/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.unicode.org/copyright.html",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://www.unicode.org/copyright.html&gt",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [
+    "persistence:registry_access"
+  ],
+  "edge_count": 79,
+  "maximum_pair_score": 2248,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

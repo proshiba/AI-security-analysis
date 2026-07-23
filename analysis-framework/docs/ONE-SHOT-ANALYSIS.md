@@ -30,6 +30,8 @@ python .\analysis-framework\common\analyze_sample.py `
 5. `malware/**` と `extractors/**` にある既存の `extract_config`、`extract`、`analyze`、`extract_directory` 関数をASTで棚卸しし、共通バイト列APIへ適合するか判定する。
 6. いずれかの層で一意に選択されたファミリーの標準解析器だけをimport前検証し、全層へ失敗分離付きで試行する。設定、IOC、ファミリー情報などの静的証拠が最も強い成功結果を採用し、同点ではルートに近い層を優先する。
 7. 結果から資格情報、メールアドレス、URLのuserinfo・query・fragment、復元バイナリ本文を除去してJSONへ保存する。unknown、同確度競合、キャンペーン不一致では特殊解析器を強制しない。
+8. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化hashとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
+9. 挙動・検体特徴profileを作り、登録済みの強いcampaign fingerprintと一致する場合だけ自動labelを付ける。
 
 ## 適用状態
 
@@ -58,6 +60,11 @@ python .\analysis-framework\common\analyze_sample.py `
     classification.json
     applicability.json
     generic-triage.json
+    features.json
+    FEATURES.md
+    static-logic.json
+    STATIC-LOGIC.md
+    campaign-labels.json
     handlers/<family>-<handler-id-hash>.json
 ```
 
@@ -66,9 +73,12 @@ python .\analysis-framework\common\analyze_sample.py `
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
 - `applicability.json`: 全既存解析器の対応状況とimport前検証結果
 - `generic-triage.json`: 形式、hash、entropy、PE／ELF／script構造、未確認の静的IOC候補
+- `features.json`／`FEATURES.md`: IOC値や検知ルールを除いた、機械可読／人向けの挙動・検体特徴
+- `static-logic.json`／`STATIC-LOGIC.md`: 関数／スクリプト単位の役割、処理手順、呼出関係、API、制御フロー、正規化fingerprint、根拠
+- `campaign-labels.json`: 登録済みの強い共有証拠との一致結果。一致なしも明示する
 - `handlers/*.json`: 適用可能なファミリー固有解析器の無害化済み結果、試行層、採用層、証拠score
 
-正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。
+正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。関数ロジックのレビューと類似性判定は[静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴profileとcampaign相関は[検体特徴と攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
 ## 判定だけを行う
 

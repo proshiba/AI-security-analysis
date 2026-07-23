@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://stratimasesstr.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://winarkamaps.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    }
+  ]
+}

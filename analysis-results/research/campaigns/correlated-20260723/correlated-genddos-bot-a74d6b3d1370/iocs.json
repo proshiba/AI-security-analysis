@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "65.222.202.53:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 15
+    },
+    {
+      "type": "endpoint",
+      "value": "genddos.st:6742",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 15
+    },
+    {
+      "type": "ip",
+      "value": "65.222.202.53",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    }
+  ]
+}

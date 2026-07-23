@@ -1,0 +1,33 @@
+{
+  "campaign_id": "correlated-latrodectus-90dd888eada9",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "latrodectus"
+  ],
+  "members": [
+    "b740a321546671ad7ebdf540189cbea05a2307b0033f2e17535c23bb38217a91",
+    "bb7cb5aea4192a035376d380682716235fdb4809d06b63b63d6d6d1061a5c231"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "url",
+      "value": "https://drifajizo.fun/live/",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://scifimond.com/live/",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 9,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

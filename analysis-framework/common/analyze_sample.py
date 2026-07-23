@@ -49,6 +49,16 @@ from handler_catalog import (  # noqa: E402
     load_handler,
     sanitize_public_value,
 )
+from campaign_correlation import (  # noqa: E402
+    extract_campaign_evidence,
+    load_rules,
+    match_fingerprints,
+)
+from case_features import build_case_profile, render_features_markdown  # noqa: E402
+from static_logic import (  # noqa: E402
+    build_static_logic_report,
+    render_static_logic_markdown,
+)
 from malware_io import (  # noqa: E402
     ArchiveValidationError,
     read_single_aes_zip_member,
@@ -63,6 +73,8 @@ MAX_STATIC_LAYERS = 32
 MAX_STATIC_DEPTH = 3
 MAX_RECOVERED_LAYER_SIZE = 64 * 1024 * 1024
 MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
+CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
+CAMPAIGN_FINGERPRINTS = FRAMEWORK_ROOT / "registry" / "campaign_fingerprints.json"
 
 
 @dataclass(frozen=True)
@@ -735,6 +747,53 @@ def analyze_unit(
         ],
     }
     write_json(case_dir / "report.json", report)
+    logic_report = build_static_logic_report(
+        sha256=digest,
+        family=root_selection["selected_family"] or root_classification.get("malware_type"),
+        source_name=unit.source_name,
+        data=None if assessment_only else unit.data,
+    )
+    write_json(case_dir / "static-logic.json", logic_report)
+    (case_dir / "STATIC-LOGIC.md").write_text(
+        render_static_logic_markdown(logic_report), encoding="utf-8"
+    )
+    profile = build_case_profile(case_dir)
+    write_json(case_dir / "features.json", profile)
+    (case_dir / "FEATURES.md").write_text(
+        render_features_markdown(profile), encoding="utf-8"
+    )
+    rules = load_rules(CAMPAIGN_CORRELATION_RULES)
+    evidence = extract_campaign_evidence(case_dir, profile, rules)
+    if CAMPAIGN_FINGERPRINTS.is_file():
+        fingerprints = json.loads(CAMPAIGN_FINGERPRINTS.read_text(encoding="utf-8-sig"))
+    else:
+        fingerprints = {"schema_version": 1, "fingerprints": []}
+    campaign_labels = match_fingerprints(evidence, fingerprints)
+    write_json(
+        case_dir / "campaign-labels.json",
+        {
+            "schema_version": 1,
+            "sha256": digest,
+            "labels": campaign_labels,
+            "status": "matched" if campaign_labels else "no_strong_match",
+            "rule_source": "registry/campaign_fingerprints.json",
+            "executed_sample": False,
+            "network_contacted": False,
+            "safety": {
+                "samples_opened": False,
+                "samples_executed": False,
+                "network_contacted": False,
+            },
+        },
+    )
+    report["knowledge_artifacts"] = {
+        "features": "features.json",
+        "features_markdown": "FEATURES.md",
+        "campaign_labels": "campaign-labels.json",
+        "static_logic": "static-logic.json",
+        "static_logic_markdown": "STATIC-LOGIC.md",
+    }
+    write_json(case_dir / "report.json", report)
     return {
         "sha256": digest,
         "source_name": unit.source_name,
@@ -767,6 +826,11 @@ def load_resumable_case(
         "static-layers.json",
         "classification.json",
         "applicability.json",
+        "features.json",
+        "FEATURES.md",
+        "campaign-labels.json",
+        "static-logic.json",
+        "STATIC-LOGIC.md",
     )
     if any(not (case_dir / name).is_file() for name in required):
         raise ValueError(f"再開対象caseの必須成果物が不足しています: {digest}")

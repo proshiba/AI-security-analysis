@@ -113,3 +113,29 @@ def test_generator_is_reproducible_and_checkable(tmp_path: Path) -> None:
     )
     second = generate(tmp_path, check=True)
     assert second["mismatches"] == []
+
+def test_false_runtime_line_is_not_positive_evidence(tmp_path: Path) -> None:
+    """READMEの`.NET: false`を.NET観測済みへ誤変換しない。"""
+    case = _case(tmp_path)
+    (case / "README.md").write_text(
+        "# fixture\n\n## 概要\n\n- 形式: `PE`\n- .NET: `False`\n",
+        encoding="utf-8",
+    )
+    profile = build_case_profile(case)
+    feature_ids = {item["id"] for item in profile["sample_characteristics"]}
+    assert "format:pe" in feature_ids
+    assert "runtime:dotnet" not in feature_ids
+
+def test_import_capability_heading_produces_conservative_behavior(tmp_path: Path) -> None:
+    """import由来能力を実行断定せず標準挙動材料へ残す。"""
+    case = _case(tmp_path)
+    (case / "README.md").write_text(
+        "# fixture\n\n## 静的な処理能力の手掛かり\n\n"
+        "- `process_creation`: プロセス起動APIのimportを確認。importだけでは実行経路を確定しません。\n"
+        "- `network_access`: ネットワーク接続・取得APIのimportを確認。importだけでは実行経路を確定しません。\n",
+        encoding="utf-8",
+    )
+    profile = build_case_profile(case)
+    behavior_ids = {item["id"] for item in profile["behaviors"]}
+    assert "execution:process_creation" in behavior_ids
+    assert "network:api_access" in behavior_ids

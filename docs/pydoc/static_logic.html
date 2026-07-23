@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module static_logic</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">static_logic</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cstatic_logic.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\static_logic.py</a></td></tr></table>
+    <p><span class="code">関数単位の静的ロジックとコード類似性fingerprintを標準化する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_static_logic_report"><strong>build_static_logic_report</strong></a>(*, sha256: 'str', family: 'str | None', source_name: 'str', data: 'bytes | None' = None, records: 'Iterable[Mapping[str, Any]] | None' = None, processing_units: 'Iterable[Mapping[str, Any]] | None' = None, program_evidence: 'Iterable[Mapping[str, Any]] | None' = None, analysis_source: 'str' = 'one_shot_static_analysis') -&gt; 'dict[str, Any]'</dt><dd><span class="code">reviewed&nbsp;recordまたはscript構造からcase単位のロジック成果物を構築する。</span></dd></dl>
+ <dl><dt><a name="-extract_script_function_records"><strong>extract_script_function_records</strong></a>(data: 'bytes', source_name: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">scriptを実行せず、関数境界と比較用ロジックを上限付きで抽出する。</span></dd></dl>
+ <dl><dt><a name="-load_function_records"><strong>load_function_records</strong></a>(path: 'Path') -&gt; 'list[Mapping[str, Any]]'</dt><dd><span class="code">review済みsource&nbsp;JSONから関数record配列を読込む。</span></dd></dl>
+ <dl><dt><a name="-normalize_function_record"><strong>normalize_function_record</strong></a>(record: 'Mapping[str, Any]', index: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">レビュー済み関数recordを公開・比較用の標準形式へ変換する。</span></dd></dl>
+ <dl><dt><a name="-normalize_logic_text"><strong>normalize_logic_text</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">address、literal、decompiler仮名を正規化し、比較可能なロジックへ変換する。</span></dd></dl>
+ <dl><dt><a name="-normalize_processing_unit"><strong>normalize_processing_unit</strong></a>(record: 'Mapping[str, Any]', index: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">既存成果物から復元した処理単位を、関数recordと分離して標準化する。</span></dd></dl>
+ <dl><dt><a name="-normalize_program_evidence"><strong>normalize_program_evidence</strong></a>(record: 'Mapping[str, Any]', index: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Ghidra&nbsp;MCPの無害化済みprogram構造をcase成果物へ取り込む。</span></dd></dl>
+ <dl><dt><a name="-redact_static_text"><strong>redact_static_text</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">静的解析説明から具体的なIOC・メール・hashを除いて返す。</span></dd></dl>
+ <dl><dt><a name="-render_static_logic_markdown"><strong>render_static_logic_markdown</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">関数ロジックreportを日本語の人向け成果物へ描画する。</span></dd></dl>
+ <dl><dt><a name="-semantic_tokens"><strong>semantic_tokens</strong></a>(value: 'str') -&gt; 'list[str]'</dt><dd><span class="code">制御構造、演算子、call形状を比較用token列へ変換する。</span></dd></dl>
+ <dl><dt><a name="-simhash_similarity"><strong>simhash_similarity</strong></a>(left: 'str', right: 'str') -&gt; 'float'</dt><dd><span class="code">2つの64-bit&nbsp;SimHash間の0.0～1.0類似度を返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>AUTO_SYMBOL_RE</strong> = re.compile('(?i)\\b(?:fun|sub|loc|lab|unk|off|byte|word|dword|qword)_[0-9a-f]+\\b', re.IGNORECASE)<br>
+<strong>CONTROL_WORDS</strong> = {'break', 'case', 'catch', 'continue', 'do', 'else', ...}<br>
+<strong>EMAIL_RE</strong> = re.compile('(?i)\\b[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,63}\\b', re.IGNORECASE)<br>
+<strong>FULL_HASH_RE</strong> = re.compile('(?i)(?&lt;![0-9a-f])[0-9a-f]{32,64}(?![0-9a-f])', re.IGNORECASE)<br>
+<strong>IGNORED_CALLS</strong> = {'break', 'case', 'catch', 'continue', 'do', 'else', ...}<br>
+<strong>IPV4_RE</strong> = re.compile('(?&lt;![0-9])(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?![0-9])')<br>
+<strong>Iterable</strong> = typing.Iterable<br>
+<strong>LOCAL_SYMBOL_RE</strong> = re.compile('(?i)\\b(?:local|param|var|arg|tmp|stack)_[0-9a-f]+\\b', re.IGNORECASE)<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>NUMBER_RE</strong> = re.compile('(?i)\\b(?:0x[0-9a-f]+|\\d+)\\b', re.IGNORECASE)<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SCRIPT_EXTENSIONS</strong> = {'.bat', '.cmd', '.js', '.jse', '.ps1', '.py', ...}<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$', re.IGNORECASE)<br>
+<strong>TOKEN_RE</strong> = re.compile('&lt;str&gt;|&lt;num&gt;|&lt;auto_fn&gt;|&lt;local&gt;|[a-z_]...\||\\^|&amp;|\\||\\+|-|\\*|/|%|=|&lt;|&gt;', re.IGNORECASE)<br>
+<strong>URL_RE</strong> = re.compile('(?i)\\b(?:https?|ftp)://[^\\s&lt;&gt;`\\"\']+', re.IGNORECASE)</td></tr></table>
+</body></html>

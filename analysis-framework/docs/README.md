@@ -12,6 +12,9 @@
 ## 現行基盤
 
 - [一括静的解析と解析器適用可否判定](ONE-SHOT-ANALYSIS.md)
+- [MalwareBazaar最新Windows検体の一括静的解析](MALWAREBAZAAR-WINDOWS-BATCH.md)
+- [静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)
+- [検体特徴、解析充足度、攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)
 - [安全な提出物I/Oと一括処理ワークフロー](SAFE-SUBMISSION-IO.md)
 - [ValleyRAT感染チェーンのパターン設計](../malware/valleyrat/docs/PATTERN-DESIGN.md)
 - [プロファイル定義による10ファミリー拡張と構成要素の関係](PROFILED-FAMILY-EXPANSION.md)

@@ -1,0 +1,16 @@
+{
+  "campaign_id": "correlated-agenttesla-4721f7464834",
+  "families": [
+    "agenttesla"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "server275.web-hosting.com:587"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}
