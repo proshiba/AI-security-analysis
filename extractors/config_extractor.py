@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from extractors.agenttesla import extract as extract_agenttesla
+from extractors.acrstealer import extract as extract_acrstealer
 from extractors.amadey import extract as extract_amadey
 from extractors.atlascross import extract as extract_atlascross
 from extractors.amosstealer import extract as extract_amosstealer
@@ -34,6 +35,7 @@ PROFILED_EXTRACTORS: dict[str, Extractor] = {
     family: extractor_for(family) for family in load_profiles()
 }
 EXTRACTORS: dict[str, Extractor] = {
+    "acrstealer": extract_acrstealer,
     "agenttesla": extract_agenttesla,
     "amadey": extract_amadey,
     "atlascross": extract_atlascross,
@@ -56,6 +58,7 @@ EXTRACTORS: dict[str, Extractor] = {
     **PROFILED_EXTRACTORS,
 }
 ALIASES = {
+    "acr-stealer": "acrstealer",
     "amos": "amosstealer",
     "atomicstealer": "amosstealer",
     "atlas": "atlascross",

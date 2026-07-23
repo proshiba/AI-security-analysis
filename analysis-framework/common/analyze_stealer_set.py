@@ -26,6 +26,7 @@ from extractors.stealer_common import campaign_shape  # noqa: E402
 from unpackers.static_unpacker import unpack_bytes, write_artifacts  # noqa: E402
 
 SIGNATURE_IDS = {
+    "ACRStealer": "acrstealer",
     "ValleyRAT": "valleyrat",
     "AsyncRAT": "asyncrat",
     "AgentTesla": "agenttesla",
@@ -127,6 +128,14 @@ def campaign_hint(family: str, name: str, data: bytes, unpack_report: dict) -> s
         if shape == "unknown_or_nested_delivery":
             return shape
         return "direct_pe_or_pe_loader"
+    if family == "acrstealer":
+        if unpack_report.get("format") == "zip":
+            return "archive_or_file_pumped_delivery"
+        if unpack_report.get("format") == "ole":
+            return "msi_delivery"
+        if unpack_report.get("pe", {}).get("containerized"):
+            return "sfx_or_embedded_container"
+        return "direct_pe_dll_or_related_payload"
     if family == "formbook":
         if shape.endswith("script_delivery"):
             return "script_delivery"
