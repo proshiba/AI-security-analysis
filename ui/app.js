@@ -95,6 +95,7 @@
     document.body.removeChild(ta);
   }
   window.__copy = copyText; // onclick 用
+  window.__toast = toast;   // graph.js から利用
 
   /* ---------- 最小Markdownレンダラ ---------- */
 
@@ -228,12 +229,14 @@
     document.querySelectorAll(".nav a").forEach(function (a) {
       a.classList.toggle("active", a.getAttribute("data-nav") === page);
     });
+    app.classList.toggle("full", page === "graph");
     window.scrollTo(0, 0);
     try {
       if (page === "dashboard") return viewDashboard();
       if (page === "families") return viewFamilies();
       if (page === "cases") return viewCases(r.query);
       if (page === "iocs") return viewIocs(r.query);
+      if (page === "graph") return window.renderGraphView(app, r.query);
       if (page === "family" && r.parts[1]) return viewFamily(r.parts[1], r.query);
       if (page === "case" && r.parts[1]) return viewCase(r.parts[1]);
       viewDashboard();
@@ -477,14 +480,15 @@
       '<span class="count">' + matched.length + " 件</span></div>";
 
     html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      "<th>種別</th><th>値</th><th>役割</th><th>確度</th><th>ファミリ</th><th>ケース</th></tr></thead><tbody>";
+      "<th>種別</th><th>値</th><th>役割</th><th>確度</th><th>ファミリ</th><th>ケース</th><th></th></tr></thead><tbody>";
     slice.forEach(function (r) {
       html += "<tr><td class='nowrap'>" + esc(r.ioc.type) + "</td>" +
         "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(r.ioc.value) + ")' title='クリックでコピー'>" + esc(r.ioc.value) + "</a></td>" +
         "<td class='small'>" + esc(r.ioc.role) + "</td>" +
         "<td>" + confBadge(r.ioc.confidence) + "</td>" +
         "<td class='nowrap'><a href='#/family/" + esc(r.family) + "'>" + esc(familyLabel(r.family)) + "</a></td>" +
-        "<td class='mono nowrap'><a href='#/case/" + r.sha256 + "'>" + shortSha(r.sha256) + "</a></td></tr>";
+        "<td class='mono nowrap'><a href='#/case/" + r.sha256 + "'>" + shortSha(r.sha256) + "</a></td>" +
+        "<td class='nowrap'><a class='btn small' title='この値を起点にグラフ調査' href='#/graph?root=" + encodeURIComponent(r.ioc.value) + "'>⊕</a></td></tr>";
     });
     html += "</tbody></table></div>" + pager(page, pages);
     app.innerHTML = html;
@@ -557,7 +561,8 @@
       (f.aliases ? '<span class="badge">別名: ' + esc(f.aliases) + "</span> " : "") +
       (lastAnalyzed ? '<span class="badge green">最終解析 ' + esc(lastAnalyzed) + "</span> " : "") +
       '<span class="badge">' + iocCount + " IOC</span> " +
-      '<span class="badge">' + (f.rules.length + caseRules.length) + " ルール</span>" +
+      '<span class="badge">' + (f.rules.length + caseRules.length) + " ルール</span> " +
+      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("family:" + key) + '">グラフで調査</a>' +
       "</div>";
     var versionBadges = Object.keys(versions).sort().map(function (v) {
       return '<span class="chip">' + esc(v === "unknown" ? "版不明" : v) + " × " + versions[v] + "</span>";
@@ -654,7 +659,8 @@
     var html = '<div class="case-head">' +
       '<div class="muted small"><a href="#/family/' + esc(c.family) + '">' + esc(familyLabel(c.family)) + "</a> のケース</div>" +
       '<div class="hash-line"><code>' + c.sha256 + "</code>" +
-      '<button class="btn small" onclick="__copy(' + JSON.stringify(c.sha256) + ')">コピー</button></div>' +
+      '<button class="btn small" onclick="__copy(' + JSON.stringify(c.sha256) + ')">コピー</button>' +
+      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("case:" + c.sha256) + '">グラフで調査</a></div>' +
       '<div style="margin-top:8px">' +
       (c.campaign_type ? '<span class="badge accent mono">' + esc(c.campaign_type) + "</span> " : "") +
       (c.version_key !== "unknown" ? '<span class="badge green">版 ' + esc(c.version_key) + "</span> " : '<span class="badge">版不明</span> ') +
@@ -677,7 +683,8 @@
     if (c.c2 && c.c2.length) {
       html += '<div class="section"><h2>C2 / ネットワーク指標 (' + c.c2.length + ")</h2><div>" +
         c.c2.map(function (v) {
-          return '<a class="chip" href="javascript:void(0)" onclick="__copy(' + JSON.stringify(v) + ')" title="クリックでコピー">' + esc(v) + "</a>";
+          return '<span class="chip"><a href="javascript:void(0)" onclick="__copy(' + JSON.stringify(v) + ')" title="クリックでコピー">' + esc(v) + "</a>" +
+            ' <a href="#/graph?root=' + encodeURIComponent(v) + '" title="この値を起点にグラフ調査">⊕</a></span>';
         }).join("") +
         '<div class="muted small" style="margin-top:6px">値はケースのIOC一覧・解析履歴からの集約です。役割・確度は下のIOC表と履歴を参照してください。</div></div></div>';
     }
