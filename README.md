@@ -22,6 +22,7 @@ analysis-results/                # 検体を含まない公開可能な解析結
   research/<topic>/              # キャンペーン、脆弱性、ニュース、横断調査
   IOC-INDEX.md                    # 全解析のIOC-only一覧への索引
 analysis_history.yaml            # 過去解析の一覧とREADME用サマリの元データ
+ui/                              # 解析結果を検索・閲覧する静的ブラウザUI（generate_ui_data.py + index.html）
 README.md                        # このファイル
 ```
 
@@ -150,6 +151,17 @@ MSI/CAB custom action 系のケース:
 ライブC2確認は外部ホストへの通信を伴います。隔離環境、許可された調査範囲、送信データの最小化、ログ保存方針を確認したうえで実行してください。
 
 ## 解析結果の見方
+
+### 閲覧UI（マルウェア解析ブラウザ）
+
+全ケースの一覧・検索、IOC横断検索、ファミリ別・ケース別ページ（挙動、IOC、YARA／Sigma、解析履歴）、検体ハッシュとC2／IOCの関連を辿るグラフ調査（pivot）をブラウザだけで利用できる静的UIを `ui/` に用意しています。
+
+```bash
+python3 ui/generate_ui_data.py   # 解析結果の更新後にデータを再生成
+python3 -m http.server 8000      # → http://localhost:8000/ui/index.html
+```
+
+詳細は [ui/README.md](ui/README.md) を参照してください。
 
 ### 結果ディレクトリ
 
