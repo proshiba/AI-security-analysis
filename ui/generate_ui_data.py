@@ -16,9 +16,11 @@ YARA/Sigmaルール、analysis_history.yaml の解析履歴を統合する。
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -160,9 +162,126 @@ def load_history() -> dict[str, list[dict]]:
     return by_sha
 
 
-def build() -> dict:
+# コード完全一致groupがこのcase数を超える場合、library/compiler由来の可能性が
+# 高いためcase間リンクの生成対象から除外する。
+CODE_GROUP_CASE_CAP = 20
+
+
+def load_intel(known_shas: set[str]) -> dict:
+    """intelligence調査が参照するcampaign相関候補とコード類似索引を集約する。
+
+    - campaign候補: analysis-results/research/campaigns/correlated-*/campaigns.json
+      の最新版(ディレクトリ名の辞書順末尾)を使う。
+    - コード類似: catalog/code-similarity.json のexact group(意味トークン列の
+      SHA-256完全一致)だけをcase間リンクへ集約する。SimHash近似は含めない。
+    """
+    campaigns: list[dict] = []
+    labels: dict[str, list] = {}
+    source = None
+
+    camp_root = RESULTS / "research" / "campaigns"
+    candidates = sorted(p for p in camp_root.glob("correlated-*") if p.is_dir())
+    if candidates:
+        latest = candidates[-1]
+        source = latest.name
+        data = read_json(latest / "campaigns.json") or {}
+        for c in data.get("campaigns", []):
+            cid = c.get("campaign_id")
+            if not cid:
+                continue
+            cdir = latest / cid
+            campaigns.append(
+                {
+                    "id": cid,
+                    "classification": c.get("classification"),
+                    "confidence": c.get("confidence"),
+                    "families": c.get("families") or [],
+                    "members": [m for m in (c.get("members") or []) if m in known_shas],
+                    "member_count": c.get("member_count"),
+                    "shared_indicators": c.get("shared_indicators") or [],
+                    "shared_feature_ids": c.get("shared_feature_ids") or [],
+                    "edge_count": c.get("edge_count"),
+                    "max_pair_score": c.get("maximum_pair_score"),
+                    "limitations": c.get("limitations") or [],
+                    "path": str(cdir.relative_to(REPO_ROOT)) if cdir.is_dir() else None,
+                    "rules": collect_rules(cdir / "rules", REPO_ROOT),
+                    "readme": read_text(cdir / "README.md"),
+                }
+            )
+        for sha, entries in (data.get("labels") or {}).items():
+            if sha in known_shas:
+                labels[sha] = [e.get("campaign_id") for e in entries if e.get("campaign_id")]
+
+    code_links: list[list] = []
+    code_meta = {"exact_groups": 0, "skipped_wide_groups": 0}
+    cs = read_json(RESULTS / "catalog" / "code-similarity.json")
+    if cs:
+        rec_case = {
+            r["record_id"]: r["sha256"]
+            for r in cs.get("function_records", [])
+            if r.get("record_id") and r.get("sha256")
+        }
+        pair_counts: Counter = Counter()
+        for g in cs.get("exact_groups", []):
+            cases = sorted({rec_case[m] for m in g.get("members", []) if m in rec_case})
+            cases = [s for s in cases if s in known_shas]
+            if len(cases) < 2:
+                continue
+            code_meta["exact_groups"] += 1
+            if len(cases) > CODE_GROUP_CASE_CAP:
+                code_meta["skipped_wide_groups"] += 1
+                continue
+            for a, b in itertools.combinations(cases, 2):
+                pair_counts[(a, b)] += 1
+        code_links = [
+            [a, b, n]
+            for (a, b), n in sorted(pair_counts.items(), key=lambda kv: -kv[1])
+        ]
+
+    return {
+        "source": source,
+        "campaigns": campaigns,
+        "labels": labels,
+        "code_links": code_links,
+        "code_meta": code_meta,
+    }
+
+
+def discover_cases() -> dict[str, dict]:
+    """catalogとファイルシステムを統合した全case一覧を返す。
+
+    catalog(cases.json)を正本としつつ、catalog再生成が解析より遅れている
+    期間の新規caseディレクトリも取り込む。
+    """
     catalog = read_json(RESULTS / "catalog" / "cases.json") or {}
-    cases_catalog: dict[str, dict] = catalog.get("cases", {})
+    merged: dict[str, dict] = dict(catalog.get("cases", {}))
+
+    patterns = [
+        "malware/*/versions/*/cases/*",
+        "malware/unclassified/groups/*/versions/*/cases/*",
+    ]
+    for pattern in patterns:
+        for path in RESULTS.glob(pattern):
+            if not path.is_dir():
+                continue
+            sha = path.name
+            if sha in merged:
+                continue
+            parts = path.relative_to(RESULTS).parts
+            family = parts[1]
+            version_key = parts[-3]
+            merged[sha] = {
+                "canonical_path": str(path.relative_to(REPO_ROOT)),
+                "case_id": "sha256:" + sha,
+                "case_kind": "unclassified" if family == "unclassified" else "malware",
+                "family": family,
+                "version_key": version_key,
+            }
+    return merged
+
+
+def build() -> dict:
+    cases_catalog = discover_cases()
     history = load_history()
     labels = family_labels_from_index()
 
@@ -179,8 +298,13 @@ def build() -> dict:
         ioc_md = read_text(case_dir / "IOC-LIST.md")
         ioc_entries = parse_ioc_list(ioc_md) if ioc_md else []
 
-        reported = (metadata.get("source") or {}).get("reported_metadata") or {}
+        source = metadata.get("source")
+        if not isinstance(source, dict):
+            source = {"provider": source} if source else {}
+        reported = source.get("reported_metadata") or {}
         attribution = metadata.get("attribution") or {}
+        if not isinstance(attribution, dict):
+            attribution = {}
         assessment = features.get("analysis_assessment") or {}
 
         behaviors = [
@@ -236,11 +360,14 @@ def build() -> dict:
             "file_type": reported.get("file_type"),
             "file_size": reported.get("file_size"),
             "first_seen": reported.get("first_seen"),
-            "provider": (metadata.get("source") or {}).get("provider"),
+            "provider": source.get("provider"),
             "reported_signature": attribution.get("reported_signature"),
             "tags": attribution.get("reported_tags") or [],
             "collections": metadata.get("collections") or [],
-            "campaign_type": features.get("campaign_type"),
+            # "unknown" は情報を持たないため表示・グラフの対象から外す
+            "campaign_type": features.get("campaign_type")
+            if features.get("campaign_type") not in (None, "", "unknown")
+            else None,
             "assessment": {
                 "score": assessment.get("score"),
                 "max": assessment.get("maximum_score"),
@@ -289,12 +416,16 @@ def build() -> dict:
         fam["title"] = title
         fam["aliases"] = aliases
         if fam["label"] is None:
-            fam["label"] = title or key
+            # README見出しは「<名前> 解析概要」形式のため接尾辞を除いて表示名にする
+            label = re.sub(r"[ 　]*(の)?解析概要$", "", title) if title else None
+            fam["label"] = label or key
         fam["rules"] = collect_rules(fam_dir / "rules", REPO_ROOT)
 
     # 履歴のうちcatalogに載っていないもの(調査ページ等)は対象外とし、件数だけ持つ
     known_shas = set(cases_catalog)
     orphan_history = sum(1 for sha in history if sha not in known_shas)
+
+    intel = load_intel(known_shas)
 
     stats = {
         "case_total": len(cases),
@@ -304,6 +435,8 @@ def build() -> dict:
         + sum(len(c["rules"]) for c in cases),
         "history_total": sum(len(v) for v in history.values()),
         "orphan_history": orphan_history,
+        "campaign_candidates": len(intel["campaigns"]),
+        "code_links": len(intel["code_links"]),
     }
 
     return {
@@ -311,6 +444,7 @@ def build() -> dict:
         "stats": stats,
         "families": families,
         "cases": cases,
+        "intel": intel,
     }
 
 

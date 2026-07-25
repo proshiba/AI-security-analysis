@@ -14,6 +14,7 @@
     case:       { color: "#4fa8ff", r: 9,  jp: "検体ケース" },
     family:     { color: "#b58cff", r: 12, jp: "ファミリ" },
     campaign:   { color: "#6bdc8f", r: 10, jp: "キャンペーン" },
+    intelcampaign: { color: "#55d6f5", r: 11, jp: "campaign相関候補" },
     collection: { color: "#8b9bb0", r: 8,  jp: "コレクション" },
     ip:         { color: "#ff6b7a", r: 9,  jp: "IPアドレス" },
     endpoint:   { color: "#ffa94d", r: 8,  jp: "接続先(host:port)" },
@@ -141,6 +142,30 @@
           byValue[val] = byValue[val] || mid;
         }
       });
+    });
+
+    // campaign相関候補 (intelligence): 相関ケースと共有指標を接続する
+    var intel = DB.intel || {};
+    (intel.campaigns || []).forEach(function (g) {
+      var gid = "intel:" + g.id;
+      addEntity(gid, "intelcampaign", shorten(g.id.replace(/^correlated-/, ""), 30), g.id);
+      byValue[g.id] = gid;
+      g.members.forEach(function (sha) {
+        if (entities["case:" + sha]) addEdge("case:" + sha, gid, "相関ケース");
+      });
+      (g.shared_indicators || []).forEach(function (s) {
+        var nid = addNetworkValue(s.value);
+        if (nid) addEdge(gid, nid, "共有指標 ×" + s.support);
+      });
+      (g.families || []).forEach(function (f) {
+        if (entities["family:" + f]) addEdge(gid, "family:" + f, "");
+      });
+    });
+
+    // コード完全一致リンク: 意味トークン列一致関数groupを共有するケースペア
+    (intel.code_links || []).forEach(function (l) {
+      var a = "case:" + l[0], b = "case:" + l[1];
+      if (entities[a] && entities[b]) addEdge(a, b, "コード類似 " + l[2] + "関数");
     });
   }
 
@@ -481,6 +506,7 @@
     var e = entities[id];
     if (e.type === "case") return "#/case/" + e.full;
     if (e.type === "family") return "#/family/" + e.full;
+    if (e.type === "intelcampaign") return "#/intel/" + encodeURIComponent(e.full);
     if (e.type === "campaign") return "#/cases?campaign=" + encodeURIComponent(e.full);
     if (e.type === "collection") return "#/cases?collection=" + encodeURIComponent(e.full);
     return "#/iocs?q=" + encodeURIComponent(e.full.replace(/^[a-z]+: /, ""));

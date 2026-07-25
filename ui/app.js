@@ -14,6 +14,24 @@
 
   /* ---------- 前処理 ---------- */
 
+  var INTEL = DB.intel || { campaigns: [], labels: {}, code_links: [], source: null };
+  var intelById = {};       // campaign候補 id -> campaign
+  var intelByCase = {};     // sha256 -> [campaign候補id]
+  var codeByCase = {};      // sha256 -> [{sha256, count}]
+  INTEL.campaigns.forEach(function (g) {
+    intelById[g.id] = g;
+    g.members.forEach(function (sha) {
+      (intelByCase[sha] = intelByCase[sha] || []).push(g.id);
+    });
+  });
+  INTEL.code_links.forEach(function (l) {
+    (codeByCase[l[0]] = codeByCase[l[0]] || []).push({ sha256: l[1], count: l[2] });
+    (codeByCase[l[1]] = codeByCase[l[1]] || []).push({ sha256: l[0], count: l[2] });
+  });
+  Object.keys(codeByCase).forEach(function (sha) {
+    codeByCase[sha].sort(function (a, b) { return b.count - a.count; });
+  });
+
   var casesBySha = {};
   var iocRows = []; // フラット化した IOC 行
   DB.cases.forEach(function (c) {
@@ -24,7 +42,8 @@
       (c.tags || []).join(" "), (c.collections || []).join(" "),
       (c.c2 || []).join(" "),
       c.iocs.map(function (e) { return e.value; }).join(" "),
-      c.history.map(function (h) { return (h.matched_patterns || []).join(" "); }).join(" ")
+      c.history.map(function (h) { return (h.matched_patterns || []).join(" "); }).join(" "),
+      (intelByCase[c.sha256] || []).join(" ")
     ].join("\n").toLowerCase();
     c.iocs.forEach(function (e) {
       iocRows.push({ ioc: e, sha256: c.sha256, family: c.family });
@@ -237,6 +256,8 @@
       if (page === "cases") return viewCases(r.query);
       if (page === "iocs") return viewIocs(r.query);
       if (page === "graph") return window.renderGraphView(app, r.query);
+      if (page === "intel" && r.parts[1]) return viewIntelDetail(decodeURIComponent(r.parts[1]));
+      if (page === "intel") return viewIntelList(r.query);
       if (page === "family" && r.parts[1]) return viewFamily(r.parts[1], r.query);
       if (page === "case" && r.parts[1]) return viewCase(r.parts[1]);
       viewDashboard();
@@ -268,6 +289,8 @@
       statCard(s.ioc_total, "IOCエントリ") +
       statCard(s.rule_total, "YARA / Sigma ルール") +
       statCard(s.history_total, "解析履歴レコード") +
+      '<a class="stat-card" href="#/intel" style="text-decoration:none"><div class="num">' + esc(s.campaign_candidates || 0) +
+      '</div><div class="lbl">campaign相関候補 →</div></a>' +
       "</div>";
 
     html += '<div class="section"><h2>ケース数上位のファミリ <a class="small" href="#/families">すべて表示 →</a></h2><div class="family-grid">' +
@@ -521,6 +544,127 @@
     });
   }
 
+  /* ---------- キャンペーン相関 (intelligence) ---------- */
+
+  function intelShort(id) { return id.replace(/^correlated-/, ""); }
+
+  function viewIntelList(q) {
+    var query = (q.q || "").toLowerCase();
+    var list = INTEL.campaigns.filter(function (g) {
+      if (!query) return true;
+      var blob = (g.id + " " + g.families.join(" ") + " " +
+        g.shared_indicators.map(function (s) { return s.value; }).join(" ") + " " +
+        g.members.join(" ")).toLowerCase();
+      return blob.indexOf(query) >= 0;
+    });
+    list = list.slice().sort(function (a, b) {
+      return (b.member_count || 0) - (a.member_count || 0) || a.id.localeCompare(b.id);
+    });
+
+    var html = '<h1 class="page-title">キャンペーン相関候補</h1>' +
+      '<p class="page-sub">共有インフラ・共有指標に基づくcampaign候補 ' + INTEL.campaigns.length + ' 群' +
+      (INTEL.source ? '（生成元: <code>' + esc(INTEL.source) + "</code>）" : "") +
+      '。同一アクターへの帰属を意味しません。コード類似リンクは <a href="#/graph">グラフ調査</a> でも辿れます。</p>';
+
+    html += '<div class="filterbar">' +
+      '<input type="search" id="il-q" placeholder="candidate ID / ファミリ / 指標値 / SHA-256 で検索" value="' + esc(q.q || "") + '">' +
+      '<span class="count">' + list.length + " / " + INTEL.campaigns.length + " 群</span></div>";
+
+    if (!list.length) {
+      html += '<div class="empty">条件に一致する候補がありません。</div>';
+    } else {
+      html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        "<th>candidate</th><th>ファミリ</th><th class='num'>case</th><th>確度</th><th>共有指標</th><th class='num'>スコア</th><th></th></tr></thead><tbody>";
+      list.forEach(function (g) {
+        var inds = g.shared_indicators.slice(0, 2).map(function (s) {
+          return '<span class="chip">' + esc(shortenText(s.value, 36)) + " ×" + s.support + "</span>";
+        }).join("");
+        if (g.shared_indicators.length > 2) inds += '<span class="muted small"> ほか' + (g.shared_indicators.length - 2) + "件</span>";
+        html += "<tr><td class='mono nowrap'><a href='#/intel/" + encodeURIComponent(g.id) + "'>" + esc(intelShort(g.id)) + "</a></td>" +
+          "<td class='nowrap'>" + g.families.map(function (f) {
+            return '<a href="#/family/' + esc(f) + '">' + esc(familyLabel(f)) + "</a>";
+          }).join(", ") + "</td>" +
+          "<td class='num'>" + (g.member_count || g.members.length) + "</td>" +
+          "<td>" + confBadge(g.confidence) + "</td>" +
+          "<td>" + inds + "</td>" +
+          "<td class='num'>" + esc(g.max_pair_score === null || g.max_pair_score === undefined ? "" : g.max_pair_score) + "</td>" +
+          "<td class='nowrap'><a class='btn small' title='グラフで調査' href='#/graph?root=" + encodeURIComponent("intel:" + g.id) + "'>⊕</a></td></tr>";
+      });
+      html += "</tbody></table></div>";
+    }
+
+    // コード類似サマリ
+    html += '<div class="section"><h2>ファミリ横断のコード完全一致リンク</h2>' +
+      '<p class="page-sub small">意味トークン列SHA-256の完全一致関数を共有するケースペア(' + INTEL.code_links.length +
+      '件、library様の広域一致group除外済み)。各ケースページとグラフ調査に「コード類似」として表示されます。</p></div>';
+
+    app.innerHTML = html;
+    var input = document.getElementById("il-q");
+    var timer = null;
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      var v = input.value.trim();
+      timer = setTimeout(function () { location.hash = buildHash(["intel"], { q: v }); }, 350);
+    });
+    if (q.q) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+  }
+
+  function shortenText(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+  function viewIntelDetail(id) {
+    var g = intelById[id];
+    if (!g) { app.innerHTML = '<div class="empty">campaign候補が見つかりません: ' + esc(id) + "</div>"; return; }
+    var members = g.members.map(function (sha) { return casesBySha[sha]; }).filter(Boolean);
+
+    var html = '<div class="case-head">' +
+      '<div class="muted small"><a href="#/intel">キャンペーン相関候補</a></div>' +
+      '<h1 class="page-title mono" style="font-size:18px">' + esc(g.id) + "</h1>" +
+      '<div style="margin-top:6px">' +
+      '<span class="badge accent">' + members.length + " ケース</span> " +
+      confBadge(g.confidence) + " " +
+      (g.classification ? '<span class="badge mono">' + esc(g.classification) + "</span> " : "") +
+      (g.max_pair_score !== null && g.max_pair_score !== undefined ? '<span class="badge">最大pairスコア ' + g.max_pair_score + "</span> " : "") +
+      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("intel:" + g.id) + '">グラフで調査</a>' +
+      "</div>" +
+      '<dl class="kv">' +
+      kvRow("ファミリ", g.families.map(function (f) {
+        return '<a href="#/family/' + esc(f) + '">' + esc(familyLabel(f)) + "</a>";
+      }).join(", ")) +
+      kvRow("生成元", g.path ? '<a class="mono small" href="../' + esc(g.path) + '/README.md">' + esc(g.path) + "</a>" : null) +
+      "</dl></div>";
+
+    if (g.shared_indicators.length) {
+      html += '<div class="section"><h2>共有指標 (' + g.shared_indicators.length + ')</h2><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        "<th>種別</th><th>値</th><th class='num'>case支持数</th><th></th></tr></thead><tbody>";
+      g.shared_indicators.forEach(function (s) {
+        html += "<tr><td class='nowrap'>" + esc(s.type) + "</td>" +
+          "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(s.value) + ")' title='クリックでコピー'>" + esc(s.value) + "</a></td>" +
+          "<td class='num'>" + esc(s.support) + "</td>" +
+          "<td class='nowrap'><a class='btn small' title='この値を起点にグラフ調査' href='#/graph?root=" + encodeURIComponent(s.value) + "'>⊕</a></td></tr>";
+      });
+      html += "</tbody></table></div></div>";
+    }
+
+    html += '<div class="section"><h2>相関ケース (' + members.length + ")</h2>" + caseTable(members, true) + "</div>";
+
+    if (g.rules.length) {
+      html += '<div class="section"><h2>検知ルール (' + g.rules.length + ")</h2>" +
+        g.rules.map(function (r) { return ruleBlock(r); }).join("") + "</div>";
+    }
+
+    if (g.limitations.length) {
+      html += '<div class="section"><h2>制約</h2><div class="md"><ul>' +
+        g.limitations.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></div></div>";
+    }
+
+    if (g.readme) {
+      html += '<div class="section"><h2>候補レポート (README.md)</h2>' + renderMarkdown(g.readme) + "</div>";
+    }
+
+    app.innerHTML = html;
+    bindRuleCopy(app);
+  }
+
   /* ---------- ファミリ詳細 ---------- */
 
   function viewFamily(key, q) {
@@ -687,6 +831,38 @@
             ' <a href="#/graph?root=' + encodeURIComponent(v) + '" title="この値を起点にグラフ調査">⊕</a></span>';
         }).join("") +
         '<div class="muted small" style="margin-top:6px">値はケースのIOC一覧・解析履歴からの集約です。役割・確度は下のIOC表と履歴を参照してください。</div></div></div>';
+    }
+
+    // campaign相関・コード類似 (intelligence)
+    var caseIntel = intelByCase[c.sha256] || [];
+    var caseCode = codeByCase[c.sha256] || [];
+    if (caseIntel.length || caseCode.length) {
+      html += '<div class="section"><h2>相関インテリジェンス</h2>';
+      if (caseIntel.length) {
+        html += "<h3 style='font-size:13px;margin:8px 0 6px'>campaign相関候補</h3>" +
+          caseIntel.map(function (gid) {
+            var g = intelById[gid];
+            if (!g) return "";
+            return '<div class="behavior-item"><span class="lbl mono"><a href="#/intel/' + encodeURIComponent(gid) + '">' + esc(intelShort(gid)) + "</a></span> " +
+              confBadge(g.confidence) +
+              '<div class="ev">相関ケース' + g.members.length + "件 / 共有指標: " +
+              g.shared_indicators.slice(0, 3).map(function (s) { return "<code>" + esc(shortenText(s.value, 40)) + "</code>"; }).join(" ") +
+              "</div></div>";
+          }).join("");
+      }
+      if (caseCode.length) {
+        html += "<h3 style='font-size:13px;margin:12px 0 6px'>コード完全一致の類似ケース (" + caseCode.length + ")</h3>" +
+          '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>ケース</th><th>ファミリ</th><th class="num">一致関数group数</th></tr></thead><tbody>' +
+          caseCode.slice(0, 15).map(function (l) {
+            var o = casesBySha[l.sha256];
+            return "<tr><td class='mono nowrap'><a href='#/case/" + l.sha256 + "'>" + shortSha(l.sha256) + "</a></td>" +
+              "<td class='nowrap'>" + (o ? '<a href="#/family/' + esc(o.family) + '">' + esc(familyLabel(o.family)) + "</a>" : "") + "</td>" +
+              "<td class='num'>" + l.count + "</td></tr>";
+          }).join("") + "</tbody></table></div>" +
+          (caseCode.length > 15 ? '<div class="muted small" style="margin-top:4px">上位15件のみ表示。全件はグラフ調査で確認できます。</div>' : "") +
+          '<div class="muted small" style="margin-top:4px">意味トークン列SHA-256完全一致の共有関数group数。共通library・compiler生成コードでも一致し得ます。</div>';
+      }
+      html += "</div>";
     }
 
     // 挙動
