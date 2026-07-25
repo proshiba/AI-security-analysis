@@ -9,6 +9,7 @@
   - ValleyRAT 関連の作業では `analysis-framework/malware/valleyrat/AGENTS.md` を必ず読むこと。
   - ValleyRAT のワークフローやパターン判断では `analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md` と `analysis-framework/malware/valleyrat/docs/PATTERN-DESIGN.md` も参照すること。
 - 公開可能な解析結果を扱う場合は `analysis-results/README.md` と対象ファミリーの `analysis-results/malware/<family>/README.md` を確認すること。横断的な調査は `analysis-results/research/`、複数検体をまとめた成果物は `analysis-results/collections/` も確認すること。
+- 定期インテリジェンス調査（campaign相関、コード類似、IOC差分、operation仮説）を扱う場合は、`intelligence/README.md`、`intelligence/RECURRING-TASKS.md`、`intelligence/ASSESSMENT-MODEL.md` を先に確認すること。運用ルールは本ファイルの「intelligence/ 継続調査と週次routineのルール」を参照すること。
 
 ## リポジトリ構成ルール
 
@@ -137,6 +138,18 @@
 - MalwareBazaarからの取得は再開可能に保つこと。回数を使い切った一時的失敗はハッシュをキーとする再試行キューへ保存し、ほかの静的作業後に再実行すること。選定した最新ハッシュを、通知なく古い検体へ置き換えないこと。
 - プロファイル対象ファミリーの一括処理後に `validate_family_expansion.py` を実行すること。完了には、ハッシュ、ルーティング、公開成果物、非実行、非接続の各確認が必要である。
 - ループバックエミュレーターは合成データ用とし、実際の通信仕様と互換性がないことを明記すること。すべてのバインド先とクライアント対象は、共有のリテラル・ループバック検証を通すこと。
+
+## intelligence/ 継続調査と週次routineのルール
+
+- `intelligence/` は、個別の検体解析を継続的な脅威インテリジェンスへ変換するための定期調査計画の正本である。campaign相関の分析は、Claudeの週次routineとして定期実施する前提で運用すること。
+- 定期調査の作業前に次の3文書を読み、その定義に従うこと。
+  - `intelligence/README.md`: 目的、差分中心の方針、証拠軸の分離、1回の調査サイクル、成果物構成、成功指標。
+  - `intelligence/RECURRING-TASKS.md`: `INT-D01`〜`INT-E01` の定期タスク定義。週次routineの中心は `INT-W01`〜`INT-W05` であり、実行時は前提となる差分確定（`INT-D01`〜`INT-D03` 相当）を先に完了させること。各実行は同文書の「定期実行の共通チェック」を満たして終了すること。
+  - `intelligence/ASSESSMENT-MODEL.md`: entity・edge定義、証拠の強さ、確度表現、review queueの優先順位。自動scoreは候補の順位付けにだけ使い、campaign昇格、operation統合、actor帰属の判断は人手レビューを必須とすること。
+- 週次実行の成果物は `intelligence/README.md` の「推奨成果物構成」に従うこと。baselineは `intelligence/baselines/YYYY-MM-DD.json`、実行結果は `intelligence/runs/YYYY/YYYY-MM-DD/`（`README.md`、`delta.json`、`review-queue.json`、`metrics.json`）へ保存し、前回baselineとの差分と増減理由を説明できる状態にすること。
+- campaign相関の機械可読正本は `analysis-results/research/campaigns/correlated-<YYYYMMDD>/campaigns.json` とすること。既存実行のディレクトリを上書きせず、実行日ごとに新しいディレクトリを作ること。相関には `analysis-framework/common/correlate_campaigns.py`、派生成果物の同期には `analysis-framework/common/refresh_derived_artifacts.py` を用いること。
+- 相関・帰属の抑制ルールを毎回守ること。単一のIP、tag、family名、コード類似だけでcampaignやactorを確定しないこと。棄却した候補の理由、否定証拠、代替仮説を保存すること。live C2接続や検体送信を無断で行わないこと。
+- 閲覧UI（`ui/`）は、`correlated-*` の最新ディレクトリ（名前の辞書順末尾）、`analysis-results/catalog/code-similarity.json` のexact group、および全case成果物を `ui/data.js` へ取り込む。週次相関の実行後、またはcase・catalog成果物を更新した後は `python3 ui/generate_ui_data.py` で再生成し、`python3 ui/generate_ui_data.py --check` で同期を確認すること。
 
 ## 静的深掘りが必要な難解析ケースのルール
 
