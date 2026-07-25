@@ -18,6 +18,8 @@
 | `INT-W03` | 毎週 | P1 | インフラ再利用とlifecycleの整理 |
 | `INT-W04` | 毎週 | P0 | 未分類・未解決caseの再評価 |
 | `INT-W05` | 毎週 | P1 | extractor、detector、hunt ruleのcoverage差分 |
+| `INT-W06` | 毎週 | P0 | campaign候補の継続性(lineage)追跡 |
+| `INT-W07` | 毎週 | P1 | 候補間インフラ・ブリッジの抽出 |
 | `INT-M01` | 毎月 | P1 | campaignからoperation候補への統合 |
 | `INT-M02` | 毎月 | P1 | OSINT更新とactor帰属仮説のレビュー |
 | `INT-M03` | 毎月 | P2 | 相関閾値、誤相関、失効ルールのbacktest |
@@ -181,6 +183,16 @@ python .\analysis-framework\common\generate_code_similarity_index.py --repositor
 
 compiler生成、runtime、既知library、packer stub、短すぎる関数は別bucketへ分離します。
 
+**初期バックログの固定(初回のみ)**
+
+週次の差分運用を軽くするため、初回に一度だけ、既存の完全一致関数群からファミリ横断の移植候補バックログを固定します。`analysis-results/catalog/code-similarity.json` の `exact_groups`(意味トークン列SHA-256完全一致)を対象とし、次の順で初期queueを作ります。
+
+1. 異なるfamilyにまたがる完全一致group（library様の広域一致groupは除外）。
+2. `config_decoder`、`network`、`command_dispatcher`、`loader`、`persistence` など情報量の高い役割を含むgroup。
+3. repository内で出現頻度が低い関数を含むgroup。
+
+現時点でファミリ横断の完全一致ケースペアは約150件あります。以降の週次は、このバックログに対する追加・消失の差分だけを扱います。SimHash近似は探索補助にとどめ、初期バックログへは含めません。
+
 **成果物**
 
 - `component_candidate`: 共有component候補
@@ -191,7 +203,7 @@ compiler生成、runtime、既知library、packer stub、短すぎる関数は�
 
 **完了条件**
 
-候補ごとに、代表関数の役割、類似fingerprint、call graph近傍、共通API、差分、最古観測、代替説明を残すこと。コード類似だけでcampaignやactorへ昇格しないこと。
+候補ごとに、代表関数の役割、類似fingerprint、call graph近傍、共通API、差分、最古観測、代替説明を残すこと。コード類似だけでcampaignやactorへ昇格しないこと。初回はファミリ横断バックログを固定し、以降は差分で更新できる状態にすること。
 
 ## `INT-W03`: インフラ再利用とlifecycleの整理
 
@@ -268,6 +280,71 @@ domain、IP、endpoint、証明書、ASNなどの利用期間と同時出現を�
 **成果物**
 
 family別の`coverage_gap`、修正優先度、必要なfixture、回帰テスト案を作成します。
+
+## `INT-W06`: campaign候補の継続性(lineage)追跡
+
+**目的**
+
+campaign候補IDが内容依存で変わっても、同じ実体のcampaign候補を週をまたいで追跡できるようにします。これがないと、指標1件の変化やprevalence閾値の跨ぎでIDが変わるたびに、同じ候補が「消失」「新規」として現れます。
+
+**背景**
+
+現在の`campaign_id`は`correlate_campaigns.py`が`{families, campaign_types, 共有指標}`のSHA-256から生成します。したがってメンバーが同じでも共有指標集合が変われば別IDになります。実測として、`correlated-20260723`（37候補）から`correlated-20260724`（26候補）へは、ID一致26件・消失11件・新規0件でした。この増減がメンバー集合の実変化なのか、指標集合の変化によるID付け替えなのかは、ID比較だけでは区別できません。
+
+**自動処理案**
+
+1. 前週と今週の各候補について、メンバーSHA-256集合を取り出す。
+2. 候補間でメンバー集合の重なり（Jaccard係数、包含関係）を計算し、ID非依存で対応付ける。
+3. 対応を`same`（ほぼ同一）、`grew`（メンバー増）、`shrank`（メンバー減）、`merged`（複数候補が統合）、`split`（分割）、`new`（真の新規）、`dissolved`（真の消失）へ分類する。
+4. 各対応に、変化したメンバー、変化した共有指標、閾値跨ぎの有無を付ける。
+5. ID付け替えだけの変化と、実体の変化を分けて記録する。
+
+**人手レビュー**
+
+- `new`と`dissolved`が、閾値やprevalenceの変化による見かけ上のものでないか。
+- `merged`/`split`が、相関規則の変更ではなく実データの変化を反映しているか。
+
+**成果物**
+
+- 安定lineage ID（実体を追跡する内部ID）と、その週の`campaign_id`の対応表
+- `lineage.json`: 週次の対応と変化理由
+- 週次READMEの「継続」「増加」「減少」「統合」「分割」「新規」「消失」
+
+**完了条件**
+
+今週の全候補が前週のいずれかの実体へ対応付くか、`new`として根拠付きで分類され、見かけ上の増減と実体の増減が区別されていること。
+
+## `INT-W07`: 候補間インフラ・ブリッジの抽出
+
+**目的**
+
+個々のcampaign候補の内部だけでなく、別々の候補が共有するインフラや子要素を抽出し、月次のoperation統合（`INT-M01`）の入力を毎週育てます。
+
+**背景**
+
+現在の相関はケースをクラスタ化しますが、異なるcampaign候補が同一の指標を共有している場合があります。実測では、2つ以上の候補を橋渡しする共有指標が現時点で5件あります（例: `45.66.228.114`、`titnovacrion.top/live/`、`scifimond.com/live/`)。これらはoperation候補の種であり、単独ではactor帰属になりません。
+
+**自動処理案**
+
+1. 全campaign候補の共有指標・共有component・共有配布chainを集める。
+2. 2つ以上の候補にまたがって出現する値を抽出する。
+3. 値の役割、prevalence、observed windowを付け、共有hosting・CDN・公開サービスを除外する。
+4. ブリッジを`infra_bridge`、`component_bridge`、`delivery_bridge`へ分類する。
+5. `ASSESSMENT-MODEL.md`のoperation昇格条件を満たしそうな組をレビュー候補へ順位付けする。
+
+**人手レビュー**
+
+- ブリッジ値が共有hosting、bulletproof、再販インフラの可能性を排除できているか。
+- 時期が重なる、連続する、または再開として説明できるか。
+
+**成果物**
+
+- `bridge_candidate`: 候補間ブリッジ一覧（値、役割、接続する候補、確度、代替仮説）
+- `INT-M01`へ渡すoperation種queue
+
+**完了条件**
+
+抽出したブリッジがすべて役割・prevalence・observed windowを持ち、共有基盤による説明を検討した上で、operation候補へ渡すか棄却するかが記録されていること。
 
 ## `INT-M01`: campaignからoperation候補への統合
 
@@ -379,14 +456,35 @@ family別の`coverage_gap`、修正優先度、必要なfixture、回帰テス�
 
 影響あり、影響なし、未確認を分け、照合範囲と未取得情報を明記すること。
 
+## watchlist成果物
+
+`intelligence/watchlists/` は、再評価triggerを跨実行で管理する台帳です。週次タスクの入力・出力の両方に使い、同じ対象を根拠なく再処理しないための状態を持ちます。現時点の静的成果物から初期投入できる母集団があります。
+
+- `unresolved-cases.json`: `INT-W04`の対象。未分類118件、`function_analysis_required`（`static-logic.json`で約900件）、config extractor未成功、C2役割未確定、ValleyRAT未解決53件などを、SHA-256をkeyに再評価triggerと最終評価日で管理する。
+- `infrastructure.json`: `INT-W03`・`INT-W07`の対象。prevalenceの高い共有ホストや候補間ブリッジ指標を、役割・lifecycle状態・observed windowとともに監視する。
+- `malware-drift.json`: `INT-W01`の対象。family別のconfig schema、protocol、配布chainの直近の変化点と、追随が必要なextractor/detectorを記録する。
+
+watchlistは値そのものを検知ルールへ自動転記しません。各項目はtrigger条件と最終評価日を持ち、条件を満たしたときだけ該当週次タスクの処理対象になります。
+
+## 棄却台帳(rejection ledger)
+
+`intelligence/hypotheses/rejected/` は、棄却したcampaign・operation・帰属候補を恒久的に保持し、同じ誤相関を毎週再浮上させないための台帳です。`ASSESSMENT-MODEL.md`の「棄却は削除ではなく`rejected`状態と理由を残す」原則を運用実体にします。
+
+- keyは、メンバーSHA-256集合の正規化fingerprint、または棄却の根拠となった指標・component集合とする。IDが内容依存で変わっても再照合できるようにする。
+- 各記録に、棄却理由（generic性、共有基盤、時期不整合、compiler/library一致など）、否定証拠、棄却日、再評価を許すtrigger（例: 新しい完全一致hash、希少configの追加）を残す。
+- 週次の候補生成後、新規候補を棄却台帳と照合し、既知の棄却と一致するものはreview queueへ再投入しない。再評価triggerを満たした場合だけ再浮上させる。
+
 ## 定期実行の共通チェック
 
 各タスクは次を満たして終了します。
 
 - 入力snapshot、実行日時、対象期間、tool versionを記録した。
 - 新規、変更、消失、未確認を区別した。
+- campaign候補の増減を、ID付け替えによる見かけ上の変化と実体の変化に区別した（`INT-W06`）。
+- 時間軸では`sample_first_seen`を主に用い、`infrastructure_first_seen`（受動DNS・証明書透明性）を取り込んでいない前提を明記した。時間付きの結論は、この制約の範囲に限定した。
 - 自動判定と人手判断を区別した。
 - 根拠、反証、代替仮説、未解決事項を残した。
+- 新規候補を棄却台帳と照合し、既知の棄却を再評価triggerなしに再浮上させていない。
 - actor帰属を単一のmalware、tag、IP、コード類似だけで行っていない。
 - live C2接続や検体送信を無断で行っていない。
 - 公開成果物にcredential、token、生の復号秘密値、検体が含まれていない。

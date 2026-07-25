@@ -73,7 +73,7 @@
 | 周期 | 主なタスク | 目的 |
 |---|---|---|
 | 毎日 | `INT-D01`～`INT-D03` | 新規検体、IOC差分、強い既知一致の即時把握 |
-| 毎週 | `INT-W01`～`INT-W05` | 実装変化、コード共有、インフラ再利用、未解決case、検知不足の整理 |
+| 毎週 | `INT-W01`～`INT-W07` | 実装変化、コード共有、インフラ再利用、未解決case、検知不足、候補lineage、候補間ブリッジの整理 |
 | 毎月 | `INT-M01`～`INT-M03` | operation仮説、actor帰属仮説、相関閾値のレビュー |
 | 四半期 | `INT-Q01` | データ品質、schema、解析coverage、調査負債の見直し |
 | 事象発生時 | `INT-E01` | 重大報告、新しいcampaign、CVE悪用、情報窃取などへの緊急再相関 |
@@ -126,9 +126,11 @@ raw OSINT応答、資格情報、検体、復号binary、PCAP、Ghidra project�
 
 ### 第1段階: baselineと差分の再現性
 
-- `INT-D01`、`INT-D02`、`INT-W04`を先に運用し、前回との差分を毎回同じ入力から再生成できるようにする。
+- `INT-D01`、`INT-D02`、`INT-W04`、`INT-W06`を先に運用し、前回との差分を毎回同じ入力から再生成できるようにする。
 - case数、IOC数、関数fingerprint数、未分類数、未解決campaign数をbaseline化する。
-- 生成物の日時と収集日時を分け、遅れて追加されたOSINTを過去の観測時刻と混同しない。
+- campaign候補は内容依存IDのため、メンバー集合による安定lineageで前週へ対応付け、見かけ上の増減と実体の増減を区別する（`INT-W06`）。
+- `watchlists/`（未解決case、インフラ、drift）と棄却台帳（`hypotheses/rejected/`）を先に用意し、再評価triggerと既知の棄却を跨実行で保持する。
+- 生成物の日時と収集日時を分け、遅れて追加されたOSINTを過去の観測時刻と混同しない。時間軸は`sample_first_seen`が中心で、受動DNS・証明書透明性由来の`infrastructure_first_seen`は既定で未取得である前提を明記する。
 
 ### 第2段階: 候補の順位付け
 
@@ -139,6 +141,7 @@ raw OSINT応答、資格情報、検体、復号binary、PCAP、Ghidra project�
 ### 第3段階: operation graph
 
 - review済みcampaignだけをoperation候補の入力とする。
+- 候補間で共有されるインフラ・component・配布chain（`INT-W07`のブリッジ）を、operation候補の主要な種として週次で蓄積する。
 - コード、インフラ、配布、時間のうち複数軸で結ばれた候補だけを昇格する。
 - actor名は最後に付与し、actor名が先に決まることで証拠の解釈が歪まないようにする。
 
