@@ -23,6 +23,22 @@ CIなどで生成済み `ui/data.js` が最新か確認する場合は次を使�
 python3 ui/generate_ui_data.py --check
 ```
 
+## GitHub Pagesでの公開
+
+`.github/workflows/deploy-pages.yml` により、`main` への push（`ui/`、`analysis-results/`、`analysis_history.yaml` の変更時）と手動実行で自動デプロイします。ワークフローは `data.js` を再生成し、`ui/` だけを軽量に配信します（`analysis-results/` 本体は約276MBあるため同梱しません）。
+
+初回のみ、リポジトリ設定で有効化が必要です。
+
+1. GitHubのリポジトリ → **Settings** → **Pages** を開く。
+2. **Build and deployment** の **Source** を **GitHub Actions** にする。
+3. この変更を `main` へマージすると、ワークフローが走り `https://<owner>.github.io/<repo>/` で公開されます（`/` は `ui/` へリダイレクト）。
+
+補足:
+
+- ケースページの「結果ディレクトリ」「成果物ファイル」「生成元」リンクは、配信に同梱しない代わりに **GitHub上の該当ファイル**（Markdownは自動レンダリング）へ向きます。リンク先は `generate_ui_data.py` が `git remote` またはCIの `MALDB_REPO_SLUG` / `MALDB_REPO_BRANCH` から決定します。ローカルでリポジトリ直下から配信した場合は相対パスにフォールバックします。
+- プライベートリポジトリのGitHub Pagesは有料プラン（Pro/Team/Enterprise）が必要です。公開範囲は、リポジトリの公開設定に従います。
+- 定期インテリジェンス調査などで `analysis-results/` を更新して `main` に反映すると、Pagesも自動で最新化されます。
+
 ## 画面構成
 
 | 画面 | 内容 |

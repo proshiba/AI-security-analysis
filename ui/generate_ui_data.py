@@ -18,7 +18,9 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import os
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -247,6 +249,34 @@ def load_intel(known_shas: set[str]) -> dict:
     }
 
 
+def detect_repo() -> dict | None:
+    """GitHubリポジトリのHTML baseとbranchを推定する。
+
+    GitHub Pagesのような軽量配信では成果物ファイル本体を同梱しないため、
+    ケースの結果ディレクトリや成果物へのリンクをGitHub上の該当ファイルへ
+    向ける。ローカル配信時に検出できなければNoneを返し、UIは相対パスへ
+    フォールバックする。
+    """
+    slug = os.environ.get("MALDB_REPO_SLUG")
+    if not slug:
+        try:
+            url = subprocess.run(
+                ["git", "-C", str(REPO_ROOT), "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            match = re.search(r"[/:]([^/:]+/[^/:]+?)(?:\.git)?$", url)
+            if match:
+                slug = match.group(1)
+        except (OSError, subprocess.SubprocessError):
+            slug = None
+    if not slug:
+        return None
+    branch = os.environ.get("MALDB_REPO_BRANCH") or "main"
+    return {"html_base": "https://github.com/" + slug, "branch": branch}
+
+
 def discover_cases() -> dict[str, dict]:
     """catalogとファイルシステムを統合した全case一覧を返す。
 
@@ -441,6 +471,7 @@ def build() -> dict:
 
     return {
         "schema_version": 1,
+        "repo": detect_repo(),
         "stats": stats,
         "families": families,
         "cases": cases,

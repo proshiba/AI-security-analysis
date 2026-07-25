@@ -55,6 +55,17 @@
     return (f && (f.label || f.title)) || key;
   }
 
+  // 成果物ファイル・結果ディレクトリへのリンク。GitHub Pages等で成果物本体を
+  // 同梱しない配信では、DB.repo が示すGitHub上の該当パスへ向ける。
+  // 検出できなければリポジトリ直下配信を想定した相対パスへフォールバックする。
+  var REPO = DB.repo || null;
+  function fileUrl(path, isDir) {
+    if (REPO && REPO.html_base) {
+      return REPO.html_base + "/" + (isDir ? "tree" : "blob") + "/" + REPO.branch + "/" + path;
+    }
+    return "../" + path;
+  }
+
   /* ---------- ユーティリティ ---------- */
 
   function esc(s) {
@@ -630,7 +641,7 @@
       kvRow("ファミリ", g.families.map(function (f) {
         return '<a href="#/family/' + esc(f) + '">' + esc(familyLabel(f)) + "</a>";
       }).join(", ")) +
-      kvRow("生成元", g.path ? '<a class="mono small" href="../' + esc(g.path) + '/README.md">' + esc(g.path) + "</a>" : null) +
+      kvRow("生成元", g.path ? '<a class="mono small" target="_blank" rel="noopener noreferrer" href="' + esc(fileUrl(g.path, true)) + '">' + esc(g.path) + "</a>" : null) +
       "</dl></div>";
 
     if (g.shared_indicators.length) {
@@ -820,7 +831,7 @@
       kvRow("提供元", c.provider) +
       kvRow("タグ", c.tags.length ? c.tags.map(function (t) { return '<span class="chip">' + esc(t) + "</span>"; }).join("") : null) +
       kvRow("コレクション", c.collections.length ? c.collections.map(function (t) { return '<span class="chip">' + esc(t) + "</span>"; }).join("") : null) +
-      kvRow("結果ディレクトリ", '<a class="mono small" href="../' + esc(c.path) + '/README.md">' + esc(c.path) + "</a>") +
+      kvRow("結果ディレクトリ", '<a class="mono small" target="_blank" rel="noopener noreferrer" href="' + esc(fileUrl(c.path, true)) + '">' + esc(c.path) + "</a>") +
       "</dl></div>";
 
     // C2
@@ -960,7 +971,7 @@
     if (c.artifacts && c.artifacts.length) {
       html += '<div class="section"><h2>成果物ファイル (' + c.artifacts.length + ")</h2><div>" +
         c.artifacts.map(function (a) {
-          return '<a class="chip" href="../' + esc(c.path) + "/" + esc(a) + '">' + esc(a) + "</a>";
+          return '<a class="chip" target="_blank" rel="noopener noreferrer" href="' + esc(fileUrl(c.path + "/" + a, false)) + '">' + esc(a) + "</a>";
         }).join("") + "</div></div>";
     }
 

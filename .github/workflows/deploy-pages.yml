@@ -1,0 +1,84 @@
+# マルウェア解析ブラウザUIをGitHub Pagesへ公開するワークフロー。
+# ui/ だけを軽量に配信し、data.js は解析成果物から毎回再生成する。
+# 成果物ファイル本体は同梱せず、UIからのリンクはGitHub上の該当パスへ向く。
+name: Deploy UI to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ui/**"
+      - "analysis-results/**"
+      - "analysis_history.yaml"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージを導入
+        run: pip install pyyaml
+
+      - name: UIデータ(data.js)を再生成
+        env:
+          MALDB_REPO_SLUG: ${{ github.repository }}
+          MALDB_REPO_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python3 ui/generate_ui_data.py
+
+      - name: 配信ディレクトリを構成
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          cp -r ui _site/ui
+          touch _site/.nojekyll
+          cat > _site/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./ui/">
+          <title>マルウェア解析ブラウザ</title>
+          </head>
+          <body>
+          <p><a href="./ui/">マルウェア解析ブラウザへ移動します…</a></p>
+          </body>
+          </html>
+          HTML
+
+      - name: Pages設定を取得
+        uses: actions/configure-pages@v5
+
+      - name: 成果物をアップロード
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pagesへデプロイ
+        id: deployment
+        uses: actions/deploy-pages@v4

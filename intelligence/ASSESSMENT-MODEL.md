@@ -94,6 +94,16 @@ edgeには必ず`source`、`observed_at`、`recorded_at`、`confidence`、`revie
 
 campaign候補は、同一actor、同一operator、同じmalware開発者を意味しません。
 
+#### campaign候補の同一性とlineage
+
+campaign候補IDは内容依存で生成されるため、実体の追跡には使えません。`correlate_campaigns.py`は`{families, campaign_types, 共有指標}`のSHA-256から`campaign_id`を作るので、メンバーが同じでも共有指標集合が変われば別IDになります。週次で同じ候補を追跡するため、次を守ります。
+
+- 候補の同一性は、`campaign_id`ではなくメンバーSHA-256集合の重なり（Jaccard係数、包含関係）で判定する。
+- 週をまたいで実体を追う安定lineage IDを別に持ち、その週の`campaign_id`と対応付ける。
+- 候補の増減は、指標集合やprevalence閾値の跨ぎによる見かけ上の付け替えと、メンバーの実変化（`grew`/`shrank`/`merged`/`split`/`new`/`dissolved`）を区別して記録する。
+
+詳細な週次手順は`RECURRING-TASKS.md`の`INT-W06`を参照します。
+
 ### 段階3: operation candidate
 
 次をすべて満たす場合だけ昇格します。
@@ -131,6 +141,14 @@ actor名を自動labelとして付与しません。
 
 公開日を攻撃発生日として扱いません。時間付きedgeでは24時間、7日、30日、90日のwindowを別に評価し、長期間離れた再利用は同時運用と分けます。
 
+### 現在利用できる時間軸の制約
+
+repositoryは安全方針により受動DNS、証明書透明性、WHOISを既定で取り込みません。したがって現時点で安定して使える時間軸は`sample_first_seen`（検体提供元の初回観測）と`repository_recorded_at`が中心で、`infrastructure_first_seen`は原則として未取得です。週次運用では次を守ります。
+
+- 時間付きの結論は`sample_first_seen`の範囲に限定し、インフラの初回観測を持たない前提を成果物へ明記する。
+- campaign候補の内部では、メンバーの`sample_first_seen`の広がりを見て、短期バースト型か長期再利用型かを区別する。単一時点への集中と長期の散在を混同しない。
+- インフラのlifecycle（`active`/`dormant`/`reassigned`/`sinkholed`）を断定する場合は、それが受動情報ではなくrepository内観測に基づく限定的な推定であることを明記する。
+
 ## prevalenceと情報量
 
 repository内で頻出する値ほど相関への寄与を下げます。
@@ -154,7 +172,7 @@ repository内で頻出する値ほど相関への寄与を下げます。
 - sourceが同じ基礎providerへ依存しており、独立した裏付けにならない。
 - victimologyや活動地域が明確に矛盾する。
 
-棄却は削除ではなく、`rejected`状態と理由を残します。
+棄却は削除ではなく、`rejected`状態と理由を残します。棄却は恒久的な棄却台帳（`intelligence/hypotheses/rejected/`）へ保存し、メンバーSHA-256集合の正規化fingerprintまたは根拠指標・component集合をkeyにします。IDが内容依存で変わっても再照合できるようにし、各記録に棄却理由、否定証拠、棄却日、再評価を許すtrigger（新しい完全一致hash、希少configの追加など）を残します。週次の候補生成後は棄却台帳と照合し、再評価triggerを満たさない既知の棄却をreview queueへ再投入しません。運用手順は`RECURRING-TASKS.md`の「棄却台帳(rejection ledger)」を参照します。
 
 ## 確度表現
 
