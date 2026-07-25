@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "updated_on": "2026-07-25",
+  "family": "valleyrat",
+  "policy": {
+    "confirmed_public_campaign": "公開資料のSHA-256またはMD5と、ルート検体または解析済み内包物が完全一致した場合だけ確定する。",
+    "candidate_public_campaign": "公開C2などの一致に加え、配布構成またはcampaign固有markerが一致した場合に限り候補とする。",
+    "local_campaign_candidate": "同一配布物の親子関係、または複数の独立した強いローカル証拠がある場合に限り付与する。",
+    "actor_attribution": "malware family名、MalwareBazaarのcommunity tag、ファイル名、imphash単独ではactorを帰属しない。",
+    "code_cluster": "imphash完全一致はコード近縁性を示す補助情報であり、同一campaignまたは同一actorの確定には使わない。"
+  },
+  "sources": [
+    {
+      "id": "proofpoint-2023",
+      "title": "Chinese Malware Appears in Earnest Across Cybercrime Threat Landscape",
+      "url": "https://www.proofpoint.com/au/blog/threat-insight/chinese-malware-appears-earnest-across-cybercrime-threat-landscape"
+    },
+    {
+      "id": "proofpoint-2026",
+      "title": "TA4922: A Suspected Chinese Crime Group Going Global",
+      "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+    },
+    {
+      "id": "zscaler-2024",
+      "title": "New Updates to ValleyRAT",
+      "url": "https://www.zscaler.com/mx/blogs/security-research/technical-analysis-latest-variant-valleyrat"
+    },
+    {
+      "id": "fortinet-2024",
+      "title": "A Deep Dive into a New ValleyRAT Campaign Targeting Chinese Speakers",
+      "url": "https://www.fortinet.com/blog/threat-research/valleyrat-campaign-targeting-chinese-speakers"
+    },
+    {
+      "id": "checkpoint-2025",
+      "title": "Cracking ValleyRAT: From Builder Secrets to Kernel Rootkits",
+      "url": "https://research.checkpoint.com/2025/cracking-valleyrat-from-builder-secrets-to-kernel-rootkits/"
+    },
+    {
+      "id": "itochuci-2026",
+      "title": "Observations of Japanese Malspam in 2026 Q1: Analysis of Emails Delivering ValleyRAT",
+      "url": "https://blog-en.itochuci.co.jp/entry/2026/04/28/170000"
+    },
+    {
+      "id": "levelblue-2026",
+      "title": "An Analysis of ValleyRAT Infection Campaigns from Fake Installers, Japanese Malicious Emails",
+      "url": "https://www.levelblue.com/blogs/spiderlabs-blog/an-analysis-of-valleyrat-infection-campaigns-from-fake-installers-japanese-malicious-emails"
+    },
+    {
+      "id": "darklab-2026",
+      "title": "Silver Fox’s Dual-Pronged Strategy: Dissecting the ValleyRAT Distribution Campaign",
+      "url": "https://blog.darklab.hk/tag/trojanised-installer/"
+    },
+    {
+      "id": "k7-2026",
+      "title": "Fake Microsoft Teams Campaign Delivers ValleyRAT via NSIS Installer and DLL Sideloading",
+      "url": "https://labs.k7computing.com/index.php/fake-microsoft-teams-campaign-delivers-valleyrat-via-nsis-installer-and-dll-sideloading/"
+    },
+    {
+      "id": "c1bas-2026",
+      "title": "Tracking a Suspected SilverFox APT Operation",
+      "url": "https://www.c1bas.com/blog/silverfox-apt-valleyrat-python-infostealer"
+    }
+  ],
+  "public_campaigns": [
+    {
+      "campaign_id": "proofpoint-2023-chinese-invoice-resume",
+      "name_ja": "2023年 中国語請求書・履歴書メールcampaign",
+      "source_ids": [
+        "proofpoint-2023"
+      ],
+      "period": "2023-03から2023-06",
+      "reported_actor": null,
+      "actor_confidence": "未帰属",
+      "summary_ja": "中国語の請求書を中心に、履歴書PDF、圧縮実行ファイル、EasyConnect DLL side-loading、Rust loaderを使用した複数の小規模campaign。Proofpointは全活動を単一clusterへ帰属していない。",
+      "sha256": [
+        "a48abe2847e891cfd6c18c7cdaaa8e983051bc2f7a0bd9ef5c515a72954e1715",
+        "4f01ffe98009a8090ea8a086d21c62c24219b21938ea3ec7da8072f8c4dcc7a6"
+      ],
+      "md5": [],
+      "network_indicators": [
+        "51fapiaoyun.com",
+        "124.220.35.63",
+        "drfs.ctcontents.com",
+        "ckj2.cn"
+      ],
+      "markers": [
+        "中国語請求書",
+        "履歴書PDF",
+        "EasyConnect DLL side-loading",
+        "Rust loader"
+      ]
+    },
+    {
+      "campaign_id": "zscaler-2024-multistage",
+      "name_ja": "2024年 ThreatLabz多段loader campaign",
+      "source_ids": [
+        "zscaler-2024"
+      ],
+      "period": "2024",
+      "reported_actor": "中国拠点の脅威group（報告表現）",
+      "actor_confidence": "報告依存",
+      "summary_ja": "download stage、DLL side-loading、shellcode、最終ValleyRATからなる多段campaign。公開IOCはMD5中心である。",
+      "sha256": [],
+      "md5": [
+        "984878f582231a15cc907aa92903b7ab",
+        "56384012e4e46f16b883efe4dd53fcb0",
+        "8c0cde825ee2d3c8b60cd2c21d174d4c",
+        "85f1c63c40918eb300420152eaf78e2c",
+        "0b63f0b83f78dff04ae26fe6b1da3b29",
+        "81ab4d6b9a07e354b52a18690f98b8aa",
+        "b79c69bb5d309b07e10a316ee9c2223e",
+        "ddb3c71de77a18421f6e86bc9fec6697",
+        "eb953e5f2a3eb68756f779b3fa4d5c4e",
+        "8995fbb4679ddd1516eacb3e453cb1ba",
+        "58f7311956c41e99f630286baa49d0ac",
+        "cc31928547ea412b9c7655ce958574bd",
+        "043b4cbe238bcf0b242dc2874e275bbc",
+        "019a5c4e67492e412f08758a06b3b354",
+        "abf0e40513a9d614266359e56ca54f90",
+        "2c6a865a746ca9f37f9381aa64c2c1eb",
+        "00296149b1ec62f8280ba0b3d08152ee",
+        "02c1f92036278dfeabdc89d1a17da28f",
+        "c2ad2a683ff1898dd692e7d856c13d44",
+        "e9c4b65d39f73033d6ec3ee79bd39083",
+        "4df3bf214daaaafee88c455a384a4421",
+        "0d222e3084f9359a555acc3205c789fb",
+        "92ae1aff368611d62afe51d43c91bf0b",
+        "9aec2351a3966a9f854513a7b7aa5a13",
+        "0a55af506297efa468f49938a66d8af9",
+        "442f4ea7a33d805fb8944eb267b1dfad",
+        "c563f62191ea363259939a6b3ce7f192"
+      ],
+      "network_indicators": [
+        "hotshang.com",
+        "119.28.41.143",
+        "124.156.134.223",
+        "101.33.117.200",
+        "43.129.233.146"
+      ],
+      "markers": [
+        "多段loader",
+        "DLL side-loading",
+        "process injection"
+      ]
+    },
+    {
+      "campaign_id": "fortinet-2024-chinese-speaker",
+      "name_ja": "2024年 中国語話者標的多段campaign",
+      "source_ids": [
+        "fortinet-2024"
+      ],
+      "period": "2024",
+      "reported_actor": "Silver Fox（Fortinetによる疑い）",
+      "actor_confidence": "報告依存",
+      "summary_ja": "WeChatとDingTalkの環境確認、codemark marker、反転文字列のC2設定、RemoteShellCode、追加module取得を特徴とする。",
+      "sha256": [],
+      "md5": [],
+      "network_indicators": [],
+      "markers": [
+        "codemark",
+        "RemoteShellCode",
+        "WeChat",
+        "DingTalk",
+        "反転C2文字列"
+      ]
+    },
+    {
+      "campaign_id": "itochuci-2025q4-2026q1-japanese-malspam",
+      "name_ja": "2025年Q4から2026年Q1 日本語malspam campaign群",
+      "source_ids": [
+        "itochuci-2026",
+        "levelblue-2026"
+      ],
+      "period": "2025-12から2026-03",
+      "reported_actor": null,
+      "actor_confidence": "未帰属",
+      "summary_ja": "Teams、内閣府入札、税務、人事、給与、解雇、請求書を日本語で装うmalspam。ITOCHU C&Iは攻撃者属性を確定できないとしている。",
+      "sha256": [
+        "d79da8d1a65c6d93a08be02c8d347164129536c4398c9e07d92173de85e2a3e5",
+        "ea2385703e20bd38ba66cc9114951066f82e7693429e1f0c2be6c4e3ccd25749",
+        "b4538b454d1f1569fc670149e3b364f51415ef65449cd1363a5464b292d83215",
+        "292f4f0397292510e7817f328b8fc69d8aa5e1f5dff00ca176961efed5942ed9",
+        "f28937dfad91851338210021a0a015ddc1cd16c053115444e8c07ef4a6a31ff6",
+        "3f79fe91e67c5477b450e82cf51d21af15dbb96c5d663912647c8f3de147e0cd",
+        "00e0e5821096b5bd36bbc2f4c872ed859fb99fdd95a7b4a65eade26fd2aa2022",
+        "8597faea1e71e44803b503913e399006626b9f70b54815f20b779b39befa592b",
+        "459e1dc3d09eb800e6367dc7833f38f7adbb9510ea70fa490a76d9b64bd1d9f6",
+        "facf78d474b66ed821288db41fa6ad8a7b6f30650eb12127cb3e9a3cc6146116",
+        "4a1b74163098cb85dd91c7eea3d4133005664076529ec26138fce15c322bf926",
+        "6243e3e29e2178361437e59cca8c1f19d9ecf25b44ea31f7b2159871c317572a",
+        "b97e05b3367614b444893995ecda3ae5f64d8c9bdc5c375c493f12b26b5335d1",
+        "204c9a0c12c06a129894aeec66f746185e81a5e8f5f5171d5ac462c998332cf5",
+        "167657b8ca40097ba64145ad37603a6dc32591e72204993b05396d6aabe46f7f",
+        "7b7eea76cb5309e373089984f77d914d7c5026e0019821c9ef5858c2a2ebafcb",
+        "4bbb0a2ffafe6043860e41c12ba1c0e1dd9f1486cc6f1487d7053043233f8a72",
+        "cdcb7126e18b31023afb3c3d42e48bd9bb108cad4f87490be317a3e40e70b736",
+        "6b51a17dca3211a3d72e7534977db4bb57c97940a22e8fa7e609a2350ca3c5b0",
+        "de7aa97b5aff8cba74399b046e17e6aba7ee8ecc0e8aa4cf69ff61e036b85d59",
+        "3953debad2f0ee2eed1051297e6338de55dd664e6a49ceb3e37ec12391a0f0d1",
+        "56d3315bb14f4218fb19710dc9b88fec8da96c89e97de2d486dbb692e3b23241"
+      ],
+      "md5": [],
+      "network_indicators": [],
+      "markers": [
+        "日本語malspam",
+        "Teams",
+        "内閣府入札",
+        "税務",
+        "人事・給与",
+        "ISO・IMG・MSI"
+      ]
+    },
+    {
+      "campaign_id": "darklab-2025-2026-dual-pronged",
+      "name_ja": "Silver Fox二方向配布campaign",
+      "source_ids": [
+        "darklab-2026"
+      ],
+      "period": "2025から2026",
+      "reported_actor": "Silver Fox（Dark Labによる帰属）",
+      "actor_confidence": "報告依存",
+      "summary_ja": "Zoom、ToDesk、Notepad++のtrojanized installerによる広範配布と、地域の税務当局を装う標的型phishingを別の攻撃経路として運用する。",
+      "sha256": [
+        "7e5552daba7a05f26ee5ac22d22ff09f8087d8cf63e2e972d7235e31237b9a24",
+        "01487c0a98d57ab74390cd4313f554c2c84ae974631e8ae4d1eab4d349fc9896",
+        "a7704876121825ee323cf2ecfe78302bfef83874f098cbbd80cec55926b041ee",
+        "b28731f2782b77e6651260d40247b8d6119236d2361daba7c95a4d7d3c9a94c9",
+        "c23b2ca4318d65734d545de49623c158b7f995cfaf627ab57fff5ef836dc2975",
+        "0be98eebe044dab704e435a1cd71f348e31508b8c423e7bc09ba84f113a000d1",
+        "af95ba66cde0562bbe69a4fef1e37916f2e1e6226f98052c9044732ca423eb08",
+        "b94c54290015ed751c84d0a9bfa6e63481c72c0d7528b4b65a2816f72ea5c994",
+        "72578780c616b66e10d46de44e21fffc319207dd727653a211cd63727885cc3d",
+        "f107c32b4df3be98560da44c4eb2c3a94e49c95b13815df284b81437735e2dfb"
+      ],
+      "md5": [],
+      "network_indicators": [
+        "154.9.24.93",
+        "zhenkinyszd.host",
+        "cbicgov.com",
+        "m76.cdn-ccdown.com"
+      ],
+      "markers": [
+        "trojanized Zoom・ToDesk・Notepad++",
+        "地域税務当局phishing",
+        "process hollowing",
+        "DeepSer registry"
+      ]
+    },
+    {
+      "campaign_id": "k7-2026-fake-teams",
+      "name_ja": "2026年 偽Microsoft Teams NSIS campaign",
+      "source_ids": [
+        "k7-2026"
+      ],
+      "period": "2026",
+      "reported_actor": "Silver Fox（K7による帰属）",
+      "actor_confidence": "報告依存",
+      "summary_ja": "偽TeamsのNSIS installer、GameBox.exeとUtility.dllのside-loading、Defender除外、AES復号user.dat、memory injectionを使用する。",
+      "sha256": [],
+      "md5": [
+        "709604ce58e3f8255587ac9253db6994",
+        "18f3e85d7237e3cac0ad13bdcf513f0f",
+        "8f9de887e9aed9d580f386ba2d191319"
+      ],
+      "network_indicators": [
+        "103.215.77.17"
+      ],
+      "markers": [
+        "NSIS",
+        "GameBox.exe",
+        "Utility.dll",
+        "user.dat",
+        "ProgramData\\client"
+      ]
+    },
+    {
+      "campaign_id": "c1bas-2026-whatsapp-india",
+      "name_ja": "2026年 WhatsApp・インド組織標的campaign",
+      "source_ids": [
+        "c1bas-2026"
+      ],
+      "period": "2026-03",
+      "reported_actor": "Silver Foxの疑い（C1BASによる評価）",
+      "actor_confidence": "報告依存",
+      "summary_ja": "WhatsAppの照合明細ZIP、Tencent署名済みhostとExceptCatch.dll、geofencing、ValleyRAT、Python stealerを組み合わせる。",
+      "sha256": [
+        "0eb664b45200c9b4e954162128d2c13bc693f6ae57650b49a3a9fb9b2e821110",
+        "3d6d808712a6da0af4b5839af85e6217711e92cf659f593de4a8ad14c2c8a599",
+        "f33f82df3d5f16d8e1722aa85c86ee86749798c3f815f9c6ee02dd7b06089a84",
+        "cb382efe6249c62044144aaf20663881b12a8813c0de80a4c90b46ad54d93007",
+        "089f92081ad1997d01320d1b119a9c4ab37c7076aded64da9f8c109f10e0fbb1",
+        "060abb17a90de5c39c169b417054ec806f4c4f0d7764c64d08fd73a566b6fe0c",
+        "65a1644a459371aafa26281ff7a845bfd3525eea9ea94cd98d9278177562535d",
+        "285c764e84ca830d90e75df06ee5445693f79058142b85b5e054c5c78c0421aa"
+      ],
+      "md5": [],
+      "network_indicators": [
+        "roldco.com",
+        "abc.fetish-friends.com"
+      ],
+      "markers": [
+        "WhatsApp",
+        "open the file.exe",
+        "ExceptCatch.dll",
+        "geofencing",
+        "ProgramData\\TailScale",
+        "Python stealer"
+      ]
+    }
+  ],
+  "curated_local_clusters": [
+    {
+      "campaign_id": "local-valleyrat-yuanbao-sideload",
+      "name_ja": "偽Yuanbao side-loading chain",
+      "classification": "local_campaign_candidate",
+      "confidence": "高",
+      "members": [
+        "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+        "96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb"
+      ],
+      "evidence_ja": [
+        "レビュー済みの同一偽Yuanbao配布chain",
+        "7-Zip SFX、Inno Setup、保護DLL、PNG内暗号blobという固有構成"
+      ],
+      "actor_status": "未帰属"
+    },
+    {
+      "campaign_id": "local-valleyrat-tax-iso-nvml",
+      "name_ja": "税務通知ISO・NVML side-loading chain",
+      "classification": "local_campaign_candidate",
+      "confidence": "高",
+      "members": [
+        "94796cf6d4403856fcca825b4fb2e9efd2c2635d6ae43e62a6392c0153f5c944",
+        "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+      ],
+      "evidence_ja": [
+        "ISO親検体とNVML.DLL内包物のSHA-256親子関係",
+        "Notice from Tax Departmentを装うlure"
+      ],
+      "actor_status": "未帰属"
+    },
+    {
+      "campaign_id": "local-valleyrat-msi-lzx-protected-pe",
+      "name_ja": "MSI・LZX CAB・保護PE配布cluster",
+      "classification": "local_campaign_candidate",
+      "confidence": "中",
+      "members": [
+        "dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305",
+        "9af907bf12ea8508106e0bb99239dc71fa54cc6ac3a31440a9e04166a46283a5"
+      ],
+      "evidence_ja": [
+        "レビュー済みの同一MSI・LZX CAB・高entropy保護PE構成",
+        "2026年7月19日から21日の近接した観測時期"
+      ],
+      "actor_status": "未帰属"
+    }
+  ]
+}

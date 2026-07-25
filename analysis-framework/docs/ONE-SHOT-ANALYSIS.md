@@ -10,6 +10,19 @@ python .\analysis-framework\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output
 ```
 
+UPX、7-Zip、Detect It Easy CLIは自動探索せず、必要な場合だけ実行ファイルを明示します。
+
+```powershell
+python .\analysis-framework\common\analyze_sample.py `
+  --input C:\malware-lab\incoming `
+  --output C:\malware-lab\analysis-output `
+  --sevenzip 'C:\Program Files\7-Zip\7z.exe' `
+  --upx C:\malware-lab\tools\upx.exe `
+  --diec C:\malware-lab\tools\diec.exe
+```
+
+`--sevenzip` は7z、RAR、CAB、DMGおよびコンテナー候補のPE、`--upx` はUPX圧縮層、`--diec` はPE／Mach-Oの識別補助に使用します。レビュー済みの手掛かりがあるPEを7-Zipで追加検査するときだけ `--force-container-probe` も指定します。指定した実行ファイルの同一性は解析契約へ含めます。
+
 既存のPowerShell入口も、追加オプションがない場合は同じ処理へ委譲します。
 
 ```powershell
@@ -25,13 +38,15 @@ python .\analysis-framework\common\analyze_sample.py `
 
 1. symlinkと出力ディレクトリを除外し、ファイル数・ファイルサイズ上限を確認する。
 2. `auto`モードでは、暗号化された単一メンバーZIPだけをMalwareBazaar受け入れ用外装として認証し、内包物をメモリ内で読む。通常のZIP bundleは構造検出のため外装のまま扱う。
-3. 既存の静的アンパッカーでPE埋め込み物、ZIPメンバー、スクリプトの静的復号結果などをメモリ内で最大3層まで再帰復元する。層数、個別サイズ、総復元量に上限を適用し、復元本文は保存しない。
+3. 既存の静的アンパッカーでPE埋め込み物、ZIPメンバー、スクリプトの静的復号結果などをメモリ内で最大4層まで再帰復元する。層数、個別サイズ、総復元量に上限を適用し、復元本文は保存しない。
 4. ルート検体と各復元層に対して `registry/malware_types.json` の全検出器を評価し、既知SHA-256、構造一致、曖昧性、検出器エラーを分離する。
-5. `malware/**` と `extractors/**` にある既存の `extract_config`、`extract`、`analyze`、`extract_directory` 関数をASTで棚卸しし、共通バイト列APIへ適合するか判定する。
-6. いずれかの層で一意に選択されたファミリーの標準解析器だけをimport前検証し、全層へ失敗分離付きで試行する。設定、IOC、ファミリー情報などの静的証拠が最も強い成功結果を採用し、同点ではルートに近い層を優先する。
-7. 結果から資格情報、メールアドレス、URLのuserinfo・query・fragment、復元バイナリ本文を除去してJSONへ保存する。unknown、同確度競合、キャンペーン不一致では特殊解析器を強制しない。
-8. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化hashとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
-9. 挙動・検体特徴profileを作り、登録済みの強いcampaign fingerprintと一致する場合だけ自動labelを付ける。
+5. `malware/**` と `extractors/**` にある既存の `extract_config`、`extract`、`analyze`、`extract_directory` 関数をASTで棚卸しし、共通バイト列APIと入力形式契約へ適合するか判定する。モジュールの `HANDLER_CONTRACT`、先頭マジック値の厳格な検査、呼び出しアダプターの順で受け入れ形式を決定する。
+6. ルート検体を含む全復元層へ汎用トリアージを個別に実行し、各層の `complete`、`partial`、`failed` と全体の `analysis_coverage` を記録する。1層の構文解析失敗や上限到達を、ルート層の成功で隠さない。
+7. いずれかの層で一意に選択されたファミリーの標準解析器だけをインポート前検証し、選択層を先に、その外装祖先をフォールバックとして試行する。無関係な兄弟層は実行せず、入力形式が契約外の層もスキップする。十分な証拠を選択層から得た場合は祖先フォールバックを省略する。
+8. 解析器の戻り値を証拠階層へ正規化し、空結果を成功扱いしない。最も強い証拠を採用し、十分な最上位結果が複数層で同点なら `ambiguous_evidence` として自動確定を止める。
+9. 結果から資格情報、メールアドレス、Bearer資格情報、URLのuserinfo・query・fragment・資格情報path、JSON文字列内の秘密値、復元バイナリ本文を除去してJSONへ保存する。unknown、同確度競合、キャンペーン不一致では特殊解析器を強制しない。
+10. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化ハッシュとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
+11. 挙動・検体特徴プロファイルを作り、登録済みの強いキャンペーン指紋と一致する場合だけ自動ラベルを付ける。
 
 ## 適用状態
 
@@ -48,6 +63,31 @@ python .\analysis-framework\common\analyze_sample.py `
 対応件数は `summary.json` と `applicability.json` の `catalog` に記録します。件数はリポジトリ内スクリプトの追加・移行に応じて自動更新されるため、固定値を文書へ転記しません。
 
 `applicability.json` の `family_coverage` は、登録済み検出器と既存解析器の対応をファミリー単位でも示します。`automatic_handler_available`、`manual_or_unsupported_only`、`no_handler_implemented`、`handler_without_registered_detector` を区別するため、解析関数が未実装のファミリーや検出器未登録の過去スクリプトも見落としません。
+
+## ハンドラーの入力契約と証拠階層
+
+ファミリー固有ハンドラーは、モジュール直下にリテラルだけで構成した `HANDLER_CONTRACT` を宣言できます。カタログはモジュールをインポートせずASTで読み取ります。
+
+```python
+HANDLER_CONTRACT = {
+    "input_formats": ["pe"],
+    "minimum_evidence_score": 1,
+}
+```
+
+`input_formats` は `pe`、`elf`、`script`、`zip`、`rar`、`ole` など、静的形式検出器が返す形式名を指定します。複数指定も可能です。宣言がない場合は、関数先頭の厳格なマジック値検査を優先し、共通 `extract` または `extract_config` の既知アダプターには上限付きの `pe`／`elf`／`macho`／`script`／`data` 契約を適用します。どちらにも該当しない旧実装だけを `any` として棚卸しします。宣言値が不正なハンドラーは自動実行しません。`applicability.json` では `input_formats`、`input_contract_source`、`minimum_evidence_score` を確認できます。
+
+戻り値の証拠品質は次の階層で比較します。単なるファミリー名、空のオブジェクトや配列、一般的な成功メッセージだけでは証拠になりません。設定回収済みや一致済みを示す真偽値は、別キーや配列へ置いても証拠として数えません。許可したネットワーク／構造キー配下の文字列・数値・構造化オブジェクトなどの型付き実値、または設定オブジェクトとの相関を要求し、ハンドラーが自己申告したconfidenceやstatusなどのメタデータはスコアに使いません。
+
+| 階層 | 名前 | 主な意味 |
+|---:|---|---|
+| 4 | `decoded_configuration` | 復号済み設定の制御値と、相関する型付き設定実値を回収した |
+| 3 | `validated_static_configuration` | 静的検証済み設定の制御値と、相関する型付き設定実値を回収した |
+| 2 | `structural_corroboration` | 許可した構造キー配下に、マーカー、コマンド、亜種などの型付き実値がある |
+| 1 | `literal_candidate` | 許可したネットワークキー配下に、URLや接続先などの型付き候補がある |
+| 0 | `no_evidence` | 有効な静的証拠がない |
+
+結果ファイルを生成した試行は `handlers/*.json` の `attempts` に残り、結果ファイルを生成できなかった失敗や形式不一致の試行は `report.json` の `handler_executions` に残ります。主なスキップ状態は `skipped_unrelated_layer`、`skipped_incompatible_format`、`skipped_fallback_not_needed` です。ハンドラー全体の状態は、有効証拠なしを `no_evidence`、複数層の最上位証拠が同点で一意に選べない場合を `ambiguous_evidence`、契約を満たす対象層がない場合を `incompatible_input_format` とします。これらは正常完了へ昇格せず、追加確認が必要なケースとして扱います。
 
 ## 主な出力
 
@@ -68,17 +108,29 @@ python .\analysis-framework\common\analyze_sample.py `
     handlers/<family>-<handler-id-hash>.json
 ```
 
-- `summary.json`: 入力数、解析数、重複数、入力エラー数、識別数、汎用解析段階の失敗数、解析器成功・失敗数
+- `summary.json`: 入力数、解析数、重複数、入力エラー数、識別数、解析器の証拠状態、汎用解析の網羅状態、ケース完了状態、再開件数、解析契約
 - `static-layers.json`: 静的復元の親子関係、方法、上限適用状況。復元本文は含まない
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
-- `applicability.json`: 全既存解析器の対応状況とimport前検証結果
-- `generic-triage.json`: 形式、hash、entropy、PE／ELF／script構造、未確認の静的IOC候補
+- `applicability.json`: 全既存解析器の対応状況とインポート前検証結果
+- `generic-triage.json`: ルートと全復元層の形式、ハッシュ、エントロピー、PE／ELF／スクリプト構造、未確認の静的IOC候補、層別状態、集約した `analysis_coverage`
 - `features.json`／`FEATURES.md`: IOC値や検知ルールを除いた、機械可読／人向けの挙動・検体特徴
-- `static-logic.json`／`STATIC-LOGIC.md`: 関数／スクリプト単位の役割、処理手順、呼出関係、API、制御フロー、正規化fingerprint、根拠
+- `static-logic.json`／`STATIC-LOGIC.md`: 関数／スクリプト単位の役割、処理手順、呼出関係、API、制御フロー、正規化指紋、根拠
 - `campaign-labels.json`: 登録済みの強い共有証拠との一致結果。一致なしも明示する
-- `handlers/*.json`: 適用可能なファミリー固有解析器の無害化済み結果、試行層、採用層、証拠score
+- `handlers/*.json`: 適用可能なファミリー固有解析器の無害化済み結果、入力形式、経路上の役割、試行層、採用層、証拠階層／スコア、曖昧な最上位層
 
-正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。関数ロジックのレビューと類似性判定は[静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴profileとcampaign相関は[検体特徴と攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
+`report.json` の `case_state` は、再開や公開前レビューに使うケース単位の完了判定です。
+
+| 状態 | 意味 | `--resume`で再利用 |
+|---|---|---|
+| `complete` | ファミリーを一意に選択し、有効な固有解析証拠を得て、阻害要因がない | 可 |
+| `triaged_unknown` | ファミリーは未確定だが、汎用トリアージと必要な成果物は完全 | 可 |
+| `assessment_only_complete` | 適用可否判定モードを阻害要因なしで完了 | 可 |
+| `partial` | 上限到達、層の部分解析、検出器エラー、証拠不足、曖昧性、形式不一致、代表関数解析未完了などがある | 不可 |
+| `failed` | 汎用トリアージが全体として失敗し、有効な固有解析結果もない | 不可 |
+
+`case_state.blockers` には完了を妨げた理由を列挙します。`report.json` の `analysis_contract` は、パイプライン契約バージョン、解析コード、`requirements.txt`、Python実装、主要依存パッケージ版、レジストリ、検出器、抽出器、アンパッカー、ルール、ハンドラーカタログ、結果へ影響する設定から作ったSHA-256指紋です。`artifact_sha256` はケース内の必須成果物ごとの内容ハッシュ、`report_semantic_sha256` はseal field自身を除くreport全体の決定的な内容ハッシュです。
+
+正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。関数ロジックのレビューと類似性判定は[静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
 ## 判定だけを行う
 
@@ -90,6 +142,31 @@ python .\analysis-framework\common\analyze_sample.py `
 ```
 
 このモードではルート検体の検出器評価と解析器カタログの適用判定だけを行い、静的アンパック、汎用トリアージ、ファミリー固有解析器は実行しません。
+
+## 完了ケースを安全に再利用する
+
+```powershell
+python .\analysis-framework\common\analyze_sample.py `
+  --input C:\malware-lab\incoming `
+  --output C:\malware-lab\analysis-output `
+  --resume
+```
+
+`--resume` は、単に `report.json` が存在するだけでは再利用しません。次をすべて満たすケースだけを再利用します。
+
+- `case_state.resumable` が `true` で、`complete`、`triaged_unknown`、`assessment_only_complete` のいずれかである。
+- `status`、`complete`、`resumable`、`blockers`、実行モード、選択family、handler成功状態が相互に矛盾しない。
+- 内包検体SHA-256に加え、入力名、入力種別、外装SHA-256、メンバー名が現在の入力と一致する。
+- `analysis_contract` が現在の解析コード、依存版、レジストリ、ルール、カタログ、外部ツールの同一性、パスワードのSHA-256指紋を含むCLI設定から計算した指紋と完全一致する。パスワード平文は保存しない。
+- `report_semantic_sha256` がreport全体と一致する。
+- 必須成果物、knowledge成果物、handler結果の集合が `artifact_sha256` と完全一致し、各内容ハッシュが一致する。
+- handler／knowledge pathが正規化済み相対pathで、case境界内の通常ファイルだけを指す。symbolic link、Windows junction、その他のreparse pointは途中componentを含めて拒否する。
+- `classification.json` と `applicability.json` のfamily、campaign、confidence、選択根拠、handler適用性がreportと一致する。
+- 検体未実行・ネットワーク未接続の安全フラグと `--assessment-only` の実行モードが一致する。
+
+解析コードや設定の変更、成果物の欠落・改変、古い契約、`partial`／`failed` ケースを検出した場合は、キャッシュとして採用せず再解析します。
+
+正規collectionへの公開では `assessment_only_complete` を受理しません。通常解析で完了した100件をすべて副作用なしで事前検証してから書き込みを始めるため、後続caseの不整合による部分公開を避けます。
 
 ## ファミリーを明示する
 
@@ -108,7 +185,9 @@ python .\analysis-framework\common\analyze_sample.py `
 - `raw`: ZIPを含むすべての入力をそのまま解析する。
 - `malwarebazaar`: 各入力を単一メンバーZIPとして認証する。生ファイルを混在させない。
 
-アーカイブmember名、member数、個別サイズ、総展開量、圧縮率を検証し、path traversalとzip bomb候補を拒否します。
+アーカイブmember名、member数、個別サイズ、総展開量、圧縮率を検証し、path traversalとzip bomb候補を拒否します。一括解析の残り層数・個別サイズ・総復元量の上限は、内側ZIPと7-Zip展開にも伝播します。
+
+`--password` はMalwareBazaar受け入れ用外装だけでなく、再帰処理中に見つかった標準ZIPとAES ZIPにも使用します。AES ZIPの復号には `pyzipper` が必要です。復号失敗、暗号方式未対応、上限到達はその層を `partial` とし、別層の成功で隠しません。
 
 ## 旧ValleyRATワークフロー
 
@@ -116,5 +195,7 @@ python .\analysis-framework\common\analyze_sample.py `
 
 ## 終了コード
 
-- `0`: 入力エラーと解析器エラーなし
-- `20`: 1件以上の入力エラー、汎用解析段階の失敗、import前検証失敗、または解析器エラーあり。成功したcaseと成功した段階の結果は保持する
+- `0`: 入力エラーがなく、全caseが `complete`、`triaged_unknown`、`assessment_only_complete` のいずれか
+- `20`: 1件以上の入力エラー、または `partial`／`failed` caseあり。成功したcaseと成功した段階の結果は保持する
+
+CLI引数自体が不正な場合は、Pythonの引数parserが終了コード `2` を返します。

@@ -16,12 +16,12 @@
       "display_name": "AsyncRAT",
       "category": "rat",
       "aliases": ["async-rat", "async_rat"],
-      "markers": ["asyncrat", "asyncrat server", "asyncrat client", "pastebin", "pong", "hwid"],
+      "markers": ["asyncrat", "asyncrat server", "asyncrat client", "readservertdata", "keepalivepacket", "hwidgen"],
       "minimum_markers": 2,
       "config_keys": ["Hosts", "Ports", "Version", "Install", "Mutex", "Pastebin"],
       "transport": "encrypted length-prefixed TCP",
       "endpoint_role": "c2_candidate",
-      "confirmation": "Decode the settings object and corroborate host, port, certificate/key material, and AsyncRAT framing."
+      "confirmation": "Decode the settings object and corroborate host, port, certificate/key material, and AsyncRAT framing. Generic strings such as Pastebin, PONG, or HWID are not family evidence on their own."
     },
     "xworm": {
       "display_name": "XWorm",
@@ -93,7 +93,7 @@
       "display_name": "Snake Keylogger",
       "category": "stealer",
       "aliases": ["snake", "snake-keylogger", "404 keylogger"],
-      "markers": ["snake keylogger", "snakekeylogger", "telegram.bot", "smtpclient", "ftpwebrequest", "keylogger"],
+      "markers": ["snake keylogger", "telegram.bot", "smtpclient", "ftpwebrequest", "keylogger"],
       "minimum_markers": 2,
       "config_keys": ["Host", "Port", "From", "To", "Telegram", "FTP", "SMTP"],
       "transport": "SMTP/FTP/Telegram/HTTP exfiltration",
@@ -115,12 +115,12 @@
       "display_name": "HijackLoader",
       "category": "loader",
       "aliases": ["hijack-loader", "idat loader", "idatloader"],
-      "markers": ["hijackloader", "idat", "esal", "module stomping", "heaven's gate", "clickfix"],
+      "markers": ["hijackloader", "idat loader", "module stomping", "heaven's gate"],
       "minimum_markers": 2,
       "config_keys": ["URL", "Stage", "Module", "Password", "Campaign", "UserAgent"],
       "transport": "HTTP(S) staged payload retrieval",
       "endpoint_role": "stage_url_candidate",
-      "confirmation": "Corroborate a URL with the IDAT/ESAL loader chain and recovered stage metadata; do not equate reachability with C2."
+      "confirmation": "Require two high-specificity HijackLoader literals and corroborate a URL with recovered stage metadata; short IDAT/ESAL substrings and ClickFix alone are not family evidence."
     }
   }
 }

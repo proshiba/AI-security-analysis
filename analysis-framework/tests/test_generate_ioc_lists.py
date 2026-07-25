@@ -238,9 +238,11 @@ def test_generate_and_check_repository_outputs(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = generate(tmp_path)
+    result = generate(tmp_path, write=True)
 
-    assert result == {"analyses": 1, "indicators": 2, "mismatches": []}
+    assert result["analyses"] == 1
+    assert result["indicators"] == 2
+    assert result["write_performed"] is True
     content = (case / "IOC-LIST.md").read_text(encoding="utf-8")
     assert sample_hash in content
     assert "c2.example:443" in content
@@ -251,8 +253,7 @@ def test_generate_and_check_repository_outputs(tmp_path: Path) -> None:
     assert generate(tmp_path, check=True)["mismatches"] == []
 
     (case / "IOC-LIST.md").write_text("stale\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="outdated IOC lists"):
-        generate(tmp_path, check=True)
+    assert generate(tmp_path, check=True)["check_failed"] is True
 
 
 def test_generate_indexes_profile_run_aggregate(tmp_path: Path) -> None:
@@ -317,9 +318,11 @@ def test_generate_indexes_profile_run_aggregate(tmp_path: Path) -> None:
     )
     (tmp_path / "analysis_history.yaml").write_text("analyses: []\n", encoding="utf-8")
 
-    result = generate(tmp_path)
+    result = generate(tmp_path, write=True)
 
-    assert result == {"analyses": 1, "indicators": 2, "mismatches": []}
+    assert result["analyses"] == 1
+    assert result["indicators"] == 2
+    assert result["write_performed"] is True
     content = (run / "IOC-LIST.md").read_text(encoding="utf-8")
     assert sample_hash in content and "https://c2.example.org/gate" in content
     assert "token=" not in content and "user:pw@" not in content
@@ -341,7 +344,7 @@ def test_generate_discovers_canonical_campaign_and_research(tmp_path: Path) -> N
         )
     (tmp_path / "analysis_history.yaml").write_text("analyses: []\n", encoding="utf-8")
 
-    result = generate(tmp_path)
+    result = generate(tmp_path, write=True)
 
     assert result["analyses"] == 2
     assert (campaign / "IOC-LIST.md").is_file()

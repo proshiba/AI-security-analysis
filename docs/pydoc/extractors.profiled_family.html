@@ -9,11 +9,10 @@
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.profiled_family</strong></td>
 <td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cprofiled_family.py">c:\users\administrator\ai-security-analysis\extractors\profiled_family.py</a></td></tr></table>
-    <p><span class="code">Shared&nbsp;bounded&nbsp;static&nbsp;extractor&nbsp;for&nbsp;profile-defined&nbsp;Windows&nbsp;malware&nbsp;families.<br>
+    <p><span class="code">profile定義済みWindows&nbsp;malware&nbsp;family向けの共有・上限付き静的抽出器。<br>
 &nbsp;<br>
-The&nbsp;module&nbsp;intentionally&nbsp;separates&nbsp;conservative&nbsp;literal&nbsp;recovery&nbsp;from&nbsp;family-<br>
-specific&nbsp;cryptographic&nbsp;decoders.&nbsp;&nbsp;Findings&nbsp;are&nbsp;candidates&nbsp;unless&nbsp;a&nbsp;complete<br>
-family-specific&nbsp;config&nbsp;structure&nbsp;is&nbsp;available;&nbsp;no&nbsp;endpoint&nbsp;is&nbsp;contacted.</span></p>
+保守的なliteral復元とfamily固有の暗号decoderを分離し、完全なfamily固有設定構造を<br>
+復元できない限りfindingを候補として扱う。外部endpointへは接続しない。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -29,14 +28,15 @@ family-specific&nbsp;config&nbsp;structure&nbsp;is&nbsp;available;&nbsp;no&nbsp;
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-bounded_strings"><strong>bounded_strings</strong></a>(data: 'bytes', limit: 'int' = 50000) -&gt; 'list[str]'</dt><dd><span class="code">Extract&nbsp;ordered&nbsp;unique&nbsp;ASCII/UTF-16LE&nbsp;strings&nbsp;from&nbsp;deterministic&nbsp;windows.</span></dd></dl>
- <dl><dt><a name="-extract_family"><strong>extract_family</strong></a>(family: 'str', data: 'bytes', source_name: 'str' = 'sample.bin') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;bounded&nbsp;candidate&nbsp;config&nbsp;and&nbsp;network&nbsp;indicators&nbsp;for&nbsp;one&nbsp;profile.</span></dd></dl>
- <dl><dt><a name="-extractor_for"><strong>extractor_for</strong></a>(family: 'str') -&gt; 'Callable[[bytes, str], dict]'</dt><dd><span class="code">Return&nbsp;a&nbsp;two-argument&nbsp;extractor&nbsp;callable&nbsp;bound&nbsp;to&nbsp;one&nbsp;profile.</span></dd></dl>
- <dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis/extractors/profiles/windows_family_profiles.json')) -&gt; 'dict[str, dict]'</dt><dd><span class="code">Load&nbsp;and&nbsp;validate&nbsp;the&nbsp;profile&nbsp;map&nbsp;used&nbsp;by&nbsp;extractors&nbsp;and&nbsp;detectors.</span></dd></dl>
- <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str', profiles: 'dict[str, dict] | None' = None) -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;a&nbsp;family&nbsp;ID&nbsp;or&nbsp;declared&nbsp;alias&nbsp;to&nbsp;one&nbsp;profile&nbsp;key.</span></dd></dl>
- <dl><dt><a name="-profile_for"><strong>profile_for</strong></a>(family: 'str') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;one&nbsp;normalized&nbsp;immutable-by-convention&nbsp;profile&nbsp;copy.</span></dd></dl>
- <dl><dt><a name="-sanitize_network_url"><strong>sanitize_network_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Remove&nbsp;URL&nbsp;secrets&nbsp;and&nbsp;reject&nbsp;local,&nbsp;malformed,&nbsp;certificate,&nbsp;and&nbsp;documentation&nbsp;hosts.</span></dd></dl>
- <dl><dt><a name="-url_role"><strong>url_role</strong></a>(default_role: 'str', value: 'str') -&gt; 'str'</dt><dd><span class="code">Classify&nbsp;sanitized&nbsp;URLs&nbsp;as&nbsp;discovery,&nbsp;delivery-stage,&nbsp;or&nbsp;profile-default&nbsp;roles.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-bounded_strings"><strong>bounded_strings</strong></a>(data: 'bytes', limit: 'int' = 50000) -&gt; 'list[str]'</dt><dd><span class="code">決定的なwindowから順序付きで重複しないASCII/UTF-16LE文字列を抽出する。</span></dd></dl>
+ <dl><dt><a name="-clear_profile_cache"><strong>clear_profile_cache</strong></a>() -&gt; 'None'</dt><dd><span class="code">profile&nbsp;file&nbsp;cacheを明示的に破棄する。</span></dd></dl>
+ <dl><dt><a name="-extract_family"><strong>extract_family</strong></a>(family: 'str', data: 'bytes', source_name: 'str' = 'sample.bin') -&gt; 'dict'</dt><dd><span class="code">1プロファイルの設定候補とnetwork指標を上限付きで抽出する。</span></dd></dl>
+ <dl><dt><a name="-extractor_for"><strong>extractor_for</strong></a>(family: 'str') -&gt; 'Callable[[bytes, str], dict]'</dt><dd><span class="code">1つのprofileへbindした2引数の抽出関数を返す。</span></dd></dl>
+ <dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis/extractors/profiles/windows_family_profiles.json')) -&gt; 'dict[str, dict]'</dt><dd><span class="code">変更済みprofileを同一processでも再読込できる形で返す。</span></dd></dl>
+ <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str', profiles: 'dict[str, dict] | None' = None) -&gt; 'str'</dt><dd><span class="code">family&nbsp;IDまたは宣言済みaliasを単一のprofile&nbsp;keyへ正規化する。</span></dd></dl>
+ <dl><dt><a name="-profile_for"><strong>profile_for</strong></a>(family: 'str') -&gt; 'dict'</dt><dd><span class="code">慣例上immutableな正規化済みprofileのcopyを返す。</span></dd></dl>
+ <dl><dt><a name="-sanitize_network_url"><strong>sanitize_network_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">URLのsecretを除去し、local、不正、証明書、文書用hostを除外する。</span></dd></dl>
+ <dl><dt><a name="-url_role"><strong>url_role</strong></a>(default_role: 'str', value: 'str') -&gt; 'str'</dt><dd><span class="code">無害化済みURLを探索、配布stage、profile既定roleへ分類する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

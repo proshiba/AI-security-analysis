@@ -88,13 +88,13 @@
 ## IOC-LIST.md の更新ルール
 
 - 個別のcase、campaign、incident解析には、同じディレクトリに機械可読性を意識した `IOC-LIST.md` を必ず置くこと。過去解析も例外にしないこと。
-- `IOC-LIST.md` は `python analysis-framework/common/generate_ioc_lists.py --repository .` で生成し、原則として手編集しないこと。
+- `IOC-LIST.md` は `python analysis-framework/common/generate_ioc_lists.py --repository . --write` で生成し、原則として手編集しないこと。`--write` を省略した場合は差分確認だけを行い、ファイルを変更しない。
 - 内容は `種別`、`値`、`役割`、`確度`、`根拠` の5列表だけとし、挙動説明、検知考察、Shodan/Sigma/YARAクエリ、一般的なコマンド名を混ぜないこと。
 - 掲載対象は、証拠に紐づいた検体・payload hash、domain、IP、endpoint、URL、証明書hash、特徴的なfile path/nameとすること。配布先、stage取得先、C2、証明書などの役割を分けること。
 - URLのuserinfo、query、fragment、token、password、メールアドレスその他の資格情報を掲載しないこと。必要なURLパスだけを残して秘密値を除去すること。
 - 正規署名付きhost、decoy、共有インフラは、単独IOCとして扱える根拠がない限り除外すること。`context_only`、`not_ioc`、`not_c2`、`dual-use` と分類された値も除外すること。
 - 公開可能なIOCがない解析でも、空の標準表を持つ `IOC-LIST.md` を置き、「存在しない」ことを明示可能にすること。
-- 新規解析、README、`iocs.json`、`config.json`、`analysis_history.yaml` を変更した後は一覧を再生成し、`python analysis-framework/common/generate_ioc_lists.py --repository . --check` で同期を検証すること。
+- 新規解析、README、`iocs.json`、`config.json`、`analysis_history.yaml` を変更した後は `--write` で一覧を再生成し、`python analysis-framework/common/generate_ioc_lists.py --repository . --check` で同期を検証すること。
 - リポジトリ横断の索引は `analysis-results/IOC-INDEX.md` とし、個別一覧と同じgeneratorから更新すること。
 
 ## 検証ルール

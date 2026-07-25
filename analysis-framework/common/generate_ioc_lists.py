@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import ipaddress
 import json
 import re
@@ -13,11 +14,21 @@ from typing import Iterable
 
 import yaml
 
+from analysis_contract import (
+    load_json_object_strict,
+    seal_report,
+    verify_artifact_hashes,
+    verify_report_semantics,
+)
+from ioc_markdown import (
+    IOC_HEADER,
+    IOC_SEPARATOR,
+    canonical_ioc_view,
+    is_canonical_case_ioc_document,
+    render_canonical_ioc_document,
+)
 from result_layout import resolve_catalog_case_path
 
-
-IOC_HEADER = "| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |"
-IOC_SEPARATOR = "|---|---|---|---|---|"
 
 HASH_RE = re.compile(r"(?i)(?<![0-9a-f])([0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{32})(?![0-9a-f])")
 URL_RE = re.compile(r"(?i)https?://[^\s<>\"'`|]+")
@@ -529,6 +540,20 @@ def collect_indicators(directory: Path, repository: Path, history: dict[str, dic
     return merge_indicators(values)
 
 
+def canonical_case_ioc_rendering(directory: Path) -> tuple[str, int] | None:
+    """publisher形式のiocs.jsonがあれば、それだけを信頼してMarkdownへ描画する。"""
+
+    path = directory / "iocs.json"
+    if CASE_HASH_RE.fullmatch(directory.name) is None or not path.is_file():
+        return None
+    document = load_json_object_strict(path)
+    if not is_canonical_case_ioc_document(document):
+        return None
+    view = canonical_ioc_view(document, expected_sha256=directory.name)
+    content = render_canonical_ioc_document(document, expected_sha256=directory.name)
+    return content, view.entry_count
+
+
 def render_ioc_list(values: list[Indicator]) -> str:
     """挙動説明を混在させず、日本語見出しの IOC 表を描画する。"""
     lines = [
@@ -563,49 +588,127 @@ def render_index(results_root: Path, reports: list[tuple[Path, int]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def generate(repository: Path, check: bool = False) -> dict:
-    """解析単位の IOC 一覧と横断索引を、すべて生成または検証する。"""
+def _validate_tracked_ioc_list_update(directory: Path) -> tuple[Path, dict, dict] | None:
+    """IOC以外の追跡成果物と既存report sealを更新前に検証する。"""
+
+    report_path = directory / "report.json"
+    if not report_path.is_file():
+        return None
+    report = load_json_object_strict(report_path)
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or "IOC-LIST.md" not in manifest:
+        return None
+    semantic_errors = verify_report_semantics(report)
+    if semantic_errors:
+        raise ValueError(
+            f"IOC更新前のreport sealが不正です: {directory.name}: {semantic_errors}"
+        )
+    unchanged_manifest = {
+        name: digest
+        for name, digest in manifest.items()
+        if name != "IOC-LIST.md"
+    }
+    artifact_errors = (
+        verify_artifact_hashes(directory, unchanged_manifest)
+        if unchanged_manifest
+        else []
+    )
+    if artifact_errors:
+        raise ValueError(
+            f"IOC以外の成果物hashが不正です: {directory.name}: {artifact_errors}"
+        )
+    return report_path, report, manifest
+
+
+def reseal_tracked_ioc_list(directory: Path) -> None:
+    """追跡済みIOC-LIST.mdのhashだけを更新し、reportを再封印する。"""
+
+    state = _validate_tracked_ioc_list_update(directory)
+    if state is None:
+        return
+    report_path, report, manifest = state
+    target = directory / "IOC-LIST.md"
+    manifest["IOC-LIST.md"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    seal_report(report)
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def generate(
+    repository: Path,
+    *,
+    write: bool = False,
+    check: bool = False,
+) -> dict:
+    """IOC一覧の差分を計画し、明示時だけ生成または同期検証する。"""
+    if write and check:
+        raise ValueError("--write and --check are mutually exclusive")
     results_root = repository / "analysis-results"
     history = load_history(repository / "analysis_history.yaml")
     directories = analysis_directories(results_root, history)
     mismatches = []
     reports = []
     for directory in directories:
-        values = collect_indicators(directory, repository, history)
-        content = render_ioc_list(values)
-        target = directory / "IOC-LIST.md"
-        reports.append((directory, len(values)))
-        if check:
-            if not target.exists() or target.read_text(encoding="utf-8-sig") != content:
-                mismatches.append(str(target.relative_to(repository)))
+        canonical = canonical_case_ioc_rendering(directory)
+        if canonical is None:
+            values = collect_indicators(directory, repository, history)
+            content = render_ioc_list(values)
+            count = len(values)
         else:
-            target.write_text(content, encoding="utf-8", newline="\n")
+            content, count = canonical
+        target = directory / "IOC-LIST.md"
+        reports.append((directory, count))
+        current = target.read_text(encoding="utf-8-sig") if target.is_file() else None
+        if current != content:
+            mismatches.append(str(target.relative_to(repository)))
+            if write:
+                _validate_tracked_ioc_list_update(directory)
+                target.write_text(content, encoding="utf-8", newline="\n")
+                reseal_tracked_ioc_list(directory)
     index_content = render_index(results_root, reports)
     index_target = results_root / "IOC-INDEX.md"
-    if check:
-        if not index_target.exists() or index_target.read_text(encoding="utf-8-sig") != index_content:
-            mismatches.append(str(index_target.relative_to(repository)))
-    else:
-        index_target.write_text(index_content, encoding="utf-8", newline="\n")
-    if check and mismatches:
-        raise ValueError("outdated IOC lists: " + ", ".join(mismatches[:20]))
-    return {"analyses": len(reports), "indicators": sum(count for _, count in reports), "mismatches": mismatches}
+    current_index = (
+        index_target.read_text(encoding="utf-8-sig")
+        if index_target.is_file()
+        else None
+    )
+    if current_index != index_content:
+        mismatches.append(str(index_target.relative_to(repository)))
+        if write:
+            index_target.write_text(index_content, encoding="utf-8", newline="\n")
+    return {
+        "analyses": len(reports),
+        "indicators": sum(count for _, count in reports),
+        "mismatches": mismatches,
+        "write_performed": bool(write and mismatches),
+        "check_failed": bool(check and mismatches),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
     """決定的な IOC 一覧生成用 CLI を構築する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
-    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--write", action="store_true", help="差分があるIOC成果物を更新する")
+    parser.add_argument("--check", action="store_true", help="生成差分がある場合に非0を返す")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    """IOC 一覧を生成し、検証時に保存済み出力が古ければ失敗する。"""
+    """IOC一覧をdry-run、明示書込み、または同期検証する。"""
     args = build_parser().parse_args(argv)
-    result = generate(args.repository.resolve(), check=args.check)
+    if args.write and args.check:
+        raise ValueError("--write and --check are mutually exclusive")
+    result = generate(
+        args.repository.resolve(),
+        write=args.write,
+        check=args.check,
+    )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return 0
+    return int(result["check_failed"])
 
 
 if __name__ == "__main__":

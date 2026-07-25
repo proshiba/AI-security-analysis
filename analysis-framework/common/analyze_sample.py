@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import shutil
 import sys
 import zipfile
 from typing import Any
@@ -41,14 +42,31 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_family_sample  # noqa: E402
 import classify_sample  # noqa: E402
+from analysis_contract import (  # noqa: E402
+    artifact_hashes,
+    build_pipeline_fingerprint,
+    case_integrity_errors,
+    ensure_no_reparse_components,
+    ensure_tree_without_reparse,
+    format_compatible,
+    handler_result_quality,
+    load_json_object_strict,
+    normalize_sha256_digest,
+    resolve_case_artifact,
+    runtime_dependency_versions,
+    seal_report,
+)
 from handler_catalog import (  # noqa: E402
     HandlerSpec,
     catalog_summary,
+    clear_handler_caches,
     discover_handlers,
     execute_handler,
     load_handler,
     sanitize_public_value,
 )
+from extractors.profiled_family import clear_profile_cache  # noqa: E402
+from profiled_family_detector import clear_known_hash_cache  # noqa: E402
 from campaign_correlation import (  # noqa: E402
     extract_campaign_evidence,
     load_rules,
@@ -60,19 +78,19 @@ from static_logic import (  # noqa: E402
     render_static_logic_markdown,
 )
 from malware_io import (  # noqa: E402
-    ArchiveValidationError,
     read_single_aes_zip_member,
     safe_output_name,
     sha256_bytes,
     write_json,
 )
-from unpackers.static_unpacker import unpack_bytes  # noqa: E402
+from unpackers.static_unpacker import detect_format, unpack_bytes  # noqa: E402
 
 
 MAX_STATIC_LAYERS = 32
-MAX_STATIC_DEPTH = 3
+MAX_STATIC_DEPTH = 4
 MAX_RECOVERED_LAYER_SIZE = 64 * 1024 * 1024
 MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
+MAX_STATIC_COMPRESSION_RATIO = 100.0
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
 CAMPAIGN_FINGERPRINTS = FRAMEWORK_ROOT / "registry" / "campaign_fingerprints.json"
 
@@ -107,6 +125,7 @@ class StaticLayer:
             "name": self.name,
             "sha256": self.sha256,
             "size": len(self.data),
+            "format": detect_format(self.data, self.name),
             "parent_sha256": self.parent_sha256,
             "depth": self.depth,
             "transform": self.transform,
@@ -220,14 +239,18 @@ def read_input_unit(
 
 
 def _registered_families(registry: Path) -> set[str]:
-    data = json.loads(registry.read_text(encoding="utf-8-sig"))
-    values = data.get("malware_types", {})
-    if not isinstance(values, dict):
-        raise ValueError("registry malware_types must be an object")
-    return set(values)
+    return set(classify_sample._validated_registry(registry))
 
 
-def recover_static_layers(unit: InputUnit) -> tuple[list[StaticLayer], dict[str, Any]]:
+def recover_static_layers(
+    unit: InputUnit,
+    *,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    force_container_probe: bool = False,
+    archive_password: str = "infected",
+) -> tuple[list[StaticLayer], dict[str, Any]]:
     """既存アンパッカー群で復元層を再帰処理し、バイト列はメモリ内だけに保持する。"""
 
     root = StaticLayer(
@@ -255,8 +278,41 @@ def recover_static_layers(unit: InputUnit) -> tuple[list[StaticLayer], dict[str,
                 }
             )
             continue
+        remaining_total = MAX_RECOVERED_TOTAL_SIZE - recovered_total
+        remaining_layers = MAX_STATIC_LAYERS - len(layers)
+        if remaining_total <= 0 or remaining_layers <= 0:
+            reason = (
+                "recovered_total_limit"
+                if remaining_total <= 0
+                else "layer_count_limit"
+            )
+            limit_events.append(
+                {
+                    "parent_sha256": layer.sha256,
+                    "reason": reason,
+                }
+            )
+            steps.append(
+                {
+                    "input_layer": layer.public(),
+                    "status": f"skipped_{reason}",
+                }
+            )
+            continue
         try:
-            report, artifacts = unpack_bytes(layer.data, layer.name)
+            report, artifacts = unpack_bytes(
+                layer.data,
+                layer.name,
+                upx=upx,
+                sevenzip=sevenzip,
+                diec=diec,
+                force_container_probe=force_container_probe,
+                archive_password=archive_password,
+                max_archive_members=remaining_layers,
+                max_archive_member_size=min(MAX_RECOVERED_LAYER_SIZE, remaining_total),
+                max_archive_total_size=remaining_total,
+                max_archive_compression_ratio=MAX_STATIC_COMPRESSION_RATIO,
+            )
             step = {
                 "input_layer": layer.public(),
                 "status": "succeeded",
@@ -356,34 +412,19 @@ def recover_static_layers(unit: InputUnit) -> tuple[list[StaticLayer], dict[str,
 
 
 def _handler_evidence_score(value: Any) -> int:
-    """空結果より復元設定・IOCを優先する決定的な選択scoreを返す。"""
+    """互換用に、共通証拠tierから決定的なscoreだけを返す。"""
 
-    if not isinstance(value, dict):
-        return 0
-    score = 0
-    for key, item in value.items():
-        lowered = str(key).lower()
-        if lowered in {
-            "findings",
-            "c2",
-            "config_endpoints",
-            "network_endpoints",
-            "urls",
-            "endpoints",
-        } and isinstance(item, list):
-            score += min(len(item), 100) * 10
-        if lowered in {"static_config_recovered", "decoded_config_recovered"} and item is True:
-            score += 1_000
-        if lowered in {"family", "variant"} and str(item).lower() not in {
-            "",
-            "none",
-            "unknown",
-            "unresolved",
-        }:
-            score += 100
-        if isinstance(item, dict):
-            score += _handler_evidence_score(item)
-    return score
+    return int(handler_result_quality(value)["score"])
+
+
+def _detector_error_for_family(classification: dict[str, Any], family: str) -> bool:
+    """選択候補familyの検出器が例外終了したか返す。"""
+
+    observations = classification.get("observations")
+    if not isinstance(observations, dict):
+        return False
+    errors = observations.get("detector_errors")
+    return isinstance(errors, dict) and family in errors
 
 
 def _selected_family(
@@ -392,11 +433,19 @@ def _selected_family(
     minimum_confidence: str,
 ) -> tuple[str | None, str]:
     if forced_family:
+        if classification.get("malware_type") != forced_family:
+            return None, "explicit_family_not_selected"
+        if classification.get("attribution_basis") == "explicit_user_type_unmatched":
+            return None, "explicit_family_detector_unmatched"
+        if _detector_error_for_family(classification, forced_family):
+            return None, "explicit_family_detector_failed"
         return forced_family, "explicit_operator_selection"
     family = classification.get("malware_type")
     confidence = classification.get("malware_type_confidence", "low")
     if family == "unknown" or CONFIDENCE.get(confidence, 0) < CONFIDENCE[minimum_confidence]:
         return None, "no_unique_detection_above_threshold"
+    if _detector_error_for_family(classification, str(family)):
+        return None, "selected_family_detector_failed"
     return str(family), str(classification.get("attribution_basis", "detector"))
 
 
@@ -498,6 +547,359 @@ def _preflight_applicable(
     return results
 
 
+def plan_handler_layers(
+    spec: HandlerSpec,
+    applicability: dict[str, Any],
+    layers: list[StaticLayer],
+) -> list[dict[str, Any]]:
+    """family一致層とその外装祖先だけを、形式契約付きで実行順へ変換する。"""
+
+    anchors = set(applicability.get("applicable_layers") or [])
+    by_hash = {layer.sha256: layer for layer in layers}
+    ancestors: set[str] = set()
+    for anchor in anchors:
+        current = by_hash.get(anchor)
+        while current is not None and current.parent_sha256:
+            ancestors.add(current.parent_sha256)
+            current = by_hash.get(current.parent_sha256)
+    plan = []
+    for index, layer in enumerate(layers):
+        if layer.sha256 in anchors:
+            routing_role = "selected_family_layer"
+            priority = 0
+        elif layer.sha256 in ancestors:
+            routing_role = "ancestor_fallback"
+            priority = 1
+        else:
+            routing_role = "unrelated_layer"
+            priority = 2
+        actual_format = detect_format(layer.data, layer.name)
+        plan.append(
+            {
+                "layer": layer,
+                "layer_index": index,
+                "routing_role": routing_role,
+                "priority": priority,
+                "actual_format": actual_format,
+                "compatible": format_compatible(spec.input_formats, actual_format),
+            }
+        )
+    return sorted(plan, key=lambda item: (item["priority"], item["layer_index"]))
+
+
+def _triage_issues(value: Any, path: str = "root") -> list[str]:
+    """汎用トリアージ内のparse失敗と明示的partialを再帰的に収集する。"""
+
+    issues = []
+    if isinstance(value, dict):
+        coverage = value.get("analysis_coverage")
+        if isinstance(coverage, dict) and coverage.get("status") not in {None, "complete"}:
+            issues.append(f"{path}:coverage:{coverage.get('status')}")
+        for key, item in value.items():
+            lowered = str(key).casefold()
+            child_path = f"{path}.{key}"
+            if lowered == "parse_error" or lowered.endswith("_error"):
+                issues.append(child_path)
+            elif key != "analysis_coverage":
+                issues.extend(_triage_issues(item, child_path))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            issues.extend(_triage_issues(item, f"{path}[{index}]"))
+    return issues
+
+
+def _run_generic_triage(
+    layers: list[StaticLayer], case_dir: Path
+) -> tuple[dict[str, Any], str]:
+    """全静的復元層を個別にトリアージし、部分失敗を隠さず集約する。"""
+
+    entries = []
+    for layer in layers:
+        try:
+            value = analyze_family_sample.analyze(
+                layer.name,
+                layer.data,
+                case_dir / "scripts",
+                persist_normalized_text=False,
+                recurse_archives=False,
+            )
+            issues = _triage_issues(value)
+            entries.append(
+                {
+                    "layer": layer.public(),
+                    "status": "partial" if issues else "complete",
+                    "issues": issues,
+                    "result": sanitize_public_value(value),
+                }
+            )
+        except Exception as exc:
+            entries.append(
+                {
+                    "layer": layer.public(),
+                    "status": "failed",
+                    "issues": [f"{type(exc).__name__}: {exc}"],
+                    "result": None,
+                }
+            )
+    root = entries[0]
+    document = dict(root["result"] or {})
+    if root["result"] is None:
+        document.update(status="failed", error=root["issues"][0])
+    document["recovered_layer_triage"] = entries[1:]
+    failed = sum(item["status"] == "failed" for item in entries)
+    partial = sum(item["status"] == "partial" for item in entries)
+    status = "failed" if failed == len(entries) else ("partial" if failed or partial else "complete")
+    document["analysis_coverage"] = {
+        "status": status,
+        "layer_count": len(entries),
+        "complete_layers": sum(item["status"] == "complete" for item in entries),
+        "partial_layers": partial,
+        "failed_layers": failed,
+    }
+    document["executed_sample"] = False
+    document["network_contacted"] = False
+    return document, status
+
+
+INCOMPLETE_STATIC_STATUSES = frozenset(
+    {
+        "bounded_limit",
+        "corrupt_or_truncated",
+        "failed",
+        "malformed_metadata",
+        "member_limit_applied",
+        "parse_failed",
+        "partially_extracted",
+        "ratio_blocked",
+        "size_blocked",
+        "size_mismatch",
+        "total_size_blocked",
+    }
+)
+INCOMPLETE_STATIC_STATUS_TOKENS = (
+    "blocked",
+    "corrupt",
+    "encrypted",
+    "error",
+    "failed",
+    "incomplete",
+    "invalid",
+    "limit",
+    "malformed",
+    "mismatch",
+    "partial",
+    "timeout",
+    "truncated",
+    "unavailable",
+)
+
+
+def _is_incomplete_static_status(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized = value.strip().casefold()
+    return normalized in INCOMPLETE_STATIC_STATUSES or any(
+        token in normalized for token in INCOMPLETE_STATIC_STATUS_TOKENS
+    )
+
+
+
+
+def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
+    """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
+
+    issues: list[str] = []
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for raw_key, item in value.items():
+                key = str(raw_key).casefold()
+                child = f"{path}.{raw_key}"
+                if key == "unpack_status" and _is_incomplete_static_status(item):
+                    issues.append(f"{child}:{item}")
+                elif key == "status" and _is_incomplete_static_status(item):
+                    issues.append(f"{child}:{item}")
+                elif (key == "parse_error" or key.endswith("_error")) and (
+                    item is not None and item is not False and item != ""
+                ):
+                    issues.append(child)
+                visit(item, child)
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                visit(item, f"{path}[{index}]")
+
+    steps = layer_report.get("steps")
+    if not isinstance(steps, list):
+        steps = []
+    for index, step in enumerate(steps):
+        if not isinstance(step, dict):
+            issues.append(f"steps[{index}]:invalid")
+            continue
+        step_status = step.get("status")
+        if _is_incomplete_static_status(step_status):
+            issues.append(f"steps[{index}]:{step_status}")
+        visit(step.get("report"), f"steps[{index}].report")
+        report = step.get("report")
+        if isinstance(report, dict) and "sevenzip" not in report:
+            if report.get("format") in {"7z", "apple-disk-image", "cab", "rar"}:
+                issues.append(
+                    f"steps[{index}].report:container_extractor_unavailable"
+                )
+            pe_report = report.get("pe")
+            if isinstance(pe_report, dict) and pe_report.get("containerized") is True:
+                issues.append(
+                    f"steps[{index}].report:pe_container_extractor_unavailable"
+                )
+    return sorted(set(issues))
+
+def _completion_state(
+    *,
+    assessment_only: bool,
+    generic_status: str,
+    layer_report: dict[str, Any],
+    layer_selections: list[dict[str, Any]],
+    selected_families: list[str],
+    applicability: list[dict[str, Any]],
+    executions: list[dict[str, Any]],
+    logic_report: dict[str, Any],
+) -> dict[str, Any]:
+    """再開・公開判断に使うcase完了状態とblockerを一箇所で算出する。"""
+
+    blockers = []
+    if generic_status == "failed":
+        blockers.append("generic_triage_failed")
+    elif generic_status == "partial":
+        blockers.append("generic_triage_partial")
+    limit_count = int((layer_report.get("counts") or {}).get("limit_events") or 0)
+    if limit_count:
+        blockers.append("static_layer_limit_reached")
+    static_issues = _static_layer_issues(layer_report)
+    if static_issues:
+        blockers.append("static_layer_incomplete")
+
+    detector_error_set: set[str] = set()
+    for selection in layer_selections:
+        if not isinstance(selection, dict):
+            continue
+        classification = selection.get("classification")
+        if not isinstance(classification, dict):
+            continue
+        observations = classification.get("observations")
+        if not isinstance(observations, dict):
+            continue
+        errors = observations.get("detector_errors")
+        if isinstance(errors, dict):
+            detector_error_set.update(str(family) for family in errors)
+    detector_errors = sorted(detector_error_set)
+    if detector_errors:
+        blockers.append("detector_error_present")
+
+    execution_values = [item for item in executions if isinstance(item, dict)]
+    execution_statuses = [str(item.get("status")) for item in execution_values]
+    incomplete_anchor_attempts = []
+    if not assessment_only:
+        for status in sorted(set(execution_statuses)):
+            if status in {
+                "failed",
+                "preflight_failed",
+                "no_evidence",
+                "ambiguous_evidence",
+                "incompatible_input_format",
+            }:
+                blockers.append(f"handler_{status}")
+
+        applicable_handlers: dict[str, set[str]] = {
+            family: set() for family in selected_families
+        }
+        for item in applicability:
+            if not isinstance(item, dict):
+                continue
+            family = item.get("family")
+            handler_id = item.get("id")
+            if (
+                family in applicable_handlers
+                and isinstance(handler_id, str)
+                and item.get("status") in {"applicable", "applicable_forced"}
+            ):
+                applicable_handlers[family].add(handler_id)
+        successful_handlers = {
+            str(item.get("handler_id"))
+            for item in execution_values
+            if item.get("status") == "succeeded"
+        }
+        for family, handler_ids in sorted(applicable_handlers.items()):
+            if not handler_ids:
+                blockers.append(f"selected_family_has_no_automatic_handler:{family}")
+            elif not handler_ids.intersection(successful_handlers):
+                blockers.append(f"selected_family_has_no_valid_handler_evidence:{family}")
+
+        for execution in execution_values:
+            for attempt in execution.get("attempts") or []:
+                if not isinstance(attempt, dict) or attempt.get("routing_role") != "selected_family_layer":
+                    continue
+                attempt_status = attempt.get("status")
+                if attempt_status in {"failed", "skipped_incompatible_format"} or (
+                    attempt_status == "succeeded"
+                    and attempt.get("evidence_status") != "sufficient"
+                ):
+                    incomplete_anchor_attempts.append(
+                        {
+                            "handler_id": execution.get("handler_id"),
+                            "layer_sha256": (attempt.get("layer") or {}).get("sha256"),
+                            "status": attempt_status,
+                        }
+                    )
+        if incomplete_anchor_attempts:
+            blockers.append("selected_family_layer_incomplete")
+        if logic_report.get("status") == "function_analysis_required":
+            blockers.append("representative_function_analysis_required")
+
+    blockers = sorted(set(blockers))
+    if assessment_only:
+        status = "assessment_only_complete" if not blockers else "partial"
+    elif not blockers and selected_families:
+        status = "complete"
+    elif not blockers:
+        status = "triaged_unknown"
+    elif generic_status == "failed" and "succeeded" not in execution_statuses:
+        status = "failed"
+    else:
+        status = "partial"
+    return {
+        "status": status,
+        "complete": status in {"complete", "triaged_unknown", "assessment_only_complete"},
+        "resumable": status in {"complete", "triaged_unknown", "assessment_only_complete"},
+        "blockers": blockers,
+        "detector_error_families": detector_errors,
+        "static_layer_issues": static_issues,
+        "incomplete_selected_layer_attempts": incomplete_anchor_attempts,
+    }
+
+
+def _prepare_case_directory(output: Path, digest: str) -> Path:
+    """再解析が確定したSHA-256 caseだけを検証後に空directoryへ初期化する。"""
+
+    normalize_sha256_digest(digest)
+    cases_root = output / "cases"
+    cases_root.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(cases_root)
+    resolved_root = cases_root.resolve(strict=True)
+    case_dir = cases_root / digest
+    ensure_no_reparse_components(case_dir)
+    if case_dir.exists():
+        ensure_tree_without_reparse(case_dir)
+        resolved_case = case_dir.resolve(strict=True)
+        if (
+            not resolved_case.is_dir()
+            or resolved_case.parent != resolved_root
+            or resolved_case.name != digest
+        ):
+            raise ValueError(f"安全に初期化できないcase directoryです: {digest}")
+        shutil.rmtree(case_dir)
+    case_dir.mkdir()
+    return case_dir
+
+
 def analyze_unit(
     unit: InputUnit,
     *,
@@ -508,11 +910,17 @@ def analyze_unit(
     forced_family: str | None,
     minimum_confidence: str,
     assessment_only: bool,
+    analysis_contract: dict[str, Any],
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    force_container_probe: bool = False,
+    archive_password: str = "infected",
 ) -> dict[str, Any]:
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
 
     digest = hashlib.sha256(unit.data).hexdigest()
-    case_dir = output / "cases" / digest
+    case_dir = _prepare_case_directory(output, digest)
     classifier_family = forced_family if forced_family in registered else None
     if assessment_only:
         layers = [
@@ -534,7 +942,14 @@ def analyze_unit(
             "recovered_content_exported": False,
         }
     else:
-        layers, layer_report = recover_static_layers(unit)
+        layers, layer_report = recover_static_layers(
+            unit,
+            upx=upx,
+            sevenzip=sevenzip,
+            diec=diec,
+            force_container_probe=force_container_probe,
+            archive_password=archive_password,
+        )
     write_json(case_dir / "static-layers.json", layer_report)
 
     layer_selections: list[dict[str, Any]] = []
@@ -615,27 +1030,8 @@ def analyze_unit(
 
     generic_status = "not_run_assessment_only"
     if not assessment_only:
-        try:
-            generic = analyze_family_sample.analyze(
-                unit.source_name,
-                unit.data,
-                case_dir / "scripts",
-                persist_normalized_text=False,
-            )
-            write_json(case_dir / "generic-triage.json", sanitize_public_value(generic))
-            generic_status = "succeeded"
-        except Exception as exc:
-            write_json(
-                case_dir / "generic-triage.json",
-                {
-                    "schema_version": 1,
-                    "status": "failed",
-                    "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
-                    "executed_sample": False,
-                    "network_contacted": False,
-                },
-            )
-            generic_status = "failed"
+        generic, generic_status = _run_generic_triage(layers, case_dir)
+        write_json(case_dir / "generic-triage.json", generic)
 
     executions = []
     specs_by_id = {item.id: item for item in specs}
@@ -654,42 +1050,101 @@ def analyze_unit(
                 )
                 continue
             attempts = []
-            successes = []
-            for layer_index, layer in enumerate(layers):
+            completed = []
+            spec = specs_by_id[handler_id]
+            plan = plan_handler_layers(spec, item, layers)
+            for planned in plan:
+                layer = planned["layer"]
+                attempt = {
+                    "layer": layer.public(),
+                    "routing_role": planned["routing_role"],
+                    "actual_format": planned["actual_format"],
+                    "accepted_formats": list(spec.input_formats),
+                }
+                if planned["routing_role"] == "unrelated_layer":
+                    attempts.append({**attempt, "status": "skipped_unrelated_layer"})
+                    continue
+                if not planned["compatible"]:
+                    attempts.append({**attempt, "status": "skipped_incompatible_format"})
+                    continue
+                if planned["routing_role"] == "ancestor_fallback" and any(
+                    value[0]["sufficient"] and value[0]["tier"] >= 4 for value in completed
+                ):
+                    attempts.append({**attempt, "status": "skipped_fallback_not_needed"})
+                    continue
                 try:
-                    result = execute_handler(specs_by_id[handler_id], layer.data, layer.name)
-                    score = _handler_evidence_score(result.get("result"))
+                    result = execute_handler(spec, layer.data, layer.name)
+                    quality = handler_result_quality(
+                        result.get("result"),
+                        minimum_score=spec.minimum_evidence_score,
+                    )
                     attempts.append(
                         {
-                            "layer": layer.public(),
+                            **attempt,
                             "status": "succeeded",
-                            "evidence_score": score,
+                            "evidence_status": (
+                                "sufficient" if quality["sufficient"] else "insufficient"
+                            ),
+                            "evidence": quality,
                         }
                     )
-                    successes.append((score, -layer_index, layer, result))
+                    completed.append(
+                        (
+                            quality,
+                            -planned["layer_index"],
+                            layer,
+                            result,
+                        )
+                    )
                 except Exception as exc:
                     attempts.append(
                         {
-                            "layer": layer.public(),
+                            **attempt,
                             "status": "failed",
                             "error": sanitize_public_value(
                                 f"{type(exc).__name__}: {exc}"
                             ),
                         }
                     )
-            if not successes:
+            if not completed:
+                attempted = any(
+                    value["status"] == "failed" for value in attempts
+                )
                 executions.append(
                     {
                         "handler_id": handler_id,
-                        "status": "failed",
-                        "error": "all_static_layers_failed",
+                        "status": "failed" if attempted else "incompatible_input_format",
+                        "error": (
+                            "all_eligible_layers_failed"
+                            if attempted
+                            else "no_eligible_layer_satisfied_input_contract"
+                        ),
                         "attempts": attempts,
                     }
                 )
                 continue
-            selected_score, _, selected_layer, selected_result = max(successes)
+            selected_quality, _, selected_layer, selected_result = max(
+                completed,
+                key=lambda value: (
+                    value[0]["score"],
+                    value[1],
+                ),
+            )
+            strongest = [
+                value
+                for value in completed
+                if value[0]["score"] == selected_quality["score"]
+                and value[0]["sufficient"]
+            ]
+            ambiguous_layers = sorted({value[2].sha256 for value in strongest})
+            if not selected_quality["sufficient"]:
+                execution_status = "no_evidence"
+            elif len(ambiguous_layers) > 1:
+                execution_status = "ambiguous_evidence"
+            else:
+                execution_status = "succeeded"
             filename = (
-                safe_output_name(specs_by_id[handler_id].family)
+                safe_output_name(spec.family)
                 + "-"
                 + hashlib.sha256(handler_id.encode("utf-8")).hexdigest()[:16]
                 + ".json"
@@ -700,17 +1155,22 @@ def analyze_unit(
                 {
                     **selected_result,
                     "selected_layer": selected_layer.public(),
-                    "selected_evidence_score": selected_score,
-                    "selection_strategy": "strongest_static_evidence_then_root_order",
+                    "selected_evidence": selected_quality,
+                    "selected_evidence_score": selected_quality["score"],
+                    "selection_strategy": "evidence_tier_then_score_then_root_order",
+                    "ambiguous_best_layer_sha256": ambiguous_layers,
                     "attempts": attempts,
                 },
             )
             executions.append(
                 {
                     "handler_id": handler_id,
-                    "status": "succeeded",
+                    "status": execution_status,
                     "selected_layer_sha256": selected_layer.sha256,
+                    "selected_evidence": selected_quality,
+                    "ambiguous_best_layer_sha256": ambiguous_layers,
                     "result": f"handlers/{filename}",
+                    "attempts": attempts,
                 }
             )
 
@@ -735,6 +1195,7 @@ def analyze_unit(
         },
         "static_layers": "static-layers.json",
         "generic_triage": generic_status,
+        "analysis_contract": analysis_contract,
         "handler_executions": executions,
         "assessment_only": assessment_only,
         "executed_sample": False,
@@ -786,6 +1247,16 @@ def analyze_unit(
             },
         },
     )
+    completion = _completion_state(
+        assessment_only=assessment_only,
+        generic_status=generic_status,
+        layer_report=layer_report,
+        layer_selections=layer_selections,
+        selected_families=selected_families,
+        applicability=applicability,
+        executions=executions,
+        logic_report=logic_report,
+    )
     report["knowledge_artifacts"] = {
         "features": "features.json",
         "features_markdown": "FEATURES.md",
@@ -793,6 +1264,26 @@ def analyze_unit(
         "static_logic": "static-logic.json",
         "static_logic_markdown": "STATIC-LOGIC.md",
     }
+    report["case_state"] = completion
+    artifact_paths = [
+        "static-layers.json",
+        "classification.json",
+        "applicability.json",
+        "features.json",
+        "FEATURES.md",
+        "campaign-labels.json",
+        "static-logic.json",
+        "STATIC-LOGIC.md",
+    ]
+    if not assessment_only:
+        artifact_paths.append("generic-triage.json")
+    artifact_paths.extend(
+        item["result"]
+        for item in executions
+        if isinstance(item.get("result"), str)
+    )
+    report["artifact_sha256"] = artifact_hashes(case_dir, artifact_paths)
+    seal_report(report)
     write_json(case_dir / "report.json", report)
     return {
         "sha256": digest,
@@ -803,9 +1294,150 @@ def analyze_unit(
         "campaign": root_classification.get("campaign_type"),
         "handler_succeeded": sum(item["status"] == "succeeded" for item in executions),
         "handler_failed": sum(item["status"] in {"failed", "preflight_failed"} for item in executions),
+        "handler_no_evidence": sum(item["status"] == "no_evidence" for item in executions),
+        "handler_ambiguous": sum(item["status"] == "ambiguous_evidence" for item in executions),
+        "handler_incompatible": sum(item["status"] == "incompatible_input_format" for item in executions),
         "analysis_stage_failed": generic_status == "failed",
+        "analysis_stage_partial": generic_status == "partial",
+        "case_state": completion["status"],
         "report": f"cases/{digest}/report.json",
     }
+
+
+def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]:
+    """case結果へ影響する解析コード、検出器、抽出器、規則を列挙する。"""
+
+    components = {
+        Path(__file__).resolve(),
+        (COMMON_ROOT / "analysis_contract.py").resolve(),
+        (COMMON_ROOT / "analyze_family_sample.py").resolve(),
+        (COMMON_ROOT / "campaign_correlation.py").resolve(),
+        (COMMON_ROOT / "case_features.py").resolve(),
+        (COMMON_ROOT / "handler_catalog.py").resolve(),
+        (COMMON_ROOT / "static_logic.py").resolve(),
+        (FRAMEWORK_ROOT / "requirements.txt").resolve(),
+        (CLASSIFIERS_ROOT / "classify_sample.py").resolve(),
+        registry.resolve(),
+        CAMPAIGN_CORRELATION_RULES.resolve(),
+        CAMPAIGN_FINGERPRINTS.resolve(),
+    }
+    for root in (COMMON_ROOT, CLASSIFIERS_ROOT):
+        if root.is_dir():
+            components.update(
+                path.resolve()
+                for path in root.rglob("*.py")
+                if "tests" not in path.parts and not path.name.startswith("test_")
+            )
+    for root in (
+        FRAMEWORK_ROOT / "registry",
+        FRAMEWORK_ROOT / "malware",
+        REPOSITORY_ROOT / "extractors" / "profiles",
+    ):
+        if not root.is_dir():
+            continue
+        components.update(
+            path.resolve()
+            for path in root.rglob("*")
+            if path.is_file()
+            and path.suffix.casefold() in {".json", ".yaml", ".yml"}
+        )
+    for spec in specs:
+        path = (REPOSITORY_ROOT / spec.relative_path).resolve()
+        if path.is_file():
+            components.add(path)
+    registry_value = json.loads(registry.read_text(encoding="utf-8-sig"))
+    for metadata in (registry_value.get("malware_types") or {}).values():
+        if not isinstance(metadata, dict) or not isinstance(metadata.get("detector"), str):
+            continue
+        path = (FRAMEWORK_ROOT / metadata["detector"]).resolve()
+        if path.is_file():
+            components.add(path)
+    for root in (REPOSITORY_ROOT / "extractors", REPOSITORY_ROOT / "unpackers"):
+        if not root.is_dir():
+            continue
+        components.update(
+            path.resolve()
+            for path in root.rglob("*.py")
+            if "tests" not in path.parts and not path.name.startswith("test_")
+        )
+    return sorted(components, key=lambda path: str(path).casefold())
+
+
+
+def _normalize_tool_path(value: Path | None, label: str) -> Path | None:
+    """明示指定された外部静的toolを通常fileへ限定する。"""
+
+    if value is None:
+        return None
+    try:
+        resolved = value.expanduser().resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"{label}が見つかりません: {value}") from exc
+    if not resolved.is_file():
+        raise ValueError(f"{label}は通常fileで指定してください: {value}")
+    return resolved
+
+
+def _tool_identity(path: Path | None) -> dict[str, Any] | None:
+    """外部toolの絶対pathを公開せず、名前・size・内容hashを契約化する。"""
+
+    if path is None:
+        return None
+    data = path.read_bytes()
+    return {
+        "name": path.name,
+        "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+
+def _static_tool_settings(upx: Path | None, sevenzip: Path | None, diec: Path | None) -> dict[str, Any]:
+    return {
+        "upx": _tool_identity(upx),
+        "sevenzip": _tool_identity(sevenzip),
+        "diec": _tool_identity(diec),
+    }
+
+def _build_analysis_contract(
+    *,
+    registry: Path,
+    specs: list[HandlerSpec],
+    archive_mode: str,
+    forced_family: str | None,
+    minimum_confidence: str,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    force_container_probe: bool = False,
+    archive_password: str = "infected",
+    assessment_only: bool,
+    max_file_size: int,
+) -> dict[str, Any]:
+    """再開判定に必要なコード・レジストリ・設定指紋を構築する。"""
+
+    catalog = json.dumps(
+        [spec.public() for spec in specs],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    settings = {
+        "archive_mode": archive_mode,
+        "forced_family": forced_family,
+        "minimum_confidence": minimum_confidence,
+        "assessment_only": assessment_only,
+        "max_file_size": max_file_size,
+        "static_tools": _static_tool_settings(upx, sevenzip, diec),
+        "force_container_probe": force_container_probe,
+        "archive_password_fingerprint": hashlib.sha256(archive_password.encode("utf-8")).hexdigest(),
+        "handler_catalog_sha256": hashlib.sha256(catalog).hexdigest(),
+        "runtime": runtime_dependency_versions(),
+    }
+    return build_pipeline_fingerprint(
+        repository_root=REPOSITORY_ROOT,
+        components=_analysis_components(registry, specs),
+        settings=settings,
+    )
 
 
 def load_resumable_case(
@@ -813,52 +1445,57 @@ def load_resumable_case(
     digest: str,
     *,
     assessment_only: bool,
+    expected_contract: dict[str, Any],
+    unit: InputUnit,
 ) -> dict[str, Any] | None:
-    """検証済みの完了レポートを再開用case summaryへ復元する。"""
+    """同一入力・同一契約・全成果物一致の完了caseだけを再利用する。"""
 
+    normalize_sha256_digest(digest)
     case_dir = output / "cases" / digest
-    report_path = case_dir / "report.json"
-    if not report_path.is_file():
+    if not case_dir.exists():
         return None
-    if case_dir.is_symlink() or report_path.is_symlink():
-        raise ValueError(f"再開対象caseにsymbolic linkがあります: {digest}")
-    required = (
-        "static-layers.json",
-        "classification.json",
-        "applicability.json",
-        "features.json",
-        "FEATURES.md",
-        "campaign-labels.json",
-        "static-logic.json",
-        "STATIC-LOGIC.md",
-    )
-    if any(not (case_dir / name).is_file() for name in required):
-        raise ValueError(f"再開対象caseの必須成果物が不足しています: {digest}")
+    ensure_no_reparse_components(case_dir)
     try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"再開対象reportを検証できません: {digest}") from exc
-    if not isinstance(report, dict) or report.get("schema_version") != 1:
-        raise ValueError(f"再開対象reportのschemaが不正です: {digest}")
+        report_path = resolve_case_artifact(case_dir, "report.json")
+    except ValueError as exc:
+        if "reparse point" in str(exc):
+            raise
+        return None
+    try:
+        report = load_json_object_strict(report_path)
+    except ValueError:
+        return None
+    integrity_errors = case_integrity_errors(
+        case_dir,
+        report,
+        expected_digest=digest,
+        expected_contract=expected_contract,
+        require_resumable=True,
+    )
+    if any("reparse" in error for error in integrity_errors):
+        raise ValueError(
+            f"再開対象caseにreparse pointがあります: {digest} ({integrity_errors})"
+        )
+    if integrity_errors:
+        return None
+    state = report.get("case_state")
     sample = report.get("sample")
     classification = report.get("classification")
     executions = report.get("handler_executions")
-    if not isinstance(sample, dict) or sample.get("sha256") != digest:
-        raise ValueError(f"再開対象reportのSHA-256が不一致です: {digest}")
-    if not isinstance(classification, dict) or not isinstance(executions, list):
-        raise ValueError(f"再開対象reportの構造が不正です: {digest}")
-    if report.get("executed_sample") is not False or report.get("network_contacted") is not False:
-        raise ValueError(f"再開対象reportの安全フラグが不正です: {digest}")
+    provenance = {
+        "source_name": unit.source_name,
+        "input_kind": unit.input_kind,
+        "outer_sha256": unit.outer_sha256,
+        "member_name": unit.member_name,
+    }
+    if any(sample.get(key) != value for key, value in provenance.items()):
+        return None
     if report.get("assessment_only") is not assessment_only:
-        raise ValueError(f"再開対象reportの解析モードが一致しません: {digest}")
+        return None
     selected_families = classification.get("selected_families")
-    if not isinstance(selected_families, list) or any(
-        not isinstance(item, str) for item in selected_families
-    ):
-        raise ValueError(f"再開対象reportのfamily一覧が不正です: {digest}")
     source_name = sample.get("source_name")
     if not isinstance(source_name, str) or not source_name:
-        raise ValueError(f"再開対象reportのsource名が不正です: {digest}")
+        return None
     statuses = [
         item.get("status")
         for item in executions
@@ -875,7 +1512,12 @@ def load_resumable_case(
         "handler_failed": sum(
             status in {"failed", "preflight_failed"} for status in statuses
         ),
+        "handler_no_evidence": sum(status == "no_evidence" for status in statuses),
+        "handler_ambiguous": sum(status == "ambiguous_evidence" for status in statuses),
+        "handler_incompatible": sum(status == "incompatible_input_format" for status in statuses),
         "analysis_stage_failed": report.get("generic_triage") == "failed",
+        "analysis_stage_partial": report.get("generic_triage") == "partial",
+        "case_state": state.get("status"),
         "report": f"cases/{digest}/report.json",
         "resumed": True,
     }
@@ -892,6 +1534,10 @@ def run_batch(
     minimum_confidence: str = "medium",
     assessment_only: bool = False,
     max_files: int = DEFAULT_MAX_FILES,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
+    force_container_probe: bool = False,
     max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     resume: bool = False,
 ) -> dict[str, Any]:
@@ -901,9 +1547,37 @@ def run_batch(
     paths = collect_inputs(inputs, output, max_files)
     if archive_mode == "malwarebazaar":
         paths = [path for path in paths if path.suffix.casefold() == ".zip"]
+    if not paths:
+        raise ValueError("解析対象ファイルがありません")
+    if not isinstance(password, str):
+        raise TypeError("archive passwordは文字列で指定してください")
+    upx = _normalize_tool_path(upx, "UPX")
+    sevenzip = _normalize_tool_path(sevenzip, "7-Zip")
+    diec = _normalize_tool_path(diec, "Detect It Easy CLI")
+
+    clear_handler_caches()
+    classify_sample.clear_classifier_caches()
+    clear_profile_cache()
+    clear_known_hash_cache()
     specs = discover_handlers()
     registered = _registered_families(registry)
     forced_family = normalize_family(forced_family) if forced_family else None
+    if forced_family and forced_family not in registered:
+        raise ValueError(f"未登録のファミリーです: {forced_family}")
+    analysis_contract = _build_analysis_contract(
+        registry=registry,
+        specs=specs,
+        archive_mode=archive_mode,
+        forced_family=forced_family,
+        minimum_confidence=minimum_confidence,
+        assessment_only=assessment_only,
+        upx=upx,
+        sevenzip=sevenzip,
+        diec=diec,
+        force_container_probe=force_container_probe,
+        archive_password=password,
+        max_file_size=max_file_size,
+    )
     cases = []
     errors = []
     duplicates = []
@@ -926,6 +1600,8 @@ def run_batch(
                     output,
                     digest,
                     assessment_only=assessment_only,
+                    expected_contract=analysis_contract,
+                    unit=unit,
                 )
                 if resumed is not None:
                     cases.append(resumed)
@@ -939,10 +1615,16 @@ def run_batch(
                     registered=registered,
                     forced_family=forced_family,
                     minimum_confidence=minimum_confidence,
+                    upx=upx,
+                    sevenzip=sevenzip,
+                    diec=diec,
+                    force_container_probe=force_container_probe,
+                    archive_password=password,
                     assessment_only=assessment_only,
+                    analysis_contract=analysis_contract,
                 )
             )
-        except (ArchiveValidationError, OSError, ValueError, RuntimeError) as exc:
+        except Exception as exc:
             errors.append(
                 {
                     "source_name": path.name,
@@ -960,10 +1642,19 @@ def run_batch(
             "unknown_or_ambiguous": sum(not item["selected_families"] for item in cases),
             "handler_successes": sum(item["handler_succeeded"] for item in cases),
             "handler_failures": sum(item["handler_failed"] for item in cases),
+            "handler_no_evidence": sum(item["handler_no_evidence"] for item in cases),
+            "handler_ambiguous": sum(item["handler_ambiguous"] for item in cases),
+            "handler_incompatible": sum(item["handler_incompatible"] for item in cases),
             "analysis_stage_failures": sum(item["analysis_stage_failed"] for item in cases),
+            "analysis_stage_partial": sum(item["analysis_stage_partial"] for item in cases),
+            "complete": sum(item["case_state"] == "complete" for item in cases),
+            "triaged_unknown": sum(item["case_state"] == "triaged_unknown" for item in cases),
+            "partial": sum(item["case_state"] == "partial" for item in cases),
+            "failed": sum(item["case_state"] == "failed" for item in cases),
             "resumed": sum(bool(item.get("resumed")) for item in cases),
         },
         "catalog": catalog_summary(specs),
+        "analysis_contract": analysis_contract,
         "cases": cases,
         "duplicates": duplicates,
         "errors": errors,
@@ -974,6 +1665,12 @@ def run_batch(
             "assessment_only": assessment_only,
             "max_files": max_files,
             "max_file_size": max_file_size,
+            "static_tools": {
+                "upx": upx.name if upx else None,
+                "sevenzip": sevenzip.name if sevenzip else None,
+                "diec": diec.name if diec else None,
+            },
+            "force_container_probe": force_container_probe,
             "resume": resume,
         },
         "executed_sample": False,
@@ -1027,6 +1724,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="安全フラグと必須成果物を検証できた完了caseを再利用します。",
     )
+    parser.add_argument(
+        "--upx",
+        type=Path,
+        help="任意のUPX実行file。明示指定時だけ静的展開へ使用します。",
+    )
+    parser.add_argument(
+        "--sevenzip",
+        type=Path,
+        help="任意の7-Zip実行file。7z/RAR/CAB/DMG/PE containerの静的展開に使用します。",
+    )
+    parser.add_argument(
+        "--diec",
+        type=Path,
+        help="任意のDetect It Easy CLI実行file。PE/Mach-O識別補助に使用します。",
+    )
+    parser.add_argument(
+        "--force-container-probe",
+        action="store_true",
+        help="レビュー済み手掛かりがあるPEを7-Zipで追加検査します。",
+    )
     return parser
 
 
@@ -1044,16 +1761,20 @@ def main(argv: list[str] | None = None) -> int:
         minimum_confidence=args.minimum_confidence,
         assessment_only=args.assessment_only,
         max_files=args.max_files,
+        upx=args.upx,
+        sevenzip=args.sevenzip,
+        diec=args.diec,
+        force_container_probe=args.force_container_probe,
         max_file_size=args.max_file_size,
         resume=args.resume,
     )
     print(json.dumps(summary["counts"], ensure_ascii=False, indent=2))
-    failed = (
+    incomplete = (
         summary["counts"]["errors"]
-        + summary["counts"]["handler_failures"]
-        + summary["counts"]["analysis_stage_failures"]
+        + summary["counts"]["partial"]
+        + summary["counts"]["failed"]
     )
-    return 0 if failed == 0 else 20
+    return 0 if incomplete == 0 else 20
 
 
 if __name__ == "__main__":

@@ -321,6 +321,8 @@ def generate(
 ) -> dict[str, Any]:
     """横断索引を生成し、必要に応じて書込みまたは同期検証を行う。"""
 
+    if write and check:
+        raise ValueError("--write and --check are mutually exclusive")
     repository = repository.resolve()
     output_json = output_json.resolve()
     output_markdown = output_markdown.resolve()

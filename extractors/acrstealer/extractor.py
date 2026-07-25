@@ -23,6 +23,11 @@ from extractors.common import (
     url_candidates,
 )
 
+HANDLER_CONTRACT = {
+    "input_formats": ["pe", "zip", "cab", "ole", "autoit-a3x", "script", "data"],
+    "minimum_evidence_score": 1,
+}
+
 MAX_PREFIX_BYTES = 32 * 1024 * 1024
 MAX_ZIP_MEMBERS = 20_000
 PUMPED_SIZE_THRESHOLD = 128 * 1024 * 1024

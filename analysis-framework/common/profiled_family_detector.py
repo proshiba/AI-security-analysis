@@ -1,4 +1,4 @@
-"""Conservative detector shared by profile-defined malware families."""
+"""プロファイル定義型マルウェアで共有する保守的な検出器。"""
 
 from __future__ import annotations
 
@@ -12,24 +12,44 @@ REPO = Path(__file__).parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from extractors.profiled_family import _independent_marker_hits, extract_family, profile_for  # noqa: E402
+from extractors.profiled_family import (  # noqa: E402
+    _independent_marker_hits,
+    bounded_strings,
+    extract_family,
+    profile_for,
+)
 
 SCRIPT_SUFFIXES = {".js", ".jse", ".vbs", ".vbe", ".ps1", ".hta", ".bat", ".cmd"}
 
 
 @lru_cache(maxsize=64)
+def _known_hashes_cached(path: Path, mtime_ns: int, size: int) -> frozenset[str]:
+    """file identity付きcacheからレビュー済みhashを読む。"""
+
+    value = json.loads(path.read_text(encoding="utf-8"))
+    return frozenset(str(item).lower() for item in value.get("known_sample_sha256") or [])
+
+
 def known_hashes(family: str, framework: Path | None = None) -> set[str]:
-    """Load reviewed hashes from one generated family campaign registry."""
+    """変更済みcampaignレジストリも同一processで反映してhashを返す。"""
+
     framework = framework or Path(__file__).parents[1]
     path = framework / "malware" / family / "campaigns.json"
     if not path.is_file():
         return set()
-    value = json.loads(path.read_text(encoding="utf-8"))
-    return {str(item).lower() for item in value.get("known_sample_sha256") or []}
+    resolved = path.resolve(strict=True)
+    stat = resolved.stat()
+    return set(_known_hashes_cached(resolved, stat.st_mtime_ns, stat.st_size))
+
+
+def clear_known_hash_cache() -> None:
+    """レビュー済みhashのfile cacheを明示的に破棄する。"""
+
+    _known_hashes_cached.cache_clear()
 
 
 def campaign_type(family: str, path: Path, category: str, recovered: bool) -> str:
-    """Route one reviewed sample to a stable delivery/config campaign shape."""
+    """レビュー済み検体を安定した配布・設定campaign形状へ分類する。"""
     if path.suffix.lower() in SCRIPT_SUFFIXES:
         return "script_delivery"
     if category == "loader":
@@ -40,12 +60,12 @@ def campaign_type(family: str, path: Path, category: str, recovered: bool) -> st
 
 
 def detect_family(family: str, data: bytes, path: Path) -> dict:
-    """Match exact reviewed hashes or a corroborated profile and network tuple."""
+    """レビュー済み完全hashまたはmarker・設定key・network候補の相関を照合する。"""
     profile = profile_for(family)
     digest = hashlib.sha256(data).hexdigest()
     exact = digest in known_hashes(profile["family"])
-    marker_probe = data[: 8 * 1024 * 1024].lower()
-    prefilter_hits = _independent_marker_hits(profile["markers"], marker_probe.decode("latin1"))
+    marker_probe = "\n".join(bounded_strings(data)).lower()
+    prefilter_hits = _independent_marker_hits(profile["markers"], marker_probe)
     if not exact and len(prefilter_hits) < max(2, int(profile["minimum_markers"])):
         return {
             "matched": False,
@@ -75,7 +95,9 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
     if exact:
         reasons.append("reviewed exact SHA-256 from the MalwareBazaar acquisition set")
     if profile_correlated:
-        reasons.append("independent profile literals plus sanitized network candidate; config not decoded")
+        reasons.append(
+            "independent profile literals plus config key and sanitized network candidate; config not decoded"
+        )
     return {
         "matched": matched,
         "observations": {

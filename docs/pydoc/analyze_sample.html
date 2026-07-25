@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analyze_sample</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analyze_sample</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Canalyze_sample.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\analyze_sample.py</a></td></tr></table>
+    <p><span class="code">検体の適用可否判定から静的解析までを1コマンドで実行する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="analyze_family_sample.html">analyze_family_sample</a><br>
+<a href="argparse.html">argparse</a><br>
+<a href="classify_sample.html">classify_sample</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="io.html">io</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="pyzipper.html">pyzipper</a><br>
+<a href="shutil.html">shutil</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"><a href="zipfile.html">zipfile</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>(<a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>, <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analyze_sample.html#JapaneseArgumentParser">JapaneseArgumentParser</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analyze_sample.html#InputUnit">InputUnit</a>
+</dt><dt class="heading-text"><a href="analyze_sample.html#StaticLayer">StaticLayer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="InputUnit">class <strong>InputUnit</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#InputUnit">InputUnit</a>(source_name:&nbsp;'str',&nbsp;data:&nbsp;'bytes',&nbsp;input_kind:&nbsp;'str',&nbsp;outer_sha256:&nbsp;'str',&nbsp;outer_size:&nbsp;'int',&nbsp;member_name:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+解析対象のインメモリ検体と公開可能な入力メタデータ。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="InputUnit-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__init__"><strong>__init__</strong></a>(self, source_name: 'str', data: 'bytes', input_kind: 'str', outer_sha256: 'str', outer_size: 'int', member_name: 'str | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'data': 'bytes', 'input_kind': 'str', 'member_name': 'str | None', 'outer_sha256': 'str', 'outer_size': 'int', 'source_name': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'input_kind': Field(name='input_kind',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'member_name': Field(name='member_name',type='str | None',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'outer_sha256': Field(name='outer_sha256',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'outer_size': Field(name='outer_size',type='int',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_name': Field(name='source_name',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('source_name', 'data', 'input_kind', 'outer_sha256', 'outer_size', 'member_name')</dl>
+
+<dl><dt><strong>member_name</strong> = None</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JapaneseArgumentParser">class <strong>JapaneseArgumentParser</strong></a>(<a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JapaneseArgumentParser">JapaneseArgumentParser</a>(prog=None,&nbsp;usage=None,&nbsp;description=None,&nbsp;epilog=None,&nbsp;parents=[],&nbsp;formatter_class=&amp;lt;class&nbsp;'argparse.HelpFormatter'&amp;gt;,&nbsp;prefix_chars='-',&nbsp;fromfile_prefix_chars=None,&nbsp;argument_default=None,&nbsp;conflict_handler='error',&nbsp;add_help=True,&nbsp;allow_abbrev=True,&nbsp;exit_on_error=True)<br>
+&nbsp;<br>
+argparseの固定見出しを日本語へ置換する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analyze_sample.html#JapaneseArgumentParser">JapaneseArgumentParser</a></dd>
+<dd><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a></dd>
+<dd><a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a></dd>
+<dd><a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JapaneseArgumentParser-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">使用法、オプション見出し、標準help説明を日本語で返す。</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__init__"><strong>__init__</strong></a>(self, prog=None, usage=None, description=None, epilog=None, parents=[], formatter_class=&lt;class 'argparse.HelpFormatter'&gt;, prefix_chars='-', fromfile_prefix_chars=None, argument_default=None, conflict_handler='error', add_help=True, allow_abbrev=True, exit_on_error=True)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_subparsers"><strong>add_subparsers</strong></a>(self, **kwargs)</dt><dd><span class="code">#&nbsp;==================================<br>
+#&nbsp;Optional/Positional&nbsp;adding&nbsp;methods<br>
+#&nbsp;==================================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-convert_arg_line_to_args"><strong>convert_arg_line_to_args</strong></a>(self, arg_line)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-error"><strong>error</strong></a>(self, message)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-error">error</a>(message:&nbsp;string)<br>
+&nbsp;<br>
+Prints&nbsp;a&nbsp;usage&nbsp;message&nbsp;incorporating&nbsp;the&nbsp;message&nbsp;to&nbsp;stderr&nbsp;and<br>
+exits.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;override&nbsp;this&nbsp;in&nbsp;a&nbsp;subclass,&nbsp;it&nbsp;should&nbsp;not&nbsp;return&nbsp;--&nbsp;it<br>
+should&nbsp;either&nbsp;exit&nbsp;or&nbsp;raise&nbsp;an&nbsp;exception.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-exit"><strong>exit</strong></a>(self, status=0, message=None)</dt><dd><span class="code">#&nbsp;===============<br>
+#&nbsp;Exiting&nbsp;methods<br>
+#&nbsp;===============</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-format_usage"><strong>format_usage</strong></a>(self)</dt><dd><span class="code">#&nbsp;=======================<br>
+#&nbsp;Help-formatting&nbsp;methods<br>
+#&nbsp;=======================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_args"><strong>parse_args</strong></a>(self, args=None, namespace=None)</dt><dd><span class="code">#&nbsp;=====================================<br>
+#&nbsp;Command&nbsp;line&nbsp;argument&nbsp;parsing&nbsp;methods<br>
+#&nbsp;=====================================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_intermixed_args"><strong>parse_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_args"><strong>parse_known_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_intermixed_args"><strong>parse_known_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_help"><strong>print_help</strong></a>(self, file=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_usage"><strong>print_usage</strong></a>(self, file=None)</dt><dd><span class="code">#&nbsp;=====================<br>
+#&nbsp;Help-printing&nbsp;methods<br>
+#&nbsp;=====================</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-add_argument"><strong>add_argument</strong></a>(self, *args, **kwargs)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-add_argument">add_argument</a>(dest,&nbsp;...,&nbsp;name=value,&nbsp;...)<br>
+<a href="#JapaneseArgumentParser-add_argument">add_argument</a>(option_string,&nbsp;option_string,&nbsp;...,&nbsp;name=value,&nbsp;...)</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_argument_group"><strong>add_argument_group</strong></a>(self, *args, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_mutually_exclusive_group"><strong>add_mutually_exclusive_group</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-get_default"><strong>get_default</strong></a>(self, dest)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-register"><strong>register</strong></a>(self, registry_name, value, object)</dt><dd><span class="code">#&nbsp;====================<br>
+#&nbsp;Registration&nbsp;methods<br>
+#&nbsp;====================</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-set_defaults"><strong>set_defaults</strong></a>(self, **kwargs)</dt><dd><span class="code">#&nbsp;==================================<br>
+#&nbsp;Namespace&nbsp;default&nbsp;accessor&nbsp;methods<br>
+#&nbsp;==================================</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StaticLayer">class <strong>StaticLayer</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StaticLayer">StaticLayer</a>(name:&nbsp;'str',&nbsp;data:&nbsp;'bytes',&nbsp;sha256:&nbsp;'str',&nbsp;parent_sha256:&nbsp;'str&nbsp;|&nbsp;None',&nbsp;depth:&nbsp;'int',&nbsp;transform:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+メモリ内だけで保持する認証済み静的復元レイヤー。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StaticLayer-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-__init__"><strong>__init__</strong></a>(self, name: 'str', data: 'bytes', sha256: 'str', parent_sha256: 'str | None', depth: 'int', transform: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="StaticLayer-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">バイト列を含まないレイヤーメタデータを返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'data': 'bytes', 'depth': 'int', 'name': 'str', 'parent_sha256': 'str | None', 'sha256': 'str', 'transform': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'data': Field(name='data',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'depth': Field(name='depth',type='int',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'name': Field(name='name',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'parent_sha256': Field(name='parent_sha256',type='str | None',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'transform': Field(name='transform',type='str',default=&lt;datac...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('name', 'data', 'sha256', 'parent_sha256', 'depth', 'transform')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_unit"><strong>analyze_unit</strong></a>(unit: 'InputUnit', *, output: 'Path', registry: 'Path', specs: 'list[HandlerSpec]', registered: 'set[str]', forced_family: 'str | None', minimum_confidence: 'str', assessment_only: 'bool', analysis_contract: 'dict[str, Any]', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = 'infected') -&gt; 'dict[str, Any]'</dt><dd><span class="code">1検体を分類し、適用可能な既存静的解析器を一括実行する。</span></dd></dl>
+ <dl><dt><a name="-assess_handlers"><strong>assess_handlers</strong></a>(specs: 'list[HandlerSpec]', layer_selections: 'list[dict[str, Any]]', forced_family: 'str | None', registered_families: 'set[str] | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">全既存解析器について、自動実行、非適用、手動確認を明示する。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">日本語helpを持つ一括静的解析CLIを構築する。</span></dd></dl>
+ <dl><dt><a name="-collect_inputs"><strong>collect_inputs</strong></a>(inputs: 'list[Path]', output: 'Path', max_files: 'int') -&gt; 'list[Path]'</dt><dd><span class="code">ファイルとディレクトリを決定的に展開し、symlinkと出力先を除外する。</span></dd></dl>
+ <dl><dt><a name="-load_resumable_case"><strong>load_resumable_case</strong></a>(output: 'Path', digest: 'str', *, assessment_only: 'bool', expected_contract: 'dict[str, Any]', unit: 'InputUnit') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">同一入力・同一契約・全成果物一致の完了caseだけを再利用する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、失敗を検体単位に分離した一括解析を実行する。</span></dd></dl>
+ <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">CLIの代表的な別名を内部ファミリーIDへ正規化する。</span></dd></dl>
+ <dl><dt><a name="-plan_handler_layers"><strong>plan_handler_layers</strong></a>(spec: 'HandlerSpec', applicability: 'dict[str, Any]', layers: 'list[StaticLayer]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">family一致層とその外装祖先だけを、形式契約付きで実行順へ変換する。</span></dd></dl>
+ <dl><dt><a name="-read_input_unit"><strong>read_input_unit</strong></a>(path: 'Path', *, password: 'str', archive_mode: 'str', max_file_size: 'int') -&gt; 'InputUnit'</dt><dd><span class="code">生ファイルまたは認証済み単一メンバーZIPをメモリ内で読み込む。</span></dd></dl>
+ <dl><dt><a name="-recover_static_layers"><strong>recover_static_layers</strong></a>(unit: 'InputUnit', *, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = 'infected') -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">既存アンパッカー群で復元層を再帰処理し、バイト列はメモリ内だけに保持する。</span></dd></dl>
+ <dl><dt><a name="-run_batch"><strong>run_batch</strong></a>(inputs: 'list[Path]', output: 'Path', *, registry: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/registry/malware_types.json'), password: 'str' = 'infected', archive_mode: 'str' = 'auto', forced_family: 'str | None' = None, minimum_confidence: 'str' = 'medium', assessment_only: 'bool' = False, max_files: 'int' = 1000, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, max_file_size: 'int' = 536870912, resume: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。</span></dd></dl>
+ <dl><dt><a name="-summarize_family_coverage"><strong>summarize_family_coverage</strong></a>(specs: 'list[HandlerSpec]', registered_families: 'set[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">検出器と既存解析器の有無をファミリー単位で可視化する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CAMPAIGN_CORRELATION_RULES</strong> = WindowsPath('C:/Users/Administrator/AI-security-...mework/registry/campaign_correlation_rules.json')<br>
+<strong>CAMPAIGN_FINGERPRINTS</strong> = WindowsPath('C:/Users/Administrator/AI-security-...s-framework/registry/campaign_fingerprints.json')<br>
+<strong>CLASSIFIERS_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/classifiers')<br>
+<strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')<br>
+<strong>CONFIDENCE</strong> = {'high': 3, 'low': 1, 'medium': 2}<br>
+<strong>DEFAULT_MAX_FILES</strong> = 1000<br>
+<strong>DEFAULT_MAX_FILE_SIZE</strong> = 536870912<br>
+<strong>DEFAULT_REGISTRY</strong> = WindowsPath('C:/Users/Administrator/AI-security-.../analysis-framework/registry/malware_types.json')<br>
+<strong>FAMILY_ALIASES</strong> = {'amos': 'amosstealer', 'atlas': 'atlascross', 'atomicstealer': 'amosstealer', 'lumma': 'lummastealer', 'mx_go': 'mx-go', 'remcos': 'remcosrat', 'remus': 'remusstealer'}<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework')<br>
+<strong>INCOMPLETE_STATIC_STATUSES</strong> = frozenset({'bounded_limit', 'corrupt_or_truncated', 'failed', 'malformed_metadata', 'member_limit_applied', 'parse_failed', ...})<br>
+<strong>INCOMPLETE_STATIC_STATUS_TOKENS</strong> = ('blocked', 'corrupt', 'encrypted', 'error', 'failed', 'incomplete', 'invalid', 'limit', 'malformed', 'mismatch', 'partial', 'timeout', 'truncated', 'unavailable')<br>
+<strong>MAX_RECOVERED_LAYER_SIZE</strong> = 67108864<br>
+<strong>MAX_RECOVERED_TOTAL_SIZE</strong> = 268435456<br>
+<strong>MAX_STATIC_COMPRESSION_RATIO</strong> = 100.0<br>
+<strong>MAX_STATIC_DEPTH</strong> = 4<br>
+<strong>MAX_STATIC_LAYERS</strong> = 32<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>trusted</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/classifiers')<br>
+<strong>value</strong> = r'C:\Users\Administrator\AI-security-analysis\analysis-framework\classifiers'</td></tr></table>
+</body></html>

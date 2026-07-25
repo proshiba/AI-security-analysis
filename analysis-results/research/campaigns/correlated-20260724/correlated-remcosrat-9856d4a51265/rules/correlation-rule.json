@@ -1,0 +1,28 @@
+{
+  "campaign_id": "correlated-remcosrat-9856d4a51265",
+  "families": [
+    "remcosrat"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "37.27.30.5:2404"
+    },
+    {
+      "type": "endpoint",
+      "value": "37.27.30.5:2405"
+    },
+    {
+      "type": "endpoint",
+      "value": "37.27.30.5:2406"
+    },
+    {
+      "type": "ip",
+      "value": "37.27.30.5"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

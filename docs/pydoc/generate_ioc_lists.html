@@ -17,12 +17,13 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-<a href="ipaddress.html">ipaddress</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
-<a href="yaml.html">yaml</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="urllib.html">urllib</a><br>
+</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -85,10 +86,11 @@ Data and other attributes defined here:<br>
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-analysis_directories"><strong>analysis_directories</strong></a>(results_root: 'Path', history: 'dict[str, dict]') -&gt; 'list[Path]'</dt><dd><span class="code">固定レイアウトの&nbsp;case、campaign、research、collection&nbsp;source&nbsp;を列挙する。</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">決定的な&nbsp;IOC&nbsp;一覧生成用&nbsp;CLI&nbsp;を構築する。</span></dd></dl>
+ <dl><dt><a name="-canonical_case_ioc_rendering"><strong>canonical_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">publisher形式のiocs.jsonがあれば、それだけを信頼してMarkdownへ描画する。</span></dd></dl>
  <dl><dt><a name="-collect_indicators"><strong>collect_indicators</strong></a>(directory: 'Path', repository: 'Path', history: 'dict[str, dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">単一解析について、保守的かつ公開可能な指標をすべて収集する。</span></dd></dl>
  <dl><dt><a name="-confidence_from_text"><strong>confidence_from_text</strong></a>(text: 'str', default: 'str' = 'recorded') -&gt; 'str'</dt><dd><span class="code">明示された確度表現を、短い正規化ラベルへ変換する。</span></dd></dl>
  <dl><dt><a name="-directory_hash_indicator"><strong>directory_hash_indicator</strong></a>(directory: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">SHA-256&nbsp;形式のケースディレクトリ名を、提出検体ハッシュとして扱う。</span></dd></dl>
- <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', check: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">解析単位の&nbsp;IOC&nbsp;一覧と横断索引を、すべて生成または検証する。</span></dd></dl>
+ <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">IOC一覧の差分を計画し、明示時だけ生成または同期検証する。</span></dd></dl>
  <dl><dt><a name="-history_indicators"><strong>history_indicators</strong></a>(directory: 'Path', repository: 'Path', history: 'dict[str, dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">解析履歴で確認済みの検体ハッシュと&nbsp;C2&nbsp;項目を指標へ変換する。</span></dd></dl>
  <dl><dt><a name="-indicator_type"><strong>indicator_type</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">正規化済みの値を、公開可能な&nbsp;IOC&nbsp;種別へ分類する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_config"><strong>indicators_from_config</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">設定&nbsp;JSON&nbsp;出力から、正規化済み抽出結果だけを読み取る。</span></dd></dl>
@@ -96,12 +98,13 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(hashes: 'Iterable[str]', findings: 'Iterable[dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">横断報告用に、確認済みハッシュと構造化所見を正規化する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_text"><strong>indicators_from_text</strong></a>(text: 'str', role: 'str', confidence: 'str', source: 'str') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的に関連する文章片からハッシュとネットワーク指標を抽出する。</span></dd></dl>
  <dl><dt><a name="-load_history"><strong>load_history</strong></a>(path: 'Path') -&gt; 'dict[str, dict]'</dt><dd><span class="code">正規化した結果ディレクトリ別に、解析履歴の項目を索引化する。</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">IOC&nbsp;一覧を生成し、検証時に保存済み出力が古ければ失敗する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">IOC一覧をdry-run、明示書込み、または同期検証する。</span></dd></dl>
  <dl><dt><a name="-merge_indicators"><strong>merge_indicators</strong></a>(values: 'Iterable[Indicator]') -&gt; 'list[Indicator]'</dt><dd><span class="code">より強い根拠と確度を優先しながら、指標を重複排除する。</span></dd></dl>
  <dl><dt><a name="-normalize_value"><strong>normalize_value</strong></a>(value: 'str') -&gt; 'tuple[str, str] | None'</dt><dd><span class="code">単一の候補を正規化し、種別と安全な値を返す。</span></dd></dl>
  <dl><dt><a name="-read_relevant_markdown"><strong>read_relevant_markdown</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的な&nbsp;IOC、C2、ネットワーク、設定の見出し配下だけから値を抽出する。</span></dd></dl>
  <dl><dt><a name="-render_index"><strong>render_index</strong></a>(results_root: 'Path', reports: 'list[tuple[Path, int]]') -&gt; 'str'</dt><dd><span class="code">解析単位の&nbsp;IOC&nbsp;一覧を横断する日本語索引を描画する。</span></dd></dl>
  <dl><dt><a name="-render_ioc_list"><strong>render_ioc_list</strong></a>(values: 'list[Indicator]') -&gt; 'str'</dt><dd><span class="code">挙動説明を混在させず、日本語見出しの&nbsp;IOC&nbsp;表を描画する。</span></dd></dl>
+ <dl><dt><a name="-reseal_tracked_ioc_list"><strong>reseal_tracked_ioc_list</strong></a>(directory: 'Path') -&gt; 'None'</dt><dd><span class="code">追跡済みIOC-LIST.mdのhashだけを更新し、reportを再封印する。</span></dd></dl>
  <dl><dt><a name="-sanitize_url"><strong>sanitize_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">IOC&nbsp;のパスを維持しながら、認証情報、クエリ、フラグメントを除去する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">

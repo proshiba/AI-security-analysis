@@ -1,0 +1,57 @@
+{
+  "campaign_id": "correlated-freepbx-k-php-jomangy-eb89229e7b5d",
+  "families": [
+    "freepbx-k-php",
+    "jomangy"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "160.119.69.4:80"
+    },
+    {
+      "type": "endpoint",
+      "value": "45.95.147.178:80"
+    },
+    {
+      "type": "ip",
+      "value": "160.119.69.4"
+    },
+    {
+      "type": "ip",
+      "value": "45.95.147.178"
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/hima_data/index.php"
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/x"
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/z/post/noroot.php"
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/hima_data/index.php"
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/k.php"
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/z/post/root.php"
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/z/wr.php"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "cross_family_campaign_candidate"
+}

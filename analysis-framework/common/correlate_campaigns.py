@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -11,6 +12,12 @@ from typing import Any, Mapping
 
 import yaml
 
+from analysis_contract import (
+    load_json_object_strict,
+    seal_report,
+    verify_artifact_hashes,
+    verify_report_semantics,
+)
 from campaign_correlation import (
     build_fingerprints,
     correlate_cases,
@@ -22,6 +29,78 @@ from case_features import build_case_profile, discover_case_directories
 
 DEFAULT_RULES = Path(__file__).resolve().parents[1] / "registry" / "campaign_correlation_rules.json"
 DEFAULT_FINGERPRINTS = Path(__file__).resolve().parents[1] / "registry" / "campaign_fingerprints.json"
+
+
+def _validate_tracked_campaign_label_update(case_dir: Path) -> None:
+    """caseラベル以外の追跡成果物と既存sealを更新前に検証する。"""
+
+    report_path = case_dir / "report.json"
+    if not report_path.is_file():
+        return
+    report = load_json_object_strict(report_path)
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or "campaign-labels.json" not in manifest:
+        return
+    semantic_errors = verify_report_semantics(report)
+    if semantic_errors:
+        raise ValueError(
+            f"campaign label更新前のreport sealが不正です: {case_dir.name}: {semantic_errors}"
+        )
+    unchanged_manifest = {
+        name: digest
+        for name, digest in manifest.items()
+        if name != "campaign-labels.json"
+    }
+    artifact_errors = (
+        verify_artifact_hashes(case_dir, unchanged_manifest)
+        if unchanged_manifest
+        else []
+    )
+    if artifact_errors:
+        raise ValueError(
+            f"campaign label以外の成果物hashが不正です: {case_dir.name}: {artifact_errors}"
+        )
+
+def _synchronize_tracked_campaign_label_seal(case_dir: Path) -> None:
+    """追跡済みcampaign labelだけを更新し、他成果物を検証して再封印する。"""
+
+    report_path = case_dir / "report.json"
+    label_path = case_dir / "campaign-labels.json"
+    if not report_path.is_file() or not label_path.is_file():
+        return
+    report = load_json_object_strict(report_path)
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or "campaign-labels.json" not in manifest:
+        return
+    semantic_errors = verify_report_semantics(report)
+    if semantic_errors:
+        raise ValueError(
+            f"campaign label更新前のreport sealが不正です: {case_dir.name}: {semantic_errors}"
+        )
+    unchanged_manifest = {
+        name: digest
+        for name, digest in manifest.items()
+        if name != "campaign-labels.json"
+    }
+    artifact_errors = (
+        verify_artifact_hashes(case_dir, unchanged_manifest)
+        if unchanged_manifest
+        else []
+    )
+    if artifact_errors:
+        raise ValueError(
+            f"campaign label以外の成果物hashが不正です: {case_dir.name}: {artifact_errors}"
+        )
+    digest = hashlib.sha256(label_path.read_bytes()).hexdigest()
+    if manifest.get("campaign-labels.json") == digest:
+        return
+    manifest["campaign-labels.json"] = digest
+    seal_report(report)
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def _history_by_sha(repository: Path) -> dict[str, dict[str, Any]]:
@@ -141,7 +220,6 @@ def _expected_documents(
     output_root: Path,
     report: Mapping[str, Any],
     fingerprints: Mapping[str, Any],
-    case_directories: Mapping[str, Path],
 ) -> dict[Path, str]:
     documents = {
         output_root / "README.md": _render_index(report),
@@ -164,7 +242,20 @@ def _expected_documents(
         documents[campaign_root / "rules" / "correlation-rule.json"] = (
             json.dumps(rule, ensure_ascii=False, indent=2) + "\n"
         )
-    labels_by_sha = {str(sha256): labels for sha256, labels in report["labels"].items()}
+    return documents
+
+
+def _expected_case_label_documents(
+    report: Mapping[str, Any],
+    case_directories: Mapping[str, Path],
+) -> dict[Path, str]:
+    """caseラベルを明示更新する場合だけ使う期待文書を構築する。"""
+
+    documents = {}
+    labels_by_sha = {
+        str(sha256): labels
+        for sha256, labels in report["labels"].items()
+    }
     for sha256, case_dir in case_directories.items():
         labels = labels_by_sha.get(sha256, [])
         payload = {
@@ -189,9 +280,12 @@ def generate(
     fingerprints_path: Path,
     write: bool = False,
     check: bool = False,
+    case_labels: bool = False,
 ) -> dict[str, Any]:
-    """campaign相関を実行し、期待成果物を生成または照合する。"""
+    """campaign相関を実行し、明示した範囲だけ生成または照合する。"""
 
+    if write and check:
+        raise ValueError("--write and --check are mutually exclusive")
     repository = repository.resolve()
     output_root = output_root.resolve()
     fingerprints_path = fingerprints_path.resolve()
@@ -214,7 +308,13 @@ def generate(
         evidences.append(extract_campaign_evidence(case_dir, profile, rules))
     report = correlate_cases(evidences, rules)
     fingerprints = build_fingerprints(report)
-    expected = _expected_documents(output_root, report, fingerprints, case_directories)
+    expected = _expected_documents(output_root, report, fingerprints)
+    case_label_documents = (
+        _expected_case_label_documents(report, case_directories)
+        if case_labels
+        else {}
+    )
+    expected.update(case_label_documents)
     expected[fingerprints_path] = json.dumps(fingerprints, ensure_ascii=False, indent=2) + "\n"
     mismatches = []
     for path, content in expected.items():
@@ -222,8 +322,12 @@ def generate(
         if current != content:
             mismatches.append(path.relative_to(repository).as_posix())
             if write:
+                if path in case_label_documents:
+                    _validate_tracked_campaign_label_update(path.parent)
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content, encoding="utf-8")
+                path.write_text(content, encoding="utf-8", newline="\n")
+                if path in case_label_documents:
+                    _synchronize_tracked_campaign_label_seal(path.parent)
     if write and output_root.is_dir():
         expected_campaigns = {item["campaign_id"] for item in report["campaigns"]}
         stale = [
@@ -240,10 +344,13 @@ def generate(
         "mismatches": sorted(mismatches),
         "write_performed": bool(write and mismatches),
         "check_failed": bool(check and mismatches),
+        "case_labels_in_scope": case_labels,
     }
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """日本語helpを持つcampaign相関CLI parserを構築する。"""
+
     repository = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=repository)
@@ -254,12 +361,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--rules", type=Path, default=DEFAULT_RULES)
     parser.add_argument("--fingerprints", type=Path, default=DEFAULT_FINGERPRINTS)
+    parser.add_argument(
+        "--case-labels",
+        action="store_true",
+        help="case別campaign-labels.jsonも操作対象に含める",
+    )
     parser.add_argument("--write", action="store_true", help="campaign成果物を更新する")
     parser.add_argument("--check", action="store_true", help="生成差分がある場合に非0を返す")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI引数を処理し、書込みまたは同期検証の終了codeを返す。"""
+
     args = build_parser().parse_args(argv)
     if args.write and args.check:
         raise ValueError("--write and --check are mutually exclusive")
@@ -270,6 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         fingerprints_path=args.fingerprints,
         write=args.write,
         check=args.check,
+        case_labels=args.case_labels,
     )
     print(
         json.dumps({key: value for key, value in result.items() if key != "mismatches"}, ensure_ascii=False, indent=2)

@@ -34,13 +34,13 @@ def test_detector_exact_and_structural_paths(monkeypatch) -> None:
                 "profile_literal_correlation": True,
                 "decoded_config_recovered": False,
                 "static_config_recovered": False,
-                "marker_hits": ["asyncrat server", "hwid"],
+                "marker_hits": ["asyncrat server", "hwidgen"],
                 "observed_config_keys": ["Hosts"],
             },
             "findings": [{"value": "example"}],
         },
     )
-    result = detector.detect_family("asyncrat", b"AsyncRAT Server HWID fixture", Path("x.exe"))
+    result = detector.detect_family("asyncrat", b"AsyncRAT Server HwidGen fixture", Path("x.exe"))
     assert result["matched"] is True
     assert result["campaigns"][0]["confidence"] == "medium"
     assert result["campaigns"][0]["campaign_type"] == "reviewed_direct_payload_or_wrapper"
@@ -60,3 +60,57 @@ def test_detector_rejects_one_overlapping_family_literal(monkeypatch) -> None:
     result = detector.detect_family("asyncrat", b"AsyncRAT Server", Path("x.exe"))
     assert result["matched"] is False
     assert result["observations"]["marker_hits"] == ["asyncrat server"]
+
+
+def test_hijackloader_detector_rejects_go_identifier_substrings(monkeypatch) -> None:
+    """Go識別子内の短い部分一致をHijackLoaderへ昇格しない。"""
+
+    monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
+    monkeypatch.setattr(
+        detector,
+        "extract_family",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("extractor should not run")),
+    )
+    result = detector.detect_family(
+        "hijackloader",
+        (b"runtime.moduleDataVerify runtime.typesAliases Module URL https://node.example.org/payload.exe"),
+        Path("x.exe"),
+    )
+    assert result["matched"] is False
+    assert result["observations"]["marker_hits"] == []
+
+
+def test_detector_rejects_generic_pong_hwid_fixture(monkeypatch) -> None:
+    """汎用語だけのSalatStealer系fixtureをAsyncRATへ昇格しない。"""
+
+    monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
+    monkeypatch.setattr(
+        detector,
+        "extract_family",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("extractor should not run")),
+    )
+    result = detector.detect_family(
+        "asyncrat",
+        b"MZ pong hwid Hosts Ports Version Install Mutex https://go.dev/issue/66821",
+        Path("x.exe"),
+    )
+    assert result["matched"] is False
+    assert result["observations"]["marker_hits"] == []
+
+
+def test_detector_rejects_semantic_family_name_variants(monkeypatch) -> None:
+    """同一family名の空白差だけでは抽出器を起動しない。"""
+
+    monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
+    monkeypatch.setattr(
+        detector,
+        "extract_family",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("extractor should not run")),
+    )
+    result = detector.detect_family(
+        "hijackloader",
+        b"HijackLoader Hijack Loader URL https://node.example.org/a",
+        Path("x.exe"),
+    )
+    assert result["matched"] is False
+    assert result["observations"]["marker_hits"] == ["hijackloader"]

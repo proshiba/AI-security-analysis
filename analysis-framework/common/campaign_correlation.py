@@ -218,8 +218,12 @@ def extract_campaign_evidence(case_dir: Path, profile: Mapping[str, Any], rules:
     """caseからcampaign相関用の指標と特徴IDを抽出する。"""
 
     root_sha256 = str(profile["sha256"]).casefold()
-    indicators = _parse_ioc_list(case_dir / "IOC-LIST.md", rules, root_sha256)
-    if not indicators:
+    ioc_list = case_dir / "IOC-LIST.md"
+    indicators = _parse_ioc_list(ioc_list, rules, root_sha256)
+    # IOC-LIST.mdが存在するcaseでは、その一覧が公開IOCの信頼境界である。
+    # root hashしかない場合も「network IOCなし」を意味するため、汎用JSON走査へ
+    # fallbackしてファイル名や文書参照をcampaign証拠へ昇格させない。
+    if not ioc_list.is_file():
         indicators = _json_fallback_indicators(case_dir, rules, root_sha256)
     unique = {}
     for item in indicators:

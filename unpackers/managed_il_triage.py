@@ -87,7 +87,11 @@ _MARKERS = {
     "koi_vm": ("koivm.runtime", "koivm"),
     "confuserex": ("confuserex", "confusedbyattribute", "confuser.runtime"),
     "dotnet_reactor": (".net reactor", "eziriz", "powered by .net reactor"),
-    "smartassembly": ("smartassembly", "smartassembly.attributes", "poweredbyattribute"),
+    "smartassembly": (
+        "smartassembly",
+        "smartassembly.attributes",
+        "poweredbyattribute",
+    ),
 }
 _SCAN_STREAM_TYPES = {"MetaDataTables", "StringsHeap", "UserStringHeap"}
 _REVIEWED_NON_CFF_DISPATCHERS = {
@@ -148,7 +152,9 @@ def _safe_text(value: Any, limit: int = MAX_NAME_LENGTH) -> str:
 
 @contextmanager
 def _contained_parser_diagnostics():
-    """Discard parser warnings/logs for this bounded analysis scope only."""
+    """この上限付き解析scope内だけparserのwarningとlogを抑止する。"""
+    previous_global_disable = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)
     names = {"dnfile", "pefile"}
     names.update(
         name
@@ -159,7 +165,15 @@ def _contained_parser_diagnostics():
     states = []
     for name in sorted(names):
         logger = logging.getLogger(name)
-        states.append((logger, list(logger.handlers), logger.propagate, logger.level, logger.disabled))
+        states.append(
+            (
+                logger,
+                list(logger.handlers),
+                logger.propagate,
+                logger.level,
+                logger.disabled,
+            )
+        )
         logger.handlers = [logging.NullHandler()]
         logger.propagate = False
         logger.setLevel(logging.CRITICAL + 1)
@@ -174,10 +188,12 @@ def _contained_parser_diagnostics():
             logger.propagate = propagate
             logger.setLevel(level)
             logger.disabled = disabled
+        logging.disable(previous_global_disable)
 
 
 def _contain_parser_diagnostics(function):
-    """Decorate a parser entry point with contained diagnostics."""
+    """parser entry pointへ診断抑止scopeを適用する。"""
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         with _contained_parser_diagnostics():
@@ -213,7 +229,12 @@ def _bounded_rows(table: Any, limit: int) -> tuple[list[Any], int, bool, str | N
     try:
         sampled.extend(islice(iter(source), limit + 1))
     except Exception as error:
-        return sampled[:limit], max(declared or 0, len(sampled)), True, type(error).__name__
+        return (
+            sampled[:limit],
+            max(declared or 0, len(sampled)),
+            True,
+            type(error).__name__,
+        )
     truncated = len(sampled) > limit or (declared is not None and declared > limit)
     bounded = sampled[:limit]
     return bounded, max(declared or 0, len(bounded)), truncated, None
@@ -228,7 +249,9 @@ def _entropy(data: bytes) -> float:
         return 0.0
     counts = Counter(data)
     size = len(data)
-    return round(-sum((count / size) * math.log2(count / size) for count in counts.values()), 4)
+    return round(
+        -sum((count / size) * math.log2(count / size) for count in counts.values()), 4
+    )
 
 
 def _metadata_names(
@@ -253,7 +276,9 @@ def _metadata_names(
     table_errors: list[dict[str, str]] = []
     for table_name, row_fields in fields.items():
         remaining = max_strings - len(names)
-        rows, _, truncated, table_error = _bounded_rows(_table(pe, table_name), max(1, remaining))
+        rows, _, truncated, table_error = _bounded_rows(
+            _table(pe, table_name), max(1, remaining)
+        )
         exhausted = exhausted or truncated
         if table_error:
             table_errors.append({"table": table_name, "error": table_error})
@@ -262,7 +287,9 @@ def _metadata_names(
                 try:
                     value = _safe_text(getattr(row, field, ""))
                 except Exception as error:
-                    table_errors.append({"table": table_name, "error": type(error).__name__})
+                    table_errors.append(
+                        {"table": table_name, "error": type(error).__name__}
+                    )
                     continue
                 if not value:
                     continue
@@ -302,7 +329,9 @@ def _scan_markers(
     metadata = getattr(getattr(pe, "net", None), "metadata", None)
     streams = getattr(metadata, "streams", {})
     values = streams.values() if hasattr(streams, "values") else []
-    for stream in sorted(values, key=lambda value: int(getattr(value, "file_offset", 0) or 0)):
+    for stream in sorted(
+        values, key=lambda value: int(getattr(value, "file_offset", 0) or 0)
+    ):
         stream_type = type(stream).__name__
         if stream_type not in _SCAN_STREAM_TYPES:
             continue
@@ -339,7 +368,9 @@ def _scan_markers(
     }
 
 
-def _method_owner_map(type_rows: list[Any], max_references: int) -> tuple[dict[int, str], bool]:
+def _method_owner_map(
+    type_rows: list[Any], max_references: int
+) -> tuple[dict[int, str], bool]:
     owners: dict[int, str] = {}
     exhausted = False
     for row in type_rows:
@@ -353,7 +384,9 @@ def _method_owner_map(type_rows: list[Any], max_references: int) -> tuple[dict[i
                 if value
             )
             remaining = max_references - len(owners)
-            references = list(islice(iter(getattr(row, "MethodList", ()) or ()), remaining + 1))
+            references = list(
+                islice(iter(getattr(row, "MethodList", ()) or ()), remaining + 1)
+            )
         except Exception:
             continue
         if len(references) > remaining:
@@ -401,7 +434,9 @@ def _instruction_metrics(instructions: list[Any]) -> dict[str, int]:
         "constant_loads": 0,
     }
     for instruction in instructions:
-        name = _safe_text(getattr(getattr(instruction, "opcode", None), "name", "")).lower()
+        name = _safe_text(
+            getattr(getattr(instruction, "opcode", None), "name", "")
+        ).lower()
         metrics["instructions"] += 1
         if name in _BRANCHES:
             metrics["branches"] += 1
@@ -428,7 +463,9 @@ def _high_fanout_switch_count(instructions: list[Any], threshold: int) -> int:
     """Count switch instructions meeting a target-fanout threshold."""
     count = 0
     for instruction in instructions:
-        name = _safe_text(getattr(getattr(instruction, "opcode", None), "name", "")).lower()
+        name = _safe_text(
+            getattr(getattr(instruction, "opcode", None), "name", "")
+        ).lower()
         if name != "switch":
             continue
         try:
@@ -463,7 +500,9 @@ def _resource_inventory(
         item: dict[str, Any] = {
             "index": index,
             "name": _safe_text(getattr(row, "Name", "")),
-            "kind": "external" if getattr(row, "Implementation", None) is not None else "internal",
+            "kind": "external"
+            if getattr(row, "Implementation", None) is not None
+            else "internal",
             "declared_size": None,
             "sha256": None,
             "entropy": None,
@@ -496,11 +535,15 @@ def _resource_inventory(
             item["status"] = "malformed_resource"
             item["parse_error"] = type(error).__name__
         resources.append(item)
-    return resources, {
-        "resources_declared": declared,
-        "resources_enumerated": len(resources),
-        "resource_bytes_hashed": used,
-    }, sorted(set(exhausted))
+    return (
+        resources,
+        {
+            "resources_declared": declared,
+            "resources_enumerated": len(resources),
+            "resource_bytes_hashed": used,
+        },
+        sorted(set(exhausted)),
+    )
 
 
 def _technique(status: str, confidence: str, evidence: list[str]) -> dict[str, Any]:
@@ -576,7 +619,9 @@ def _assess_techniques(
         techniques["managed_control_flow_flattening"] = _technique(
             "inconclusive",
             "low",
-            ["one high-fanout switch is insufficient without an independent protector marker"],
+            [
+                "one high-fanout switch is insufficient without an independent protector marker"
+            ],
         )
     elif reviewed_dispatchers:
         shapes = sorted({str(shape) for _, shape in reviewed_dispatchers})
@@ -589,7 +634,9 @@ def _assess_techniques(
             ],
         )
     else:
-        techniques["managed_control_flow_flattening"] = _technique("not_observed", "none", [])
+        techniques["managed_control_flow_flattening"] = _technique(
+            "not_observed", "none", []
+        )
 
     parsed = max(1, counts.get("methods_parsed", 0))
     proxies = counts.get("proxy_method_candidates", 0)
@@ -639,7 +686,9 @@ def _assess_techniques(
         techniques["resource_obfuscation"] = _technique(
             "inconclusive",
             "low",
-            ["one high-entropy resource is insufficient without an independent protector marker"],
+            [
+                "one high-entropy resource is insufficient without an independent protector marker"
+            ],
         )
     else:
         techniques["resource_obfuscation"] = _technique("not_observed", "none", [])
@@ -689,11 +738,17 @@ def analyze_managed_pe(
         "max_resource_bytes": max_resource_bytes,
         "dispatcher_switch_targets": dispatcher_switch_targets,
     }
-    if any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in budgets.values()):
+    if any(
+        not isinstance(value, int) or isinstance(value, bool) or value <= 0
+        for value in budgets.values()
+    ):
         raise ValueError("all budgets must be positive integers")
 
     result = _base_result(len(data))
-    result["budgets"] = {**budgets, "instruction_budget_semantics": INSTRUCTION_BUDGET_NOTE}
+    result["budgets"] = {
+        **budgets,
+        "instruction_budget_semantics": INSTRUCTION_BUDGET_NOTE,
+    }
     result["limitations"] = [INSTRUCTION_BUDGET_NOTE]
     if len(data) > max_input_bytes:
         result["status"] = "input_budget_exceeded"
@@ -720,7 +775,9 @@ def analyze_managed_pe(
     budget_exhausted: list[str] = []
     metadata_table_errors: list[dict[str, str]] = []
     type_table = _table(pe, "TypeDef")
-    type_rows, types_declared, type_truncated, type_error = _bounded_rows(type_table, max_types)
+    type_rows, types_declared, type_truncated, type_error = _bounded_rows(
+        type_table, max_types
+    )
     if type_truncated:
         budget_exhausted.append("types")
     if type_error:
@@ -735,11 +792,15 @@ def analyze_managed_pe(
                 "token": f"0x02{index:06x}",
                 "namespace": _safe_text(getattr(row, "TypeNamespace", "")),
                 "name": _safe_text(getattr(row, "TypeName", "")),
-                "method_references": len(method_list) if hasattr(method_list, "__len__") else None,
+                "method_references": len(method_list)
+                if hasattr(method_list, "__len__")
+                else None,
             }
         )
 
-    names, name_metrics = _metadata_names(pe, max_metadata_strings, max_metadata_string_bytes)
+    names, name_metrics = _metadata_names(
+        pe, max_metadata_strings, max_metadata_string_bytes
+    )
     if name_metrics["metadata_name_budget_exhausted"]:
         budget_exhausted.append("metadata_names")
     marker_hits, scan_metrics = _scan_markers(data, pe, names, max_metadata_scan_bytes)
@@ -817,7 +878,9 @@ def analyze_managed_pe(
                 continue
             if offset + header_size + code_size > len(data):
                 raise ValueError("declared CIL body extends beyond input")
-            body = read_method_body_from_bytes(data[offset : offset + header_size + code_size])
+            body = read_method_body_from_bytes(
+                data[offset : offset + header_size + code_size]
+            )
             parsed_instructions = list(getattr(body, "instructions", ()) or ())
             remaining = max_instructions - totals["instructions_counted"]
             counted = parsed_instructions[:remaining]
@@ -879,7 +942,9 @@ def analyze_managed_pe(
             )
         result["methods"].append(method)
 
-    metadata_table_errors.extend(result["metadata_scan"].get("metadata_table_errors", []))
+    metadata_table_errors.extend(
+        result["metadata_scan"].get("metadata_table_errors", [])
+    )
     result["metadata_table_errors"] = metadata_table_errors[:32]
     result["metadata_table_errors_truncated"] = len(metadata_table_errors) > 32
     result["counts"] = totals
@@ -887,7 +952,9 @@ def analyze_managed_pe(
         marker_hits, totals, result["dispatcher_candidates"], resources
     )
     result["budget_exhausted"] = sorted(set(budget_exhausted))
-    result["status"] = "analyzed_partial_budget" if result["budget_exhausted"] else "analyzed"
+    result["status"] = (
+        "analyzed_partial_budget" if result["budget_exhausted"] else "analyzed"
+    )
     result["static_method_plan"] = plan_managed_methods(result)
     return result
 
@@ -914,7 +981,12 @@ def plan_managed_methods(result: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     status = result.get("status")
-    if status in {"dependency_missing", "parse_failed", "not_managed_pe", "input_budget_exceeded"}:
+    if status in {
+        "dependency_missing",
+        "parse_failed",
+        "not_managed_pe",
+        "input_budget_exceeded",
+    }:
         add(
             "metadata_integrity_and_cross_parser_validation",
             f"managed parsing did not complete ({status})",
@@ -928,7 +1000,10 @@ def plan_managed_methods(result: dict[str, Any]) -> list[dict[str, Any]]:
         "reviewed token map, method-body coverage, and bounded parse gaps",
     )
     techniques = result.get("techniques", {})
-    suspected = lambda name: techniques.get(name, {}).get("status") == "suspected"
+
+    def suspected(name: str) -> bool:
+        return techniques.get(name, {}).get("status") == "suspected"
+
     if suspected("koi_vm"):
         add(
             "koi_vm_runtime_and_vm_data_mapping",
@@ -936,7 +1011,9 @@ def plan_managed_methods(result: dict[str, Any]) -> list[dict[str, Any]]:
             "static runtime type map, VM-data resource hashes, handler candidates, and unresolved limits",
         )
     protector_markers = [
-        name for name in ("confuserex", "dotnet_reactor", "smartassembly") if suspected(name)
+        name
+        for name in ("confuserex", "dotnet_reactor", "smartassembly")
+        if suspected(name)
     ]
     if protector_markers:
         add(
@@ -993,20 +1070,38 @@ def _reject_input_output_alias(input_path: Path, output_path: Path) -> None:
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser for bounded managed-IL triage."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, type=Path, help="managed PE to read as inert bytes")
+    parser.add_argument(
+        "--input", required=True, type=Path, help="managed PE to read as inert bytes"
+    )
     parser.add_argument("--output", required=True, type=Path, help="JSON report path")
     parser.add_argument("--max-input-bytes", type=int, default=DEFAULT_MAX_INPUT_BYTES)
     parser.add_argument("--max-types", type=int, default=DEFAULT_MAX_TYPES)
     parser.add_argument("--max-methods", type=int, default=DEFAULT_MAX_METHODS)
-    parser.add_argument("--max-instructions", type=int, default=DEFAULT_MAX_INSTRUCTIONS)
-    parser.add_argument("--max-method-bytes", type=int, default=DEFAULT_MAX_METHOD_BYTES)
-    parser.add_argument("--max-metadata-strings", type=int, default=DEFAULT_MAX_METADATA_STRINGS)
-    parser.add_argument("--max-metadata-string-bytes", type=int, default=DEFAULT_MAX_METADATA_STRING_BYTES)
-    parser.add_argument("--max-metadata-scan-bytes", type=int, default=DEFAULT_MAX_METADATA_SCAN_BYTES)
-    parser.add_argument("--max-resources", type=int, default=DEFAULT_MAX_RESOURCES)
-    parser.add_argument("--max-resource-bytes", type=int, default=DEFAULT_MAX_RESOURCE_BYTES)
     parser.add_argument(
-        "--dispatcher-switch-targets", type=int, default=DEFAULT_DISPATCHER_SWITCH_TARGETS
+        "--max-instructions", type=int, default=DEFAULT_MAX_INSTRUCTIONS
+    )
+    parser.add_argument(
+        "--max-method-bytes", type=int, default=DEFAULT_MAX_METHOD_BYTES
+    )
+    parser.add_argument(
+        "--max-metadata-strings", type=int, default=DEFAULT_MAX_METADATA_STRINGS
+    )
+    parser.add_argument(
+        "--max-metadata-string-bytes",
+        type=int,
+        default=DEFAULT_MAX_METADATA_STRING_BYTES,
+    )
+    parser.add_argument(
+        "--max-metadata-scan-bytes", type=int, default=DEFAULT_MAX_METADATA_SCAN_BYTES
+    )
+    parser.add_argument("--max-resources", type=int, default=DEFAULT_MAX_RESOURCES)
+    parser.add_argument(
+        "--max-resource-bytes", type=int, default=DEFAULT_MAX_RESOURCE_BYTES
+    )
+    parser.add_argument(
+        "--dispatcher-switch-targets",
+        type=int,
+        default=DEFAULT_DISPATCHER_SWITCH_TARGETS,
     )
     return parser
 
@@ -1042,7 +1137,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         result = analyze_managed_pe(args.input.read_bytes(), **budgets)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(
         json.dumps(
             {

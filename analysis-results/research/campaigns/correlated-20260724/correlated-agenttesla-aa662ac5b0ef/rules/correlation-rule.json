@@ -1,0 +1,16 @@
+{
+  "campaign_id": "correlated-agenttesla-aa662ac5b0ef",
+  "families": [
+    "agenttesla"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://misty-cherry-cea3.uploadsimg.workers.dev/yipui"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

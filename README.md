@@ -164,11 +164,11 @@ MSI/CAB custom action 系のケース:
 各個別解析には、説明を除いたIOC専用の `IOC-LIST.md` も置きます。横断索引は [analysis-results/IOC-INDEX.md](analysis-results/IOC-INDEX.md) です。README、構造化IOC、config、解析履歴を更新した後は次を実行してください。
 
 ```powershell
-python .\analysis-framework\common\generate_ioc_lists.py --repository .
+python .\analysis-framework\common\generate_ioc_lists.py --repository . --write
 python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ```
 
-生成一覧は `種別 / 値 / 役割 / 確度 / 根拠` の5列だけを持ち、URLの資格情報・クエリ・フラグメント、正規署名付きホスト、文脈専用値、Shodan/Sigma/YARAクエリを除外します。公開可能なIOCがない解析にも空の標準表を生成します。
+生成一覧は `種別 / 値 / 役割 / 確度 / 根拠` の5列だけを持ち、URLの資格情報・クエリ・フラグメント、正規署名付きホスト、文脈専用値、Shodan/Sigma/YARAクエリを除外します。公開可能なIOCがない解析にも空の標準表を生成します。`--write` と `--check` を省略した場合はdry-runであり、差分をJSONへ表示するだけでファイルを変更しません。
 
 ### 自動解析出力の代表例
 

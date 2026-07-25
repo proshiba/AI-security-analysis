@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 import struct
 from types import SimpleNamespace
@@ -93,7 +94,11 @@ def fake_managed_pe() -> tuple[bytes, object, object]:
     )
     proxy = SimpleNamespace(
         size=4,
-        instructions=[instruction("ldarg.0"), instruction("call", 0x0A000002), instruction("ret")],
+        instructions=[
+            instruction("ldarg.0"),
+            instruction("call", 0x0A000002),
+            instruction("ret"),
+        ],
     )
 
     def body_reader(body_bytes: bytes) -> object:
@@ -142,7 +147,9 @@ def test_analyze_managed_pe_inventory_and_conservative_techniques(
 
     assert result["techniques"]["koi_vm"]["status"] == "suspected"
     assert result["techniques"]["smartassembly"]["status"] == "suspected"
-    assert result["techniques"]["managed_control_flow_flattening"]["status"] == "suspected"
+    assert (
+        result["techniques"]["managed_control_flow_flattening"]["status"] == "suspected"
+    )
     assert result["techniques"]["method_proxy_obfuscation"]["status"] == "suspected"
     assert all(
         item["interpretation"].endswith("not_protector_attribution")
@@ -150,12 +157,38 @@ def test_analyze_managed_pe_inventory_and_conservative_techniques(
     )
 
 
-def test_parse_failures_dependencies_and_non_managed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_parser_diagnostics_suppresses_logger_created_inside_scope(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """scope中に新規生成されたparser loggerもstderrへ漏らさず、global設定を復元する。"""
+
+    previous_disable = logging.root.manager.disable
+    logger = logging.getLogger("dnfile.dynamic-parser-test")
+    handler = logging.StreamHandler()
+    logger.addHandler(handler)
+    logger.setLevel(logging.ERROR)
+    logger.propagate = False
+    try:
+        with managed._contained_parser_diagnostics():
+            logger.error("parser-secret")
+        assert "parser-secret" not in capsys.readouterr().err
+        assert logging.root.manager.disable == previous_disable
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
+
+
+def test_parse_failures_dependencies_and_non_managed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Return bounded diagnostic states instead of leaking parser messages."""
     monkeypatch.setattr(
         managed,
         "dnfile",
-        SimpleNamespace(__version__="test", dnPE=lambda **_kwargs: (_ for _ in ()).throw(ValueError("secret"))),
+        SimpleNamespace(
+            __version__="test",
+            dnPE=lambda **_kwargs: (_ for _ in ()).throw(ValueError("secret")),
+        ),
     )
     monkeypatch.setattr(managed, "read_method_body_from_bytes", lambda _data: None)
     failed = managed.analyze_managed_pe(b"MZ")
@@ -164,7 +197,11 @@ def test_parse_failures_dependencies_and_non_managed(monkeypatch: pytest.MonkeyP
     assert "secret" not in json.dumps(failed)
 
     monkeypatch.setattr(
-        managed, "dnfile", SimpleNamespace(__version__="test", dnPE=lambda **_kwargs: SimpleNamespace(net=None))
+        managed,
+        "dnfile",
+        SimpleNamespace(
+            __version__="test", dnPE=lambda **_kwargs: SimpleNamespace(net=None)
+        ),
     )
     assert managed.analyze_managed_pe(b"MZ")["status"] == "not_managed_pe"
 
@@ -192,9 +229,13 @@ def test_all_budgets_are_enforced(monkeypatch: pytest.MonkeyPatch) -> None:
         max_resource_bytes=10,
     )
     assert bounded["status"] == "analyzed_partial_budget"
-    assert {"methods", "instructions", "metadata_names", "metadata_stream_bytes", "resource_bytes"} <= set(
-        bounded["budget_exhausted"]
-    )
+    assert {
+        "methods",
+        "instructions",
+        "metadata_names",
+        "metadata_stream_bytes",
+        "resource_bytes",
+    } <= set(bounded["budget_exhausted"])
     assert bounded["resources"][0]["sha256"] is None
     assert bounded["resources"][0]["status"] == "resource_byte_budget_exceeded"
     assert bounded["methods"][0]["parse_status"] == "parsed_partial_instruction_budget"
@@ -249,9 +290,7 @@ def test_exact_method_slice_and_single_signal_is_inconclusive(
 
 def test_iterator_and_command_switches_are_not_cff_evidence() -> None:
     """Exclude only the two dispatch methods reviewed in the exact sample."""
-    reviewed_sha256 = (
-        "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51"
-    )
+    reviewed_sha256 = "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51"
     candidates = [
         {
             "sample_sha256": reviewed_sha256,
@@ -312,6 +351,7 @@ def test_attacker_named_command_handler_remains_cff_evidence() -> None:
     )
     assert result["managed_control_flow_flattening"]["status"] == "suspected"
 
+
 def test_plan_managed_methods_is_ordered_and_static_only() -> None:
     """Route each managed technique to a non-executing static method."""
     techniques = {
@@ -328,7 +368,11 @@ def test_plan_managed_methods_is_ordered_and_static_only() -> None:
         )
     }
     plan = managed.plan_managed_methods(
-        {"status": "analyzed", "techniques": techniques, "resources": [{"sha256": "0" * 64}]}
+        {
+            "status": "analyzed",
+            "techniques": techniques,
+            "resources": [{"sha256": "0" * 64}],
+        }
     )
     assert [item["order"] for item in plan] == list(range(1, len(plan) + 1))
     methods = {item["method"] for item in plan}
@@ -337,14 +381,20 @@ def test_plan_managed_methods_is_ordered_and_static_only() -> None:
     assert "proxy_call_graph_collapse" in methods
     assert "constant_dataflow_and_pure_transform_reconstruction" in methods
     assert "resource_reference_and_decryption_dataflow" in methods
-    assert all("do_not_CLR_load_or_execute" in item["safety_constraints"] for item in plan)
+    assert all(
+        "do_not_CLR_load_or_execute" in item["safety_constraints"] for item in plan
+    )
     assert all("do_not_emulate_CIL" in item["safety_constraints"] for item in plan)
 
     fallback = managed.plan_managed_methods({"status": "parse_failed"})
-    assert [item["method"] for item in fallback] == ["metadata_integrity_and_cross_parser_validation"]
+    assert [item["method"] for item in fallback] == [
+        "metadata_integrity_and_cross_parser_validation"
+    ]
 
 
-def test_build_parser_and_main(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_build_parser_and_main(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Exercise CLI parsing and metadata-only JSON output."""
     for function in (
         managed.analyze_managed_pe,
@@ -390,7 +440,5 @@ def test_build_parser_and_main(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, 
 
     original = source.read_bytes()
     with pytest.raises(ValueError, match="same file"):
-        managed.main(
-            ["--input", str(source), "--output", str(source)]
-        )
+        managed.main(["--input", str(source), "--output", str(source)])
     assert source.read_bytes() == original

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 
+import pytest
 import pyzipper
 
 
@@ -20,7 +21,14 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_sample as one_shot  # noqa: E402
 import classify_sample  # noqa: E402
-from handler_catalog import discover_handlers, load_handler, sanitize_public_value  # noqa: E402
+from analysis_contract import handler_result_quality  # noqa: E402
+from handler_catalog import (  # noqa: E402
+    _strict_guard_formats,
+    catalog_summary,
+    discover_handlers,
+    load_handler,
+    sanitize_public_value,
+)
 
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
@@ -109,7 +117,8 @@ def test_family_coverage_exposes_automatic_and_manual_only_families() -> None:
     }
     assert set(registered) <= set(coverage)
     assert coverage["freepbx_k_php"]["status"] == "automatic_handler_available"
-    assert coverage["efimer"]["status"] == "manual_or_unsupported_only"
+    assert coverage["efimer"]["status"] == "automatic_handler_available"
+    assert coverage["efimer"]["automatic_handlers"]
     assert coverage["efimer"]["manual_or_unsupported_handlers"]
 
 
@@ -260,7 +269,7 @@ def test_recovered_layer_is_classified_and_selected_for_extraction(
         b"https://example.invalid/hima_data/index.php"
     )
 
-    def fake_unpack(data: bytes, source_name: str):
+    def fake_unpack(data: bytes, source_name: str, **_kwargs):
         if data == wrapper:
             return (
                 {"source_name": source_name, "method": "test_static_decoder"},
@@ -292,7 +301,11 @@ def test_recovered_layer_is_classified_and_selected_for_extraction(
     handler = json.loads((case_dir / execution["result"]).read_text(encoding="utf-8"))
     assert handler["selected_layer"]["depth"] == 1
     assert handler["selected_layer"]["sha256"] == one_shot.sha256_bytes(recovered)
-    assert [item["status"] for item in handler["attempts"]] == ["failed", "succeeded"]
+    assert [item["status"] for item in handler["attempts"]] == [
+        "succeeded",
+        "skipped_incompatible_format",
+    ]
+    assert handler["attempts"][0]["routing_role"] == "selected_family_layer"
     assert handler["executed_sample"] is False
     assert handler["network_contacted"] is False
 
@@ -388,3 +401,304 @@ def test_generic_triage_failure_keeps_classification_and_handlers(
     assert generic["status"] == "failed"
     assert generic["executed_sample"] is False
     assert generic["network_contacted"] is False
+
+
+def test_catalog_exposes_input_contracts_for_automatic_handlers() -> None:
+    """自動解析器へ形式契約を付け、厳格guardとadapter由来を区別する。"""
+
+    specs = discover_handlers()
+    freepbx = next(
+        item
+        for item in specs
+        if item.family == "freepbx_k_php"
+        and item.relative_path.endswith("freepbx_k_php/extract_config.py")
+    )
+    suomi = next(
+        item
+        for item in specs
+        if item.family == "suomi_agent" and item.relative_path.endswith("extract_config.py")
+    )
+    profiled = next(item for item in specs if item.source == "profiled_shared_extractor")
+    acrstealer = next(
+        item
+        for item in specs
+        if item.family == "acrstealer" and item.relative_path.endswith("acrstealer/extractor.py")
+    )
+    amosstealer = next(
+        item
+        for item in specs
+        if item.family == "amosstealer" and item.relative_path.endswith("amosstealer/extractor.py")
+    )
+    manageengine = next(
+        item
+        for item in specs
+        if item.family == "manageengine_endpoint_central_abuse"
+        and item.relative_path.endswith("manageengine_endpoint_central_abuse/extract_config.py")
+    )
+    assert freepbx.input_formats == ("script",)
+    assert freepbx.input_contract_source == "strict_magic_guard"
+    assert suomi.input_formats == ("pe",)
+    assert profiled.input_formats == ("pe", "script", "data")
+    assert all(item.minimum_evidence_score >= 0 for item in specs)
+    assert {"zip", "pe", "ole"} <= set(acrstealer.input_formats)
+    assert acrstealer.input_contract_source == "module_declaration"
+    assert "apple-disk-image" in amosstealer.input_formats
+    assert amosstealer.input_contract_source == "bounded_payload_adapter"
+    assert manageengine.input_formats == ("zip", "script", "data")
+    assert manageengine.input_contract_source == "module_declaration"
+    summary = catalog_summary(specs)
+    assert summary["legacy_unrestricted_automatic_count"] == 0
+    assert summary["declared_contract_handler_count"] >= 9
+
+
+def test_strict_guard_contract_is_fail_closed(tmp_path: Path) -> None:
+    """magic guardが無条件かつ矛盾しない場合だけ入力形式を推定する。"""
+
+    alternatives = tmp_path / "alternatives.py"
+    alternatives.write_text(
+        """def extract(data):
+    if not data.startswith((b\"MZ\", b\"\\x7fELF\")):
+        raise ValueError(\"形式不一致\")
+    return {}
+""",
+        encoding="utf-8",
+    )
+    assert _strict_guard_formats(alternatives, "extract") == ("elf", "pe")
+
+    conditional = tmp_path / "conditional.py"
+    conditional.write_text(
+        """def extract(data):
+    if not data.startswith(b\"MZ\"):
+        if len(data) < 2:
+            raise ValueError(\"短すぎます\")
+    return {}
+""",
+        encoding="utf-8",
+    )
+    assert _strict_guard_formats(conditional, "extract") == ()
+
+    contradictory = tmp_path / "contradictory.py"
+    contradictory.write_text(
+        """def extract(data):
+    if not data.startswith(b\"MZ\"):
+        raise ValueError(\"PEではありません\")
+    if not data.startswith(b\"\\x7fELF\"):
+        raise ValueError(\"ELFではありません\")
+    return {}
+""",
+        encoding="utf-8",
+    )
+    assert _strict_guard_formats(contradictory, "extract") == ()
+
+
+def test_handler_quality_separates_family_label_from_evidence() -> None:
+    """固定family名だけの空結果を成功証拠へ昇格しない。"""
+
+    empty = handler_result_quality({"family": "fixture", "findings": []})
+    candidate = handler_result_quality(
+        {"findings": [{"kind": "url", "value": "https://example.org/gate"}]}
+    )
+    static = handler_result_quality(
+        {"static_config_recovered": True, "config": {"host": "static.example.org"}}
+    )
+    decoded = handler_result_quality(
+        {"decoded_config_recovered": True, "config": {"host": "decoded.example.org"}}
+    )
+    assert empty["tier_name"] == "no_evidence"
+    assert empty["sufficient"] is False
+    assert candidate["tier"] == 1
+    assert static["tier"] == 3
+    assert decoded["tier"] == 4
+    assert decoded["score"] > static["score"] > candidate["score"]
+
+
+def test_unmatched_forced_family_does_not_execute_handler(tmp_path: Path) -> None:
+    """明示familyでも検出器不一致なら候補表示だけに留め、固有解析器を実行しない。"""
+
+    sample = tmp_path / "benign.bin"
+    sample.write_bytes(b"unrelated bounded fixture")
+    output = tmp_path / "out"
+    summary = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        forced_family="freepbx_k_php",
+    )
+    assert summary["counts"]["identified"] == 0
+    assert summary["counts"]["handler_successes"] == 0
+    case = summary["cases"][0]
+    assert case["selected_families"] == []
+    report = json.loads((output / case["report"]).read_text(encoding="utf-8"))
+    assert report["classification"]["selection_basis"] == "explicit_family_detector_unmatched"
+    assert report["handler_executions"] == []
+
+
+def test_handler_never_runs_on_unrelated_sibling_layer(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """family一致子層と同階層の無関係データをhandlerへ渡さない。"""
+
+    wrapper = b"routing-wrapper"
+    matched = (
+        b"#!/bin/bash\nampusers /etc/asterisk crontab */3 base64 '<?php' "
+        b"https://example.invalid/hima_data/index.php"
+    )
+    sibling = b"unrelated sibling https://a.invalid https://b.invalid"
+
+    def fake_unpack(data: bytes, source_name: str, **_kwargs):
+        if data == wrapper:
+            return (
+                {"source_name": source_name, "method": "two_children"},
+                [("matched_script", matched), ("unrelated_data", sibling)],
+            )
+        return ({"source_name": source_name, "method": "none"}, [])
+
+    monkeypatch.setattr(one_shot, "unpack_bytes", fake_unpack)
+    sample = tmp_path / "wrapper.bin"
+    sample.write_bytes(wrapper)
+    output = tmp_path / "out"
+    summary = one_shot.run_batch([sample], output, registry=REGISTRY)
+    report = json.loads((output / summary["cases"][0]["report"]).read_text(encoding="utf-8"))
+    execution = next(item for item in report["handler_executions"] if item["status"] == "succeeded")
+    handler = json.loads(
+        (output / "cases" / summary["cases"][0]["sha256"] / execution["result"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    sibling_attempt = next(
+        item for item in handler["attempts"] if item["layer"]["sha256"] == one_shot.sha256_bytes(sibling)
+    )
+    assert sibling_attempt["routing_role"] == "unrelated_layer"
+    assert sibling_attempt["status"] == "skipped_unrelated_layer"
+
+
+def test_empty_handler_result_is_not_counted_as_success(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """例外なしの空dictをno_evidenceとして保持し、成功件数へ含めない。"""
+
+    sample = tmp_path / "sample.sh"
+    sample.write_bytes(
+        b"#!/bin/bash\nampusers /etc/asterisk crontab base64 '<?php' "
+        b"https://example.invalid/hima_data/index.php"
+    )
+    monkeypatch.setattr(
+        one_shot,
+        "execute_handler",
+        lambda *_args, **_kwargs: {
+            "result": {},
+            "executed_sample": False,
+            "network_contacted": False,
+        },
+    )
+    output = tmp_path / "out"
+    summary = one_shot.run_batch([sample], output, registry=REGISTRY)
+    assert summary["counts"]["handler_successes"] == 0
+    assert summary["counts"]["handler_no_evidence"] == 1
+    assert summary["counts"]["partial"] == 1
+    report = json.loads((output / summary["cases"][0]["report"]).read_text(encoding="utf-8"))
+    assert report["handler_executions"][0]["status"] == "no_evidence"
+    assert report["case_state"]["resumable"] is False
+
+
+def test_resume_rejects_changed_routing_contract(tmp_path: Path, monkeypatch) -> None:
+    """confidence閾値が変われば、同じ検体でも古いcaseを再利用しない。"""
+
+    sample = tmp_path / "contract.bin"
+    sample.write_bytes(b"resume contract fixture")
+    output = tmp_path / "out"
+    one_shot.run_batch([sample], output, registry=REGISTRY, assessment_only=True)
+    original = one_shot.analyze_unit
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(True)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(one_shot, "analyze_unit", counted)
+    rerun = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        assessment_only=True,
+        minimum_confidence="high",
+        resume=True,
+    )
+    assert calls == [True]
+    assert rerun["counts"]["resumed"] == 0
+
+
+def test_resume_rejects_modified_artifact(tmp_path: Path, monkeypatch) -> None:
+    """成果物内容がreport記録hashと違う場合は完了caseを再解析する。"""
+
+    sample = tmp_path / "tamper.bin"
+    sample.write_bytes(b"resume artifact fixture")
+    output = tmp_path / "out"
+    first = one_shot.run_batch([sample], output, registry=REGISTRY, assessment_only=True)
+    case_dir = output / "cases" / first["cases"][0]["sha256"]
+    (case_dir / "classification.json").write_text("{}\n", encoding="utf-8")
+    original = one_shot.analyze_unit
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(True)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(one_shot, "analyze_unit", counted)
+    rerun = one_shot.run_batch(
+        [sample], output, registry=REGISTRY, assessment_only=True, resume=True
+    )
+    assert calls == [True]
+    assert rerun["counts"]["resumed"] == 0
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"matched": "false", "observations": {}, "campaigns": []},
+        {"matched": False, "observations": [], "campaigns": []},
+        {"matched": True, "observations": {}, "campaigns": None},
+        {
+            "matched": True,
+            "observations": {},
+            "campaigns": [{"campaign_type": "x", "confidence": "certain"}],
+        },
+    ],
+)
+def test_detector_result_contract_rejects_malformed_values(value: dict) -> None:
+    """truthy文字列や不正campaign shapeをfamily一致として受け入れない。"""
+
+    with pytest.raises(TypeError):
+        classify_sample.normalize_detection_result(value)
+
+
+def test_generic_triage_rejects_invalid_ip_and_marks_parse_failure_partial(
+    tmp_path: Path,
+) -> None:
+    """不正IPを候補から除外し、壊れたPEを汎用解析完了にしない。"""
+
+    strings = [
+        {
+            "offset": 0,
+            "encoding": "ascii",
+            "value": "999.999.999.999 1.2.3.4:443 1.2.3.4:99999",
+        }
+    ]
+    iocs = one_shot.analyze_family_sample.extract_iocs(strings)
+    assert iocs["ips"] == ["1.2.3.4:443"]
+    result = one_shot.analyze_family_sample.analyze(
+        "broken.exe", b"MZ" + b"\0" * 32, tmp_path, persist_normalized_text=False
+    )
+    assert "pe_error" in result
+    assert result["analysis_coverage"]["status"] == "partial"
+
+
+def test_generic_string_limit_is_reported_as_partial(tmp_path: Path) -> None:
+    """表示上限到達を黙って成功扱いせず、coverageへ残す。"""
+
+    data = b"\0".join([b"ABCD"] * 20_002)
+    result = one_shot.analyze_family_sample.analyze(
+        "many.bin", data, tmp_path, persist_normalized_text=False
+    )
+    assert result["string_scan"]["truncated"] is True
+    assert result["analysis_coverage"]["status"] == "partial"

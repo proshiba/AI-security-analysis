@@ -19,7 +19,8 @@ $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-frame
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_stealer_set c2_candidate_detector generate_stealer_reports `
+  malwarebazaar_batch analyze_sample analysis_contract handler_catalog classifiers.classify_sample `
+  analyze_stealer_set c2_candidate_detector generate_stealer_reports `
   generate_ioc_lists deep_static_triage `
   unpackers.static_unpacker unpackers.static_control_flow unpackers.managed_il_triage `
   unpackers.javascript_obfuscator unpackers.javascript_dropper_unpacker unpackers.nsis_unpacker `
@@ -34,6 +35,13 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 ```
 
 実装変更後に再生成してください。testでは、公開functionのdocstringと、各対象moduleに対応するHTML artifactを検証します。
+
+## 一括静的解析の契約module
+
+- `analyze_sample.html`：入力収集、静的layer復元、解析器の適用可否判定、一括実行、再開整合性
+- `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
+- `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
+- `classifiers.classify_sample.html`：登録済み検出器による共通分類と検出結果の正規化
 
 ## 深層静的解析module
 
@@ -119,6 +127,12 @@ python -m pydoc -w deep_static_triage unpackers.static_control_flow unpackers.ma
 - `emulators.common.html`：共有のliteral-loopback強制と範囲限定collector
 - `emulators.families.lab.html`：wire互換ではないsynthetic family lab
 - `unpackers.path_safety.html`：未信頼member pathの共有検証
+
+## キャンペーン相関module
+
+- `campaign_correlation.html`：canonical IOCの信頼境界、保守的なpair score、fingerprint照合
+- `correlate_campaigns.html`：campaign snapshot、case label、再利用fingerprintの決定的生成と再封印
+- `refresh_derived_artifacts.html`：campaign、IOC一覧、コード類似性索引の依存順更新と書込み後再検証
 
 公開functionを変更した場合は生成pageを更新します。pydoc testは各moduleをimportし、公開functionのdocstringと対応HTML anchorを検証します。
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import base64
 import binascii
 import hashlib
@@ -838,6 +839,17 @@ class _ZipQuotaExceeded(ValueError):
         self.detail = detail
 
 
+
+@contextmanager
+def _open_aes_zip(data: bytes):
+    """pyzipper固有の破損例外を標準BadZipFileへ正規化する。"""
+
+    try:
+        with pyzipper.AESZipFile(io.BytesIO(data)) as archive:
+            yield archive
+    except pyzipper.BadZipFile as exc:
+        raise zipfile.BadZipFile(str(exc)) from exc
+
 def _read_standard_zip_member_capped(
     archive: zipfile.ZipFile,
     info: zipfile.ZipInfo,
@@ -912,6 +924,7 @@ def recover_zip(
     max_total_size: int = MAX_EXTRACTED_TOTAL,
     max_compression_ratio: float = MAX_COMPRESSION_RATIO,
     read_chunk_size: int = ARCHIVE_READ_CHUNK_SIZE,
+    password: str | bytes = b"",
 ) -> tuple[list[dict], list[tuple[str, bytes]]]:
     """メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。"""
 
@@ -924,10 +937,15 @@ def recover_zip(
     ):
         if isinstance(value, bool) or value <= 0:
             raise ValueError(f"{label} must be positive")
+    if not isinstance(password, (str, bytes)):
+        raise TypeError("passwordはstrまたはbytesで指定してください")
+    password_bytes = password.encode("utf-8") if isinstance(password, str) else password
 
     inventory: list[dict] = []
     artifacts: list[tuple[str, bytes]] = []
-    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+    with _open_aes_zip(data) as archive:
+        if password_bytes:
+            archive.setpassword(password_bytes)
         infos = [item for item in archive.infolist() if not item.is_dir()]
         if len(infos) > max_members:
             return [
@@ -1022,8 +1040,8 @@ def recover_zip(
                     "format": kind,
                 }
             )
-            if kind != "data":
-                artifacts.append((f"zip-{kind}", blob))
+            member_name = PurePosixPath(name).name
+            artifacts.append((f"zip-{kind}-{member_name}", blob))
     return inventory, artifacts
 
 
@@ -1287,8 +1305,14 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
 
 def reassemble_split_parts(
     files: dict[str, bytes],
+    *,
+    max_parts: int = MAX_ARCHIVE_MEMBERS,
+    max_artifact_size: int = MAX_ARTIFACT,
 ) -> tuple[list[dict], list[tuple[str, bytes]]]:
     """オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。"""
+
+    if max_parts <= 0 or max_artifact_size <= 0:
+        raise ValueError("split reassembly limits must be positive")
     reports: list[dict] = []
     artifacts: list[tuple[str, bytes]] = []
     by_basename: dict[str, list[tuple[str, bytes]]] = {}
@@ -1310,10 +1334,10 @@ def reassemble_split_parts(
         ):
             reports.append({"manifest": manifest_name, "status": "invalid_manifest"})
             continue
-        if not isinstance(parts, list) or not 1 <= len(parts) <= MAX_ARCHIVE_MEMBERS:
+        if not isinstance(parts, list) or not 1 <= len(parts) <= max_parts:
             reports.append({"manifest": manifest_name, "status": "invalid_part_count"})
             continue
-        if not 0 < expected_size <= MAX_ARTIFACT:
+        if not 0 < expected_size <= max_artifact_size:
             reports.append({"manifest": manifest_name, "status": "size_blocked"})
             continue
         chunks, cursor, failure = [], 0, None
@@ -1370,8 +1394,20 @@ def sevenzip_extract(
     executable: Path,
     name: str = "input.bin",
     password: str = "",
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
     """認識済みコンテナをパス、件数、バイト数の上限付きで展開する。"""
+
+    for value, label in (
+        (max_members, "max_members"),
+        (max_member_size, "max_member_size"),
+        (max_total_size, "max_total_size"),
+    ):
+        if isinstance(value, bool) or value <= 0:
+            raise ValueError(f"{label} must be positive")
     # Supplying an unrelated archive password to a PE/NSIS image makes 7-Zip
     # omit its synthetic [NSIS].nsi decompilation stream. Probe without a
     # password first and keep that mode for NSIS; other archive types retain
@@ -1405,9 +1441,9 @@ def sevenzip_extract(
     )
     if not supported_archive:
         return {**listing, "status": "not_archive_container"}, []
-    if listing.get("total_members", 0) > MAX_ARCHIVE_MEMBERS:
+    if listing.get("total_members", 0) > max_members:
         return {**listing, "status": "member_limit_blocked"}, []
-    if listing.get("declared_total_size", 0) > MAX_EXTRACTED_TOTAL:
+    if listing.get("declared_total_size", 0) > max_total_size:
         return {**listing, "status": "declared_size_blocked"}, []
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp)
@@ -1433,7 +1469,19 @@ def sevenzip_extract(
         inventory, candidates = [], []
         extracted_total = 0
         output_resolved = output.resolve()
-        for entry in sorted(output.rglob("*")) if output.is_dir() else []:
+        extracted_entries = (
+            sorted(output.rglob("*")) if output.is_dir() else []
+        )
+        regular_entries = [
+            entry for entry in extracted_entries if entry.is_file()
+        ]
+        if len(regular_entries) > max_members:
+            return {
+                **listing,
+                "status": "actual_member_limit_blocked",
+                "actual_members": len(regular_entries),
+            }, []
+        for entry in extracted_entries:
             if not entry.is_file() or entry.is_symlink():
                 continue
             resolved = entry.resolve()
@@ -1454,12 +1502,12 @@ def sevenzip_extract(
                 continue
             size = entry.stat().st_size
             extracted_total += size
-            if size > MAX_ARTIFACT:
+            if size > max_member_size:
                 inventory.append(
                     {"name": relative, "size": size, "status": "size_blocked"}
                 )
                 continue
-            if extracted_total > MAX_EXTRACTED_TOTAL:
+            if extracted_total > max_total_size:
                 inventory.append(
                     {"name": relative, "size": size, "status": "total_size_blocked"}
                 )
@@ -1482,9 +1530,13 @@ def sevenzip_extract(
                 priority = 0 if kind != "data" else 1
                 candidates.append((priority, relative, blob, kind))
         candidates.sort(key=lambda item: (item[0], item[1].lower()))
-        selected = candidates[:MAX_RETAINED_MEMBERS]
+        selected = candidates[: min(MAX_RETAINED_MEMBERS, max_members)]
         file_map = {name: blob for _, name, blob, _ in selected}
-        split_reports, split_artifacts = reassemble_split_parts(file_map)
+        split_reports, split_artifacts = reassemble_split_parts(
+            file_map,
+            max_parts=max_members,
+            max_artifact_size=max_member_size,
+        )
         nsis_report, nsis_artifacts = ({"status": "not_nsis"}, [])
         if "nsis" in archive_types:
             nsis_report, nsis_artifacts = recover_nsis_scripted_layers(file_map)
@@ -1497,7 +1549,7 @@ def sevenzip_extract(
                 **listing,
                 "status": status,
                 "extract_exit_code": completed.returncode,
-                "inventory": inventory[:MAX_ARCHIVE_MEMBERS],
+                "inventory": inventory[:max_members],
                 "extracted_total_size": extracted_total,
                 "retained_members": len(selected),
                 "split_reassembly": split_reports,
@@ -1515,9 +1567,12 @@ def unpack_bytes(
     diec: Path | None = None,
     force_container_probe: bool = False,
     archive_password: str = "",
+    max_archive_members: int = MAX_ARCHIVE_MEMBERS,
+    max_archive_member_size: int = MAX_ARTIFACT,
+    max_archive_total_size: int = MAX_EXTRACTED_TOTAL,
+    max_archive_compression_ratio: float = MAX_COMPRESSION_RATIO,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
     """上限付き静的復元を実行し、メタデータとアーティファクトを返す。
-
     forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、
     レビュー済みインベントリの手掛かりに使用する。入力は実行せず、
     設定済みアーカイブパーサーによる検査だけを許可する。
@@ -1575,7 +1630,13 @@ def unpack_bytes(
             report["pe"]["containerized"] or force_container_probe
         ):
             report["sevenzip"], recovered = sevenzip_extract(
-                static_data, sevenzip, name, archive_password
+                static_data,
+                sevenzip,
+                name,
+                archive_password,
+                max_members=max_archive_members,
+                max_member_size=max_archive_member_size,
+                max_total_size=max_archive_total_size,
             )
             artifacts.extend(recovered)
             report["sevenzip"]["forced_by_reviewed_hint"] = bool(
@@ -1594,7 +1655,14 @@ def unpack_bytes(
             artifacts.append(("xz-decompressed", recovered_blob))
     elif kind == "zip":
         try:
-            report["zip"], recovered = recover_zip(data)
+            report["zip"], recovered = recover_zip(
+                data,
+                max_members=max_archive_members,
+                max_member_size=max_archive_member_size,
+                max_total_size=max_archive_total_size,
+                max_compression_ratio=max_archive_compression_ratio,
+                password=archive_password,
+            )
             artifacts.extend(recovered)
             if any(
                 item.get("status")
@@ -1605,6 +1673,7 @@ def unpack_bytes(
                     "ratio_blocked",
                     "malformed_metadata",
                     "size_mismatch",
+                    "encrypted",
                 }
                 for item in report["zip"]
             ):
@@ -1616,7 +1685,13 @@ def unpack_bytes(
             report["unpack_status"] = "bounded_limit"
     elif kind in {"7z", "apple-disk-image", "cab", "rar"} and sevenzip:
         report["sevenzip"], recovered = sevenzip_extract(
-            data, sevenzip, name, archive_password
+            data,
+            sevenzip,
+            name,
+            archive_password,
+            max_members=max_archive_members,
+            max_member_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
         )
         artifacts.extend(recovered)
     elif kind == "autoit-a3x":

@@ -1,0 +1,34 @@
+{
+  "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "mirai-derived-ens-doh-bot"
+  ],
+  "members": [
+    "23315993c5c7df358f6d9082d74d72774b613310ebafd0272f5efdf04d3ce9a6",
+    "7607a6631a90eb57ad892bb0cca2bd6618940822daed745392676f6aec4a33f4",
+    "c1c9c2e2936bf0492c896647531f6212d9271f1881c8b95d692d4aee48b4d472"
+  ],
+  "member_count": 3,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "ewqqwt.duckdns.org:43833",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "ewqqwt2.duckdns.org:43833",
+      "support": 3
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 3,
+  "maximum_pair_score": 9,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}
