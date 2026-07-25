@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>マルウェア解析ブラウザ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#/">
+    <span class="brand-mark">▣</span>
+    <span class="brand-name">マルウェア解析ブラウザ</span>
+  </a>
+  <nav class="nav">
+    <a href="#/" data-nav="dashboard">ダッシュボード</a>
+    <a href="#/families" data-nav="families">ファミリ一覧</a>
+    <a href="#/cases" data-nav="cases">ケース検索</a>
+    <a href="#/iocs" data-nav="iocs">IOC検索</a>
+  </nav>
+  <form id="global-search" class="global-search">
+    <input id="global-search-input" type="search"
+           placeholder="SHA-256 / ファミリ / C2 / ファイル名 を検索…" autocomplete="off">
+  </form>
+</header>
+<main id="app">
+  <div class="loading">データを読み込んでいます…</div>
+</main>
+<footer class="footer">
+  <span>データ生成: <code>python3 ui/generate_ui_data.py</code> ／ 検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</span>
+</footer>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
