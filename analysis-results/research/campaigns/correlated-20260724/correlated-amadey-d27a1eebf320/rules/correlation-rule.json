@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-amadey-d27a1eebf320",
+  "families": [
+    "amadey"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "ip",
+      "value": "212.113.119.255"
+    },
+    {
+      "type": "url",
+      "value": "http://212.113.119.255/joomla/index.php"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

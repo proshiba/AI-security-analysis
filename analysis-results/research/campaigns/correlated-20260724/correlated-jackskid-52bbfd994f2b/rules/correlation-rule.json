@@ -1,0 +1,46 @@
+{
+  "campaign_id": "correlated-jackskid-52bbfd994f2b",
+  "families": [
+    "jackskid"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "meower.eth"
+    },
+    {
+      "type": "domain",
+      "value": "roanoke.sol"
+    },
+    {
+      "type": "endpoint",
+      "value": "172.233.124.230:39419"
+    },
+    {
+      "type": "endpoint",
+      "value": "45.154.98.115:39419"
+    },
+    {
+      "type": "endpoint",
+      "value": "deformed.su:9018"
+    },
+    {
+      "type": "endpoint",
+      "value": "nvms9000.online:9018"
+    },
+    {
+      "type": "ip",
+      "value": "172.233.124.230"
+    },
+    {
+      "type": "ip",
+      "value": "45.154.98.115"
+    }
+  ],
+  "feature_ids": [
+    "propagation:telnet_scan"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

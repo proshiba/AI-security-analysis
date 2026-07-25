@@ -1,0 +1,34 @@
+{
+  "campaign_id": "correlated-venomrat-b8be79d70868",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "venomrat"
+  ],
+  "members": [
+    "01d63fac83c1e47461c08f5abfe29db0ddfe6b448b1abd7c21cfb8b06c4ad386",
+    "54b18666cff2721220a2aab4aaaef419b3fc22aa263edbbc43d7b3164f562f7d",
+    "f6ff5df0da5c7fb540390937fa063e709e0e6a42792fbf5123234e85863dd14d"
+  ],
+  "member_count": 3,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "192.252.180.45:4449",
+      "support": 3
+    },
+    {
+      "type": "ip",
+      "value": "192.252.180.45",
+      "support": 3
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 3,
+  "maximum_pair_score": 9,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

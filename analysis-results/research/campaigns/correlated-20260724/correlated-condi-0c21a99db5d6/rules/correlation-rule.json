@@ -1,0 +1,16 @@
+{
+  "campaign_id": "correlated-condi-0c21a99db5d6",
+  "families": [
+    "condi"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "jkqhdbbbqwiujkaz.hopto.org:69"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

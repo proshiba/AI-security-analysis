@@ -13,6 +13,7 @@ from typing import Any
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
+SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 class DetectorPathError(ValueError):
@@ -50,6 +51,51 @@ def _resolve_detector_path(
     return resolved
 
 
+@lru_cache(maxsize=32)
+def _load_registry_cached(
+    resolved_path: str,
+    modified_ns: int,
+    size: int,
+) -> dict[str, dict[str, Any]]:
+    """file identityをcache keyに含め、registry全体を一度だけ厳格検証する。"""
+
+    del modified_ns, size
+    registry = Path(resolved_path)
+    document = json.loads(registry.read_text(encoding="utf-8-sig"))
+    if not isinstance(document, dict):
+        raise TypeError("registry root must be an object")
+    values = document.get("malware_types")
+    if not isinstance(values, dict):
+        raise TypeError("registry malware_types must be an object")
+    for family, metadata in values.items():
+        if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
+            raise TypeError(f"invalid registry family id: {family!r}")
+        if not isinstance(metadata, dict):
+            raise TypeError(f"registry metadata must be an object: {family}")
+        detector_path = metadata.get("detector")
+        if not isinstance(detector_path, str):
+            raise TypeError(f"registry detector must be a string: {family}")
+        _resolve_detector_path(FRAMEWORK_ROOT, family, detector_path)
+        known_hashes = metadata.get("known_sample_sha256", [])
+        if not isinstance(known_hashes, list):
+            raise TypeError(f"known_sample_sha256 must be a list: {family}")
+        if any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in known_hashes):
+            raise TypeError(f"known_sample_sha256 contains an invalid digest: {family}")
+    return values
+
+
+def _validated_registry(registry: Path) -> dict[str, dict[str, Any]]:
+    """更新を追跡するcache経由で検証済みregistryを返す。"""
+
+    resolved = registry.resolve(strict=True)
+    stat_result = resolved.stat()
+    return _load_registry_cached(
+        str(resolved),
+        stat_result.st_mtime_ns,
+        stat_result.st_size,
+    )
+
+
 @lru_cache(maxsize=None)
 def load_detector(framework_root: Path, relative_path: str, family: str | None = None):
     """登録済み相対pathを検証し、マルウェア検出関数を返す。"""
@@ -77,6 +123,56 @@ def load_detector(framework_root: Path, relative_path: str, family: str | None =
     if not callable(detector):
         raise RuntimeError(f"detector has no callable detect(): {path}")
     return detector
+
+
+def normalize_detection_result(value: Any) -> dict[str, Any]:
+    """検出器戻り値を厳格な共通shapeへ検証・正規化する。"""
+
+    if not isinstance(value, dict):
+        raise TypeError("detector result must be an object")
+    matched = value.get("matched")
+    if not isinstance(matched, bool):
+        raise TypeError("detector matched must be a boolean")
+    observations = value.get("observations", {})
+    if not isinstance(observations, dict):
+        raise TypeError("detector observations must be an object")
+    campaigns = value.get("campaigns", [])
+    if not isinstance(campaigns, list):
+        raise TypeError("detector campaigns must be a list")
+    normalized_campaigns = []
+    for index, campaign in enumerate(campaigns):
+        if not isinstance(campaign, dict):
+            raise TypeError(f"detector campaign[{index}] must be an object")
+        campaign_type = campaign.get("campaign_type")
+        confidence = campaign.get("confidence")
+        reasons = campaign.get("reasons", [])
+        if not isinstance(campaign_type, str) or not campaign_type.strip():
+            raise TypeError(f"detector campaign[{index}].campaign_type must be a string")
+        if confidence not in CONFIDENCE_ORDER:
+            raise TypeError(f"detector campaign[{index}].confidence is invalid")
+        if not isinstance(reasons, list) or any(not isinstance(item, str) for item in reasons):
+            raise TypeError(f"detector campaign[{index}].reasons must be a string list")
+        normalized_campaigns.append(
+            {
+                **campaign,
+                "campaign_type": campaign_type.strip(),
+                "confidence": confidence,
+                "reasons": reasons,
+            }
+        )
+    return {
+        **value,
+        "matched": matched,
+        "observations": observations,
+        "campaigns": normalized_campaigns,
+    }
+
+
+def clear_classifier_caches() -> None:
+    """batch境界でdetector moduleとregistry cacheを明示的に破棄する。"""
+
+    load_detector.cache_clear()
+    _load_registry_cached.cache_clear()
 
 
 def detection_uses_known_inner(detection: dict) -> bool:
@@ -121,7 +217,7 @@ def evaluate_detectors(
     """全登録検出器の適用可否を、失敗を分離しながら評価する。"""
 
     digest = hashlib.sha256(data).hexdigest()
-    registry_data = json.loads(registry.read_text(encoding="utf-8-sig"))["malware_types"]
+    registry_data = _validated_registry(registry)
     if malware_type and malware_type not in registry_data:
         registered = ", ".join(sorted(registry_data))
         raise ValueError(f"unknown malware type '{malware_type}'; registered: {registered}")
@@ -155,9 +251,7 @@ def evaluate_detectors(
             detector = load_detector(
                 framework_root, metadata.get("detector"), registered_type
             )
-            detection = detector(data, source)
-            if not isinstance(detection, dict):
-                raise TypeError("detector result must be an object")
+            detection = normalize_detection_result(detector(data, source))
         except DetectorPathError as exc:
             error = f"{type(exc).__name__}: {exc}"
             detector_errors[registered_type] = error
@@ -169,11 +263,12 @@ def evaluate_detectors(
             evaluation["error"] = error
             detection = {"matched": False, "observations": {}, "campaigns": []}
         known_inner = detection_uses_known_inner(detection)
-        detector_matched = bool(detection.get("matched"))
+        detector_matched = detection.get("matched") is True
         evaluation.update(
             known_inner_sha256=known_inner,
             detector_matched=detector_matched,
             applicable=bool(malware_type or known_outer or detector_matched),
+            automatic_route_eligible=bool(not evaluation["error"] and (known_outer or known_inner or detector_matched)),
             detection=detection,
         )
         evaluations.append(evaluation)

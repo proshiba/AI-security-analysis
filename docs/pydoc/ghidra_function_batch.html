@@ -23,13 +23,14 @@ Ghidra操作はlocalhostのMCP&nbsp;endpointだけを使用し、program単位�
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 <a href="dnfile.html">dnfile</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
-<a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
 <a href="pefile.html">pefile</a><br>
 </td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="sys.html">sys</a><br>
 <a href="time.html">time</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -289,9 +290,11 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-augment_program_result_call_graph"><strong>augment_program_result_call_graph</strong></a>(result: 'dict[str, Any]') -&gt; 'dict[str, int]'</dt><dd><span class="code">逆コンパイルcall式でGhidra&nbsp;call&nbsp;graphの欠落を補完する。</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">CLI引数parserを構築する。</span></dd></dl>
  <dl><dt><a name="-ensure_characteristic_selection"><strong>ensure_characteristic_selection</strong></a>(result: 'dict[str, Any]') -&gt; 'list[str]'</dt><dd><span class="code">cacheを含むprogram結果へ代表関数選定情報を付与する。</span></dd></dl>
+ <dl><dt><a name="-finalize_case_report"><strong>finalize_case_report</strong></a>(case_dir: 'Path') -&gt; 'str'</dt><dd><span class="code">代表関数解析後も未解決blockerを保持し、reportを再封印する。</span></dd></dl>
+ <dl><dt><a name="-finalize_collection_publication"><strong>finalize_collection_publication</strong></a>(repository: 'Path', collection_dir: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全case完了時だけ索引登録し、残余blockerがあればpartialを明示する。</span></dd></dl>
  <dl><dt><a name="-load_prepared_inputs"><strong>load_prepared_inputs</strong></a>(sample_root: 'Path', private_output: 'Path') -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">SHA-256検証済みcacheから再展開せずprogram&nbsp;inventoryを復元する。</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI&nbsp;entrypoint。</span></dd></dl>
- <dl><dt><a name="-prepare_inputs"><strong>prepare_inputs</strong></a>(repository: 'Path', collection_dir: 'Path', sample_root: 'Path', private_output: 'Path') -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。</span></dd></dl>
+ <dl><dt><a name="-prepare_inputs"><strong>prepare_inputs</strong></a>(repository: 'Path', collection_dir: 'Path', sample_root: 'Path', private_output: 'Path', *, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None) -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。</span></dd></dl>
  <dl><dt><a name="-publish_cases"><strong>publish_cases</strong></a>(repository: 'Path', collection_dir: 'Path', program_results: 'Mapping[str, Mapping[str, Any]]', non_pe: 'Mapping[str, list[dict[str, Any]]]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">対象caseの代表関数解析と全体ロジック成果物を更新する。</span></dd></dl>
  <dl><dt><a name="-refresh_complete_program_artifacts"><strong>refresh_complete_program_artifacts</strong></a>(client: 'GhidraMcpClient', program_results: 'Mapping[str, dict[str, Any]]', private_output: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのページング対象を終端まで再取得し、生成果物へ保存する。</span></dd></dl>
  <dl><dt><a name="-run"><strong>run</strong></a>(args: 'argparse.Namespace') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全入力を準備・解析・公開し、collection集計を返す。</span></dd></dl>
@@ -313,6 +316,7 @@ Data and other attributes defined here:<br>
 <strong>DEFAULT_PROJECT_ROOT</strong> = '/Malware/MalwareBazaarWindows/20260723'<br>
 <strong>EMPTY_SHA256</strong> = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'<br>
 <strong>FATAL_DECOMPILE_MARKERS</strong> = ('decompilation failed', 'failed to decompile', 'timeout', 'no function')<br>
+<strong>FUNCTION_ANALYSIS_BLOCKER</strong> = 'representative_function_analysis_required'<br>
 <strong>FUNCTION_PAGE_SIZE</strong> = 10000<br>
 <strong>IGNORED_CALL_EXPRESSIONS</strong> = {'catch', 'for', 'if', 'return', 'sizeof', 'switch', ...}<br>
 <strong>IMPORT_CAPABILITY_PATTERNS</strong> = {'communication': re.compile('(?i)^(?:socket|connect|send|recv|sel...ame|inet_addr|URLDownloadToFile)', re.IGNORECASE), 'configuration': re.compile('(?i)^(?:Crypt(?:Decrypt|UnprotectDat...rypt|NCrypt|RtlDecompressBuffer)', re.IGNORECASE), 'evasion': re.compile('(?i)^(?:IsDebuggerPresent|CheckRemot...tTickCount(?:64)?|Sleep(?:Ex)?)$', re.IGNORECASE), 'execution': re.compile('(?i)^(?:VirtualAlloc(?:Ex)?|VirtualP...inExec|LoadLibrary|CreateThread)', re.IGNORECASE), 'file_activity': re.compile('(?i)^(?:CreateFile|ReadFile|WriteFil...ile|FindNextFile|PathFileExists)', re.IGNORECASE), 'persistence': re.compile('(?i)^(?:Reg(?:Create|Open|Set|Delete...OpenSCManager|CoCreateInstance)$', re.IGNORECASE)}<br>
@@ -322,6 +326,7 @@ Data and other attributes defined here:<br>
 <strong>LOCAL_MCP_HOSTS</strong> = {'127.0.0.1', '::1', 'localhost'}<br>
 <strong>MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM</strong> = 32<br>
 <strong>Mapping</strong> = typing.Mapping<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
 <strong>ROLE_PATTERNS</strong> = (('entrypoint', re.compile('(?i)(?:^|[_.&lt;&gt;])(main|winmain|wmain|dllmain|entry|startup)(?:$|[_.&lt;&gt;])', re.IGNORECASE)), ('network_communication', re.compile('(?i)(socket|connect|send|recv|http|i...oad|dns|ping|smtp|ftp|websocket)', re.IGNORECASE)), ('command_dispatch_or_handler', re.compile('(?i)(command|dispatch|handler|intera...|shell|execute|task|job|request)', re.IGNORECASE)), ('config_or_data_transform', re.compile('(?i)(config|setting|parse|decode|dec...ck|deserialize|resource|payload)', re.IGNORECASE)), ('cryptographic_transform', re.compile('(?i)(aes|rsa|rc4|chacha|xor|base64|crypt|cipher|hash|sha\\d*|md5)', re.IGNORECASE)), ('process_or_memory_operation', re.compile('(?i)(process|thread|inject|virtualal...rapc|loadlibrary|mapview|hollow)', re.IGNORECASE)), ('persistence', re.compile('(?i)(persist|startup|autorun|registry|regset|service|schtask|runkey)', re.IGNORECASE)), ('anti_analysis', re.compile('(?i)(anti|debug|isdebugger|virtualbo...rmance|cpuid|ntqueryinformation)', re.IGNORECASE)), ('file_operation', re.compile('(?i)(createfile|readfile|writefile|d...|directory|filepath|stream|file)', re.IGNORECASE)))<br>
 <strong>SCHEMA_VERSION</strong> = 1<br>
 <strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>

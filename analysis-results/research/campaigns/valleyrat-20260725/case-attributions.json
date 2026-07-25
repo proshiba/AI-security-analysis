@@ -1,0 +1,3373 @@
+{
+  "cases": [
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "012207c24a7bd9b6f7776bbd383297d2edd881cbf4855db2a64ec48e0070f525",
+        "021b0f3e9c53ad4b6d8061215f748a287c07bb2e3eb3062131da99101519dd32"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/012207c24a7bd9b6f7776bbd383297d2edd881cbf4855db2a64ec48e0070f525",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "appinstall.88tt000.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 20:20:28",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "ee0c1b903f83c1d27486986653a289e8",
+      "public_campaign_matches": [],
+      "sha256": "012207c24a7bd9b6f7776bbd383297d2edd881cbf4855db2a64ec48e0070f525",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T11DA633EE78CE6BB1C04BC370948B9E2E7D053FD0B9664D0279D939306E70A5A72B5349"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-b6b5d3b43e46",
+          "confidence": "低",
+          "imphash": "b6b5d3b43e46f9dd896a962322a5108b",
+          "members": [
+            "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+            "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62"
+          ],
+          "name_ja": "imphash完全一致コードcluster b6b5d3b43e46"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "2026.07.16裁员名单及补偿方案.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-16 16:28:10",
+      "imphash": "b6b5d3b43e46f9dd896a962322a5108b",
+      "local_campaign_candidates": [],
+      "md5": "c20a54cc45596e10f5eaf83a388128fe",
+      "public_campaign_matches": [],
+      "sha256": "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.bg[qtsc]",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T15546E7F720D692ACC40AC93B8353EF6A895F71360B36D4E3B198D2525D16DC43A7AE1C"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "009b447d59309e9cf3920c7106cb8371dab1d32e7ff651c2ec42e273dee106a5",
+        "0334b9a21eed22635a5e08e2151d374bcf7308c63d9e5d52b5d2a6496c87f888",
+        "0628c0d2ca16727fefb2160576fbd9200f8d5d163a8ce550bbd87a650cc66fe1",
+        "06703d330383a6320eb886fceb81e39b17a45096fb2fa39af319ec6e1f9e1800",
+        "08e30c6e952a8c10dac80d039e2a1cf4ee9f03dc850bdc3288088de92178649a",
+        "0bd49b1f012a779a9192c1b64a5af5905d4c73046bae57a0e8077cad27e7b7ef",
+        "0c13a6a5f8f423a8c2d172e06b3e6f341b766cf5f36e7fbfec5483e8250a1d0d",
+        "0cce6b7d9ddb70018afca5fbc282fe32629cc351b30b4a42a706a6b19d7895c5",
+        "0d1842fba4c4c93c6410c752b494aa4206ab5dff93fb435483bfba1b4c923e8b",
+        "0f63316fbcfa3ea0c67fe81849909ee758130c3eb2dbfc30cb75dabcfacfe728",
+        "118942886a1ff61d3809eaa61480d6c08f08cf4046bbd4c2437c7a72dcbcd225",
+        "1270e58c78a123191e78046b562534b40af08510e917bd225bd8f6fcb082b48e",
+        "14a20f46f9a6003ecb799ec9f9d66e0ec70fbd294436ee5baf4fa8b0c4ae8341",
+        "16bb3fc61b5e3970ec79c20f8640d860972f9d4706bafe5ce24cb7ac2fb4140a",
+        "1758c738575c7427e8bfc34bdab7267f84450a9eabb1445da17694e43ab1436e",
+        "199addbc8c19d049f684383f64526d7552606a170510dd191628cb8ce7b17a7b",
+        "199f582b34aa9f172eab357428e4ba54442e3a0ecaad098d5b61139ac8971c69",
+        "1c73b29fdce42dced423aa0192e8e9c8b41b3f9bd8076841edbbef8f1606fc2c",
+        "2279cbea08556330e52786736d8730eeee101e912a71662a9b37a1fbfa9f8022",
+        "26dd1eb4f0dad4bdf807e11c05bc41600507d43a502504b5ab8bf3aae5f30375",
+        "2801b007bff354bf55d319e8761f4cdd893d5f31e6bdfe408ef06d432d8d2989",
+        "29ed50fd456304379279d523da5ca99a762250fb294ff5919cd4e56f6784613a",
+        "2a16edee46894b73c9d982835ed94165d6f108407d8c9706e6a3201305faf8e2",
+        "2dac559a967cc1648149ed9876cf0fadb4800cde821766d742f3ee8ee997465e",
+        "2e28a7bd561fe0a15c4b222ff8d27f6723a567e4935dfb3a63cc89e8ed5b29a8",
+        "32500f102ba679038f48e3c97e93f1a39fc67bbfe5321131ae4d646d32702c33",
+        "357c9d7ca8721fd49e499ec010aadf995037e4c73327c03458759a4b1c8cb040",
+        "381230772e55846de4f8d6ec318fd649e78dc9f6dbc95613bd6f5676d365b64e",
+        "3b44b3a52a38c6ebda15f85ea4c8620b05a6dc4c67d55ff38c50c14e7da66fc9",
+        "3d58c6617e242b0b32a51b70128543578af4b3011984c753f4b2c5b5c6524c9e",
+        "403c35d48621cba1ce351a8ec65991f466ce3ae84781b6170fe50ac799686d0f",
+        "43f2cd52544ac011b6378d929b6c74b9c4b1dd4b3cbc6ef48f0ea07dbb803d68",
+        "467318646d7ca989f6c5de16b121305a521723ba226b64eb2e3a915f81957c02",
+        "46f8fda73bc83b27f85247c43b000fb113c93f704c6f8b1058db8e4b9c419d6c",
+        "4b5265568be6aa755c5836e4a043cd75f0ca111c5eebded24b56c3de2973a76e",
+        "4d5f65d3d15d35ea712ecc9d3259e2dc3d131e2fe70f5fb221f154c167ec12c6",
+        "4e63c46d543010d212b234ea2a6d778980e70b7879a6495c324b68ad95d6a061",
+        "520a8ce9f6e5cde92b81af59833424d25c57193e4a998f625001ec813d3380d0",
+        "528ba38cfa220ce2f2b7718397aa4579d4af2c9bdb67eb20b1ec13cda7ebd77c",
+        "52dceb80af3e0a823034dd779a2cd4cc4bcb364fca2f23264b5a7cfd2cfd3020",
+        "55a02a5839675253291bd1b80a6f52757997252e3b92515c428f36b4dd848acb",
+        "5668216ec4f668c4dd62169f340c7a74573cf964f8e908ca4c43654da548b156",
+        "571daf6b87050a027bb3bffb7d192a4e09022adc8a69073b132ddcfb9695cb27",
+        "578d0cce561e2fec7a730ba44d92b1b64143ff464094a6445aa6ba57cd565f10",
+        "657c39cf3d66dec4a160b2e2d6cf1cc6eda08cd7dc2841df77ea1610f17d8294",
+        "6689c388649b1e97d231f627abac19ce8bac1e3172611024477850eb11fe4f14",
+        "6889d283b7bfbdee9bfdab681a62cd90e4c97a1129c4cf338bbd37cbe8e4a698",
+        "69aa7b9b7f6e3258e6e64463201a273d9f40b2f7de610fdd38823220a4f3f106",
+        "6cdf4bcd024fffc3b3e83ce3842a551e4de2efe85b06808f6332b59efd23d690",
+        "6fc6c7d1a1504cfb4ce737d44035f0447feb6d6a9b4dc853076fa75cbcce1f84",
+        "70510a8385a1cf2aa733d0c0729ed6276c56b68f7122bd0ac337da9b8f99907f",
+        "71e91e7815f41a1af55d2aa267ca20c76aff3bcfee44cd3c70cff00b6f4a8cb5",
+        "7219017bd37710eedc97af09e43aa95a0ece7a84cafd9de6709b67b260e5fd36",
+        "7339b36227acbbcc6ded0eb2958d1029215613d793158568d16c1ee150037a83",
+        "77538ef82fe16175e4af02d5216cc4b191b2e183064fbc81104445fbd822d933",
+        "799869b077cad2eeed80d2ea373f16efb516d32b2a1cad8e7d3a76c280ef499b",
+        "8287db9ffe2b562f93f11f43c089d848a28d60ee25f126c7637d16e62cd9b570",
+        "83967f1b02b43c4efeda302795722c809e0e81b8307de73558d10484d5676a7d",
+        "857d570ff002a4376fa6231e86d06b5360cecda6c0122fcb9a1f9ce470e2b238",
+        "89c2102acadac6f1f217fae1ad3d7319c993a2fee72f8fa5ef1adfb55e12c94c",
+        "8b337f813347f59ffb4c9648146dd29856d0ee9164eec3891f2669fda64e2d7c",
+        "8b61afd1f0d2654ee10ecb03ec38ac82b4772f6d19718087b0179c935fb7bcb4",
+        "90e670c4715d6565dff5c1c9e71c583932dd77dd3ca5db70143e315a0d98a321",
+        "91256111cab3ec232bd2039c265bdf0e3bb088efce628eb3743c13126718fc9a",
+        "9188708861051f7402f8e03e4efb6e02b26422d05105954915592993fdc4262c",
+        "923215359a7e54dc6b61093af27c35a11bda90fd5ffba9ab87d87d31d8a1f934",
+        "93e0eddeefff6893ea1abf49c75b678645ac45a1dc4781117b66f3a8cb95318c",
+        "94832362e69a4c69f4884f1102398503b0f9021d0a8a0543f59b5bece40d33e6",
+        "94ea1515ed10d7917c1f66761954c147c20c0daff3c9369cb52fcb56cea0104d",
+        "95537302c9ab24cdf6f874921314af595f39d1d65ddf95b5a5cdb918729c146d",
+        "9ac47e1b9030665c536a22e6caa66be6827caca0da4d7bd08a04a0a882cdb4f8",
+        "9b227898c38f1f91f38b32ccc1e1bf962921bdc5fc52161154587e3201cc218c",
+        "9c4f87a58522324e1cf7a5b53d15e4ca609ec143922dadb4424cf1b739773d33",
+        "9e76f7a08619d6f601282785106c0c6c843c667935e9cc85122b862906fc2486",
+        "9f2853ed6f85fd3bf8cc3dd2db8ea267c86b28b9e37695c1ebd85e677f153a77",
+        "a0d6291090dd829094a84ce959f173c830942d918fda737defedf999a5426e45",
+        "a2fc946758bf6b4247e3a30fa9dd57580f5255c17539d20c50dd4f988e781ecc",
+        "a3dd9fe3658639636cbf69e806ca8322dbede75fd8c3ace36c9ea9ed8f01774f",
+        "a59c763ef6a3e02bbc5ee54f686e439b48e4d642f07dcc7c0d9b38fa99d1f307",
+        "a7629f99aad221a56647d7597116b5b384f3b2c29ee408808656ff489c8dbf1b",
+        "aa9556ed95bb74d7a3188be85c6fb75d71783eaaf54442445a04b1b2e43a9dc5",
+        "abb17f7af79bf59513e6e14ea632c44fd3a2833a72893c61a514c6d93e99b0cf",
+        "ac8b182631dfba1ad6df7b6d6eea17f66c1089544ce71fa742fe731c640d1160",
+        "ad7b3a0bebfd24bd71f1c86f07a8ff2b7b73fd6eaa890f1c887f9f4375617e7c",
+        "b1a08749fec0b0e36e0c64c2af8b4de0b1f2b7613f7c175cf99fc20d6aed8a78",
+        "b24e42c687c73252752ada73547516256cd84869bf950f1b11babbe33c9a3a59",
+        "b25c27d13774a371a17bed2c8781b77f21d1125cdb9af193b228355e740b8665",
+        "b2f8e4ba2c56d96c9386e84f08eca3fc478930e21d5e54e276acf25bdcd2c7bc",
+        "b364d82fbf52b50b32040171c1226da49704494603c6b4246267596c2137d22f",
+        "b9f425b603bd8b1950a7a17bf6ac83eb0d65820de77b20db40a81c3282385a98",
+        "bc6c97334e678250f44ceffb2dad8c8149da027a4caef5394a967d308a35c3cb",
+        "be88e14dffc46e2dd23f9e62230ba81bd31694718adc6ecb8511a9cb5cc3d102",
+        "be90d28dc36d6150cee1ed64214fecc7e76c66c8d1d996e6ad4ffa5975b409b2",
+        "c0f98b80f77974422aaace341ce7593a7598848ead8b87495d927843d5ec3fe2",
+        "c137321f2108ea67952a44e06084338a44fb9c717b12d8b2a2b8548977e9ed0b",
+        "c214f50394864a22150b7b3f3f66db1f8c67e363edfebea1c78aea4f44a252f4",
+        "c2d1b5a7a16888f7bbf6dff7ac4540a262eeb2639413dbaa9b519393c9d1b913",
+        "c60967f6e3338c8c930ef36fafe7650cbc9c5b60085b4118a39630cd3dd785a7",
+        "c810e76f2125db71bfbdd7e29ce902f37f5b2250c48c16d241bd46c70aed1a91",
+        "c82f90e4cc82455fbec83c34112443e0e862a19f5645f7bd488d1960d19e6743",
+        "ca3a0ca4d552423140daf65411f2b0211a7bdf73de3afff054e32ca3406fa17b",
+        "cbe404376de6b929df29d6c0e56264971f2fa43a9e053e27d64750f419da6c2f",
+        "ceab63f3b8ad8545ff34da9c3f9bc5f44a07ae7b8dd2fcf298d5a494d4233585",
+        "cf19f6e77c053873e103e2c6a4de2b616d712b6ecd645061c61c46afacee8630",
+        "cf965889d8174e808070c88f897fdd8552715357ee611f361c294e7985bd6142",
+        "d0b2c3618b49dbf4a82b7fe14bd46834d1c23a46deaaa3fb460b441ec1c1ba9d",
+        "d5339364a197987d267ba1ba1827f9bb069e516792cdadbf82144e466316868a",
+        "d57d137f6a46f1cf6f684b1fdb63b5ce7f105338e1a050318727c0c9f52556a0",
+        "d61602385e0c1c25d59828684bc4eb0d75eff962c322c3657909d97ee5698cae",
+        "d62fc98b1f6cfe9580848fd452ac26a0bf5d4f69e67f4aaa3d4731437de796e7",
+        "d9adf06fc925c181a89629bda4ac07e05268110bda77bdc9ab5fafd8a9dbdefe",
+        "da15e4b218bf39b27d8291977282ae8de686aa4771bbb7c28fd495117f63c210",
+        "da5099744c820a90e807dc0a60e418db5d2cff8354be7e0911ad76d9c07b7d8b",
+        "dd5f1b05eb1d1c1f017c94cf155fa3af7fd1469225f2de4947a3d78bb1325983",
+        "de4d1e629a3626d7cc0228182d7194f90f7090809583a67a844a4e00328412e4",
+        "dfeb1fb1963919cbc0fbae794d1f268e3df80f74ad21f00f5ff29cb45fece04d",
+        "e11bf5c6230d415e526a1ab92320de7e7579fc0f9d41cab7887566f4a12e0f4f",
+        "e2769a9be60afeed81381bcea35a2afecb1452a431201e04fdb66eee8385af80",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "e723f0c52b027efe2643c91c7181f33168f01acb2634c2e2c81def5bccfa7d93",
+        "e86fb5b55a1befcf01409c536ee38448c86023fc8882a91851f7e0c2c728305b",
+        "eb9a84f9673f7c5b74e86f88009b80d6791d2d1a1c25df16c630f78d42173062",
+        "ef6ce5c05b7f53c3684b317c426057c9744c27518ba2881b17f2ed8df56029b3",
+        "f356de88106120ffda81ea8345b8231cbd75f46beae7806f5c4b993635a5e298",
+        "f38bb4686d9cd6670eb88ff34488e3e8414de3db8b0b589c0da82c2e7686aeb1",
+        "f3d42dae60960d05eac3ad38b48612726e3f88b76d0438b429c30315abdcdd23",
+        "f6739e814cea289acc6fdcdd01323f4705e6a482937581a7fc606fa2960f6694",
+        "fb658c95ff91133974eb57a87411c7e87041fa92807eaf35257a85e45e1abda6",
+        "fbb72245c2ca5691763df54010834b8e394d79ac835deece414dbe37353d123a",
+        "fc3c4e5bc1a293e4b3d582c5000d48e51be61b637f16e8b22352cbe5febd48c8"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0628c0d2ca16727fefb2160576fbd9200f8d5d163a8ce550bbd87a650cc66fe1",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "unknown",
+      "endpoints": [],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "0628c0d2ca16727fefb2160576fbd9200f8d5d163a8ce550bbd87a650cc66fe1",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0a3061ce09d7e3cb2b3d3453432da69ee83b59b782853d1f6462fd177db75a7a"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0a3061ce09d7e3cb2b3d3453432da69ee83b59b782853d1f6462fd177db75a7a",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [
+        "103.119.3.160",
+        "103.119.3.160:6666"
+      ],
+      "file_name": "WindowsUpdate.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-18 19:30:05",
+      "imphash": "9a5ce9cc0ff609d5b4e33d5c57eaa35a",
+      "local_campaign_candidates": [],
+      "md5": "342921124f76e174afe304378f83b131",
+      "public_campaign_matches": [],
+      "sha256": "0a3061ce09d7e3cb2b3d3453432da69ee83b59b782853d1f6462fd177db75a7a",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.sa",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1F514274BAA6A20E0E1758134477307E29B6D3D355692DB9F43D03B169E3E2D0FD29B32"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0278cb20c40b96142f882e6f16de94ad48f8bdd5e1521a7230eba4124c961959",
+        "0d00dcc777435cb0f17207ab832acdb1079998715bdda4df70233d4e8c98fb7f",
+        "e4900a1c8d21d5c2dc89c3bdcee88c3ca3d7181b9a2d3fbc7e38669b000ec379"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0d00dcc777435cb0f17207ab832acdb1079998715bdda4df70233d4e8c98fb7f",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "7z-Zip_WrAr_Ratio_26.03.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-17 12:12:10",
+      "imphash": "1c8abb0d55065ed8370628959ce78804",
+      "local_campaign_candidates": [],
+      "md5": "5d7c24f05c4a7d57d0f92824ac42c448",
+      "public_campaign_matches": [],
+      "sha256": "0d00dcc777435cb0f17207ab832acdb1079998715bdda4df70233d4e8c98fb7f",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1EAF733BF72A4D51BE21DC23B82A39F54603BB0B51737CADBD69112699A071C0AE3F354"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "02d35169a01b82928887a899799d013cc6ccd68a3a4d5022671f05cf15cd28fd",
+        "0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd",
+        "1196905d9089cf951aa22eed397407ce82c178433f7c02a8f05f04f93f57283b",
+        "15280dfb3e1213c3e951ac645e25bf66e4c7df2b8d87ae834f61d0656c9bb395",
+        "195eb165c298333e3a9616f67d1171a94f4402cbeb2ba1f0e6acf0d471222f9f",
+        "1f5d786442e0f05ac17eefdfdf393695da2d6141c1e1d247a5133a9244b0e44f",
+        "262a2ecfdca7195ea70cdc2afddfff3edfe5d6994ba94570a171fe968c9a88b3",
+        "2cece02948a1932db1275530337f7e86eee8e5e9d5ceb182b2df726373b4cb40",
+        "2d79e268757fcb4bee7eb24e116895a8406e5dfa068791e1cd12817e8e39fc26",
+        "36347e6d2a0bd2b6942d7e03c4ccf94219c760af8b6588625dd345a483927993",
+        "3f06933d845b9e6a4b51f43d62feacb00b614b48c51e799bad01d78381e3a678",
+        "40aefd884d95e62a3366992e24a7dde502036c8da17a589150278181106ce31a",
+        "4562056b261122ce8023962c74e992d6f7be2cc658fe9f2cf64705be0538fb1d",
+        "4c39503f5f148ad6fda7ab8d18b2af86b6fe26558ecf60162b2218b6921df139",
+        "50278c580a1c0bb7abdeae7403116827311b711b9e11136a431a6a37ebbe63ad",
+        "5ce81544d57d40fcb6e660368e4daac7b06ed79e0be1558853bb3accf362ed6f",
+        "6d6ba2bc9ad414837826f7278bc3e0116f1aeda02d0c2284ed65819f5d9180a8",
+        "8c26e3efb0f76972394766bcacf728b201025aef7152f1244d53bfd046d6bdd2",
+        "a45ce89bf369cef4d757e573b9e7b764c0dc9093b882c890cbab8f8e899ca1bf",
+        "b03996d3ebb5f4b272d6c73c5b6670d55506a35baed58bee65d2492c54c521e2",
+        "c078f8ef042537518612fe0cb33f0e92f565cab432d7501c2231db5f1d84fc1c",
+        "c2f9f659eedc71a43dd62f35848fd024b4e03c25a71690b4fec8585dfa726769",
+        "cfa74023d23b5c75d53c75a5ac7236dc222ae82827f605c85bc06037fd588285",
+        "d5b2203a525d24627f63fe3cced4dbc5481c53c95971bacca9d62215cbfa9f3d",
+        "d6b3998149f7af1ac72ba1ed51ea15d08a94ffa66ef809ef2aec974c2be62254",
+        "de4914c07d898e44399c3996e1829a9a99fc3ebb0ca9207110c8335c799a960b",
+        "df58627ebe42b0b256d317ae64c3e2e8220f487ca3aec44382d7de744fde0cad",
+        "e3e488fa862fddfa0368c5b1aa3a8b1cdd7ef606446cb34192fc9a07e73f9912",
+        "e87483fa8d7dfff8a2f7f64047cce868ff29486e63b7ba07859b3acdc145b1c7",
+        "eed4b9a1d247da61dd01c5b64799e4c1986058909c4be533c8682d2593cc66dc"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "msi_embedded_pe_staged_download",
+      "endpoints": [
+        "8.210.15.149",
+        "8.210.15.149:28300"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "0e4931df7ea30255b2820e6bd65b43477897c5c20b0d1ba34fd16b4063d92ebd",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "06e9ab27b7f8101723c49f5b386de264fafd16f9ac98d01757c47b58eac70e68",
+        "0a1d8c63f723000557b7bb70756f6c0855643c787a146de440f3efeca1510e58",
+        "0d5ac487a35c349311d7f18cd7e965eea2472a14320bc82656e555438914f3bc",
+        "0f963f03d73f3f874928d744e8188b3f61470f982ab1100a5645d0a3c27ee611",
+        "538d9ac1da41f1cee8cbbcb67b7d96e958e9bf02b168d7455f9cc945c869f425",
+        "5c0b6f9064195b58a9ceb85dac1b7bde1a5dc5ec19e144bffaaf6132b9350189",
+        "bf951c50da29fbff206bfdaa15e51013c8c43dea649d6ee0ca646e292f87115a"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0f963f03d73f3f874928d744e8188b3f61470f982ab1100a5645d0a3c27ee611",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "native_dll_rat_worker",
+      "endpoints": [
+        "103.46.185.183"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "0f963f03d73f3f874928d744e8188b3f61470f982ab1100a5645d0a3c27ee611",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "13931954f080312b5b4df53c5ca8eb7a.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 01:30:11",
+      "imphash": "ee8e50343b053c670ed20dfccbcd29fc",
+      "local_campaign_candidates": [],
+      "md5": "13931954f080312b5b4df53c5ca8eb7a",
+      "public_campaign_matches": [],
+      "sha256": "0fbe935d932ce6849224d77e3f32bdfd49910e5a34741ceab81ca8230d92a9da",
+      "status": "unresolved",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T194937D0274D1C871F5B6143558B4EEA18A3EF8501F149EEB3798177E0F346C1AA36EAB"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+        "26147b486e4e56c4121e2a8d64066e6016808a7c76941d08b92b4c6ab58f8363",
+        "f2038827dfaa67c3ec084e054a83534b452ba24adc56dffc6c9eab6706097417"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "installer_protected_pe",
+      "endpoints": [
+        "1.0.0.0",
+        "192.253.228.193"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "075ee1fd48f8ac9098d36b21fd88b5e8c57cf43672c87cfab9458c8b622322e8",
+        "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+        "15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f",
+        "1630fe21b315fb8fae4c070bae5eb9e62683cc1bfd7819a8e26c3e8c17ca4f3d",
+        "16a2b6ba2284a2476d4a345b35502c52a2a98ac0931ce7faf814765f659e2725",
+        "255e4c5b81ddabc02455b7b4560e168b4064e63ec3721230201d1a7928c9f158",
+        "25f756cee2cf5bc4af021a9d48729f88a8382100f79e75e03a66994274d77da8",
+        "29fc393b56fcfa4a242c7bc5177b0861072f35c7c8be2546115e0f34d059e2bf",
+        "2b610cef5cdaafcdb10a2b63de10913912b4b5141ae7d81cece4e9398911d10b",
+        "2e6ed256cc0c0e1dbd8d0fbd83818744b4723def05be9c0bcbca961feac56fdf",
+        "2f82cc9641dc2ea61a1a861a18a105710a9c99f0acb57ad9ac26f0f063b538f0",
+        "30a5b057fcd460080e471ef1cffc4f4bfbb5dea1f4de41851d5357bc67a6c4b8",
+        "31958dd1e4dc163deec616510b206b2beba82a162d8780415744bda13981474f",
+        "36585912e5eaf83ba9fea0631534f690ccdc2d7ba91537166fe53e56c221e153",
+        "389981d8d8ab375162a69cc5985227a07670dc4e653108344a50d12e085846e9",
+        "3b5d6976a3901d21c12ca596651d8c4b0b900dee6db23509d8cf660678bb96ef",
+        "4504dee573d0b4655da2362d89532fa30ddffbfb3e95575bfa0aac6684138553",
+        "46df6deb698d08c4f317c779457e205bc1bd928d0ca9e2700e1a0ef65d836247",
+        "4787f9b010c38f42360a2db697c770eea2086b9ddf748b829d9f50e38dee0a75",
+        "4b1974795480a6cd5243e54d41e7b98261054ee8314b04092d05269c52e3cbb3",
+        "61d4473cff983c93df36b127c87fa682de89b49858723a22b814483632559556",
+        "65773d8a11bb0e816722e7fbfaee27641ce09e3f7b9ebb9e5a9b61cc698f5a1e",
+        "790f2d9aee17bd3601996eaada618d0e932b424c937c0265a3d81d24ac0d0120",
+        "82a2f9ae1e6146ae3cb0f4bc5a62b7227e0384209d9b1aef86bbcc105912f7cd",
+        "8716833a789cb1bd0c3367be44996f9198138faaeb876a7874812319ff505c3f",
+        "950d53003d6787915dbad120d0e2964ea7302a56da93e836e27ced079624e697",
+        "9524a9ae031af3d1755ef7b14031fa4372a9891622323fecb1a8f0180beb2ffe",
+        "9a0cf0017f88a9296ec3a6453c09d190d65466fec78b986706a849c73c342622",
+        "a19d74c45f5e5f899f932e5917b973e14c00284d39bdbbd92e73c830da68e0ee",
+        "a60b75efecfee047ed51773ffe3f15004f797440a75339200132feebfb6601e8",
+        "a6dde2021305f44bf707b879375811aac356af8d966329cb129df4de2fd0058d",
+        "b4f550d2479d4c8699ce1774c4d319b6de9b9c8804688511697e6a7e4a6dd1e6",
+        "b50952f9af310be586746356508b9fd430dcbbaa155a04e6f9563632de0a023b",
+        "c1adf2fe58ff47af8adbd3e6e6310fa33ca00926f28c33c30d249f4a70846c4c",
+        "c44d6bfde317cb66e8dbcbf2d57b670f9a714cf3a6f37bdbc1c3a493ea8ac7cb",
+        "d6aae17a44e4d1f7e882e5fe898f56edfc0aaa27d620f735c9ed7902ce72c199"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "dll_sideload_vvas_bundle",
+      "endpoints": [
+        "00.00.00.0",
+        "01.21.41.61",
+        "021.4.16.0",
+        "022.3.31.0",
+        "1.0.0.0",
+        "1.0.0.1",
+        "1.2.3.4",
+        "1.5.0.0",
+        "11.0.0.151",
+        "127.0.0.1",
+        "13.14.15.16",
+        "134.122.128.135",
+        "134.122.128.66",
+        "134.122.128.66:6666",
+        "134.122.128.66:8888",
+        "17.18.19.20",
+        "192.0.2.0",
+        "198.51.100.0",
+        "2.0.0.2",
+        "2.48.2.0",
+        "255.255.255.255",
+        "5.6.7.8",
+        "6.0.0.0",
+        "8.70.60.000",
+        "9.10.11.12"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "15015ac752a84281d406e0ddf814688dcae0e803394491368b479be4c73fe58f",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "1c82635c29f40e971971e150ebee6f36dabdd2a156f51214f20425315abb413f"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/1c82635c29f40e971971e150ebee6f36dabdd2a156f51214f20425315abb413f",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "Runtime_x64_1512.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 12:00:57",
+      "imphash": "f1fd9dd3fee3797a6e7e6e1c2caa6dee",
+      "local_campaign_candidates": [],
+      "md5": "0a9429738e11acea24949b0247b31ba2",
+      "public_campaign_matches": [],
+      "sha256": "1c82635c29f40e971971e150ebee6f36dabdd2a156f51214f20425315abb413f",
+      "status": "unresolved",
+      "tags": [
+        "ValleyRAT",
+        "exe",
+        "signed"
+      ],
+      "tlsh": "T1AA26B0B876047DE6E67F467BCA96ACD9137636638B8BA4CE40A477C30963371FE11804"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "05bcb85052c11bfd8de669b4f0db51eca8861fc2b2fba83b7a624ff2fa0cfd28",
+        "05cd4a0223f130b08e5b756c90fbc92eec348e93fe99f9a033525830fc88da34",
+        "05e1bd1024fc12ef808dac834b2b01e1651174369b88b01509222ec08e579bef",
+        "0671de75492a40c20eb593c9040605c7beb6d73b8af07200f7b1143df1864297",
+        "08e30c6e952a8c10dac80d039e2a1cf4ee9f03dc850bdc3288088de92178649a",
+        "0a95369e1c01e856cf5db637c02f2ca100e0951d6f677fb1dc1d665e31a423e5",
+        "0bc19c23afbd09944a12510338d070eed301e24a1bfe41cefa1f2c1aea8df262",
+        "10ee1b3fd7da2397930a071d6d219e704a37018dbd6353be67845aef9633938b",
+        "11731e0bfe44282833bd54535290d2f3cb83c34e0528027a93773d72456e6a0a",
+        "172cf6c3b2f474fc0686779e5eb8680332a6ca2e018595ba66b4f0b2738cac2e",
+        "19144757c78210cf05fab03cad46fab038098bd7ba0b523b316d287874ecb47c",
+        "1d5327a396e969f3716014afda9100280424e60ac2e345fa78a1a1af4f3dd9d6",
+        "212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377",
+        "23b643a8e51a81488300b6e04c1da2abff4b4d5d80111608b419cadc37b8da38",
+        "32bd329f40b756ed2a0baeb4be2627fdeb6c09603fa9f2e7dc46c706a8c86e80",
+        "332b2f577929f49f4edbb2b1a74c7ca7b3cf241ee118842ec4a336c09c3e014f",
+        "387d87875d25e698e144ee9983d6baddc26de6ef9ac11fa77dd5e1b7c65b6f18",
+        "3adde21830e4b6e48e614fe89b25d59774987913243fb1df60d32773b97c35b2",
+        "3c966a03654e5dcbeffb0e4abb1e17eaf5b4ef5833a1ed9a568d02d519fd4a0d",
+        "4344dbe8cb1a0d30f0290c13a22e4e7ee7dff188baf2ccd9124705869b023997",
+        "43da35aa3e227c843edbf626590ce5ce2b62c40c802e623fe37d9cbc97ca8166",
+        "4531bb0b676c8ee47a11fd858d6ff372024e909139ae4e6fde138f9effbc9739",
+        "457aacce77132f7f66ca4a8ee46f98055b80315d3824d65dca2b96ee3fd17b9a",
+        "47242fe20536866ac967fcb35c5d50e10310c1c89c2742c38dc23ed8874dd06b",
+        "4aabd230b3ea87f575375e340456fcab78a4ce0e8f377931188df303f97c8db6",
+        "5627732830bdceb4ee124745decdeffd066dbe489c6afae4a185dd7146dedacf",
+        "5668216ec4f668c4dd62169f340c7a74573cf964f8e908ca4c43654da548b156",
+        "578d0cce561e2fec7a730ba44d92b1b64143ff464094a6445aa6ba57cd565f10",
+        "58dce802fce12f28e907cce514902081b9956ae9363f0c2a97a18fe855c8e27e",
+        "5da274f1a57d86b2bd2b02189491a339d0fcdb1b28bd9a4d768ff9c79bfff2a8",
+        "64412108afadf6005fb8b8cc8866a31b27c1cc90507d1f94fe045f318a8a5be0",
+        "6678cffe883eea563ac8342f71b0bccfec0f3960d3fbe2f727cd0709d87f59a5",
+        "6d791341ed0ae2d84c6fe0191e37ed1eff34c92abe9d125631c2152638a2ceb0",
+        "6e35211d8a3db7ff6e35e8b0761e3584c5689d29a36e7d7345ff75e1ca8d8b1f",
+        "7003119f1aaaf518fb558648e27f331f75f5951c7c5b6f9b69083a483dba8932",
+        "70c82348c5c60250bcc69cf136b10faa9d159d5665a143850e5476da9908863b",
+        "72501f33d9caa4cb85456fd408abc9ebb2807608e29b1ab76eb5de7076215ba5",
+        "7ea606778ec2ec4a2fb61d246b27715ace0482783bddc9455994b1330ccd27a5",
+        "7f804129053a71b922e3da65ba47a881c62c27b034d9317fe08c21c46d92795d",
+        "808b4cac5bc4a8411d86d93e05c6206ad5ff84735af50d99d1b19d50cb3dd7b0",
+        "8287db9ffe2b562f93f11f43c089d848a28d60ee25f126c7637d16e62cd9b570",
+        "83967f1b02b43c4efeda302795722c809e0e81b8307de73558d10484d5676a7d",
+        "8ad64efb907cfa1c60e403e3fd2e471ac967ec30790b7227cdef2c4723295406",
+        "8f470f54a0d3a8972efd139d6a3017fb9c15a5bfed6ec7b0b0234e4ed00df8ed",
+        "8fcd76cf574491ed5c6d5038488de03a353eb30ff9599646c6de1b4abcfeac81",
+        "915c3c7b2e5268a9ca37adb7108024f30a6ebc6aef45a98d77c45d4cea9e5d39",
+        "930984266bfa04f792d91d6a21359c012dd7bbe570d65f897481375ebadf9fac",
+        "976658b2a572c3e8d8b092b542970b4385d0b0fa41fd7e220d340e67141cb559",
+        "9e76f7a08619d6f601282785106c0c6c843c667935e9cc85122b862906fc2486",
+        "9f5ae062820ce6f33dce486fd8b1d7cb83f1ad65040a77704b51c947730f2518",
+        "a24742e5379011744686ad5b38d82038ae93be839f8247d1b52f58d4b66e8f3a",
+        "a3efa0ce52f50fa4f7167de2afc5a429ced5972a74e86884088e3c4459901915",
+        "a439cf72af4a11e1878d20e0f0760bbb9ff960257d3426be55681d8fb7ae7bcb",
+        "a61d25fd34eeb4686cc3ce71f00fdd9cbadab87e1df78998508ecc14b73bcd75",
+        "abf3a21c0081e658c45aea1dd0c9785a4d4b718bdccb22babc33fe01e51783e9",
+        "b2d8f5afd14bcbef20c90a00c8be39d0de02cdf25e1ab744791d74f6a11475d1",
+        "b7c03acc536c93b74e35e6f16e2deeeb3427c1aa6fe18317ffb4764feb107e7c",
+        "bae6e677891b97e54e8a6adb89df75e161a41c29155ef7f688604fcb09de822e",
+        "bcb57ec277c499d90181c692944c7095f6d6c9b36c6697be6a7ca8763e682101",
+        "be7c27962a0da6a72604bf90828657260eb61bab6092126ad0fbdcacc20053ee",
+        "c234a7e756fb15291e52d9fffe0fa59db8fa30b651878426ed4aeb4b2473bcc8",
+        "c54763e00b5a462897dfa485341f182d3b67192869388aeeb347791a61032d36",
+        "c810e76f2125db71bfbdd7e29ce902f37f5b2250c48c16d241bd46c70aed1a91",
+        "cec324f2ab7366f51d7be0e4fe00391f5540b64425dc3e0230168e237f87f1a0",
+        "d3ec0f232ab2126abe836e71d28ca79835e6b40b95462fef12248bccd8b54da1",
+        "d5fc47e2194fe84f57e3510ef15ee7ff0d3d583882c1edda152acc4985fc0e1a",
+        "dabaeaad48f99d3152face56957bdeb690504c28f4c9c3e338dd18e50cc8d423",
+        "dbf0b0dc0948abc8f0b17efc54578ba3708ea76be27424487c25c6450f437169",
+        "dece8cedc57d5294244a3c161602f07e303286e00d807f5f32b53f7c8edf7624",
+        "dff31d59a2b6c941186d822c44a2be885e65ce30f9c27fd5e2301ceb68d4af42",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "e3c1e996480ea6e0f9d91beadafbe83adc5a769c90c42d40f4a11e9bb213033b",
+        "e64f83af7b4bdb81c896ffe9ebdca750e88b7b5c029ba94fdcbfc5cee61abc45",
+        "ecde6b3c6ca5fe9494109325a44e1087c812d21f1e54e0b244e8f5332000bca6",
+        "ef3b19995d77f82f58cea654f29ab874d55bdf11def149dfbbe62d5bfdfae081",
+        "f0b16a7747d3b7a360772fb87f1c6b3d6ed0add18f266c06b633d66020990266",
+        "f4497887d502f4e5c4a8402eb7a35a6e30624ff404c8de36b98c848547a5faed",
+        "f64616b029040460d22faac0f9b638c0e8e362c9644a2e01e35b7bf39d26c912",
+        "fcc8fd34fde41d14cd79f6820f848ddb1008492ea6df183f340a636b17cbc580",
+        "fedc190b90d2f3d9168c2288ec132ff38e7fed190053dc55848c266fd6acd987",
+        "fff660a62a7ab370a957b67c95e11cac1388461ae36eb77ea27dc1462e738010"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "unknown",
+      "endpoints": [
+        "0.0.0.0",
+        "6.0.0.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "043a96d0f8e85d10a761e12d1fe32b14df3cb5bde3ccee313eeb3d87f428f690",
+        "07f154238019b18f6970be2cd88c45fb13f49d9b136624c3877d76e59f330152",
+        "08e30c6e952a8c10dac80d039e2a1cf4ee9f03dc850bdc3288088de92178649a",
+        "08fbebdea899faf6f82eb39ff3ad22324aa7a2b87bd26281bfa7dbb0bfbf65db",
+        "0ef75cb16cf4c3d015a7a6ae447d964e1a0beaf509521ef45ef5ec95aeaf90c3",
+        "10037af734e3e375765df01a959310d613ec3c29b4b102ecfc9565c5fb8bea1c",
+        "100ca2c11a12ad6c8809fb6ec0b3d5bc967255ddb3e5616d9fef9f6468e35c74",
+        "124c1dabe2fabc57b1325613d06dc4f0de691ae94830731e3cce1bfdf1c3eaa1",
+        "167b89faf5224a24f249bfbbc383c16cba721c4b4c13bdb1710e91fe9775b777",
+        "17458b04b8ddacf29f3c46eb93abcdd574a8e82f408d6297fca342cecb363c69",
+        "1755edf0dedf5677a2c0bf1a3420fe161109dc2b8f8e70737fa0ab9a427c3a92",
+        "18c1240b398d3d61ae3258cd8d0b8fcaab611de99bd014a73f612b4cb7d70856",
+        "198de146f2a5c8425a7c2c91babee38a3f1479c3d7f665b9359dd1da2ba6a063",
+        "1a02d891fdaa88e4237ec9517bcf4c1d444675439e46c8b7f385bb6055165456",
+        "1ab1f387befd700ae9fde068601e86e8dc6de7fd39df896164875e592d54c10b",
+        "1b0f4d72640f4c8a339a6d14cf7beff037d44a34ff6f30943cc645467fbca955",
+        "1e2012467793bc1a5e11f4f6a115179c483ca8938d85fdef2b89e577dbd3ceaf",
+        "214491310a1e9189a111954e90388be6f6b8fec87676e957e694328e56a038a8",
+        "2439083cc259c412e44bc7a01e4f25c72fa6b6998d6d1a6d6925780dfee658e3",
+        "277978602427284b2cb5c390847f43aef40642bcba0eb35afa58fa5d68a00abf",
+        "2a5cac9fa9f60ae33fd69fcf01b10ea7604da66966d230b7e29b9a4109830d7b",
+        "2d1d05b975651348727710d1ce73d55e9c7b73c454aa8801c111bac5ef2ed0e9",
+        "2e0de5e4b8f57de7db379c9dec1e8bbe72deae1a6dcb732fdd3949ad20b6f70d",
+        "2efb5047b67a64d021922aeace001c43181826a99bc44abb66267bee5a27aac7",
+        "316314cd144842cbd04a95f175210d1b7a67221289d2cf14c8cdd7a929eec828",
+        "33dd2eb789b42ea65b0dbb45ad66114126e3adb5b53ab8935285209c29485477",
+        "381230772e55846de4f8d6ec318fd649e78dc9f6dbc95613bd6f5676d365b64e",
+        "3ae190a3c3e8bb4279910731b3725059288167fa98c134eafff7fbd7b9b21ce0",
+        "3b8a34fef56dbb4e1157c567993cb813916d199fadbbb69ff9874dfd40e26135",
+        "3b987af3774fc54ed18874a6a34aab74b80d5764a53e6c4843daebe5a047f26b",
+        "3bb2f6f1297efc916a741f24757910528e8a042e203ff9ff10830ab9c9b15432",
+        "3cb17a5f9695ecaabb97d5d1d1f02736d5accf8a9946bc33d2857580ac98882e",
+        "3cdfe3b8aea4d74b01cfa18879586554fdfbff3cfa0a60659758034802759e43",
+        "3d907875b5bb045ade330c77fbd18c570b65354f3498be7b6fef67b486bed574",
+        "3ec79420a9b03b84f273d811b09debafd2a1baee773290d7c917fb56e49c9330",
+        "3fc8548a2ae5d3260c1078d72222a9b34a127b35ad729a852f7e0b2f22d928e6",
+        "3ff5525eafc34c4c7170c8f95e89e395185abe9392a84361f45ec20cd3a009cf",
+        "446e09764c89a3a0f9086a842108bd1c1e3347d5dadc1afe7e8102ce2f8f8b38",
+        "463ca3d4d2c038a3298fc512573a81d7821941b790af181c9bebefb42731c71e",
+        "473b6fe546ac69aadb75ccc314be9b78cacfe1edb892a6c2d1499bf547f00a9e",
+        "483cd36884fe0e36e08e35f4eea7328c45456e1cc61709c915a3e3098ee5379b",
+        "49417632c5dc75297240a56d3f0b70de6d1fc14de554ac1a26eb843b2b6b62d2",
+        "49c09c4c6edd34423fa3024b613c8054fae8b808882eb6cd6dbb163cff417e73",
+        "4dd21733a5354a2e1a3d699b418056bd33227a66d6b29987fd3439cd63e5883a",
+        "4df9a7e2b439a6d1aae70e0787d12f56df2f669add90b6a0fd237a72d167a470",
+        "513e9444692c7a47c93410d74b95d0d0acce0986fcd2151071d801a005fef770",
+        "53caf8ea74c794c1e70075009a818d17b51c51cf1019a6b000f34a0738e35848",
+        "545b1865d49667d75417f739cad58274507d5b550e73eb9875f3980cd2c064a7",
+        "5668216ec4f668c4dd62169f340c7a74573cf964f8e908ca4c43654da548b156",
+        "578d0cce561e2fec7a730ba44d92b1b64143ff464094a6445aa6ba57cd565f10",
+        "584bea0dc9ab16d948bfa11e407a55936155c34b13986f87004f2f9e9cd4a0ed",
+        "6227b89a8385206b0549928944d2e45d0d29c54a848e1db3b62cfd01a5c31208",
+        "65f52d5f205796e4204bf77024f89070e6e17f8f5a654233dcc87c8c5e1331f4",
+        "6a8e0fa441a074b973ec94d346d410b32571c0a090817508c9851e31215b381b",
+        "6ff18aa3960c5f361986e2fa9a5ba7dde9a173634cbd30203433b13298029b3d",
+        "7c90cabba72200333dda496db98f6aef80a902a339a36cdf4a1ede186d6c10ec",
+        "7da3595a0ac64be785c424b62eb2b1572722adda36901daec0cf9238271bd873",
+        "8287db9ffe2b562f93f11f43c089d848a28d60ee25f126c7637d16e62cd9b570",
+        "83967f1b02b43c4efeda302795722c809e0e81b8307de73558d10484d5676a7d",
+        "83f7932dd2a6dabcba0457449ea7fbd76630800aaf4664d34a3c231f3f3cd4cf",
+        "84d80fec7792949e9f8722361c45660e669b8965a400179a0464e78b0a583d33",
+        "8942a6b47a3a684871674d193ed985c7fba256fbe4f3a807ee01690c0bb71171",
+        "89a828b06a91cda0dc9056828a1a014a55efe3ac41269551279c301ecffb1b90",
+        "8f806ae947272c2f6368ea1774c86b2a5bfa2a14d07bb2d2fdea25af45be067c",
+        "9223c0e7abf4b0aa6086cd66c60213efcec0691510dc2cd85fbbe59d4a7bad39",
+        "94a8ca2281515e1021b7fd2715a7bc7a7ffe0a442c9c54f537434b82b7c13400",
+        "94ffeed5e827ee9b6dc20d6bd7435946ee688720aa2630a260fb8859fd20b4a1",
+        "9596a8df31670a498167b1bbfc858ef6c2c3e9eef06927d07be90a9b8f7480b3",
+        "98a92af1bdb8eb2d4aea6ed1b7f8ff3f4879a86e96ffd59f04134af60a439f46",
+        "99992cbed15c44a253a779372ee8dfab7a2bac352072e4c4f84deb01b8b3ead3",
+        "9a91081d2235dab1ffcd81d75e0d719180a8839d6c5462826193cd5a2e695553",
+        "9c4f87a58522324e1cf7a5b53d15e4ca609ec143922dadb4424cf1b739773d33",
+        "9deab38a9711203873678c8006c2ad174a1f3eeebba5fb52839598ace0798922",
+        "9e76f7a08619d6f601282785106c0c6c843c667935e9cc85122b862906fc2486",
+        "a0cb35fde465c3880784c1f908e698077d16fc64c7cbf019fde48015c6bda1d4",
+        "a18b9c8d0c590d502728d280eac94a3ae9a3c9060df9035a0c752965004deb56",
+        "a30cb7d276208cff1b48f9b1d021b1859473d8eaaaded9104ffacb5238d98d65",
+        "a558830e439397928096f07551fd19e8ec0f73be34b480387e1b131351ea1883",
+        "a67c249b7d32aefe3686074f8bf3d1a5eb5713f6e294536136b8d670f262f82a",
+        "aa1c34f37d2b6bd4a791a2fd2a3d25c487a9f509ddaf54f203ffec9660e76b56",
+        "ac0a0358cc35763e130ba779a79d3cb416e48b2b2d8008346d7cbfa439fd1257",
+        "acf01eca40c49e94496805eea2478fdcdf56c0c383550f97a31ae10b5b5cd598",
+        "ad8f64dc599c9a882c46ed1d70a5866cffc8ccee2bd7bf6a6f7217a4796b8ad7",
+        "af17eb61352487f693f832131db5d0034ac0ba88631775663d4b04fe3fc1d249",
+        "b37221da77fc0d32a64c299bb611a7be2097282dc3c6705053c13ecf9cd34bc5",
+        "b4e8659bb8f2607c8d345818ceaf237f0c841fd64b05cd373707e6cb5236a730",
+        "b56d00d51d2315855e884ed27c31ebf5ae480cd23d96de2c6cc7757316e6ab28",
+        "ba891d1d38ad05c7f1b381552c48ae50b0341e06d5cc320786b1e0bb778bb814",
+        "bbe0cd0b4d8934763d7de18a8926291c4981962fce2ff01fb71bed4ecc99b698",
+        "bd9ebcdb5105088aeb5b60df8d6ce3b939edb132e45b8c3744581b8214469b9d",
+        "c0b1f9a7a86a860653ee94e97b2e02868a66b543208217ee0c06e1f7193e96e4",
+        "c0e56335e390899dbfe9cf3e3fad104d97c90da9324cb8683c4335a328bbdd96",
+        "c14479a248ce5ec59977fc9f5a5ff88af1bf01aa83ad9a9d1099f9b839922c17",
+        "c28165a4732021e21b4dc5b5bf206c0aceb6efa47d2c1e2a96d8eabf3f655bd9",
+        "c3d6d9063dc8a43fc9bf3fb868fd467c89c04d0ed8d6d933ea2ed4ae999dd592",
+        "c3ff6fd9da1314ccd38c5835f9b676691d15135a64f7f541f1c92d2bbb843879",
+        "c810e76f2125db71bfbdd7e29ce902f37f5b2250c48c16d241bd46c70aed1a91",
+        "c986b7524557a80c36c40cea7d354fcb5d6d4725fa31757711eca1c1f9d2cc17",
+        "c9907e7edf5d9ff3d438cfc59751caaada91e3e9944d6dd9b1c247ee86adbfee",
+        "ca180f8068d3b31c27f46385c474f7fc0c75590bae5bbe816539a3a434198e71",
+        "cbf755a07fcd3310d01ee31eedccd07ba29c2bc340fa93899848044eb4de4e69",
+        "ccd2d10ec6c67c258732838831da9648db7429681791542cacb416f7cdd896b3",
+        "cdd2411fb3f1e96d0763dd9bd59adc1c8f4275cc50f430f3570ce69480ebc1f6",
+        "cf2ef3f556310a7c7c0b6211226e8a41182a064f1ee9aa5a47b2ab066f52fea6",
+        "d33bc91883282650e08c6cab9c213f55252bc7da09a2bc39a2106d286c566c70",
+        "d48884533fa69265d3a7d81e1dd681774bf9df29e437cb17598c283f2151030f",
+        "d7deb064a85dca0519f5a765a4696ca4be3634671c5c9e198b998a9b2506b030",
+        "d9ec7ed61240a9f16d4232c19192434450de3b6ee7fe36e5f6f370bda03979fd",
+        "da4bb8b23ccee2c04d61cc1a42b4d44a0dfc7ca7b6236df974d58fac87f53769",
+        "dc5ce506460eebe846497484bdca10bf60ce3b2e40b04ec56dd9e87eff0aa189",
+        "e067e754133116b75027beb0e43e0c57e87d60332254e1f2a66ae4baff48ae9c",
+        "e1531d3afb9a76e604036b208c4f5adeca9386fe7da6f333f80954bee81ef007",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "e50840a899f7d264018c0dd3d2c3f13616dc5016d4a25a84be244749ad8269e1",
+        "e7bd5d9278f3d86ccded91757c6676c1c9ac02fa6ef38bc34b6d8010d434bbbf",
+        "e87b60d205ae9737b6d7021507e0d23aa18a429116c9a2069201e7af08a1528f",
+        "eab1c67fa4ac66793c185494935cf964a5b1f8c6a74c2cc9cb68889e2f8f4cd9",
+        "ec324307361e12ec1da6599f540206eebb206c05a3af52031e01f802aaf9bac0",
+        "ec8c5ef5fc67520af276f616f82e8f9f63fc3c84115cd60896cc20d9826ba313",
+        "ed24e3233a87d8770ff27d38760b102cc72c8e68dfa1174c4849c042e3ab6f60",
+        "f1d4d1095a197f551a35dfaa09eacd80b7bceac6995ceacc3ce79042f8991a26",
+        "f34374ba34bd7f74f2bb69b6634ab618cd83ce590a4d349014a94060b77a81ee",
+        "f608c44e40749189d0dc08659bbbe2697a21c20824488dc21643cba31f287068",
+        "f615a221a09d3bf285d69e67cb0aef92056b8a27c0f27059b1357b040fda1ff8",
+        "f73869a943df25db61a4d8bd33f0fc035db1c4438dd5a4579d0c913f456ea0c9",
+        "f7db328f807f7b22b77f5e132f9ab853f64ec4fe58f3c3e5ead596baa6bbace2",
+        "fc6a890df097aea1c3f0c1fd3f95fa8687bc0188168f2d4fd4b32c0ca40b6290",
+        "feb076101029ca5ade79ae46b9f71c7bbd1cd580779dca53ee49c769294e6cc8"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/214491310a1e9189a111954e90388be6f6b8fec87676e957e694328e56a038a8",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "unknown",
+      "endpoints": [
+        "1.0.0.0",
+        "6.0.0.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "214491310a1e9189a111954e90388be6f6b8fec87676e957e694328e56a038a8",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "FD83C55A4DE17D34DFC4E6B49E892256.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 01:30:08",
+      "imphash": "1450c9beddf63875e8aaa9b4691fb1e5",
+      "local_campaign_candidates": [],
+      "md5": "fd83c55a4de17d34dfc4e6b49e892256",
+      "public_campaign_matches": [],
+      "sha256": "272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d",
+      "status": "unresolved",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1AC847C14FBE504F9E1778538CA728507EB727C9D07A0AADF23A489561F23AD09E3E711"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "08e30c6e952a8c10dac80d039e2a1cf4ee9f03dc850bdc3288088de92178649a",
+        "27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24",
+        "29d07a83eeb9bee6fc434dd732da18d5213fbb1ae5648f0cdc1af92f953c21c0",
+        "2c83923911535c51424bcf5fb8ffca137f88523a41ea744a0f635e4b87d1efbe",
+        "2e7595926258507411274d3ee643de2d494f558618d7a38b79396003a8573d9e",
+        "33c3090a28b691c4eb334ba2ae4f00f36672d9bdf1df75aa0452f005f0d92326",
+        "3b98f8ef7ba33a33335fdef06ed73e77d93c3754cf62eb0d56b42f289f52cd41",
+        "4dfec81ef607ec0b08b951d89b87f86da3789e464408776fee94edc7739fd84d",
+        "504acbf411cc8498bec77a3d1563073e4454a8807ea1d4dff1d0177464c6d17a",
+        "578d0cce561e2fec7a730ba44d92b1b64143ff464094a6445aa6ba57cd565f10",
+        "6daca4159011c6d65906d12c5273701e00ab7d12a455b49ee91a85c9c79f0568",
+        "8287db9ffe2b562f93f11f43c089d848a28d60ee25f126c7637d16e62cd9b570",
+        "83967f1b02b43c4efeda302795722c809e0e81b8307de73558d10484d5676a7d",
+        "8b35111f6649d2495a5ef4b60cdd69cacdc569e1b495f846f108cfece72669c0",
+        "9f3456a4cbd707e60672eeffa322fced0aec20a68ec5ed741834a824fc6c6bb9",
+        "a39390218262c7f123f08bec88e7b88769a3061719f0944d8fd97a067c317147",
+        "aa80a4837d8111f0159367edc7c05ab061c23cba2e93682f2892af99c05d03ae",
+        "b0e3be70bb10c18510625dd148b485f7775a87937fc693cb5dacd0f94e0ed688",
+        "c810e76f2125db71bfbdd7e29ce902f37f5b2250c48c16d241bd46c70aed1a91",
+        "dfdf391a99d54538cec100dc3f08f67319766fc65420da375b839a2ef7916cd1",
+        "e0805eff0522692930f1f33c564c59fe4de5941db41390da81a7674671db11f5",
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "f5241d2a7f1efc8925c98c02a5ce9068cc29eca9b85e75ea9074683ad004d41d"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "unknown",
+      "endpoints": [
+        "1.0.0.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0110616dfe870b8bcf25df8f6ce38ef5aac39e728ddaa3420ea199f5a7e80a16",
+        "02416bc542be82002b8b81adbbbcdcc8d098104020d09b571dc674b5bc19a177",
+        "0248fea0db36db65e8727ea26d6998c4fe0d76aa0498e78482ed6903e0061142",
+        "02ef289996fb69294cbd86f2235bac77fa7cc269396a8d4186a2610440134982",
+        "0383dc02fdf0b5d4612d8caaad13d594cac1609c8240b73dfd6ea5803f5e17ea",
+        "04113c8549185519f3202790ceb23df609644872b9c249a56d2bcf59566102c4",
+        "0439703e47c8fce1f367f9e36248a738db6abcd9f2dd199cb190d5e59ed46978",
+        "04b9235f64c9c846f8a767230714895da87c7ae2cd0105e9d14835ae46f0fed8",
+        "076221b4527ff13c3e1557abbbd48b0cb8e5f7d724c6b9171c6aadadb80561dd",
+        "0a5237d34312ddadaefb181fbfa23ee7a3bb5d93616232b885eb11b4fcf3ac97",
+        "0ab1f7f87b7c2afca57d394e4f4e262c82ba3209cb0a750cd66401fb33f21eca",
+        "0c8a48d125b27948646a83bb5584f103c0831d0efd5460d6c86301a9a7af8b3b",
+        "0ce24dcf9e6b7191a6362c69a3b0d28ac66a1fbf9a1d4a1f0493025c84bb65b7",
+        "0cf635940ba96c14c54b0c269fa727a02163915161978bd9b5d44bbfb22dfe03",
+        "0d038a2694ea18114213879a8d511d5216babd3cb26c28373eab8bd214df6d2c",
+        "0d0e717fa6a97d2cd2b581280de71738d91f055c167effd449e77f9688a20d64",
+        "0d10d132cd28b57fb88135d5693ba2c1aace2fc059d85bde0318fb9b379b57b7",
+        "0dbb92ecd5dfa7fc258bc6deed4cecf1b37f895457fd06976496926abdb317bb",
+        "0dd2878a9aad0d1a64848db4a1b4e3851fd5bf049c4ba5b726d114ff45fd947a",
+        "0e66192b248183324a6f3afc294e25299d096c5fbe9f99dc351613a1cf8d9d84",
+        "0e80a2e256d16e487bc847d1857ed7cd088f176254ba2a385d675338b836b0fc",
+        "11b1add1db058d3760f52512e0ca911af726d7c049f25178446b6bd33d4eecd2",
+        "13471eb84db95f8270398ef1deb29f0ea024db17e331497545c36eea7b2a3a7c",
+        "13950b911243e13269ef2487a00147c824e2223a7fb9103eb21f765c795be45e",
+        "147f86ff93d61fea256b3de9149e1b36b68a83762e62a3389466218e18359ffc",
+        "14c162a7c0dd68a9913ab0dcc87678d207c87888a2b657710e4db4bf83e0559d",
+        "1573af23a9ba27b2f3703a718749b776aea67e654c8c9713f92e41a67ae37c79",
+        "15bb60240ce4d79702343583388590d60e7069f8d145f8d32d9605faf6531f92",
+        "15d26608ae77959d928ed9431c71763b0f418abe62ebf93636d86b1eb6c97c7e",
+        "16ba05a1fa928501ffaee2e9dce449d28e8fe538df5ec6d8d1080b610b15d466",
+        "16e7efd6c19b2e3e516ae1bc7b3175d0e22f1ad357701f229e353da348eee182",
+        "18032d190d0d599823e59c8dd8b588909bef8888b8bf304723a138b61f1b911f",
+        "18a610b8bad43cf784cde4d4902a238f2281c2a677daae790cab55f6da915979",
+        "1935405eaede5c985cdb60a81175817ece52f132e3fa356b6a6db753bbf45207",
+        "19766a20b62b038abc3e863f2d6e7b55fabee4d9cbcad3eb1d7bd3ebfe8d023a",
+        "19c5ad815e72377f1c07b187b53b2576c355f317eb7e3131554403c951d8d125",
+        "1ac26220d62c98a62129aa9d92d9011edf930d5ed49bcd3d209df4d204a4b2bf",
+        "1c5541b2ff83af5d5f2af0f4dad5022e7bbf568f77473525f488e80d21ba6e17",
+        "1c7bff6f16bb618648e699b723aeafe511515cd6aad699c25faae2a507e22811",
+        "1ce872ed466a8a3466c808a7babf3b597ec12e1cb84870e7a0cf00b2f5ef6df4",
+        "1d3ef8698281e7cf7371d1554afef5872b39f96c26da772210a33da041ba1183",
+        "1eefda6b4e5f2c4a41bf5df92531a3a04ea1aa8558a0cbbf81ba66bd53d36276",
+        "1f5c1abe1b2720680170388569354d8cda9d558b53aff7caf175ce0f7e3733e5",
+        "1ff0d9ceff0f982b7a78ef34c45980b88099067f4468f11fcdd46dbac00f6dd6",
+        "203220aa74c5bdd95532de5dcd92fcb983b20bd1b159565eadbe84d45fc62180",
+        "21493f7f615a099e795f7fae7ecce6082414d1d427790bdf4b103623a3ab34eb",
+        "21d9b05a5c703f6754b8fbd6e3d0d58fc6dd31215d1118af64d4305f7d92d585",
+        "22108e32e0b6e42f5f52a4cb17b9b6fa3dfd547ecd9eef9c67226dbec54d23e5",
+        "222bd77c5692c2961e8c3638f6511d6f7cbeb9e0977e2d5c3bca6739a5311f37",
+        "224f526871c961615de17b5d7f7bbef2f3a799055cab2c8e3447b43c10c25372",
+        "22baf9931392560138103f9a364f86c1d3b54499efc77fa47ce0cd5ccf43eeec",
+        "23b91c7e6e84ab983cc6e18de4d60a06169a26eda82fc01ae297dd014214a023",
+        "23d618a0293c78ce00f7c6e6dd8b8923621da7dd1f63a070163ef4c0ec3033d6",
+        "24daa1faee0478ba58febe8ee789eb88be0a14d350b57ad8b10690c55976b2e1",
+        "25d1cc5be93c7a0b58855ad1f4c9df3cfb9ec87e5dc13db85b147b1951ac6fa8",
+        "260c6250ef9b57dca99b4cecc533f9a34857b5a32b5351202f776163841200aa",
+        "2670801ef9b72db084161f1cbd04196511ca60a83c2d706e6b7ae0ecef68677f",
+        "27078ba4e79087a5c1146f35da386ce043a3c2bbcaed04bd82645eddb6ed896d",
+        "2805a18724a24034ad6acb315dac516e479cecc5f3753204052657e560932d5d",
+        "283d29b0c3fa0818e986cd5327e5eb3a0a371e9be7b32c6fac66d5086f1948bf",
+        "2872dc78fbaf449769ca0fa84a0016ccfa5863378f4bc991a43657096fed80fd",
+        "289ea86da94de73f0f0de4812caf7eda170ee612c72a713b3036b2669813d15a",
+        "28b165cddb82a2507114394ae398995ef8a50c549214f8678aa66054f6927754",
+        "28dd68501f527be6bc54f5f374bc33be983ea7ac640e66e3a56272cd3b9a5655",
+        "295af2142d9214f3fd84eafe4778dca119be7e0229f14b6ba8d5269c2f1e2e78",
+        "2a322178557c88cc3c608101e8fc84bfd2f8fa9b81483a443bb3d09779de218d",
+        "2acc3fa395bbb93b04c7b40eddf9ee6df78ca4933ee875f72817522e9203d1cc",
+        "2acec651684e11db1c82229d4fb948a50d80a8d1adaefaecd2d43a9b9936a116",
+        "2bfa6e0eac834a189f642f3abc009899386f0511dd2edf99a37cde0a6f62f079",
+        "2cd3a2d4053954db1196e2526545c36dfc138c6de9b81f6264632f3132843c77",
+        "2e0cc1e150d44c19a28246ad632d71efeae39ce1a71ff32be4707b2fb8303360",
+        "2e2d28a0802d8c8c08c0d422f48733ad8bf1dfae75f5682a4a3df8898e7e819f",
+        "2ff400c5bbfd7d08b393eccdc9e0065b525f7fe5ff790b17779d3892bb1de66d",
+        "30a49d16436e3a05569c99a0c2d21755c2fa323c5b925f9f21c10287cc97d9c9",
+        "30c6c3dd3cc7fcea6e6081ce821adc7b2888542dae30bf00e881c0a105eb4d11",
+        "33148f5743966b05c3d0e95213f11762ae4f0baea0c7f7d0cbe8888a2304ea15",
+        "3468e0c875db94a8f45d56ab76bbcc677b942ca51a23649ba3c5ad1b20e391f1",
+        "349c7fbe9ae2b78c2f90239bddfcea5b16a0faac1fe83553a816c50c3e9089b1",
+        "34a9425f58edb250e7fbd9217d73a5ad96d1986aca3520afe8cadb66e32e3f33",
+        "3501db24694903294c1a5d4a1cc4e9f77b735a2d5f0165340035253da17e3ea2",
+        "36c42192283f129ff5637a06b7c3d72e5ed8e1c77493623384f2bdac15118f29",
+        "36f26bec849f3dcfa9585787a3287e3474a3f0d150e21c72ec5d1b868f4dd952",
+        "37768488e8ef45729bc7d9a2677633c6450042975bb96516e186da6cb9cd0dcf",
+        "383a1f9dac655c6805c24d4a03bc5fbeb9abd1536de5510f5756259eefcb4871",
+        "3902aff11857535698367d4db2dfccde6168429defac82c15a535b4a07f7cdda",
+        "3a57a073dc468534de7994c09d6848047a71cbe50a96ae2728c96e695f86857c",
+        "3aa0eb4c47ac94b911f1a440324d26eee8ddf99557a718f0905bfee3cf56255f",
+        "3ad2dc318056d0a2024af1804ea741146cfc18cc404649a44610cbf8b2056cf2",
+        "3c8630acb43c12a6a317227ff2922056ecd991fe945464fdf7ea81f1293a479f",
+        "3d2551d6458b84566025fddfe5dad479cab5785428efd6814860d36ad1811c9a",
+        "3d2ed8e186f124f988ebdb45d0354185b424357be2433bba0033ab9ec31bd25b",
+        "3d9ebc81b1bd3234666c8ce403a5f17a726867c68ffa5de4ec8ee92599335658",
+        "3ee95515e0b8455fdc8cd64ed9a09fd6bd57b3197917e3e0a2379b22cc4d4a68",
+        "3ef6fe0493b419d5fe1a55c7961acc8157ff04f525fc64443e4192a140d116a9",
+        "3f977b1e310b906705c8f4921f6a7fb5012bacb3223407004f826002fac253f4",
+        "40d8bc312ac7bca072703e5f0852228cde418f89ba9ad69551aa7a80a2b30316",
+        "42c235914844ce5d1bb64002fca34a776ae25ee658fc2b7b9da3291e5def7d4d",
+        "4360154b86d0e3a6b3c82bba3684a2a01f1b5d7864a97f7ac1a9ffcd63408c65",
+        "448bcd63ee9f7184e85573870e81ced680d0df76b3bc2d6b48689b3202ae0d6b",
+        "4498d8d1a0549717852507993b7c0350d1da408d22943ed8244d16441abfaf99",
+        "463b487d5c30b1adc2694be635ad35f373fd5c2bb2b7d7671b96845af4a74c00",
+        "46451e1168dd11d450aa9b6119f17cec9a70928a40ac3c752abf61ce809cba6f",
+        "4716865124f59a8c2de8dc30cc77af2d4b9768d532629c738ffadb456ae68b4d",
+        "4a2438ecfcad3e6e7bb942acf2c40fbe2c0d72e4982df303ab5828af26ca753e",
+        "4aace8c8a330ae8429cd8cc1b6804076d3a9ffd633470f91fd36bdd25bb57876",
+        "4b2dc152f33cd7d88beba8696a57cd0383f05c50d2fb63672664717766762a1d",
+        "4b46580a04cbbc04ea81d93aa0bb84e6b6e86a34f92437d2f325e317a60e0af8",
+        "4babe8db54f6805fa977b09d0bb51dded2205863133206edfef94bbd14510cdc",
+        "4d97e8481b9a27042bb903245625735d82ff627c66797de619303c1e705d0d6a",
+        "4dc8d588ec63641c28422d648e8de5e2c030eb7afec2071a99dd3bd9a204557f",
+        "4dcbb2ad197d893355efa004257e048f2c850feb1078158f4baab0f7b53ac45f",
+        "4eab12a6cf861372346e23c7b9d76e2f6f3bdd614597b4adbdff22e7d789f184",
+        "4f6a14e4ba2a2b26b8b8433d5f82f75a96af5a4f036d9447373b07271493917b",
+        "4f81ffd0dc7204db75afc35ea4291769b07c440592f28894260eea76626a23c6",
+        "504795dcf81caa6c0bf8e9c1da9c1b401b84cd59b58d280eb7e03064acddbae7",
+        "505d2bde0d4d7cd3900a9c795cb84ab9c05208d6e5132749ab7c554ccd3c0fcc",
+        "50ad612d4cf6113de26b2870da099c4817f59e64a2da98f05803b4a2e2304919",
+        "51862322ae3354f254045545b4ff64b7445bc99107b4526c3430de9ce5c60d88",
+        "51c305fa9dfcef5386021cdddbcbabaa450395056ab53071d1f89ee504989673",
+        "529943c0cdf24f57e94bf03fac5f40b94a638625027a02df79e1e8cb5d9bc696",
+        "53c95fa5740730294805c5a54639aa67d481c57c14c025bbf60c21a1ea007a0f",
+        "556b7c8c9d33dfe714f0030460d783511fa42662e1ba500ebcab403eac1c4296",
+        "556dc81ceda593f828ec08ecf408b92686cf0cf14df4f04da3c9c83f80cce474",
+        "557858e44a51a74646ad07a85cba56af1da13ad26ac2f74ee5d8c3e8a171c221",
+        "55a30d92d163cf1807bea6dc13b4c13e70aebbb034dc77eaef4f4394730dcd8e",
+        "566775f5502c3c1fa70acade145293df5d02c1a9f031820d429605e9b4584b44",
+        "568d7f8551d8b4199db3359d5145bc4cb01d6d2f1347547f47967eb06a45c3b5",
+        "56bd0c02c734abf4d7fd1ef2e8b6a9e4bf5e4bab4e606cd1023d63b02852fa61",
+        "56e0bdf91edb21f5f5041f052723025c059a11360bb745f965a9903de9c61756",
+        "575e26a455892f1fd77b730e6928f70b760e76094afe5bcb677d854daf869ac5",
+        "5890635bed2ac21e8b82cac56d40e248d1932de7e786dd2fb31eb87a1a98d6d2",
+        "59f11b6e86a668ac8c6b63b21445ad30fcc27fcfcb4d3f88abf80cc9d448836f",
+        "5b3c7b89245b8381de0384a8b4b9010544d116a747c0fdc2754609942896d5bd",
+        "5c84dd40d67c0e59906511d2b09da8e28c454b5979eb5fde74213f9d4bdbc564",
+        "5caa6ad174f10764946ae1bfa94108e1966e78c53b88933b7a4ca59499530de2",
+        "5e21c85034311c51d8b0367a773d475af2392b3ddcd90676c61697c6b5fd2e6a",
+        "5e61d755616cb10524f5f31e9b70c65a7fff8e30e25ce711ac8b354d657ab479",
+        "5eaa2e82a26b0b302280d08f54dc9da25165dd0e286be52440a271285d63f695",
+        "5f560e1dd529bb2529d7052e04008449f58d0439c2bb43437d7b5d39f84f949f",
+        "5f8a73955c99ad3b370bec13fc037a80260e4b25dadf2607e642c20b0fbd0057",
+        "62dce4679e33c079e11f41b096bc803b30b1d963a1ea79efa84187cebbc06afe",
+        "63aaf632ee7f3bc852c4d71c742cf1d26f18f784f6c89113e056b2599ba8f514",
+        "63d50dbe094bbce5d7bf8af08c0d919cfa5e057ca05ae7b27704a8477c8b348f",
+        "63eab38ee9f4dcd686c8e6a4f01e1e2a9bb91e52b20ab4dde0c28061e9261860",
+        "646d3b52a4898078f46534727bdb06ff23b72523441458b9f49ecc315bf3ef5c",
+        "6501894e68a3871962731282a2e70614023ec3f63f600f933ec1785400716ce1",
+        "6560e672d23411e58cb5aeec7b800dc64ec2a19a4961b4c0c4c06c1d1eade9cd",
+        "657672be6ea8a72fb4765074cfda019fb8fa4eacb3238a416c186f53919d7cf4",
+        "668338454e3abc5fba79ff0213673f5ea132d25f33b631f77dc8c3ff7db9ea37",
+        "684dc7547bd5490184bc76e7f4b80cf40869f817a12e964dfc502c3f3db07515",
+        "694f4c61b6bae0aefac07a1e861c12c03cb6002f30091e4c8b05bb9c8ccf0d3d",
+        "69b48ff8e6f40b84cdddb95bcdbb34e1184a2e29cb4ccc0fc9f1a2493648ee37",
+        "6afc8d9d1e54692418ae1f45a149afdaf67f60a62dd2ae03241e2b884f313e66",
+        "6cfebb59f0ba1b9f1e8d7aa6387f223a468eb2ff74a9ed3c3f4bb688c2b6455e",
+        "706d8c0f31879677e150516e822efa10560d5fc0e18ea36a8e5648670968dfbd",
+        "719ac73bb261e0a13574f5a198126ccf40352264958defb555280d005134c704",
+        "73ae3e895a149209a15621cab08e5023e41ca289194360a645e6ddf9aae05fc8",
+        "754607715d220a356fa036bb20dfa5622689d92b17a68089ecb508c9a2b8e478",
+        "75b8eae29ab9acc906aafac2a198fe875d34c22b40acace1cd6c3486d67333ef",
+        "764ae0f43626d79b2703af499b14d5dec2aeb0aca0ff86af028f2e93dd500754",
+        "77178b012a5f2fbb731f8eef86c824cc938775dac221b97424c1bdac5b908dd8",
+        "7720ee13405ea8a3c204703a181e67dc6d66835e9df263c09d04d8b48b41eb26",
+        "7744c9c84c28033bc3606f4dfce2adcd6f632e2be7827893c3e2257100f1cf9e",
+        "78eb5b4fee580e163d1bea1fdb7d371fdfcfd30acd8708ff62c4372aaa219f7c",
+        "78fc842f0812745715d594715152821e66c656c8e2e0ce5b88cced16a22e97c5",
+        "796640f54bdad0f8a77fdde41ef8d15bde06cc5e1d6920159ebd8ab06a0e4bc9",
+        "7a81d2a001b543b2a55c9affc845a5df7edab1fd308c6979bbd982b1b826b57c",
+        "7a9c5f0a8f41db0c51a396a7b2e8fb472062a475dbcf1423219ff9ad893a8258",
+        "7bf7ff35fbcbfc1cb57597acfb23d2fb13e04e14906f4a626e4e92d689f19cbc",
+        "7c25a74772e135257235640a0264ddc05235e14f3627896cfe735e9955155f83",
+        "7c3684358cbc877f7fb82c019d70a617224d9125f74be26c2f84ad71d52f72fd",
+        "7cfd372f0ff4e5237deafebaaa5a9f868778e9c06deb701fb43b2c30c7e03949",
+        "7fd619bbabe42d714fc0dfc6894baac0825e2ed3bce376ba0a29209b44c77503",
+        "8019efe9c63170a85ad8b5cddf1b1d29e2d12a4148af1e98b46a2d201d9caf64",
+        "804fb71704ecd856a290b40730cc774999cadcb1081e00558f86194cc614f3b2",
+        "80a229b2917fc3a5d941ff9745a6be0065028afdf9509300410d2721c71f1198",
+        "816ab58eefefaf2bf434d0207ac173da55f993b8aeef3e912a27be4556f1e9a1",
+        "81b6527ac2d18782ac24ae463c11dd1d70ab1bc89f626b7347a592229b371a1d",
+        "8270d1248950ee8aee5c2ac2e321df07e65c7a94004ae03c857deacd231a5542",
+        "828be96aef689969c1220523a589612d47801fa23d8faa1011de476b0e38e61f",
+        "82951c4b9e62db0b168305db6559fbe73fc58ae31990ef3db2f1f58c8d5f6363",
+        "83689c4ee7df7cf16e8ca7cd796ffe7b3a32c15baae0f9b074b092731cb7691a",
+        "8434510e84f5ade3453cfe086ed08260d309f761ed922bb8ff9ed436d8575d82",
+        "85546a616d5594b884146aa4e13cdbfe841c9d956e648c6ee4840e6f4428bdcd",
+        "85e03805f90f72257dd41bfdaa186237218bbb0ec410ad3b6576a88ea11dccb9",
+        "85e04bf12239ed095ce5ff772e342d3b31ebd13faea036ed448be85b0aae5bff",
+        "86ba0ba21daad93a03c2679fcf58ac0005a0768ed81f4074f293fe53c2534e79",
+        "86f1f12e47f260985b08bb966598123578eb5e48bef9bb086f04e16e9d53bb32",
+        "870ee1141cb61abfce44507e39bfdd734f2335e34d89ecfffb13838195a6b936",
+        "87197a28216d4798aa7b6ac0cfb64d1c166a354cda3c50dcdcbfb7f1628baac4",
+        "87f7f43626cac445a9cbacda4068c51c0b17b6af6e6b752ff613668c21e49412",
+        "88c4dd1f48b22285b65b1d5114a0a5ec1e636a04a6cf30fc6f489951b1781bd5",
+        "88d893bb5bad9a2fd13f507a4e98eb52eaa8eba2e25a287983c023e1a4273521",
+        "8957f0bcea6ab8a011a53ae62466505199f11a228f87f3809931d974f87078ce",
+        "896ab9cac41e3977792ba2034ea8730610c2779fa51bab6bed426094ea8d3ecd",
+        "89a82c4849c21dfe765052681e1fad02d2d7b13c8b5075880c52423dca72a912",
+        "8b8393db3da5d00535dd259ba2adfd1e76cd2fc2cbfaa170207cbad514b3895b",
+        "8bb9d52ba5c67f05c8f632deb1e7e98a909318b10e1388b47e919515fdd42cbf",
+        "8be4a2270f8b2bea40f33f79869fdcca34e07bb764e63b81ded49d90d2b720dd",
+        "8df2fed1b62c057d98cf9d1f27a7cc455d4922baeb7e0e59e78c6e1294b8fb34",
+        "90cfc73befd43fc3fd876e23dcc3f5ce6e9d21d396bbb346513302e2215db8c9",
+        "938da38561da54793944e95e94b6e11cf83aacd667487297d428fbce1c06dc9c",
+        "9487da37a92b40720ea2ad64ea0c9adc8b3c7bc4fe1f63a0e03e9c7a18943565",
+        "967dddbfe7f1ceb933b5875d65c59cdb835bb063f287a361e8b35dd814a9b14d",
+        "96dd4ca59c9b24f381d585defda8759a33760dacb1d8ae8db887ea727bf049c7",
+        "9753ae83536767c73e340c36c5f1610bc76a3e67e033b07503ec31431cba7b90",
+        "97a9f37f5701b19bb89503bf708b5b93a2426c176292d84778a63c3005afb460",
+        "984575c44cab17d46587af6cc8c22c409b79bec280fd771e6af93a0a0c20e5b0",
+        "9863a8ca0fd55fdf1de8d64cb89d034fc009a58220d45c5f4f83c6cdd0c5cbfd",
+        "9873644f2668960d66e19d0c62f7812b1b3f35c1f53e8cd61edbb1be311666b0",
+        "987b2c2cb1fd21c24e5572c9f9e367e9cd204d2c5d3805f7d2609442124d5b89",
+        "98f7e913f210c556f730ad8fceb2ceeb6c19bf1bf98b2d5ef3efe265a9af8202",
+        "99920ce34a01a0c07efd86d6e134bb401993515d001b7567a4116ad222993a63",
+        "9a4595dbb128e2d8f373b3ac45478e7131f4d181b50ec821ec8cb88bd46bd5b8",
+        "9a8ba725f8e953c933285065228a9409036f9137d03016b127ccea8a19452466",
+        "9c4ae61e0e8365762efe3d34c5595029f2c12e0079e6070720e2cef0882c84e5",
+        "9cb259680f3c4641d85d005ca42c73df458d2761e702f6f43201eeea21800a32",
+        "9cc0615a94b0a320f4b675eccbc3f7b8c279d9f692165afc6ce0c877f3981b08",
+        "9d4faea9892d4ecfabf61986687fc6cb30f5f51a6b62819b9571ff58e04c4dd5",
+        "9d5c0548de3c0f785a88fb1bdb220665f463dc9714d35b6285dcd79d6d72a9be",
+        "9dbce659a0ef6fd19709fe1d5b2a78be451daf28000274fcbc1cbe080ce71365",
+        "9dc115ac4aadd6a94d87c7a8a3f61803cc25a3d73501d7534867df6b0d8a0d39",
+        "9ff1764faa77874130072b8fab751c63f2d29a36f79af5e157fe2717bef847c4",
+        "a08c040912df2a3c823ade85d62239d56abaa8f788a2684fb9d33961922687c7",
+        "a0b5be9580bf6548f685d79e5439f6d946ef57e013d201f946b2a894e7441804",
+        "a0dd5cf895adb1ab7ed1e9046175ef0a22967b788c55185d553e92535d2237ae",
+        "a123485502527a230c9363cdd419c4056f350c9f3867fb309898a725bec801ad",
+        "a23d411b195f1788f5860ced4101e382fa16ce99a1750cba7474872ad03bddd1",
+        "a2d8fbc4887618f4232a43560b0e10419fc40e7024ac6a969f2b0ac3b46a502c",
+        "a5229c00dcc51e0ffbf5cc7d0300f3a482db13a4022171b154fe3d6bf9bb9b8d",
+        "a5552f115234df99cd9529b9c3ef15650bbad58d6b66715e5f5c57d4fd2baeb5",
+        "a6419bd03d2bcaaf398fd943693586b31a88ad90bc78f1da8336eff7f07050e4",
+        "a644be4c8560eba13b61790879b66bcc04203c88c6f22b4d981a267cd73381a3",
+        "a6eb72df410962b1d1f87533d872bbb64e2941f4269a36f17a19bab8a59cdb28",
+        "a7077ad10d957a5ef7563a5002352ac17c096ddf0dca9ad1d3a8a5ff6dbe48b7",
+        "a7c30420e7beb92d06bb9e755abb40b01212f7998499b5dbad8ed10280a5e0b4",
+        "a8550b9c7b6895c18e73b903064511b99982bd9928c7dcefaac14b592d201b73",
+        "aaabcc7216bed8f301313960aac3bc2cc71651e040d8a5df7c975cd258d0e21a",
+        "aabf55c6ce7fa22484703e62a8a01ec9e54aa1a1786e016bc85fee3e9bd051a4",
+        "abc2995469db6e34905f0c645efc48cf7d719211b3193020ccf1b2144afd9f63",
+        "acaff2f4f59b8799ebea67c999840ed2e49eff1997d95b4ec099f62fd5a5d053",
+        "accccfbe45d9f08ffeed9916e37b33e98c65be012cfff6e7fa7b67210ce1fefb",
+        "ad27b78407ef1b2eaa60baf3bd89dc2828af6a966a843c32787577396f4f5281",
+        "adb2f07af1211a47143ae73f90cb9ee72eb9b9aaac0bfc3ae0b15f94eda93d8e",
+        "b05241a6c234b2825f877cc5db2cf717f41051cf806d05ae32928bdc423e0a32",
+        "b31a83c8cc984c2a7ed9d7c9964f8ba302c1051bc478a3a34b98f4f873a6c011",
+        "b33d08149a756a401628d11bfddfeeaca1f03c0578395bb061dae44f8a12ce5d",
+        "b3da9268ac606fb39e7094e2203a5a30af2b681d98824ccecaee80462ca0f03a",
+        "b463f66bec02938c2e63e7142448f3a6b263a5b662ba08886de8777cc44ce9b0",
+        "b4d8e15adc235d0e858e39b5133e5d00a4baa8c94f4f39e3b5e791b0f9c0c806",
+        "b537313413f80105f143cc144feeae2ac93f44747727de309a71d57d2650034a",
+        "b56ffb65b842daae13f3020b0b04646db92f89801d2a2f89087d145a996d43f7",
+        "b5d20736f84f335ef4c918a5ba41c3a0d7189397c71b166ccc6c342427a94ece",
+        "b5f815d0a41add7fd9593036a8e6843fcc221298fefd61808f960eed3cc19830",
+        "b6ab523b804947f5ad7b59561650b9f5d54327e839328e0477d70be8cdeda2c1",
+        "b755d0b55a465d07c9dd3fc11822487d1e649b684aef91a4ce9b935b416a01b9",
+        "b7c13f8519340257ba6ae3129afce961f137e394dde3e4e41971b9f912355f5e",
+        "b84b93be455cc7d14ec0c88ce08dafac7b6aac2e549c969e7126eb48c31f8b1c",
+        "b86651162384248bfb167a49d440c2e580eb4f68a0680f22218fce6ed447f2df",
+        "b89448b9fd7be5ef215cac6d973a57c0e75e1fffa25552afe174855c9b71fdf9",
+        "bb087f73a88168851eacb2d538163d5253a9879bd1a0568717cb49e0009f5eca",
+        "bb5fda5f2d3aae5e0977ab28d8a8a00acfd63d73748aaac32daf4fc6645b6677",
+        "bc8adbe29614f53b2a15b402f9b0f2d21613569cd040ea09f1c3e081806ca86e",
+        "bdd0cca431ee362bed4f2c1eccafb22aa8dd51d57014be8297789175e5c11f2e",
+        "bde4850d39245f9758d1346bd67ac890eec25473b7a7171ad6e631a4c5fd4734",
+        "bf3345e75b46c848c184b5923b86d6c6b470cbbc0e44a83038396e47b37292b9",
+        "bf3fb84664f4097f1a8a9bc71a51dcf8cf1a905d4080a4d290da1730866e856f",
+        "bf49cab18723f91713fddd294d153446d901989da88f17689336d61153d0957f",
+        "bf97f67165231c2a42b95f11d80337b082e2b2be54351da44c8a10c06194b369",
+        "bfcd867f71c887429dfe008d7ec5d1853d15b3932d4ce8991694293477b5be37",
+        "c09b126e7d4c1e6efb3ffcda2358252ce37383572c78e56ca97497a7f7c793e4",
+        "c191a43029edd4eb8eee003356f1fe79aa45071c25433a7a3589590e9089eed9",
+        "c1bca1bb524c5ae3d877a099f469b6fc34288bab26ae7a7f4fc47cd869f4958d",
+        "c21b50e57748ba572ee8701fd1140e050aee78ee52d8803559d13a5798b393bc",
+        "c2250e9e51b44d8ab8c5b892592766925f6580ee00b95026621d0afb037c2707",
+        "c343f7bf08a4c97a90ba607a492c721533333173fa63f65f6e5de9ceee65fc16",
+        "c373ad37da6b79807cf31ac4845216dce53d663b6b1513160ca96792c5fde90d",
+        "c4d5f27d397b627a66b385a571f63b327f086b0c10eadd90ada70474097443c7",
+        "c7e91bd148ed22ee1ff8ebd3e58b199a30af90aa37499bcf8da34409672f2ed9",
+        "c81a57d0634c462a6cf49844059e9b170f650ccdf0789519ffd4ae7d28e2718d",
+        "c98a52bd017df01aea7b955e6f219537d391a62c2c2b976684da282f9cd7cacf",
+        "c9e2562f1a1b86acdb6957cf916aced9c4f8b71ebb16dfa0050252146205ad37",
+        "ca18383a2070518ae8c3e96cbd1705da283c8ada4ddf396217d2bcb7dcd03103",
+        "ca8e8ed4c8aec2788c120ad27e9c754d1ceb6365806f15b59f3671364aaef06a",
+        "cae99f910874288afbf810968d13b79d755cd4b2006609ec036ea4934181cba5",
+        "cb489e8172c8ed499bb67080a37016241cd4484117f5d34bcf4042f9c8116787",
+        "cb84351a73aafb06adc5071a5eb05c3ec0449c4dcde852648d3c24cc5a5b891b",
+        "cbe29672cd2b6a0ea97b55f3844fbede3e591996f39c3aa1f829f2fa50551fa9",
+        "cc62f3b867d50083c2932061f20662c698d2e1a741c4d2f9df1fd2d435e3ef3c",
+        "cd28daeda3c8731030e2077e6eccbb609e2098919b05ff310bef8dce1dce2d8d",
+        "cd7d24645e9e0156462a82f92abf5af5c81d93df0c6d275da01a242776db8457",
+        "ce74bdc6999d084a1b44b2ecea42dd28849b2825d7779effdc4c18360308b79b",
+        "ce7a06484f0abd5e1a5664b402036934deb49fc2de22eb5bd94d431070f3e2bb",
+        "cfaa2b4b7b030d85e51a0018932dc7948e38df24acf345a45a1617fcab9cd989",
+        "d067d9e40d4bc93df3d142e19cd3a92ebae865d245e7335020478929489d5c8f",
+        "d0d90152136a0acf340fb345098f2e5c718bb13f3b5a809d7be4d9948b8574d4",
+        "d144d92dfab0fc0769ca08a605702ba5a2b660f04f6fe30fc719dabf8ba34b9e",
+        "d15985e66516dca42e660d33220018c0e591aed3b2830cb235dcbb9ee249c3de",
+        "d1f0a867bc56cb4df9c009879f3a54f404be4856a505c3628331964fbbdc89c1",
+        "d2b59aa0ef41ac8c0d1a5a739dbc537918d03dcbeeabeabfe6cb8065f54608b1",
+        "d42d0f099f5d3025bc4cdba0c7ac887bd645afc031ecb4de0240572d1a88f3dd",
+        "d4f6a7d9f48e0cf050ec19aefc51a36d9f043374510252804bbd638c6ff3925f",
+        "d60378c5c744947bd95aa55c3728f70d091cf65805dd6d0ae194cef395b9e1e5",
+        "d67ebd49241041e6b6191703a90d89e68d4465adce02c595218b867df34581a3",
+        "d694fa46ab4cfebcb2632d094c7aa97278eef2f8052438621766d863ae98a931",
+        "d70eb06ed4f0c686dda93f35f065ec5e6249e5c737a24249738314c31f9d5202",
+        "d81f4a40b0cd8a28ea552d935ff8a7b86f70d746bd969ae9b3a783a5c8e6546f",
+        "d95aed234f932a1c48a2b1b0d98c60ca31f962310c03158e2884ab4ddd3ea1e0",
+        "da18d61bb6b7d35c56cb4f392fae0844cca73f72a043a08994beccb531ff3b77",
+        "daaabd07f1b94be19d72913360286e469f454886850afcc603506eaab03150e4",
+        "db1622a0b0013991d759c7955454a8006aa27f81a8b9b5c37cf2595b15b1b217",
+        "dd14d34164c9548bbcd02590dd174f78cc06e23d5ca6e8e12ff52d0d8861162c",
+        "de92b6292da9300744bc3bf5495fcced945b8df0cc24b788337a1a6a014e22ed",
+        "e1a87d7d01e2376dde81a16658915ccf2ecb692739fef09adfb962523756e22d",
+        "e1e27af7b07eeedf5ce71a9255f0422816a6fc5849a483c6714e1b472044fa9d",
+        "e1e3e19447e09a24d7647ef7ff09a8eb213267576a4f7af0b064da37be288ad3",
+        "e24c750aed3698a54875210095fe6ef14b01568bcb61ca3e17d1cf480962e10f",
+        "e3036362506d96c9c00ed6393a2afcacd9f2e71cd2a35c1d638a61e85d2fb040",
+        "e35483cd5094f3881459c87940ac1705162fde4df4a964492a32a8d9ccc6f4e7",
+        "e45063d54172b0e9724f963a9d83b93fbd5249d5863e99712b1b9c10a618ae64",
+        "e4774aead2793f440e0ced6c097048423d118e0b6ed238c6fe5b456acb07817f",
+        "e4a6acc09b909fa4da2a112b56bc33c5c96447dd38477d7cde69182118748ecb",
+        "e4a8ca1dcff3981191b677e63f932293565bd8a0fcca8a358b0afc7228803e43",
+        "e597d9dd3e6bcf2e591a99b290d79005b01d3898185af4f07250c95b88c1dd6f",
+        "e5aa47fde26972577adde47dc6fd5eb9f821356edae49e2e61fcd535eb67d8b2",
+        "e6026501ad4056ff2f1655b0afdfe8923bc6e8fbad67e1e9ef56e3002f49fbb9",
+        "e68e4476f49933fa19feb9c68a058e803c79b5c79b2287c2961fd06bdb29050e",
+        "e8cf07f1df6872aa097e280eb5ddf4d97ec31c8617c9c875d5540854d8db9780",
+        "e8d531f0aaa674f794b7f43ec76e4e32ad93f3c136020cf4b6e3433832f9c0df",
+        "e9a9d281c1a708aaae366f82fd6a1742f65da2918cc4fa5eaaaada0be24277d9",
+        "ebc3cbf9d85379ffe765219745cc24970fc25ed491bde400bbfa57955ca335e0",
+        "ebce8d619d3648aa8b7c6962871bae16d2178191a2a156e3c12dfb505d5bcc33",
+        "ec8d9df065c1c6b275d0de01e1ba2dcfbd2807158f732ca32ae8d4a0a4169e19",
+        "ed1297117c8dba2b3880246721af5b74c6ae16d745bea176adbeefc1ee75f2fb",
+        "ef13433f5ec5f1e0c51c704406c334f295ceb9a65fbe2f6fb43db04a656806ca",
+        "ef3c161252cf9fea624699aed7e3afbb0d91c1a14fbd3b6840905240329108a2",
+        "f0ece96c3bdc16088787c4552c6d0f39fccd95039d50badf0a03ed13fc0e9eb6",
+        "f145a9091435a7499fb3b15ee202c192b27484ffb2d61932bae01a849aa042c4",
+        "f1667bbda1b58fc688b422fd2f9f7040919c4ababe00a4be78b258cae2dfc3d3",
+        "f17ff442b77a6cfe9c118d2f8fae1ab6c814a0d4f35c5844996be84f3fcc8592",
+        "f247faf396123bd55078e63d9daa0ddc7d6d09e4b77aedbd5dd4bb709350c768",
+        "f2e74a3ec2dc753c9a48fa9a677775f949eb1e02fc1bb8bf38c39e8d2ab147eb",
+        "f393396cb12fb0977e50fbbfd5a0ba7e28b97fe93b68a91a6fcbbfbd24cea8bc",
+        "f3b14defbd05493b8573016b08b86e5b5d53b486b0457fd75f67bf8bff04be38",
+        "f432467c914fa6f44dc34da47deddf4039b4f9baa774fd54159bd8c8aaba13cb",
+        "f600acc811720183c639cebe5618baf9c8135b85b9cbdc0758bc9b2dcc6dd7a9",
+        "f81ba0dd987d46a67b1879ef4ee11c14f32940ff211eace347a68e42bf272554",
+        "f824c608638d8fc68d09f2987aeb6a0a86115d313ff73b2935869ad899784ec1",
+        "f852a3dcb9b45583cf2361f4024b16abe97a7c1da560bf593e50ee61a43a04d7",
+        "f94d23a8bcb8788e5a270299cf649f3a501d479c42164e82533b46d23d43e09e",
+        "f9feb277f86241f55425182a26decf50a210675d4f040ec542af3fb3dd287de6",
+        "fa0e762bc200eb893c8aa00e42fcb5698d8f5fd0aaa10903b1a43c23e19ba63a",
+        "fbfe6a6a9794db868b82d77f9a378226f68f8b99b660c943a406694ce9f9927b",
+        "fcc07f6b8ddb7c90915dbeaa2d959880bc52266dd49d7fab082f9da698f2bf0c",
+        "fcd55331cc1f0ff4fb44c9590a9fb8f891b161147a6947ce48b88bf708786c21",
+        "ff14c5f628b9a6798d173aefbba0a43d61e66f715108e2576ac0d3dfab9071d0"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/2e0cc1e150d44c19a28246ad632d71efeae39ce1a71ff32be4707b2fb8303360",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "KL-2026.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-18 19:24:46",
+      "imphash": "f4d1e4cd7416ef83f79f7c6a038875b3",
+      "local_campaign_candidates": [],
+      "md5": "aaed2057837383f973ea9f681c533da5",
+      "public_campaign_matches": [],
+      "sha256": "2e0cc1e150d44c19a28246ad632d71efeae39ce1a71ff32be4707b2fb8303360",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T146183305C6E3FD67FF08863E318A76EE8BEDD18688CA9902461F15F59175A4C12C327B"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-8e2d33ccc73e",
+          "confidence": "低",
+          "imphash": "8e2d33ccc73ed51abd14b6951ffbefa6",
+          "members": [
+            "310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b",
+            "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+          ],
+          "name_ja": "imphash完全一致コードcluster 8e2d33ccc73e"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "310fcb28fd0a6616bea7db2a16414117507e449e0d7c2.dll",
+      "file_type": "exe",
+      "first_seen": "2026-07-21 22:25:21",
+      "imphash": "8e2d33ccc73ed51abd14b6951ffbefa6",
+      "local_campaign_candidates": [],
+      "md5": "de7490e3bc31ad29ece7a3e275588d18",
+      "public_campaign_matches": [],
+      "sha256": "310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "dll",
+        "exe"
+      ],
+      "tlsh": "T15C348C15B7A50CBAEDB78539C9530906DA737C4247A0EADF03900AA6DF2F7E0963E711"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "qt_static_obfuscated_silverfox",
+      "endpoints": [
+        "18.167.91.239"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "32146526cbc3e98467c0e6fbb684f489015e59bed6a4dcff756f6f82d787c5ab",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "4064751d6ed35f47bb7ec33fe06c6403627a42d1dfd357677272aff4ee068617"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/4064751d6ed35f47bb7ec33fe06c6403627a42d1dfd357677272aff4ee068617",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "ព្រឹត្តិការណ៍ភ្ញាក់ផ្អើលរដូវក្តៅ.pdf.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-18 10:30:09",
+      "imphash": "e569e6f445d32ba23766ad67d1e3787f",
+      "local_campaign_candidates": [],
+      "md5": "1dc31890ca3f2bebd71342417ae3b663",
+      "public_campaign_matches": [],
+      "sha256": "4064751d6ed35f47bb7ec33fe06c6403627a42d1dfd357677272aff4ee068617",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T12B17333FF2ACA53EC46B0A324573862059B7B751B62B8C1E03F0454DDF6A4B02E3A756"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "2b59be2908ed8d97e353ad5da95fe2c827968fb5ff4effc618334758eb755a3b",
+        "322b2ad1a8ff2a6a34f7291ddd971592a18dd1a56f767ce0add1d26f22579ca9",
+        "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+        "5502edf2f366ef2fd67c2f0d85cb60cd30d4ca65c33aa52088ec2cd85c170f70",
+        "5cd5ed5ebdc7b09c4ab060594d65f2ebee804340c80d32de3cbc96491bc7b55e",
+        "5e32c21ac953d23d0ed94c6e3827da85da9ff4afcc31c91a74f61d409cd5d72d",
+        "63e1985a37d5993d170373bc28d067c13c1541ca2b63968b82e35eaacd927b49",
+        "7940f7fb120681cc7da7d980c3fac3ac08c75dbd9d5c16bd60a7999c1672b289",
+        "86e39b5995af0e042fcdaa85fe2aefd7c9ddc7ad65e6327bd5e7058bc3ab615f",
+        "87c42ca155473e4e71857d03497c8cbc28fa8ff7f2c8d72e8a1f39b71078f608",
+        "a2ac851f35066c2f13a7452b7a9a3fee05bfb42907ae77a6b85b212a2227fc36",
+        "bd6ebcf35aff1b8ca99f474d90bdb1841cd672eda91b2882defef369f18f3c4d",
+        "c2d0e285e2333a9c620be04a5747881af0d5615da32226886e659ff31a9761cc",
+        "c76269c61784e02a3c0bab64b7d7c758ff54631d4c94a32ff9830955c8215092",
+        "e437323bc53682230d87b93256b47a53512c28913998ca24402922c8c9bb08ee",
+        "e5d6e73a22f74251e62114df017cd71f362d57e633dc669b3e1517a309d3add7",
+        "ffebe1b65bb85ff45dde6fc8ac17ef467c77d708c5c7710e0a8eae7d6506ef8f"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-d3f487c6c23e",
+          "confidence": "低",
+          "imphash": "d3f487c6c23e9d9845b2eca3fbdd93dd",
+          "members": [
+            "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+            "eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370"
+          ],
+          "name_ja": "imphash完全一致コードcluster d3f487c6c23e"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "9C986D7E311CE1E8DB7BD65B8271A87D.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-19 22:00:16",
+      "imphash": "d3f487c6c23e9d9845b2eca3fbdd93dd",
+      "local_campaign_candidates": [],
+      "md5": "9c986d7e311ce1e8db7bd65b8271a87d",
+      "public_campaign_matches": [],
+      "sha256": "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1F4D77C0272A54A61FDA23B7186D81727EF3ABD3157B648973E0C2BF20F7A3154A27711"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [
+        "103.43.11.40",
+        "103.43.11.40:1443"
+      ],
+      "file_name": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c7.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 01:30:05",
+      "imphash": "b8bf08fa843a9ec1ce10d80fbf550c26",
+      "local_campaign_candidates": [],
+      "md5": "c9e798462943f33ef81ee2ef2406b83b",
+      "public_campaign_matches": [],
+      "sha256": "42420ed30965b2e8cd0abfe59103f9352cf9e8bb9a1c75d340bf13b2660abda5",
+      "status": "unresolved",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1E6B37B2172E0C072C097253199F9EBB24A7EF93103B854CBB7E8167A5F603C16A7539B"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-df663ae202ee",
+          "confidence": "低",
+          "imphash": "df663ae202ee069eb0afc7b268b8bcae",
+          "members": [
+            "4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
+            "f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1"
+          ],
+          "name_ja": "imphash完全一致コードcluster df663ae202ee"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "18.163.217.102_770.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-16 16:27:09",
+      "imphash": "df663ae202ee069eb0afc7b268b8bcae",
+      "local_campaign_candidates": [],
+      "md5": "0a198ca0a610873c021dc3586fdb636b",
+      "public_campaign_matches": [],
+      "sha256": "4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.bg[qtsc]",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1D30749FB30D4859DC19EC13EC2538F55E93F71BA0736C2E7629452A41E16AC42E7EA2C"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-b6b5d3b43e46",
+          "confidence": "低",
+          "imphash": "b6b5d3b43e46f9dd896a962322a5108b",
+          "members": [
+            "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+            "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62"
+          ],
+          "name_ja": "imphash完全一致コードcluster b6b5d3b43e46"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "2026.07.16裁员名单及补偿方案_SUET.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-16 16:29:11",
+      "imphash": "b6b5d3b43e46f9dd896a962322a5108b",
+      "local_campaign_candidates": [],
+      "md5": "3a85be4f475378e774b44aafd20102cd",
+      "public_campaign_matches": [],
+      "sha256": "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.bg[qtsc]",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1D446E7F720D692ACC40AC93B8353EF6A895F71360B36D4E3B198D2525D16DC43A7AE1C"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0cc652c64a9d77fdb1eabb5eddceb2c96d81b6de57f7a5ef38586499098ae6ff",
+        "322b2ad1a8ff2a6a34f7291ddd971592a18dd1a56f767ce0add1d26f22579ca9",
+        "5502edf2f366ef2fd67c2f0d85cb60cd30d4ca65c33aa52088ec2cd85c170f70",
+        "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+        "5cd5ed5ebdc7b09c4ab060594d65f2ebee804340c80d32de3cbc96491bc7b55e",
+        "5cdfea5438f2eba43d204a37fd77c97e341b84192e98796b9890a0d6c3c5a04d",
+        "5e32c21ac953d23d0ed94c6e3827da85da9ff4afcc31c91a74f61d409cd5d72d",
+        "607f964b5772ea20d544309e532cfcd90b476e02807652fe9b159416c6570955",
+        "63e1985a37d5993d170373bc28d067c13c1541ca2b63968b82e35eaacd927b49",
+        "7940f7fb120681cc7da7d980c3fac3ac08c75dbd9d5c16bd60a7999c1672b289",
+        "86e39b5995af0e042fcdaa85fe2aefd7c9ddc7ad65e6327bd5e7058bc3ab615f",
+        "87c42ca155473e4e71857d03497c8cbc28fa8ff7f2c8d72e8a1f39b71078f608",
+        "91e6278f9b1756baf0fe3a4f7f6a1897ed1c1811de51ae3934e0360327eeb9ea",
+        "a2ac851f35066c2f13a7452b7a9a3fee05bfb42907ae77a6b85b212a2227fc36",
+        "bd6ebcf35aff1b8ca99f474d90bdb1841cd672eda91b2882defef369f18f3c4d",
+        "c2d0e285e2333a9c620be04a5747881af0d5615da32226886e659ff31a9761cc",
+        "c76269c61784e02a3c0bab64b7d7c758ff54631d4c94a32ff9830955c8215092",
+        "e5d6e73a22f74251e62114df017cd71f362d57e633dc669b3e1517a309d3add7",
+        "ffebe1b65bb85ff45dde6fc8ac17ef467c77d708c5c7710e0a8eae7d6506ef8f"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "multi_pe_software_bundle",
+      "endpoints": [
+        "6.0.0.0",
+        "9.0.0.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "0cf868184788dbfcb484743d301996f5c31b70d6d87c998c5c3bbb85ddb11c8f",
+        "4127a42ebd59e145f873fa8b6ab54f0558f76e1dd45023af5470c0d42aba9720",
+        "5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19",
+        "830bc700ab043b4801bae79e7c4b076ea7ae9c0c6298d63f9ad06b3bd6007c75",
+        "c2972fba53e166eb94af5d086b6643fa60632f12bf976fcb25304ce0803d9231",
+        "d188594764cfa56c7a1382211f31a982dbda1b1e51792901a29af11f7f93a56e",
+        "fad8fb73d5c313098b2db1f06a373ab47688a45e3abf9f7375bd5104cbc3e203"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "installer_overlay_dropper",
+      "endpoints": [
+        "27.124.18.142",
+        "27.124.18.142:443",
+        "27.124.18.166",
+        "27.124.18.166:63016",
+        "27.124.18.166:63026"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "5bdcf2d4fd8a65c17237d4808e2b613deb0f54de1b90839f1f8e450d8b2acc19",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "021b0f3e9c53ad4b6d8061215f748a287c07bb2e3eb3062131da99101519dd32",
+        "5e486a8844c2438739e716277fba2e231af00b5b89c09cfc5ad127acf2525be2"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5e486a8844c2438739e716277fba2e231af00b5b89c09cfc5ad127acf2525be2",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "appinstall.88tt000.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 06:51:19",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "a792d630bf03668221f1ab1a072f2a9d",
+      "public_campaign_matches": [],
+      "sha256": "5e486a8844c2438739e716277fba2e231af00b5b89c09cfc5ad127acf2525be2",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T188A633EE78CE6BB1C04BC370948B9E2E7D053FD0B9664D0279D939306E70A5A72B5349"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "25aecd883f74921624a9b7c1698ee3af348a4c265c267c86c3f750b5ae7e00c1",
+        "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+        "7688bd06d5975346dec161a1f7cc2877b9d92b02082b9cd733c12f353b57b9c6",
+        "fe91d0703b11d8cbc1020612d2a9af22151c34e33bd0c2ae7e035674e9d033a2"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "msi_embedded_pe_delivery",
+      "endpoints": [
+        "4.0.5.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+        "834594d13279ffd55fe1dc2f1cfed060f2d3bcc3f133052363853a3ecd1ac714"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "upx_nrv2e_silverfox_http_bundle",
+      "endpoints": [
+        "43.198.235.91"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "41d304ea3a05c3e46ea0f64702bd86aca3ada876295628bc52c5306f087b25c5",
+        "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-e9d6723ad0e9",
+          "confidence": "低",
+          "imphash": "e9d6723ad0e9063b525f384eb48d5a19",
+          "members": [
+            "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+            "b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9"
+          ],
+          "name_ja": "imphash完全一致コードcluster e9d6723ad0e9"
+        }
+      ],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "026286f87e3719a78ade47685a01e31d.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 16:15:10",
+      "imphash": "e9d6723ad0e9063b525f384eb48d5a19",
+      "local_campaign_candidates": [],
+      "md5": "026286f87e3719a78ade47685a01e31d",
+      "public_campaign_matches": [],
+      "sha256": "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T12CB5E87BA5A183B8D38DB67EC163A744D433B1764732D0EB61B003668E1A4D19D3BB78"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "1982d5168c430ee373e6bcbd99322b844bdb5942f778bc9d4b141e7c27182105",
+        "81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "app_setup.6653006.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-13 02:41:50",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "1211dd54cb40ecaf4e850f52ee499757",
+      "public_campaign_matches": [],
+      "sha256": "81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T10766336BF8CA2871C01FC7B4915B3A3E75AA7FC24B948D13BBE5390C0D7612488B6759"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "29119bd222b90be0ac28b6c7be9f6970c65c2815929b7f4913cfb3d99850dbf3",
+        "4716529bf35dc258c0de1a297e249709360b0cf9b6e33d900f3cfeb64878be64",
+        "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+        "aac2bb5ee694ae0b777dc163c82251de0a442471fa57a975cd15bebe14f5a2b0",
+        "b3666d6b81b04f60a497574be8247f9d18807f80bf489d3a80f1b6290cedfabe",
+        "d4b6b539827e6c86ad3662dcf3117a3eabc9dd192e233e4f46d1c4eca23b38f6",
+        "e1ace08ba80415f15a1de4d9524b7ef8d4d637d2bd3b92f43ac9916f602a7fbb",
+        "edd9de146951e2220cbb8eaeb90561c22a8dcb47a4932690d93c62105c7551e7"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "resource_zip_pe_png_delivery",
+      "endpoints": [],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "255e4c5b81ddabc02455b7b4560e168b4064e63ec3721230201d1a7928c9f158",
+        "32fda28a442899190076b888be57aa09e29590549039f5e7ae8e1e158df0d531",
+        "39a99f1ee435835d6130ce147c477acc4882b2fb0c881ec89db9c930f4b18d11",
+        "4504dee573d0b4655da2362d89532fa30ddffbfb3e95575bfa0aac6684138553",
+        "61d4473cff983c93df36b127c87fa682de89b49858723a22b814483632559556",
+        "65773d8a11bb0e816722e7fbfaee27641ce09e3f7b9ebb9e5a9b61cc698f5a1e",
+        "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+        "b2586edb216bdb27ffbf5be5c091c94c62df8d87500ceacdc519e3016f7d7e2a"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "dll_sideload_vvas_bundle",
+      "endpoints": [
+        "127.0.0.1",
+        "2.0.0.2",
+        "202.95.8.27",
+        "202.95.8.27:6666",
+        "202.95.8.27:8888",
+        "255.255.255.255",
+        "6.0.0.0",
+        "8.70.60.000"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "909098efca77d6cc2a3b8aadca6fd233262a985040447f06a27acd168ed411f1",
+        "fbd598eec4a3fe1d08f72130c754412a2bd227ac3bc92525515b960e48d0a203"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/909098efca77d6cc2a3b8aadca6fd233262a985040447f06a27acd168ed411f1",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "appinstall.8835004.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-16 13:43:51",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "58d2ee6715655cc1a189e417c4275d99",
+      "public_campaign_matches": [],
+      "sha256": "909098efca77d6cc2a3b8aadca6fd233262a985040447f06a27acd168ed411f1",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T176A6339079CA77F2C083CBB16003A6AE713D7FD47E228E0A7A5936454D3271F997A346"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "2f0b16ed90b8c15bf52a7c32699dbe0dbcd38fc02ed2ddb4e1ba35487177b6c5",
+        "8cf65e0cef5b5de362c8ddcc77e82a6fdbbcad843939fcc11c47f80d3f45834a",
+        "942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0",
+        "9f8d02cd4740e66df054f0d55ec14299f909f6d6ece5e87ec8f0c148d154cb1e",
+        "ae0dbfa0a3fd33e9ba9faf9f78d34f8031918ffa1c483264f748f013b3685fd8",
+        "cbc0e52dca94ddbd62910b4dca5f709483c1bb14f7f9ffa837357b45f37d43ec"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "installer_overlay_dropper",
+      "endpoints": [
+        "1.0.0.0",
+        "150.158.50.175",
+        "150.158.50.175:443"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "942be7e0bd06baa6436f3d441f2fed1344093a5a4cf895f88f8a37cc2b05cfb0",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "93694473622f770d539263ae211dde4715264b0f23c858ba69796adca76cae35",
+        "94796cf6d4403856fcca825b4fb2e9efd2c2635d6ae43e62a6392c0153f5c944",
+        "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/94796cf6d4403856fcca825b4fb2e9efd2c2635d6ae43e62a6392c0153f5c944",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "unknown_or_nested_delivery",
+      "endpoints": [],
+      "file_name": "Notice from Tax Departmen.iso",
+      "file_type": "iso",
+      "first_seen": "2026-07-20 10:43:02",
+      "imphash": "none",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-tax-iso-nvml",
+          "classification": "local_campaign_candidate",
+          "confidence": "高",
+          "evidence_ja": [
+            "ISO親検体とNVML.DLL内包物のSHA-256親子関係",
+            "Notice from Tax Departmentを装うlure"
+          ],
+          "name_ja": "税務通知ISO・NVML side-loading chain"
+        }
+      ],
+      "md5": "2ddf81c2e31d91a7c486645c0b2ad10c",
+      "public_campaign_matches": [],
+      "sha256": "94796cf6d4403856fcca825b4fb2e9efd2c2635d6ae43e62a6392c0153f5c944",
+      "status": "local_campaign_candidate",
+      "tags": [
+        "ValleyRAT",
+        "iso"
+      ],
+      "tlsh": "T1A5459D41FB951CFAEC7A8438C9A35A16EB72B80503A0D3DB27984596DF273D05E3E391"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "8dfe6f7a489e96e3280ae168a8b1b09e4926b07a67979774fa305d546d564ad8",
+        "959001875232215e49463f8528c5786a741fda70e8b0fd95159ebdb0b41e140a",
+        "b9265b509f82dca729f9ff7515a154e64360b2d07bb364afadc01a02c7998c03"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/959001875232215e49463f8528c5786a741fda70e8b0fd95159ebdb0b41e140a",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "mumumnq2.4.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-20 12:28:42",
+      "imphash": "50da9c66b00fd68bbfb8d54a47418acd",
+      "local_campaign_candidates": [],
+      "md5": "2a3c992c2c3458c5da1006d1dccfe3c8",
+      "public_campaign_matches": [],
+      "sha256": "959001875232215e49463f8528c5786a741fda70e8b0fd95159ebdb0b41e140a",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T184C61286A2AC50F8D157C17CC8168A4BEBF2F8910B31C7DF01A9966F6F772A10D29357"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "73c24291396762207ee95662d283932b760781dad628a6020845c26eee250c7d",
+        "95908ecb36e0bf31d5a8e3c1b9fe40d8e81509f6a7a30d67c3728759c59bf35f"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/95908ecb36e0bf31d5a8e3c1b9fe40d8e81509f6a7a30d67c3728759c59bf35f",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "Chrorne4ccb-x64.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-16 16:29:49",
+      "imphash": "d221b1dc8c3a08622f6512e7876527c8",
+      "local_campaign_candidates": [],
+      "md5": "9cca84e6949a4bda44b3f8f4dec19b66",
+      "public_campaign_matches": [],
+      "sha256": "95908ecb36e0bf31d5a8e3c1b9fe40d8e81509f6a7a30d67c3728759c59bf35f",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1324733D245546E9BEF145A7C8187324D6830BE33B311A67B7B8AC682BC2310DF57BA71"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "7446156e74c098507ebe1f45afffa4c2119cfcb8eff953083af088d408a1df56",
+        "96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb",
+        "9974bdf3547a5c0759c7cd970b468deeeae7ba7f74ab343b55fd30cc431110c3",
+        "9ce37a3ccb9f13e28887f9b78eea8bc6d82f3cd6c09391c15631e1f0f805d1ed",
+        "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "yuanbao_sideload",
+      "endpoints": [],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-yuanbao-sideload",
+          "classification": "local_campaign_candidate",
+          "confidence": "高",
+          "evidence_ja": [
+            "レビュー済みの同一偽Yuanbao配布chain",
+            "7-Zip SFX、Inno Setup、保護DLL、PNG内暗号blobという固有構成"
+          ],
+          "name_ja": "偽Yuanbao side-loading chain"
+        }
+      ],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb",
+      "status": "local_campaign_candidate",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "98b9fa50195ad5cde30b07452f04850c2b9021567af4b1484cf09a195b1b2691"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/98b9fa50195ad5cde30b07452f04850c2b9021567af4b1484cf09a195b1b2691",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "sptsi_yo4o.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-17 06:52:24",
+      "imphash": "c89ff7990aba457ebaaf89ec77c1a99b",
+      "local_campaign_candidates": [],
+      "md5": "6283a64da1105a3871f09ccfed38982d",
+      "public_campaign_matches": [],
+      "sha256": "98b9fa50195ad5cde30b07452f04850c2b9021567af4b1484cf09a195b1b2691",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.sa",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T16B74F1075EF4380DDD130F7A98C99D6DE52AFA042AA2717E0B5FBE03462E4D099FA071"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+        "fdb731c629e52edfdbb888d6024a092d5d24a77bc3a6edac5e694cc7a5998fef"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "high_entropy_installer",
+      "endpoints": [
+        "1.0.0.0",
+        "7.0.0.3"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "84228f108b93c689c2df03b0aaf322f8dbef802a926b92f1b3cd7b67220aaabd",
+        "9af907bf12ea8508106e0bb99239dc71fa54cc6ac3a31440a9e04166a46283a5"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/9af907bf12ea8508106e0bb99239dc71fa54cc6ac3a31440a9e04166a46283a5",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "installer.8332566019.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-19 15:07:34",
+      "imphash": "none",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-msi-lzx-protected-pe",
+          "classification": "local_campaign_candidate",
+          "confidence": "中",
+          "evidence_ja": [
+            "レビュー済みの同一MSI・LZX CAB・高entropy保護PE構成",
+            "2026年7月19日から21日の近接した観測時期"
+          ],
+          "name_ja": "MSI・LZX CAB・保護PE配布cluster"
+        }
+      ],
+      "md5": "d9e46a18e22a6541b420c7237736454c",
+      "public_campaign_matches": [],
+      "sha256": "9af907bf12ea8508106e0bb99239dc71fa54cc6ac3a31440a9e04166a46283a5",
+      "status": "local_campaign_candidate",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T1DF96339178892B70C4CBCBB6A663986E7E493FC03A354C52BBD97B0019737215BB7346"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "40623d777a8879218a62e899a85157cc4c85dfbab0acb00367be42b3795571c3",
+        "4bb27a4b4ca34f3e5f288c86e64cf90bf2d9ab297da58776148a8f35cb02beca",
+        "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "high_entropy_direct_pe",
+      "endpoints": [
+        "8.4.8.9",
+        "9.3.3.2"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "287287743a950ecd6d65246e037530ef0caff53a458eebe9bdee3c89653c95f2",
+        "2937932859bc490f8a25fe5c229ec3366307124d5a0c4d95aee17e467963f86e",
+        "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+        "ac644c1221b451594ca25d4e6782b08e9a1af6b7ae604a6b0e38765ca59183b9",
+        "d4176a7576169678556a102ee06a56a62bfcc74ed90069e8ca0f8fd958ddc149"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "protected_pe_resource_delivery",
+      "endpoints": [],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "136bdce277b8c810656eccc0b0e4b47f0fde81e1d5aba86a475a08d96b7a22a9",
+        "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "app_setup.6653007.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-13 02:43:04",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "ce4907cacd3b212e5d05baa6f6a8ffec",
+      "public_campaign_matches": [],
+      "sha256": "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T11CA633DA9C871975E06BC77005A2322C702DBFD4AEB90D0E3DE53A0D9EB25106D776E8"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "7642cb37162857e082e7f058132cfa59eb7c38abeefffaf54dc58443defef0c0",
+        "8ed2418523f28980fa96374b537b9dcbfdfa342235663398510dbf304b662064",
+        "b1c0ca1f0b8c4852928c8263015177262f9c99ecc433cd90b8e33044f95b8a6d",
+        "ce34cc14e8d26119e1bf28a3a8368da6e10d13851004e2675976c5ad58b122e2"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b1c0ca1f0b8c4852928c8263015177262f9c99ecc433cd90b8e33044f95b8a6d",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "bxgajwy_jyabaop_6.5.9.8_x64.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 12:13:32",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "86ba88a0a9197cd034f453fdfc4cb175",
+      "public_campaign_matches": [],
+      "sha256": "b1c0ca1f0b8c4852928c8263015177262f9c99ecc433cd90b8e33044f95b8a6d",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T1EFF73331B27679D9E61FA3BFA4A85F8940307DE0731BDAAB63787FB145B054251B2803"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "04BF243799ACB592533811B6C84B7218.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-19 13:05:15",
+      "imphash": "88016fcdef7f227c62171d0afad9aae4",
+      "local_campaign_candidates": [],
+      "md5": "04bf243799acb592533811b6c84b7218",
+      "public_campaign_matches": [],
+      "sha256": "b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342",
+      "status": "unresolved",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T10E16023BF28BB53DE06A1A397A72D110943B7A21A5164C0696ECF48CCF255B11E3F787"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "77b47fa144b5ab998a0c3b5318a952ba6ce4a2add60677ed12d4c5d732f8353c",
+        "b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075",
+        "c90ab9203cc762840d97ad4c7d88bbd877cd69db8892ed5782eda003463e8810"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "direct_pe_confirmed_vvas_config",
+      "endpoints": [
+        "103.75.46.34",
+        "103.75.46.34:10801"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "031ed0378f819926d7b5b2c6c9367a0fb1cbae40e1a3959e2652fe30a47d52f2",
+        "033171062cd540ec84ce4998719d0dcae564aa69646d437dc4dc4cd8efd0f6fa",
+        "0416b1888148611c4716cbbe253c8f73f075e4f926c3cc4f93d38d230ef7b4a1",
+        "066c52ed8ebf63a33ab8290b7c58d0c13f79c14faa8bf12b1b41f643d3ebe281",
+        "088eb646e72f4eda81bf473c0c2d1f65f5bf192180b3286ddcf5356d8573388d",
+        "0cf50f580175ff489033069a49641df310ef7600ea56b2daa723d943ad91a3fd",
+        "0e22bc2bf7184dfdb55223a11439304a453fb3574e3c9034a6497af405c628ef",
+        "10e990bbbda70da62c668908d0dbb4c9b21ffe95f186795c3a5ae98b5d302881",
+        "135cc57f4bbc69c47464d4cf315ad7ba4852fd956d40dd86b6d3fba3373df28c",
+        "142293eba97824a4a6c2afbf498e1f62b279115e41b9d2aaed448c4c89a9ea91",
+        "14c256fc482a7a7aa1d9a1b97806791c1a5769fc5b2d3f158b8fda538b635e63",
+        "1c0fb7ddc05dc33a140ff79013a019e8460f61bf1416dfa49943ad872c5b1b31",
+        "20d9976e5632a48e9dcca2d30520cf1e3bcbfc659bb46a4ddd6a62d28f268455",
+        "27f13c4829994b214bb1a26eef474da67c521fd429536cb8421ba2f7c3e02b5f",
+        "2db48aeadbad252db448044685881099530edb892490c990f7b06d7a68fdad9c",
+        "2f45bcdae0f5887e9e14de5b8699a4dea30255a2d24c6e91674dd710f6084388",
+        "312c7e00e640ecafd9c07b806b08b56f15543ce6ed57f940ad24698d06a77fa5",
+        "31e63a4460de2ada47a202de736b98434c32b0ff622d423f0664abeac8056fd8",
+        "353a58f77f2b1f85dc5a439708f153f37d94d1cb7c3fc8f830c3e11599e62d4c",
+        "35e68bb5d077744d7c6f9856cc0c15483adae9de78937a4d25b8e007c17832d7",
+        "36d9bab35d1e4b50045bf902f5d42b6f865488c75f6e60fc00a6cd6f69034ab0",
+        "3a2277701558d8aa08ab68b359a976780601ee799aa6b61da7a53f8edf938136",
+        "3c081097dca98557b27c1949496cedc94f1b8f6a952d6b106e312e0239bc5b21",
+        "45791627ae8e67e6b616117cf21f04da381722faf08d07c0c25e0f28c9b8f82b",
+        "481ce0ecc14d6d01fdf335f7b3b452581adc9c010468e5bc86cba24a937da79a",
+        "4e64f4e40d8cbff082b37186c831af4b49e3131c62c00a0cf53e0a6e7e24ac2b",
+        "4fd2aca6fc09153e05ba1107dd76978343a8559644dd9e318db8880e2bd68f39",
+        "53489abd0e179aa737cbaac29efe1fafbc954dfda9357dde4886b7040321fded",
+        "557059c8c0488f9f9681a16ac5448ba8470321cf40e63526499c5151177d59a7",
+        "56f1e4c9b76e3f413b8155df5de38695a1ef479562493f20622e80d705ba2c50",
+        "60a2b5db15fcb903f6c1836bf674a663b7b365b21d5357728e7706ffbc0e206b",
+        "65049f2cc5a2e2246e8382ab9b635e9c462032ba1f5f100f73b4d8340b3d4cc3",
+        "66968abf3a2d6a90a581c132796d7b292faee5118454dd177cfcfa36b838c0d0",
+        "67608b80626966fec5354b0583f06b4a2829faf9184d9839daff929bec7403bd",
+        "796640f54bdad0f8a77fdde41ef8d15bde06cc5e1d6920159ebd8ab06a0e4bc9",
+        "7f0121322785c107bfdfe343e49f06c604c719baff849d07b6e099675d173961",
+        "84917f18743a8f8b66ef55069aad7fc6092edefb1c9b01f24b0a3455adeb8b6d",
+        "865b031b2c344b5558f7712e1424251631247c86a7d835ae263ad948016a35a0",
+        "8c78f07a65b6697ab374cd043edf581f8e7d5ad32c69a63e04f66b2a91bd6dde",
+        "8ebc92ac9ddf6b7757b28cde9357a8e8e045125fa150a3bfc65932854132e157",
+        "9d95aad9e7701e8e10f47ede721442c9969a2244c75e999478147b38714b9f97",
+        "ac27e1b3f7aa60e374df6c004c4e2df009d20b1c13daf390be74b0976eb0df5a",
+        "aceaed9eb2ff0bf2030708a1e3b9dce17ad7ade39f2cde99f9e607ba2c04dd77",
+        "ad6a5383ee057d3378a89d5ef7c9757da5568b27faa22a8a1b198990bce69546",
+        "af373fef7fb7dc2e6cb90f1343df77d949ae215ee522e6a1f667bda9e5b1aadd",
+        "b0950694eccd920eac5bdfd371e8cc57a3bd533c3831db4e9b8179e768a05dfa",
+        "b243474aab3f7f5e6407322eb56a680d22fa4319eaf2aeae720e9a9f8f3e8dca",
+        "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+        "b82327cbf824fdf633c20b13c19a91faa950f18c580675f2ab49f8cc7ba77fa4",
+        "b9d300c2bb43d077465f6d9d6c1503f3d8e31456c36d9835855059649481a6dc",
+        "bcccae1d91009180f4b87f7f3551ec2c13d40cbe01babcc0b037cd9ba36ed01d",
+        "be83c8592906fd9651634b0823a2f45abe96aae082674568944c639b5b4a95dc",
+        "bf21b2bc3e7253968405f3d244cdb1c136672a5bdb088b524a333264898a2d11",
+        "c269353d19d50e2688db102fef8226ca492db17133043d7eb5420ee8542d571c",
+        "c430994201737863780055840a0caf4eb6b9be2706f8b07de0ecf473a7fca354",
+        "d427f270879ab8a2f3dff4b17b2343d8fb7b7dfeeac4a11880d79e3360505329",
+        "dc5d768ca3f665f9c9540c4b855ba1527c43dc8a6311d07dadb30e7f3d03e877",
+        "e728f79439e07df1afbcf03e8788fa0b8b08cf459db31fc8568bc511bf799537",
+        "e779cf4882c3a67805149f1b74585aaec16385efd15599d0ebc8749bd053a6c3",
+        "ee1f25b74bc40c30ef3dac839257e6e75c3ef5e84e6c8b464f1984943132f166",
+        "ee42c70ed98ef30a312ba31a4e2c30d400bfba3419f6fd3409d1857d73f804a9",
+        "f192d3ec0ec36bdd0614a61851f73714db8d68900f891760ac30a33c2741d4dd",
+        "f8429073c7a83377ad754824b0b81040d68f8c1350a82ff4dccf8bc4bf31f177",
+        "f858747a92e6df6939c270eda54d6d6ea9bf5da3952e8c57d3ced96754aa72eb",
+        "f864e8640c98b65c6c1b9b66a850661e8397ed6e66b06f4424396275488af1be",
+        "ffb7a0c419c4e4f2f37f218545f54d3bd3146d3162bd04648a87250672a53b44"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "msi_embedded_cab_custom_actions",
+      "endpoints": [
+        "103.45.64.246",
+        "103.45.64.246:443",
+        "119.29.29.29:53",
+        "18.166.72.101",
+        "8.8.8.8:53"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "b433ecdf855beaaf91d57522eebe9c9e1c3fc756f711bd79ac1b3ecf6c75016c",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "41d304ea3a05c3e46ea0f64702bd86aca3ada876295628bc52c5306f087b25c5",
+        "b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-e9d6723ad0e9",
+          "confidence": "低",
+          "imphash": "e9d6723ad0e9063b525f384eb48d5a19",
+          "members": [
+            "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+            "b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9"
+          ],
+          "name_ja": "imphash完全一致コードcluster e9d6723ad0e9"
+        }
+      ],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "3fd8d0f57f5c8876caacd2a4fef86ba6.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-13 01:30:15",
+      "imphash": "e9d6723ad0e9063b525f384eb48d5a19",
+      "local_campaign_candidates": [],
+      "md5": "3fd8d0f57f5c8876caacd2a4fef86ba6",
+      "public_campaign_matches": [],
+      "sha256": "b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T112B5E87BA5A183B8D38DB67EC163A744D433B1764732D0EB61B003668E1A4D19D3BB78"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "a84b24dec320321dc3c55a18fa8015b21cd0728cc9a882687b6c2f8943202619",
+        "b7259736c0581f5e2f80ef11f692ca773a13ac75cb6cdbe14182638eb902f0ec"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b7259736c0581f5e2f80ef11f692ca773a13ac75cb6cdbe14182638eb902f0ec",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "2.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-17 06:48:59",
+      "imphash": "0fba73de092ecffc1c9d511645aea68f",
+      "local_campaign_candidates": [],
+      "md5": "4f378fad0a9fe5cfa7323a1d1226a812",
+      "public_campaign_matches": [],
+      "sha256": "b7259736c0581f5e2f80ef11f692ca773a13ac75cb6cdbe14182638eb902f0ec",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.bg[qtsc]",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1C3D63AFB61E5D2ADC01EC13AC2939F09D93FB0B90736C1E7529442A61E16CD46E7EE24"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "27417cdcd47f5b9c227dd64bb92d389d43bc84939e807db22bce0034792341df",
+        "7446156e74c098507ebe1f45afffa4c2119cfcb8eff953083af088d408a1df56",
+        "89c2df81726740e1e44043db600627ebb66120ef252a55392ae14ba2765c925c",
+        "9974bdf3547a5c0759c7cd970b468deeeae7ba7f74ab343b55fd30cc431110c3",
+        "9ce37a3ccb9f13e28887f9b78eea8bc6d82f3cd6c09391c15631e1f0f805d1ed",
+        "b4d741d580095f58d1b76af122f74385e1cf399ee1247f39deb1d7d4c7e0cb9c",
+        "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "yuanbao_sideload",
+      "endpoints": [],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-yuanbao-sideload",
+          "classification": "local_campaign_candidate",
+          "confidence": "高",
+          "evidence_ja": [
+            "レビュー済みの同一偽Yuanbao配布chain",
+            "7-Zip SFX、Inno Setup、保護DLL、PNG内暗号blobという固有構成"
+          ],
+          "name_ja": "偽Yuanbao side-loading chain"
+        }
+      ],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+      "status": "local_campaign_candidate",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "c5d87b2fd77b79c04e3cb70c08c383cad28eb8435ffd6a3eed1a9c391b6f83ca",
+        "e9e426b679b3efb233f03c696e997e2da3402f16a321e954b54454317fceb240",
+        "eef31e9195cfacde7b4e7eb7384c8178d8811063b375fd4a28ae897cc180c6a6"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c5d87b2fd77b79c04e3cb70c08c383cad28eb8435ffd6a3eed1a9c391b6f83ca",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "GoogleBrowser_Isyi10_v1.0.34356.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 12:17:36",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "0339c190d049e564aca4c1fd58763a09",
+      "public_campaign_matches": [],
+      "sha256": "c5d87b2fd77b79c04e3cb70c08c383cad28eb8435ffd6a3eed1a9c391b6f83ca",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T157283331B11764A4E11FB7BF9178AF8980317D92732BA59BB3787FB28571A8310B1943"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "24a737a19222d13fa36041db3b2bbcd4622d6ec81ad6b1ccdbb7a5301ae79db7",
+        "285b1442267a67ed919a2b158d1d9900327510c02da472cf8f253aae4a23d944",
+        "2e15823e8384eb7a15cb5daae61ebb031f3928bc511e74115d950afa98ef9572",
+        "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd",
+        "775037d6d7de214796f2f5850440257ae7f04952b73538da2b55db45f3b26e93",
+        "c756660569e43baaccf34dde82851fc4b0e4ca33de468afa147f19d164e3f5fa",
+        "df58faba241328b9645dcb5dec387ec5edd56e2d878384a4783f2c0a66f85897"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c756660569e43baaccf34dde82851fc4b0e4ca33de468afa147f19d164e3f5fa",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "573EA15E370DE7A533219C7697D2F5A7.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-22 12:40:12",
+      "imphash": "836688c7d21e39394af41ce9a8c2d728",
+      "local_campaign_candidates": [],
+      "md5": "573ea15e370de7a533219c7697d2f5a7",
+      "public_campaign_matches": [],
+      "sha256": "c756660569e43baaccf34dde82851fc4b0e4ca33de468afa147f19d164e3f5fa",
+      "status": "unresolved",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T158468C30764AC52BDA7E01B0292CDA9F556D7E720B7154D7B3DC2E6E1AB48C20732E27"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "c8f9bda04605b9771a96bf875b51ebb5a4797e9bcac8d3550039ca2a745316ba"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c8f9bda04605b9771a96bf875b51ebb5a4797e9bcac8d3550039ca2a745316ba",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "123456.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-17 06:50:35",
+      "imphash": "e91b68fe29b473e22c03a780dbcb6987",
+      "local_campaign_candidates": [],
+      "md5": "7f0dc039affc8c5358269aa7d44f1c7a",
+      "public_campaign_matches": [],
+      "sha256": "c8f9bda04605b9771a96bf875b51ebb5a4797e9bcac8d3550039ca2a745316ba",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.sa",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T100349E63B2E430EDE3B3863088BD921DE7F27872DE205B1E17D086255F535A64DADB21"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "263540c848347505671f444a551c087d94483d10a95672317b5bad99c5a4e184",
+        "49613656c33c2693b03f48609ae8e2d90d20e0a4040f8377f278742c43cf4aa0",
+        "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "single_pe_n520_managed",
+      "endpoints": [
+        "118.107.21.88",
+        "118.107.21.88:9000",
+        "118.107.21.88:9999"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "53c8991cdb7ac6faf10fa82b83e268023322e2ebcd43f87ab0bcec8320cb6b2a",
+        "d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "intall_app.66553003.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 20:21:44",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "0f0f8e2da620d16edcb7ce9fbd62cdb8",
+      "public_campaign_matches": [],
+      "sha256": "d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T1B48633C6BCC624FAD09BD7749683B26D702A3FCABC73CD4E729A7A540E716162072741"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-8e2d33ccc73e",
+          "confidence": "低",
+          "imphash": "8e2d33ccc73ed51abd14b6951ffbefa6",
+          "members": [
+            "310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b",
+            "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+          ],
+          "name_ja": "imphash完全一致コードcluster 8e2d33ccc73e"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "Notice%20from%20Tax%20Departmen.iso.dll",
+      "file_type": "exe",
+      "first_seen": "2026-07-20 10:55:24",
+      "imphash": "8e2d33ccc73ed51abd14b6951ffbefa6",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-tax-iso-nvml",
+          "classification": "local_campaign_candidate",
+          "confidence": "高",
+          "evidence_ja": [
+            "ISO親検体とNVML.DLL内包物のSHA-256親子関係",
+            "Notice from Tax Departmentを装うlure"
+          ],
+          "name_ja": "税務通知ISO・NVML side-loading chain"
+        }
+      ],
+      "md5": "3270606f7138f08b0c4e051d0a9ebc2b",
+      "public_campaign_matches": [],
+      "sha256": "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943",
+      "status": "local_campaign_candidate",
+      "tags": [
+        "RAT",
+        "ValleyRAT",
+        "dll",
+        "exe",
+        "signed"
+      ],
+      "tlsh": "T18A348D15B7A50CBAED778539C9530906EA737C4247A0EADF03904AA6CF2F7E0963E711"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305",
+        "e34b373f56a45075dcea25dd6d752244903ea84468e7f817c0e58cc8a2bc70ee"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "softinst.873360017.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-21 02:16:36",
+      "imphash": "none",
+      "local_campaign_candidates": [
+        {
+          "actor_status": "未帰属",
+          "campaign_id": "local-valleyrat-msi-lzx-protected-pe",
+          "classification": "local_campaign_candidate",
+          "confidence": "中",
+          "evidence_ja": [
+            "レビュー済みの同一MSI・LZX CAB・高entropy保護PE構成",
+            "2026年7月19日から21日の近接した観測時期"
+          ],
+          "name_ja": "MSI・LZX CAB・保護PE配布cluster"
+        }
+      ],
+      "md5": "41149b65e88f1807a83269dc1535f6ed",
+      "public_campaign_matches": [],
+      "sha256": "dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305",
+      "status": "local_campaign_candidate",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T18F8633E4BC8A2331C1ABD3B19646357DB02C7FE1BFA78C437AE03B281E726169075655"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "49a65fec8729f35c0df1a50f064a007a33ca22bcc409bea216d2fe5e0311dee7",
+        "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "inno_installer_silverfox_unresolved",
+      "endpoints": [
+        "51.79.18.52",
+        "51.79.18.52:443"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "dfacebad09d75d41ee5f477754815ae7e4afd926638d7b72a6a25338cd2479da"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/dfacebad09d75d41ee5f477754815ae7e4afd926638d7b72a6a25338cd2479da",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "Feishu_Setup.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-12 23:43:47",
+      "imphash": "48fe88e0492732b61e81e006305b27a1",
+      "local_campaign_candidates": [],
+      "md5": "26d7035a2330793f6d67f2b3c5429f95",
+      "public_campaign_matches": [],
+      "sha256": "dfacebad09d75d41ee5f477754815ae7e4afd926638d7b72a6a25338cd2479da",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1AC36BE96AEAD40D8D895D075C557491BE7B6BC242331838B317DFA5B6F333920E2E322"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "e6f4c46f2a72a4d8b1eda2c2c431c64d73eae7057221b35a6fc16138e4dc4d43"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e6f4c46f2a72a4d8b1eda2c2c431c64d73eae7057221b35a6fc16138e4dc4d43",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "DingTalkD_Setup2026.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-19 23:10:26",
+      "imphash": "40ab50289f7ef5fae60801f88d4541fc",
+      "local_campaign_candidates": [],
+      "md5": "0561a3921c93fe5913454241362e80e2",
+      "public_campaign_matches": [],
+      "sha256": "e6f4c46f2a72a4d8b1eda2c2c431c64d73eae7057221b35a6fc16138e4dc4d43",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1F7A73323B3C7A13FF45E0B3B16B3A16094FB9A11B512BD678AC440ECDE264541E7E61B"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "1ca0be9b74cd71af8744322c9ec1baf52fe9da6a0d8f154ff96713cdffca210e",
+        "e740c1e601f2ae8d43909fe24b43e4c01e2be700298ab75f6ef6460eb5d4509e"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e740c1e601f2ae8d43909fe24b43e4c01e2be700298ab75f6ef6460eb5d4509e",
+      "code_cluster_relations": [],
+      "collection": "malwarebazaar-priority-20260722-0050",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "intall_app.66553006.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-17 08:57:46",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "5aee90d119558f3c43c222ac86071f2b",
+      "public_campaign_matches": [],
+      "sha256": "e740c1e601f2ae8d43909fe24b43e4c01e2be700298ab75f6ef6460eb5d4509e",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T12B9633C4FC8A7F74D547D7B49052746EBC3A3FD4B9A29E0B7A84BA001D732254A7B248"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "13cf8adb78c0f855a0c4efb4bad2bb4ccafaf014dcc6ff5a3be0181588ace78a",
+        "ce6bfebf9b8e660784095df0c4cd4399568c78270f9113f59aea73e03795e8ec",
+        "eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "single_pe_direct",
+      "endpoints": [
+        "154.81.37.130",
+        "154.81.37.130:4444",
+        "154.81.37.130:5555"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "eab4918ea7581aececacc1ddf3d86812ea1d203dfae8ab635c66136348e3d534",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "870d2cbd9a50f2e4d89f776fd62696df014f820a27b290722f6d75ba70da4597",
+        "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+        "fdb731c629e52edfdbb888d6024a092d5d24a77bc3a6edac5e694cc7a5998fef"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "high_entropy_installer",
+      "endpoints": [
+        "6.0.0.0"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "322b2ad1a8ff2a6a34f7291ddd971592a18dd1a56f767ce0add1d26f22579ca9",
+        "5502edf2f366ef2fd67c2f0d85cb60cd30d4ca65c33aa52088ec2cd85c170f70",
+        "5cd5ed5ebdc7b09c4ab060594d65f2ebee804340c80d32de3cbc96491bc7b55e",
+        "5e32c21ac953d23d0ed94c6e3827da85da9ff4afcc31c91a74f61d409cd5d72d",
+        "63e1985a37d5993d170373bc28d067c13c1541ca2b63968b82e35eaacd927b49",
+        "7940f7fb120681cc7da7d980c3fac3ac08c75dbd9d5c16bd60a7999c1672b289",
+        "86e39b5995af0e042fcdaa85fe2aefd7c9ddc7ad65e6327bd5e7058bc3ab615f",
+        "87c42ca155473e4e71857d03497c8cbc28fa8ff7f2c8d72e8a1f39b71078f608",
+        "91e6278f9b1756baf0fe3a4f7f6a1897ed1c1811de51ae3934e0360327eeb9ea",
+        "a2ac851f35066c2f13a7452b7a9a3fee05bfb42907ae77a6b85b212a2227fc36",
+        "bd6ebcf35aff1b8ca99f474d90bdb1841cd672eda91b2882defef369f18f3c4d",
+        "c2d0e285e2333a9c620be04a5747881af0d5615da32226886e659ff31a9761cc",
+        "c76269c61784e02a3c0bab64b7d7c758ff54631d4c94a32ff9830955c8215092",
+        "e437323bc53682230d87b93256b47a53512c28913998ca24402922c8c9bb08ee",
+        "e5d6e73a22f74251e62114df017cd71f362d57e633dc669b3e1517a309d3add7",
+        "eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370",
+        "ffebe1b65bb85ff45dde6fc8ac17ef467c77d708c5c7710e0a8eae7d6506ef8f"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-d3f487c6c23e",
+          "confidence": "低",
+          "imphash": "d3f487c6c23e9d9845b2eca3fbdd93dd",
+          "members": [
+            "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+            "eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370"
+          ],
+          "name_ja": "imphash完全一致コードcluster d3f487c6c23e"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "DeepSeek_v4_win.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-16 16:30:35",
+      "imphash": "d3f487c6c23e9d9845b2eca3fbdd93dd",
+      "local_campaign_candidates": [],
+      "md5": "56ff460150b3ddeb5f1a01495ab44ee2",
+      "public_campaign_matches": [],
+      "sha256": "eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1B9E78D0172A54AA1FDA23B7186D81727EF3ABD3157B648973E0C2BF20F7A3154A27711"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "02698279d30b2d95f571ba613c80980a84574f3b334eafe0c8d2c0839be90e89",
+        "07ead27a736604b28876f4a0c940279983bd7076c2e1fed4039c4f0a81f3e0d5",
+        "cf35a9fac6ac926e102d041404b6a763a72cd52b5141d73dd6f0d2c5f3ede88d",
+        "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
+      "code_cluster_relations": [],
+      "collection": null,
+      "delivery_pattern": "cefclient_libcef_sideload_malspam",
+      "endpoints": [
+        "162.159.36.2",
+        "198.44.170.58"
+      ],
+      "file_name": null,
+      "file_type": null,
+      "first_seen": null,
+      "imphash": "",
+      "local_campaign_candidates": [],
+      "md5": "",
+      "public_campaign_matches": [],
+      "sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
+      "status": "unresolved",
+      "tags": [],
+      "tlsh": null
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1",
+      "code_cluster_relations": [
+        {
+          "campaign_id": "local-valleyrat-imphash-df663ae202ee",
+          "confidence": "低",
+          "imphash": "df663ae202ee069eb0afc7b268b8bcae",
+          "members": [
+            "4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
+            "f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1"
+          ],
+          "name_ja": "imphash完全一致コードcluster df663ae202ee"
+        }
+      ],
+      "collection": "malwarebazaar-priority-20260722-0100",
+      "delivery_pattern": "direct_pe_or_pe_loader",
+      "endpoints": [],
+      "file_name": "2026.07.17高温专项补贴申领指南.exe",
+      "file_type": "exe",
+      "first_seen": "2026-07-17 06:49:50",
+      "imphash": "df663ae202ee069eb0afc7b268b8bcae",
+      "local_campaign_candidates": [],
+      "md5": "0aee8c4a3d2dce923399b73a2e12cda0",
+      "public_campaign_matches": [],
+      "sha256": "f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1",
+      "status": "local_code_cluster_candidate",
+      "tags": [
+        "SilverFox",
+        "Trojan/SilverFox.bg[qtsc]",
+        "ValleyRAT",
+        "exe"
+      ],
+      "tlsh": "T1DA0749FB30D4859DC19EC13EC2538F55E93F71BA0736C2E7629452A41E16AC42E7EA2C"
+    },
+    {
+      "actor_assessment": {
+        "community_tags_not_used_for_attribution": [
+          "SilverFox"
+        ],
+        "status": "unresolved"
+      },
+      "artifact_sha256": [
+        "db720e674a25318cd09e35d8fae5b43faaa3acf9dfe04f5b6ea23d8c0c414779",
+        "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+      "code_cluster_relations": [],
+      "collection": "refresh-20260715",
+      "delivery_pattern": "macro_office_delivery",
+      "endpoints": [],
+      "file_name": "app_setup.6653002.msi",
+      "file_type": "msi",
+      "first_seen": "2026-07-14 02:18:12",
+      "imphash": "none",
+      "local_campaign_candidates": [],
+      "md5": "07c01de3b6ff6532cf58f7cab029d26f",
+      "public_campaign_matches": [],
+      "sha256": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+      "status": "unresolved",
+      "tags": [
+        "SilverFox",
+        "ValleyRAT",
+        "msi"
+      ],
+      "tlsh": "T1ED6633D178C529B1E083DB785822767EB1393FC37FAB4D053AA97A145EB331221B5386"
+    }
+  ],
+  "counts": {
+    "by_status": {
+      "local_campaign_candidate": 6,
+      "local_code_cluster_candidate": 9,
+      "unresolved": 53
+    },
+    "cases": 68,
+    "curated_local_clusters": 3,
+    "imphash_code_clusters": 5,
+    "public_campaign_exact_matches": 0
+  },
+  "curated_local_clusters": [
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-yuanbao-sideload",
+      "classification": "local_campaign_candidate",
+      "confidence": "高",
+      "evidence_ja": [
+        "レビュー済みの同一偽Yuanbao配布chain",
+        "7-Zip SFX、Inno Setup、保護DLL、PNG内暗号blobという固有構成"
+      ],
+      "members": [
+        "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+        "96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb"
+      ],
+      "name_ja": "偽Yuanbao side-loading chain"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-tax-iso-nvml",
+      "classification": "local_campaign_candidate",
+      "confidence": "高",
+      "evidence_ja": [
+        "ISO親検体とNVML.DLL内包物のSHA-256親子関係",
+        "Notice from Tax Departmentを装うlure"
+      ],
+      "members": [
+        "94796cf6d4403856fcca825b4fb2e9efd2c2635d6ae43e62a6392c0153f5c944",
+        "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+      ],
+      "name_ja": "税務通知ISO・NVML side-loading chain"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-msi-lzx-protected-pe",
+      "classification": "local_campaign_candidate",
+      "confidence": "中",
+      "evidence_ja": [
+        "レビュー済みの同一MSI・LZX CAB・高entropy保護PE構成",
+        "2026年7月19日から21日の近接した観測時期"
+      ],
+      "members": [
+        "dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305",
+        "9af907bf12ea8508106e0bb99239dc71fa54cc6ac3a31440a9e04166a46283a5"
+      ],
+      "name_ja": "MSI・LZX CAB・保護PE配布cluster"
+    }
+  ],
+  "family": "valleyrat",
+  "generated_at": "generated-deterministically",
+  "imphash_code_clusters": [
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-imphash-8e2d33ccc73e",
+      "classification": "local_code_cluster_candidate",
+      "confidence": "低",
+      "evidence_ja": [
+        "ルートPEのimphash完全一致: 8e2d33ccc73ed51abd14b6951ffbefa6",
+        "同一コード系統の補助証拠であり、同一配布campaignまたはactorの確定ではない"
+      ],
+      "imphash": "8e2d33ccc73ed51abd14b6951ffbefa6",
+      "members": [
+        "310fcb28fd0a6616bea7db2a16414117507e449e0d7c27bf5fb1651b0e13ba7b",
+        "d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943"
+      ],
+      "name_ja": "imphash完全一致コードcluster 8e2d33ccc73e"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-imphash-b6b5d3b43e46",
+      "classification": "local_code_cluster_candidate",
+      "confidence": "低",
+      "evidence_ja": [
+        "ルートPEのimphash完全一致: b6b5d3b43e46f9dd896a962322a5108b",
+        "同一コード系統の補助証拠であり、同一配布campaignまたはactorの確定ではない"
+      ],
+      "imphash": "b6b5d3b43e46f9dd896a962322a5108b",
+      "members": [
+        "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+        "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62"
+      ],
+      "name_ja": "imphash完全一致コードcluster b6b5d3b43e46"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-imphash-d3f487c6c23e",
+      "classification": "local_code_cluster_candidate",
+      "confidence": "低",
+      "evidence_ja": [
+        "ルートPEのimphash完全一致: d3f487c6c23e9d9845b2eca3fbdd93dd",
+        "同一コード系統の補助証拠であり、同一配布campaignまたはactorの確定ではない"
+      ],
+      "imphash": "d3f487c6c23e9d9845b2eca3fbdd93dd",
+      "members": [
+        "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
+        "eee7db42470f6c58dc1e696ee937e87bd72f0cabe8df566021a79880d288e370"
+      ],
+      "name_ja": "imphash完全一致コードcluster d3f487c6c23e"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-imphash-df663ae202ee",
+      "classification": "local_code_cluster_candidate",
+      "confidence": "低",
+      "evidence_ja": [
+        "ルートPEのimphash完全一致: df663ae202ee069eb0afc7b268b8bcae",
+        "同一コード系統の補助証拠であり、同一配布campaignまたはactorの確定ではない"
+      ],
+      "imphash": "df663ae202ee069eb0afc7b268b8bcae",
+      "members": [
+        "4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
+        "f7cfbe384328e18a2fd0396d3c071c435b2e52ee76d7e163213ef56ea264bdf1"
+      ],
+      "name_ja": "imphash完全一致コードcluster df663ae202ee"
+    },
+    {
+      "actor_status": "未帰属",
+      "campaign_id": "local-valleyrat-imphash-e9d6723ad0e9",
+      "classification": "local_code_cluster_candidate",
+      "confidence": "低",
+      "evidence_ja": [
+        "ルートPEのimphash完全一致: e9d6723ad0e9063b525f384eb48d5a19",
+        "同一コード系統の補助証拠であり、同一配布campaignまたはactorの確定ではない"
+      ],
+      "imphash": "e9d6723ad0e9063b525f384eb48d5a19",
+      "members": [
+        "74dcd1f64bd3b43cf659359bff1f43131d43b4e07f3a3aa2a1f74d6e7970be09",
+        "b5af11fcbde594f47706f4b5a8ee37a20fd4ed1ceb2537c9356ad5f0ff7300a9"
+      ],
+      "name_ja": "imphash完全一致コードcluster e9d6723ad0e9"
+    }
+  ],
+  "method": {
+    "actor_policy": "community tag単独では帰属しない",
+    "code_relation": "ルートPEのimphash完全一致。campaign確定には不使用",
+    "local_campaign": "curated親子関係または固有構成",
+    "public_confirmation": "公開IOCとのSHA-256またはMD5完全一致"
+  },
+  "public_campaign_match_counts": {
+    "c1bas-2026-whatsapp-india": 0,
+    "darklab-2025-2026-dual-pronged": 0,
+    "fortinet-2024-chinese-speaker": 0,
+    "itochuci-2025q4-2026q1-japanese-malspam": 0,
+    "k7-2026-fake-teams": 0,
+    "proofpoint-2023-chinese-invoice-resume": 0,
+    "zscaler-2024-multistage": 0
+  },
+  "safety": {
+    "network_contacted": false,
+    "samples_executed": false,
+    "samples_opened": false,
+    "source_scope": "repository_text_artifacts_and_public_osint_only"
+  },
+  "schema_version": 1
+}

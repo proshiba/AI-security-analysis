@@ -174,11 +174,7 @@ def test_profile_definitions_require_n_of_m_plus_config_literal() -> None:
         minimum = max(2, int(profile["minimum_markers"]))
         selected_markers = [marker.lower() for marker in independent[:minimum]]
         marker_set = {marker.lower() for marker in profile["markers"]}
-        config_key = next(
-            key.lower()
-            for key in profile["config_keys"]
-            if key.lower() not in marker_set
-        )
+        config_key = next(key.lower() for key in profile["config_keys"] if key.lower() not in marker_set)
 
         single_scores = {
             item.id: item.score
@@ -215,9 +211,7 @@ def test_profile_definition_does_not_double_count_substring_aliases() -> None:
             malware,
             {
                 "classification": {"family_hint": None},
-                "static": {
-                    "strings_ci": ["asyncrat", "asyncrat server", "hosts"]
-                },
+                "static": {"strings_ci": ["asyncrat", "asyncrat server", "hosts"]},
             },
         )
     }
@@ -228,9 +222,7 @@ def test_profile_definition_does_not_double_count_substring_aliases() -> None:
             malware,
             {
                 "classification": {"family_hint": None},
-                "static": {
-                    "strings_ci": ["asyncrat server", "hwid", "hosts"]
-                },
+                "static": {"strings_ci": ["asyncrat server", "hwidgen", "hosts"]},
             },
         )
     }
@@ -322,3 +314,44 @@ def test_cli_functions(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     output = tmp_path / "plan.json"
     assert cli.main(["plan", "--definitions", str(DEFINITIONS), "--facts", str(facts), "--output", str(output)]) == 0
     assert output.exists()
+
+
+def test_asyncrat_definition_rejects_generic_pong_hwid() -> None:
+    """汎用PONG・HWID・設定語だけではAsyncRATの閾値へ達しない。"""
+
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    scores = {
+        item.id: item.score
+        for item in rank_families(
+            malware,
+            {
+                "classification": {"family_hint": None},
+                "static": {"strings_ci": ["pong", "hwid", "hosts", "ports", "version"]},
+            },
+        )
+    }
+    assert scores["asyncrat"] < 70
+
+
+def test_declarative_definitions_reject_semantic_name_variants() -> None:
+    """同義のfamily名表記だけでは宣言型閾値へ到達しない。"""
+
+    definitions = load_definition_tree(DEFINITIONS)
+    malware = list(index_definitions(definitions, MalwareDefinition).values())
+    fixtures = {
+        "hijackloader": ["hijackloader", "hijack loader", "url"],
+        "snakekeylogger": ["snake keylogger", "snakekeylogger", "host"],
+    }
+    for family_id, strings in fixtures.items():
+        scores = {
+            item.id: item.score
+            for item in rank_families(
+                malware,
+                {
+                    "classification": {"family_hint": None},
+                    "static": {"strings_ci": strings},
+                },
+            )
+        }
+        assert scores[family_id] < 70

@@ -11,6 +11,7 @@ import zipfile
 import zlib
 
 import pefile
+import pyzipper
 import pytest
 
 from unpackers import static_unpacker as unpacker
@@ -132,8 +133,15 @@ def test_zip_recovery_and_write(tmp_path: Path) -> None:
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("payload.js", b"var x = 1")
+        archive.writestr(
+            "payload.bin", b"asyncrat HWID Hosts http://malicious-example.xyz/gate"
+        )
     inventory, artifacts = unpacker.recover_zip(stream.getvalue())
-    assert inventory[0]["format"] == "script" and artifacts
+    assert inventory[0]["format"] == "script"
+    assert {kind for kind, _blob in artifacts} == {
+        "zip-script-payload.js",
+        "zip-data-payload.bin",
+    }
     blocked = io.BytesIO()
     with zipfile.ZipFile(blocked, "w") as archive:
         for index in range(513):
@@ -145,6 +153,32 @@ def test_zip_recovery_and_write(tmp_path: Path) -> None:
     unpacker.write_artifacts(destination, artifacts)
     assert zipfile.is_zipfile(destination)
 
+
+def test_aes_zip_password_and_member_name_are_propagated() -> None:
+    """AES ZIPを指定passwordとone-shot相当quota内で復元し、拡張子を保持する。"""
+
+    stream = io.BytesIO()
+    with pyzipper.AESZipFile(
+        stream,
+        "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES,
+    ) as archive:
+        archive.setpassword(b"infected")
+        archive.setencryption(pyzipper.WZ_AES, nbits=256)
+        archive.writestr("nested/stage.ps1", b"Write-Output 'fixture'")
+
+    report, artifacts = unpacker.unpack_bytes(
+        stream.getvalue(),
+        "protected.zip",
+        archive_password="infected",
+        max_archive_members=4,
+        max_archive_member_size=1024,
+        max_archive_total_size=2048,
+        max_archive_compression_ratio=100,
+    )
+    assert report["unpack_status"] == "artifacts_recovered"
+    assert artifacts == [("zip-script-stage.ps1", b"Write-Output 'fixture'")]
 
 def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
     """部分アーティファクトを保持する前にアーカイブ全体を拒否する。"""
@@ -375,10 +409,10 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
         unpacker, "recover_donut_payloads", lambda _data: ({}, [])
     )
     monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _data: [])
-    observed: list[bytes] = []
+    observed: list[tuple[bytes, dict[str, object]]] = []
 
-    def fake_extract(data: bytes, *_args):
-        observed.append(data)
+    def fake_extract(data: bytes, *_args, **kwargs):
+        observed.append((data, kwargs))
         return {"status": "extracted"}, [("nsis-stage", b"child")]
 
     monkeypatch.setattr(unpacker, "sevenzip_extract", fake_extract)
@@ -387,8 +421,16 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
         "fixture.exe",
         sevenzip=tmp_path / "7z.exe",
         force_container_probe=True,
+        max_archive_members=3,
+        max_archive_member_size=1024,
+        max_archive_total_size=2048,
     )
-    assert observed == [b"MZfixture"]
+    assert observed == [
+        (
+            b"MZfixture",
+            {"max_members": 3, "max_member_size": 1024, "max_total_size": 2048},
+        )
+    ]
     assert report["sevenzip"]["forced_by_reviewed_hint"] is True
     assert artifacts == [("nsis-stage", b"child")]
 
@@ -424,6 +466,33 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
     assert all(not argument.startswith("-p") for argument in commands[0])
     assert report["archive_unlock_attempted"] is False
     assert report["status"] == "extracted"
+    assert artifacts == []
+
+
+def test_sevenzip_preflight_uses_caller_member_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """外部7-Zip経路でも呼び出し元の件数上限を展開前に適用する。"""
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": ["one.bin", "two.bin"],
+            "total_members": 2,
+            "declared_total_size": 32,
+            "archive_unlock_attempted": False,
+        }
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=1,
+        max_member_size=64,
+        max_total_size=64,
+    )
+    assert report["status"] == "member_limit_blocked"
     assert artifacts == []
 
 

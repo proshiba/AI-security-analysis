@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-venomrat-b8be79d70868",
+  "families": [
+    "venomrat"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "192.252.180.45:4449"
+    },
+    {
+      "type": "ip",
+      "value": "192.252.180.45"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

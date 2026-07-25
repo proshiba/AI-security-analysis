@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module refresh_derived_artifacts</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">refresh_derived_artifacts</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Crefresh_derived_artifacts.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\refresh_derived_artifacts.py</a></td></tr></table>
+    <p><span class="code">campaign、IOC、コード類似性の派生成果物を安全な順序で一括更新する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">一括更新CLIの日本語引数parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、差分検証結果を終了codeへ変換する。</span></dd></dl>
+ <dl><dt><a name="-refresh"><strong>refresh</strong></a>(repository: 'Path', *, campaign_output_root: 'Path', rules_path: 'Path', fingerprints_path: 'Path', similarity_json: 'Path', similarity_markdown: 'Path', write: 'bool' = False, check: 'bool' = False, case_labels: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">派生成果物を依存順に処理し、書込み後は同じ範囲を再検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_FINGERPRINTS</strong> = WindowsPath('C:/Users/Administrator/AI-security-...s-framework/registry/campaign_fingerprints.json')<br>
+<strong>DEFAULT_RULES</strong> = WindowsPath('C:/Users/Administrator/AI-security-...mework/registry/campaign_correlation_rules.json')</td></tr></table>
+</body></html>

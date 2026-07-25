@@ -30,12 +30,8 @@ def test_discovery_functions(tmp_path: Path) -> None:
     assert discovery.infer_family(["remcos agent", "rmc-"]) == "remcosrat"
     assert discovery.infer_family(["lummac2", "build_id"]) == "lummastealer"
     assert discovery.infer_family(["rpsgwra{l", "[iljvvrsrel", "tvdqhg''''"]) == "spyglace"
-    assert discovery.infer_family(
-        ["index.php", "/plugins/", "os=", "computername"]
-    ) == "amadey"
-    assert discovery.infer_family(
-        ["counter=%d&type=%d&guid=", "/files/", "urls|"]
-    ) == "latrodectus"
+    assert discovery.infer_family(["index.php", "/plugins/", "os=", "computername"]) == "amadey"
+    assert discovery.infer_family(["counter=%d&type=%d&guid=", "/files/", "urls|"]) == "latrodectus"
     assert discovery.infer_family(["none"]) is None
     assert (
         discovery.infer_campaign("mx-go", ["/api/v1/heartbeat_direct"], []) == "remotely_controlled_bulk_email_spam_bot"
@@ -80,7 +76,7 @@ def test_discovery_rejects_single_family_literal(literal: str) -> None:
         (["vvas.bin", "loggercollector.dll"], "valleyrat"),
         (["n520", "config.enc"], "valleyrat"),
         (["quasar.client", "xclient.core", "reconnectdelay"], "venomrat"),
-        (["asyncrat server", "hwid"], "asyncrat"),
+        (["asyncrat server", "hwidgen"], "asyncrat"),
         (["security dump-keychain", "osascript"], "amosstealer"),
     ],
 )
@@ -91,9 +87,7 @@ def test_discovery_requires_correlated_family_evidence(strings: list[str], famil
 
 def test_discovery_rejects_ambiguous_profile_evidence() -> None:
     """Do not turn the first matching profile into a compiler-bypassing hint."""
-    assert discovery.infer_family(
-        ["asyncrat server", "hwid", "dcrat.server", "darkcrystal"]
-    ) is None
+    assert discovery.infer_family(["asyncrat server", "hwidgen", "dcrat.server", "darkcrystal"]) is None
 
 
 def make_context(data: bytes = b"text c2.example:443 http://x.example/a") -> dict:
@@ -221,9 +215,10 @@ def test_config_prefers_confirmed_child_over_many_outer_candidates(
     monkeypatch.setattr(runner, "get_extractor", lambda family: extract)
     result = runner.step_config(context, "test")
     assert result["input_layer"]["sha256"] == hashlib.sha256(child).hexdigest()
-    assert result["layer_selection"]["attempts"][1]["evidence_score"] > result["layer_selection"]["attempts"][0][
-        "evidence_score"
-    ]
+    assert (
+        result["layer_selection"]["attempts"][1]["evidence_score"]
+        > result["layer_selection"]["attempts"][0]["evidence_score"]
+    )
 
 
 def test_donut_layers_retain_child_for_terminal_config(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -239,11 +234,7 @@ def test_donut_layers_retain_child_for_terminal_config(monkeypatch: pytest.Monke
 
     def extractor_for(family: str):
         def extract(data: bytes, name: str) -> dict:
-            finding = (
-                family == "donutloader" and data == root
-            ) or (
-                family == "purehvnc" and data == child
-            )
+            finding = (family == "donutloader" and data == root) or (family == "purehvnc" and data == child)
             return {"family": family, "config": {}, "findings": [{"value": family}] if finding else []}
 
         return extract

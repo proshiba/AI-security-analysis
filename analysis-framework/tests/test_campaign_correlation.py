@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import sys
 
@@ -10,16 +12,20 @@ FRAMEWORK = Path(__file__).parents[1]
 COMMON = FRAMEWORK / "common"
 sys.path.insert(0, str(COMMON))
 
+from analysis_contract import seal_report, verify_artifact_hashes, verify_report_semantics  # noqa: E402
 from campaign_correlation import (  # noqa: E402
     _indicator_is_excluded,
     build_fingerprints,
     correlate_cases,
+    extract_campaign_evidence,
     load_rules,
     match_fingerprints,
 )
 
 
 RULES = load_rules(FRAMEWORK / "registry" / "campaign_correlation_rules.json")
+
+from correlate_campaigns import _synchronize_tracked_campaign_label_seal  # noqa: E402
 
 
 def _evidence(sha: str, family: str, urls: list[str], campaign: str) -> dict:
@@ -83,3 +89,118 @@ def test_ip_alone_and_generic_campaign_do_not_correlate() -> None:
     report = correlate_cases([left, right], RULES)
     assert report["counts"]["campaign_candidates"] == 0
     assert report["labels"] == {}
+
+
+def test_existing_ioc_list_without_network_ioc_does_not_use_json_fallback(
+    tmp_path: Path,
+) -> None:
+    """canonical一覧がroot hashだけなら汎用文字列をcampaign証拠へ昇格しない。"""
+
+    digest = "a" * 64
+    (tmp_path / "IOC-LIST.md").write_text(
+        "# IOC ??\n\n"
+        "| ?? (Type) | ? (Value) | ?? (Role) | ?? (Confidence) | ?? (Source) |\n"
+        "|---|---|---|---|---|\n"
+        f"| SHA-256 | {digest} | 提出検体 | 確認済み | fixture |\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "analysis.json").write_text(
+        '{"network": {"domains": ["sfxrar.pdb", "1.ib"]}}',
+        encoding="utf-8",
+    )
+    profile = {
+        "sha256": digest,
+        "family": "fixture",
+        "campaign_type": "unknown",
+        "sample_characteristics": [],
+        "behaviors": [],
+    }
+
+    evidence = extract_campaign_evidence(tmp_path, profile, RULES)
+
+    assert evidence["indicators"] == []
+
+
+def test_json_fallback_remains_available_only_without_ioc_list(tmp_path: Path) -> None:
+    """legacy caseでIOC一覧自体がない場合だけ明示network fieldを補助利用する。"""
+
+    digest = "b" * 64
+    (tmp_path / "analysis.json").write_text(
+        '{"network": {"c2_url": "https://legacy.example/task"}}',
+        encoding="utf-8",
+    )
+    profile = {
+        "sha256": digest,
+        "family": "fixture",
+        "campaign_type": "unknown",
+        "sample_characteristics": [],
+        "behaviors": [],
+    }
+
+    evidence = extract_campaign_evidence(tmp_path, profile, RULES)
+
+    assert [(item["type"], item["value"]) for item in evidence["indicators"]] == [
+        ("url", "https://legacy.example/task"),
+    ]
+
+
+def test_campaign_label_update_reseals_only_after_other_artifacts_validate(
+    tmp_path: Path,
+) -> None:
+    """campaign label変更時に追跡済みhashとreport sealを同期する。"""
+
+    label = tmp_path / "campaign-labels.json"
+    other = tmp_path / "analysis.json"
+    label.write_text('{"labels": []}\n', encoding="utf-8")
+    other.write_text('{"safe": true}\n', encoding="utf-8")
+    report = {
+        "schema_version": 1,
+        "artifact_sha256": {
+            "campaign-labels.json": hashlib.sha256(label.read_bytes()).hexdigest(),
+            "analysis.json": hashlib.sha256(other.read_bytes()).hexdigest(),
+        },
+    }
+    seal_report(report)
+    (tmp_path / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    label.write_text('{"labels": ["campaign-a"]}\n', encoding="utf-8")
+
+    _synchronize_tracked_campaign_label_seal(tmp_path)
+
+    refreshed = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert verify_report_semantics(refreshed) == []
+    assert verify_artifact_hashes(tmp_path, refreshed["artifact_sha256"]) == []
+
+
+def test_campaign_label_reseal_rejects_unrelated_artifact_tampering(
+    tmp_path: Path,
+) -> None:
+    """label以外の改変を新しいreport sealで覆い隠さない。"""
+
+    label = tmp_path / "campaign-labels.json"
+    other = tmp_path / "analysis.json"
+    label.write_text('{"labels": []}\n', encoding="utf-8")
+    other.write_text('{"safe": true}\n', encoding="utf-8")
+    report = {
+        "schema_version": 1,
+        "artifact_sha256": {
+            "campaign-labels.json": hashlib.sha256(label.read_bytes()).hexdigest(),
+            "analysis.json": hashlib.sha256(other.read_bytes()).hexdigest(),
+        },
+    }
+    seal_report(report)
+    (tmp_path / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    label.write_text('{"labels": ["campaign-a"]}\n', encoding="utf-8")
+    other.write_text('{"safe": false}\n', encoding="utf-8")
+
+    try:
+        _synchronize_tracked_campaign_label_seal(tmp_path)
+    except ValueError as error:
+        assert "campaign label以外" in str(error)
+    else:
+        raise AssertionError("unrelated artifact tampering was not rejected")

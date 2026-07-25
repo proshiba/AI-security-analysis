@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-latrodectus-07f25a0194ab",
+  "families": [
+    "latrodectus"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://stratimasesstr.com/live/"
+    },
+    {
+      "type": "url",
+      "value": "https://winarkamaps.com/live/"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

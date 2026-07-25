@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Safe recursive static triage for authenticated MalwareBazaar submissions."""
+"""認証済みMalwareBazaar検体を再帰的かつ安全に静的トリアージする。"""
 from __future__ import annotations
 
 import argparse
 import base64
 import binascii
-import io
+import ipaddress
 import math
 import re
-import zipfile
+import sys
 from pathlib import Path
 
 import pefile
@@ -26,30 +26,24 @@ from malware_io import (
 )
 from elf_utils import parse_elf_layout
 
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+repository_value = str(REPOSITORY_ROOT)
+if repository_value not in sys.path:
+    sys.path.insert(0, repository_value)
+
+from unpackers.static_unpacker import detect_format  # noqa: E402
+
 PRINTABLE = re.compile(rb"[\x20-\x7e]{4,}")
 WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){4,}")
 URL = re.compile(r"https?://[^\s\"'<>]{4,400}", re.I)
 IP = re.compile(r"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?")
 DOMAIN = re.compile(r"(?<![\w.-])(?:[a-z0-9-]{1,63}\.)+[a-z]{2,24}(?::\d{1,5})?", re.I)
-SCRIPT_EXT = {
-    ".js",
-    ".jse",
-    ".vbs",
-    ".vbe",
-    ".hta",
-    ".ps1",
-    ".cmd",
-    ".bat",
-    ".sh",
-    ".php",
-    ".wsf",
-    ".html",
-    ".htm",
-}
 GENERIC_MAX_MEMBER_SIZE = 64 * 1024 * 1024
 GENERIC_MAX_MEMBERS = 256
 GENERIC_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 GENERIC_MAX_COMPRESSION_RATIO = 100.0
+MAX_BASE64_ENCODED_LENGTH = 1024 * 1024
 
 
 def entropy(data: bytes) -> float:
@@ -61,25 +55,82 @@ def entropy(data: bytes) -> float:
     return round(-sum((n / len(data)) * math.log2(n / len(data)) for n in counts if n), 4)
 
 
-def extract_strings(data: bytes, limit: int = 20_000) -> list[dict]:
-    strings = [
-        {"offset": match.start(), "encoding": "ascii", "value": match.group().decode("ascii")}
-        for match in PRINTABLE.finditer(data)
-    ]
-    strings.extend(
-        {"offset": match.start(), "encoding": "utf-16-le", "value": match.group()[::2].decode("ascii")}
-        for match in WIDE.finditer(data)
-    )
+def extract_strings_with_coverage(data: bytes, limit: int = 20_000) -> tuple[list[dict], dict]:
+    """文字列を上限付きで抽出し、打切り有無を返す。"""
+
+    if limit <= 0:
+        raise ValueError("文字列抽出上限は正数で指定してください")
+    ascii_values = []
+    for match in PRINTABLE.finditer(data):
+        ascii_values.append(
+            {"offset": match.start(), "encoding": "ascii", "value": match.group().decode("ascii")}
+        )
+        if len(ascii_values) > limit:
+            break
+    wide_values = []
+    for match in WIDE.finditer(data):
+        wide_values.append(
+            {
+                "offset": match.start(),
+                "encoding": "utf-16-le",
+                "value": match.group()[::2].decode("ascii"),
+            }
+        )
+        if len(wide_values) > limit:
+            break
+    strings = [*ascii_values, *wide_values]
     strings.sort(key=lambda item: item["offset"])
-    return strings[:limit]
+    truncated = len(strings) > limit or len(ascii_values) > limit or len(wide_values) > limit
+    return strings[:limit], {
+        "limit": limit,
+        "returned": min(len(strings), limit),
+        "truncated": truncated,
+    }
+
+
+def extract_strings(data: bytes, limit: int = 20_000) -> list[dict]:
+    """後方互換用に、上限付き文字列一覧だけを返す。"""
+
+    return extract_strings_with_coverage(data, limit)[0]
+
+
+def _valid_ip_candidates(text: str) -> list[str]:
+    values = set()
+    for raw in IP.findall(text):
+        host, separator, raw_port = raw.partition(":")
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            continue
+        if separator and not 1 <= int(raw_port) <= 65_535:
+            continue
+        values.add(raw)
+    return sorted(values)[:200]
+
+
+def _valid_domain_candidates(text: str) -> list[str]:
+    """範囲内portを持つdomain候補だけを返す。"""
+
+    values = set()
+    for raw in DOMAIN.findall(text):
+        candidate = raw.lower().rstrip(".,;)")
+        host, separator, raw_port = candidate.partition(":")
+        if separator:
+            try:
+                if not 1 <= int(raw_port) <= 65_535:
+                    continue
+            except ValueError:
+                continue
+        values.add(f"{host}:{raw_port}" if separator else host)
+    return sorted(values)[:500]
 
 
 def extract_iocs(strings: list[dict]) -> dict:
     text = "\n".join(item["value"] for item in strings)
     return {
         "urls": sorted(set(URL.findall(text)))[:500],
-        "ips": sorted(set(IP.findall(text)))[:200],
-        "domains": sorted({value.lower().rstrip(".,;)") for value in DOMAIN.findall(text)})[:500],
+        "ips": _valid_ip_candidates(text),
+        "domains": _valid_domain_candidates(text),
     }
 
 
@@ -111,7 +162,12 @@ def script_info(
         "unescape": "unescape(" in lowered,
     }
     base64_hits = []
+    oversized_base64 = 0
     for match in re.finditer(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{80,}={0,2}(?![A-Za-z0-9+/])", text):
+        encoded_length = match.end() - match.start()
+        if encoded_length > MAX_BASE64_ENCODED_LENGTH:
+            oversized_base64 += 1
+            continue
         try:
             blob = base64.b64decode(match.group(), validate=True)
         except (ValueError, binascii.Error):
@@ -119,11 +175,13 @@ def script_info(
         if len(blob) >= 32:
             base64_hits.append({
                 "offset": match.start(),
-                "encoded_length": len(match.group()),
+                "encoded_length": encoded_length,
                 "decoded_size": len(blob),
                 "decoded_sha256": sha256_bytes(blob),
                 "magic": blob[:16].hex(),
             })
+            if len(base64_hits) > 100:
+                break
     filename = safe_output_name(name)
     normalized_text = None
     if persist_normalized_text:
@@ -132,16 +190,30 @@ def script_info(
             text, encoding="utf-8", errors="replace"
         )
         normalized_text = f"scripts/{filename}.normalized.txt"
-    strings = [
-        {"offset": match.start(), "encoding": "text", "value": match.group()}
-        for match in re.finditer(r"[\x20-\x7e]{4,}", text)
-    ][:20_000]
+    strings = []
+    string_scan_truncated = False
+    for match in re.finditer(r"[\x20-\x7e]{4,}", text):
+        if len(strings) >= 20_000:
+            string_scan_truncated = True
+            break
+        strings.append({"offset": match.start(), "encoding": "text", "value": match.group()})
     return {
         "encoding": encoding,
         "line_count": text.count("\n") + 1,
         "indicators": indicators,
         "base64_candidates": base64_hits[:100],
+        "base64_scan": {
+            "candidate_limit": 100,
+            "encoded_length_limit": MAX_BASE64_ENCODED_LENGTH,
+            "oversized_candidates": oversized_base64,
+            "truncated": len(base64_hits) > 100 or oversized_base64 > 0,
+        },
         "iocs": extract_iocs(strings),
+        "string_scan": {
+            "limit": 20_000,
+            "returned": len(strings),
+            "truncated": string_scan_truncated,
+        },
         "normalized_text": normalized_text,
     }
 
@@ -155,7 +227,7 @@ def pe_info(data: bytes) -> dict:
         ]
         for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])
     }
-    strings = extract_strings(data)
+    strings, string_scan = extract_strings_with_coverage(data)
     com = pe.OPTIONAL_HEADER.DATA_DIRECTORY[14]
     return {
         "machine": hex(pe.FILE_HEADER.Machine),
@@ -173,6 +245,7 @@ def pe_info(data: bytes) -> dict:
             }
             for section in pe.sections
         ],
+        "string_scan": string_scan,
         "iocs": extract_iocs(strings),
         "behavior_strings": sorted({
             item["value"] for item in strings if re.search(
@@ -183,6 +256,30 @@ def pe_info(data: bytes) -> dict:
     }
 
 
+def _coverage_issues(value: object, path: str = "root") -> list[str]:
+    """汎用解析結果からparse失敗、上限到達、子層partialを収集する。"""
+
+    issues = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            lowered = str(key).casefold()
+            child = f"{path}.{key}"
+            if lowered == "parse_error" or lowered.endswith("_error"):
+                issues.append(child)
+            elif lowered in {"string_scan", "base64_scan"} and isinstance(item, dict):
+                if item.get("truncated") is True:
+                    issues.append(f"{child}:truncated")
+            elif lowered == "analysis_coverage" and isinstance(item, dict):
+                if item.get("status") != "complete":
+                    issues.append(f"{child}:{item.get('status')}")
+            else:
+                issues.extend(_coverage_issues(item, child))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            issues.extend(_coverage_issues(item, f"{path}[{index}]"))
+    return issues
+
+
 def analyze(
     name: str,
     data: bytes,
@@ -190,6 +287,7 @@ def analyze(
     depth: int = 0,
     *,
     persist_normalized_text: bool = True,
+    recurse_archives: bool = True,
     _archive_budget: dict[str, int] | None = None,
 ) -> dict:
     """1つのバイト列を上限付きで汎用静的トリアージする。"""
@@ -203,22 +301,12 @@ def analyze(
         "magic": data[:16].hex(),
         "entropy": entropy(data),
     }
-    suffix = Path(name).suffix.lower()
-    if suffix in SCRIPT_EXT or data[:32].lstrip().lower().startswith((b"<hta", b"<html", b"var ", b"function ")):
-        result.update(
-            type="script",
-            script=script_info(
-                name,
-                data,
-                output_dir,
-                persist_normalized_text=persist_normalized_text,
-            ),
-        )
-    elif data.startswith(b"\x7fELF"):
+    detected_format = detect_format(data, name)
+    if detected_format == "elf":
         result["type"] = "elf"
         try:
             layout = parse_elf_layout(data)
-            strings = extract_strings(data)
+            strings, string_scan = extract_strings_with_coverage(data)
             result["elf"] = {
                 "bits": layout.bits,
                 "byte_order": layout.byte_order,
@@ -231,56 +319,99 @@ def analyze(
                     }
                     for segment in layout.segments
                 ],
+                "string_scan": string_scan,
                 "iocs": extract_iocs(strings),
             }
         except Exception as exc:
             result["elf_error"] = f"{type(exc).__name__}: {exc}"
-    elif data.startswith(b"MZ"):
+    elif detected_format == "pe":
         result["type"] = "pe"
         try:
             result["pe"] = pe_info(data)
         except Exception as exc:
             result["pe_error"] = f"{type(exc).__name__}: {exc}"
-    elif depth < 4 and zipfile.is_zipfile(io.BytesIO(data)):
+    elif detected_format == "zip":
         result["type"] = "zip"
-        try:
-            remaining = _archive_budget["remaining"]
-            if remaining <= 0:
-                raise ValueError("汎用ZIP展開の総量上限を使い切りました")
-            members = read_aes_zip_members(
-                data,
-                password="infected",
-                max_member_size=min(GENERIC_MAX_MEMBER_SIZE, remaining),
-                max_members=GENERIC_MAX_MEMBERS,
-                max_total_size=min(GENERIC_MAX_TOTAL_SIZE, remaining),
-                max_compression_ratio=GENERIC_MAX_COMPRESSION_RATIO,
-            )
-            _archive_budget["remaining"] -= sum(member.size for member in members)
-            result["members"] = [
-                analyze(
-                    validate_member_name(member.name),
-                    member.data,
-                    output_dir,
-                    depth + 1,
-                    persist_normalized_text=persist_normalized_text,
-                    _archive_budget=_archive_budget,
+        if not recurse_archives:
+            result["archive_recursion"] = "delegated_to_static_layer_pipeline"
+        elif depth >= 4:
+            result["parse_error"] = "ValueError: 汎用ZIP解析の深度上限へ到達しました"
+        else:
+            try:
+                remaining = _archive_budget["remaining"]
+                if remaining <= 0:
+                    raise ValueError("汎用ZIP展開の総量上限を使い切りました")
+                members = read_aes_zip_members(
+                    data,
+                    password="infected",
+                    max_member_size=min(GENERIC_MAX_MEMBER_SIZE, remaining),
+                    max_members=GENERIC_MAX_MEMBERS,
+                    max_total_size=min(GENERIC_MAX_TOTAL_SIZE, remaining),
+                    max_compression_ratio=GENERIC_MAX_COMPRESSION_RATIO,
                 )
-                for member in members
-            ]
-        except Exception as exc:
-            result["parse_error"] = f"{type(exc).__name__}: {exc}"
-    elif data.startswith(b"Rar!"):
-        result.update(type="rar", note="RAR inventory only; use a reviewed external extractor")
+                _archive_budget["remaining"] -= sum(member.size for member in members)
+                result["members"] = [
+                    analyze(
+                        validate_member_name(member.name),
+                        member.data,
+                        output_dir,
+                        depth + 1,
+                        persist_normalized_text=persist_normalized_text,
+                        recurse_archives=recurse_archives,
+                        _archive_budget=_archive_budget,
+                    )
+                    for member in members
+                ]
+            except Exception as exc:
+                result["parse_error"] = f"{type(exc).__name__}: {exc}"
+    elif detected_format == "rar":
+        result.update(type="rar", note="RARはinventoryだけを記録し、レビュー済み外部抽出器が必要です")
+    elif detected_format == "script":
+        result.update(
+            type="script",
+            script=script_info(
+                name,
+                data,
+                output_dir,
+                persist_normalized_text=persist_normalized_text,
+            ),
+        )
+    elif detected_format != "data":
+        strings, string_scan = extract_strings_with_coverage(data)
+        result.update(
+            type=detected_format,
+            string_scan=string_scan,
+            iocs=extract_iocs(strings),
+            format_specific_analysis="not_implemented",
+        )
     else:
-        result.update(type="data", iocs=extract_iocs(extract_strings(data)))
+        strings, string_scan = extract_strings_with_coverage(data)
+        result.update(type="data", string_scan=string_scan, iocs=extract_iocs(strings))
+    issues = _coverage_issues(result)
+    if result.get("type") == "rar":
+        issues.append("root:rar_inventory_only")
+    if result.get("format_specific_analysis") == "not_implemented":
+        issues.append(f"root:{detected_format}_format_analysis_not_implemented")
+    result["analysis_coverage"] = {
+        "status": "partial" if issues else "complete",
+        "issues": sorted(set(issues)),
+    }
     return result
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Safely triage an authenticated MalwareBazaar ZIP.")
-    parser.add_argument("--outer-zip", required=True, type=Path)
-    parser.add_argument("--output-dir", required=True, type=Path)
-    parser.add_argument("--password", default="infected")
+    parser = argparse.ArgumentParser(
+        description="認証済みMalwareBazaar ZIPを実行せず安全に静的トリアージします。"
+    )
+    parser.add_argument(
+        "--outer-zip", required=True, type=Path, help="解析する外装ZIPのpath"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, type=Path, help="解析結果を保存するdirectory"
+    )
+    parser.add_argument(
+        "--password", default="infected", help="外装ZIPのpassword（既定: infected）"
+    )
     args = parser.parse_args()
     members = read_aes_zip_members(args.outer_zip, password=args.password)
     analyzed = [analyze(member.name, member.data, args.output_dir / "scripts") for member in members]

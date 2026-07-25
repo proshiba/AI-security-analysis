@@ -1,0 +1,38 @@
+{
+  "campaign_id": "correlated-remusstealer-8d56fe990dd4",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "remusstealer"
+  ],
+  "members": [
+    "4049128f0308d05dcb8d24b668f69238d720199de32ba0d8304cd3c3b3bde1b9",
+    "746c06f05b8e3bc93d6495a6c447c3c1874bd77011c33b0bcfe74ae27addbfaf"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "31.77.168.180:5000",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "31.77.168.180",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://31.77.168.180:5000/umvbr.bin",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 11,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

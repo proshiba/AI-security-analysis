@@ -18,6 +18,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import time
 from typing import Any, Iterable, Mapping
 from urllib.error import HTTPError, URLError
@@ -28,13 +29,29 @@ import dnfile
 from dncil.cil.body.reader import read_method_body_from_bytes
 import pefile
 
-from analyze_sample import read_input_unit, recover_static_layers
-from static_logic import (
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from unpackers.managed_il_triage import _contain_parser_diagnostics  # noqa: E402
+
+from analysis_contract import (  # noqa: E402
+    artifact_hashes,
+    case_integrity_errors,
+    load_json_object_strict,
+    resolve_case_artifact,
+    seal_report,
+    verify_artifact_hashes,
+    verify_report_semantics,
+)
+from analyze_sample import StaticLayer, read_input_unit, recover_static_layers  # noqa: E402
+from result_publication import detect_publication_context, register_publication_cases  # noqa: E402
+from static_logic import (  # noqa: E402
     build_static_logic_report,
     extract_script_function_records,
     redact_static_text,
 )
-from validate_function_analysis import validate_collection
+from validate_function_analysis import validate_collection  # noqa: E402
 
 
 SCHEMA_VERSION = 1
@@ -47,6 +64,7 @@ STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
+FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -286,14 +304,148 @@ def _is_pe(data: bytes) -> bool:
     return True
 
 
+def _normalize_static_tool(value: Path | None, label: str) -> Path | None:
+    """明示指定した外部静的toolを実在する通常fileへ限定する。"""
+
+    if value is None:
+        return None
+    try:
+        resolved = value.expanduser().resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"{label}が見つかりません: {value}") from exc
+    if not resolved.is_file():
+        raise ValueError(f"{label}は通常fileで指定してください: {value}")
+    return resolved
+
+
+def _static_tool_identity(path: Path | None) -> dict[str, Any] | None:
+    """外部静的toolのpathを公開せず、名前・size・内容hashを返す。"""
+
+    if path is None:
+        return None
+    hasher = hashlib.sha256()
+    size = 0
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            hasher.update(chunk)
+            size += len(chunk)
+    return {
+        "name": path.name,
+        "size": size,
+        "sha256": hasher.hexdigest(),
+    }
+
+
+def _validate_static_tool_contract(
+    case_dir: Path,
+    actual: Mapping[str, dict[str, Any] | None],
+) -> None:
+    """layer再現へ使う外部toolが公開解析契約と同一であることを確認する。"""
+
+    report = load_json_object_strict(case_dir / "report.json")
+    contract = report.get("analysis_contract")
+    settings = contract.get("settings") if isinstance(contract, Mapping) else None
+    expected = settings.get("static_tools") if isinstance(settings, Mapping) else None
+    if not isinstance(expected, Mapping):
+        raise ValueError(f"公開解析契約にstatic_toolsがありません: {case_dir.name}")
+    mismatched = [
+        name
+        for name in ("upx", "sevenzip", "diec")
+        if expected.get(name) != actual.get(name)
+    ]
+    if mismatched:
+        raise ValueError(
+            "外部静的tool設定が公開解析契約と一致しません: "
+            f"{case_dir.name}: {','.join(mismatched)}"
+        )
+
+
+def _load_authenticated_public_layers(
+    case_dir: Path,
+) -> tuple[list[dict[str, Any]], set[tuple[str, int, int, str]]]:
+    """reportと成果物のsealを検証し、公開layer集合を厳密に読み込む。"""
+
+    report = load_json_object_strict(case_dir / "report.json")
+    semantic_errors = verify_report_semantics(report)
+    if semantic_errors:
+        raise ValueError(
+            f"公開report sealを検証できません: {case_dir.name}: {semantic_errors}"
+        )
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, Mapping):
+        raise ValueError(f"公開成果物hash manifestがありません: {case_dir.name}")
+    sealed_digest = manifest.get("static-layers.json")
+    if not isinstance(sealed_digest, str) or SHA256_RE.fullmatch(sealed_digest) is None:
+        raise ValueError(f"static-layers.jsonのsealが不正です: {case_dir.name}")
+    seal_errors = verify_artifact_hashes(
+        case_dir,
+        {"static-layers.json": sealed_digest},
+    )
+    if seal_errors:
+        raise ValueError(
+            f"static-layers.jsonのsealを検証できません: {case_dir.name}: {seal_errors}"
+        )
+    document = load_json_object_strict(
+        resolve_case_artifact(case_dir, "static-layers.json")
+    )
+    raw_layers = document.get("layers")
+    if not isinstance(raw_layers, list) or not raw_layers:
+        raise ValueError(f"公開静的layer一覧が不正です: {case_dir.name}")
+
+    layers: list[dict[str, Any]] = []
+    identities: list[tuple[str, int, int, str]] = []
+    for index, raw in enumerate(raw_layers):
+        if not isinstance(raw, Mapping):
+            raise ValueError(
+                f"公開静的layerがJSON objectではありません: {case_dir.name}: {index}"
+            )
+        digest = raw.get("sha256")
+        size = raw.get("size")
+        depth = raw.get("depth")
+        transform = raw.get("transform")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise ValueError(
+                f"公開静的layerのSHA-256が不正です: {case_dir.name}: {index}"
+            )
+        if type(size) is not int or size < 0:
+            raise ValueError(
+                f"公開静的layerのsizeが不正です: {case_dir.name}: {index}"
+            )
+        if type(depth) is not int or depth < 0:
+            raise ValueError(
+                f"公開静的layerのdepthが不正です: {case_dir.name}: {index}"
+            )
+        if not isinstance(transform, str) or not transform:
+            raise ValueError(
+                f"公開静的layerのtransformが不正です: {case_dir.name}: {index}"
+            )
+        layers.append(dict(raw))
+        identities.append((digest, size, depth, transform))
+    if len(set(identities)) != len(identities):
+        raise ValueError(f"公開静的layer一覧に重複があります: {case_dir.name}")
+    return layers, set(identities)
+
+
 def prepare_inputs(
     repository: Path,
     collection_dir: Path,
     sample_root: Path,
     private_output: Path,
+    *,
+    upx: Path | None = None,
+    sevenzip: Path | None = None,
+    diec: Path | None = None,
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。"""
 
+    upx = _normalize_static_tool(upx, "UPX")
+    sevenzip = _normalize_static_tool(sevenzip, "7-Zip")
+    diec = _normalize_static_tool(diec, "Detect It Easy CLI")
+    static_tools = {
+        "upx": _static_tool_identity(upx),
+        "sevenzip": _static_tool_identity(sevenzip),
+        "diec": _static_tool_identity(diec),
+    }
     collection = json.loads((collection_dir / "manifest.json").read_text(encoding="utf-8-sig"))
     acquisition = json.loads((sample_root / "manifest.json").read_text(encoding="utf-8-sig"))
     archive_by_sha = {str(item["sha256"]).casefold(): Path(item["zip_path"]) for item in acquisition.get("items", [])}
@@ -312,6 +464,8 @@ def prepare_inputs(
         case_dir = case_paths.get(case_sha)
         if case_dir is None:
             raise FileNotFoundError(f"公開caseが見つかりません: {case_sha}")
+        _validate_static_tool_contract(case_dir, static_tools)
+        public_layers, expected = _load_authenticated_public_layers(case_dir)
         unit = read_input_unit(
             archive,
             password="infected",
@@ -320,17 +474,32 @@ def prepare_inputs(
         )
         if hashlib.sha256(unit.data).hexdigest() != case_sha:
             raise ValueError(f"root検体hashが一致しません: {case_sha}")
-        layers, _ = recover_static_layers(unit)
-        public_layers = json.loads((case_dir / "static-layers.json").read_text(encoding="utf-8-sig")).get("layers", [])
-        expected = {
-            (
-                str(item["sha256"]).casefold(),
-                int(item["size"]),
-                int(item["depth"]),
-                str(item["transform"]),
+        authenticated_root = (
+            case_sha,
+            len(unit.data),
+            0,
+            "submission",
+        )
+        if len(public_layers) == 1 and expected == {authenticated_root}:
+            layers = [
+                StaticLayer(
+                    name=unit.source_name,
+                    data=unit.data,
+                    sha256=case_sha,
+                    parent_sha256=None,
+                    depth=0,
+                    transform="submission",
+                )
+            ]
+            reconstruction_mode = "authenticated_root_only"
+        else:
+            layers, _ = recover_static_layers(
+                unit,
+                upx=upx,
+                sevenzip=sevenzip,
+                diec=diec,
             )
-            for item in public_layers
-        }
+            reconstruction_mode = "full_static_layer_replay"
         actual = {(layer.sha256, len(layer.data), layer.depth, layer.transform) for layer in layers}
         if expected != actual:
             raise ValueError(f"静的layer再現結果が公開成果物と一致しません: {case_sha}")
@@ -354,6 +523,7 @@ def prepare_inputs(
                 "parent_sha256": layer.parent_sha256,
                 "size": len(layer.data),
                 "is_pe": _is_pe(layer.data),
+                "reconstruction_mode": reconstruction_mode,
             }
             relationships.append(relation)
             if relation["is_pe"]:
@@ -381,6 +551,7 @@ def prepare_inputs(
                     "total": len(requested),
                     "sha256": case_sha,
                     "layers": len(layers),
+                    "reconstruction_mode": reconstruction_mode,
                     "executed": False,
                 },
                 ensure_ascii=False,
@@ -395,6 +566,7 @@ def prepare_inputs(
             "collection_id": collection_dir.name,
             "relationships": relationships,
             "unique_pe_objects": len(objects),
+            "static_tools": static_tools,
             "sample_executed": False,
             "network_contacted": False,
         },
@@ -1130,6 +1302,7 @@ def _token_name(pe: dnfile.dnPE, token: int) -> str:
     return f"{owner_name}.{name}".strip(".")
 
 
+@_contain_parser_diagnostics
 def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list[dict[str, Any]]:
     """全managed methodのCILを静的に列挙し、raw命令列をprivate JSONLへ保存する。"""
 
@@ -2142,6 +2315,151 @@ def validate_private_artifacts(
     return output
 
 
+def finalize_case_report(case_dir: Path) -> str:
+    """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
+
+    report = load_json_object_strict(case_dir / "report.json")
+    state = report.get("case_state")
+    if not isinstance(state, dict):
+        raise ValueError(f"case_stateがありません: {case_dir.name}")
+    blockers = state.get("blockers")
+    if not isinstance(blockers, list):
+        raise ValueError(f"case_state.blockersが配列ではありません: {case_dir.name}")
+    status = state.get("status")
+    if status == "partial":
+        remaining = [value for value in blockers if value != FUNCTION_ANALYSIS_BLOCKER]
+        if remaining:
+            state.update(
+                {
+                    "status": "partial",
+                    "complete": False,
+                    "resumable": False,
+                    "blockers": remaining,
+                }
+            )
+        else:
+            classification = report.get("classification")
+            selected = (
+                classification.get("selected_families")
+                if isinstance(classification, Mapping)
+                else None
+            )
+            if not isinstance(selected, list):
+                raise ValueError(f"selected_familiesがありません: {case_dir.name}")
+            state.update(
+                {
+                    "status": "complete" if selected else "triaged_unknown",
+                    "complete": True,
+                    "resumable": True,
+                    "blockers": [],
+                }
+            )
+    elif not (
+        status in {"complete", "triaged_unknown"}
+        and state.get("complete") is True
+        and state.get("resumable") is True
+        and blockers == []
+    ):
+        raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or not manifest:
+        raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
+    report["artifact_sha256"] = artifact_hashes(case_dir, manifest)
+    seal_report(report)
+    _json_dump(case_dir / "report.json", report)
+    resumable = state.get("status") in {"complete", "triaged_unknown"}
+    errors = case_integrity_errors(
+        case_dir,
+        report,
+        expected_digest=case_dir.name,
+        require_resumable=resumable,
+    )
+    if errors:
+        raise ValueError(f"Ghidra反映後のcase整合性検証に失敗しました: {case_dir.name}: {errors}")
+    return str(state["status"])
+
+
+def finalize_collection_publication(
+    repository: Path,
+    collection_dir: Path,
+) -> dict[str, Any]:
+    """全case完了時だけ索引登録し、残余blockerがあればpartialを明示する。"""
+
+    manifest_path = collection_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    requested = [
+        str(item.get("case_id") or "").removeprefix("sha256:").casefold()
+        for item in manifest.get("cases", [])
+        if isinstance(item, Mapping)
+    ]
+    case_paths = _case_index(repository)
+    by_family: dict[str, list[Path]] = defaultdict(list)
+    state_counts: Counter[str] = Counter()
+    for digest in requested:
+        case_dir = case_paths.get(digest)
+        if case_dir is None:
+            raise FileNotFoundError(f"正式公開するcaseが見つかりません: {digest}")
+        metadata = json.loads((case_dir / "metadata.json").read_text(encoding="utf-8-sig"))
+        family = str(metadata.get("family") or "")
+        if not family:
+            raise ValueError(f"case metadataにfamilyがありません: {digest}")
+        report = load_json_object_strict(case_dir / "report.json")
+        state = report.get("case_state")
+        status = str(state.get("status") if isinstance(state, Mapping) else "invalid")
+        state_counts[status] += 1
+        by_family[family].append(case_dir)
+    complete_statuses = {"complete", "triaged_unknown"}
+    all_complete = bool(requested) and set(state_counts) <= complete_statuses
+    publication_stage = "complete" if all_complete else "partial_followup_required"
+    registrations = {}
+    if all_complete:
+        for family, paths in sorted(by_family.items()):
+            aggregate = collection_dir / "sources" / family
+            context = detect_publication_context(aggregate, family)
+            if context is None:
+                raise ValueError(f"collection公開contextを解決できません: {family}")
+            registrations[family] = register_publication_cases(context, paths)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    manifest.update(
+        {
+            "analysis_complete": all_complete,
+            "complete": all_complete,
+            "publication_stage": publication_stage,
+            "case_state_counts": dict(sorted(state_counts.items())),
+        }
+    )
+    _json_dump(manifest_path, manifest)
+    summary_path = collection_dir / "publication-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8-sig"))
+    summary.update(
+        {
+            "analysis_complete": all_complete,
+            "publication_stage": publication_stage,
+            "case_state_counts": dict(sorted(state_counts.items())),
+        }
+    )
+    _json_dump(summary_path, summary)
+    readme_path = collection_dir / "README.md"
+    readme = readme_path.read_text(encoding="utf-8-sig")
+    readme = re.sub(r"(?m)^- case状態:.*\n?", "", readme)
+    state_summary = " / ".join(
+        f"{status} {state_counts.get(status, 0)}"
+        for status in ("complete", "partial", "triaged_unknown")
+    )
+    readme = re.sub(
+        r"(?m)^- 公開段階: `[^`]+`$",
+        f"- 公開段階: `{publication_stage}`\n- case状態: {state_summary}",
+        readme,
+    )
+    readme_path.write_text(readme, encoding="utf-8")
+    return {
+        "analysis_complete": all_complete,
+        "publication_stage": publication_stage,
+        "registrations": registrations,
+        "cases": len(requested),
+        "case_state_counts": dict(sorted(state_counts.items())),
+    }
+
 def _program_evidence(result: Mapping[str, Any]) -> dict[str, Any]:
     metadata = result.get("metadata", {})
     entries = []
@@ -2879,6 +3197,7 @@ def publish_cases(
         if "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" not in readme:
             readme = readme.rstrip() + "\n\n" + detail_line + "\n"
         readme_path.write_text(readme, encoding="utf-8")
+        finalized_case_state = finalize_case_report(case_dir)
 
         status_counts[report["status"]] += 1
         totals["discovered_functions"] += discovered_count
@@ -2895,6 +3214,7 @@ def publish_cases(
         per_case[case_sha] = {
             "status": report["status"],
             "coverage": report["coverage"],
+            "case_state": finalized_case_state,
         }
 
     summary_path = collection_dir / "publication-summary.json"
@@ -2922,6 +3242,12 @@ def publish_cases(
         if sha in per_case:
             item["static_logic_status"] = per_case[sha]["status"]
             item["function_analysis"] = per_case[sha]["coverage"]
+            item["case_state"] = per_case[sha]["case_state"]
+            item["publication_stage"] = (
+                "complete"
+                if per_case[sha]["case_state"] in {"complete", "triaged_unknown"}
+                else "partial_followup_required"
+            )
     _json_dump(summary_path, summary)
 
     readme_path = collection_dir / "README.md"
@@ -2987,6 +3313,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             collection_dir,
             sample_root,
             private_output,
+            upx=args.upx,
+            sevenzip=args.sevenzip,
+            diec=args.diec,
         )
     validate_prepared_scope(collection_dir, private_output)
     results: dict[str, dict[str, Any]] = {}
@@ -3029,6 +3358,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     validation = validate_collection(repository, collection_dir)
     if not validation["complete"]:
         raise RuntimeError(f"代表関数解析の完了条件を満たさないcaseがあります: {validation['invalid_cases']}")
+    final_publication = finalize_collection_publication(repository, collection_dir)
     run_summary = {
         "schema_version": SCHEMA_VERSION,
         "collection_id": collection_dir.name,
@@ -3042,6 +3372,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "complete_artifact_refresh": complete_artifact_refresh,
         "call_graph_augmentation": call_graph_augmentation,
+        "final_publication": final_publication,
         "validation": {
             "complete": validation["complete"],
             "valid_cases": validation["valid_cases"],
@@ -3109,6 +3440,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--project-root",
         default=DEFAULT_PROJECT_ROOT,
         help="Ghidra project内の保存先rootを指定します",
+    )
+    parser.add_argument(
+        "--upx",
+        type=Path,
+        help="公開解析契約と同一のUPX実行fileを指定します",
+    )
+    parser.add_argument(
+        "--sevenzip",
+        type=Path,
+        help="公開解析契約と同一の7-Zip実行fileを指定します",
+    )
+    parser.add_argument(
+        "--diec",
+        type=Path,
+        help="公開解析契約と同一のDetect It Easy CLI実行fileを指定します",
     )
     parser.add_argument(
         "--reuse-prepared-inputs",

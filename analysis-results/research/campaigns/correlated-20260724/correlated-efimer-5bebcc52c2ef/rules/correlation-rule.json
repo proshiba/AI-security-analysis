@@ -1,0 +1,39 @@
+{
+  "campaign_id": "correlated-efimer-5bebcc52c2ef",
+  "families": [
+    "efimer"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80"
+    },
+    {
+      "type": "endpoint",
+      "value": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80"
+    },
+    {
+      "type": "endpoint",
+      "value": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"
+    },
+    {
+      "type": "url",
+      "value": "http://gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion/route.php"
+    },
+    {
+      "type": "url",
+      "value": "http://hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion/route.php"
+    },
+    {
+      "type": "url",
+      "value": "http://swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion/core/repla.php"
+    }
+  ],
+  "feature_ids": [
+    "execution:wscript",
+    "persistence:scheduled_task"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

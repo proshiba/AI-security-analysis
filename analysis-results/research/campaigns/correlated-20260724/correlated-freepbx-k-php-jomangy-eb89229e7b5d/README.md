@@ -1,0 +1,48 @@
+# campaign候補：correlated-freepbx-k-php-jomangy-eb89229e7b5d
+
+- 分類: `cross_family_campaign_candidate`
+- 確度: `high`
+- ファミリー: `freepbx-k-php, jomangy`
+- case数: 16
+- 最大pair score: 31
+
+## 相関したcase
+
+- `0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e`
+- `112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76`
+- `233bbf027793e88ee6d548f2b18e5e2e29c9943bee6c50ed6c1160ac9d68c39a`
+- `2d0ae80f9689433e7b84ee280e11ce5263f918f6f23288c3d9bfe6ea187408b2`
+- `366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171`
+- `3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f`
+- `6d9ada5925ac865f4e390ea613c151b4f597c2753dcd00c925bb8fd89ba8eba9`
+- `726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572`
+- `9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786`
+- `9d930798d115b6862313e3616d3ed02a7a5c4c673390fe5fed4d85472cf906f5`
+- `b32f71c40fffc53327ca712d82ad9349d2a4f396826fac9940824f48c878461f`
+- `bf70cfa5cd5fc2b5c4f8ebb4d8dfba9451e113a21ad3b32cce20566f7eebedb8`
+- `c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5`
+- `da49d5a6abbb96438cd2daecd2643fb5f38122ce4d9cda6d072704e54c17d3ed`
+- `eb4dda22e709b7da15aaebddec842067e97d85cdc99d753dc6335c0ae63d1e42`
+- `fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347`
+
+## 共有証拠
+
+| 種別 | 値 | case支持数 |
+|---|---|---:|
+| endpoint | `160.119.69.4:80` | 7 |
+| endpoint | `45.95.147.178:80` | 7 |
+| ip | `160.119.69.4` | 3 |
+| ip | `45.95.147.178` | 3 |
+| url | `http://160.119.69.4/hima_data/index.php` | 4 |
+| url | `http://160.119.69.4/x` | 3 |
+| url | `http://160.119.69.4/z/post/noroot.php` | 7 |
+| url | `http://45.95.147.178/hima_data/index.php` | 4 |
+| url | `http://45.95.147.178/k.php` | 9 |
+| url | `http://45.95.147.178/z/post/root.php` | 10 |
+| url | `http://45.95.147.178/z/wr.php` | 10 |
+
+## 制約
+
+- 同一アクターまたは同一運用者への帰属を意味しません。
+- 共有インフラが再利用・転売されている可能性を排除できません。
+- 収集バッチ、ファミリー名、ファイル名だけでは相関していません。
