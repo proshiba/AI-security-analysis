@@ -20,6 +20,7 @@
 | `INT-W05` | 毎週 | P1 | extractor、detector、hunt ruleのcoverage差分 |
 | `INT-W06` | 毎週 | P0 | campaign候補の継続性(lineage)追跡 |
 | `INT-W07` | 毎週 | P1 | 候補間インフラ・ブリッジの抽出 |
+| `INT-W08` | 毎週 | P1 | 公開PCAPの独自解析と通信シグネチャ更新 |
 | `INT-M01` | 毎月 | P1 | campaignからoperation候補への統合 |
 | `INT-M02` | 毎月 | P1 | OSINT更新とactor帰属仮説のレビュー |
 | `INT-M03` | 毎月 | P2 | 相関閾値、誤相関、失効ルールのbacktest |
@@ -345,6 +346,47 @@ campaign候補IDが内容依存で変わっても、同じ実体のcampaign候�
 **完了条件**
 
 抽出したブリッジがすべて役割・prevalence・observed windowを持ち、共有基盤による説明を検討した上で、operation候補へ渡すか棄却するかが記録されていること。
+
+## `INT-W08`: 公開PCAPの独自解析と通信シグネチャ更新
+
+**目的**
+
+保有検体と対応する可能性がある公開PCAPを独自に解析し、静的設定、通信観測、campaign情報を相互検証します。単一IOCではなく通信構造を根拠とするSnort 3シグネチャを作成し、正例・負例PCAPで継続的に検証します。
+
+**入力**
+
+- 完全一致SHA-256、family、期間、campaign候補を持つ既存case
+- Malware-Traffic-Analysis.net等から取得した公開PCAP
+- 検体の静的設定、C2 role、protocol、特徴関数
+- 前回生成したSnort 3ルールとtest結果
+
+**処理**
+
+1. source URL、公開日、ZIP／PCAP SHA-256、取得日時を固定する。
+2. PCAPをオフライン解析し、flow、DNS、TLS、HTTP、FTP、未知TCP／UDPの観測を正規化する。
+3. 配布、payload取得、check-in、tasking、exfiltrationを分離して感染chainを再構成する。
+4. PCAPから得たartifact hashまたはprotocol特徴を既存caseの静的証拠と比較する。
+5. 独自解析を固定した後に公開記事・IOCと照合し、`pcap_observed`と`osint_reported`を分離する。
+6. behavioral、campaign、IOC、flow-stateのルールを別々に生成・レビューする。
+7. Snort構文、正例PCAP、無害baseline、別familyの悪性PCAPで検証する。
+
+**成果物**
+
+- `analysis-results/network-traffic/`配下の無害化した観測と検体対応表
+- `analysis-framework/malware/<family>/rules/snort3/`配下のSnort 3ルール
+- packet／stream根拠、期待alert、誤検知条件、最終観測日
+- rule coverage、未対応protocol、失効候補
+
+**安全性**
+
+- 生PCAP、ZIP、export object、復号payloadをGit管理対象へ入れない。
+- PCAPをinterfaceへreplayせず、ファイル入力だけで解析・検証する。
+- PCAPから回収したobjectを実行しない。
+- live C2、配布先、外部hostへ接続しない。
+
+**完了条件**
+
+各ルールが根拠packetまたはstreamへ追跡でき、Snort 3構文検証、正例、負例の全試験を通過していること。family／campaignへの紐付けは完全一致hashまたは複数の独立証拠で説明され、外部ラベルだけで確定していないこと。
 
 ## `INT-M01`: campaignからoperation候補への統合
 

@@ -16,6 +16,7 @@ analysis-results/
 │  └─ versions/<version-key>/cases/<sha256>/
 ├─ collections/<collection-id>/
 ├─ catalog/{cases.json,code-similarity.json,CODE-SIMILARITY.md}
+├─ network-traffic/<source>/<analysis-date>/
 ├─ research/{campaigns,supply-chain,vulnerabilities,news,audits}/
 └─ _shared/
 ```
@@ -100,6 +101,8 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [MalwareBazaar 1000検体解析（進行中、batch-0001～0010：99件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査
+
+- [Malware-Traffic-Analysis.net PCAP 50件の独自通信解析とSnort 3候補](network-traffic/malware-traffic-analysis-net/2026-07-26/README.md)
 
 - [関数ロジックのコード類似性索引](catalog/CODE-SIMILARITY.md)
 - [過去924caseの静的ロジック補完監査](research/audits/static-logic-backfill-20260723/README.md)
