@@ -43,6 +43,9 @@ jobs:
           MALDB_REPO_BRANCH: ${{ github.event.repository.default_branch }}
         run: python3 ui/generate_ui_data.py
 
+      - name: ポータル連携用インデックス(ui/api/v1)を再生成
+        run: python3 ui/build_portal_index.py
+
       - name: 配信ディレクトリを構成
         run: |
           set -euo pipefail
