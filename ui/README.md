@@ -23,9 +23,41 @@ CIなどで生成済み `ui/data.js` が最新か確認する場合は次を使�
 python3 ui/generate_ui_data.py --check
 ```
 
+## ポータル連携用の静的インデックス（spec v1）
+
+横断ポータル（`proshiba/research_bench`）が `fetch()` する軽量な索引を `ui/api/v1/` に公開します。ポータルはサーバーを持たず、各アプリが公開する静的JSONを手元で索引し、同じ値が複数ソースに現れたことを検出して横串を作ります。
+
+| パス | 内容 |
+|---|---|
+| `ui/api/v1/meta.json` | 自己紹介。ポータルが最初に読む（site_url、deep_links、embed_css、stats） |
+| `ui/api/v1/search.json` | 索引本体（エンティティ一覧） |
+
+```bash
+python3 ui/build_portal_index.py            # 索引を再生成
+python3 ui/build_portal_index.py --check    # 既存索引との差分を確認
+python3 ui/build_portal_index.py --validate # 仕様v1の自己検証だけを実行
+```
+
+生成は `generate_ui_data.py` と同じ入力（catalog、caseディレクトリ、campaign相関、`analysis_history.yaml`）から行い、`ui/data.js` は変更しません。UIはそちらに依存し続けます。
+
+エンティティ種別と結合キーの扱い:
+
+- `case`（検体1件）: `id` は `case:<sha256>`、`value` は小文字SHA-256。本文（README／STATIC-LOGIC／FEATURES）は含めず、詳細はdeep linkでUI本体へ渡します。
+- `malware`（ファミリ）: `value` は表示名、`aliases` に別名・ファミリkey・表示名から導出した名前を入れます。ポータルは英数字のみ小文字化して突き合わせるため、`ACRStealer／Amatera` のような表記は分解して別名にします。
+- `campaign`（相関候補）: `id` は `intel:<campaign_id>`、構成ケースとファミリへ `refs` を張ります。
+- `ioc.*`: 同じ値は1エンティティへ畳み、観測元のケースを `refs` に並べます。`host:port` とURLからはホスト単体のエンティティも作り、`ホスト` の `refs` で結びます（これがないとIPでのピボットが効きません）。
+
+索引に入れない値:
+
+- 検体自身のSHA-256と一致するfile-hash IOC（`case` エンティティと重複するため）
+- `file_name`、`Ethereumアドレス`（結合キーとして誤結合の元になるため）
+- Shodanのクエリfield名など、指標ではない値
+
+`generated_at` はHEADのcommit時刻を使うため、同じコミットからは同じ索引が再生成されます（`--check` は `generated_at` を比較対象から除外します）。
+
 ## GitHub Pagesでの公開
 
-`.github/workflows/deploy-pages.yml` により、`main` への push（`ui/`、`analysis-results/`、`analysis_history.yaml` の変更時）と手動実行で自動デプロイします。ワークフローは `data.js` を再生成し、`ui/` だけを軽量に配信します（`analysis-results/` 本体は約276MBあるため同梱しません）。
+`.github/workflows/deploy-pages.yml` により、`main` への push（`ui/`、`analysis-results/`、`analysis_history.yaml` の変更時）と手動実行で自動デプロイします。ワークフローは `data.js` とポータル連携用インデックス（`ui/api/v1/`）を再生成し、`ui/` だけを軽量に配信します（`analysis-results/` 本体は約276MBあるため同梱しません）。
 
 初回のみ、リポジトリ設定で有効化が必要です。
 
