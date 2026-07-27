@@ -11,6 +11,7 @@ from pathlib import Path
 import cabarchive
 import olefile
 import pefile
+from analyze_iso9660 import SECTOR, analyze_iso_image, is_iso9660
 from malware_io import read_aes_zip_members, safety_metadata, sha256_bytes, sha256_file, validate_member_name, write_json
 
 NETWORK = re.compile(rb"(?:https?://[^\x00-\x20\"'<>]{4,300}|(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,24}(?::\d{1,5})?)", re.I)
@@ -76,6 +77,21 @@ def analyze_ole(data: bytes, depth: int) -> dict:
         streams.append(item)
     return {"stream_count": len(streams), "streams": streams}
 
+
+def _enrich_iso_entries(entries: list[dict], image: bytes, depth: int) -> None:
+    """ISO entryへ同じ再帰解析結果を追加する。検体bytesは保存しない。"""
+    for item in entries:
+        if item.get("directory"):
+            _enrich_iso_entries(item.get("children", []), image, depth)
+            continue
+        start = int(item["extent_lba"]) * SECTOR
+        size = int(item["size"])
+        if start < 0 or size < 0 or start + size > len(image):
+            item["analysis_error"] = "ISO entry points outside the image"
+            continue
+        item["analysis"] = analyze_blob(item["path"], image[start:start + size], depth)
+
+
 def analyze_blob(name: str, data: bytes, depth: int = 0) -> dict:
     result = {"name": name, "size": len(data), "sha256": sha256_bytes(data), "magic": data[:16].hex(), "entropy": entropy(data)}
     if data.startswith(b"MZ"):
@@ -92,6 +108,13 @@ def analyze_blob(name: str, data: bytes, depth: int = 0) -> dict:
         result.update(type="zip", zip=analyze_zip(data, depth + 1))
     elif data.startswith(b"MSCF"):
         result.update(type="cab", cab=analyze_cab(data, depth + 1))
+    elif depth < 4 and is_iso9660(data):
+        try:
+            iso = analyze_iso_image(data)
+            _enrich_iso_entries(iso["files"], data, depth + 1)
+            result.update(type="iso9660", iso=iso)
+        except Exception as exc:
+            result.update(type="iso9660", iso_error=f"{type(exc).__name__}: {exc}")
     else:
         result.update(type="data", network_strings=network_strings(data))
     return result

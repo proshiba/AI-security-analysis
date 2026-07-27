@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "case_id": "sha256:12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9"
+    },
+    {
+      "case_id": "sha256:ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+    }
+  ],
+  "collection_id": "targeted-20260727-valleyrat-formbook",
+  "family_sources": [
+    {
+      "family": "formbook",
+      "path": "sources/formbook"
+    },
+    {
+      "family": "valleyrat",
+      "path": "sources/valleyrat"
+    }
+  ],
+  "schema_version": 1
+}

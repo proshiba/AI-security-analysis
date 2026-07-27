@@ -7,6 +7,17 @@ from malware_io import read_single_aes_zip_member, safety_metadata, sha256_bytes
 
 SECTOR = 2048
 
+
+def is_iso9660(image: bytes) -> bool:
+    """ISO9660 primary volume descriptorを境界内で確認する。"""
+    return (
+        len(image) >= 17 * SECTOR
+        and image[16 * SECTOR] == 1
+        and image[16 * SECTOR + 1 : 16 * SECTOR + 6] == b"CD001"
+        and image[16 * SECTOR + 6] == 1
+    )
+
+
 def records(image: bytes, extent: int, size: int, prefix: str = "", depth: int = 0) -> list[dict]:
     if depth > 32:
         raise ValueError("ISO directory depth exceeds safety limit")
@@ -38,6 +49,27 @@ def records(image: bytes, extent: int, size: int, prefix: str = "", depth: int =
         output.append(item)
     return output
 
+
+def analyze_iso_image(image: bytes) -> dict:
+    """raw ISO/IMGをmountせず、全directory entryを棚卸しする。"""
+    if not is_iso9660(image):
+        raise ValueError("not an ISO9660 primary volume descriptor")
+    pvd = image[16 * SECTOR:17 * SECTOR]
+    root_length = pvd[156]
+    if root_length < 34 or 156 + root_length > len(pvd):
+        raise ValueError("invalid ISO9660 root directory record")
+    root = pvd[156:156 + root_length]
+    extent = struct.unpack_from("<I", root, 2)[0]
+    size = struct.unpack_from("<I", root, 10)[0]
+    if extent <= 0 or size <= 0 or extent * SECTOR + size > len(image):
+        raise ValueError("ISO9660 root directory points outside the image")
+    return {
+        "volume_identifier": pvd[40:72].decode("ascii", errors="replace").strip(),
+        "files": records(image, extent, size),
+        "mounted": False,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Inventory an ISO9660 submission without mounting it.")
     parser.add_argument("--outer-zip", required=True, type=Path)
@@ -46,13 +78,13 @@ def main() -> int:
     args = parser.parse_args()
     member = read_single_aes_zip_member(args.outer_zip, password=args.password)
     image = member.data
-    pvd = image[16 * SECTOR:17 * SECTOR]
-    if len(pvd) != SECTOR or pvd[1:6] != b"CD001":
-        raise ValueError("not an ISO9660 primary volume descriptor")
-    root = pvd[156:156 + pvd[156]]
-    extent = struct.unpack_from("<I", root, 2)[0]
-    size = struct.unpack_from("<I", root, 10)[0]
-    result = {"schema_version": 2, "member": member.name, "sha256": member.sha256, "volume_identifier": pvd[40:72].decode("ascii", errors="replace").strip(), "files": records(image, extent, size), "mounted": False, **safety_metadata()}
+    result = {
+        "schema_version": 2,
+        "member": member.name,
+        "sha256": member.sha256,
+        **analyze_iso_image(image),
+        **safety_metadata(),
+    }
     write_json(args.output, result)
     print({"volume": result["volume_identifier"], "entries": len(result["files"])})
     return 0

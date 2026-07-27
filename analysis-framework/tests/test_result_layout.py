@@ -345,6 +345,13 @@ def test_canonical_helpers_and_unclassified_metadata(tmp_path: Path) -> None:
     assert layout.canonical_malware_case_path(
         repository / "analysis-results", "unclassified", digest
     ) == expected
+    uppercase_version = layout.canonical_malware_case_path(
+        repository / "analysis-results",
+        "unclassified",
+        digest,
+        "v11.3.2400.33.W",
+    )
+    assert uppercase_version.parts[-3] == "v11.3.2400.33.W"
     assert layout.canonical_collection_source_path(
         repository / "analysis-results",
         "malwarebazaar-unknown-20260717",

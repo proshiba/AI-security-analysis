@@ -36,6 +36,8 @@ class CanonicalIocView:
 
     sha256: tuple[str, ...]
     network: tuple[dict[str, Any], ...]
+    network_contacted: bool
+    hash_source: str
 
     @property
     def entry_count(self) -> int:
@@ -51,12 +53,17 @@ def is_canonical_case_ioc_document(document: object) -> bool:
         return False
     hashes = document.get("sha256")
     network = document.get("network")
+    hash_source = document.get("hash_source")
     return (
         document.get("schema_version") == 1
         and isinstance(hashes, (str, list))
         and isinstance(network, list)
         and document.get("sample_executed") is False
-        and document.get("network_contacted") is False
+        and isinstance(document.get("network_contacted"), bool)
+        and (
+            hash_source is None
+            or (isinstance(hash_source, str) and bool(hash_source.strip()))
+        )
     )
 
 
@@ -142,7 +149,13 @@ def canonical_ioc_view(
         if normalized_expected not in hashes:
             raise ValueError("case directoryとcanonical iocs.jsonのSHA-256が一致しません")
     network = normalize_confirmed_network_iocs(document.get("network") or [])
-    return CanonicalIocView(hashes, tuple(network))
+    hash_source = str(document.get("hash_source") or "MalwareBazaar取得検体").strip()
+    return CanonicalIocView(
+        hashes,
+        tuple(network),
+        bool(document["network_contacted"]),
+        hash_source,
+    )
 
 
 def _markdown_cell(value: object) -> str:
@@ -192,7 +205,7 @@ def render_canonical_ioc_document(
     view = canonical_ioc_view(document, expected_sha256=expected_sha256)
     lines = ["# IOC 一覧", "", IOC_HEADER, IOC_SEPARATOR]
     for digest in view.sha256:
-        lines.append(f"| SHA-256 | {digest} | 提出検体 | 確認済み | MalwareBazaar取得検体 |")
+        lines.append(f"| SHA-256 | {digest} | 提出検体 | 確認済み | {_markdown_cell(view.hash_source)} |")
     for record in view.network:
         indicator_type, value = _network_ioc_display(record)
         cells = (
@@ -205,10 +218,16 @@ def render_canonical_ioc_document(
         lines.append("| " + " | ".join(_markdown_cell(cell) for cell in cells) + " |")
     lines.extend(["", "汎用文字列走査だけで得たURL、domain、IPは誤検知を含み得るため、C2へ昇格していません。"])
     if view.network:
-        lines.append(
-            "上記network IOCは、ファミリー固有handlerの静的設定構造で確認済みの値だけです。"
-            "到達性は検証していません。"
-        )
+        if view.network_contacted:
+            lines.append(
+                "上記network IOCは、ファミリー固有handlerの静的設定構造で確認済みの値です。"
+                "限定的な到達性確認の時刻・送受信範囲・制約はケースREADMEを参照してください。"
+            )
+        else:
+            lines.append(
+                "上記network IOCは、ファミリー固有handlerの静的設定構造で確認済みの値だけです。"
+                "到達性は検証していません。"
+            )
     else:
         lines.append("設定構造またはファミリー固有処理で裏付けられたC2は、本ケースの追加レビュー対象です。")
     lines.append("")

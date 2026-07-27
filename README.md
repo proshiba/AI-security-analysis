@@ -208,7 +208,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
-| ValleyRAT | 12 | 2026-07-16 | 従来パターンと `cefclient_libcef_sideload_malspam` |
+| ValleyRAT | 13 | 2026-07-27 | 従来パターン、`cefclient_libcef_sideload_malspam`、`iso_pdfcore8_winos_proxy_sideload` |
 | AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTAローダー、直接PE、ISO二重拡張子による配布 |
 | MX-Go（未分類） | 1 | 2026-07-15 | Go製一括メール送信エンジン、遠隔コンテンツ／設定、HTTPキャンペーン制御、日本環境ゲート |
@@ -220,7 +220,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | CHUD Bot（暫定） | 4 | 2026-07-19 | PowerPC/ARM、UPX系譜、複数init永続化、ループバックchallenge/tagプロトコル |
 | Efimer | 4 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
 | PUTA v3（Putita） | 8 | 2026-07-19 | x86/ARMv5/ARMv6/MIPS LE、UPX系譜、認証付き設定復号、暗号化C2、13攻撃ID |
-| Formbook | 21 | 2026-07-20 | 情報窃取設定、.NET ResourceSetローダー、PBKDF2/AES子PE復元、C2候補分離 |
+| Formbook | 22 | 2026-07-27 | 情報窃取設定、.NET ResourceSet、JavaScript→PowerShell→Drive memory loader、C2候補分離 |
 | GendDDoS（Ohshitクラスタ） | 9 | 2026-07-20 | x86/x86-64/ARMv6/ARMv7/ARC/MIPS BE/M68K/SH4、XORテーブル、DNS fallback、14攻撃ハンドラ |
 | Eclipse DDoS Bot（暫定） | 11 | 2026-07-19 | x86-64/i586/i686/ARM/M68K/MIPS LE、平文命令、永続化、競合排除 |
 | JackSkid | 5 | 2026-07-20 | 独自テーブル暗号、ENS/SNS名前解決、Telnet走査、anti-VM |
@@ -256,6 +256,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | 2026-07-15 | `6546aad6` | `upx_nrv2e_silverfox_http_bundle` | 静的深掘りによる復元 | 配布 `43.198.235.91:80`、最終C2は未解決 |
 | 2026-07-15 | `32146526` | `qt_static_obfuscated_silverfox` | 静的解析＋DNS相関 | `cqbxbkj.cn` / `18.167.91.239`、ポート `8880` は未検証 |
 | 2026-07-16 | `f543dcf4` | `cefclient_libcef_sideload_malspam` | 情報源／公開成果物の相関 | `ljowqjd.cn`、最終設定は取得不能 |
+| 2026-07-27 | `ee0ef34a` | `iso_pdfcore8_winos_proxy_sideload` | Ghidra静的深掘り＋PCAP＋限定protocol確認 | `haochisadnka.cc:6685/6698/6699` |
 
 ### AgentTesla / RemcosRAT 解析履歴
 
