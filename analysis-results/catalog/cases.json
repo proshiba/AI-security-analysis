@@ -504,6 +504,13 @@
       "family": "signed-dht-bot",
       "version_key": "2026-07-19-signed-dht"
     },
+    "12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9": {
+      "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9",
+      "case_id": "sha256:12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9",
+      "case_kind": "malware",
+      "family": "formbook",
+      "version_key": "unknown"
+    },
     "12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1": {
       "canonical_path": "analysis-results/malware/amadey/versions/v4.13/cases/12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1",
       "case_id": "sha256:12e5e5bba84f2a618310f72a7fbb40e04bf2f221a13145b3a91bb4707d7130c1",
@@ -6578,6 +6585,13 @@
       "case_kind": "malware",
       "family": "windows-script-stager",
       "version_key": "2026-07-javascript-unicode-separator"
+    },
+    "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791",
+      "case_id": "sha256:ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
     },
     "ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/ee170a14d676b69cab768f8a94e482ee9ad6dc1766038d6e26c24fe2cfbd7677",

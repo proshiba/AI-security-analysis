@@ -4994,3 +4994,22 @@ analyses:
     c2: []
     notes: "配布・窃取先をC2と分離。2つのHTTP先は到達性のみ確認し、HTTP要求・データ送信・PHP実行は未実施。"
     result_path: analysis-results/malware/freepbx-k-php/versions/unknown/cases/3ee8b4e38efa5f872f5f1f4fac720d80eb7c079fc538ef75f2d8a8dc7068ef9f/
+  - malware_type: "ValleyRAT / Winos"
+    analyzed_at: 2026-07-27
+    sample_sha256: ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791
+    analysis_level: deep_static_ghidra_protocol_pcap_bounded_live_review
+    campaign_type: iso_pdfcore8_winos_proxy_sideload
+    matched_patterns: ["ZIP→IMG→正規host＋PDFCore互換DLL", "UNData resource・Winos 10-byte header XOR protocol・command dispatcher"]
+    c2: ["haochisadnka.cc:6685", "haochisadnka.cc:6698", "haochisadnka.cc:6699"]
+    notes: "6685は合成heartbeat 1 frameへ応答、6698はconnect-only成功、6699はtimeout。stage要求、victim metadata、operation commandは未送信。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/
+
+  - malware_type: "FormBookローダー"
+    analyzed_at: 2026-07-27
+    sample_sha256: 12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9
+    analysis_level: deep_static_javascript_powershell_ghidra_memory_review
+    campaign_type: formbook_js_powershell_drive_chain_20260727
+    matched_patterns: ["JavaScript分割PowerShell・ieX索引再構成", "Google Drive 2段配布・Reflection.Emit・RC4系memory unpacker"]
+    c2: []
+    notes: "Drive object 2件を上限付き取得。Google Driveは配布基盤として分離し、最終body、version、C2は未解決。検体は未実行。"
+    result_path: analysis-results/malware/formbook/versions/unknown/cases/12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9/

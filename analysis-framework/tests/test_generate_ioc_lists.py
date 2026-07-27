@@ -342,6 +342,9 @@ def test_generate_discovers_canonical_campaign_and_research(tmp_path: Path) -> N
             "# 解析\n\n## IOC\n\n- C2: `c2.example:443`\n",
             encoding="utf-8",
         )
+    rules = campaign.parent / "rules"
+    rules.mkdir()
+    (rules / "README.md").write_text("# 検知ルール\n", encoding="utf-8")
     (tmp_path / "analysis_history.yaml").write_text("analyses: []\n", encoding="utf-8")
 
     result = generate(tmp_path, write=True)
@@ -349,3 +352,4 @@ def test_generate_discovers_canonical_campaign_and_research(tmp_path: Path) -> N
     assert result["analyses"] == 2
     assert (campaign / "IOC-LIST.md").is_file()
     assert (incident / "IOC-LIST.md").is_file()
+    assert not (rules / "IOC-LIST.md").exists()

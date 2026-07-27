@@ -98,6 +98,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-17 MalwareBazaar 10ファミリ：100件](collections/malwarebazaar-20260717/README.md)
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
 - [2026-07-23 ValleyRAT／ACRStealer追加解析：20件](collections/valleyrat-acrstealer-20260723/README.md)
+- [2026-07-27 ValleyRAT／FormBook個別調査：2件](collections/targeted-20260727-valleyrat-formbook/README.md)
 - [MalwareBazaar 1000検体解析（進行中、batch-0001～0010：99件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査

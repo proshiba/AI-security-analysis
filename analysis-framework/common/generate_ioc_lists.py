@@ -36,6 +36,7 @@ ENDPOINT_RE = re.compile(r"(?i)(?<![\w.-])((?:[a-z0-9-]+\.)+[a-z]{2,63}|(?:\d{1,
 IP_RE = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
 DOMAIN_RE = re.compile(r"(?i)^(?:[a-z0-9-]+\.)+[a-z]{2,63}$")
 CASE_HASH_RE = re.compile(r"(?i)^[0-9a-f]{64}$")
+CAMPAIGN_SUPPORT_DIRECTORIES = {"docs", "rules", "scripts", "tools"}
 RELEVANT_HEADING = re.compile(
     r"(?i)(ioc|c2|network|infrastructure|endpoint|config|通信|ネットワーク|インフラ|エンドポイント|設定|侵害指標)"
 )
@@ -382,7 +383,10 @@ def analysis_directories(results_root: Path, history: dict[str, dict]) -> list[P
                 output.add(readme.parent)
         if "campaigns" in parent_parts:
             index = parent_parts.index("campaigns")
-            if len(parent_parts) - index - 1 in {1, 2}:
+            if (
+                len(parent_parts) - index - 1 in {1, 2}
+                and readme.parent.name not in CAMPAIGN_SUPPORT_DIRECTORIES
+            ):
                 output.add(readme.parent)
         if (
             len(parent_parts) >= 3

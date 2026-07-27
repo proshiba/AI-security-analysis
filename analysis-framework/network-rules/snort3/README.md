@@ -5,6 +5,7 @@
 ## 現在の成果物
 
 - `mta-20260726-candidates.rules`: Malware-Traffic-Analysis.netのWindows感染PCAP 50件から作成し、人手レビューで背景通信を除外した11候補
+- `valleyrat-winos-20260727.rules`: ValleyRAT/WinosのPCAPと逆コンパイルで確認した15-byte heartbeat frame候補
 
 各候補の正例capture、初回・最終観測日、経過日数、制約は次を参照してください。
 
@@ -28,3 +29,7 @@
 - live C2や配布先へ接続しない。
 - 単一IP、単一domain、共有serviceだけで悪性判定しない。
 - 古いPCAPだけで観測した候補は`legacy`または再検証必須として扱う。
+
+## ValleyRAT/Winos候補の制約
+
+`valleyrat-winos-20260727.rules`は、全長15 byteとsession header末尾`ca 00`を組み合わせた候補です。時刻値を含む先頭headerは固定できないため、単一packetだけで悪性確定しません。ValleyRATのプロセス、DLL hash、6685/TCPへの周期接続、登録frameとの相関を前提にします。6698のstage要求は再現・送信していません。

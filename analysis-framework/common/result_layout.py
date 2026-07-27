@@ -20,7 +20,7 @@ SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 VERSION_KEY_RE = re.compile(
-    r"^(?:unknown|v[a-z0-9][a-z0-9.-]{0,47}|20\d{2}-[a-z0-9][a-z0-9.-]{0,42})$"
+    r"^(?:unknown|v[A-Za-z0-9][A-Za-z0-9.-]{0,47}|20\d{2}-[A-Za-z0-9][A-Za-z0-9.-]{0,42})$"
 )
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 COLLECTION_RE = re.compile(

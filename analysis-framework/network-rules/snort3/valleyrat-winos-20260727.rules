@@ -1,0 +1,4 @@
+# ValleyRAT/WinosのPCAPと逆コンパイルで確認したheartbeat候補。
+# operation commandは含まず、Snort 3と無害PCAP corpusで検証するまではcandidate扱いとする。
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"MALWARE ValleyRAT Winos heartbeat frame candidate"; flow:to_server,established; dsize:15; content:"|0f 00 00 00|",depth 4,fast_pattern; content:"|ca 00|",offset 12,depth 2; classtype:trojan-activity; sid:9100051; rev:1;)
