@@ -880,6 +880,51 @@ def test_publish_preflights_all_sources_before_any_repository_write(tmp_path: Pa
     assert not (repository / "analysis-results").exists()
 
 
+def test_acquisition_manifest_count_accepts_requested_50() -> None:
+    """要求件数50件の完了manifestを100件固定で拒否しない。"""
+
+    items = [{"sha256": f"{index:064x}"} for index in range(50)]
+    requested, validated = publisher._validate_acquisition_manifest_count(
+        {
+            "requested": 50,
+            "complete": True,
+            "downloaded": 50,
+            "items": items,
+        }
+    )
+    assert requested == 50
+    assert validated == items
+
+
+def test_acquisition_manifest_count_keeps_legacy_100_default() -> None:
+    """requestedを持たない旧manifestは従来どおり100件として検証する。"""
+
+    items = [{"sha256": f"{index:064x}"} for index in range(100)]
+    requested, validated = publisher._validate_acquisition_manifest_count(
+        {
+            "complete": True,
+            "downloaded": 100,
+            "items": items,
+        }
+    )
+    assert requested == 100
+    assert validated == items
+
+
+def test_acquisition_manifest_count_rejects_incomplete_requested_batch() -> None:
+    """要求件数と取得件数が異なるmanifestを拒否する。"""
+
+    with pytest.raises(ValueError, match="要求件数50件"):
+        publisher._validate_acquisition_manifest_count(
+            {
+                "requested": 50,
+                "complete": True,
+                "downloaded": 49,
+                "items": [{"sha256": f"{index:064x}"} for index in range(49)],
+            }
+        )
+
+
 def test_publish_rejects_mixed_analysis_contracts_before_writing(tmp_path: Path) -> None:
     """分割runのanalysis contractが1件でも異なれば書込み前に拒否する。"""
 

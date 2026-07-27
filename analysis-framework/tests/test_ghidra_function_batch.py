@@ -62,6 +62,105 @@ def test_managed_cil_parser_diagnostics_do_not_leak(
     assert "SECRET_DNFILE_DIAGNOSTIC" not in captured.err
 
 
+def test_managed_program_uses_cil_primary_without_auto_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """managed PEはGhidra auto-analysisを起動せずCIL正本で処理する。"""
+
+    class ManagedClient:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, dict[str, object]]] = []
+            self.imported = False
+
+        def get(self, endpoint: str, **query: object) -> object:
+            self.calls.append(("get", endpoint, query))
+            if endpoint == "/open_program":
+                raise target.GhidraMcpError("not imported")
+            if endpoint == "/analysis_status":
+                if not self.imported:
+                    raise target.GhidraMcpError("not imported")
+                return {
+                    "analyzing": False,
+                    "analyzed": False,
+                    "should_ask_to_analyze": True,
+                }
+            if endpoint in {
+                "/get_metadata",
+                "/list_imports",
+                "/list_exports",
+                "/list_strings",
+                "/list_segments",
+                "/get_entry_points",
+                "/save_all_programs",
+            }:
+                return [] if endpoint != "/get_metadata" else {}
+            raise AssertionError(f"予期しないGET endpoint: {endpoint}")
+
+        def post(
+            self,
+            endpoint: str,
+            body: dict[str, object],
+            **query: object,
+        ) -> object:
+            self.calls.append(("post", endpoint, {**query, "body": body}))
+            if endpoint == "/import_file":
+                self.imported = True
+                assert body["auto_analyze"] is False
+                return {
+                    "path": (
+                        "/Malware/Test/"
+                        f"{digest[:8]}/{input_path.name}"
+                    )
+                }
+            if endpoint == "/close_program":
+                return {}
+            raise AssertionError(f"予期しないPOST endpoint: {endpoint}")
+
+    data = b"MZ" + b"\x00" * 510
+    digest = hashlib.sha256(data).hexdigest()
+    input_path = tmp_path / f"{digest}.quarantine.bin"
+    input_path.write_bytes(data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=input_path,
+        size=len(data),
+        relationships=[
+            {
+                "case_sha256": digest,
+                "depth": 0,
+                "transform": "root",
+            }
+        ],
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: True)
+    monkeypatch.setattr(
+        target,
+        "_all_functions",
+        lambda _client, _program: pytest.fail(
+            "managed CIL正本経路でGhidra疑似関数を列挙してはならない"
+        ),
+    )
+    monkeypatch.setattr(target, "_managed_cil_records", lambda *_args: [])
+
+    client = ManagedClient()
+    result = target.analyze_program(
+        client,
+        item,
+        tmp_path / "private",
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+
+    assert result["analysis_mode"] == "managed_cil_primary_with_ghidra_structure"
+    assert result["mcp_responses_valid"] is True
+    assert all(call[1] != "/run_analysis" for call in client.calls)
+    assert all(call[1] != "/get_full_call_graph" for call in client.calls)
+    assert all(call[1] != "/list_strings" for call in client.calls)
+    assert all(call[1] != "/get_entry_points" for call in client.calls)
+    assert all(call[1] != "/save_program" for call in client.calls)
+
+
 def test_client_accepts_only_local_plain_http() -> None:
     """Ghidra MCP接続先をlocalhostの平文HTTPに限定する。"""
 
@@ -990,9 +1089,13 @@ def test_finalize_collection_does_not_register_partial_cases(
     assert manifest["complete"] is False
     assert manifest["analysis_complete"] is False
     assert manifest["case_state_counts"] == {"partial": 1}
+    assert manifest["case_blocker_counts"] == {"generic_triage_partial": 1}
     readme = (collection / "README.md").read_text(encoding="utf-8")
     assert "partial_followup_required" in readme
     assert "case状態: complete 0 / partial 1 / triaged_unknown 0" in readme
+    assert "関数単位の静的解析とは別に" in readme
+    assert "`generic_triage_partial` | 1" in readme
+    assert "能動接続を行っていません" in readme
 
 
 def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
@@ -1337,3 +1440,162 @@ def test_authenticated_public_layers_reject_invalid_or_missing_seals(
 
     with pytest.raises(ValueError, match="seal"):
         target._load_authenticated_public_layers(case_dir)
+
+
+def test_refresh_promotes_short_initial_cache_after_project_rotation(
+    tmp_path: Path,
+) -> None:
+    """project退避後も要求上限未満の初回応答から完全取得証跡を復元する。"""
+
+    digest = "a" * 64
+    program = f"/Malware/Test/{digest[:8]}/{digest}.quarantine.bin"
+    object_dir = tmp_path / "objects" / digest
+    object_dir.mkdir(parents=True)
+    target._json_dump(
+        object_dir / "ghidra-raw-index.json",
+        {
+            "program_selector": program,
+            "functions": [],
+            "imports": [{"name": "CreateFileW"}],
+            "exports": "entry -> 00401000",
+            "strings": "config.dat\nPOST /gate",
+            "segments": ".text: 00401000 - 00401fff",
+            "opcode_hashes": {"functions": []},
+        },
+    )
+    result = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "program_selector": program,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "functions": [],
+        "opcode_hashes": {"functions": []},
+    }
+
+    class RotatedProjectClient:
+        def get(self, endpoint: str, **_query: object) -> object:
+            assert endpoint == "/open_program"
+            raise target.GhidraMcpError("programは退避済み")
+
+        def post(
+            self,
+            endpoint: str,
+            body: dict[str, object],
+            **_query: object,
+        ) -> object:
+            raise AssertionError(f"退避済みprogramへPOSTしてはいけません: {endpoint} {body}")
+
+    totals = target.refresh_complete_program_artifacts(
+        RotatedProjectClient(),
+        {digest: result},
+        tmp_path,
+    )
+
+    assert totals["programs"] == 1
+    assert totals["promoted_cached_programs"] == 1
+    saved = target.load_json_object_strict(object_dir / "program-result.json")
+    assert saved["all_static_analysis_content_retained"] is True
+    assert saved["retrieval_coverage"]["imports"]["complete"] is True
+    assert (
+        saved["retrieval_coverage"]["imports"]["source"]
+        == "authenticated_initial_response_cache"
+    )
+    assert saved["retrieval_coverage"]["strings"]["item_count"] == 2
+
+
+def test_refresh_rejects_truncated_initial_cache_after_project_rotation(
+    tmp_path: Path,
+) -> None:
+    """要求上限と同数の初回応答は完全と推測せずfail-closedにする。"""
+
+    digest = "b" * 64
+    program = f"/Malware/Test/{digest[:8]}/{digest}.quarantine.bin"
+    object_dir = tmp_path / "objects" / digest
+    object_dir.mkdir(parents=True)
+    target._json_dump(
+        object_dir / "ghidra-raw-index.json",
+        {
+            "program_selector": program,
+            "functions": [],
+            "imports": [{} for _ in range(10000)],
+            "exports": [],
+            "strings": [],
+            "segments": [],
+            "opcode_hashes": {"functions": []},
+        },
+    )
+    result = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "program_selector": program,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "functions": [],
+        "opcode_hashes": {"functions": []},
+    }
+
+    class MissingProgramClient:
+        def get(self, endpoint: str, **_query: object) -> object:
+            assert endpoint == "/open_program"
+            raise target.GhidraMcpError("programは退避済み")
+
+    with pytest.raises(target.GhidraMcpError, match="退避済み"):
+        target.refresh_complete_program_artifacts(
+            MissingProgramClient(),
+            {digest: result},
+            tmp_path,
+        )
+
+
+def test_run_can_prepare_without_contacting_mcp(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """上限0では入力を準備し、MCPへ接続せず再開可能な進捗を保存する。"""
+
+    digest = "c" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / "sample.quarantine.bin",
+        size=16,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: ({digest: item}, {}),
+    )
+    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args: None)
+    monkeypatch.setattr(
+        target,
+        "analyze_program",
+        lambda *args, **kwargs: pytest.fail("MCP解析を呼び出してはいけません"),
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+            "--max-new-programs",
+            "0",
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["status"] == "ghidra_chunk_pending"
+    assert result["newly_analyzed_programs"] == 0
+    assert result["pending_programs"] == [digest]
+    saved = target.load_json_object_strict(private_output / "run-progress.json")
+    assert saved["pending_programs"] == [digest]

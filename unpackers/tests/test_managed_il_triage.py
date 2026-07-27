@@ -157,6 +157,49 @@ def test_analyze_managed_pe_inventory_and_conservative_techniques(
     )
 
 
+def test_method_reader_receives_bounded_window_for_extra_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """例外処理sectionを含む正常methodをcode末尾で切り詰めない。"""
+
+    original_data, pe, original_reader = fake_managed_pe()
+    data = bytearray(original_data)
+    first_method_offset = 4_500
+    struct.pack_into("<H", data, first_method_offset, 0x300B)
+    struct.pack_into("<H", data, first_method_offset + 2, 8)
+    struct.pack_into("<I", data, first_method_offset + 4, 1)
+    struct.pack_into("<I", data, first_method_offset + 8, 0)
+    data[first_method_offset + 12] = 0x2A
+    observed_lengths: list[int] = []
+
+    def section_aware_reader(body_bytes: bytes) -> object:
+        observed_lengths.append(len(body_bytes))
+        if body_bytes[0] & 0x03 == 0x03:
+            if len(body_bytes) <= 13:
+                raise ValueError("extra method sectionが切り詰められています")
+            return SimpleNamespace(size=20, instructions=[instruction("ret")])
+        return original_reader(body_bytes)
+
+    monkeypatch.setattr(
+        managed,
+        "dnfile",
+        SimpleNamespace(__version__="test", dnPE=lambda **_kwargs: pe),
+    )
+    monkeypatch.setattr(managed, "read_method_body_from_bytes", section_aware_reader)
+
+    result = managed.analyze_managed_pe(bytes(data), max_method_bytes=64)
+
+    assert result["counts"]["methods_parsed"] == 4
+    assert result["counts"]["malformed_method_bodies"] == 1
+    assert observed_lengths == [64, 11, 11, 11]
+    assert [method.get("parse_window_size") for method in result["methods"][:4]] == [
+        64,
+        11,
+        11,
+        11,
+    ]
+
+
 def test_parser_diagnostics_suppresses_logger_created_inside_scope(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -246,10 +289,10 @@ def test_all_budgets_are_enforced(monkeypatch: pytest.MonkeyPatch) -> None:
         managed.analyze_managed_pe(b"MZ", max_methods=0)
 
 
-def test_exact_method_slice_and_single_signal_is_inconclusive(
+def test_bounded_method_window_and_single_signal_is_inconclusive(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Bound dncil input exactly and reject one-switch/resource over-attribution."""
+    """dncil入力をmethod上限内に収め、単一signalの過剰帰属を拒否する。"""
     data, pe, body_reader = fake_managed_pe()
     observed_lengths: list[int] = []
 
