@@ -439,15 +439,16 @@ def build_meta(data: dict, entities: list[dict], generated_at: str) -> dict:
             "ioc.sha1": "#/iocs?q={detail}",
             "ioc.sha256": "#/iocs?q={detail}",
             "ioc.email": "#/iocs?q={detail}",
-            "_graph": "#/graph?root={detail}",
+            # `_graph` は出さない。グラフ調査はポータル(research_bench)側の
+            # workbenchに集約したため、ポータルの graphLink() がこちらへ
+            # 送り出さないようにする。
         },
-        "capabilities": ["iframe", "deep-link", "graph"],
+        "capabilities": ["iframe", "deep-link"],
         # iframe埋め込み時にポータル側のクロームと二重にならないよう、
-        # このUIのヘッダー・フッターを隠し、グラフ画面の高さを補正する。
+        # このUIのヘッダー・フッターを隠す。
         "embed_css": (
             "header.topbar, footer.footer { display: none !important; } "
-            "#app { padding-top: 0 !important; } "
-            ".graph-wrap { height: calc(100vh - 53px) !important; }"
+            "#app { padding-top: 0 !important; }"
         ),
         "stats": {
             "case": counts.get("case", 0),

@@ -55,6 +55,22 @@
     return (f && (f.label || f.title)) || key;
   }
 
+  // グラフ調査は横断ポータル(research_bench)側に集約したため、このUIは持たない。
+  // ポータルのworkbenchはURL引数を取らないので、公開ルートである検索へ値を渡す。
+  // 検索結果の「グラフで開く」からworkbenchのグラフへ入れる。
+  var PORTAL_BASE = "https://proshiba.github.io/research_bench/";
+
+  function portalSearchUrl(value) {
+    return PORTAL_BASE + "#/search/" + encodeURIComponent(value);
+  }
+
+  // iframe埋め込み時にポータル内でネストしないよう、常に最上位で開く。
+  function portalLink(value, text, extraClass, title) {
+    return '<a class="' + (extraClass || "") + '" target="_top"' +
+      ' title="' + esc(title || "ポータルのグラフ調査で開く") + '"' +
+      ' href="' + esc(portalSearchUrl(value)) + '">' + text + "</a>";
+  }
+
   // 成果物ファイル・結果ディレクトリへのリンク。GitHub Pages等で成果物本体を
   // 同梱しない配信では、DB.repo が示すGitHub上の該当パスへ向ける。
   // 検出できなければリポジトリ直下配信を想定した相対パスへフォールバックする。
@@ -125,7 +141,6 @@
     document.body.removeChild(ta);
   }
   window.__copy = copyText; // onclick 用
-  window.__toast = toast;   // graph.js から利用
 
   /* ---------- 最小Markdownレンダラ ---------- */
 
@@ -259,14 +274,12 @@
     document.querySelectorAll(".nav a").forEach(function (a) {
       a.classList.toggle("active", a.getAttribute("data-nav") === page);
     });
-    app.classList.toggle("full", page === "graph");
     window.scrollTo(0, 0);
     try {
       if (page === "dashboard") return viewDashboard();
       if (page === "families") return viewFamilies();
       if (page === "cases") return viewCases(r.query);
       if (page === "iocs") return viewIocs(r.query);
-      if (page === "graph") return window.renderGraphView(app, r.query);
       if (page === "intel" && r.parts[1]) return viewIntelDetail(decodeURIComponent(r.parts[1]));
       if (page === "intel") return viewIntelList(r.query);
       if (page === "family" && r.parts[1]) return viewFamily(r.parts[1], r.query);
@@ -522,7 +535,7 @@
         "<td>" + confBadge(r.ioc.confidence) + "</td>" +
         "<td class='nowrap'><a href='#/family/" + esc(r.family) + "'>" + esc(familyLabel(r.family)) + "</a></td>" +
         "<td class='mono nowrap'><a href='#/case/" + r.sha256 + "'>" + shortSha(r.sha256) + "</a></td>" +
-        "<td class='nowrap'><a class='btn small' title='この値を起点にグラフ調査' href='#/graph?root=" + encodeURIComponent(r.ioc.value) + "'>⊕</a></td></tr>";
+        "<td class='nowrap'>" + portalLink(r.ioc.value, "⊕", "btn small") + "</td></tr>";
     });
     html += "</tbody></table></div>" + pager(page, pages);
     app.innerHTML = html;
@@ -575,7 +588,8 @@
     var html = '<h1 class="page-title">キャンペーン相関候補</h1>' +
       '<p class="page-sub">共有インフラ・共有指標に基づくcampaign候補 ' + INTEL.campaigns.length + ' 群' +
       (INTEL.source ? '（生成元: <code>' + esc(INTEL.source) + "</code>）" : "") +
-      '。同一アクターへの帰属を意味しません。コード類似リンクは <a href="#/graph">グラフ調査</a> でも辿れます。</p>';
+      '。同一アクターへの帰属を意味しません。グラフでのpivot調査は' +
+      ' <a target="_top" href="' + esc(PORTAL_BASE) + '">横断ポータル</a> に集約しています。</p>';
 
     html += '<div class="filterbar">' +
       '<input type="search" id="il-q" placeholder="candidate ID / ファミリ / 指標値 / SHA-256 で検索" value="' + esc(q.q || "") + '">' +
@@ -599,7 +613,7 @@
           "<td>" + confBadge(g.confidence) + "</td>" +
           "<td>" + inds + "</td>" +
           "<td class='num'>" + esc(g.max_pair_score === null || g.max_pair_score === undefined ? "" : g.max_pair_score) + "</td>" +
-          "<td class='nowrap'><a class='btn small' title='グラフで調査' href='#/graph?root=" + encodeURIComponent("intel:" + g.id) + "'>⊕</a></td></tr>";
+          "<td class='nowrap'>" + portalLink(g.id, "⊕", "btn small") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -635,7 +649,7 @@
       confBadge(g.confidence) + " " +
       (g.classification ? '<span class="badge mono">' + esc(g.classification) + "</span> " : "") +
       (g.max_pair_score !== null && g.max_pair_score !== undefined ? '<span class="badge">最大pairスコア ' + g.max_pair_score + "</span> " : "") +
-      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("intel:" + g.id) + '">グラフで調査</a>' +
+      portalLink(g.id, "ポータルのグラフで調査", "btn small") +
       "</div>" +
       '<dl class="kv">' +
       kvRow("ファミリ", g.families.map(function (f) {
@@ -651,7 +665,7 @@
         html += "<tr><td class='nowrap'>" + esc(s.type) + "</td>" +
           "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(s.value) + ")' title='クリックでコピー'>" + esc(s.value) + "</a></td>" +
           "<td class='num'>" + esc(s.support) + "</td>" +
-          "<td class='nowrap'><a class='btn small' title='この値を起点にグラフ調査' href='#/graph?root=" + encodeURIComponent(s.value) + "'>⊕</a></td></tr>";
+          "<td class='nowrap'>" + portalLink(s.value, "⊕", "btn small") + "</td></tr>";
       });
       html += "</tbody></table></div></div>";
     }
@@ -717,7 +731,7 @@
       (lastAnalyzed ? '<span class="badge green">最終解析 ' + esc(lastAnalyzed) + "</span> " : "") +
       '<span class="badge">' + iocCount + " IOC</span> " +
       '<span class="badge">' + (f.rules.length + caseRules.length) + " ルール</span> " +
-      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("family:" + key) + '">グラフで調査</a>' +
+      portalLink(f.label || key, "ポータルのグラフで調査", "btn small") +
       "</div>";
     var versionBadges = Object.keys(versions).sort().map(function (v) {
       return '<span class="chip">' + esc(v === "unknown" ? "版不明" : v) + " × " + versions[v] + "</span>";
@@ -815,7 +829,7 @@
       '<div class="muted small"><a href="#/family/' + esc(c.family) + '">' + esc(familyLabel(c.family)) + "</a> のケース</div>" +
       '<div class="hash-line"><code>' + c.sha256 + "</code>" +
       '<button class="btn small" onclick="__copy(' + JSON.stringify(c.sha256) + ')">コピー</button>' +
-      '<a class="btn small" href="#/graph?root=' + encodeURIComponent("case:" + c.sha256) + '">グラフで調査</a></div>' +
+      portalLink(c.sha256, "ポータルのグラフで調査", "btn small") + "</div>" +
       '<div style="margin-top:8px">' +
       (c.campaign_type ? '<span class="badge accent mono">' + esc(c.campaign_type) + "</span> " : "") +
       (c.version_key !== "unknown" ? '<span class="badge green">版 ' + esc(c.version_key) + "</span> " : '<span class="badge">版不明</span> ') +
@@ -839,7 +853,7 @@
       html += '<div class="section"><h2>C2 / ネットワーク指標 (' + c.c2.length + ")</h2><div>" +
         c.c2.map(function (v) {
           return '<span class="chip"><a href="javascript:void(0)" onclick="__copy(' + JSON.stringify(v) + ')" title="クリックでコピー">' + esc(v) + "</a>" +
-            ' <a href="#/graph?root=' + encodeURIComponent(v) + '" title="この値を起点にグラフ調査">⊕</a></span>';
+            " " + portalLink(v, "⊕") + "</span>";
         }).join("") +
         '<div class="muted small" style="margin-top:6px">値はケースのIOC一覧・解析履歴からの集約です。役割・確度は下のIOC表と履歴を参照してください。</div></div></div>';
     }
