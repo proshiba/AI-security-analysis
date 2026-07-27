@@ -851,6 +851,22 @@ def find_case_source(one_shots: list[Path], digest: str) -> Path:
         f"完了case sourceまたは明示family追加解析は1件必要です: {digest} (全{len(matches)}件、明示{len(explicit)}件)"
     )
 
+def _validate_acquisition_manifest_count(manifest: dict[str, Any]) -> tuple[int, list[Any]]:
+    """取得manifestの要求件数と完了件数を検証する。
+
+    ``requested`` を持たない旧manifestは、従来仕様の100件として扱う。
+    """
+
+    requested = manifest.get("requested", 100)
+    if isinstance(requested, bool) or not isinstance(requested, int) or requested <= 0:
+        raise ValueError("取得manifestのrequestedは正の整数である必要があります")
+    if manifest.get("complete") is not True or manifest.get("downloaded") != requested:
+        raise ValueError(f"取得manifestが要求件数{requested}件を完了していません")
+    items = manifest.get("items")
+    if not isinstance(items, list) or len(items) != requested:
+        raise ValueError(f"取得manifestのitemsが要求件数{requested}件ではありません")
+    return requested, items
+
 
 def publish(
     repository: Path,
@@ -867,11 +883,7 @@ def publish(
         expected_contract_sha256 = normalize_sha256_digest(expected_contract_sha256)
     results = repository / "analysis-results"
     manifest = load_json(manifest_path)
-    if manifest.get("complete") is not True or manifest.get("downloaded") != 100:
-        raise ValueError("取得manifestが100件完了していません")
-    items = manifest.get("items")
-    if not isinstance(items, list) or len(items) != 100:
-        raise ValueError("取得manifestのitemsが100件ではありません")
+    requested_count, items = _validate_acquisition_manifest_count(manifest)
     validated_sources = {}
     source_stages: dict[str, str] = {}
     baseline_contract: dict[str, Any] | None = None
@@ -906,7 +918,7 @@ def publish(
         raise ValueError("検証済みanalysis contractがありません")
     analysis_contract_sha256 = normalize_sha256_digest(baseline_contract.get("sha256"))
 
-    # 全100件のsourceを検証し終えるまでcollection/caseへ一切書き込まない。
+    # 全要求件数のsourceを検証し終えるまでcollection/caseへ一切書き込まない。
     publication_stage = (
         "analysis_followup_pending" if "analysis_followup_pending" in source_stages.values() else "complete"
     )
@@ -977,11 +989,10 @@ def publish(
     static_config_count = sum(bool(item["static_config_recovered"]) for item in summaries)
     confirmed_c2_count = sum(item["confirmed_static_c2_observations"] for item in summaries)
     display = collection_display_metadata(manifest, items)
-    requested_count = len(items)
     lines = [
         f"# MalwareBazaar Windows検体{requested_count}件（{display['selected_date']}）",
         "",
-        f"MalwareBazaarのWindows対象照会を統合し、既解析SHA-256を除外して取得日時の新しい順に{requested_count}件を固定しました。形式内訳は{display['type_summary']}です。暗号化ZIPはリポジトリ外に保持し、検体を実行せず静的解析しました。",
+        f"MalwareBazaarのWindows対象照会を統合し、既解析SHA-256を除外して取得日時の新しい順に{requested_count}件を固定しました。形式内訳は{display['type_summary']}です。取得時の暗号化ZIPはリポジトリ外で照合し、検証済み隔離入力だけを保持して、検体を実行せず静的解析しました。",
         "",
         f"- 対象期間: `{display['first_seen_newest']}`〜`{display['first_seen_oldest']}`",
         f"- 取得: `{manifest.get('downloaded')}/{requested_count}`、pending `{manifest.get('pending')}`",

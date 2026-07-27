@@ -878,15 +878,41 @@ def analyze_managed_pe(
                 continue
             if offset + header_size + code_size > len(data):
                 raise ValueError("declared CIL body extends beyond input")
-            body = read_method_body_from_bytes(
-                data[offset : offset + header_size + code_size]
+            minimum_body_size = header_size + code_size
+            flags_and_size = (
+                struct.unpack_from("<H", data, offset)[0]
+                if data[offset] & 0x03 == 0x03
+                else 0
             )
+            has_extra_sections = bool(flags_and_size & 0x08)
+            parse_window_ceiling = min(max_method_bytes, len(data) - offset)
+            parse_window_size = min(
+                parse_window_ceiling,
+                max(minimum_body_size, 4096 if has_extra_sections else minimum_body_size),
+            )
+            while True:
+                try:
+                    body = read_method_body_from_bytes(
+                        data[offset : offset + parse_window_size]
+                    )
+                    break
+                except Exception:
+                    if not has_extra_sections or parse_window_size >= parse_window_ceiling:
+                        raise
+                    parse_window_size = min(
+                        parse_window_ceiling,
+                        max(parse_window_size * 2, minimum_body_size),
+                    )
             parsed_instructions = list(getattr(body, "instructions", ()) or ())
             remaining = max_instructions - totals["instructions_counted"]
             counted = parsed_instructions[:remaining]
             metrics = _instruction_metrics(counted)
             method.update(metrics)
-            method["body_size"] = int(getattr(body, "size", header_size + code_size))
+            body_size = int(getattr(body, "size", header_size + code_size))
+            if body_size > max_method_bytes:
+                raise ValueError("parsed CIL body exceeds method byte budget")
+            method["body_size"] = body_size
+            method["parse_window_size"] = parse_window_size
             method["parse_status"] = "parsed"
             if len(parsed_instructions) > len(counted):
                 method["parse_status"] = "parsed_partial_instruction_budget"
