@@ -418,6 +418,13 @@
       "provisional_cluster_id": "genesisstealer",
       "version_key": "unknown"
     },
+    "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48": {
+      "canonical_path": "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48",
+      "case_id": "sha256:0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48",
+      "case_kind": "malware",
+      "family": "purelogs",
+      "version_key": "unknown"
+    },
     "0f80c3794028f18cf3602f2d12964b1fa740aaac3b38767bbb981851f88b4966": {
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/0f80c3794028f18cf3602f2d12964b1fa740aaac3b38767bbb981851f88b4966",
       "case_id": "sha256:0f80c3794028f18cf3602f2d12964b1fa740aaac3b38767bbb981851f88b4966",

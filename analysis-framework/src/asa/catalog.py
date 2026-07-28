@@ -54,6 +54,7 @@ _STEPS = {
         StepSpec("family.lummastealer.config", 1),
         StepSpec("family.donutloader.layers", 1),
         StepSpec("family.purehvnc.config", 1),
+        StepSpec("family.purelogs.config", 1),
         StepSpec("family.remcosrat.config", 1),
         StepSpec("family.remusstealer.config", 1),
         StepSpec("family.spyglace.config", 1),

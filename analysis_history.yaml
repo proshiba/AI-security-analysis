@@ -5013,3 +5013,12 @@ analyses:
     c2: []
     notes: "Drive object 2件を上限付き取得。Google Driveは配布基盤として分離し、最終body、version、C2は未解決。検体は未実行。"
     result_path: analysis-results/malware/formbook/versions/unknown/cases/12dadccc337579815e4a1245a6a01931445e510c63388b7c90b87b865af42be9/
+  - malware_type: "PureLogs（PureRAT/PureHVNC同梱候補）"
+    analyzed_at: 2026-07-29
+    sample_sha256: 0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48
+    analysis_level: deep_static_python_dotnet_memory_ghidra_pcap_bounded_live_review
+    campaign_type: purelogs_japanese_malspam_appv_sideload_20260728
+    matched_patterns: ["改名WinWord.exe・AppV DLLサイドローディング", "内包Python 3.14・CLRラッパー・PureLogs/PureRAT候補同時展開"]
+    c2: ["logs.uvexio.com:8443", "tea.vexexo.com:56001"]
+    notes: "Triageの2つのPCAPとメモリから通信と管理コードを復元。logs側はGET /pingだけで稼働確認、tea側はTCP接続のみ成立しTLSサービスは未確認。検体はローカル実行していない。"
+    result_path: analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/

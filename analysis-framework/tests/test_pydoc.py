@@ -78,6 +78,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "unpackers.index_xor_pe_unpacker",
         "unpackers.path_safety",
         "extractors.purehvnc.extractor",
+        "extractors.purelogs.extractor",
         "extractors.donutloader.extractor",
         "emulators.purehvnc.lab",
         "extractors.common",

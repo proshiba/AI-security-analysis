@@ -8,8 +8,8 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.config_extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cconfig_extractor.py">c:\users\administrator\ai-security-analysis\extractors\config_extractor.py</a></td></tr></table>
-    <p><span class="code">Unified&nbsp;CLI&nbsp;and&nbsp;dispatcher&nbsp;for&nbsp;all&nbsp;supported&nbsp;malware&nbsp;config&nbsp;extractors.</span></p>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cextractors%5Cconfig_extractor.py">c:\users\administrator\ai-security-analysis-daily-20260727\extractors\config_extractor.py</a></td></tr></table>
+    <p><span class="code">対応済みマルウェア設定抽出器を統合するCLIとディスパッチャー。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -24,11 +24,11 @@
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;the&nbsp;unified&nbsp;extractor&nbsp;CLI&nbsp;parser.</span></dd></dl>
- <dl><dt><a name="-extract_file"><strong>extract_file</strong></a>(family: 'str', sample: 'Path') -&gt; 'dict'</dt><dd><span class="code">Read&nbsp;a&nbsp;sample&nbsp;once&nbsp;and&nbsp;run&nbsp;its&nbsp;offline&nbsp;family&nbsp;extractor.</span></dd></dl>
- <dl><dt><a name="-get_extractor"><strong>get_extractor</strong></a>(family: 'str') -&gt; 'Extractor'</dt><dd><span class="code">Return&nbsp;a&nbsp;supported&nbsp;extractor&nbsp;or&nbsp;raise&nbsp;a&nbsp;clear&nbsp;error.</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;one&nbsp;extractor&nbsp;and&nbsp;write&nbsp;deterministic&nbsp;JSON.</span></dd></dl>
- <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">Normalize&nbsp;accepted&nbsp;family&nbsp;aliases&nbsp;to&nbsp;definition&nbsp;IDs.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">統合抽出器CLIの引数解析器を構築する。</span></dd></dl>
+ <dl><dt><a name="-extract_file"><strong>extract_file</strong></a>(family: 'str', sample: 'Path') -&gt; 'dict'</dt><dd><span class="code">検体を一度だけ読み込み、オフラインのファミリー抽出器を実行する。</span></dd></dl>
+ <dl><dt><a name="-get_extractor"><strong>get_extractor</strong></a>(family: 'str') -&gt; 'Extractor'</dt><dd><span class="code">対応する抽出器を返し、未対応時は明確なエラーを送出する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">抽出器を1件実行し、決定的なJSONを書き出す。</span></dd></dl>
+ <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">受理したファミリー別名を定義IDへ正規化する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -36,9 +36,8 @@
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ALIASES</strong> = {'acr-stealer': 'acrstealer', 'amos': 'amosstealer', 'async-rat': 'asyncrat', 'atlas': 'atlascross', 'atomicstealer': 'amosstealer', 'bladabindi': 'njrat', 'cloud eye': 'guloader', 'dark-comet': 'darkcomet', 'dc-rat': 'dcrat', 'donut': 'donutloader', ...}<br>
-<strong>Callable</strong> = typing.Callable<br>
 <strong>EXTRACTORS</strong> = {'acrstealer': &lt;function extract&gt;, 'agenttesla': &lt;function extract&gt;, 'amadey': &lt;function extract&gt;, 'amosstealer': &lt;function extract&gt;, 'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'atlascross': &lt;function extract&gt;, 'darkcomet': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'donutloader': &lt;function extract&gt;, 'formbook': &lt;function extract&gt;, ...}<br>
-<strong>Extractor</strong> = typing.Callable[[bytes, str], dict]<br>
+<strong>Extractor</strong> = collections.abc.Callable[[bytes, str], dict]<br>
 <strong>PROFILED_EXTRACTORS</strong> = {'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'darkcomet': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'gh0strat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'guloader': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'hijackloader': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'njrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'quasarrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'redlinestealer': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'snakekeylogger': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, ...}<br>
 <strong>__annotations__</strong> = {'EXTRACTORS': 'dict[str, Extractor]', 'PROFILED_EXTRACTORS': 'dict[str, Extractor]'}</td></tr></table>
 </body></html>
