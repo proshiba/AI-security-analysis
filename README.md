@@ -221,6 +221,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | Efimer | 4 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
 | PUTA v3（Putita） | 8 | 2026-07-19 | x86/ARMv5/ARMv6/MIPS LE、UPX系譜、認証付き設定復号、暗号化C2、13攻撃ID |
 | Formbook | 22 | 2026-07-27 | 情報窃取設定、.NET ResourceSet、JavaScript→PowerShell→Drive memory loader、C2候補分離 |
+| PureLogs | 1 | 2026-07-29 | 日本語マルスパム、AppV DLLサイドローディング、Python/CLR多段ローダー、PCAP・メモリ復元 |
 | GendDDoS（Ohshitクラスタ） | 9 | 2026-07-20 | x86/x86-64/ARMv6/ARMv7/ARC/MIPS BE/M68K/SH4、XORテーブル、DNS fallback、14攻撃ハンドラ |
 | Eclipse DDoS Bot（暫定） | 11 | 2026-07-19 | x86-64/i586/i686/ARM/M68K/MIPS LE、平文命令、永続化、競合排除 |
 | JackSkid | 5 | 2026-07-20 | 独自テーブル暗号、ENS/SNS名前解決、Telnet走査、anti-VM |

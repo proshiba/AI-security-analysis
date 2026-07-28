@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.purelogs.extractor</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.purelogs.html" class="white">purelogs</a>.extractor</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cextractors%5Cpurelogs%5Cextractor.py">c:\users\administrator\ai-security-analysis-daily-20260727\extractors\purelogs\extractor.py</a></td></tr></table>
+    <p><span class="code">PureLogsの静的文字列または復号済み通信メタデータから設定候補を抽出する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-endpoint_candidates"><strong>endpoint_candidates</strong></a>(text: 'str') -&gt; 'list[str]'</dt><dd><span class="code">URLとhost:port表記から重複のないendpoint候補を返す。</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">検体、メモリ文字列、復号済みPCAPメタデータを実行せず解析する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DELIVERY_MARKERS</strong> = ('KpTpQWPnqL', 'FPuXKfGtMg', 'MicrosoftEdgeUpdateTaskMachineCore__', 'UserInitMprLogonScript')<br>
+<strong>HOST_PORT_RE</strong> = re.compile('(?&lt;![A-Za-z0-9.-])((?:[A-Za-z0-9](?:....){3}\\d{1,3}):(\\d{1,5})(?!\\d)', re.IGNORECASE)<br>
+<strong>MAX_SCAN_BYTES</strong> = 134217728<br>
+<strong>MAX_TEXT_CHARS</strong> = 16777216<br>
+<strong>PRODUCT_MARKERS</strong> = ('purelogs', 'protobuf-net')<br>
+<strong>PROTOCOL_PATHS</strong> = ('/ping', '/plugin', '/userinfo', '/browser', '/discord', '/filesearch/req', '/finish')<br>
+<strong>URL_RE</strong> = re.compile('https?://[^\\s\\"\'&lt;&gt;\\\\]+', re.IGNORECASE)</td></tr></table>
+</body></html>

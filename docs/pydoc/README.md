@@ -84,7 +84,7 @@ python -m pydoc -w deep_static_triage unpackers.static_control_flow unpackers.ma
 
 ## PureHVNC／DonutLoaderモジュール
 
-`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`c2_detector`、`chain` も生成対象です。
+`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.purelogs.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`c2_detector`、`chain` も生成対象です。
 
 ## APT-C-60／SpyGlaceモジュール
 
