@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from generate_code_similarity_index import build_index, render_markdown  # noqa: E402
-from static_logic import build_static_logic_report  # noqa: E402
+from generate_code_similarity_index import build_index, render_markdown
+from static_logic import build_static_logic_report
 
 
 def test_identical_functions_are_grouped_without_quadratic_pairs(
@@ -105,3 +104,46 @@ def test_similar_pairs_reference_normalized_function_records(tmp_path: Path) -> 
     markdown = render_markdown(index)
     assert "function_0" in markdown
     assert "function_1" in markdown
+
+
+def test_similarity_pairs_are_bounded_and_counts_preserve_total(tmp_path: Path) -> None:
+    """近似pairを有界に保持し、省略前の総数を集計へ残す。"""
+
+    results = tmp_path / "analysis-results"
+    for index, simhash in enumerate(("0000000000000000", "0000000000000001", "0000000000000002")):
+        sha256 = f"{index + 1:064x}"
+        case = results / "malware" / "fixture" / "versions" / "unknown" / "cases" / sha256
+        case.mkdir(parents=True)
+        (case / "static-logic.json").write_text(
+            json.dumps(
+                {
+                    "sha256": sha256,
+                    "family": "fixture",
+                    "functions": [
+                        {
+                            "function_id": f"function_{index}",
+                            "role": "config_decoder",
+                            "api_calls": ["decrypt_config", "parse_config"],
+                            "fingerprints": {
+                                "semantic_simhash64": simhash,
+                                "semantic_sequence_sha256": f"{index + 10:064x}",
+                                "semantic_token_count": 8,
+                            },
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    index = build_index(results, pair_limit=10, per_function_limit=1)
+
+    assert index["counts"]["similarity_pairs_total"] == 3
+    assert index["counts"]["similarity_pairs"] == 1
+    assert index["counts"]["similarity_pairs_omitted"] == 2
+    assert index["counts"]["similarity_pair_limit"] == 10
+    assert index["counts"]["similarity_pair_limit_per_function"] == 1
+    assert len(index["similarity_pairs"]) == 1
+    markdown = render_markdown(index)
+    assert "条件に一致した類似候補pair | 3" in markdown
+    assert "上限により省略した類似候補pair | 2" in markdown

@@ -160,4 +160,6 @@ python .\analysis-framework\common\generate_code_similarity_index.py --repositor
 - `analysis-results/catalog/CODE-SIMILARITY.md`
 
 同一case内の一致は除外します。同一ファミリーでは0.86、ファミリー横断では0.94を既定の近似閾値とし、横断一致には共有APIも要求します。最終判断は必ず解析者が行います。
-JSON索引のschema version 2では、`function_records`に各関数を一度だけ収録し、完全一致group、SimHash group、類似pairは`record_id`を参照します。これにより候補数が増えても関数詳細をpairごとに複製しません。Markdown版は人間による確認用として類似度の高い最大1,000 pairを表示し、全候補はJSON版に保持します。
+JSON索引のschema version 2では、`function_records`に各関数を一度だけ収録し、完全一致group、SimHash group、類似pairは`record_id`を参照します。これにより候補数が増えても関数詳細をpairごとに複製しません。
+
+完全一致groupとSimHash完全一致groupは全memberを保持します。近似pairは類似度、ファミリー横断、共有API数の順に優先し、JSON全体で最大100,000件、1関数あたり最大32件へ制限します。`similarity_pairs_total`と`similarity_pairs_omitted`に制限前の総数と省略数を残すため、候補母数の変化を追跡できます。Markdown版は保持した候補から類似度の高い最大1,000 pairを表示します。
