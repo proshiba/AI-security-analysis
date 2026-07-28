@@ -227,6 +227,28 @@ def test_validate_case_accepts_characteristic_function_records(tmp_path: Path) -
     assert result.coverage["function_inventory_count"] == 3
 
 
+def test_validate_case_requires_three_diagrams_for_new_contract(
+    tmp_path: Path,
+) -> None:
+    """可視化契約を宣言したcaseは3種類のMermaid図を必須にする。"""
+
+    case_dir = _case_dir(tmp_path)
+    report = _case_report()
+    report["overall_logic"]["visualization_contract_version"] = 1
+    _write_json(case_dir / "static-logic.json", report)
+    (case_dir / "STATIC-LOGIC.md").write_text("# 静的ロジック\n", encoding="utf-8")
+    (case_dir / "OVERALL-LOGIC.md").write_text(
+        "# 全体ロジック\n\n### 実行フロー\n\n```mermaid\nflowchart TD\n```\n",
+        encoding="utf-8",
+    )
+
+    result = validate_case(case_dir, SHA256)
+
+    assert result.valid is False
+    assert "OVERALL-LOGIC.mdに感染チェーン図がありません" in result.findings
+    assert "OVERALL-LOGIC.mdにモジュール関係図がありません" in result.findings
+    assert "OVERALL-LOGIC.mdのMermaid図が3件未満です" in result.findings
+
 def test_validate_case_accepts_documented_program_structure_only(
     tmp_path: Path,
 ) -> None:

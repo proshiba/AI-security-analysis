@@ -59,6 +59,8 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `backfill_static_logic.html`：既存公開成果物と無害化済みGhidra構造による過去caseの一括補完
 - `ghidra_function_batch.html`：Ghidra MCPとCIL parserによる代表関数一括静的解析と全体ロジック生成
 - `validate_function_analysis.html`：全関数inventory、代表関数解析、全体ロジック、MCP成功証跡の完了条件検証
+- `overall_logic_diagrams.html`：実行フロー、感染チェーン、モジュール関係の根拠付きMermaid図生成
+- `refresh_overall_logic_diagrams.html`：既存collectionの公開済み静的成果物からの再描画と差分検査
 ## 解析成果物レイアウトmodule
 
 - `result_layout.html`：family／version／caseの固定構成、保守的な版根拠、collection／catalog、衝突・参照・rollback計画

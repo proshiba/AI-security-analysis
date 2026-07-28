@@ -4,17 +4,19 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
-from itertools import combinations
 import json
-from pathlib import Path
 import re
-from typing import Any, Iterable, Mapping
-
+from collections import defaultdict
+from collections.abc import Iterable, Mapping
+from itertools import combinations
+from pathlib import Path
+from typing import Any
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 SIMHASH64_RE = re.compile(r"^[0-9a-f]{16}$", re.IGNORECASE)
 MARKDOWN_PAIR_LIMIT = 1000
+JSON_PAIR_LIMIT = 100_000
+PAIR_LIMIT_PER_FUNCTION = 32
 
 
 def _function_records(results_root: Path) -> list[dict[str, Any]]:
@@ -107,7 +109,49 @@ def _bands(simhash: str) -> Iterable[str]:
         yield f"{index // 4}:{simhash[index : index + 4]}"
 
 
-def build_index(results_root: Path) -> dict[str, Any]:
+def _retain_similarity_pairs(
+    pairs: list[dict[str, Any]],
+    *,
+    pair_limit: int,
+    per_function_limit: int,
+) -> list[dict[str, Any]]:
+    """強い候補から決定的に採用し、JSONのpair展開を有界に保つ。"""
+
+    if pair_limit < 0 or per_function_limit < 0:
+        raise ValueError("pair limits must be non-negative")
+    if pair_limit == 0 or per_function_limit == 0:
+        return []
+    ranked = sorted(
+        pairs,
+        key=lambda item: (
+            -float(item["similarity"]),
+            bool(item["same_family"]),
+            -len(item["shared_api_calls"]),
+            str(item["left_id"]),
+            str(item["right_id"]),
+        ),
+    )
+    degree: dict[str, int] = defaultdict(int)
+    retained = []
+    for pair in ranked:
+        left_id = str(pair["left_id"])
+        right_id = str(pair["right_id"])
+        if degree[left_id] >= per_function_limit or degree[right_id] >= per_function_limit:
+            continue
+        retained.append(pair)
+        degree[left_id] += 1
+        degree[right_id] += 1
+        if len(retained) >= pair_limit:
+            break
+    return retained
+
+
+def build_index(
+    results_root: Path,
+    *,
+    pair_limit: int = JSON_PAIR_LIMIT,
+    per_function_limit: int = PAIR_LIMIT_PER_FUNCTION,
+) -> dict[str, Any]:
     """exact semantic列とLSH候補から保守的な関数類似pairを作る。"""
 
     records = _function_records(results_root)
@@ -196,6 +240,12 @@ def build_index(results_root: Path) -> dict[str, Any]:
                             "assessment": "code_similarity_candidate",
                         }
                     )
+    total_pairs = len(pairs)
+    retained_pairs = _retain_similarity_pairs(
+        pairs,
+        pair_limit=pair_limit,
+        per_function_limit=per_function_limit,
+    )
     return {
         "schema_version": 2,
         "analysis_mode": "static_function_fingerprint_correlation",
@@ -204,7 +254,11 @@ def build_index(results_root: Path) -> dict[str, Any]:
             "functions": len(records),
             "exact_groups": len(exact_groups),
             "simhash_groups": len(simhash_groups),
-            "similarity_pairs": len(pairs),
+            "similarity_pairs": len(retained_pairs),
+            "similarity_pairs_total": total_pairs,
+            "similarity_pairs_omitted": total_pairs - len(retained_pairs),
+            "similarity_pair_limit": pair_limit,
+            "similarity_pair_limit_per_function": per_function_limit,
             "candidate_pairs_evaluated": evaluated,
             "ghidra_function_hashes": len(ghidra_records),
             "ghidra_exact_groups": len(ghidra_exact_groups),
@@ -212,7 +266,7 @@ def build_index(results_root: Path) -> dict[str, Any]:
         "exact_groups": exact_groups,
         "function_records": function_records,
         "simhash_groups": simhash_groups,
-        "similarity_pairs": pairs,
+        "similarity_pairs": retained_pairs,
         "ghidra_exact_groups": ghidra_exact_groups,
         "limitations": [
             "類似性はコード共有、共通library、compiler生成処理でも生じます。",
@@ -221,6 +275,11 @@ def build_index(results_root: Path) -> dict[str, Any]:
             "Ghidra opcode hash完全一致も、共通libraryやcompiler生成処理を除外するものではありません。",
             "完全一致とSimHash完全一致はgroupへ全memberを保持し、重複する二者pairへ展開しません。",
             "JSONでは関数recordを一度だけ保持し、groupとpairからrecord IDで参照します。",
+            (
+                "近似pairは類似度、異なるfamily間の候補、共有API数の順に優先し、"
+                f"全体{pair_limit:,}件、各関数{per_function_limit:,}件を上限として公開します。"
+                "省略数と評価総数は集計へ保持します。"
+            ),
         ],
         "safety": {
             "samples_opened": False,
@@ -263,7 +322,9 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         f"| 完全一致group | {report['counts']['exact_groups']} |",
         f"| SimHash完全一致group | {report['counts']['simhash_groups']} |",
         f"| 評価した非一致候補pair | {report['counts']['candidate_pairs_evaluated']} |",
-        f"| 類似候補pair | {report['counts']['similarity_pairs']} |",
+        f"| 条件に一致した類似候補pair | {report['counts']['similarity_pairs_total']} |",
+        f"| JSONへ保持した類似候補pair | {report['counts']['similarity_pairs']} |",
+        f"| 上限により省略した類似候補pair | {report['counts']['similarity_pairs_omitted']} |",
         f"| Ghidra関数hash | {report['counts']['ghidra_function_hashes']} |",
         f"| Ghidra完全一致group | {report['counts']['ghidra_exact_groups']} |",
         "",

@@ -68,6 +68,13 @@
 - binaryの解析完了を宣言する前に `validate_function_analysis.py` を実行し、対象collectionの全caseが `complete: true` であることを確認すること。
 - 関数成果物を追加・更新した後は `generate_code_similarity_index.py --repository . --write` と `--check` を実行し、横断索引を同期すること。
 - 詳細なschemaと手順は `analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md` に従うこと。
+## 静的解析図の記録ルール
+
+- 新規case、または全体ロジックを更新した既存caseの`OVERALL-LOGIC.md`には、Mermaidの静的な`実行フロー`、`感染チェーン`、`モジュール関係`を必ず含めること。
+- 実線はcall edge、復元layerの親子関係、root programなど静的に確認した関係だけに使用すること。段階間の掲載順を実行順として描かないこと。
+- 推測、親未特定、配布経路未観測、後続stage未復元は、点線と`未観測`または`未解決`ノードで明示すること。証跡のない感染経路、module依存関係、C2到達を補完しないこと。
+- 図は`static-logic.json`、`static-layers.json`、review済み補足情報から機械生成し、検体由来文字列をMermaidへ直接埋め込まないこと。URL、IP、完全hash、private path、制御文字は省略または無害化すること。
+- 図は要約であり、関数別根拠、確度、制約、未解決事項の文書記録を置き換えないこと。
 ## README と analysis_history.yaml の更新ルール
 
 - 過去解析の正本はルートの `analysis_history.yaml` とすること。

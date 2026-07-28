@@ -41,10 +41,13 @@ features.json
 FEATURES.md
 static-logic.json
 STATIC-LOGIC.md
+OVERALL-LOGIC.md
 campaign-labels.json
 ```
 
 `static-logic.json`／`STATIC-LOGIC.md` は、関数またはスクリプト単位の役割、処理手順、呼出関係、API、主要制御フロー、正規化fingerprint、解析ツール、明示的なprogram selector、根拠と確度を保持します。バイナリ検体で関数解析が未実施の場合は `function_analysis_required` を記録し、解析済みとして扱いません。全caseの横断類似性索引は `analysis-results/catalog/code-similarity.json`／`CODE-SIMILARITY.md` に生成します。
+
+`OVERALL-LOGIC.md`は、静的証跡に基づく実行フロー、感染チェーン、モジュール関係をMermaid図で保持します。観測した関係だけを実線とし、配布経路、順序、親module、後続stageが不明な箇所は未観測・未解決として点線で示します。
 
 ## version の判定
 

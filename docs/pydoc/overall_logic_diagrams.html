@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module overall_logic_diagrams</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">overall_logic_diagrams</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Coverall_logic_diagrams.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\overall_logic_diagrams.py</a></td></tr></table>
+    <p><span class="code">静的解析証跡から全体ロジック文書とMermaid図を生成する。<br>
+&nbsp;<br>
+図は観測済みの関係と未解決の関係を区別し、静的証跡にない実行順、<br>
+感染経路、親子関係を補完しない。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-load_static_layers"><strong>load_static_layers</strong></a>(case_dir: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">caseの公開static-layers.jsonを読み、欠落時は空objectを返す。</span></dd></dl>
+ <dl><dt><a name="-render_execution_flow_mermaid"><strong>render_execution_flow_mermaid</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">観測call&nbsp;edgeだけを実線にした実行フロー図を返す。</span></dd></dl>
+ <dl><dt><a name="-render_infection_chain_mermaid"><strong>render_infection_chain_mermaid</strong></a>(report: 'Mapping[str, Any]', static_layers: 'Mapping[str, Any] | None' = None) -&gt; 'str'</dt><dd><span class="code">提出検体と静的復元層から感染チェーン図を返す。</span></dd></dl>
+ <dl><dt><a name="-render_module_relationship_mermaid"><strong>render_module_relationship_mermaid</strong></a>(report: 'Mapping[str, Any]', static_layers: 'Mapping[str, Any] | None' = None) -&gt; 'str'</dt><dd><span class="code">program&nbsp;evidenceとlayer親子関係からモジュール関係図を返す。</span></dd></dl>
+ <dl><dt><a name="-render_overall_logic_markdown"><strong>render_overall_logic_markdown</strong></a>(report: 'Mapping[str, Any]', static_layers: 'Mapping[str, Any] | None' = None) -&gt; 'str'</dt><dd><span class="code">全体ロジック、3種類の静的図、詳細な処理段階をMarkdownへ描画する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>IPV4_RE</strong> = re.compile('(?&lt;![0-9])(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?![0-9])')<br>
+<strong>MAX_EXECUTION_PHASES</strong> = 12<br>
+<strong>MAX_INFECTION_LAYERS</strong> = 16<br>
+<strong>MAX_MODULES</strong> = 12<br>
+<strong>SHA256_RE</strong> = re.compile('(?i)\\b[0-9a-f]{64}\\b', re.IGNORECASE)<br>
+<strong>URL_RE</strong> = re.compile('(?i)\\b(?:https?|ftp)://[^\\s]+', re.IGNORECASE)</td></tr></table>
+</body></html>

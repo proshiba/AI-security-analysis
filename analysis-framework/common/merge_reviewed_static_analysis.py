@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from overall_logic_diagrams import load_static_layers, render_overall_logic_markdown
 from static_logic import (
     normalize_function_record,
     normalize_program_evidence,
@@ -47,31 +48,10 @@ def _function_analysis(function: dict[str, Any], next_analysis: str) -> dict[str
     }
 
 
-def _render_overall_logic(report: dict[str, Any]) -> str:
-    overall = report["overall_logic"]
-    lines = [
-        f"# 全体ロジック：{report['sha256']}",
-        "",
-        "## 処理段階",
-        "",
-    ]
-    for index, phase in enumerate(overall["phases"], start=1):
-        lines.append(
-            f"{index}. `{phase['phase']}`: {phase['summary_ja']}"
-        )
-    lines.extend(
-        [
-            "",
-            "## 順序の根拠",
-            "",
-            str(overall["phase_order_basis"]),
-            "",
-            "## 制約",
-            "",
-        ]
-    )
-    lines.extend(f"- {item}" for item in report.get("limitations", []))
-    return "\n".join(lines) + "\n"
+def _render_overall_logic(report: dict[str, Any], case_dir: Path) -> str:
+    """review済み結果を共通の全体ロジック文書へ描画する。"""
+
+    return render_overall_logic_markdown(report, load_static_layers(case_dir))
 
 
 def merge(case_dir: Path, supplement_path: Path) -> dict[str, Any]:
@@ -142,6 +122,7 @@ def merge(case_dir: Path, supplement_path: Path) -> dict[str, Any]:
     report["limitations"] = list(supplement.get("limitations", []))
     report["overall_logic"] = dict(supplement["overall_logic"])
     report["overall_logic"]["selected_function_count"] = selected
+    report["overall_logic"]["visualization_contract_version"] = 1
     report["selection_policy"] = dict(
         supplement.get("selection_policy") or report.get("selection_policy") or {}
     )
@@ -157,7 +138,7 @@ def merge(case_dir: Path, supplement_path: Path) -> dict[str, Any]:
         encoding="utf-8",
     )
     (case_dir / "OVERALL-LOGIC.md").write_text(
-        _render_overall_logic(report),
+        _render_overall_logic(report, case_dir),
         encoding="utf-8",
     )
     return report
