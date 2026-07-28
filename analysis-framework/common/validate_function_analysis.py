@@ -386,8 +386,21 @@ def validate_case(case_dir: Path, sha256: str | None = None) -> CaseValidation:
             validation.add("overall_logicの順序根拠がありません")
     if not (case_dir / "STATIC-LOGIC.md").is_file():
         validation.add("STATIC-LOGIC.mdがありません")
-    if not (case_dir / "OVERALL-LOGIC.md").is_file():
+    overall_path = case_dir / "OVERALL-LOGIC.md"
+    if not overall_path.is_file():
         validation.add("OVERALL-LOGIC.mdがありません")
+    elif (
+        isinstance(overall, Mapping)
+        and int(overall.get("visualization_contract_version") or 0) >= 1
+    ):
+        overall_markdown = overall_path.read_text(encoding="utf-8-sig")
+        for heading in ("### 実行フロー", "### 感染チェーン", "### モジュール関係"):
+            if heading not in overall_markdown:
+                validation.add(
+                    f"OVERALL-LOGIC.mdに{heading.removeprefix('### ')}図がありません"
+                )
+        if overall_markdown.count("```mermaid") < 3:
+            validation.add("OVERALL-LOGIC.mdのMermaid図が3件未満です")
     return validation
 
 

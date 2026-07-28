@@ -45,6 +45,10 @@ from analysis_contract import (  # noqa: E402
     verify_report_semantics,
 )
 from analyze_sample import StaticLayer, read_input_unit, recover_static_layers  # noqa: E402
+from overall_logic_diagrams import (  # noqa: E402
+    load_static_layers,
+    render_overall_logic_markdown,
+)
 from result_publication import detect_publication_context, register_publication_cases  # noqa: E402
 from static_logic import (  # noqa: E402
     build_static_logic_report,
@@ -2922,6 +2926,7 @@ def _build_overall_logic(report: Mapping[str, Any]) -> dict[str, Any]:
         )
     return {
         "schema_version": 1,
+        "visualization_contract_version": 1,
         "summary_ja": summary,
         "phase_order_basis": (
             "phaseの掲載順は解析上の整理順です。observed_call_edgesがない段階間の実行順を断定しません。"
@@ -2947,69 +2952,14 @@ def _markdown_code_value(value: Any) -> str:
     return rendered.replace("`", "'") or "未記録"
 
 
-def _render_overall_logic(report: Mapping[str, Any]) -> str:
-    """全体ロジックを日本語の独立文書へ描画する。"""
+def _render_overall_logic(
+    report: Mapping[str, Any],
+    static_layers: Mapping[str, Any] | None = None,
+) -> str:
+    """全体ロジックと3種類の静的Mermaid図を日本語文書へ描画する。"""
 
-    overall = report.get("overall_logic", {})
-    functions = {
-        str(item.get("function_id") or ""): item
-        for item in report.get("functions", [])
-        if isinstance(item, Mapping)
-    }
-    lines = [
-        f"# 全体ロジック：{report['sha256']}",
-        "",
-        str(overall.get("summary_ja") or "全体ロジックを構成できませんでした。"),
-        "",
-        "## 読み方",
-        "",
-        f"- {overall.get('phase_order_basis', '')}",
-        "- 詳細な関数解説とfingerprintは[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。",
-        "",
-        "## 処理段階",
-        "",
-    ]
-    for index, phase in enumerate(overall.get("phases", []), start=1):
-        lines.extend(
-            [
-                f"### {index}. {phase['title_ja']}",
-                "",
-                str(phase["description_ja"]),
-                f"確度: `{phase['confidence']}`",
-                "",
-            ]
-        )
-        for function_id in phase.get("function_ids", []):
-            function = functions.get(str(function_id), {})
-            analysis = function.get("function_analysis", {})
-            reasons = function.get("selection", {}).get("reasons", [])
-            lines.append(
-                f"- `{function_id}` — {function.get('summary_ja', '要約なし')} "
-                f"状態: `{analysis.get('decompilation_status', 'unknown')}`、"
-                f"選定理由: {', '.join(f'`{value}`' for value in reasons) or '記録なし'}"
-            )
-        import_evidence = list(phase.get("import_evidence", []))
-        if import_evidence:
-            lines.append(
-                "- import証跡: "
-                + ", ".join(f"`{_markdown_code_value(value)}`" for value in import_evidence)
-            )
-        lines.append("")
-    lines.extend(["## 観測したcall関係", ""])
-    edges = list(overall.get("observed_call_edges", []))
-    if not edges:
-        lines.append("- 代表関数間で直接解決できた呼出関係はありません。")
-    for edge in edges[:200]:
-        lines.append(
-            f"- `{edge['caller']}` → `{edge['callee']}` "
-            f"（`{edge['caller_phase']}` → `{edge['callee_phase']}`）"
-        )
-    if len(edges) > 200:
-        lines.append(f"- 残り{len(edges) - 200}件は`static-logic.json`に記録しています。")
-    lines.extend(["", "## 解析範囲と制約", ""])
-    lines.extend(f"- {value}" for value in overall.get("limitations_ja", []))
-    lines.append("")
-    return "\n".join(lines)
+    return render_overall_logic_markdown(report, static_layers)
+
 
 def _render_markdown(report: Mapping[str, Any]) -> str:
     coverage = report["coverage"]
@@ -3364,7 +3314,7 @@ def publish_cases(
             encoding="utf-8",
         )
         (case_dir / "OVERALL-LOGIC.md").write_text(
-            _render_overall_logic(report),
+            _render_overall_logic(report, load_static_layers(case_dir)),
             encoding="utf-8",
         )
 
