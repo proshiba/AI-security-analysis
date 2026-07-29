@@ -38,7 +38,7 @@ URL_RE = re.compile(r"https?://[^\s\"'<>\\]+", re.IGNORECASE)
 
 
 def _structured_channel_endpoints(data: bytes) -> list[str] | None:
-    """?????????????PureLogs????????????"""
+    """構造化された通信観測からPureLogs担当チャネルの接続先を返す。"""
     try:
         payload = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
