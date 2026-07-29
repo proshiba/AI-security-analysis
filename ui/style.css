@@ -60,7 +60,26 @@ code, .mono { font-family: var(--mono); }
 .loading { padding: 60px; text-align: center; color: var(--text-dim); }
 .footer {
   border-top: 1px solid var(--border);
-  padding: 14px 20px; color: var(--text-dim); font-size: 12px;
+  padding: 18px 20px 24px; color: var(--text-dim); font-size: 12px;
+}
+.footer-note { margin: 12px 0 0; }
+
+/* ---------- 参照しているサービス ---------- */
+.credits { max-width: 1280px; margin: 0 auto; }
+.credits-title {
+  font-size: 12px; font-weight: 700; margin: 0 0 8px;
+  color: var(--text); letter-spacing: .03em;
+}
+.credits-list {
+  display: grid; grid-template-columns: max-content 1fr;
+  gap: 4px 16px; margin: 0;
+}
+.credits-list dt { color: var(--text-dim); white-space: nowrap; }
+.credits-list dd { margin: 0; color: var(--text-dim); }
+.credits-note { margin: 10px 0 0; opacity: .85; }
+@media (max-width: 700px) {
+  .credits-list { grid-template-columns: 1fr; gap: 2px; }
+  .credits-list dt { margin-top: 8px; font-weight: 600; }
 }
 .page-title { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
 .page-sub { color: var(--text-dim); margin: 0 0 20px; }
