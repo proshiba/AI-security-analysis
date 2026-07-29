@@ -70,6 +70,7 @@ REPORTED_FAMILY_ALIASES = {
     "nanocore": "nanocore",
     "prometei": "prometei",
     "purerat": "purehvnc",
+    "purelogsstealer": "purelogs",
     "remcosrat": "remcosrat",
     "remusstealer": "remusstealer",
     "snakekeylogger": "snakekeylogger",
