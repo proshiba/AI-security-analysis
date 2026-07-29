@@ -264,3 +264,26 @@ def test_rejects_malformed_existing_collection_members(
 
     with pytest.raises(publication.PublicationError, match=message):
         publication.register_publication_cases(context, [case])
+
+def test_unclassified_publication_records_unresolved_attribution(short_tmp: Path) -> None:
+    results = short_tmp / "analysis-results"
+    aggregate = (
+        results / "collections" / "batch-test" / "sources" / "unclassified"
+    )
+    aggregate.mkdir(parents=True)
+    case, context = publication.publication_case_path(
+        aggregate, "unclassified", SHA
+    )
+    assert context is not None
+    case.mkdir(parents=True)
+
+    publication.register_publication_cases(context, [case])
+
+    metadata = json.loads((case / "metadata.json").read_text(encoding="utf-8"))
+    catalog = json.loads(
+        (results / "catalog" / "cases.json").read_text(encoding="utf-8")
+    )
+    assert metadata["case_kind"] == "unclassified"
+    assert metadata["attribution_status"] == "unresolved"
+    assert catalog["cases"][SHA]["case_kind"] == "unclassified"
+    assert catalog["cases"][SHA]["attribution_status"] == "unresolved"

@@ -116,7 +116,7 @@ https://proshiba.github.io/research_bench/#/search/<値>
 
 `ui/data.js` は `generate_ui_data.py` が以下から生成します。
 
-- `analysis-results/catalog/cases.json`: 全ケースの正本一覧(ファミリ・版・格納パス)。catalog再生成が解析より遅れている期間の新規caseは、`analysis-results/malware/**/cases/<sha256>/` のディレクトリ走査で補完します
+- `analysis-results/catalog/cases.json`: 全ケースの正本一覧(ファミリ・版・格納パス)。固定レイアウトの全caseと完全一致する必要があります。不足・余剰・family／版／pathの不一致が1件でもあれば生成を停止し、暗黙補完は行いません
 - 各ケースディレクトリの `metadata.json` / `features.json` / `iocs.json` / `IOC-LIST.md` / `README.md` / `rules/`
 - `analysis-results/malware/<family>/` の `README.md`・`OSINT.md`・`TECHNICAL-ANALYSIS.md`・`VERSIONS.md`・`CAMPAIGNS.md`・`BEHAVIOR-C2.md` と `rules/`(YARA/Sigma)
 - `analysis_history.yaml`: 検体SHA-256ごとの解析履歴(解析日、解析レベル、campaign type、一致パターン、主要C2)

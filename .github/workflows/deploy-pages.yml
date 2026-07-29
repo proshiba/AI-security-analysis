@@ -11,6 +11,7 @@ on:
       - "analysis-results/**"
       - "analysis_history.yaml"
       - ".github/workflows/deploy-pages.yml"
+      - "analysis-framework/common/refresh_case_inventory.py"
   workflow_dispatch:
 
 permissions:
@@ -36,6 +37,9 @@ jobs:
 
       - name: 依存パッケージを導入
         run: pip install pyyaml
+
+      - name: 全case索引と派生成果物の整合性を検証
+        run: python3 analysis-framework/common/refresh_case_inventory.py --repository . --check
 
       - name: UIデータ(data.js)を再生成
         env:

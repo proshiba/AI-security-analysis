@@ -75,3 +75,16 @@ python .\analysis-framework\common\generate_code_similarity_index.py --repositor
 python .\analysis-framework\common\localize_result_markdown.py --repository .
 python .\analysis-framework\common\audit_japanese_docs.py --repository . --root analysis-results --fail-on-findings
 ```
+
+## 全case索引とUIへの反映
+
+- caseの公開可視性は解析完了状態に依存させません。`partial`や`triaged_unknown`も含め、固定レイアウトに存在する全caseを`catalog/cases.json`へ登録します。
+- UIによるファイルシステム補完は禁止です。`catalog/cases.json`と固定レイアウトのSHA-256 case集合、family、version、path、case kindが完全一致しなければ生成失敗とします。
+- caseまたはcollectionを追加・更新した後は、個別generatorを手作業で選ばず、ルートから次を実行します。
+
+```powershell
+py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write
+py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --check
+```
+
+- collection membership、`analysis_history.yaml`、family文書、campaign相関は内容に基づく判断が必要なため、一括反映の前に正本を更新します。手順と対象ファイルは[新規解析の公開・全体反映チェックリスト](../analysis-framework/docs/CASE-PUBLICATION-CHECKLIST.md)を参照します。

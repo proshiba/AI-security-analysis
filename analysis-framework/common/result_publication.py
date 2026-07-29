@@ -204,11 +204,12 @@ def register_publication_cases(
     for digest, path in sorted(normalized.items()):
         metadata_path = path / "metadata.json"
         metadata, metadata_before = _read_json_document(metadata_path, {})
+        case_kind = "unclassified" if context.family == "unclassified" else "malware"
         for key, expected in (
             ("schema_version", 1),
             ("sha256", digest),
             ("case_id", f"sha256:{digest}"),
-            ("case_kind", "malware"),
+            ("case_kind", case_kind),
         ):
             if key in metadata and metadata[key] != expected:
                 raise PublicationError(f"metadata {key} mismatch for {digest}")
@@ -247,28 +248,48 @@ def register_publication_cases(
         canonical_path = path.relative_to(context.repository).as_posix()
         if "canonical_path" in metadata and metadata["canonical_path"] != canonical_path:
             raise PublicationError(f"metadata canonical_path mismatch for {digest}")
+        attribution_status = None
+        provisional_cluster_id = None
+        if case_kind == "unclassified":
+            attribution_status = metadata.get("attribution_status") or "unresolved"
+            if attribution_status not in {"unresolved", "provisional"}:
+                raise PublicationError(f"invalid attribution_status for {digest}")
+            provisional_cluster_id = metadata.get("provisional_cluster_id")
+            if provisional_cluster_id is not None and (
+                not isinstance(provisional_cluster_id, str)
+                or not FAMILY_RE.fullmatch(provisional_cluster_id)
+            ):
+                raise PublicationError(f"invalid provisional_cluster_id for {digest}")
         metadata.update(
             {
                 "schema_version": 1,
                 "sha256": digest,
                 "case_id": f"sha256:{digest}",
-                "case_kind": "malware",
+                "case_kind": case_kind,
                 "family": context.family,
                 "canonical_path": canonical_path,
                 "collections": collections,
                 "malware_version": version,
             }
         )
+        if attribution_status is not None:
+            metadata["attribution_status"] = attribution_status
+        if provisional_cluster_id is not None:
+            metadata["provisional_cluster_id"] = provisional_cluster_id
         documents[metadata_path] = (metadata_before, _json_bytes(metadata))
         entry = (catalog["cases"] or {}).get(digest)
         new_entry = {
             **(entry if isinstance(entry, dict) else {}),
             "case_id": f"sha256:{digest}",
             "family": context.family,
-            "case_kind": "malware",
+            "case_kind": case_kind,
             "version_key": version_key,
             "canonical_path": canonical_path,
         }
+        if attribution_status is not None:
+            new_entry["attribution_status"] = attribution_status
+        if provisional_cluster_id is not None:
+            new_entry["provisional_cluster_id"] = provisional_cluster_id
         if isinstance(entry, dict):
             if entry.get("family") != context.family:
                 raise PublicationError(f"catalog family mismatch for {digest}")

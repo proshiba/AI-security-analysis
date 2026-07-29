@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module refresh_case_inventory</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">refresh_case_inventory</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Crefresh_case_inventory.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\refresh_case_inventory.py</a></td></tr></table>
+    <p><span class="code">全caseの正本索引、派生成果物、UIを決定順で一括更新する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="subprocess.html">subprocess</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">全体反映CLIの引数parserを返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、機械可読な実行結果を出力する。</span></dd></dl>
+ <dl><dt><a name="-refresh"><strong>refresh</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">case&nbsp;identityからUIまでを依存順に更新し、書込み後は同じ範囲を再検証する。</span></dd></dl>
+ <dl><dt><a name="-sync_checksum_manifests"><strong>sync_checksum_manifests</strong></a>(repository: 'Path', *, write: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">公開成果物内のmanifest.sha256を現在のファイル内容へ同期する。</span></dd></dl>
+ <dl><dt><a name="-sync_documented_case_counts"><strong>sync_documented_case_counts</strong></a>(
+    repository: 'Path',
+    counts: 'dict[str, Any]',
+    *,
+    write: 'bool' = False
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">READMEの全case件数ブロックをレイアウト監査値へ同期する。</span></dd></dl>
+</td></tr></table>
+</body></html>

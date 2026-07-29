@@ -277,37 +277,80 @@ def detect_repo() -> dict | None:
     return {"html_base": "https://github.com/" + slug, "branch": branch}
 
 
-def discover_cases() -> dict[str, dict]:
-    """catalogとファイルシステムを統合した全case一覧を返す。
+def _filesystem_case_index() -> dict[str, dict]:
+    """UI対象の固定レイアウトcaseを実体から厳格に列挙する。"""
 
-    catalog(cases.json)を正本としつつ、catalog再生成が解析より遅れている
-    期間の新規caseディレクトリも取り込む。
-    """
-    catalog = read_json(RESULTS / "catalog" / "cases.json") or {}
-    merged: dict[str, dict] = dict(catalog.get("cases", {}))
-
-    patterns = [
-        "malware/*/versions/*/cases/*",
-        "malware/unclassified/groups/*/versions/*/cases/*",
+    discovered: dict[str, dict] = {}
+    specifications = [
+        (
+            "malware/*/versions/*/cases/*",
+            lambda parts: {
+                "canonical_path": None,
+                "case_id": None,
+                "case_kind": "unclassified" if parts[1] == "unclassified" else "malware",
+                "family": parts[1],
+                "version_key": parts[3],
+            },
+        ),
+        (
+            "research/supply-chain/npm/axios-plain-crypto-js-2026/cases/*",
+            lambda _parts: {
+                "canonical_path": None,
+                "case_id": None,
+                "case_kind": "supply_chain_payload",
+                "family": "npm-supply-chain",
+                "version_key": None,
+            },
+        ),
     ]
-    for pattern in patterns:
-        for path in RESULTS.glob(pattern):
-            if not path.is_dir():
+    for pattern, identity_builder in specifications:
+        for path in sorted(RESULTS.glob(pattern)):
+            if not path.is_dir() or path.is_symlink():
                 continue
-            sha = path.name
-            if sha in merged:
-                continue
+            digest = path.name
+            if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError(f"不正なcaseディレクトリ名です: {path}")
+            if digest in discovered:
+                raise ValueError(f"同一SHA-256のcaseが重複しています: {digest}")
             parts = path.relative_to(RESULTS).parts
-            family = parts[1]
-            version_key = parts[-3]
-            merged[sha] = {
-                "canonical_path": str(path.relative_to(REPO_ROOT)),
-                "case_id": "sha256:" + sha,
-                "case_kind": "unclassified" if family == "unclassified" else "malware",
-                "family": family,
-                "version_key": version_key,
-            }
-    return merged
+            identity = identity_builder(parts)
+            identity["canonical_path"] = path.relative_to(REPO_ROOT).as_posix()
+            identity["case_id"] = f"sha256:{digest}"
+            discovered[digest] = identity
+    return discovered
+
+
+def discover_cases() -> dict[str, dict]:
+    """catalogと固定レイアウトの完全一致を検証し、正本の全case一覧を返す。"""
+
+    catalog = read_json(RESULTS / "catalog" / "cases.json")
+    if not isinstance(catalog, dict) or catalog.get("schema_version") != 1:
+        raise ValueError("analysis-results/catalog/cases.json が不正です")
+    catalog_cases = catalog.get("cases")
+    if not isinstance(catalog_cases, dict):
+        raise ValueError("catalog cases はmappingでなければなりません")
+    filesystem_cases = _filesystem_case_index()
+    catalog_ids = set(catalog_cases)
+    filesystem_ids = set(filesystem_cases)
+    missing = sorted(filesystem_ids - catalog_ids)
+    extra = sorted(catalog_ids - filesystem_ids)
+    if missing or extra:
+        raise ValueError(
+            "catalogとcase実体が一致しません: "
+            f"未登録={len(missing)} {missing[:3]}, 実体なし={len(extra)} {extra[:3]}"
+        )
+    for digest, expected in filesystem_cases.items():
+        entry = catalog_cases[digest]
+        if not isinstance(entry, dict):
+            raise ValueError(f"catalog entryがobjectではありません: {digest}")
+        mismatched = [
+            key for key, value in expected.items() if entry.get(key) != value
+        ]
+        if mismatched:
+            raise ValueError(
+                f"catalog identityがcase実体と一致しません: {digest}: {mismatched}"
+            )
+    return dict(catalog_cases)
 
 
 def build() -> dict:
