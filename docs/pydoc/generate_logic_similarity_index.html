@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module generate_logic_similarity_index</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">generate_logic_similarity_index</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cgenerate_logic_similarity_index.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\generate_logic_similarity_index.py</a></td></tr></table>
+    <p><span class="code">感染チェーンと全体ロジックの比較プロファイルを横断生成する。<br>
+&nbsp;<br>
+関数単位のコード類似性とは分離し、実行段階、復元層、モジュール、<br>
+機能、代表関数の役割、コードfingerprintを独立した比較軸として扱う。<br>
+単一軸の一致だけでは類似候補に昇格しない。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_index"><strong>build_index</strong></a>(repository: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">catalog上の全caseから比較プロファイルと候補を生成する。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">CLI引数parserを返す。</span></dd></dl>
+ <dl><dt><a name="-build_profile"><strong>build_profile</strong></a>(
+    *,
+    sha256: 'str',
+    case_record: 'Mapping[str, Any]',
+    report: 'Mapping[str, Any]',
+    static_layers: 'Mapping[str, Any]',
+    features: 'Mapping[str, Any]'
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">1&nbsp;caseの比較プロファイルを決定的な順序で返す。</span></dd></dl>
+ <dl><dt><a name="-compare_profiles"><strong>compare_profiles</strong></a>(left: 'Mapping[str, Any]', right: 'Mapping[str, Any]') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">2&nbsp;caseを比較し、最低2独立軸を満たす候補だけを返す。</span></dd></dl>
+ <dl><dt><a name="-generate"><strong>generate</strong></a>(
+    repository: 'Path',
+    *,
+    output_json: 'Path',
+    output_markdown: 'Path',
+    write: 'bool' = False,
+    check: 'bool' = False
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">比較索引を生成し、writeまたはcheck結果を返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLIを実行する。</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(index: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">比較索引をレビューしやすい日本語Markdownへ描画する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CANONICAL_STAGE_ALIASES</strong> = {'cleanup': ('cleanup', 'delete', 'self_delete'), 'command_control': ('c2', 'command', 'communication', 'network'), 'credential_collection': ('browser', 'credential', 'mail', 'password'), 'defense_evasion': ('anti', 'evasion', 'environment', 'sandbox', 'vm'), 'delivery': ('delivery', 'initial_access', 'attachment', 'distribution'), 'exfiltration': ('exfil', 'ftp', 'smtp', 'upload'), 'file_operations': ('file', 'filesystem'), 'host_discovery': ('fingerprint', 'host', 'recon', 'system'), 'input_capture': ('clipboard', 'input', 'keylog', 'screenshot'), 'loader_execution': ('startup', 'entry', 'init', 'loader', 'execution'), ...}<br>
+<strong>DIMENSION_LABELS</strong> = {'capabilities': '機能・挙動', 'code_fingerprints': 'コードfingerprint', 'execution_stages': '実行段階', 'function_roles': '代表関数の役割', 'layer_chain': '感染・復元層', 'module_stack': 'モジュール構成'}<br>
+<strong>DIMENSION_WEIGHTS</strong> = {'capabilities': 1.0, 'code_fingerprints': 3.0, 'execution_stages': 2.0, 'function_roles': 1.5, 'layer_chain': 2.0, 'module_stack': 1.5}<br>
+<strong>MAX_MATCHES_PER_CASE</strong> = 10<br>
+<strong>MAX_SHARED_ITEMS</strong> = 8<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SHA256_LENGTH</strong> = 64</td></tr></table>
+</body></html>
