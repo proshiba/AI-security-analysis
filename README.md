@@ -154,7 +154,9 @@ MSI/CAB custom action 系のケース:
 
 ### 閲覧UI（マルウェア解析ブラウザ）
 
-全ケースの一覧・検索、IOC横断検索、ファミリ別・ケース別ページ（挙動、IOC、YARA／Sigma、解析履歴）、検体ハッシュとC2／IOCの関連を辿るグラフ調査（pivot）をブラウザだけで利用できる静的UIを `ui/` に用意しています。
+全ケースの一覧・検索、IOC横断検索、ファミリ別・ケース別ページ（挙動、IOC、YARA／Sigma、解析履歴）、キャンペーン相関をブラウザだけで利用できる静的UIを `ui/` に用意しています。フッターには、解析で参照している外部サービス（MalwareBazaar、VX-Underground、VirusTotal、Hatching Triage、Shodan など）のクレジットを表示します。
+
+グラフでのpivot調査は横断ポータル [research_bench](https://proshiba.github.io/research_bench/) のワークベンチに集約しており、UI各所の「ポータルのグラフで調査」「⊕」からそちらへ渡します。
 
 ```bash
 python3 ui/generate_ui_data.py   # 解析結果の更新後にデータを再生成
