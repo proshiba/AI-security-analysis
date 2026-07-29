@@ -28,7 +28,31 @@
   <div class="loading">データを読み込んでいます…</div>
 </main>
 <footer class="footer">
-  <span>データ生成: <code>python3 ui/generate_ui_data.py</code> ／ 検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</span>
+  <section class="credits" aria-label="参照しているサービス">
+    <h2 class="credits-title">参照しているサービス</h2>
+    <dl class="credits-list">
+      <dt>解析対象検体の取得</dt>
+      <dd>
+        <a href="https://bazaar.abuse.ch/" target="_blank" rel="noopener noreferrer">MalwareBazaar</a>（<a href="https://abuse.ch/" target="_blank" rel="noopener noreferrer">abuse.ch</a>)、
+        <a href="https://vx-underground.org/" target="_blank" rel="noopener noreferrer">VX-Underground</a>
+      </dd>
+      <dt>サンドボックス・照会</dt>
+      <dd>
+        <a href="https://www.virustotal.com/" target="_blank" rel="noopener noreferrer">VirusTotal</a>（file behaviours の挙動・ハッシュ照会）、
+        <a href="https://tria.ge/" target="_blank" rel="noopener noreferrer">Hatching Triage</a>（process／network 証跡）、
+        <a href="https://any.run/" target="_blank" rel="noopener noreferrer">ANY.RUN</a>、
+        <a href="https://www.shodan.io/" target="_blank" rel="noopener noreferrer">Shodan</a>（受動的なインフラ調査）
+      </dd>
+      <dt>公開情報・知識ベース</dt>
+      <dd>
+        <a href="https://attack.mitre.org/" target="_blank" rel="noopener noreferrer">MITRE ATT&amp;CK</a>、
+        <a href="https://www.jpcert.or.jp/" target="_blank" rel="noopener noreferrer">JPCERT/CC</a>、
+        および各セキュリティベンダー・研究者の公開レポート（出典は各ケース／ファミリの OSINT 文書に個別記載）
+      </dd>
+    </dl>
+    <p class="credits-note">各サービスの提供者に感謝します。本サイトはこれらのサービスとは無関係であり、提供者による承認・推奨を示すものではありません。サンドボックスや外部照会の結果は相関用の参考情報として扱い、単独では C2 やファミリの確定に用いていません。</p>
+  </section>
+  <p class="footer-note">データ生成: <code>python3 ui/generate_ui_data.py</code> ／ 検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</p>
 </footer>
 <script src="data.js"></script>
 <script src="app.js"></script>

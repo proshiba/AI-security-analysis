@@ -445,9 +445,10 @@ def build_meta(data: dict, entities: list[dict], generated_at: str) -> dict:
         },
         "capabilities": ["iframe", "deep-link"],
         # iframe埋め込み時にポータル側のクロームと二重にならないよう、
-        # このUIのヘッダー・フッターを隠す。
+        # このUIのヘッダーを隠す。フッターは参照元(データ提供サービスへの
+        # クレジット)を含むため、埋め込み時も表示したままにする。
         "embed_css": (
-            "header.topbar, footer.footer { display: none !important; } "
+            "header.topbar { display: none !important; } "
             "#app { padding-top: 0 !important; }"
         ),
         "stats": {
