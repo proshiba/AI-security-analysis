@@ -1241,6 +1241,7 @@ def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
         ("AsyncRAT", "asyncrat"),
         ("NanoCore", "nanocore"),
         ("PureRAT", "purehvnc"),
+        ("PureLogsStealer", "purelogs"),
         ("Mirai", "mirai"),
         ("Amadey", "amadey"),
         ("Stealc", "stealc"),
