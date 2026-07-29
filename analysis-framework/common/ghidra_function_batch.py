@@ -2604,13 +2604,12 @@ def finalize_collection_publication(
     all_complete = bool(requested) and set(state_counts) <= complete_statuses
     publication_stage = "complete" if all_complete else "partial_followup_required"
     registrations = {}
-    if all_complete:
-        for family, paths in sorted(by_family.items()):
-            aggregate = collection_dir / "sources" / family
-            context = detect_publication_context(aggregate, family)
-            if context is None:
-                raise ValueError(f"collection公開contextを解決できません: {family}")
-            registrations[family] = register_publication_cases(context, paths)
+    for family, paths in sorted(by_family.items()):
+        aggregate = collection_dir / "sources" / family
+        context = detect_publication_context(aggregate, family)
+        if context is None:
+            raise ValueError(f"collection公開contextを解決できません: {family}")
+        registrations[family] = register_publication_cases(context, paths)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
     manifest.update(
         {

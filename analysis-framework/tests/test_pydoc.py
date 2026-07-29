@@ -52,6 +52,8 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "campaign_correlation",
         "correlate_campaigns",
         "refresh_derived_artifacts",
+        "refresh_case_inventory",
+        "sync_result_catalog",
         "backfill_static_logic",
         "ghidra_function_batch",
         "validate_function_analysis",

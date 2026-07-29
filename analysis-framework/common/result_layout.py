@@ -33,7 +33,9 @@ HISTORY_PATH_RE = re.compile(
 )
 
 _EXCLUDED_TREES = {".git", ".work", ".cache", ".venv", "node_modules", "__pycache__"}
-_RESULT_ROOT_DIRECTORY_ALLOWLIST = {"_shared", "catalog", "collections", "malware", "research"}
+_RESULT_ROOT_DIRECTORY_ALLOWLIST = {
+    "_shared", "catalog", "collections", "malware", "network-traffic", "research"
+}
 _RESULT_ROOT_FILE_ALLOWLIST = {"AGENTS.md", "IOC-INDEX.md", "README.md"}
 _FINGERPRINT_METHOD = "sha256_relative_path_nul_size_u64_content_v1"
 _VERSION_SOURCES: dict[

@@ -173,3 +173,19 @@
 - 通常のCLRエントリサンクでは、ネイティブCFF／VMへの帰属を抑止すること。マネージドイメージはメタデータ、CIL、リソース解析へ送ること。認証済みの子要素を解析するまでは、UPX／MPRESSのローダースタブグラフをパッカーの影響下にあるものとして扱うこと。
 - 静的検証にはGhidra MCPを優先し、必ず明示的なプログラムセレクターを使用すること。localhostだけで運用し、任意スクリプト実行は無効のままにすること。
 - ハッシュ、サイズ、関係、指標、証拠、明示的な制約だけを公開すること。復元した生バイナリや、開始時・終了時のホスト安全確認出力を公開してはならない。
+
+## 新規解析の全体反映ルール
+
+- caseディレクトリを作成した時点で、解析状態が`complete`、`partial`、`triaged_unknown`のいずれでもcase identityを`analysis-results/catalog/cases.json`へ登録すること。catalog登録は解析完了の宣言ではなく、存在・格納先・帰属状態の正本化である。
+- `partial`をcatalogから除外してはならない。解析完了状態とblockerはcase `report.json`およびcollection `manifest.json`の`publication_stage`で保持し、identity登録と混同しないこと。
+- 新規caseまたは既存caseの解析結果を変更した後は、リポジトリルートで次を必ず実行すること。
+
+```powershell
+py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write
+py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --check
+```
+
+- 一括反映の対象は、case `metadata.json`、`analysis-results/catalog/cases.json`、ルートおよび成果物READMEの全case件数、`IOC-LIST.md`と`IOC-INDEX.md`、コード類似性索引、`manifest.sha256`、`ui/data.js`、`ui/api/v1/*.json`である。これらの生成物を個別に手編集して終了しないこと。
+- collectionに属するcaseは、公開処理の時点でcollection `manifest.json`の`cases`と`family_sources`、case `metadata.json`の`collections`を同時に更新すること。一括反映スクリプトは、欠落した収集文脈を推測して補わない。
+- `analysis_history.yaml`、新規ファミリのOSINT文書、検知ルール、campaign相関は解析内容に応じて別途更新すること。campaign相関を更新した場合は`refresh_derived_artifacts.py`も実行してから全体反映を再検証すること。
+- `refresh_case_inventory.py --check`が1件でも不一致を報告した状態でcommit、push、PR作成、daily解析完了を行わないこと。詳細な対象ファイルと確認順は`analysis-framework/docs/CASE-PUBLICATION-CHECKLIST.md`に従うこと。

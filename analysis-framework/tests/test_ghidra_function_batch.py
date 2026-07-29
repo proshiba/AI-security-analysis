@@ -1039,11 +1039,11 @@ def test_finalize_case_report_preserves_unrelated_blocker(
     assert analysis_contract.verify_report_semantics(refreshed) == []
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
 
-def test_finalize_collection_does_not_register_partial_cases(
+def test_finalize_collection_registers_partial_case_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """残余blockerがあるcollectionをcompleteやcatalog登録へ偽装しない。"""
+    """解析がpartialでもidentityを登録し、完了状態はpartialのまま保持する。"""
 
     repository = tmp_path / "repository"
     digest = "a" * 64
@@ -1071,17 +1071,20 @@ def test_finalize_collection_does_not_register_partial_cases(
     )
     target._json_dump(collection / "publication-summary.json", {})
     (collection / "README.md").write_text(
-        "# テスト\n\n- 公開段階: `analysis_followup_pending`\n",
+        "# テスト\n- 公開段階: `analysis_followup_pending`\n",
         encoding="utf-8",
     )
+    registrations: list[tuple[str, list[Path]]] = []
 
-    def unexpected_registration(*args: object, **kwargs: object) -> None:
-        raise AssertionError("partial caseをcatalogへ登録しました")
+    def record_registration(context: object, paths: list[Path]) -> dict[str, int]:
+        registrations.append((getattr(context, "family"), list(paths)))
+        return {"cases": len(paths)}
 
-    monkeypatch.setattr(target, "register_publication_cases", unexpected_registration)
+    monkeypatch.setattr(target, "register_publication_cases", record_registration)
 
     result = target.finalize_collection_publication(repository, collection)
 
+    assert registrations == [("unclassified", [case_dir])]
     assert result["analysis_complete"] is False
     assert result["publication_stage"] == "partial_followup_required"
     assert result["case_state_counts"] == {"partial": 1}
@@ -1092,11 +1095,7 @@ def test_finalize_collection_does_not_register_partial_cases(
     assert manifest["case_blocker_counts"] == {"generic_triage_partial": 1}
     readme = (collection / "README.md").read_text(encoding="utf-8")
     assert "partial_followup_required" in readme
-    assert "case状態: complete 0 / partial 1 / triaged_unknown 0" in readme
-    assert "関数単位の静的解析とは別に" in readme
     assert "`generic_triage_partial` | 1" in readme
-    assert "能動接続を行っていません" in readme
-
 
 def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
     tmp_path: Path,

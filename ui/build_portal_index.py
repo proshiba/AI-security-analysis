@@ -147,7 +147,7 @@ def host_entity_of(entity_type: str, value: str) -> tuple[str, str] | None:
     elif entity_type == "ioc.url":
         match = URL_RE.match(value)
         if match:
-            host = re.split(r"[/?#]", match.group(2), 1)[0]
+            host = re.split(r"[/?#]", match.group(2), maxsplit=1)[0]
             host = host.split("@")[-1]  # userinfoは索引しない
             host = re.sub(r":\d+$", "", host)
     if not host:

@@ -977,11 +977,10 @@ def publish(
             ),
             encoding="utf-8",
         )
-        if publication_stage == "complete":
-            context = detect_publication_context(aggregate, family)
-            if context is None:
-                raise ValueError(f"collection公開contextを解決できません: {family}")
-            register_publication_cases(context, case_paths)
+        context = detect_publication_context(aggregate, family)
+        if context is None:
+            raise ValueError(f"collection公開contextを解決できません: {family}")
+        register_publication_cases(context, case_paths)
 
     counts = Counter(item["family"] for item in summaries)
     status_counts = Counter(item["static_logic_status"] for item in summaries)

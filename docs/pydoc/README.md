@@ -66,6 +66,8 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `result_layout.html`：family／version／caseの固定構成、保守的な版根拠、collection／catalog、衝突・参照・rollback計画
 - `normalize_result_layout.html`：既定read-onlyの計画CLIと、明示的な `--write` 適用入口
 - `result_publication.html`：生成器から固定case配置、catalog、collection membershipを同期する共通公開処理
+- `sync_result_catalog.html`：固定レイアウトから全case identity metadataとcatalogを安全に同期する処理
+- `refresh_case_inventory.html`：README件数、IOC、コード類似性、checksum、UIまでを依存順に一括更新・検証する処理
 
 両moduleは公開済み成果物だけを読み、検体実行、CPU／CILエミュレーション、外部通信を行いません。詳細は [成果物レイアウト仕様](../../analysis-framework/docs/RESULT-LAYOUT.md) を参照してください。
 
