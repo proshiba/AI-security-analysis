@@ -111,7 +111,9 @@ def collect_rules(rules_dir: Path, rel_base: Path) -> list[dict]:
             {
                 "kind": kind,
                 "name": path.name,
-                "path": str(path.relative_to(rel_base)),
+                # OS依存のセパレータを避ける。Windows生成とCI(Linux)生成で
+                # 出力が変わり、--check が環境によって落ちるため。
+                "path": path.relative_to(rel_base).as_posix(),
                 "text": text,
             }
         )
@@ -205,7 +207,7 @@ def load_intel(known_shas: set[str]) -> dict:
                     "edge_count": c.get("edge_count"),
                     "max_pair_score": c.get("maximum_pair_score"),
                     "limitations": c.get("limitations") or [],
-                    "path": str(cdir.relative_to(REPO_ROOT)) if cdir.is_dir() else None,
+                    "path": cdir.relative_to(REPO_ROOT).as_posix() if cdir.is_dir() else None,
                     "rules": collect_rules(cdir / "rules", REPO_ROOT),
                     "readme": read_text(cdir / "README.md"),
                 }
@@ -408,7 +410,7 @@ def build() -> dict:
             if text:
                 docs[key] = text
         artifacts = sorted(
-            str(p.relative_to(case_dir))
+            p.relative_to(case_dir).as_posix()
             for p in case_dir.rglob("*")
             if p.is_file()
         )
