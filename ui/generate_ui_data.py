@@ -388,6 +388,44 @@ def _filesystem_case_index() -> dict[str, dict]:
     return discovered
 
 
+def git_added_dates() -> dict[str, str]:
+    """caseディレクトリがリポジトリへ追加されたcommit日をSHA-256ごとに得る。
+
+    `analysis_history.yaml` は解析の正本だが、一括解析では履歴レコードが
+    付かないcaseもあり網羅率が3割程度になる。ダッシュボードの新着一覧が
+    履歴の有無で欠落しないよう、全caseに使える追加日をgitから取る。
+    gitが使えない環境(shallow cloneやexport)では空を返し、UIは履歴だけで
+    動作する。
+    """
+    try:
+        out = subprocess.run(
+            [
+                "git", "-C", str(REPO_ROOT), "log", "--diff-filter=A",
+                "--name-only", "--date=short", "--format=%cd",
+                "--", "analysis-results",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+
+    date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    case_re = re.compile(r"^analysis-results/.*/cases/([0-9a-f]{64})/")
+    added: dict[str, str] = {}
+    current = None
+    for line in out.splitlines():
+        if date_re.fullmatch(line):
+            current = line
+            continue
+        match = case_re.match(line)
+        # git log は新しい順に出るため、最初に見えた日付が追加日
+        if match and current and match.group(1) not in added:
+            added[match.group(1)] = current
+    return added
+
+
 def discover_cases() -> dict[str, dict]:
     """catalogと固定レイアウトの完全一致を検証し、正本の全case一覧を返す。"""
 
@@ -424,6 +462,7 @@ def discover_cases() -> dict[str, dict]:
 def build() -> dict:
     cases_catalog = discover_cases()
     history = load_history()
+    added_dates = git_added_dates()
     labels = family_labels_from_index()
 
     families: dict[str, dict] = {}
@@ -519,6 +558,8 @@ def build() -> dict:
             "ioc_assessment": iocs_json.get("assessment"),
             "c2": c2_values,
             "history": case_history,
+            # 履歴レコードが無いcaseでも新着順に並べられるようにする
+            "added_at": added_dates.get(sha),
             "rules": collect_rules(case_dir / "rules", REPO_ROOT),
             "docs": docs,
             "artifacts": artifacts,

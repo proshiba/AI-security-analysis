@@ -50,6 +50,12 @@
     });
   });
 
+  // 新着順の基準。追加日を主、履歴の解析日と初観測を補助に使う。
+  function recencyKey(c) {
+    var hist = (c.history && c.history[0] && c.history[0].analyzed_at) || "";
+    return [c.added_at || "", hist, c.first_seen || ""].join("|");
+  }
+
   function familyLabel(key) {
     var f = DB.families[key];
     return (f && (f.label || f.title)) || key;
@@ -298,12 +304,13 @@
     var famList = Object.keys(DB.families).map(function (k) { return DB.families[k]; });
     famList.sort(function (a, b) { return b.case_count - a.case_count; });
 
-    var recent = [];
-    DB.cases.forEach(function (c) {
-      c.history.forEach(function (h) { recent.push({ h: h, c: c }); });
-    });
-    recent.sort(function (a, b) { return (b.h.analyzed_at || "").localeCompare(a.h.analyzed_at || ""); });
-    recent = recent.slice(0, 12);
+    // 新着一覧は全ケースを対象にする。analysis_history.yaml は一括解析だと
+    // レコードが付かず網羅率が3割程度なので、履歴だけを見ると直近の解析が
+    // 一覧から丸ごと抜け落ちる。追加日(added_at)を主キーにし、履歴があれば
+    // 解析日とキャンペーンを併記する。
+    var recent = DB.cases.slice().sort(function (a, b) {
+      return recencyKey(b).localeCompare(recencyKey(a));
+    }).slice(0, 12);
 
     var html = '<h1 class="page-title">マルウェア解析ダッシュボード</h1>' +
       '<p class="page-sub">AIセキュリティ解析リポジトリの公開成果物(ケース・IOC・検知ルール・解析履歴)を横断的に閲覧できます。</p>' +
@@ -320,16 +327,22 @@
     html += '<div class="section"><h2>ケース数上位のファミリ <a class="small" href="#/families">すべて表示 →</a></h2><div class="family-grid">' +
       famList.slice(0, 12).map(familyCard).join("") + "</div></div>";
 
-    html += '<div class="section"><h2>最近の解析履歴</h2><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      "<th>解析日</th><th>ファミリ</th><th>検体</th><th>キャンペーン / チェーン</th><th>主なC2</th></tr></thead><tbody>";
-    recent.forEach(function (r) {
-      html += "<tr><td class='nowrap mono'>" + esc(r.h.analyzed_at) + "</td>" +
-        "<td><a href='#/family/" + esc(r.c.family) + "'>" + esc(familyLabel(r.c.family)) + "</a></td>" +
-        "<td class='mono'><a href='#/case/" + r.c.sha256 + "'>" + shortSha(r.c.sha256) + "</a></td>" +
-        "<td class='mono small'>" + esc(r.h.campaign_type || "") + "</td>" +
-        "<td class='mono small'>" + (r.h.c2 || []).slice(0, 2).map(esc).join("<br>") + "</td></tr>";
+    html += '<div class="section"><h2>最近追加されたケース <a class="small" href="' +
+      buildHash(["cases"], { sort: "added_desc" }) + '">すべて表示 →</a></h2>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      "<th>追加日</th><th>解析日</th><th>ファミリ</th><th>検体</th><th>キャンペーン / チェーン</th><th>主なC2</th></tr></thead><tbody>";
+    recent.forEach(function (c) {
+      var h = c.history[0];
+      html += "<tr><td class='nowrap mono'>" + esc(c.added_at || "") + "</td>" +
+        "<td class='nowrap mono small'>" + esc(h ? h.analyzed_at : "―") + "</td>" +
+        "<td class='nowrap'><a href='#/family/" + esc(c.family) + "'>" + esc(familyLabel(c.family)) + "</a></td>" +
+        "<td class='mono'><a href='#/case/" + c.sha256 + "'>" + shortSha(c.sha256) + "</a></td>" +
+        "<td class='mono small'>" + esc(c.campaign_type || (h && h.campaign_type) || "") + "</td>" +
+        "<td class='mono small'>" + (c.c2 || []).slice(0, 2).map(esc).join("<br>") + "</td></tr>";
     });
-    html += "</tbody></table></div></div>";
+    html += "</tbody></table>" +
+      '<div class="muted small" style="margin-top:6px">追加日はケースがリポジトリへ入った日です。解析日は ' +
+      "<code>analysis_history.yaml</code> に履歴がある場合だけ表示します(一括解析では履歴が付かないことがあります)。</div></div>";
     app.innerHTML = html;
   }
 
@@ -390,6 +403,10 @@
 
   function sortCases(list, mode) {
     var sorted = list.slice();
+    if (mode === "added_desc") {
+      sorted.sort(function (a, b) { return recencyKey(b).localeCompare(recencyKey(a)); });
+      return sorted;
+    }
     if (mode === "family") {
       sorted.sort(function (a, b) { return a.family.localeCompare(b.family) || (b.first_seen || "").localeCompare(a.first_seen || ""); });
     } else if (mode === "seen_asc") {
@@ -417,7 +434,7 @@
       selectBox("f-campaign", "キャンペーン: すべて", opts.campaigns.map(function (k) { return [k, k]; }), q.campaign) +
       selectBox("f-collection", "コレクション: すべて", opts.collections.map(function (k) { return [k, k]; }), q.collection) +
       '<label class="small"><input type="checkbox" id="f-c2"' + (q.c2 === "1" ? " checked" : "") + "> C2記録あり</label>" +
-      selectBox("f-sort", "", [["seen_desc", "初観測が新しい順"], ["seen_asc", "初観測が古い順"], ["family", "ファミリ順"]], q.sort || "seen_desc", true) +
+      selectBox("f-sort", "", [["added_desc", "追加が新しい順"], ["seen_desc", "初観測が新しい順"], ["seen_asc", "初観測が古い順"], ["family", "ファミリ順"]], q.sort || "seen_desc", true) +
       '<span class="count">' + matched.length + " / " + DB.cases.length + " 件</span></div>";
 
     html += caseTable(slice, true);
