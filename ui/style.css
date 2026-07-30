@@ -127,6 +127,26 @@ code, .mono { font-family: var(--mono); }
 .stat-card .num { font-size: 26px; font-weight: 700; color: var(--accent-2); font-family: var(--mono); }
 .stat-card .lbl { color: var(--text-dim); font-size: 12px; }
 
+/* ---------- ダッシュボードの横断検索 ---------- */
+.dash-search {
+  display: flex; align-items: center; gap: 12px;
+  margin: 16px 0 4px;
+}
+.dash-search input {
+  flex: 1 1 auto; min-width: 0;
+  padding: 12px 16px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 14px;
+}
+.dash-search input::placeholder { color: var(--text-dim); }
+.dash-search input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,168,255,.12);
+}
+.dash-search-count { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+#dash-results .section:first-child { margin-top: 18px; }
+
 .family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .family-card {
   display: block; background: var(--panel); border: 1px solid var(--border);
