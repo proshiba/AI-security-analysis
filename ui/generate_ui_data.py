@@ -395,18 +395,66 @@ def existing_added_dates() -> dict[str, str]:
     値を引き継ぐことで、環境差で `--check` が落ちたり、追加日が一括で
     消えることを防ぐ。
     """
-    text = read_text(OUTPUT)
-    if not text:
-        return {}
-    try:
-        payload = json.loads(text[text.index("=") + 1:].rstrip().rstrip(";"))
-    except (ValueError, json.JSONDecodeError):
+    payload = parse_payload(read_text(OUTPUT))
+    if payload is None:
         return {}
     return {
         c["sha256"]: c["added_at"]
         for c in payload.get("cases", [])
         if c.get("sha256") and c.get("added_at")
     }
+
+
+def parse_payload(text: str) -> dict | None:
+    """`window.MALDB = {...};` 形式の生成物からJSON本体を取り出す。"""
+    if not text:
+        return None
+    try:
+        return json.loads(text[text.index("=") + 1:].rstrip().rstrip(";"))
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+
+def only_unresolved_added_at(current: str, fresh: dict) -> bool:
+    """差分が「commit前で確定しなかった added_at」だけかどうかを判定する。
+
+    added_at は `git log --diff-filter=A` 由来のため、case を追加する commit
+    そのものの中ではまだ確定しない。case追加とdata.js再生成を1コミットに
+    まとめると生成時点では null になり、commit後に日付が付くので、この
+    null→日付 の一方向だけは「未確定だった値が確定した」ものとして許容する。
+    これを差分扱いにすると、case を追加するPRが構造的に必ず `--check` で
+    落ちてしまう。配信されるdata.jsはワークフローが毎回再生成するため、
+    公開内容は常に確定後の日付になる。
+    """
+    old = parse_payload(current)
+    if old is None:
+        return False
+    old_cases = old.get("cases")
+    new_cases = fresh.get("cases")
+    if not isinstance(old_cases, list) or not isinstance(new_cases, list):
+        return False
+    if len(old_cases) != len(new_cases):
+        return False
+    if {k: v for k, v in old.items() if k != "cases"} != {
+        k: v for k, v in fresh.items() if k != "cases"
+    }:
+        return False
+
+    tolerated = False
+    for old_case, new_case in zip(old_cases, new_cases):
+        if old_case == new_case:
+            continue
+        # caseの並びは sha256 昇順で added_at に依存しない
+        if old_case.get("sha256") != new_case.get("sha256"):
+            return False
+        if old_case.get("added_at") is not None or new_case.get("added_at") is None:
+            return False
+        patched = dict(old_case)
+        patched["added_at"] = new_case["added_at"]
+        if patched != new_case:
+            return False
+        tolerated = True
+    return tolerated
 
 
 def is_shallow_clone() -> bool:
@@ -683,11 +731,17 @@ def main() -> int:
 
     if args.check:
         current = read_text(OUTPUT)
-        if current != payload:
-            print("ui/data.js is out of date. Run: python3 ui/generate_ui_data.py", file=sys.stderr)
-            return 1
-        print("ui/data.js is up to date.")
-        return 0
+        if current == payload:
+            print("ui/data.js is up to date.")
+            return 0
+        if only_unresolved_added_at(current, data):
+            print(
+                "ui/data.js is up to date. "
+                "(commit前で未確定だった added_at のみ差分。次回の再生成で解消されます)"
+            )
+            return 0
+        print("ui/data.js is out of date. Run: python3 ui/generate_ui_data.py", file=sys.stderr)
+        return 1
 
     OUTPUT.write_text(payload, encoding="utf-8")
     size_mb = OUTPUT.stat().st_size / (1024 * 1024)
