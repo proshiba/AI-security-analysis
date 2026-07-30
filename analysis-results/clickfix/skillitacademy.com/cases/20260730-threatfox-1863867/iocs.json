@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863867",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 04:03:40 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "skillitacademy.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.44.135",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.44.169",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.57.2",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.139.90",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.200.147",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.201.151",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "http://blackdollarsmarket.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://superonecarcharger.org/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

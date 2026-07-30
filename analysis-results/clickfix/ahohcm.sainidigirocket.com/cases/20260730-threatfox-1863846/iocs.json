@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863846",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 01:51:27 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "ahohcm.sainidigirocket.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    }
+  ]
+}

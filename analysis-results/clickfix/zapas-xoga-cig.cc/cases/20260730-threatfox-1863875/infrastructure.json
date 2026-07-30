@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863875",
+  "domain": "zapas-xoga-cig.cc",
+  "observed_at": "2026-07-30 04:11:30 UTC",
+  "investigated_at_utc": "2026-07-30T07:41:30.761213+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1863875"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        403
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "87.58.206.75"
+      ],
+      "landing_public_addresses": [
+        "87.58.206.75"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "zapas-xoga-cig.cc",
+            "type": 1,
+            "ttl": 300,
+            "data": "87.58.206.75"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "zapas-xoga-cig.cc",
+            "type": 2,
+            "ttl": 20864,
+            "data": "summer.ns.cloudflare.com"
+          },
+          {
+            "name": "zapas-xoga-cig.cc",
+            "type": 2,
+            "ttl": 20864,
+            "data": "damian.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "ZAPAS-XOGA-CIG.CC",
+      "unicode_name": null,
+      "handle": "209582128_DOMAIN_CC-VRSN",
+      "status": [
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2026-07-29T14:09:27Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-07-29T14:09:27Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2026-07-29T14:51:48Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-07-30T07:31:13Z"
+        }
+      ],
+      "nameservers": [
+        "damian.ns.cloudflare.com",
+        "summer.ns.cloudflare.com"
+      ],
+      "registrar_handles": [
+        "472"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "87.58.206.75",
+      "rdap": {
+        "handle": "87.58.206.0 - 87.58.206.255",
+        "name": "DEDIK-IO-NETHERLANDS-NETWORK-87-58-206-0-24",
+        "type": "ASSIGNED PA",
+        "country": "NL",
+        "start_address": "87.58.206.0",
+        "end_address": "87.58.206.255",
+        "parent_handle": "87.58.192.0 - 87.58.223.255",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "registration",
+            "date": "2026-05-28T07:29:35Z"
+          },
+          {
+            "action": "last changed",
+            "date": "2026-05-28T21:19:18Z"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "87.58.206.75",
+        "country_code": "NL",
+        "asn": 207043,
+        "organization": "DEDIK SERVICES LIMITED",
+        "isp": "DEDIK SERVICES LIMITED",
+        "domain": "dedik.io"
+      },
+      "shodan_internetdb": {
+        "ip": "87.58.206.75",
+        "ports": [
+          80,
+          443,
+          444,
+          3001
+        ],
+        "hostnames": [
+          "max.ru"
+        ],
+        "cpes": [
+          "cpe:/a:caddyserver:caddy",
+          "cpe:/a:golang:go"
+        ],
+        "vulns": [],
+        "tags": []
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

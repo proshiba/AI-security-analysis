@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863837",
+  "domain": "runmarine-services.com",
+  "probed_at_utc": "2026-07-30T06:07:42.965848+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://runmarine-services.com/",
+        "host": "runmarine-services.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://runmarine-services.com/",
+            "host": "runmarine-services.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://srisaiinteriordesigns.com/",
+            "host": "srisaiinteriordesigns.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 167,
+          "body_truncated": false,
+          "body_sha256": "446a6087825fa73eadb045e5a2e9e2adf7df241b571228187728191d961dda1f",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.172.60",
+              "104.21.30.72"
+            ],
+            "public_addresses": [
+              "172.67.172.60",
+              "104.21.30.72"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 72.6,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://srisaiinteriordesigns.com/",
+            "host": "srisaiinteriordesigns.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.22.118",
+              "172.67.204.147"
+            ],
+            "public_addresses": [
+              "104.21.22.118",
+              "172.67.204.147"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8062.0,
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

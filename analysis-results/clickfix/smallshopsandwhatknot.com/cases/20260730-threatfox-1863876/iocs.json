@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863876",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 04:49:25 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "smallshopsandwhatknot.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.11.175",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.39.182",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.166.180",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.171.44",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://tribbleandsonswreckerservice.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

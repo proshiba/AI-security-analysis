@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863832",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 00:19:48 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "rugsofus.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.10.122",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.40.217",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.82.159",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.139.10",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.190.35",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.203.132",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://famscargo.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://hardwickfarmersmarket.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://tiendaadescuento.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

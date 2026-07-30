@@ -37,6 +37,26 @@ _RESULT_ROOT_DIRECTORY_ALLOWLIST = {
     "_shared", "catalog", "collections", "malware", "network-traffic", "research"
 }
 _RESULT_ROOT_FILE_ALLOWLIST = {"AGENTS.md", "IOC-INDEX.md", "README.md"}
+_CLICKFIX_DOMAIN_RE = re.compile(
+    r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+    r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+)
+_CLICKFIX_CASE_RE = re.compile(
+    r"^20\d{6}-(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+$"
+)
+_CLICKFIX_CASE_FILES = {
+    "FEATURES.md",
+    "INFRASTRUCTURE.md",
+    "IOC-LIST.md",
+    "OVERALL-LOGIC.md",
+    "README.md",
+    "TRIAGE.md",
+    "analysis.json",
+    "infrastructure.json",
+    "iocs.json",
+    "live-observation.json",
+    "triage-evidence.json",
+}
 _FINGERPRINT_METHOD = "sha256_relative_path_nul_size_u64_content_v1"
 _VERSION_SOURCES: dict[
     str,
@@ -86,6 +106,37 @@ _VERSION_VALUE_RE = {
 class LayoutPlanError(ValueError):
     """レイアウト計画が fail-closed 条件を満たさない場合の例外。"""
 
+
+def _is_planned_clickfix_artifact(relative: Path) -> bool:
+    """ClickFixの固定深度・既知成果物だけを計画済みとして扱う。"""
+
+    parts = relative.parts
+    if not parts or parts[0] != "clickfix":
+        return False
+    if len(parts) == 2 and parts[1] in {"AGENTS.md", "README.md"}:
+        return True
+    if (
+        len(parts) == 4
+        and parts[1] == "collections"
+        and re.fullmatch(r"clickfix-daily-20\d{6}", parts[2])
+        and parts[3] in {"INFRASTRUCTURE-SUMMARY.md", "README.md", "TRIAGE-SUMMARY.md", "manifest.json"}
+    ):
+        return True
+    if (
+        len(parts) == 5
+        and _CLICKFIX_DOMAIN_RE.fullmatch(parts[1])
+        and parts[2] == "cases"
+        and _CLICKFIX_CASE_RE.fullmatch(parts[3])
+        and parts[4] in _CLICKFIX_CASE_FILES
+    ):
+        return True
+    return bool(
+        len(parts) == 6
+        and _CLICKFIX_DOMAIN_RE.fullmatch(parts[1])
+        and parts[2] == "cases"
+        and _CLICKFIX_CASE_RE.fullmatch(parts[3])
+        and parts[4:] == ("rules", "sigma.yml")
+    )
 
 def _relative(path: Path, repository: Path) -> str:
     return path.resolve().relative_to(repository.resolve()).as_posix()
@@ -1222,6 +1273,8 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
             continue
         relative = path.relative_to(results_root)
         if len(relative.parts) == 1 and relative.name in _RESULT_ROOT_FILE_ALLOWLIST:
+            continue
+        if _is_planned_clickfix_artifact(relative):
             continue
         if relative.parts[0] in _RESULT_ROOT_DIRECTORY_ALLOWLIST:
             continue

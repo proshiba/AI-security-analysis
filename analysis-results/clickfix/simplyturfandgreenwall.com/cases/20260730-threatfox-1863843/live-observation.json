@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863843",
+  "domain": "simplyturfandgreenwall.com",
+  "probed_at_utc": "2026-07-30T06:07:34.753884+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://simplyturfandgreenwall.com/",
+        "host": "simplyturfandgreenwall.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://simplyturfandgreenwall.com/",
+            "host": "simplyturfandgreenwall.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 262144,
+          "body_truncated": true,
+          "body_sha256": "c3f1917bfac6387e1e4a658f22d13d2ccf515abbcc4b69cb61ad3afc9a124366",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.35.72",
+              "172.67.215.135"
+            ],
+            "public_addresses": [
+              "104.21.35.72",
+              "172.67.215.135"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 332.9,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "FUJI338 - Zona Gamespin | Kumpulan Game Favorit Tampilan Responsif Mudah Diakses",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

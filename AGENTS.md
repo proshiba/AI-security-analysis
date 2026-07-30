@@ -122,9 +122,23 @@
 - ドキュメント変更でも、解析安全ルールや履歴サマリの整合性に影響がある場合はその点を明記すること。
 - 作業報告も日本語で記述し、英語のログやerror messageを示す場合は日本語で意味と影響を説明すること。
 
+## ClickFix日次調査のルール
+
+- ClickFix／ClearFake調査は`analysis-framework/clickfix/clickfix_daily_intake.py`を使い、1回あたり最大50件、domain重複なしで選定すること。明示指定case、当日のThreatFox `clickfix`／`clearfake` tag、ClickFix Campaign Monitorの最新記録の順に扱い、情報源の観測日と解析日を区別すること。
+- 公開成果物は`analysis-results/clickfix/<domain>/cases/<case-id>/`、実行単位の一覧は`analysis-results/clickfix/collections/clickfix-daily-<YYYYMMDD>/`へ保存すること。各caseに`README.md`、`FEATURES.md`、`OVERALL-LOGIC.md`、`INFRASTRUCTURE.md`、`TRIAGE.md`、`analysis.json`、`infrastructure.json`、`triage-evidence.json`、`iocs.json`、`IOC-LIST.md`、`live-observation.json`、`rules/sigma.yml`を置くこと。
+- 実サイト確認は、ユーザーが許可した範囲内で上限付きGETと静的本文解析に限定すること。JavaScript、clipboard command、PowerShell、取得script／binaryを実行せず、form入力、認証情報送信、POST、WebDAV変更系method、malware protocolを送信しないこと。private／loopback／link-localへ解決したhostには接続しないこと。
+- provider生応答、取得本文、生command、token、invite pathは`.work/clickfix/`等の追跡対象外領域へ保存すること。公開側はhash、無害化URL、HTTP status、本文種別、根拠、確度へ正規化すること。ライブDNSの共有基盤IP、Telegram等のdual-use resolver、通常サイト資産は`context_only`としてIOCから除外すること。
+- ClickFix／ClearFake tagは手法またはWeb配布clusterであり、終端malware、campaign、actorの確定根拠にしないこと。配布binaryまたは完全hashを取得した場合はClickFix caseだけで完了扱いにせず、`analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>/`へ別caseとして静的解析すること。
+- payload取得の成否にかかわらず、`clickfix_infrastructure_enrichment.py`でcurrent DNS（A／AAAA／CNAME／NS／MX）、RDAP、証明書透明性、leaf証明書fingerprint、IP netblock、ASN、Shodan InternetDBを調査し、情報源観測日時と調査日時を分離すること。履歴passive DNSを取得できない場合は未取得と明記し、共有CDN、正規サイト侵害、sinkholeの可能性を残すこと。
+- `clickfix_triage_enrichment.py`でHatching Triageを`domain:`、取得済みの完全URLは`url:`、取得済みhashは`sha256:`で照合すること。公開済み解析だけを成果物へ転記し、overviewとbehavioral reportからprocess、raw commandを公開しないcommand hash、通信、dumped file、memory resource、PCAP候補を確認すること。新規sample提出、sample／memory／PCAP downloadは既定で行わず、必要時は対象と保存先を明示して`.work`配下で実施すること。
+- TriageやInternetDBの通信先・portはsandbox background trafficを含むため、config extractor、process帰属、malware protocol、複数taskでの再現のいずれかを確認するまでC2へ昇格しないこと。
+- RDAP、CT、InternetDB等がHTTP 429または一時的5xxを返した場合は上限付きbackoffを使い、成功済み証跡を保持して部分結果と失敗statusを明記すること。取得失敗を「該当インフラなし」と解釈しないこと。
+- 生成後はClickFix単体テスト、Sigma／JSON構文、50件上限、公開秘密値、リンクを検証し、`generate_ioc_lists.py --write`と`--check`で`IOC-INDEX.md`を同期すること。
+
 ## daily解析の完了条件
 
-- daily解析は、当日記事・IOCの調査とMalwareBazaar追加検体の解析、成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
+- daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、ClickFix／ClearFake 50件の3系統を同じ日付の実行単位で扱うこと。3系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
+- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が3系統すべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queueは件数を満たす代替として扱わないこと。
 - ユーザーが当該実行で明示的にpush／PRを省略するよう指定しない限り、解析成果を専用branchへpushし、検証内容と未完了項目を記載したdraft PRを作成すること。
 - pushまたはPR作成が認証・権限・競合・外部サービス障害で失敗した場合は、解析自体を完了と偽装せず、失敗した段階と再開に必要な操作を報告すること。
 

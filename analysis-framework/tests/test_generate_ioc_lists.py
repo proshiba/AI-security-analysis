@@ -353,3 +353,58 @@ def test_generate_discovers_canonical_campaign_and_research(tmp_path: Path) -> N
     assert (campaign / "IOC-LIST.md").is_file()
     assert (incident / "IOC-LIST.md").is_file()
     assert not (rules / "IOC-LIST.md").exists()
+
+def test_generate_discovers_clickfix_case_and_excludes_context_only(
+    tmp_path: Path,
+) -> None:
+    """ClickFix caseは構造化IOCだけを索引化し、共有基盤を除外する。"""
+
+    case = (
+        tmp_path
+        / "analysis-results"
+        / "clickfix"
+        / "landing.example"
+        / "cases"
+        / "20260730-threatfox-1"
+    )
+    case.mkdir(parents=True)
+    (case / "README.md").write_text(
+        "# ClickFix case\n\n## 追加通信先\n\n"
+        "- `https://t.me/<redacted>`\n",
+        encoding="utf-8",
+    )
+    (case / "iocs.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "indicators": [
+                    {
+                        "type": "domain",
+                        "value": "landing.example",
+                        "role": "clickfix_landing_or_payload_delivery",
+                        "confidence": "confirmed_provider_report",
+                    },
+                    {
+                        "type": "ip",
+                        "value": "203.0.113.10",
+                        "role": "context_only_live_dns_resolution",
+                        "confidence": "observed_at_analysis_time",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "analysis_history.yaml").write_text(
+        "analyses: []\n",
+        encoding="utf-8",
+    )
+
+    result = generate(tmp_path, write=True)
+    rendered = (case / "IOC-LIST.md").read_text(encoding="utf-8")
+
+    assert result["analyses"] == 1
+    assert result["indicators"] == 1
+    assert "landing.example" in rendered
+    assert "203.0.113.10" not in rendered
+    assert "t.me" not in rendered

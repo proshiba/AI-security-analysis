@@ -381,6 +381,12 @@ def analysis_directories(results_root: Path, history: dict[str, dict]) -> list[P
             index = parts.index("cases")
             if index + 2 == len(parts) - 1 and CASE_HASH_RE.fullmatch(parts[index + 1]):
                 output.add(readme.parent)
+            if (
+                parts[0] == "clickfix"
+                and index == 2
+                and index + 2 == len(parts) - 1
+            ):
+                output.add(readme.parent)
         if "campaigns" in parent_parts:
             index = parent_parts.index("campaigns")
             if (
@@ -558,6 +564,44 @@ def canonical_case_ioc_rendering(directory: Path) -> tuple[str, int] | None:
     return content, view.entry_count
 
 
+def clickfix_case_ioc_rendering(directory: Path) -> tuple[str, int] | None:
+    """ClickFix caseでは構造化IOCだけを信頼し、本文中の共有基盤を昇格しない。"""
+
+    path = directory / "iocs.json"
+    if "clickfix" not in directory.parts or not path.is_file():
+        return None
+    document = load_json_object_strict(path)
+    records = document.get("indicators")
+    if not isinstance(records, list):
+        return None
+    values = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        role = str(record.get("role") or "recorded_ioc")
+        confidence = str(record.get("confidence") or "recorded")
+        if any(
+            marker in f"{role} {confidence}".lower()
+            for marker in NON_IOC_MARKERS
+        ):
+            continue
+        normalized = normalize_value(str(record.get("value") or ""))
+        if not normalized:
+            continue
+        kind, value = normalized
+        values.append(
+            Indicator(
+                kind,
+                value,
+                role,
+                confidence,
+                str(record.get("source") or "iocs.json"),
+            )
+        )
+    merged = merge_indicators(values)
+    return render_ioc_list(merged), len(merged)
+
+
 def render_ioc_list(values: list[Indicator]) -> str:
     """挙動説明を混在させず、日本語見出しの IOC 表を描画する。"""
     lines = [
@@ -657,6 +701,8 @@ def generate(
     reports = []
     for directory in directories:
         canonical = canonical_case_ioc_rendering(directory)
+        if canonical is None:
+            canonical = clickfix_case_ioc_rendering(directory)
         if canonical is None:
             values = collect_indicators(directory, repository, history)
             content = render_ioc_list(values)

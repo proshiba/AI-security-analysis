@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863861",
+  "domain": "samanthadefalco.com",
+  "probed_at_utc": "2026-07-30T06:07:34.132114+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://samanthadefalco.com/",
+        "host": "samanthadefalco.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://samanthadefalco.com/",
+            "host": "samanthadefalco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "http://www.samanthadefalco.com/",
+            "host": "www.samanthadefalco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 279,
+          "body_truncated": false,
+          "body_sha256": "232df936f3777aa0ea7a955590973886f8fdca5317cd744e8a04471ee16f2fe5",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "public_addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 209.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://www.samanthadefalco.com/",
+            "host": "www.samanthadefalco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://www.samanthadefalco.com/",
+            "host": "www.samanthadefalco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 167,
+          "body_truncated": false,
+          "body_sha256": "446a6087825fa73eadb045e5a2e9e2adf7df241b571228187728191d961dda1f",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "public_addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 14.4,
+          "tls_certificate_validation": "not_applicable",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://www.samanthadefalco.com/",
+            "host": "www.samanthadefalco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 262144,
+          "body_truncated": true,
+          "body_sha256": "da2efe036dd15be9941448280993ea7fd5897f588f4d2344807f13fd64f92421",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "public_addresses": [
+              "172.67.188.213",
+              "104.21.8.241"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 355.1,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "SULTANWIN 🀄 Link Depo Minimal 5K Pelayanan Super Cepat Jaminan Bayar Penuh",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

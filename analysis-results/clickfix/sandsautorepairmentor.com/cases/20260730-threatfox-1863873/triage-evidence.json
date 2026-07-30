@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863873",
+  "domain": "sandsautorepairmentor.com",
+  "queried_at_utc": "2026-07-30T07:34:32.679843+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 0
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 0,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

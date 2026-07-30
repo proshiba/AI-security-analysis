@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863867",
+  "domain": "skillitacademy.com",
+  "probed_at_utc": "2026-07-30T06:07:46.491232+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://skillitacademy.com/",
+        "host": "skillitacademy.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://skillitacademy.com/",
+            "host": "skillitacademy.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "http://blackdollarsmarket.com/",
+            "host": "blackdollarsmarket.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 278,
+          "body_truncated": false,
+          "body_sha256": "dd50aae0ed80d2263e6ec1e6d288fb388a3a1b5c645b856bcfa3d3cde9f8d24c",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.200.147",
+              "104.21.44.135"
+            ],
+            "public_addresses": [
+              "172.67.200.147",
+              "104.21.44.135"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 212.8,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://blackdollarsmarket.com/",
+            "host": "blackdollarsmarket.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://superonecarcharger.org/",
+            "host": "superonecarcharger.org",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 279,
+          "body_truncated": false,
+          "body_sha256": "cb7a9f8d4031a809a512934abd9f881e16559bd9c6af7443242ebe2ebf013d45",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.44.169",
+              "172.67.201.151"
+            ],
+            "public_addresses": [
+              "104.21.44.169",
+              "172.67.201.151"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 521.3,
+          "tls_certificate_validation": "not_applicable",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 1
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://superonecarcharger.org/",
+            "host": "superonecarcharger.org",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.139.90",
+              "104.21.57.2"
+            ],
+            "public_addresses": [
+              "172.67.139.90",
+              "104.21.57.2"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 12304.6,
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}
