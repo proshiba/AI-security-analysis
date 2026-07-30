@@ -320,6 +320,57 @@ def test_render_iocs_contains_only_submitted_hash() -> None:
     assert "汎用文字列走査" in rendered
     assert "http://" not in rendered
 
+
+def test_render_readme_separates_chain_iocs_and_detection_materials() -> None:
+    """ケースREADMEはチェーン、IOC、Sigma／YARA材料を独立した節にする。"""
+
+    digest = "a" * 64
+    rendered = publisher.render_readme(
+        digest,
+        "unclassified",
+        "no_supported_family_evidence",
+        {
+            "signature": None,
+            "tags": ["exe"],
+            "first_seen": "2026-07-30 00:00:00",
+            "file_name": "sample.exe",
+            "file_type": "exe",
+            "file_size": 4096,
+        },
+        {
+            "type": "pe",
+            "size": 4096,
+            "entropy": 7.1,
+            "is_dotnet": False,
+            "section_count": 5,
+            "import_library_count": 1,
+            "import_count": 1,
+        },
+        [
+            {
+                "capability": "process_creation",
+                "basis": "プロセス起動APIのimportを確認",
+                "imports": "createprocessw",
+            }
+        ],
+        {"status": "function_analysis_required"},
+        0,
+        0,
+    )
+
+    for heading in (
+        "## 実行・感染チェーン",
+        "## ファイルIOC",
+        "## C2／通信IOC",
+        "## Sigma／YARA材料",
+        "## 制約",
+    ):
+        assert heading in rendered
+    assert digest in rendered
+    assert "createprocessw" in rendered
+    assert "単一importだけでは判定せず" in rendered
+
+
 def test_confirmed_static_handler_iocs_are_sanitized_deduplicated_and_traceable() -> None:
     """確認済み設定だけを採用し、秘密値を除去してrole・evidenceを保持する。"""
 

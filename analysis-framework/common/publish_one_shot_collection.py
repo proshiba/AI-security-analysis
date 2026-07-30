@@ -565,14 +565,33 @@ def render_readme(
             )
     else:
         lines.append("- import相関だけでは特徴的な処理能力を確定できませんでした。")
+    capability_materials = (
+        "、".join(
+            f"`{item['capability']}`（`{item['imports']}`）"
+            for item in capabilities
+        )
+        if capabilities
+        else "特徴的なimport相関なし"
+    )
     lines.extend(
         [
+            "",
+            "## 実行・感染チェーン",
+            "",
+            "MalwareBazaarの暗号化ZIPから認証済みルート検体を静的に取り出し、復元可能な埋め込み層を追跡してから関数解析へ渡しました。"
+            "検体を実行していないため、実行時の親子プロセス、永続化、後段取得は未確認です。"
+            "静的な層関係と処理段階は[OVERALL-LOGIC.md](OVERALL-LOGIC.md)を参照してください。",
             "",
             "## 静的ロジック",
             "",
             "関数境界・call graph・逆コンパイルが未記録のbinaryは`function_analysis_required`のままです。詳細は[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。",
             "",
-            "## C2評価",
+            "## ファイルIOC",
+            "",
+            f"- 提出検体SHA-256: `{digest}`",
+            "- 復元層のhashと役割は[IOC-LIST.md](IOC-LIST.md)および[静的レイヤー](static-layers.json)を参照してください。",
+            "",
+            "## C2／通信IOC",
             "",
             (
                 f"ファミリー固有handlerの静的設定構造から、確認済みC2観測を`{confirmed_c2_count}`件記録しました。"
@@ -581,6 +600,18 @@ def render_readme(
                 if confirmed_c2_count
                 else "汎用文字列走査の候補をC2として採用していません。ファミリー固有設定で裏付けられない限り、現在のC2、所有者、到達性は未確認です。"
             ),
+            "公開可能な通信IOCは[IOC-LIST.md](IOC-LIST.md)を参照してください。",
+            "",
+            "## Sigma／YARA材料",
+            "",
+            f"- exact-match材料: SHA-256 `{digest}`",
+            f"- PE構造材料: 形式 `{pe.get('type') or metadata.get('file_type') or '不明'}`、"
+            f"サイズ `{pe.get('size') or metadata.get('file_size') or '不明'}` bytes、"
+            f"entropy `{pe.get('entropy') if pe.get('entropy') is not None else '不明'}`、"
+            f"section数 `{pe.get('section_count')}`",
+            f"- 能力相関材料: {capability_materials}",
+            "- providerのfamily名、ファイル名、単一importだけでは判定せず、hash、PE構造、複数import、復元層、親子関係、通信帰属を組み合わせます。",
+            "- 本節はルール実装前の材料であり、環境別の正常系検証と誤検知評価を経ずに本番判定へ使用しません。",
             "",
             "## 関連成果物",
             "",
