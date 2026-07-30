@@ -64,6 +64,72 @@ def read_json(path: Path):
         return None
 
 
+# IOC-LIST.md の種別・役割の表記はケースによって揺れる(`url`/`URL`、`ドメイン`/
+# `Domain`/`Host`、役割は `c2` を含まない `beacon_or_tasking`、`file_exfiltration`、
+# `credential_exfiltration` など)。ラベルの綴りに依存すると取りこぼすため、
+# 値の形を主な判定材料にする。spec v1向けの厳密な型判定は
+# `build_portal_index.py` の classify_value() 側に持つ。
+HASH_OR_FILE_TYPES = {
+    "sha256", "sha-256", "sha1", "sha-1", "md5", "imphash",
+    "file_name", "filename", "ethereumアドレス",
+}
+NETWORK_TYPE_HINTS = {
+    "接続先", "ドメイン", "domain", "url", "host", "hostname",
+    "endpoint", "ip", "ipv4", "ipv6",
+}
+NETWORK_ROLE_HINTS = (
+    "c2", "beacon", "tasking", "exfil", "distribution", "download",
+    "stage", "host", "endpoint", "network", "config",
+)
+_URL_VALUE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
+_IPV4_VALUE_RE = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$")
+_HOSTPORT_VALUE_RE = re.compile(r"^[A-Za-z0-9_.-]+:\d{1,5}$")
+_HOSTNAME_VALUE_RE = re.compile(r"^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$")
+
+
+def is_network_indicator(entry: dict) -> bool:
+    """IOC-LIST.mdの1行が、C2・通信欄へ出すネットワーク指標かを判定する。"""
+    ioc_type = str(entry.get("type") or "").strip().lower()
+    if ioc_type in HASH_OR_FILE_TYPES:
+        return False
+    value = str(entry.get("value") or "").strip()
+    if not value:
+        return False
+    # 値の形だけで通信先と分かるものは、種別・役割の表記に関係なく採用する
+    if (
+        _URL_VALUE_RE.match(value)
+        or _IPV4_VALUE_RE.match(value)
+        or _HOSTPORT_VALUE_RE.match(value)
+    ):
+        return True
+    # ホスト名の形は、ファイル名と紛れるため種別か役割の裏付けを要求する
+    if not _HOSTNAME_VALUE_RE.match(value):
+        return False
+    role = str(entry.get("role") or "").strip().lower()
+    return ioc_type in NETWORK_TYPE_HINTS or any(h in role for h in NETWORK_ROLE_HINTS)
+
+
+def structured_network_values(iocs_json: dict) -> set[str]:
+    """`iocs.json` の network 配列から通信先を組み立てる。
+
+    IOC-LIST.mdは生成物で表記が揺れるが、この配列はhost/ip/domain/url/portを
+    分けて持つ構造化データなので、取りこぼしを防ぐために併用する。
+    """
+    values: set[str] = set()
+    for entry in iocs_json.get("network") or []:
+        if not isinstance(entry, dict):
+            continue
+        url = str(entry.get("url") or "").strip()
+        if url:
+            values.add(url)
+        host = str(entry.get("host") or entry.get("ip") or entry.get("domain") or "").strip()
+        if not host:
+            continue
+        port = entry.get("port")
+        values.add(f"{host}:{port}" if port else host)
+    return values
+
+
 def parse_ioc_list(md: str) -> list[dict]:
     """IOC-LIST.md の5列標準表(種別/値/役割/確度/根拠)を行ごとに読み取る。"""
     entries = []
@@ -322,6 +388,44 @@ def _filesystem_case_index() -> dict[str, dict]:
     return discovered
 
 
+def git_added_dates() -> dict[str, str]:
+    """caseディレクトリがリポジトリへ追加されたcommit日をSHA-256ごとに得る。
+
+    `analysis_history.yaml` は解析の正本だが、一括解析では履歴レコードが
+    付かないcaseもあり網羅率が3割程度になる。ダッシュボードの新着一覧が
+    履歴の有無で欠落しないよう、全caseに使える追加日をgitから取る。
+    gitが使えない環境(shallow cloneやexport)では空を返し、UIは履歴だけで
+    動作する。
+    """
+    try:
+        out = subprocess.run(
+            [
+                "git", "-C", str(REPO_ROOT), "log", "--diff-filter=A",
+                "--name-only", "--date=short", "--format=%cd",
+                "--", "analysis-results",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+
+    date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    case_re = re.compile(r"^analysis-results/.*/cases/([0-9a-f]{64})/")
+    added: dict[str, str] = {}
+    current = None
+    for line in out.splitlines():
+        if date_re.fullmatch(line):
+            current = line
+            continue
+        match = case_re.match(line)
+        # git log は新しい順に出るため、最初に見えた日付が追加日
+        if match and current and match.group(1) not in added:
+            added[match.group(1)] = current
+    return added
+
+
 def discover_cases() -> dict[str, dict]:
     """catalogと固定レイアウトの完全一致を検証し、正本の全case一覧を返す。"""
 
@@ -358,6 +462,7 @@ def discover_cases() -> dict[str, dict]:
 def build() -> dict:
     cases_catalog = discover_cases()
     history = load_history()
+    added_dates = git_added_dates()
     labels = family_labels_from_index()
 
     families: dict[str, dict] = {}
@@ -418,11 +523,8 @@ def build() -> dict:
         case_history = history.get(sha, [])
         c2_values = sorted(
             {c for h in case_history for c in h["c2"]}
-            | {
-                e["value"]
-                for e in ioc_entries
-                if "c2" in e["role"].lower() or e["type"] in ("接続先", "ipv4", "ipv6", "ドメイン", "domain", "url")
-            }
+            | {e["value"] for e in ioc_entries if is_network_indicator(e)}
+            | structured_network_values(iocs_json)
         )
 
         case = {
@@ -456,6 +558,8 @@ def build() -> dict:
             "ioc_assessment": iocs_json.get("assessment"),
             "c2": c2_values,
             "history": case_history,
+            # 履歴レコードが無いcaseでも新着順に並べられるようにする
+            "added_at": added_dates.get(sha),
             "rules": collect_rules(case_dir / "rules", REPO_ROOT),
             "docs": docs,
             "artifacts": artifacts,
