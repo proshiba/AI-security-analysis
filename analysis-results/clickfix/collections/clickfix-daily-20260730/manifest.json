@@ -1,0 +1,1472 @@
+{
+  "schema_version": 1,
+  "collection_id": "clickfix-daily-20260730",
+  "analysis_date": "2026-07-30",
+  "generated_at_utc": "2026-07-30T06:46:19.352456+00:00",
+  "selection": {
+    "limit": 50,
+    "maximum": 50,
+    "policy": "明示指定tbhadvisors.com、本日ThreatFox clickfix/clearfake、clickfix.pro最新行の順でdomain重複を除外"
+  },
+  "source_counts": {
+    "ClickFix Hunter": 1,
+    "ThreatFox": 38,
+    "ClickFix Campaign Monitor": 11
+  },
+  "case_count": 50,
+  "cases": [
+    {
+      "case_id": "20260730-clickfix-hunter-efdbd9a6673f",
+      "domain": "tbhadvisors.com",
+      "observed_at": "2026-07-27T22:22:02.212Z",
+      "source": "ClickFix Hunter",
+      "source_id": "efdbd9a6673f",
+      "relative_path": "tbhadvisors.com/cases/20260730-clickfix-hunter-efdbd9a6673f",
+      "command_pattern": "telegram_dead_drop_powershell",
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 2,
+        "http_statuses": [
+          200
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "149.154.167.99",
+          "162.159.135.42"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 2
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "captcha"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "reachable_but_tokens_absent",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863887",
+      "domain": "luahrq.snowssurfshack.com",
+      "observed_at": "2026-07-30 05:38:30 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863887",
+      "relative_path": "luahrq.snowssurfshack.com/cases/20260730-threatfox-1863887",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.89.135",
+          "172.67.159.204"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863886",
+      "domain": "snowssurfshack.com",
+      "observed_at": "2026-07-30 05:37:52 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863886",
+      "relative_path": "snowssurfshack.com/cases/20260730-threatfox-1863886",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.38.211",
+          "104.21.89.135",
+          "104.21.91.112",
+          "172.67.159.204",
+          "172.67.168.124",
+          "172.67.215.250"
+        ],
+        "redirects": [
+          "https://ballantinepublishers.com/",
+          "https://chrisbrowndetroit.com/",
+          "https://fabric-mall.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863885",
+      "domain": "zmgwbau.smoothoutlawcoffee.com",
+      "observed_at": "2026-07-30 05:36:49 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863885",
+      "relative_path": "zmgwbau.smoothoutlawcoffee.com/cases/20260730-threatfox-1863885",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.51.105",
+          "172.67.179.10"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863884",
+      "domain": "n5u3jyf6.plumberservices.store",
+      "observed_at": "2026-07-30 05:36:41 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863884",
+      "relative_path": "n5u3jyf6.plumberservices.store/cases/20260730-threatfox-1863884",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.72.97",
+          "172.67.179.202"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863883",
+      "domain": "smoothoutlawcoffee.com",
+      "observed_at": "2026-07-30 05:34:41 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863883",
+      "relative_path": "smoothoutlawcoffee.com/cases/20260730-threatfox-1863883",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          206
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.51.105",
+          "172.67.179.10"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "captcha",
+          "cloudflare",
+          "verification"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863879",
+      "domain": "gysymf.sarahelizabethphotoandfilm.com",
+      "observed_at": "2026-07-30 04:57:39 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863879",
+      "relative_path": "gysymf.sarahelizabethphotoandfilm.com/cases/20260730-threatfox-1863879",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863878",
+      "domain": "sarahelizabethphotoandfilm.com",
+      "observed_at": "2026-07-30 04:52:21 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863878",
+      "relative_path": "sarahelizabethphotoandfilm.com/cases/20260730-threatfox-1863878",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.86.175",
+          "172.67.223.74"
+        ],
+        "redirects": [
+          "http://www.sarahelizabethphotoandfilm.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863877",
+      "domain": "wohinmn.smallshopsandwhatknot.com",
+      "observed_at": "2026-07-30 04:51:24 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863877",
+      "relative_path": "wohinmn.smallshopsandwhatknot.com/cases/20260730-threatfox-1863877",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863876",
+      "domain": "smallshopsandwhatknot.com",
+      "observed_at": "2026-07-30 04:49:25 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863876",
+      "relative_path": "smallshopsandwhatknot.com/cases/20260730-threatfox-1863876",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.11.175",
+          "104.21.39.182",
+          "172.67.166.180",
+          "172.67.171.44"
+        ],
+        "redirects": [
+          "https://tribbleandsonswreckerservice.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863875",
+      "domain": "zapas-xoga-cig.cc",
+      "observed_at": "2026-07-30 04:11:30 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863875",
+      "relative_path": "zapas-xoga-cig.cc/cases/20260730-threatfox-1863875",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "87.58.206.75"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863874",
+      "domain": "rhyawn.sandsautorepairmentor.com",
+      "observed_at": "2026-07-30 04:09:27 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863874",
+      "relative_path": "rhyawn.sandsautorepairmentor.com/cases/20260730-threatfox-1863874",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863873",
+      "domain": "sandsautorepairmentor.com",
+      "observed_at": "2026-07-30 04:07:44 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863873",
+      "relative_path": "sandsautorepairmentor.com/cases/20260730-threatfox-1863873",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.24.18",
+          "104.21.94.63",
+          "172.67.216.76",
+          "172.67.220.82"
+        ],
+        "redirects": [
+          "http://bhlocksmithinc.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863868",
+      "domain": "ouvavde.skillitacademy.com",
+      "observed_at": "2026-07-30 04:04:51 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863868",
+      "relative_path": "ouvavde.skillitacademy.com/cases/20260730-threatfox-1863868",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863867",
+      "domain": "skillitacademy.com",
+      "observed_at": "2026-07-30 04:03:40 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863867",
+      "relative_path": "skillitacademy.com/cases/20260730-threatfox-1863867",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 2,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.44.135",
+          "104.21.44.169",
+          "104.21.57.2",
+          "172.67.139.90",
+          "172.67.200.147",
+          "172.67.201.151"
+        ],
+        "redirects": [
+          "http://blackdollarsmarket.com/",
+          "https://superonecarcharger.org/"
+        ],
+        "body_types": {
+          "html": 2
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863866",
+      "domain": "i48ybkyy.nakedlesbianskiss.com",
+      "observed_at": "2026-07-30 03:53:37 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863866",
+      "relative_path": "i48ybkyy.nakedlesbianskiss.com/cases/20260730-threatfox-1863866",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.16.214",
+          "172.67.215.243"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863864",
+      "domain": "23ida6x1.pizzadays.net",
+      "observed_at": "2026-07-30 03:36:19 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863864",
+      "relative_path": "23ida6x1.pizzadays.net/cases/20260730-threatfox-1863864",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863862",
+      "domain": "lprxjf.samanthadefalco.com",
+      "observed_at": "2026-07-30 03:23:01 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863862",
+      "relative_path": "lprxjf.samanthadefalco.com/cases/20260730-threatfox-1863862",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863861",
+      "domain": "samanthadefalco.com",
+      "observed_at": "2026-07-30 03:21:22 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863861",
+      "relative_path": "samanthadefalco.com/cases/20260730-threatfox-1863861",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          200,
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.8.241",
+          "172.67.188.213"
+        ],
+        "redirects": [
+          "http://www.samanthadefalco.com/",
+          "https://www.samanthadefalco.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863860",
+      "domain": "aahtioq.sketchetch.net",
+      "observed_at": "2026-07-30 03:20:48 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863860",
+      "relative_path": "aahtioq.sketchetch.net/cases/20260730-threatfox-1863860",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863859",
+      "domain": "sketchetch.net",
+      "observed_at": "2026-07-30 03:18:15 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863859",
+      "relative_path": "sketchetch.net/cases/20260730-threatfox-1863859",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.56.198",
+          "104.21.86.99",
+          "172.67.136.171",
+          "172.67.217.210"
+        ],
+        "redirects": [
+          "https://yrserviceco.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863855",
+      "domain": "qbywphal.liberty-token.org",
+      "observed_at": "2026-07-30 02:59:14 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863855",
+      "relative_path": "qbywphal.liberty-token.org/cases/20260730-threatfox-1863855",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.50.199",
+          "172.67.166.142"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863854",
+      "domain": "udofiy.salpizzasewell.com",
+      "observed_at": "2026-07-30 02:36:34 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863854",
+      "relative_path": "udofiy.salpizzasewell.com/cases/20260730-threatfox-1863854",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863853",
+      "domain": "salpizzasewell.com",
+      "observed_at": "2026-07-30 02:35:50 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863853",
+      "relative_path": "salpizzasewell.com/cases/20260730-threatfox-1863853",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          206,
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.4.124",
+          "172.67.132.19"
+        ],
+        "redirects": [
+          "http://www.salpizzasewell.com/",
+          "https://www.salpizzasewell.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "captcha",
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863852",
+      "domain": "frrnaly.sixstar-iptv.com",
+      "observed_at": "2026-07-30 02:33:55 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863852",
+      "relative_path": "frrnaly.sixstar-iptv.com/cases/20260730-threatfox-1863852",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863851",
+      "domain": "sixstar-iptv.com",
+      "observed_at": "2026-07-30 02:32:43 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863851",
+      "relative_path": "sixstar-iptv.com/cases/20260730-threatfox-1863851",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.43.233",
+          "104.21.53.192",
+          "104.21.86.127",
+          "172.67.186.227",
+          "172.67.217.242",
+          "172.67.220.45"
+        ],
+        "redirects": [
+          "https://freemanframeca.com/",
+          "https://lidgaurd.com/",
+          "https://newcoservicemower.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863846",
+      "domain": "ahohcm.sainidigirocket.com",
+      "observed_at": "2026-07-30 01:51:27 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863846",
+      "relative_path": "ahohcm.sainidigirocket.com/cases/20260730-threatfox-1863846",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863845",
+      "domain": "sainidigirocket.com",
+      "observed_at": "2026-07-30 01:50:37 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863845",
+      "relative_path": "sainidigirocket.com/cases/20260730-threatfox-1863845",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.3.52",
+          "104.21.47.140",
+          "104.21.80.228",
+          "172.67.130.66",
+          "172.67.171.79",
+          "172.67.187.76"
+        ],
+        "redirects": [
+          "https://beluxesalonandspa.com/",
+          "https://chicospaintingllc.com/portfolio.html",
+          "https://gulfbreezervrentals.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863844",
+      "domain": "caagwrk.simplyturfandgreenwall.com",
+      "observed_at": "2026-07-30 01:49:01 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863844",
+      "relative_path": "caagwrk.simplyturfandgreenwall.com/cases/20260730-threatfox-1863844",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863843",
+      "domain": "simplyturfandgreenwall.com",
+      "observed_at": "2026-07-30 01:47:29 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863843",
+      "relative_path": "simplyturfandgreenwall.com/cases/20260730-threatfox-1863843",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          200
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.35.72",
+          "172.67.215.135"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863842",
+      "domain": "2l7nxx4r.pinellascountyroofers.com",
+      "observed_at": "2026-07-30 01:37:09 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863842",
+      "relative_path": "2l7nxx4r.pinellascountyroofers.com/cases/20260730-threatfox-1863842",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863841",
+      "domain": "xhidxu.runmarine-services.com",
+      "observed_at": "2026-07-30 01:06:57 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863841",
+      "relative_path": "xhidxu.runmarine-services.com/cases/20260730-threatfox-1863841",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863837",
+      "domain": "runmarine-services.com",
+      "observed_at": "2026-07-30 01:04:48 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863837",
+      "relative_path": "runmarine-services.com/cases/20260730-threatfox-1863837",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.22.118",
+          "104.21.30.72",
+          "172.67.172.60",
+          "172.67.204.147"
+        ],
+        "redirects": [
+          "https://srisaiinteriordesigns.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863836",
+      "domain": "bypmobu.shopprincesshair.com",
+      "observed_at": "2026-07-30 01:03:21 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863836",
+      "relative_path": "bypmobu.shopprincesshair.com/cases/20260730-threatfox-1863836",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863835",
+      "domain": "shopprincesshair.com",
+      "observed_at": "2026-07-30 01:01:37 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863835",
+      "relative_path": "shopprincesshair.com/cases/20260730-threatfox-1863835",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.27.177",
+          "104.21.64.65",
+          "172.67.143.106",
+          "172.67.177.81"
+        ],
+        "redirects": [
+          "https://painting-ct.com/"
+        ],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863834",
+      "domain": "dfapbv.rugsofus.com",
+      "observed_at": "2026-07-30 00:22:09 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863834",
+      "relative_path": "dfapbv.rugsofus.com/cases/20260730-threatfox-1863834",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863833",
+      "domain": "hywjlgp.shopmagnoliaonmain.com",
+      "observed_at": "2026-07-30 00:20:42 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863833",
+      "relative_path": "hywjlgp.shopmagnoliaonmain.com/cases/20260730-threatfox-1863833",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863832",
+      "domain": "rugsofus.com",
+      "observed_at": "2026-07-30 00:19:48 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863832",
+      "relative_path": "rugsofus.com/cases/20260730-threatfox-1863832",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 3,
+        "http_statuses": [
+          301
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.10.122",
+          "104.21.40.217",
+          "104.21.82.159",
+          "172.67.139.10",
+          "172.67.190.35",
+          "172.67.203.132"
+        ],
+        "redirects": [
+          "https://famscargo.com/",
+          "https://hardwickfarmersmarket.com/",
+          "https://tiendaadescuento.com/"
+        ],
+        "body_types": {
+          "html": 3
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-threatfox-1863830",
+      "domain": "shopmagnoliaonmain.com",
+      "observed_at": "2026-07-30 00:16:00 UTC",
+      "source": "ThreatFox",
+      "source_id": "1863830",
+      "relative_path": "shopmagnoliaonmain.com/cases/20260730-threatfox-1863830",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          206
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.5.116",
+          "172.67.133.95"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-b22c16f20a2e",
+      "domain": "it-irrigation-control-network.garden",
+      "observed_at": "2026-07-29T13:59:28.295Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b22c16f20a2e",
+      "relative_path": "it-irrigation-control-network.garden/cases/20260730-clickfix-pro-b22c16f20a2e",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.53.94",
+          "172.67.211.151"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-4dc947af600f",
+      "domain": "pr7b8geo.simply-bpo.me",
+      "observed_at": "2026-07-28T22:22:50.996Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "4dc947af600f",
+      "relative_path": "pr7b8geo.simply-bpo.me/cases/20260730-clickfix-pro-4dc947af600f",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-d0d2355fb525",
+      "domain": "spamgym.asia",
+      "observed_at": "2026-07-28T15:33:25.002Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "d0d2355fb525",
+      "relative_path": "spamgym.asia/cases/20260730-clickfix-pro-d0d2355fb525",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.52.93",
+          "172.67.197.145"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-34c1f7ed77a4",
+      "domain": "hl8gdae9.kkslot777.asia",
+      "observed_at": "2026-07-28T00:09:33.484Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "34c1f7ed77a4",
+      "relative_path": "hl8gdae9.kkslot777.asia/cases/20260730-clickfix-pro-34c1f7ed77a4",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-b9ae066b2849",
+      "domain": "rct52dop.shop-lipogummy.com",
+      "observed_at": "2026-07-27T10:21:36.670Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b9ae066b2849",
+      "relative_path": "rct52dop.shop-lipogummy.com/cases/20260730-clickfix-pro-b9ae066b2849",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-1c03f398bbcf",
+      "domain": "509ukk9c.enf90.vip",
+      "observed_at": "2026-07-27T01:14:13.124Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "1c03f398bbcf",
+      "relative_path": "509ukk9c.enf90.vip/cases/20260730-clickfix-pro-1c03f398bbcf",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.27.120",
+          "172.67.169.69"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-e3121f903611",
+      "domain": "8yajh9kt.en-us--tupitea.com",
+      "observed_at": "2026-07-26T20:12:14.111Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "e3121f903611",
+      "relative_path": "8yajh9kt.en-us--tupitea.com/cases/20260730-clickfix-pro-e3121f903611",
+      "command_pattern": null,
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-f65a07daf9af",
+      "domain": "0mx8cbge.fa1xbet.vip",
+      "observed_at": "2026-07-25T20:00:16.749Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "f65a07daf9af",
+      "relative_path": "0mx8cbge.fa1xbet.vip/cases/20260730-clickfix-pro-f65a07daf9af",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          206
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "72.251.7.22",
+          "72.251.7.23"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-63b7177f03cd",
+      "domain": "i0wrocb4.bet90forward.win",
+      "observed_at": "2026-07-25T19:41:30.613Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "63b7177f03cd",
+      "relative_path": "i0wrocb4.bet90forward.win/cases/20260730-clickfix-pro-63b7177f03cd",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.95.112",
+          "172.67.144.166"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-9496a20d4111",
+      "domain": "sh6ze53a.bet90forward.win",
+      "observed_at": "2026-07-25T10:30:47.764Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "9496a20d4111",
+      "relative_path": "sh6ze53a.bet90forward.win/cases/20260730-clickfix-pro-9496a20d4111",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.95.112",
+          "172.67.144.166"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    },
+    {
+      "case_id": "20260730-clickfix-pro-1eb782d9e612",
+      "domain": "olptz5o4.jadoou.beauty",
+      "observed_at": "2026-07-25T06:52:25.047Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "1eb782d9e612",
+      "relative_path": "olptz5o4.jadoou.beauty/cases/20260730-clickfix-pro-1eb782d9e612",
+      "command_pattern": null,
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.66.137",
+          "172.67.160.103"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": []
+      }
+    }
+  ]
+}

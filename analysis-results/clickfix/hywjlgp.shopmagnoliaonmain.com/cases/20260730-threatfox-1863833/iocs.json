@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863833",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 00:20:42 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "hywjlgp.shopmagnoliaonmain.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    }
+  ]
+}

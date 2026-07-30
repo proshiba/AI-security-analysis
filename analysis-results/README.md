@@ -15,6 +15,7 @@ analysis-results/
 │  ├─ TECHNICAL-ANALYSIS.md
 │  └─ versions/<version-key>/cases/<sha256>/
 ├─ collections/<collection-id>/
+├─ clickfix/<domain>/cases/<case-id>/
 ├─ catalog/{cases.json,code-similarity.json,CODE-SIMILARITY.md}
 ├─ network-traffic/<source>/<analysis-date>/
 ├─ research/{campaigns,supply-chain,vulnerabilities,news,audits}/
@@ -22,6 +23,8 @@ analysis-results/
 ```
 
 `refresh-*`、`vx-underground-*`、`malwarebazaar-*` は検体の親フォルダには置きません。収集元、収集日、収集単位は [`collections/`](collections/) のmanifestでSHA-256に関連付け、同じ検体を複製しません。設計、版判定、移行時の検証条件は[成果物レイアウト仕様](../analysis-framework/docs/RESULT-LAYOUT.md)を参照してください。
+
+ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ、domain別・case別に保存します。配布binaryを取得した場合はClickFix caseだけで完了させず、SHA-256を正本とする既存のmalware caseへ別途登録します。
 
 ## 現在の収録状況
 

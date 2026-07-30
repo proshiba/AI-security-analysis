@@ -13,7 +13,7 @@
 | `INT-D01` | 毎日 | P0 | 新規・更新caseの差分triage |
 | `INT-D02` | 毎日 | P0 | IOC差分、再観測、役割変更の突合 |
 | `INT-D03` | 毎日 | P0 | 強い既知fingerprint一致の速報判定 |
-| `INT-D04` | 依頼時 | P0 | tech-memo最新記事・IOCとMalwareBazaar最新Windows 50検体のdaily解析 |
+| `INT-D04` | 依頼時 | P0 | tech-memo最新記事・IOC、MalwareBazaar最新Windows 50検体、ClickFix／ClearFake 50件のdaily解析 |
 | `INT-W01` | 毎週 | P1 | family、config、protocol、配布chainの変化検出 |
 | `INT-W02` | 毎週 | P1 | 関数コード類似性と共有componentの整理 |
 | `INT-W03` | 毎週 | P1 | インフラ再利用とlifecycleの整理 |
@@ -30,7 +30,7 @@
 
 `INT-D04`は時刻指定で自動起動しません。ユーザーが「daily解析」を依頼した時だけ実行し、
 [dailyマルウェア解析タスク](DAILY-NEWS-MALWARE.md)に定義した記事・IOC解析と
-MalwareBazaar 50検体解析を同じ実行単位で行います。
+MalwareBazaar 50検体解析、ClickFix／ClearFake 50件解析を同じ実行単位で行います。
 
 ## `INT-D01`: 新規・更新caseの差分triage
 

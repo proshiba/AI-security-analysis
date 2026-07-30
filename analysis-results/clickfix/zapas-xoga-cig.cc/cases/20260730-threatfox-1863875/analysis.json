@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863875",
+  "domain": "zapas-xoga-cig.cc",
+  "observed_at": "2026-07-30 04:11:30 UTC",
+  "analysis_date": "2026-07-30",
+  "source": {
+    "name": "ThreatFox",
+    "id": "1863875",
+    "url": "https://threatfox.abuse.ch/browse/tag/clickfix/",
+    "tags": [
+      "ClickFix",
+      "clickfix"
+    ],
+    "reported_malware": "Unknown malware",
+    "confidence": 100
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      403
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "87.58.206.75"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": false,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863876",
+  "domain": "smallshopsandwhatknot.com",
+  "observed_at": "2026-07-30 04:49:25 UTC",
+  "investigated_at_utc": "2026-07-30T07:41:27.442764+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1863876"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        301
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [
+        "https://tribbleandsonswreckerservice.com/"
+      ],
+      "public_addresses": [
+        "104.21.11.175",
+        "104.21.39.182",
+        "172.67.166.180",
+        "172.67.171.44"
+      ],
+      "landing_public_addresses": [
+        "104.21.11.175",
+        "104.21.39.182",
+        "172.67.166.180",
+        "172.67.171.44"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "smallshopsandwhatknot.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.171.44"
+          },
+          {
+            "name": "smallshopsandwhatknot.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.39.182"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "smallshopsandwhatknot.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "mimi.ns.cloudflare.com"
+          },
+          {
+            "name": "smallshopsandwhatknot.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "dante.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "SMALLSHOPSANDWHATKNOT.COM",
+      "unicode_name": null,
+      "handle": "3104233187_DOMAIN_COM-VRSN",
+      "status": [
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2026-05-27T06:03:44Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-05-27T06:03:44Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2026-05-30T07:47:42Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-07-30T07:31:14Z"
+        }
+      ],
+      "nameservers": [
+        "dante.ns.cloudflare.com",
+        "mimi.ns.cloudflare.com"
+      ],
+      "registrar_handles": [
+        "1923"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "104.21.11.175",
+      "rdap": null,
+      "asn": {
+        "ip": "104.21.11.175",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.11.175",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "hospicechesapeake.org",
+          "www.co2crc.com.au"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    },
+    {
+      "source": "rdap:ip",
+      "error": "ConnectionResetError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

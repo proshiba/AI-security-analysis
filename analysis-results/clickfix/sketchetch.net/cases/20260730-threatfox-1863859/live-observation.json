@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863859",
+  "domain": "sketchetch.net",
+  "probed_at_utc": "2026-07-30T06:07:41.873986+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://sketchetch.net/",
+        "host": "sketchetch.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://sketchetch.net/",
+            "host": "sketchetch.net",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://yrserviceco.com/",
+            "host": "yrserviceco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 272,
+          "body_truncated": false,
+          "body_sha256": "b40f6917af114c0a9e7b368ef427c4c642b48112c1f066ef5412fca7dd71caa3",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.86.99",
+              "172.67.217.210"
+            ],
+            "public_addresses": [
+              "104.21.86.99",
+              "172.67.217.210"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 233.8,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://yrserviceco.com/",
+            "host": "yrserviceco.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.136.171",
+              "104.21.56.198"
+            ],
+            "public_addresses": [
+              "172.67.136.171",
+              "104.21.56.198"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8041.0,
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

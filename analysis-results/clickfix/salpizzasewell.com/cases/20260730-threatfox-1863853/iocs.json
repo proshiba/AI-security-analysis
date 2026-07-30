@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863853",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 02:35:50 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "salpizzasewell.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.4.124",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.132.19",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "http://www.salpizzasewell.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://www.salpizzasewell.com/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

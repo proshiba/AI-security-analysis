@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863835",
+  "domain": "shopprincesshair.com",
+  "probed_at_utc": "2026-07-30T06:07:43.189113+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://shopprincesshair.com/",
+        "host": "shopprincesshair.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://shopprincesshair.com/",
+            "host": "shopprincesshair.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://painting-ct.com/",
+            "host": "painting-ct.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 272,
+          "body_truncated": false,
+          "body_sha256": "1d89d2bde10b81143e82d7c0f494d25d0a33b8a392a90c964f62fa5e740862f3",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.177.81",
+              "104.21.64.65"
+            ],
+            "public_addresses": [
+              "172.67.177.81",
+              "104.21.64.65"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 220.3,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://painting-ct.com/",
+            "host": "painting-ct.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.143.106",
+              "104.21.27.177"
+            ],
+            "public_addresses": [
+              "172.67.143.106",
+              "104.21.27.177"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8033.2,
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-clickfix-hunter-efdbd9a6673f",
+  "domain": "tbhadvisors.com",
+  "observed_at": "2026-07-27T22:22:02.212Z",
+  "analysis_date": "2026-07-30",
+  "source": {
+    "name": "ClickFix Hunter",
+    "id": "efdbd9a6673f",
+    "url": "https://clickfix.carsonww.com/domains/tbhadvisors.com",
+    "tags": [
+      "ClickFix",
+      "clipboard-hijack",
+      "fake-captcha"
+    ],
+    "reported_malware": "未確認",
+    "confidence": 100
+  },
+  "command": {
+    "pattern": "telegram_dead_drop_powershell",
+    "summary": "PowerShellが逆順文字列からTelegram URLを復元し、ページdescriptionの2トークンから次段hostを取得して `/l.dat` をメモリ内実行する。",
+    "processes": [
+      "powershell.exe"
+    ],
+    "command_sha256": "d2bf03344bcc740adb870c21a0c531478ad173e1a13ddcc1994eb258f081aaf1"
+  },
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 2,
+    "http_statuses": [
+      200
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "149.154.167.99",
+      "162.159.135.42"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 2
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [
+      "captcha"
+    ],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "reachable_but_tokens_absent",
+    "binary_payloads_observed": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": false,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

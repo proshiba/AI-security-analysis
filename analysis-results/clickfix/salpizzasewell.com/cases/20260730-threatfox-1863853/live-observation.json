@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863853",
+  "domain": "salpizzasewell.com",
+  "probed_at_utc": "2026-07-30T06:07:34.888535+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://salpizzasewell.com/",
+        "host": "salpizzasewell.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://salpizzasewell.com/",
+            "host": "salpizzasewell.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "http://www.salpizzasewell.com/",
+            "host": "www.salpizzasewell.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 637,
+          "body_truncated": false,
+          "body_sha256": "b0ff89b9391c38b681f8597a55c5d648115293dd316c45330c9a4ea344357634",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.4.124",
+              "172.67.132.19"
+            ],
+            "public_addresses": [
+              "104.21.4.124",
+              "172.67.132.19"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 229.0,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://www.salpizzasewell.com/",
+            "host": "www.salpizzasewell.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://www.salpizzasewell.com/",
+            "host": "www.salpizzasewell.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 526,
+          "body_truncated": false,
+          "body_sha256": "c941e2193f3af515f93f8d1f5ab42f5cd03897a21a8c37231e6a6d57da681323",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.132.19",
+              "104.21.4.124"
+            ],
+            "public_addresses": [
+              "172.67.132.19",
+              "104.21.4.124"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 27.6,
+          "tls_certificate_validation": "not_applicable",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 1
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://www.salpizzasewell.com/",
+            "host": "www.salpizzasewell.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 206,
+          "reason": "Partial Content",
+          "content_type": "text/html",
+          "content_length_header": "262145",
+          "location": null,
+          "bytes_read": 262144,
+          "body_truncated": true,
+          "body_sha256": "f8beb2edd52bedbb1f1938424ddea980c606480f1a4fb6712b2d93b1dc660ecf",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.132.19",
+              "104.21.4.124"
+            ],
+            "public_addresses": [
+              "172.67.132.19",
+              "104.21.4.124"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 409.5,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "Pizzeria, thin crust pizza, Flatbreads, focaccias, New York Style Paninis",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "captcha"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

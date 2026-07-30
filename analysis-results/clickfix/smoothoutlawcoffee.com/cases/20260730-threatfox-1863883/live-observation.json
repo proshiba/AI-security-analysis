@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863883",
+  "domain": "smoothoutlawcoffee.com",
+  "probed_at_utc": "2026-07-30T06:07:33.268604+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://smoothoutlawcoffee.com/",
+        "host": "smoothoutlawcoffee.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://smoothoutlawcoffee.com/",
+            "host": "smoothoutlawcoffee.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 206,
+          "reason": "Partial Content",
+          "content_type": "text/html",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 116871,
+          "body_truncated": false,
+          "body_sha256": "04ea2bdf8d8696adb0e09dd61f8fa1454a018b97dcfafe1c4ed13e7ce5753b13",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.179.10",
+              "104.21.51.105"
+            ],
+            "public_addresses": [
+              "172.67.179.10",
+              "104.21.51.105"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 418.9,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "Smooth Outlaw Coffee",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "captcha",
+              "cloudflare",
+              "verification"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 44
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

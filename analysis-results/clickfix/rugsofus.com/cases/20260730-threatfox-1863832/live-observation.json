@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863832",
+  "domain": "rugsofus.com",
+  "probed_at_utc": "2026-07-30T06:07:36.003887+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://rugsofus.com/",
+        "host": "rugsofus.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://rugsofus.com/",
+            "host": "rugsofus.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://famscargo.com/",
+            "host": "famscargo.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 629,
+          "body_truncated": false,
+          "body_sha256": "e7d63379fd5029302b04de92f652562c4abb6bf17bfc6316d9103721271ed413",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.40.217",
+              "172.67.139.10"
+            ],
+            "public_addresses": [
+              "104.21.40.217",
+              "172.67.139.10"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 232.8,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://famscargo.com/",
+            "host": "famscargo.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://tiendaadescuento.com/",
+            "host": "tiendaadescuento.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 636,
+          "body_truncated": false,
+          "body_sha256": "1e15dc86935f06d9eb2ff3591ae41b4b335c4d4597f9353874e05d469bb52614",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.10.122",
+              "172.67.190.35"
+            ],
+            "public_addresses": [
+              "104.21.10.122",
+              "172.67.190.35"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 228.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://tiendaadescuento.com/",
+            "host": "tiendaadescuento.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://hardwickfarmersmarket.com/",
+            "host": "hardwickfarmersmarket.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 641,
+          "body_truncated": false,
+          "body_sha256": "50483fdefe5ad35b40c02a6a78871f81ac220d29c7c150eefcad716cdf8f6ff9",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.203.132",
+              "104.21.82.159"
+            ],
+            "public_addresses": [
+              "172.67.203.132",
+              "104.21.82.159"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 287.0,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

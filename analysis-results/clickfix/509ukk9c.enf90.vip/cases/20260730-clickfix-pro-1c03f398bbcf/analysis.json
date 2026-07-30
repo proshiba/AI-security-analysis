@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-clickfix-pro-1c03f398bbcf",
+  "domain": "509ukk9c.enf90.vip",
+  "observed_at": "2026-07-27T01:14:13.124Z",
+  "analysis_date": "2026-07-30",
+  "source": {
+    "name": "ClickFix Campaign Monitor",
+    "id": "1c03f398bbcf",
+    "url": "https://clickfix.pro/",
+    "tags": [
+      "ClearFake"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": null
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      403
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "104.21.27.120",
+      "172.67.169.69"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [
+      "cloudflare"
+    ],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863844",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-07-30 01:49:01 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "caagwrk.simplyturfandgreenwall.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    }
+  ]
+}

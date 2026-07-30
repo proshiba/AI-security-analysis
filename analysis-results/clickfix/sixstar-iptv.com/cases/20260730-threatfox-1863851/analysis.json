@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863851",
+  "domain": "sixstar-iptv.com",
+  "observed_at": "2026-07-30 02:32:43 UTC",
+  "analysis_date": "2026-07-30",
+  "source": {
+    "name": "ThreatFox",
+    "id": "1863851",
+    "url": "https://threatfox.abuse.ch/browse/tag/clearfake/",
+    "tags": [
+      "ClearFake",
+      "clearfake"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": 100
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 3,
+    "http_statuses": [
+      301
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "104.21.43.233",
+      "104.21.53.192",
+      "104.21.86.127",
+      "172.67.186.227",
+      "172.67.217.242",
+      "172.67.220.45"
+    ],
+    "redirects": [
+      "https://freemanframeca.com/",
+      "https://lidgaurd.com/",
+      "https://newcoservicemower.com/"
+    ],
+    "body_types": {
+      "html": 3
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [
+      "cloudflare"
+    ],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

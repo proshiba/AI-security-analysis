@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863845",
+  "domain": "sainidigirocket.com",
+  "probed_at_utc": "2026-07-30T06:07:35.179707+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://sainidigirocket.com/",
+        "host": "sainidigirocket.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://sainidigirocket.com/",
+            "host": "sainidigirocket.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://chicospaintingllc.com/portfolio.html",
+            "host": "chicospaintingllc.com",
+            "path": "/portfolio.html",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 292,
+          "body_truncated": false,
+          "body_sha256": "688e2c18b26090bd496ca7d857ec52a93bd2381d0f3be80315c57abfd4231ed5",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.187.76",
+              "104.21.80.228"
+            ],
+            "public_addresses": [
+              "172.67.187.76",
+              "104.21.80.228"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 239.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://chicospaintingllc.com/portfolio.html",
+            "host": "chicospaintingllc.com",
+            "path": "/portfolio.html",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://gulfbreezervrentals.com/",
+            "host": "gulfbreezervrentals.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 639,
+          "body_truncated": false,
+          "body_sha256": "01c72fff1b3cdd3e785ba4c52f4e8d51fafd1e1469f2eb1ce16e815128c5a946",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.3.52",
+              "172.67.130.66"
+            ],
+            "public_addresses": [
+              "104.21.3.52",
+              "172.67.130.66"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 161.5,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://gulfbreezervrentals.com/",
+            "host": "gulfbreezervrentals.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://beluxesalonandspa.com/",
+            "host": "beluxesalonandspa.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 637,
+          "body_truncated": false,
+          "body_sha256": "ce4de4757d6ee7c3908b1d35e94b2431445b8b1b13d809c99233d64447fbbfed",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.47.140",
+              "172.67.171.79"
+            ],
+            "public_addresses": [
+              "104.21.47.140",
+              "172.67.171.79"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 473.4,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863851",
+  "domain": "sixstar-iptv.com",
+  "observed_at": "2026-07-30 02:32:43 UTC",
+  "investigated_at_utc": "2026-07-30T07:41:40.173766+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1863851"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        301
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [
+        "https://freemanframeca.com/",
+        "https://lidgaurd.com/",
+        "https://newcoservicemower.com/"
+      ],
+      "public_addresses": [
+        "104.21.43.233",
+        "104.21.53.192",
+        "104.21.86.127",
+        "172.67.186.227",
+        "172.67.217.242",
+        "172.67.220.45"
+      ],
+      "landing_public_addresses": [
+        "104.21.43.233",
+        "104.21.53.192",
+        "104.21.86.127",
+        "172.67.186.227",
+        "172.67.217.242",
+        "172.67.220.45"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "sixstar-iptv.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.220.45"
+          },
+          {
+            "name": "sixstar-iptv.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.86.127"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "sixstar-iptv.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "dante.ns.cloudflare.com"
+          },
+          {
+            "name": "sixstar-iptv.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "mimi.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": null,
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "104.21.43.233",
+      "rdap": null,
+      "asn": {
+        "ip": "104.21.43.233",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.43.233",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "blacktapny.com",
+          "eqy.uk.com"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "rdap:domain",
+      "error": "HTTPError",
+      "http_status": 429
+    },
+    {
+      "source": "certificate_transparency",
+      "error": "HTTPError",
+      "http_status": 429
+    },
+    {
+      "source": "rdap:ip",
+      "error": "HTTPError",
+      "http_status": 429
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

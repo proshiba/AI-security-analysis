@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863883",
+  "domain": "smoothoutlawcoffee.com",
+  "observed_at": "2026-07-30 05:34:41 UTC",
+  "investigated_at_utc": "2026-07-30T07:40:57.954032+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1863883"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        206
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "104.21.51.105",
+        "172.67.179.10"
+      ],
+      "landing_public_addresses": [
+        "104.21.51.105",
+        "172.67.179.10"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "smoothoutlawcoffee.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.179.10"
+          },
+          {
+            "name": "smoothoutlawcoffee.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.51.105"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "smoothoutlawcoffee.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "clyde.ns.cloudflare.com"
+          },
+          {
+            "name": "smoothoutlawcoffee.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ali.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "SMOOTHOUTLAWCOFFEE.COM",
+      "unicode_name": null,
+      "handle": "3097331554_DOMAIN_COM-VRSN",
+      "status": [
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2026-05-09T11:02:53Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-05-09T11:02:53Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2026-05-10T02:02:03Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-07-30T07:30:59Z"
+        }
+      ],
+      "nameservers": [
+        "ali.ns.cloudflare.com",
+        "clyde.ns.cloudflare.com"
+      ],
+      "registrar_handles": [
+        "1923"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": {
+      "certificate_rows": 44,
+      "names": [
+        "*.smoothoutlawcoffee.com",
+        "pay.smoothoutlawcoffee.com",
+        "smoothoutlawcoffee.com",
+        "www.pay.smoothoutlawcoffee.com",
+        "www.smoothoutlawcoffee.com"
+      ],
+      "issuers": [
+        "C=GB, O=Sectigo Limited, CN=Sectigo Public Server Authentication CA DV E36",
+        "C=US, O=Google Trust Services, CN=WE1",
+        "C=US, O=Let's Encrypt, CN=E8",
+        "C=US, O=Let's Encrypt, CN=R10",
+        "C=US, O=Let's Encrypt, CN=R11",
+        "C=US, O=Let's Encrypt, CN=R12",
+        "C=US, O=Let's Encrypt, CN=R13",
+        "C=US, O=Let's Encrypt, CN=R3",
+        "C=US, O=Let's Encrypt, CN=YE2",
+        "C=US, O=Let's Encrypt, CN=YR2",
+        "C=US, ST=Arizona, L=Scottsdale, O=\"GoDaddy.com, Inc.\", OU=http://certs.godaddy.com/repository/, CN=Go Daddy Secure Certificate Authority - G2"
+      ],
+      "recent_certificates": [
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-07-14T07:26:47",
+          "not_after": "2026-10-12T08:24:26",
+          "serial_number": "008e8a61ed4a60f04c13bdf1e42144ae49"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-07-10T03:29:44",
+          "not_after": "2026-10-08T03:29:43",
+          "serial_number": "054a5cdb76646ca768d9285c5bba2c12173d"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-07-10T03:29:44",
+          "not_after": "2026-10-08T03:29:43",
+          "serial_number": "054a5cdb76646ca768d9285c5bba2c12173d"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-07-08T01:00:58",
+          "not_after": "2026-10-06T01:00:57",
+          "serial_number": "055760244bfab6a280f048d3629f35433c98"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-07-08T01:00:58",
+          "not_after": "2026-10-06T01:00:57",
+          "serial_number": "055760244bfab6a280f048d3629f35433c98"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T02:07:51",
+          "not_after": "2026-08-08T02:07:50",
+          "serial_number": "0604fc3d8bae5b59a9f93c565c57bd4e4466"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T02:07:51",
+          "not_after": "2026-08-08T02:07:50",
+          "serial_number": "0604fc3d8bae5b59a9f93c565c57bd4e4466"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T01:06:03",
+          "not_after": "2026-08-08T01:06:02",
+          "serial_number": "062b8153552a360499b4af490f1381a9bd53"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T01:06:03",
+          "not_after": "2026-08-08T01:06:02",
+          "serial_number": "062b8153552a360499b4af490f1381a9bd53"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T00:00:00",
+          "not_after": "2026-08-08T02:03:08",
+          "serial_number": "00c79ac126a55cdf42d09fa9f3a5da199f"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-05-10T00:00:00",
+          "not_after": "2026-08-08T02:03:08",
+          "serial_number": "00c79ac126a55cdf42d09fa9f3a5da199f"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-02-21T16:55:31",
+          "not_after": "2026-09-07T16:55:31",
+          "serial_number": "215ed40fbfac2da4"
+        },
+        {
+          "common_name": "www.smoothoutlawcoffee.com",
+          "not_before": "2026-02-21T16:55:31",
+          "not_after": "2026-09-07T16:55:31",
+          "serial_number": "215ed40fbfac2da4"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-02-21T13:02:37",
+          "not_after": "2026-09-07T13:02:37",
+          "serial_number": "00d4120770ab536464"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2026-02-21T13:02:37",
+          "not_after": "2026-09-07T13:02:37",
+          "serial_number": "00d4120770ab536464"
+        },
+        {
+          "common_name": "pay.smoothoutlawcoffee.com",
+          "not_before": "2026-01-18T04:55:37",
+          "not_after": "2027-02-16T19:32:04",
+          "serial_number": "6b2e338bd3a11d50"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2025-12-08T04:32:30",
+          "not_after": "2026-03-08T04:32:29",
+          "serial_number": "066d6179ceb96dada8eae6cff26c32b86d9f"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2025-12-08T04:32:30",
+          "not_after": "2026-03-08T04:32:29",
+          "serial_number": "066d6179ceb96dada8eae6cff26c32b86d9f"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2025-10-09T05:22:08",
+          "not_after": "2026-01-07T05:22:07",
+          "serial_number": "06df0449b8bc566efc2e2c7008658e5caed1"
+        },
+        {
+          "common_name": "smoothoutlawcoffee.com",
+          "not_before": "2025-10-09T05:22:08",
+          "not_after": "2026-01-07T05:22:07",
+          "serial_number": "06df0449b8bc566efc2e2c7008658e5caed1"
+        }
+      ]
+    },
+    "ip_pivot": {
+      "address": "104.21.51.105",
+      "rdap": {
+        "handle": "NET-104-16-0-0-1",
+        "name": "CLOUDFLARENET",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "104.16.0.0",
+        "end_address": "104.31.255.255",
+        "parent_handle": "NET-104-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2024-09-04T06:51:26-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2014-03-28T11:30:55-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "104.21.51.105",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.51.105",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "assets.coino.com"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "HTTPError",
+      "http_status": 502
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

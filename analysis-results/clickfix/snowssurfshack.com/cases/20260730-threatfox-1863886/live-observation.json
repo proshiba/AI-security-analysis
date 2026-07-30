@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "case_id": "20260730-threatfox-1863886",
+  "domain": "snowssurfshack.com",
+  "probed_at_utc": "2026-07-30T06:07:34.353880+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://snowssurfshack.com/",
+        "host": "snowssurfshack.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://snowssurfshack.com/",
+            "host": "snowssurfshack.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://fabric-mall.com/",
+            "host": "fabric-mall.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 272,
+          "body_truncated": false,
+          "body_sha256": "54eafd39b721546d614f48785d3217c7ffeaa0619255e5f444ae2ba600b216d5",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.89.135",
+              "172.67.159.204"
+            ],
+            "public_addresses": [
+              "104.21.89.135",
+              "172.67.159.204"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 329.6,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://fabric-mall.com/",
+            "host": "fabric-mall.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://chrisbrowndetroit.com/",
+            "host": "chrisbrowndetroit.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 637,
+          "body_truncated": false,
+          "body_sha256": "82a9a0277739f3a72211d4183c1797206cffb060136a526252e9710aab0c6c1c",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.38.211",
+              "172.67.168.124"
+            ],
+            "public_addresses": [
+              "104.21.38.211",
+              "172.67.168.124"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 839.8,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://chrisbrowndetroit.com/",
+            "host": "chrisbrowndetroit.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=iso-8859-1",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://ballantinepublishers.com/",
+            "host": "ballantinepublishers.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 640,
+          "body_truncated": false,
+          "body_sha256": "fb9c9aa3cda152de66708ba0d9e8a8ec59027f4bd167522837f9f876563f34d1",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.91.112",
+              "172.67.215.250"
+            ],
+            "public_addresses": [
+              "104.21.91.112",
+              "172.67.215.250"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 273.0,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}
