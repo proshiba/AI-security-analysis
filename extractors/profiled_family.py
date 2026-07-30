@@ -148,6 +148,12 @@ def _load_profiles_cached(path: Path, mtime_ns: int, size: int) -> dict[str, dic
             if isinstance(markers, list)
             else []
         )
+        required = profile.get("required_markers") or []
+        normalized_required = (
+            [marker.lower() for marker in required if isinstance(marker, str) and marker]
+            if isinstance(required, list)
+            else []
+        )
         if (
             not isinstance(markers, list)
             or len(normalized) != len(markers)
@@ -156,6 +162,10 @@ def _load_profiles_cached(path: Path, mtime_ns: int, size: int) -> dict[str, dic
             or not isinstance(minimum, int)
             or minimum < 2
             or minimum > len(markers)
+            or not isinstance(required, list)
+            or len(normalized_required) != len(required)
+            or len(set(normalized_required)) != len(normalized_required)
+            or any(item not in normalized for item in normalized_required)
         ):
             raise ValueError(f"family profileのmarker閾値が不正です: {family}")
     return profiles
@@ -370,8 +380,17 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
     lowered = [value.lower() for value in strings]
     joined = "\n".join(lowered)
     marker_hits = _independent_marker_hits(profile["markers"], joined)
+    required_marker_hits = _independent_marker_hits(
+        profile.get("required_markers") or [], joined
+    )
+    required_marker_satisfied = bool(
+        not profile.get("required_markers") or required_marker_hits
+    )
     key_hits = [key for key in profile["config_keys"] if key.lower() in joined]
-    enough_markers = len(marker_hits) >= max(2, int(profile["minimum_markers"]))
+    enough_markers = bool(
+        len(marker_hits) >= max(2, int(profile["minimum_markers"]))
+        and required_marker_satisfied
+    )
     urls = []
     for raw in url_candidates(strings):
         value = sanitize_network_url(raw)
@@ -411,6 +430,8 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         "category": profile["category"],
         "transport": profile["transport"],
         "marker_hits": marker_hits,
+        "required_marker_hits": required_marker_hits,
+        "required_marker_satisfied": required_marker_satisfied,
         "minimum_markers": profile["minimum_markers"],
         "observed_config_keys": key_hits,
         "network_candidates": [item["value"] for item in findings],

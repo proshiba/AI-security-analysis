@@ -20,6 +20,7 @@
 | JavaScript AES/GZip chain | 埋め込み AES-CBC key/IV と GZip 手順を parse | terminal managed PE |
 | CMD echo Base64 stream | target 別に redirection をまとめ、chunk を連結して検証 | fragment noise を除いた terminal PE/archive |
 | Jadoo split bundle | manifest の offset と length を検証 | 再構築した file |
+| 宣言型byte変換sidecar | 許可リスト方式の回転、XOR、反転、sliceを適用し、Donut、magic、PE、ZIP構造を検証 | 検証済みchild layerと再帰解析されたterminal payload |
 | 一般的な base64/hex | size と format を gate とする decode | child layer |
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
@@ -136,3 +137,9 @@ command の順序と失敗時の確認は `docs/APT-C60-2026-WORKFLOW.md` を参
 - Java class file と universal Mach-O は `CAFEBABE` magic を共有します。format detector は、妥当で上限付きの Mach-O architecture table を要求し、それ以外を `java-class` と分類します。
 
 関連 test は `test_asar_unpacker.py`、`test_electron_nsis_unpacker.py`、`test_javascript_plain_array.py`、`test_static_unpacker.py` の Java/Mach-O regression です。
+
+## 宣言型byte変換プロファイル
+
+`profiled_transform.py` は `profiles/byte_transforms.json` を読み、入力形式と任意のファイルsuffixに合う変換だけを適用します。新しいローダーの回転量やXOR鍵をPythonへ直接追加せず、JSONのoperation列と構造validatorで定義できます。`rotated_xor_donut.py` は旧CLIと関数APIを維持する薄い互換ラッパーです。
+
+プロファイルから実行できるのは反転、左右ローテート、単一byte XOR、繰り返し鍵XOR、上限付きsliceだけです。任意コード、式評価、外部コマンド、ネットワーク処理は呼び出せません。詳しい追加手順は [拡張可能な静的解析プロファイル](../analysis-framework/docs/EXTENSIBLE-STATIC-PROFILES.md) を参照してください。

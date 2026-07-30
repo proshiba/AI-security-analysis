@@ -206,6 +206,28 @@ def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
     assert artifacts == []
 
 
+def test_zip_oversized_member_does_not_hide_safe_siblings() -> None:
+    """先頭の大容量hostを除外しても、上限内の隣接DLLとsidecarを保持する。"""
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("large-signed-host.exe", b"MZ" + b"A" * 1024)
+        archive.writestr("AppVIsvSubsystems64.dll", b"MZ" + b"B" * 30)
+        archive.writestr("riched32.dat", b"sidecar")
+    inventory, artifacts = unpacker.recover_zip(
+        stream.getvalue(),
+        max_member_size=128,
+        max_total_size=1024,
+        max_compression_ratio=1_000,
+    )
+    assert inventory[0]["name"] == "large-signed-host.exe"
+    assert inventory[0]["status"] == "size_blocked"
+    assert {kind for kind, _blob in artifacts} == {
+        "zip-pe-AppVIsvSubsystems64.dll",
+        "zip-data-riched32.dat",
+    }
+
+
 def test_zip_malformed_and_streaming_size_mismatch_fail_closed() -> None:
     """宣言サイズを1バイトだけ超える不正メタデータも拒否する。"""
     with pytest.raises(zipfile.BadZipFile):

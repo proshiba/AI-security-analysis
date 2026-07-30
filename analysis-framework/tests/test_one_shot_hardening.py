@@ -947,6 +947,8 @@ def test_analysis_contract_components_include_shared_dependencies() -> None:
     assert (COMMON_ROOT / "profiled_family_detector.py").resolve() in components
     assert (COMMON_ROOT / "detector_support.py").resolve() in components
     assert (REPOSITORY_ROOT / "extractors" / "profiles" / "windows_family_profiles.json").resolve() in components
+    assert (REPOSITORY_ROOT / "unpackers" / "profiles" / "byte_transforms.json").resolve() in components
+    assert (FRAMEWORK_ROOT / "registry" / "pe_structural_profiles.json").resolve() in components
     assert (FRAMEWORK_ROOT / "requirements.txt").resolve() in components
     assert any(path.name == "campaigns.json" for path in components)
 

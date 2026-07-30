@@ -37,9 +37,7 @@ def _resolve_detector_path(
     requested = Path(relative_path)
     expected = Path("malware") / family / "detect.py"
     if requested.is_absolute() or requested != expected:
-        raise DetectorPathError(
-            f"detector path must be exactly {expected.as_posix()}: {relative_path!r}"
-        )
+        raise DetectorPathError(f"detector path must be exactly {expected.as_posix()}: {relative_path!r}")
     malware_root = (trusted_root / "malware").resolve(strict=True)
     try:
         resolved = (trusted_root / requested).resolve(strict=True)
@@ -108,13 +106,15 @@ def load_detector(framework_root: Path, relative_path: str, family: str | None =
     # 一部の既存検出器は ``extractors.*``、別の検出器は ``common`` 配下を
     # トップレベルモジュールとして参照する。いずれも検証済みの固定ルートだけを
     # 追加し、レジストリ値から任意の検索パスを注入しない。
-    for trusted_import_root in (FRAMEWORK_ROOT, FRAMEWORK_ROOT / "common"):
+    for trusted_import_root in (
+        FRAMEWORK_ROOT.parent,
+        FRAMEWORK_ROOT,
+        FRAMEWORK_ROOT / "common",
+    ):
         value = str(trusted_import_root)
         if value not in sys.path:
             sys.path.insert(0, value)
-    spec = importlib.util.spec_from_file_location(
-        f"malware_detector_{path.parent.name}_{path.stem}", path
-    )
+    spec = importlib.util.spec_from_file_location(f"malware_detector_{path.parent.name}_{path.stem}", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load detector: {path}")
     module = importlib.util.module_from_spec(spec)
@@ -177,10 +177,7 @@ def clear_classifier_caches() -> None:
 
 def detection_uses_known_inner(detection: dict) -> bool:
     """検出器がレビュー済み内包SHA-256へ一致したか返す。"""
-    return any(
-        "known inner SHA-256" in candidate.get("reasons", [])
-        for candidate in detection.get("campaigns", [])
-    )
+    return any("known inner SHA-256" in candidate.get("reasons", []) for candidate in detection.get("campaigns", []))
 
 
 def _unknown_result(
@@ -243,14 +240,10 @@ def evaluate_detectors(
             evaluation["error"] = error
             evaluations.append(evaluation)
             continue
-        known_outer = digest in {
-            value.lower() for value in metadata.get("known_sample_sha256", [])
-        }
+        known_outer = digest in {value.lower() for value in metadata.get("known_sample_sha256", [])}
         evaluation["known_outer_sha256"] = known_outer
         try:
-            detector = load_detector(
-                framework_root, metadata.get("detector"), registered_type
-            )
+            detector = load_detector(framework_root, metadata.get("detector"), registered_type)
             detection = normalize_detection_result(detector(data, source))
         except DetectorPathError as exc:
             error = f"{type(exc).__name__}: {exc}"
@@ -297,22 +290,14 @@ def _classify_evaluations(
             known_outer = evaluation["known_outer_sha256"]
             known_inner = evaluation["known_inner_sha256"]
             detector_matched = evaluation["detector_matched"]
-            confidence = (
-                "high"
-                if known_outer or known_inner
-                else ("medium" if detector_matched else "low")
-            )
+            confidence = "high" if known_outer or known_inner else ("medium" if detector_matched else "low")
             basis = (
                 "known_outer_sha256"
                 if known_outer
                 else (
                     "known_inner_sha256"
                     if known_inner
-                    else (
-                        "type_detector_structure"
-                        if detector_matched
-                        else "explicit_user_type_unmatched"
-                    )
+                    else ("type_detector_structure" if detector_matched else "explicit_user_type_unmatched")
                 )
             )
             detections.append(
@@ -341,11 +326,7 @@ def _classify_evaluations(
         )
     )
     top_rank = CONFIDENCE_ORDER[detections[0]["malware_type_confidence"]]
-    top = [
-        item
-        for item in detections
-        if CONFIDENCE_ORDER[item["malware_type_confidence"]] == top_rank
-    ]
+    top = [item for item in detections if CONFIDENCE_ORDER[item["malware_type_confidence"]] == top_rank]
     if malware_type is None and len(top) > 1:
         return {
             "sample": str(source),
@@ -436,9 +417,7 @@ def classify(path: Path, registry: Path, malware_type: str | None = None) -> dic
 
 def main() -> int:
     """CLI引数を処理し、検体を分類してJSONへ保存する。"""
-    parser = argparse.ArgumentParser(
-        description="登録済み検出器でマルウェア種を分類し、キャンペーンを選択します。"
-    )
+    parser = argparse.ArgumentParser(description="登録済み検出器でマルウェア種を分類し、キャンペーンを選択します。")
     parser.add_argument("--sample", required=True, type=Path)
     parser.add_argument("--registry", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -449,9 +428,7 @@ def main() -> int:
     args = parser.parse_args()
     result = classify(args.sample, args.registry, args.malware_type)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

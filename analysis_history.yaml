@@ -5031,3 +5031,23 @@ analyses:
     c2: ["ftp.vilimorin.com:21", "66.29.137.55:21"]
     notes: "検体、復元PIF・Lua・Donut・最終PEはいずれもローカル実行していない。`ftp.vilimorin.com:21` は最終.NET設定から静的に確認した資格情報送信先、`66.29.137.55:21` は2026-07-29の限定的なFTP稼動確認で観測した解決先。外側RARは取得できずTriage提出JScriptを起点とした。`AgentTeslaV5` はTriage抽出ルール名でありビルダー版の独立確認はしていない。FTP資格情報、復元バイナリ、メモリダンプ、PCAPは公開成果物に含めない。"
     result_path: analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/
+
+  - malware_type: "ValleyRAT / Winos系配布ローダー"
+    analyzed_at: 2026-07-30
+    sample_sha256: b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6
+    analysis_level: deep_static_ghidra_virtualized_proxy_review
+    campaign_type: signed_proxy_sideload_pdfcore8_msedge_virtualized
+    matched_patterns: ["ZIP→ISO 9660 IMG→署名済みRight PDF Converter＋PdFcOrE8.DlL", "6エクスポート共通dispatcher・高entropy .msedge0・間接分岐"]
+    c2: []
+    notes: "2026-07-27ケースと署名済みhostが完全一致。悪性DLLは別buildで、仮想化境界以降の終端payload、版、config、C2は未復元。関連TriageのIOCは完全一致検体でないため採用せず、検体も実行していない。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6/
+
+  - malware_type: "PureHVNC / PureRAT系AppVローダー"
+    analyzed_at: 2026-07-30
+    sample_sha256: a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9
+    analysis_level: deep_static_ghidra_rotated_xor_donut_managed_il_review
+    campaign_type: appv_rotated_xor_donut_sideload
+    matched_patterns: ["署名済みExcel＋AppVIsvSubsystems64.dll＋riched32.dat", "右回転＋XOR 0xc6→Donut→保護されたx86 .NET", "APC／remote thread注入・HKCU Run永続化・anti-debug"]
+    c2: []
+    notes: "374型・2,126 managed methodを棚卸し。Pure系配布系統との関連は強く支持されるが、終端family、版、config、C2は未独立確認。過去事例のC2を転記せず、検体・CLR・CILは実行していない。"
+    result_path: analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/

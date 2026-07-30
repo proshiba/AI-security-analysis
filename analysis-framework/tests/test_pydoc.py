@@ -24,6 +24,8 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "analyze_sample",
         "analysis_contract",
         "handler_catalog",
+        "pe_structural_profile",
+        "static_layer_pipeline",
         "classifiers.classify_sample",
         "profiled_family_detector",
         "detector_support",

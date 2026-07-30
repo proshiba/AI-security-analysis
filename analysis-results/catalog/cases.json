@@ -6191,6 +6191,13 @@
       "family": "efimer",
       "version_key": "unknown"
     },
+    "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9": {
+      "canonical_path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "case_id": "sha256:a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "case_kind": "malware",
+      "family": "purehvnc",
+      "version_key": "unknown"
+    },
     "a5158f3c215e31e1741c60510b6f01c634d8c18e5b5e8adc2f3d0545cb836d67": {
       "canonical_path": "analysis-results/malware/asyncrat/versions/unknown/cases/a5158f3c215e31e1741c60510b6f01c634d8c18e5b5e8adc2f3d0545cb836d67",
       "case_id": "sha256:a5158f3c215e31e1741c60510b6f01c634d8c18e5b5e8adc2f3d0545cb836d67",
@@ -6998,6 +7005,13 @@
       "case_id": "sha256:b81291cafc4bbc09626e88f7b813cb2387a420493277fd9ab2ea129c31a7bebf",
       "case_kind": "malware",
       "family": "remusstealer",
+      "version_key": "unknown"
+    },
+    "b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "case_id": "sha256:b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "b871f50abbd7e06e6dbede78f499c2efc426d7f8ba08943f06e104f82d8ecc0c": {

@@ -8,8 +8,8 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 1329,
-    "profiled_cases": 468,
+    "catalog_cases": 1331,
+    "profiled_cases": 470,
     "candidate_pairs_before_limit": 35952,
     "retained_pairs": 1931,
     "levels": {
@@ -20764,6 +20764,73 @@
       ],
       "document_path": "analysis-results/malware/efimer/versions/unknown/cases/a4764c06b55f26d9c4fff0b6fb01fc17b0f9da1411f8659583310e03421c2bef/OVERALL-LOGIC.md"
     },
+    "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9": {
+      "case_id": "sha256:a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "sha256": "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "family": "purehvnc",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "dimensions": {
+        "execution_stages": [
+          "defense_evasion",
+          "loader_execution",
+          "payload_decoding",
+          "persistence",
+          "process_memory"
+        ],
+        "layer_chain": [
+          "data--right_rotate_0x3ef14_mod_length_then_xor_0xc6-->donut_shellcode",
+          "donut_shellcode--donut_instance_decode-->dotnet_pe32",
+          "root:zip",
+          "zip--archive_extract-->data",
+          "zip--archive_extract-->pe32plus_dll",
+          "zip--archive_extract-->pe32plus_exe"
+        ],
+        "module_stack": [
+          "root_malicious_loader:pe32plus_dll"
+        ],
+        "capabilities": [
+          "behavior:anti_debug",
+          "behavior:persistence",
+          "behavior:process_injection",
+          "behavior:resource_unpack",
+          "delivery:dll_sideload",
+          "encoding:rotated_xor",
+          "loader:donut",
+          "obfuscation:managed_flattening",
+          "runtime:dotnet"
+        ],
+        "function_roles": [
+          "managed method proxy",
+          "process注入",
+          "resource展開",
+          "resource解決",
+          "sidecar復号",
+          "デコイ復号",
+          "永続化",
+          "解析妨害"
+        ],
+        "code_fingerprints": [
+          "semantic:13cefc624bf6df5e8a35f09da756e1196b7e8b8bacb9c1a3b74b4179b5d493eb",
+          "semantic:2daa7d8fe4bf2747c5712cd16c4de5536c21a6e3806beece44212c41d4ab7d21",
+          "semantic:2f0ed1fd097d8d3209f1cb163853f9318bc6be023fe544c182af97f90c3b2db6",
+          "semantic:302a5ada3722a81078f83e5bc4a7b460807b25471d262e13ac2d84a04064dccc",
+          "semantic:314d8ac95d1f23db9e047eee03e6570f0f7e68a095027260b30b197c54355531",
+          "semantic:36ccca681d0fbdac9f7670b3a796b408a87456d2500e4164f632090f6fc0cc6e",
+          "semantic:8a52a1c819808caec3033672be072e02a91d1f0af56d7ed6fca7c0ce7b015e8a",
+          "semantic:985426a2ff71562f204a219d296bd84e14c0a59a690eec3854f4e097f1d49e76"
+        ]
+      },
+      "available_dimensions": [
+        "execution_stages",
+        "layer_chain",
+        "module_stack",
+        "capabilities",
+        "function_roles",
+        "code_fingerprints"
+      ],
+      "document_path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/OVERALL-LOGIC.md"
+    },
     "a58cdd282196a800054eabccafbecbbf5a4eeb6a5a7a925353d7901dae0db9da": {
       "case_id": "sha256:a58cdd282196a800054eabccafbecbbf5a4eeb6a5a7a925353d7901dae0db9da",
       "sha256": "a58cdd282196a800054eabccafbecbbf5a4eeb6a5a7a925353d7901dae0db9da",
@@ -22575,6 +22642,61 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/agenttesla/versions/unknown/cases/b811dce1aae1c0e0da249d5eb19dfd5b2640214627c9603b97f6f79c25a22e97/OVERALL-LOGIC.md"
+    },
+    "b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6": {
+      "case_id": "sha256:b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "sha256": "b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "dimensions": {
+        "execution_stages": [
+          "defense_evasion",
+          "loader_execution",
+          "payload_decoding"
+        ],
+        "layer_chain": [
+          "iso9660_img--iso9660_extract-->pe32_dll",
+          "iso9660_img--iso9660_extract-->pe32_exe",
+          "root:zip",
+          "zip--archive_extract-->iso9660_img"
+        ],
+        "module_stack": [
+          "root_malicious_loader:pe32_dll"
+        ],
+        "capabilities": [
+          "behavior:dll_sideload",
+          "behavior:indirect_control_flow",
+          "container:zip_img",
+          "delivery:dll_sideload",
+          "obfuscation:virtualized_section"
+        ],
+        "function_roles": [
+          "dll初期化",
+          "エクスポート集約",
+          "保護領域入口",
+          "制御フロー難読化",
+          "実行時分岐先計算",
+          "間接分岐"
+        ],
+        "code_fingerprints": [
+          "semantic:5b01fce7043c5263283ac94bdeba1c524142cc7e2f9b27282d433248944fcfcc",
+          "semantic:8ce98aad70df4001e9985c564446d8d438e524c7b13d55daff29955b6b56e39e",
+          "semantic:98d8fa2f47acd343422012f5d29789a385892e5eadec2961ee0e9987ffa35e18",
+          "semantic:a75a4be3622285d751b65726437f8759674bccddc065e938ef4380623f3292d3",
+          "semantic:aaf3378141251233821e6d590147bb1e7731a740daa219f3ca364b3999733955",
+          "semantic:cbbcae809f89e47ad2ccb68bc91f835534e8bab9133d04b428c202978be2450c"
+        ]
+      },
+      "available_dimensions": [
+        "execution_stages",
+        "layer_chain",
+        "module_stack",
+        "capabilities",
+        "function_roles",
+        "code_fingerprints"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6/OVERALL-LOGIC.md"
     },
     "b91d0d56c1d7ed94962d0f6501761db3573b1090fac15d9424e8b3c8b1914c9a": {
       "case_id": "sha256:b91d0d56c1d7ed94962d0f6501761db3573b1090fac15d9424e8b3c8b1914c9a",
