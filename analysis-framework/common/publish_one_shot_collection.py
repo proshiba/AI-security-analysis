@@ -671,7 +671,7 @@ def publish_case(
         "schema_version": 1,
         "sha256": digest,
         "case_id": f"sha256:{digest}",
-        "case_kind": "malware",
+        "case_kind": "unclassified" if family == "unclassified" else "malware",
         "family": family,
         "canonical_path": canonical_path,
         "collections": [collection_id],

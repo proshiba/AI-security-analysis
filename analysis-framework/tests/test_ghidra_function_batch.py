@@ -949,6 +949,52 @@ def test_load_prepared_inputs_verifies_hashes_and_relationships(
         target.load_prepared_inputs(short_root / "samples", private)
 
 
+def test_load_prepared_inputs_allows_missing_cache_for_complete_result(
+    tmp_path: Path,
+) -> None:
+    """MCP検証済み完了結果があるprogramだけ、削除済み生成cacheから再開できる。"""
+
+    data = b"MZ-complete"
+    digest = hashlib.sha256(data).hexdigest()
+    short_root = tmp_path.parents[2] / (
+        "resume-complete-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
+    )
+    private = short_root / "private"
+    target._json_dump(
+        private / "input-relationships.json",
+        {
+            "unique_pe_objects": 1,
+            "relationships": [
+                {
+                    "case_sha256": digest,
+                    "layer_sha256": digest,
+                    "depth": 0,
+                    "size": len(data),
+                    "is_pe": True,
+                    "transform": "root",
+                }
+            ],
+        },
+    )
+    target._json_dump(
+        private / "objects" / digest / "program-result.json",
+        {
+            "status": "complete",
+            "mcp_responses_valid": True,
+        },
+    )
+
+    objects, _ = target.load_prepared_inputs(short_root / "samples", private)
+
+    assert set(objects) == {digest}
+    assert objects[digest].size == len(data)
+    assert not objects[digest].input_path.exists()
+
+    (private / "objects" / digest / "program-result.json").unlink()
+    with pytest.raises(FileNotFoundError, match="再開用PE cacheがありません"):
+        target.load_prepared_inputs(short_root / "samples", private)
+
+
 def test_finalize_case_report_promotes_only_function_analysis_blocker(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

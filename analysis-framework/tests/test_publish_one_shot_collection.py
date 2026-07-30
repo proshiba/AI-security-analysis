@@ -1104,6 +1104,35 @@ def test_reseal_canonical_report_refreshes_generated_artifact_hash(
         == []
     )
 
+def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
+    digest = "8" * 64
+    source, report_value = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, report_value)
+    repository = tmp_path / "r"
+    repository.mkdir()
+
+    family, destination, _ = publisher.publish_case(
+        repository,
+        repository / "analysis-results",
+        "unclassified-test",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+
+    assert family == "unclassified"
+    metadata = publisher.load_json(destination / "metadata.json")
+    assert metadata["case_kind"] == "unclassified"
+
+
 def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
     tmp_path: Path,
 ) -> None:
