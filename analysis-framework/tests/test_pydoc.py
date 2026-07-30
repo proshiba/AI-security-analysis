@@ -49,6 +49,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "static_logic",
         "record_static_logic",
         "generate_code_similarity_index",
+        "generate_logic_similarity_index",
         "campaign_correlation",
         "correlate_campaigns",
         "refresh_derived_artifacts",

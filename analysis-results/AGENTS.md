@@ -18,6 +18,7 @@
 - 個別のcase、campaign、incident解析ディレクトリには、人間向けの `README.md` とIOC専用の `IOC-LIST.md` を置きます。
 - 新規caseと静的解析を更新した既存caseには、関数・処理単位の `STATIC-LOGIC.md` と `static-logic.json` も置きます。binaryで関数解析が未実施なら `function_analysis_required` を明示し、完了扱いにしません。
 - 関数成果物には役割、処理順、caller／callee、API、制御構造、根拠、確度、正規化SHA-256／SimHashを含めます。生の逆コンパイル全文、C2 literal、資格情報は含めません。
+- `OVERALL-LOGIC.md`は実行フロー、感染チェーン、モジュール関係の3図を共通phase IDと線種で記録し、比較プロファイルと最低2独立軸に基づく他caseとの類似候補を併記します。詳細は[静的解析図と全体ロジック比較の標準](../analysis-framework/docs/STATIC-DIAGRAM-AND-LOGIC-COMPARISON-STANDARD.md)に従います。
 - `IOC-LIST.md` は `analysis-framework/common/generate_ioc_lists.py` から生成し、生成物を直接編集しません。
 - 公開可能なIOCがない場合も、空の標準表を持つ `IOC-LIST.md` を残します。
 - リポジトリ横断索引 `analysis-results/IOC-INDEX.md` も同じgeneratorで更新します。
@@ -67,6 +68,8 @@ generatorを変更した場合は対応するunit testとpydocを更新します
 ```powershell
 python .\analysis-framework\common\generate_code_similarity_index.py --repository . --write
 python .\analysis-framework\common\generate_code_similarity_index.py --repository . --check
+python .\analysis-framework\common\generate_logic_similarity_index.py --repository . --write
+python .\analysis-framework\common\generate_logic_similarity_index.py --repository . --check
 ```
 
 日本語監査は、少なくとも次のコマンドをfail-closedで実行します。

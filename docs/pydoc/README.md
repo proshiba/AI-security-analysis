@@ -56,6 +56,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `static_logic.html`：関数、補完処理単位、Ghidra program構造の正規化と日本語成果物生成
 - `record_static_logic.html`：レビュー済み関数recordのcase成果物化
 - `generate_code_similarity_index.html`：意味fingerprintとGhidra opcode hashのcase横断相関
+- `generate_logic_similarity_index.html`：感染・復元層、実行段階、モジュール、機能、関数roleの独立軸によるcase横断比較
 - `backfill_static_logic.html`：既存公開成果物と無害化済みGhidra構造による過去caseの一括補完
 - `ghidra_function_batch.html`：Ghidra MCPとCIL parserによる代表関数一括静的解析と全体ロジック生成
 - `validate_function_analysis.html`：全関数inventory、代表関数解析、全体ロジック、MCP成功証跡の完了条件検証

@@ -14,6 +14,7 @@ from typing import Any
 
 from generate_code_similarity_index import generate as generate_code_similarity
 from generate_ioc_lists import generate as generate_ioc_lists
+from generate_logic_similarity_index import generate as generate_logic_similarity
 from result_layout import build_layout_plan
 from sync_result_catalog import sync_case_identity_metadata, sync_catalog
 
@@ -105,6 +106,19 @@ def sync_documented_case_counts(
 
 
 def _checksum_manifest_content(path: Path) -> str:
+    portable_text_suffixes = {
+        ".asm",
+        ".csv",
+        ".html",
+        ".json",
+        ".md",
+        ".rules",
+        ".txt",
+        ".yaml",
+        ".yar",
+        ".yara",
+        ".yml",
+    }
     rows = []
     for item in sorted(
         (
@@ -114,8 +128,11 @@ def _checksum_manifest_content(path: Path) -> str:
         ),
         key=lambda candidate: candidate.relative_to(path.parent).as_posix().casefold(),
     ):
+        content = item.read_bytes()
+        if item.suffix.casefold() in portable_text_suffixes:
+            content = content.replace(b"\r\n", b"\n")
         rows.append(
-            f"{hashlib.sha256(item.read_bytes()).hexdigest()}  "
+            f"{hashlib.sha256(content).hexdigest()}  "
             f"{item.relative_to(path.parent).as_posix()}"
         )
     return "\n".join(rows) + ("\n" if rows else "")
@@ -191,6 +208,13 @@ def refresh(
         write=write,
         check=check,
     )
+    logic_similarity = generate_logic_similarity(
+        root,
+        output_json=root / "analysis-results" / "catalog" / "logic-similarity.json",
+        output_markdown=root / "analysis-results" / "catalog" / "LOGIC-SIMILARITY.md",
+        write=write,
+        check=check,
+    )
     checksums = sync_checksum_manifests(root, write=write)
     ui_data = _run_ui_command(root, "ui/generate_ui_data.py", check=not write)
     portal = _run_ui_command(root, "ui/build_portal_index.py", check=not write)
@@ -204,6 +228,7 @@ def refresh(
         "documents": bool(documents["mismatches"]),
         "iocs": bool(iocs["mismatches"]),
         "code_similarity": bool(similarity["mismatches"]),
+        "logic_similarity": bool(logic_similarity["mismatches"]),
         "checksums": bool(checksums["mismatches"]),
         "ui_data": bool(ui_data["check_failed"]),
         "portal": bool(portal["check_failed"]),
@@ -222,6 +247,7 @@ def refresh(
             "documents": documents,
             "iocs": iocs,
             "code_similarity": similarity,
+            "logic_similarity": logic_similarity,
             "checksums": checksums,
             "ui_data": ui_data,
             "portal": portal,
@@ -236,6 +262,7 @@ def refresh(
                 or documents["write_performed"]
                 or iocs["write_performed"]
                 or similarity["write_performed"]
+                or logic_similarity["write_performed"]
                 or checksums["write_performed"]
             )
         ),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import sys
 
@@ -69,3 +70,26 @@ def test_sync_checksum_manifests_detects_and_repairs_stale_file(tmp_path: Path) 
     inventory.sync_checksum_manifests(tmp_path, write=True)
     assert inventory.sync_checksum_manifests(tmp_path)["mismatches"] == []
     assert "report.json" in manifest.read_text(encoding="utf-8")
+
+def test_sync_checksum_manifests_is_portable_across_text_line_endings(
+    tmp_path: Path,
+) -> None:
+    case = tmp_path / "analysis-results" / "case"
+    case.mkdir(parents=True)
+    report = case / "report.json"
+    report.write_bytes(b'{\r\n  "status": "ok"\r\n}\r\n')
+    binary = case / "payload.bin"
+    binary.write_bytes(b"\x00payload\r\n")
+    manifest = case / "manifest.sha256"
+    manifest.write_text("stale\n", encoding="utf-8")
+
+    inventory.sync_checksum_manifests(tmp_path, write=True)
+    rendered = manifest.read_text(encoding="utf-8")
+
+    portable_digest = hashlib.sha256(b'{\n  "status": "ok"\n}\n').hexdigest()
+    binary_digest = hashlib.sha256(b"\x00payload\r\n").hexdigest()
+    assert f"{portable_digest}  report.json" in rendered
+    assert f"{binary_digest}  payload.bin" in rendered
+
+    report.write_bytes(b'{\n  "status": "ok"\n}\n')
+    assert inventory.sync_checksum_manifests(tmp_path)["mismatches"] == []

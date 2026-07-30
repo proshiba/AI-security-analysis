@@ -75,6 +75,10 @@
 - 推測、親未特定、配布経路未観測、後続stage未復元は、点線と`未観測`または`未解決`ノードで明示すること。証跡のない感染経路、module依存関係、C2到達を補完しないこと。
 - 図は`static-logic.json`、`static-layers.json`、review済み補足情報から機械生成し、検体由来文字列をMermaidへ直接埋め込まないこと。URL、IP、完全hash、private path、制御文字は省略または無害化すること。
 - 図は要約であり、関数別根拠、確度、制約、未解決事項の文書記録を置き換えないこと。
+- 3図の順序、共通phase ID、node／edge表現は`analysis-framework/docs/STATIC-DIAGRAM-AND-LOGIC-COMPARISON-STANDARD.md`へ統一すること。
+- 新規caseの`OVERALL-LOGIC.md`には`比較プロファイル`と`他ケースとの比較`を置き、感染・復元層、実行段階、module構成、機能、代表関数の役割、code fingerprintを独立軸として記録すること。
+- 類似候補には最低2つの独立軸を要求すること。同一family名、tag、単一IOC、単一file nameだけで類似、campaign、actorの同一性を判定しないこと。
+- 静的ロジック、復元層、featuresを追加・更新した後は`generate_logic_similarity_index.py --write`と`--check`を実行し、`logic-similarity.json`と`LOGIC-SIMILARITY.md`を同期すること。
 ## README と analysis_history.yaml の更新ルール
 
 - 過去解析の正本はルートの `analysis_history.yaml` とすること。

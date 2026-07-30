@@ -643,21 +643,34 @@ def load_prepared_inputs(
             if int(relation.get("depth") or 0) == 0
             else input_root / "layers" / f"{digest}.quarantine.bin"
         )
-        if not input_path.is_file():
-            raise FileNotFoundError(f"再開用PE cacheがありません: {input_path}")
-        if input_path.stat().st_size != int(relation.get("size") or -1):
-            raise ValueError(f"再開用PE cacheのsizeが一致しません: {digest}")
-        hasher = hashlib.sha256()
-        with input_path.open("rb") as handle:
-            while chunk := handle.read(1024 * 1024):
-                hasher.update(chunk)
-        if hasher.hexdigest() != digest:
-            raise ValueError(f"再開用PE cacheのSHA-256が一致しません: {digest}")
+        expected_size = int(relation.get("size") or -1)
+        cache_present = input_path.is_file()
+        if cache_present:
+            if input_path.stat().st_size != expected_size:
+                raise ValueError(f"再開用PE cacheのsizeが一致しません: {digest}")
+            hasher = hashlib.sha256()
+            with input_path.open("rb") as handle:
+                while chunk := handle.read(1024 * 1024):
+                    hasher.update(chunk)
+            if hasher.hexdigest() != digest:
+                raise ValueError(f"再開用PE cacheのSHA-256が一致しません: {digest}")
+        else:
+            result_path = private_output / "objects" / digest / "program-result.json"
+            cached = (
+                load_json_object_strict(result_path)
+                if result_path.is_file()
+                else {}
+            )
+            if not (
+                cached.get("status") == "complete"
+                and cached.get("mcp_responses_valid") is True
+            ):
+                raise FileNotFoundError(f"再開用PE cacheがありません: {input_path}")
         if digest not in objects:
             objects[digest] = ProgramObject(
                 sha256=digest,
                 input_path=input_path,
-                size=input_path.stat().st_size,
+                size=expected_size,
             )
         objects[digest].relationships.append(relation)
     expected = int(document.get("unique_pe_objects") or 0)

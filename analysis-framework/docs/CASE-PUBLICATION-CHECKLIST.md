@@ -18,7 +18,8 @@
 | family文書 | familyの`README.md`、`OSINT.md`、`TECHNICAL-ANALYSIS.md`、`VERSIONS.md` | 新規family、版根拠、OSINT、技術知見が増えた場合 |
 | 個別成果物 | `README.md`、`FEATURES.md`、`STATIC-LOGIC.md`、`OVERALL-LOGIC.md`、`iocs.json`、rules | 各解析契約と静的根拠に従う |
 | IOC生成物 | caseの`IOC-LIST.md`、`analysis-results/IOC-INDEX.md` | case、IOC、履歴を変更した場合 |
-| 類似性生成物 | `analysis-results/catalog/code-similarity.json`、`CODE-SIMILARITY.md` | 静的ロジックを追加・更新した場合 |
+| 関数コード類似性生成物 | `analysis-results/catalog/code-similarity.json`、`CODE-SIMILARITY.md` | 静的ロジックを追加・更新した場合 |
+| 全体ロジック類似性生成物 | `analysis-results/catalog/logic-similarity.json`、`LOGIC-SIMILARITY.md` | 静的ロジック、復元層、featuresを追加・更新した場合 |
 | checksum | 各`manifest.sha256` | 配下の追跡対象成果物を変更した場合 |
 | UI生成物 | `ui/data.js`、`ui/api/v1/meta.json`、`ui/api/v1/search.json` | case、catalog、IOC、family文書、campaign、履歴を変更した場合 |
 | 件数表示 | ルート`README.md`、`analysis-results/README.md` | case集合を変更した場合。一括反映で生成 |
@@ -35,7 +36,7 @@
 py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write
 ```
 
-LinuxまたはGitHub Actionsでは`python3`を使用できます。一括反映は、metadata identity、catalog、README件数、IOC、コード類似性、checksum、UI、portal indexの順で更新し、同じ範囲を自動で再検証します。検体の読込み、実行、外部通信は行いません。
+LinuxまたはGitHub Actionsでは`python3`を使用できます。一括反映は、metadata identity、catalog、README件数、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexの順で更新し、同じ範囲を自動で再検証します。検体の読込み、実行、外部通信は行いません。
 
 5. 独立したcheckを再実行します。
 
@@ -54,7 +55,7 @@ py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --
 - catalogに実体のないcaseがある、またはfamily、version、path、case kindが実体と一致しない。
 - collection manifestとcase metadataのmembershipが一致しない。
 - UIがfilesystem走査でcatalog不足を補完している。
-- README、IOC、コード類似性、checksum、UI、portal indexのいずれかが古い。
+- README、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexのいずれかが古い。
 - `partial`を隠すためにcatalogから除外している、またはcatalog登録を根拠に`complete`と記載している。
 
 ## PR記載事項
