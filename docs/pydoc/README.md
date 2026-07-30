@@ -41,6 +41,8 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `analyze_sample.html`：入力収集、静的layer復元、解析器の適用可否判定、一括実行、再開整合性
 - `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
 - `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
+- `pe_structural_profile.html`：エクスポート、API、復号リソースを組み合わせる宣言型PE検出
+- `static_layer_pipeline.html`：任意unpackerを上限付きの認証済みレイヤーDAGへ変換する共有処理
 - `classifiers.classify_sample.html`：登録済み検出器による共通分類と検出結果の正規化
 
 ## 深層静的解析module
@@ -48,6 +50,8 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `deep_static_triage.html`：範囲限定のinventory orchestration、memory内layer復元、公開可能なreport
 - `unpackers.static_control_flow.html`：範囲限定のnative PE／raw x86 control-flow triage
 - `unpackers.managed_il_triage.html`：範囲限定の.NET metadata、IL、managed obfuscation triage
+- `unpackers.profiled_transform.html`：許可リスト方式の宣言型byte変換と構造検証
+- `unpackers.rotated_xor_donut.html`：旧回転・XOR Donut APIの互換ラッパー
 - `audit_analysis_coverage.html`：repository内だけで行う完全性とartifact contractの監査
 - `sanitize_public_results.html`：fail-closedの公開provider metadata／email sanitizer
 

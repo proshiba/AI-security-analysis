@@ -43,6 +43,8 @@ from unpackers.container_recovery import (
 )
 from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
+from unpackers.profiled_transform import recover_profiled_transforms
+from unpackers.rotated_xor_donut import legacy_report_from_attempt
 from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
@@ -121,11 +123,7 @@ def entropy(data: bytes) -> float:
         counts[value] += 1
     total = len(sample)
     return round(
-        -sum(
-            (count / total) * math.log2(count / total)
-            for count in counts
-            if count
-        ),
+        -sum((count / total) * math.log2(count / total) for count in counts if count),
         4,
     )
 
@@ -149,7 +147,9 @@ def detect_format(data: bytes, name: str = "sample") -> str:
             if len(data) < 8:
                 return "data"
             architecture_count = struct.unpack_from(endian + "I", data, 4)[0]
-            if not 1 <= architecture_count <= 32 or 8 + architecture_count * 20 > len(data):
+            if not 1 <= architecture_count <= 32 or 8 + architecture_count * 20 > len(
+                data
+            ):
                 return "java-class" if data[:4] == b"\xca\xfe\xba\xbe" else "data"
         return "macho"
     if data.startswith(b"7z\xbc\xaf'\x1c"):
@@ -248,7 +248,9 @@ def recover_png_concealed_data(
 
     concealed = inflater.unused_data
     report = {
-        "status": "concealed_data_recovered" if concealed else "valid_png_no_concealed_data",
+        "status": "concealed_data_recovered"
+        if concealed
+        else "valid_png_no_concealed_data",
         "width": width,
         "height": height,
         "chunk_count": chunk_count,
@@ -521,7 +523,11 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "suspected_encrypted_sideload_host",
     }
     control_flow = None
-    if packed or classification == "managed_loader_or_obfuscated" or len(data) > 32 * 1024 * 1024:
+    if (
+        packed
+        or classification == "managed_loader_or_obfuscated"
+        or len(data) > 32 * 1024 * 1024
+    ):
         control_flow = analyze_pe_control_flow(data)
         # The full block list is useful in a private analyst workspace but is
         # too large for recursive unpack reports.  Metrics retain every count
@@ -839,7 +845,6 @@ class _ZipQuotaExceeded(ValueError):
         self.detail = detail
 
 
-
 @contextmanager
 def _open_aes_zip(data: bytes):
     """pyzipper固有の破損例外を標準BadZipFileへ正規化する。"""
@@ -849,6 +854,7 @@ def _open_aes_zip(data: bytes):
             yield archive
     except pyzipper.BadZipFile as exc:
         raise zipfile.BadZipFile(str(exc)) from exc
+
 
 def _read_standard_zip_member_capped(
     archive: zipfile.ZipFile,
@@ -865,9 +871,7 @@ def _read_standard_zip_member_capped(
     declared_size = int(info.file_size)
     compressed_size = int(info.compress_size)
     if compressed_size < 0:
-        raise _ZipQuotaExceeded(
-            "malformed_metadata", name, "negative compressed size"
-        )
+        raise _ZipQuotaExceeded("malformed_metadata", name, "negative compressed size")
     ratio_output_limit = int(compressed_size * max_compression_ratio)
     output_limit = min(
         declared_size,
@@ -974,14 +978,15 @@ def recover_zip(
                     }
                 ], []
             if declared_size > max_member_size:
-                return [
+                inventory.append(
                     {
                         "name": name,
                         "status": "size_blocked",
                         "size": declared_size,
                         "member_size_limit": max_member_size,
                     }
-                ], []
+                )
+                continue
             declared_total += declared_size
             if declared_total > max_total_size:
                 return [
@@ -1469,12 +1474,8 @@ def sevenzip_extract(
         inventory, candidates = [], []
         extracted_total = 0
         output_resolved = output.resolve()
-        extracted_entries = (
-            sorted(output.rglob("*")) if output.is_dir() else []
-        )
-        regular_entries = [
-            entry for entry in extracted_entries if entry.is_file()
-        ]
+        extracted_entries = sorted(output.rglob("*")) if output.is_dir() else []
+        regular_entries = [entry for entry in extracted_entries if entry.is_file()]
         if len(regular_entries) > max_members:
             return {
                 **listing,
@@ -1614,7 +1615,9 @@ def unpack_bytes(
         report["donut_wrapper"], recovered = recover_xor32_donut_wrapper(static_data)
         artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
-            report["dotnet_resources"], recovered = recover_dotnet_resources(static_data)
+            report["dotnet_resources"], recovered = recover_dotnet_resources(
+                static_data
+            )
             artifacts.extend(recovered)
         section_names = {item["name"].lower() for item in report["pe"]["sections"]}
         likely_upx = "UPX!" in report["pe"]["packer_markers"] or any(
@@ -1626,9 +1629,7 @@ def unpack_bytes(
                 artifacts.append(("upx", blob))
         elif upx:
             report["upx"] = {"status": "skipped_no_upx_evidence"}
-        if sevenzip and (
-            report["pe"]["containerized"] or force_container_probe
-        ):
+        if sevenzip and (report["pe"]["containerized"] or force_container_probe):
             report["sevenzip"], recovered = sevenzip_extract(
                 static_data,
                 sevenzip,
@@ -1664,22 +1665,16 @@ def unpack_bytes(
                 password=archive_password,
             )
             artifacts.extend(recovered)
-            if any(
-                item.get("status")
-                in {
-                    "member_limit_applied",
-                    "size_blocked",
-                    "total_size_blocked",
-                    "ratio_blocked",
-                    "malformed_metadata",
-                    "size_mismatch",
-                    "encrypted",
-                }
-                for item in report["zip"]
-            ):
+            blocked = {
+                item.get("status") for item in report["zip"] if item.get("status")
+            }
+            serious = blocked - {"size_blocked"}
+            if serious or ("size_blocked" in blocked and not recovered):
                 report["unpack_status"] = "bounded_limit"
                 report["recovered"] = []
                 return report, []
+            if "size_blocked" in blocked:
+                report["unpack_status"] = "bounded_limit_with_partial_recovery"
         except (ValueError, zipfile.BadZipFile) as exc:
             report["zip_error"] = str(exc)
             report["unpack_status"] = "bounded_limit"
@@ -1707,11 +1702,30 @@ def unpack_bytes(
         report["javascript_string_array"], transformed = deobfuscate_string_array(data)
         if transformed:
             artifacts.append(("javascript-string-array-deobfuscated", transformed))
-        report["javascript_plain_string_array"], transformed = deobfuscate_plain_string_array(data)
+        report["javascript_plain_string_array"], transformed = (
+            deobfuscate_plain_string_array(data)
+        )
         if transformed:
             artifacts.append(
                 ("javascript-plain-string-array-deobfuscated", transformed)
             )
+    elif kind == "data":
+        report["profiled_transforms"], recovered = recover_profiled_transforms(
+            static_data,
+            input_format=kind,
+            source_name=name,
+        )
+        artifacts.extend(recovered)
+        legacy_attempt = next(
+            (
+                item
+                for item in report["profiled_transforms"]["attempts"]
+                if item.get("profile_id") == "rotate_right_xor_c6_donut"
+            ),
+            None,
+        )
+        if legacy_attempt is not None:
+            report["rotated_xor_donut"] = legacy_report_from_attempt(legacy_attempt)
     if len(static_data) <= 32 * 1024 * 1024:
         report["donut"], recovered = recover_donut_payloads(static_data)
         artifacts.extend(recovered)

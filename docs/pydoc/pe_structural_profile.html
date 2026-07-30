@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module pe_structural_profile</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">pe_structural_profile</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cpe_structural_profile.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\pe_structural_profile.py</a></td></tr></table>
+    <p><span class="code">PEのエクスポート、API、復号リソースを宣言型プロファイルで評価する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="pe_structural_profile.html#ProfileValidationError">ProfileValidationError</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProfileValidationError">class <strong>ProfileValidationError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">宣言型PEプロファイルが契約を満たさない場合に送出する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="pe_structural_profile.html#ProfileValidationError">ProfileValidationError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ProfileValidationError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="ProfileValidationError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ProfileValidationError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ProfileValidationError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ProfileValidationError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ProfileValidationError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="ProfileValidationError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ProfileValidationError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ProfileValidationError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ProfileValidationError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ProfileValidationError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-detect_with_profile"><strong>detect_with_profile</strong></a>(
+    data: 'bytes',
+    profile_id: 'str',
+    path: 'Path | None' = None,
+    *,
+    profiles_path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/registry/pe_structural_profiles.json')
+) -&gt; 'dict[str, object]'</dt><dd><span class="code">classifier互換shapeで一つのPE構造プロファイルを評価する。</span></dd></dl>
+ <dl><dt><a name="-evaluate_profile"><strong>evaluate_profile</strong></a>(data: 'bytes', profile: 'Mapping[str, Any]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">完全一致または複数構造条件を評価し、根拠付きの共通結果を返す。</span></dd></dl>
+ <dl><dt><a name="-get_profile"><strong>get_profile</strong></a>(
+    profile_id: 'str',
+    path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/registry/pe_structural_profiles.json')
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">指定IDの検証済みプロファイルを返す。</span></dd></dl>
+ <dl><dt><a name="-inspect_pe"><strong>inspect_pe</strong></a>(data: 'bytes', profile: 'Mapping[str, Any]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">PEを一度だけ解析し、プロファイルと独立した観測値を返す。</span></dd></dl>
+ <dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(
+    path: 'Path' = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/registry/pe_structural_profiles.json')
+) -&gt; 'dict[str, dict[str, Any]]'</dt><dd><span class="code">ファイルidentityをcache&nbsp;keyとして検証済みプロファイルを読み込む。</span></dd></dl>
+ <dl><dt><a name="-validate_profile"><strong>validate_profile</strong></a>(value: 'object') -&gt; 'dict[str, Any]'</dt><dd><span class="code">一つのPE構造プロファイルを検証・正規化する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ALLOWED_CONFIDENCE</strong> = {'high', 'low', 'medium'}<br>
+<strong>DEFAULT_PROFILE_PATH</strong> = WindowsPath('C:/Users/Administrator/AI-security-...-framework/registry/pe_structural_profiles.json')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework')<br>
+<strong>MAX_PE_SIZE</strong> = 134217728<br>
+<strong>MAX_RESOURCE_MATCHES</strong> = 64<br>
+<strong>MAX_RESOURCE_SIZE</strong> = 16777216<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>PROFILE_ID_RE</strong> = re.compile('^[a-z0-9][a-z0-9_-]{0,127}$')<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')</td></tr></table>
+</body></html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.rotated_xor_donut</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.rotated_xor_donut</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cunpackers%5Crotated_xor_donut.py">c:\users\administrator\ai-security-analysis-daily-20260727\unpackers\rotated_xor_donut.py</a></td></tr></table>
+    <p><span class="code">回転と単一byte&nbsp;XORで包まれたDonut&nbsp;sidecar用の互換ラッパー。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">CLI&nbsp;parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-decode_rotated_xor"><strong>decode_rotated_xor</strong></a>(
+    data: 'bytes',
+    *,
+    rotation: 'int' = 257812,
+    xor_key: 'int' = 198,
+    max_input_size: 'int' = 67108864
+) -&gt; 'bytes'</dt><dd><span class="code">右回転後に単一byte&nbsp;XORを適用し、sidecarの平文を返す。</span></dd></dl>
+ <dl><dt><a name="-legacy_report_from_attempt"><strong>legacy_report_from_attempt</strong></a>(
+    attempt: 'Mapping[str, Any]',
+    *,
+    rotation: 'int' = 257812,
+    xor_key: 'int' = 198
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">宣言型変換の試行結果を従来のreport&nbsp;shapeへ変換する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">sidecarを実行せず復号し、Donut検証に成功した場合だけ保存する。</span></dd></dl>
+ <dl><dt><a name="-recover_rotated_xor_donut"><strong>recover_rotated_xor_donut</strong></a>(
+    data: 'bytes',
+    *,
+    rotation: 'int' = 257812,
+    xor_key: 'int' = 198,
+    max_input_size: 'int' = 67108864
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">従来APIを維持し、実処理を宣言型変換エンジンへ委譲する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_ROTATION</strong> = 257812<br>
+<strong>DEFAULT_XOR_KEY</strong> = 198<br>
+<strong>MAX_INPUT_SIZE</strong> = 67108864<br>
+<strong>Mapping</strong> = typing.Mapping</td></tr></table>
+</body></html>

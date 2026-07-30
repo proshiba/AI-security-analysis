@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "purehvnc_appv_loader",
+      "family": "purehvnc",
+      "campaign_type": "appv_rotated_xor_donut_sideload",
+      "reviewed_sha256": [
+        "a50dcea028a1bfcea55f2aa612c3bc0ffe354fd6a938eb5f1df07f676723df26",
+        "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9"
+      ],
+      "required_exports": [
+        "APIExportForDetours",
+        "Bootstrap",
+        "DllRegisterServer"
+      ],
+      "api_markers": [
+        "CreateRemoteThread",
+        "OpenProcess",
+        "QueueUserAPC",
+        "ResumeThread",
+        "VirtualAllocEx",
+        "VirtualProtectEx",
+        "WriteProcessMemory"
+      ],
+      "minimum_api_markers": 4,
+      "resource_rules": [
+        {
+          "id": "xor55_pdf_decoy",
+          "type_id": 10,
+          "xor_key": 85,
+          "magic_ascii": "%PDF-",
+          "minimum_matches": 1
+        }
+      ],
+      "structural_confidence": "medium",
+      "reason_labels": {
+        "exact": "レビュー済みSHA-256完全一致",
+        "exports": "AppV互換エクスポート群",
+        "apis": "複数のプロセス注入API",
+        "resources": "XOR 0x55で復号できるPDFデコイリソース"
+      }
+    }
+  ]
+}

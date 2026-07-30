@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "rotate_right_xor_c6_donut",
+      "description": "データ長に対する0x3ef14の剰余だけ右回転し、0xc6でXORしたDonut sidecar",
+      "artifact_kind": "rotated-xor-donut-shellcode",
+      "input_formats": [
+        "data"
+      ],
+      "min_input_size": 256,
+      "max_input_size": 67108864,
+      "operations": [
+        {
+          "operation": "rotate_right",
+          "amount": 257812
+        },
+        {
+          "operation": "xor_byte",
+          "key": 198
+        }
+      ],
+      "validator": {
+        "type": "donut_shellcode",
+        "strides": [
+          1
+        ]
+      }
+    }
+  ]
+}

@@ -105,6 +105,7 @@
       "category": "loader",
       "aliases": ["gu-loader", "cloud eye", "cloudeye"],
       "markers": ["guloader", "cloudeye", "callwindowproc", "enumsystemlocales", "ntallocatevirtualmemory", "virtualalloc"],
+      "required_markers": ["guloader", "cloudeye"],
       "minimum_markers": 3,
       "config_keys": ["URL", "Password", "UserAgent", "Method", "Referer"],
       "transport": "HTTP(S) staged payload retrieval",

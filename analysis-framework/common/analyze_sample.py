@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import hashlib
 import io
 import json
@@ -84,52 +83,21 @@ from malware_io import (  # noqa: E402
     write_json,
 )
 from unpackers.static_unpacker import detect_format, unpack_bytes  # noqa: E402
+import static_layer_pipeline as static_layers  # noqa: E402
+
+InputUnit = static_layers.InputUnit
+StaticLayer = static_layers.StaticLayer
+StaticLayerPolicy = static_layers.StaticLayerPolicy
+MAX_STATIC_LAYERS = static_layers.MAX_STATIC_LAYERS
+MAX_STATIC_DEPTH = static_layers.MAX_STATIC_DEPTH
+MAX_RECOVERED_LAYER_SIZE = static_layers.MAX_RECOVERED_LAYER_SIZE
+MAX_RECOVERED_TOTAL_SIZE = static_layers.MAX_RECOVERED_TOTAL_SIZE
+MAX_STATIC_COMPRESSION_RATIO = static_layers.MAX_STATIC_COMPRESSION_RATIO
+recover_layer_pipeline = static_layers.recover_static_layers
 
 
-MAX_STATIC_LAYERS = 32
-MAX_STATIC_DEPTH = 4
-MAX_RECOVERED_LAYER_SIZE = 64 * 1024 * 1024
-MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
-MAX_STATIC_COMPRESSION_RATIO = 100.0
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
 CAMPAIGN_FINGERPRINTS = FRAMEWORK_ROOT / "registry" / "campaign_fingerprints.json"
-
-
-@dataclass(frozen=True)
-class InputUnit:
-    """解析対象のインメモリ検体と公開可能な入力メタデータ。"""
-
-    source_name: str
-    data: bytes
-    input_kind: str
-    outer_sha256: str
-    outer_size: int
-    member_name: str | None = None
-
-
-@dataclass(frozen=True)
-class StaticLayer:
-    """メモリ内だけで保持する認証済み静的復元レイヤー。"""
-
-    name: str
-    data: bytes
-    sha256: str
-    parent_sha256: str | None
-    depth: int
-    transform: str
-
-    def public(self) -> dict[str, Any]:
-        """バイト列を含まないレイヤーメタデータを返す。"""
-
-        return {
-            "name": self.name,
-            "sha256": self.sha256,
-            "size": len(self.data),
-            "format": detect_format(self.data, self.name),
-            "parent_sha256": self.parent_sha256,
-            "depth": self.depth,
-            "transform": self.transform,
-        }
 
 
 class JapaneseArgumentParser(argparse.ArgumentParser):
@@ -212,9 +180,7 @@ def read_input_unit(
     outer = path.read_bytes()
     outer_digest = sha256_bytes(outer)
     encrypted, member_count = _zip_envelope_shape(outer)
-    unwrap = archive_mode == "malwarebazaar" or (
-        archive_mode == "auto" and encrypted and member_count == 1
-    )
+    unwrap = archive_mode == "malwarebazaar" or (archive_mode == "auto" and encrypted and member_count == 1)
     if not unwrap:
         return InputUnit(
             source_name=path.name,
@@ -251,164 +217,19 @@ def recover_static_layers(
     force_container_probe: bool = False,
     archive_password: str = "infected",
 ) -> tuple[list[StaticLayer], dict[str, Any]]:
-    """既存アンパッカー群で復元層を再帰処理し、バイト列はメモリ内だけに保持する。"""
+    """共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。"""
 
-    root = StaticLayer(
-        name=unit.source_name,
-        data=unit.data,
-        sha256=hashlib.sha256(unit.data).hexdigest(),
-        parent_sha256=None,
-        depth=0,
-        transform="submission",
+    return recover_layer_pipeline(
+        unit,
+        unpacker=unpack_bytes,
+        sanitizer=sanitize_public_value,
+        policy=StaticLayerPolicy(),
+        upx=upx,
+        sevenzip=sevenzip,
+        diec=diec,
+        force_container_probe=force_container_probe,
+        archive_password=archive_password,
     )
-    layers = [root]
-    seen = {root.sha256}
-    steps = []
-    recovered_total = 0
-    cursor = 0
-    limit_events = []
-    while cursor < len(layers):
-        layer = layers[cursor]
-        cursor += 1
-        if layer.depth >= MAX_STATIC_DEPTH:
-            steps.append(
-                {
-                    "input_layer": layer.public(),
-                    "status": "skipped_depth_limit",
-                }
-            )
-            continue
-        remaining_total = MAX_RECOVERED_TOTAL_SIZE - recovered_total
-        remaining_layers = MAX_STATIC_LAYERS - len(layers)
-        if remaining_total <= 0 or remaining_layers <= 0:
-            reason = (
-                "recovered_total_limit"
-                if remaining_total <= 0
-                else "layer_count_limit"
-            )
-            limit_events.append(
-                {
-                    "parent_sha256": layer.sha256,
-                    "reason": reason,
-                }
-            )
-            steps.append(
-                {
-                    "input_layer": layer.public(),
-                    "status": f"skipped_{reason}",
-                }
-            )
-            continue
-        try:
-            report, artifacts = unpack_bytes(
-                layer.data,
-                layer.name,
-                upx=upx,
-                sevenzip=sevenzip,
-                diec=diec,
-                force_container_probe=force_container_probe,
-                archive_password=archive_password,
-                max_archive_members=remaining_layers,
-                max_archive_member_size=min(MAX_RECOVERED_LAYER_SIZE, remaining_total),
-                max_archive_total_size=remaining_total,
-                max_archive_compression_ratio=MAX_STATIC_COMPRESSION_RATIO,
-            )
-            step = {
-                "input_layer": layer.public(),
-                "status": "succeeded",
-                "report": sanitize_public_value(report),
-                "accepted_children": [],
-            }
-        except Exception as exc:
-            steps.append(
-                {
-                    "input_layer": layer.public(),
-                    "status": "failed",
-                    "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
-                }
-            )
-            continue
-        for artifact_kind, blob in artifacts:
-            if not isinstance(blob, bytes):
-                limit_events.append(
-                    {
-                        "parent_sha256": layer.sha256,
-                        "kind": str(artifact_kind),
-                        "reason": "non_bytes_artifact_rejected",
-                    }
-                )
-                continue
-            digest = hashlib.sha256(blob).hexdigest()
-            if digest in seen:
-                continue
-            if len(blob) > MAX_RECOVERED_LAYER_SIZE:
-                limit_events.append(
-                    {
-                        "parent_sha256": layer.sha256,
-                        "kind": str(artifact_kind),
-                        "sha256": digest,
-                        "size": len(blob),
-                        "reason": "layer_size_limit",
-                    }
-                )
-                continue
-            if recovered_total + len(blob) > MAX_RECOVERED_TOTAL_SIZE:
-                limit_events.append(
-                    {
-                        "parent_sha256": layer.sha256,
-                        "kind": str(artifact_kind),
-                        "sha256": digest,
-                        "size": len(blob),
-                        "reason": "recovered_total_limit",
-                    }
-                )
-                continue
-            if len(layers) >= MAX_STATIC_LAYERS:
-                limit_events.append(
-                    {
-                        "parent_sha256": layer.sha256,
-                        "kind": str(artifact_kind),
-                        "sha256": digest,
-                        "size": len(blob),
-                        "reason": "layer_count_limit",
-                    }
-                )
-                continue
-            child = StaticLayer(
-                name=f"{layer.name}::{artifact_kind}",
-                data=blob,
-                sha256=digest,
-                parent_sha256=layer.sha256,
-                depth=layer.depth + 1,
-                transform=str(artifact_kind),
-            )
-            layers.append(child)
-            seen.add(digest)
-            recovered_total += len(blob)
-            step["accepted_children"].append(child.public())
-        steps.append(step)
-    public = {
-        "schema_version": 1,
-        "limits": {
-            "max_layers": MAX_STATIC_LAYERS,
-            "max_depth": MAX_STATIC_DEPTH,
-            "max_recovered_layer_size": MAX_RECOVERED_LAYER_SIZE,
-            "max_recovered_total_size": MAX_RECOVERED_TOTAL_SIZE,
-        },
-        "counts": {
-            "layers": len(layers),
-            "recovered_layers": len(layers) - 1,
-            "recovered_bytes": recovered_total,
-            "limit_events": len(limit_events),
-        },
-        "layers": [item.public() for item in layers],
-        "steps": steps,
-        "limit_events": limit_events,
-        "executed_sample": False,
-        "network_contacted": False,
-        "recovered_content_exported": False,
-    }
-    return layers, public
 
 
 def _handler_evidence_score(value: Any) -> int:
@@ -462,14 +283,11 @@ def assess_handlers(
     for spec in specs:
         status = "not_applicable"
         reason = "different_family"
-        family_layers = [
-            item for item in layer_selections if item["selected_family"] == spec.family
-        ]
+        family_layers = [item for item in layer_selections if item["selected_family"] == spec.family]
         eligible_layers = [
             item
             for item in family_layers
-            if spec.campaign is None
-            or item["classification"].get("campaign_type", "unknown") == spec.campaign
+            if spec.campaign is None or item["classification"].get("campaign_type", "unknown") == spec.campaign
         ]
         if not spec.supported_interface:
             status, reason = "unsupported_interface", spec.reason
@@ -494,9 +312,7 @@ def assess_handlers(
     return results
 
 
-def summarize_family_coverage(
-    specs: list[HandlerSpec], registered_families: set[str]
-) -> list[dict[str, Any]]:
+def summarize_family_coverage(specs: list[HandlerSpec], registered_families: set[str]) -> list[dict[str, Any]]:
     """検出器と既存解析器の有無をファミリー単位で可視化する。"""
 
     families = sorted(registered_families | {item.family for item in specs})
@@ -525,9 +341,7 @@ def summarize_family_coverage(
     return results
 
 
-def _preflight_applicable(
-    specs: list[HandlerSpec], applicability: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _preflight_applicable(specs: list[HandlerSpec], applicability: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """適用対象だけをimportし、依存関係または関数欠落を事前確認する。"""
 
     by_id = {item.id: item for item in specs}
@@ -608,9 +422,7 @@ def _triage_issues(value: Any, path: str = "root") -> list[str]:
     return issues
 
 
-def _run_generic_triage(
-    layers: list[StaticLayer], case_dir: Path
-) -> tuple[dict[str, Any], str]:
+def _run_generic_triage(layers: list[StaticLayer], case_dir: Path) -> tuple[dict[str, Any], str]:
     """全静的復元層を個別にトリアージし、部分失敗を隠さず集約する。"""
 
     entries = []
@@ -703,8 +515,6 @@ def _is_incomplete_static_status(value: Any) -> bool:
     )
 
 
-
-
 def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
     """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
 
@@ -742,15 +552,12 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
         report = step.get("report")
         if isinstance(report, dict) and "sevenzip" not in report:
             if report.get("format") in {"7z", "apple-disk-image", "cab", "rar"}:
-                issues.append(
-                    f"steps[{index}].report:container_extractor_unavailable"
-                )
+                issues.append(f"steps[{index}].report:container_extractor_unavailable")
             pe_report = report.get("pe")
             if isinstance(pe_report, dict) and pe_report.get("containerized") is True:
-                issues.append(
-                    f"steps[{index}].report:pe_container_extractor_unavailable"
-                )
+                issues.append(f"steps[{index}].report:pe_container_extractor_unavailable")
     return sorted(set(issues))
+
 
 def _completion_state(
     *,
@@ -808,9 +615,7 @@ def _completion_state(
             }:
                 blockers.append(f"handler_{status}")
 
-        applicable_handlers: dict[str, set[str]] = {
-            family: set() for family in selected_families
-        }
+        applicable_handlers: dict[str, set[str]] = {family: set() for family in selected_families}
         for item in applicability:
             if not isinstance(item, dict):
                 continue
@@ -823,9 +628,7 @@ def _completion_state(
             ):
                 applicable_handlers[family].add(handler_id)
         successful_handlers = {
-            str(item.get("handler_id"))
-            for item in execution_values
-            if item.get("status") == "succeeded"
+            str(item.get("handler_id")) for item in execution_values if item.get("status") == "succeeded"
         }
         for family, handler_ids in sorted(applicable_handlers.items()):
             if not handler_ids:
@@ -839,8 +642,7 @@ def _completion_state(
                     continue
                 attempt_status = attempt.get("status")
                 if attempt_status in {"failed", "skipped_incompatible_format"} or (
-                    attempt_status == "succeeded"
-                    and attempt.get("evidence_status") != "sufficient"
+                    attempt_status == "succeeded" and attempt.get("evidence_status") != "sufficient"
                 ):
                     incomplete_anchor_attempts.append(
                         {
@@ -889,11 +691,7 @@ def _prepare_case_directory(output: Path, digest: str) -> Path:
     if case_dir.exists():
         ensure_tree_without_reparse(case_dir)
         resolved_case = case_dir.resolve(strict=True)
-        if (
-            not resolved_case.is_dir()
-            or resolved_case.parent != resolved_root
-            or resolved_case.name != digest
-        ):
+        if not resolved_case.is_dir() or resolved_case.parent != resolved_root or resolved_case.name != digest:
             raise ValueError(f"安全に初期化できないcase directoryです: {digest}")
         shutil.rmtree(case_dir)
     case_dir.mkdir()
@@ -969,9 +767,7 @@ def analyze_unit(
         classification["one_shot_selection"] = {
             "family": selected_family,
             "basis": selection_basis,
-            "forced_family_registered": (
-                forced_family in registered if forced_family else None
-            ),
+            "forced_family_registered": (forced_family in registered if forced_family else None),
         }
         layer_selections.append(
             {
@@ -991,11 +787,7 @@ def analyze_unit(
     root_selection = layer_selections[0]
     root_classification = sanitize_public_value(root_selection["classification"])
     selected_families = sorted(
-        {
-            item["selected_family"]
-            for item in layer_selections
-            if item["selected_family"] is not None
-        }
+        {item["selected_family"] for item in layer_selections if item["selected_family"] is not None}
     )
     classification_document = {
         **root_classification,
@@ -1082,9 +874,7 @@ def analyze_unit(
                         {
                             **attempt,
                             "status": "succeeded",
-                            "evidence_status": (
-                                "sufficient" if quality["sufficient"] else "insufficient"
-                            ),
+                            "evidence_status": ("sufficient" if quality["sufficient"] else "insufficient"),
                             "evidence": quality,
                         }
                     )
@@ -1101,23 +891,17 @@ def analyze_unit(
                         {
                             **attempt,
                             "status": "failed",
-                            "error": sanitize_public_value(
-                                f"{type(exc).__name__}: {exc}"
-                            ),
+                            "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
                         }
                     )
             if not completed:
-                attempted = any(
-                    value["status"] == "failed" for value in attempts
-                )
+                attempted = any(value["status"] == "failed" for value in attempts)
                 executions.append(
                     {
                         "handler_id": handler_id,
                         "status": "failed" if attempted else "incompatible_input_format",
                         "error": (
-                            "all_eligible_layers_failed"
-                            if attempted
-                            else "no_eligible_layer_satisfied_input_contract"
+                            "all_eligible_layers_failed" if attempted else "no_eligible_layer_satisfied_input_contract"
                         ),
                         "attempts": attempts,
                     }
@@ -1133,8 +917,7 @@ def analyze_unit(
             strongest = [
                 value
                 for value in completed
-                if value[0]["score"] == selected_quality["score"]
-                and value[0]["sufficient"]
+                if value[0]["score"] == selected_quality["score"] and value[0]["sufficient"]
             ]
             ambiguous_layers = sorted({value[2].sha256 for value in strongest})
             if not selected_quality["sufficient"]:
@@ -1215,14 +998,10 @@ def analyze_unit(
         data=None if assessment_only else unit.data,
     )
     write_json(case_dir / "static-logic.json", logic_report)
-    (case_dir / "STATIC-LOGIC.md").write_text(
-        render_static_logic_markdown(logic_report), encoding="utf-8"
-    )
+    (case_dir / "STATIC-LOGIC.md").write_text(render_static_logic_markdown(logic_report), encoding="utf-8")
     profile = build_case_profile(case_dir)
     write_json(case_dir / "features.json", profile)
-    (case_dir / "FEATURES.md").write_text(
-        render_features_markdown(profile), encoding="utf-8"
-    )
+    (case_dir / "FEATURES.md").write_text(render_features_markdown(profile), encoding="utf-8")
     rules = load_rules(CAMPAIGN_CORRELATION_RULES)
     evidence = extract_campaign_evidence(case_dir, profile, rules)
     if CAMPAIGN_FINGERPRINTS.is_file():
@@ -1277,11 +1056,7 @@ def analyze_unit(
     ]
     if not assessment_only:
         artifact_paths.append("generic-triage.json")
-    artifact_paths.extend(
-        item["result"]
-        for item in executions
-        if isinstance(item.get("result"), str)
-    )
+    artifact_paths.extend(item["result"] for item in executions if isinstance(item.get("result"), str))
     report["artifact_sha256"] = artifact_hashes(case_dir, artifact_paths)
     seal_report(report)
     write_json(case_dir / "report.json", report)
@@ -1332,14 +1107,14 @@ def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]
         FRAMEWORK_ROOT / "registry",
         FRAMEWORK_ROOT / "malware",
         REPOSITORY_ROOT / "extractors" / "profiles",
+        REPOSITORY_ROOT / "unpackers" / "profiles",
     ):
         if not root.is_dir():
             continue
         components.update(
             path.resolve()
             for path in root.rglob("*")
-            if path.is_file()
-            and path.suffix.casefold() in {".json", ".yaml", ".yml"}
+            if path.is_file() and path.suffix.casefold() in {".json", ".yaml", ".yml"}
         )
     for spec in specs:
         path = (REPOSITORY_ROOT / spec.relative_path).resolve()
@@ -1361,7 +1136,6 @@ def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]
             if "tests" not in path.parts and not path.name.startswith("test_")
         )
     return sorted(components, key=lambda path: str(path).casefold())
-
 
 
 def _normalize_tool_path(value: Path | None, label: str) -> Path | None:
@@ -1397,6 +1171,7 @@ def _static_tool_settings(upx: Path | None, sevenzip: Path | None, diec: Path | 
         "sevenzip": _tool_identity(sevenzip),
         "diec": _tool_identity(diec),
     }
+
 
 def _build_analysis_contract(
     *,
@@ -1473,9 +1248,7 @@ def load_resumable_case(
         require_resumable=True,
     )
     if any("reparse" in error for error in integrity_errors):
-        raise ValueError(
-            f"再開対象caseにreparse pointがあります: {digest} ({integrity_errors})"
-        )
+        raise ValueError(f"再開対象caseにreparse pointがあります: {digest} ({integrity_errors})")
     if integrity_errors:
         return None
     state = report.get("case_state")
@@ -1496,11 +1269,7 @@ def load_resumable_case(
     source_name = sample.get("source_name")
     if not isinstance(source_name, str) or not source_name:
         return None
-    statuses = [
-        item.get("status")
-        for item in executions
-        if isinstance(item, dict)
-    ]
+    statuses = [item.get("status") for item in executions if isinstance(item, dict)]
     return {
         "sha256": digest,
         "source_name": source_name,
@@ -1509,9 +1278,7 @@ def load_resumable_case(
         "selected_families": selected_families,
         "campaign": classification.get("campaign"),
         "handler_succeeded": sum(status == "succeeded" for status in statuses),
-        "handler_failed": sum(
-            status in {"failed", "preflight_failed"} for status in statuses
-        ),
+        "handler_failed": sum(status in {"failed", "preflight_failed"} for status in statuses),
         "handler_no_evidence": sum(status == "no_evidence" for status in statuses),
         "handler_ambiguous": sum(status == "ambiguous_evidence" for status in statuses),
         "handler_incompatible": sum(status == "incompatible_input_format" for status in statuses),
@@ -1769,11 +1536,7 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume,
     )
     print(json.dumps(summary["counts"], ensure_ascii=False, indent=2))
-    incomplete = (
-        summary["counts"]["errors"]
-        + summary["counts"]["partial"]
-        + summary["counts"]["failed"]
-    )
+    incomplete = summary["counts"]["errors"] + summary["counts"]["partial"] + summary["counts"]["failed"]
     return 0 if incomplete == 0 else 20
 
 

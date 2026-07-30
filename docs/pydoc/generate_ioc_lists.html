@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">generate_ioc_lists</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cgenerate_ioc_lists.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\generate_ioc_lists.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cgenerate_ioc_lists.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\generate_ioc_lists.py</a></td></tr></table>
     <p><span class="code">公開済み解析ごとに、決定的な&nbsp;IOC&nbsp;専用&nbsp;Markdown&nbsp;一覧を生成する。</span></p>
 <p>
 <table class="section">
@@ -43,7 +43,13 @@
 <td class="section-title" colspan=3>&nbsp;<br><a name="Indicator">class <strong>Indicator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#Indicator">Indicator</a>(type:&nbsp;'str',&nbsp;value:&nbsp;'str',&nbsp;role:&nbsp;'str',&nbsp;confidence:&nbsp;'str',&nbsp;source:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Indicator">Indicator</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;value:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;role:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;confidence:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;source:&nbsp;'str'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 根拠と確度を持つ、公開可能な単一の指標。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -54,7 +60,16 @@
 
 <dl><dt><a name="Indicator-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="Indicator-__init__"><strong>__init__</strong></a>(self, type: 'str', value: 'str', role: 'str', confidence: 'str', source: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="Indicator-__init__"><strong>__init__</strong></a>(
+    self,
+    type: 'str',
+    value: 'str',
+    role: 'str',
+    confidence: 'str',
+    source: 'str'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="Indicator-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
 <dl><dt><a name="Indicator-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -87,15 +102,27 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><dl><dt><a name="-analysis_directories"><strong>analysis_directories</strong></a>(results_root: 'Path', history: 'dict[str, dict]') -&gt; 'list[Path]'</dt><dd><span class="code">固定レイアウトの&nbsp;case、campaign、research、collection&nbsp;source&nbsp;を列挙する。</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">決定的な&nbsp;IOC&nbsp;一覧生成用&nbsp;CLI&nbsp;を構築する。</span></dd></dl>
  <dl><dt><a name="-canonical_case_ioc_rendering"><strong>canonical_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">publisher形式のiocs.jsonがあれば、それだけを信頼してMarkdownへ描画する。</span></dd></dl>
- <dl><dt><a name="-collect_indicators"><strong>collect_indicators</strong></a>(directory: 'Path', repository: 'Path', history: 'dict[str, dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">単一解析について、保守的かつ公開可能な指標をすべて収集する。</span></dd></dl>
+ <dl><dt><a name="-clickfix_case_ioc_rendering"><strong>clickfix_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">ClickFix&nbsp;caseでは構造化IOCだけを信頼し、本文中の共有基盤を昇格しない。</span></dd></dl>
+ <dl><dt><a name="-collect_indicators"><strong>collect_indicators</strong></a>(
+    directory: 'Path',
+    repository: 'Path',
+    history: 'dict[str, dict]'
+) -&gt; 'list[Indicator]'</dt><dd><span class="code">単一解析について、保守的かつ公開可能な指標をすべて収集する。</span></dd></dl>
  <dl><dt><a name="-confidence_from_text"><strong>confidence_from_text</strong></a>(text: 'str', default: 'str' = 'recorded') -&gt; 'str'</dt><dd><span class="code">明示された確度表現を、短い正規化ラベルへ変換する。</span></dd></dl>
  <dl><dt><a name="-directory_hash_indicator"><strong>directory_hash_indicator</strong></a>(directory: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">SHA-256&nbsp;形式のケースディレクトリ名を、提出検体ハッシュとして扱う。</span></dd></dl>
  <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">IOC一覧の差分を計画し、明示時だけ生成または同期検証する。</span></dd></dl>
- <dl><dt><a name="-history_indicators"><strong>history_indicators</strong></a>(directory: 'Path', repository: 'Path', history: 'dict[str, dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">解析履歴で確認済みの検体ハッシュと&nbsp;C2&nbsp;項目を指標へ変換する。</span></dd></dl>
+ <dl><dt><a name="-history_indicators"><strong>history_indicators</strong></a>(
+    directory: 'Path',
+    repository: 'Path',
+    history: 'dict[str, dict]'
+) -&gt; 'list[Indicator]'</dt><dd><span class="code">解析履歴で確認済みの検体ハッシュと&nbsp;C2&nbsp;項目を指標へ変換する。</span></dd></dl>
  <dl><dt><a name="-indicator_type"><strong>indicator_type</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">正規化済みの値を、公開可能な&nbsp;IOC&nbsp;種別へ分類する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_config"><strong>indicators_from_config</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">設定&nbsp;JSON&nbsp;出力から、正規化済み抽出結果だけを読み取る。</span></dd></dl>
  <dl><dt><a name="-indicators_from_ioc_json"><strong>indicators_from_ioc_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">ケース内の構造化&nbsp;IOC&nbsp;文書から、対応する指標を抽出する。</span></dd></dl>
- <dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(hashes: 'Iterable[str]', findings: 'Iterable[dict]') -&gt; 'list[Indicator]'</dt><dd><span class="code">横断報告用に、確認済みハッシュと構造化所見を正規化する。</span></dd></dl>
+ <dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(
+    hashes: 'Iterable[str]',
+    findings: 'Iterable[dict]'
+) -&gt; 'list[Indicator]'</dt><dd><span class="code">横断報告用に、確認済みハッシュと構造化所見を正規化する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_text"><strong>indicators_from_text</strong></a>(text: 'str', role: 'str', confidence: 'str', source: 'str') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的に関連する文章片からハッシュとネットワーク指標を抽出する。</span></dd></dl>
  <dl><dt><a name="-load_history"><strong>load_history</strong></a>(path: 'Path') -&gt; 'dict[str, dict]'</dt><dd><span class="code">正規化した結果ディレクトリ別に、解析履歴の項目を索引化する。</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">IOC一覧をdry-run、明示書込み、または同期検証する。</span></dd></dl>
@@ -112,7 +139,8 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>CASE_HASH_RE</strong> = re.compile('(?i)^[0-9a-f]{64}$', re.IGNORECASE)<br>
+<td class="singlecolumn"><strong>CAMPAIGN_SUPPORT_DIRECTORIES</strong> = {'docs', 'rules', 'scripts', 'tools'}<br>
+<strong>CASE_HASH_RE</strong> = re.compile('(?i)^[0-9a-f]{64}$', re.IGNORECASE)<br>
 <strong>CONFIDENCE_ORDER</strong> = {'confirmed': 5, 'high': 5, 'inferred': 3, 'low': 2, 'medium': 4, 'recorded': 3, 'unverified': 1}<br>
 <strong>DOMAIN_RE</strong> = re.compile('(?i)^(?:[a-z0-9-]+\\.)+[a-z]{2,63}$', re.IGNORECASE)<br>
 <strong>EMPTY_VALUES</strong> = {'', '-', 'n/a', 'none', 'none recovered', 'not available', ...}<br>

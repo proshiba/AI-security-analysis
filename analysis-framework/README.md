@@ -207,3 +207,9 @@ py -3.13 .\common\refresh_case_inventory.py --repository .. --check
 ```
 
 対象ファイル、collection membership、解析履歴、family文書、campaign相関を含む完了条件は[新規解析の公開・全体反映チェックリスト](docs/CASE-PUBLICATION-CHECKLIST.md)を参照してください。
+
+## 宣言型の静的変換・PE構造・レイヤー再帰
+
+新しいsidecar変換は `unpackers/profiles/byte_transforms.json`、PEローダー構造は `registry/pe_structural_profiles.json` へ宣言します。許可リスト外のbyte操作やvalidatorは拒否され、復元byteはDonut、magic、PE、ZIPの構造検証後だけ子レイヤーになります。PEの構造一致は最大 `medium` とし、完全一致ハッシュだけを `high` にします。
+
+`common/static_layer_pipeline.py` はone-shot CLIからレイヤー再帰を分離した共通実装です。任意の共通契約unpackerを注入でき、深さ、件数、単体サイズ、総量、圧縮率を `StaticLayerPolicy` で一括管理します。追加方法と証拠基準は[拡張可能な静的解析プロファイル](docs/EXTENSIBLE-STATIC-PROFILES.md)を参照してください。

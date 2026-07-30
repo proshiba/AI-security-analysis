@@ -66,7 +66,16 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
     exact = digest in known_hashes(profile["family"])
     marker_probe = "\n".join(bounded_strings(data)).lower()
     prefilter_hits = _independent_marker_hits(profile["markers"], marker_probe)
-    if not exact and len(prefilter_hits) < max(2, int(profile["minimum_markers"])):
+    required_prefilter_hits = _independent_marker_hits(
+        profile.get("required_markers") or [], marker_probe
+    )
+    required_prefilter_satisfied = bool(
+        not profile.get("required_markers") or required_prefilter_hits
+    )
+    if not exact and (
+        len(prefilter_hits) < max(2, int(profile["minimum_markers"]))
+        or not required_prefilter_satisfied
+    ):
         return {
             "matched": False,
             "observations": {
@@ -74,6 +83,8 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
                 "family": profile["family"],
                 "category": profile["category"],
                 "marker_hits": prefilter_hits,
+                "required_marker_hits": required_prefilter_hits,
+                "required_marker_satisfied": required_prefilter_satisfied,
                 "observed_config_keys": [],
                 "network_candidate_count": 0,
                 "profile_literal_correlation": False,
@@ -105,6 +116,8 @@ def detect_family(family: str, data: bytes, path: Path) -> dict:
             "family": profile["family"],
             "category": profile["category"],
             "marker_hits": config.get("marker_hits") or [],
+            "required_marker_hits": config.get("required_marker_hits") or [],
+            "required_marker_satisfied": config.get("required_marker_satisfied", True),
             "observed_config_keys": config.get("observed_config_keys") or [],
             "network_candidate_count": len(result.get("findings") or []),
             "profile_literal_correlation": profile_correlated,
