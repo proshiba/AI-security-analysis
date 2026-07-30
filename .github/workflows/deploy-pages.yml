@@ -29,6 +29,10 @@ jobs:
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
+        with:
+          # ui/generate_ui_data.py が case の追加日を git 履歴から取るため、
+          # 既定の浅いクローン(depth=1)では追加日が復元できず --check が落ちる。
+          fetch-depth: 0
 
       - name: Pythonを準備
         uses: actions/setup-python@v5

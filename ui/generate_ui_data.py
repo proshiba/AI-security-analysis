@@ -388,15 +388,55 @@ def _filesystem_case_index() -> dict[str, dict]:
     return discovered
 
 
+def existing_added_dates() -> dict[str, str]:
+    """既存の data.js から added_at を読み出す。
+
+    浅いクローンではgit履歴から追加日を復元できない。そこで既存の生成物の
+    値を引き継ぐことで、環境差で `--check` が落ちたり、追加日が一括で
+    消えることを防ぐ。
+    """
+    text = read_text(OUTPUT)
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text[text.index("=") + 1:].rstrip().rstrip(";"))
+    except (ValueError, json.JSONDecodeError):
+        return {}
+    return {
+        c["sha256"]: c["added_at"]
+        for c in payload.get("cases", [])
+        if c.get("sha256") and c.get("added_at")
+    }
+
+
+def is_shallow_clone() -> bool:
+    """浅いクローンかどうかを判定する。"""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "--is-shallow-repository"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out == "true"
+
+
 def git_added_dates() -> dict[str, str]:
     """caseディレクトリがリポジトリへ追加されたcommit日をSHA-256ごとに得る。
 
     `analysis_history.yaml` は解析の正本だが、一括解析では履歴レコードが
     付かないcaseもあり網羅率が3割程度になる。ダッシュボードの新着一覧が
     履歴の有無で欠落しないよう、全caseに使える追加日をgitから取る。
-    gitが使えない環境(shallow cloneやexport)では空を返し、UIは履歴だけで
-    動作する。
+
+    浅いクローン(CIの `actions/checkout` は既定で depth=1)では履歴が無く
+    追加日を復元できないため、空を返して呼び出し側に既存値の引き継ぎを
+    任せる。ここで部分的な結果を返すと、生成環境によって出力が変わり
+    `--check` が落ちる。
     """
+    if is_shallow_clone():
+        return {}
     try:
         out = subprocess.run(
             [
@@ -463,6 +503,9 @@ def build() -> dict:
     cases_catalog = discover_cases()
     history = load_history()
     added_dates = git_added_dates()
+    if not added_dates:
+        # 浅いクローンやgit不在の環境では既存生成物の値を引き継ぐ
+        added_dates = existing_added_dates()
     labels = family_labels_from_index()
 
     families: dict[str, dict] = {}
