@@ -430,6 +430,14 @@
       '</div><div class="lbl">campaign相関候補 →</div></a>' +
       "</div>";
 
+    // 統計カードの直下に横断検索。入力すると下の内容がリアルタイムに絞り込まれる。
+    html += '<form id="dash-search" class="dash-search" role="search" onsubmit="return false">' +
+      '<input id="dash-q" type="search" autocomplete="off" aria-label="横断検索"' +
+      ' placeholder="ハッシュ / IP / ドメイン / URL / マルウェア名 で絞り込み（入力するとリアルタイムに検索）">' +
+      '<span class="dash-search-count" id="dash-count"></span></form>' +
+      '<div id="dash-results"></div>';
+
+    html += '<div id="dash-default">';
     html += '<div class="section"><h2>ケース数上位のファミリ <a class="small" href="#/families">すべて表示 →</a></h2><div class="family-grid">' +
       famList.slice(0, 12).map(familyCard).join("") + "</div></div>";
 
@@ -449,7 +457,46 @@
     html += "</tbody></table>" +
       '<div class="muted small" style="margin-top:6px">追加日はケースがリポジトリへ入った日です。解析日は ' +
       "<code>analysis_history.yaml</code> に履歴がある場合だけ表示します(一括解析では履歴が付かないことがあります)。</div></div>";
+    html += "</div>";   // #dash-default
     app.innerHTML = html;
+
+    var dq = document.getElementById("dash-q");
+    var dres = document.getElementById("dash-results");
+    var ddef = document.getElementById("dash-default");
+    var dcount = document.getElementById("dash-count");
+    var dTimer = null;
+
+    function runDashSearch() {
+      var raw = dq.value;
+      if (normalizeQuery(raw).length < 2) {
+        dres.innerHTML = "";
+        ddef.hidden = false;
+        dcount.textContent = "";
+        return;
+      }
+      var res = searchAll(raw, 12);
+      var total = searchTotal(res);
+      dcount.textContent = total + " 件";
+      ddef.hidden = true;
+      dres.innerHTML = total
+        ? searchGroupsHtml(res, raw.trim(), { moreLink: true })
+        : '<div class="empty">「' + esc(raw) + '」に一致する項目がありません。' +
+          '<br><span class="small">ハッシュは先頭一致でも探せます。IOCは値の一部でも一致します。</span></div>';
+    }
+
+    dq.addEventListener("input", function () {
+      clearTimeout(dTimer);
+      dTimer = setTimeout(runDashSearch, 150);
+    });
+    // Enterで検索ページへ渡す(結果を残したまま詳しく見たいとき)
+    dq.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        var v = dq.value.trim();
+        if (normalizeQuery(v).length >= 2) location.hash = buildHash(["search"], { q: v });
+      }
+      if (ev.key === "Escape") { dq.value = ""; runDashSearch(); }
+    });
   }
 
   function statCard(num, label) {
@@ -693,25 +740,10 @@
 
   /* ---------- 統合検索 ---------- */
 
-  function viewSearch(q) {
-    var raw = q.q || "";
-    var res = searchAll(raw, 25);
-    var total = (res.familiesTotal || 0) + (res.iocsTotal || 0) +
-                (res.casesTotal || 0) + (res.campaignsTotal || 0);
-
-    var html = '<h1 class="page-title">検索</h1>' +
-      '<p class="page-sub">SHA-256・MD5・SHA-1、IPアドレス、ドメイン、URL、接続先、マルウェアファミリ名・別名、' +
-      'キャンペーン候補、ファイル名、タグ、コレクションを横断して検索します。' +
-      '無害化表記（<code>1.2.3[.]4</code>、<code>hxxp://</code>）もそのまま貼り付けられます。</p>';
-
-    html += '<div class="filterbar">' +
-      '<input type="search" id="gs-q" placeholder="例: 45.66.228.114 ／ ftp.vilimorin.com ／ AgentTesla ／ 3f091457" value="' + esc(raw) + '">' +
-      '<span class="count">' + (raw.trim().length < 2 ? "2文字以上で検索" : total + " 件") + "</span></div>";
-
-    if (raw.trim().length >= 2 && total === 0) {
-      html += '<div class="empty">「' + esc(raw) + '」に一致する項目がありません。' +
-        '<br><span class="small">ハッシュは先頭一致でも探せます。IOCは値の一部でも一致します。</span></div>';
-    }
+  // 検索結果の本体。ダッシュボードのリアルタイム絞り込みと検索ページで共用する。
+  function searchGroupsHtml(res, raw, opts) {
+    opts = opts || {};
+    var html = "";
 
     if (res.exactCase) {
       html += '<div class="section"><h2>完全一致した検体</h2>' +
@@ -777,6 +809,38 @@
       html += "</tbody></table></div></div>";
     }
 
+    if (opts.moreLink && html) {
+      html += '<div class="section" style="margin-top:18px"><a class="btn" href="' +
+        buildHash(["search"], { q: raw }) + '">検索ページで詳しく見る →</a></div>';
+    }
+    return html;
+  }
+
+  function searchTotal(res) {
+    return (res.familiesTotal || 0) + (res.iocsTotal || 0) +
+           (res.casesTotal || 0) + (res.campaignsTotal || 0);
+  }
+
+  function viewSearch(q) {
+    var raw = q.q || "";
+    var res = searchAll(raw, 25);
+    var total = searchTotal(res);
+
+    var html = '<h1 class="page-title">検索</h1>' +
+      '<p class="page-sub">SHA-256・MD5・SHA-1、IPアドレス、ドメイン、URL、接続先、マルウェアファミリ名・別名、' +
+      'キャンペーン候補、ファイル名、タグ、コレクションを横断して検索します。' +
+      '無害化表記（<code>1.2.3[.]4</code>、<code>hxxp://</code>）もそのまま貼り付けられます。</p>';
+
+    html += '<div class="filterbar">' +
+      '<input type="search" id="gs-q" placeholder="例: 45.66.228.114 ／ ftp.vilimorin.com ／ AgentTesla ／ 3f091457" value="' + esc(raw) + '">' +
+      '<span class="count">' + (raw.trim().length < 2 ? "2文字以上で検索" : total + " 件") + "</span></div>";
+
+    if (raw.trim().length >= 2 && total === 0) {
+      html += '<div class="empty">「' + esc(raw) + '」に一致する項目がありません。' +
+        '<br><span class="small">ハッシュは先頭一致でも探せます。IOCは値の一部でも一致します。</span></div>';
+    }
+
+    html += searchGroupsHtml(res, raw);
     app.innerHTML = html;
 
     var input = document.getElementById("gs-q");
