@@ -14,14 +14,17 @@
   </a>
   <nav class="nav">
     <a href="#/" data-nav="dashboard">ダッシュボード</a>
+    <a href="#/search" data-nav="search">検索</a>
     <a href="#/families" data-nav="families">ファミリ一覧</a>
     <a href="#/cases" data-nav="cases">ケース検索</a>
     <a href="#/iocs" data-nav="iocs">IOC検索</a>
     <a href="#/intel" data-nav="intel">キャンペーン相関</a>
   </nav>
-  <form id="global-search" class="global-search">
-    <input id="global-search-input" type="search"
-           placeholder="SHA-256 / ファミリ / C2 / ファイル名 を検索…" autocomplete="off">
+  <form id="global-search" class="global-search" role="search">
+    <input id="global-search-input" type="search" autocomplete="off"
+           aria-label="横断検索"
+           placeholder="ハッシュ / IP / ドメイン / URL / マルウェア名 を検索…">
+    <div id="global-suggest" class="gsg" hidden></div>
   </form>
 </header>
 <main id="app">

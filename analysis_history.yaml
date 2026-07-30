@@ -5022,3 +5022,12 @@ analyses:
     c2: ["logs.uvexio.com:8443", "tea.vexexo.com:56001"]
     notes: "Triageの2つのPCAPとメモリから通信と管理コードを復元。logs側はGET /pingだけで稼働確認、tea側はTCP接続のみ成立しTLSサービスは未確認。検体はローカル実行していない。"
     result_path: analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/
+  - malware_type: AgentTesla
+    analyzed_at: 2026-07-29
+    sample_sha256: 3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333
+    analysis_level: deep_static_js_luajit_donut_dotnet_plus_bounded_service_observation
+    campaign_type: japanese_invoice_malspam_js_luajit_donut_ftp
+    matched_patterns: ["件名 `Re: 請求書`・添付 `請求書.rar` → `請求書.js` の日本語マルスパム", "巨大命令表をデコイに持つJScriptから反転・区切り除去・Base64でLuaJIT実行ファイル(PIF)とTTF偽装Luaを復元", "Luaの25行置換表・反転・Base64・PolyRot解除でDonutシェルコードを復元", "Donut instance復号で最終AgentTesla .NET PEをメモリ内実行", "資格情報・キーログ・クリップボード・画面・ホスト情報をFTP `STOR` で送信"]
+    c2: ["ftp.vilimorin.com:21", "66.29.137.55:21"]
+    notes: "検体、復元PIF・Lua・Donut・最終PEはいずれもローカル実行していない。`ftp.vilimorin.com:21` は最終.NET設定から静的に確認した資格情報送信先、`66.29.137.55:21` は2026-07-29の限定的なFTP稼動確認で観測した解決先。外側RARは取得できずTriage提出JScriptを起点とした。`AgentTeslaV5` はTriage抽出ルール名でありビルダー版の独立確認はしていない。FTP資格情報、復元バイナリ、メモリダンプ、PCAPは公開成果物に含めない。"
+    result_path: analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/

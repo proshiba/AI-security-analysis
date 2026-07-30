@@ -55,6 +55,33 @@ code, .mono { font-family: var(--mono); }
 }
 .global-search input:focus { outline: none; border-color: var(--accent); }
 
+/* ---------- ヘッダー検索の候補表示 ---------- */
+.global-search { position: relative; }
+.gsg {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  max-height: 60vh; overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+.gsg-row {
+  display: grid; grid-template-columns: 72px 1fr; gap: 2px 8px;
+  padding: 7px 12px; border-top: 1px solid var(--border);
+  color: var(--text); font-size: 12px;
+}
+.gsg-row:first-child { border-top: none; }
+.gsg-row:hover { background: var(--panel-2); text-decoration: none; }
+.gsg-kind {
+  grid-row: span 2; align-self: center;
+  color: var(--accent); font-size: 10px; text-align: right; white-space: nowrap;
+}
+.gsg-label { word-break: break-all; }
+.gsg-sub { color: var(--text-dim); font-size: 11px; }
+.gsg-all {
+  display: block; padding: 8px 12px; text-align: center;
+  border-top: 1px solid var(--border); background: var(--panel-2); font-size: 12px;
+}
+.gsg-empty { padding: 10px 12px; color: var(--text-dim); font-size: 12px; }
+
 /* ---------- layout ---------- */
 #app { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
 .loading { padding: 60px; text-align: center; color: var(--text-dim); }

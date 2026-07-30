@@ -211,7 +211,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
 | ValleyRAT | 13 | 2026-07-27 | 従来パターン、`cefclient_libcef_sideload_malspam`、`iso_pdfcore8_winos_proxy_sideload` |
-| AgentTesla | 10 | 2026-07-13 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript` |
+| AgentTesla | 11 | 2026-07-29 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript`, `japanese_invoice_malspam_js_luajit_donut_ftp` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTAローダー、直接PE、ISO二重拡張子による配布 |
 | MX-Go（未分類） | 1 | 2026-07-15 | Go製一括メール送信エンジン、遠隔コンテンツ／設定、HTTPキャンペーン制御、日本環境ゲート |
 | npmサプライチェーン | 1 | 2026-07-16 | `axios_plain_crypto_js` のpostinstall静的復号 |
@@ -263,7 +263,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 ### AgentTesla / RemcosRAT 解析履歴
 
-- AgentTesla: 10検体。FTP/SMTP設定、Unicodeマーカー/画像ステージ、AES/PowerShellメモリ内.NET、RARラッパーを整理しました。
+- AgentTesla: 11検体。FTP/SMTP設定、Unicodeマーカー/画像ステージ、AES/PowerShellメモリ内.NET、RARラッパーを整理しました。2026-07-29には日本語請求書マルスパム由来のJScript→LuaJIT→Donut→.NET連鎖を復元し、FTP資格情報送信先まで静的に確認しています。
 - RemcosRAT: 10検体。VBS/JS/HTA、直接PE、ISO二重拡張子を整理し、設定またはプロセス帰属付き証跡からC2を記録しました。
 - 20検体すべてでAES認証、内側SHA-256、family/campaign分類の回帰テストに合格しています。
 - 検体本体、復号payload、FTP/SMTP認証情報は公開成果物に含めていません。

@@ -50,6 +50,110 @@
     });
   });
 
+  /* ---------- 統合検索の索引 ---------- */
+
+  // IOCは同じ値が複数ケースに出るため、値ごとに畳んで観測元を集約する。
+  var iocIndex = {};   // 正規化値 -> {value, types[], roles[], confidences[], cases[]}
+  iocRows.forEach(function (r) {
+    var key = r.ioc.value.trim().toLowerCase();
+    var e = iocIndex[key];
+    if (!e) {
+      e = iocIndex[key] = { value: r.ioc.value.trim(), types: [], roles: [], cases: [] };
+    }
+    if (e.types.indexOf(r.ioc.type) < 0) e.types.push(r.ioc.type);
+    if (r.ioc.role && e.roles.indexOf(r.ioc.role) < 0) e.roles.push(r.ioc.role);
+    if (e.cases.indexOf(r.sha256) < 0) e.cases.push(r.sha256);
+  });
+  // C2欄の値も検索対象に含める(IOC-LIST.mdに出ない構造化データ由来のものがある)
+  DB.cases.forEach(function (c) {
+    (c.c2 || []).forEach(function (v) {
+      var key = String(v).trim().toLowerCase();
+      var e = iocIndex[key];
+      if (!e) {
+        e = iocIndex[key] = { value: String(v).trim(), types: ["C2/通信"], roles: [], cases: [] };
+      }
+      if (e.cases.indexOf(c.sha256) < 0) e.cases.push(c.sha256);
+    });
+  });
+  var iocList = Object.keys(iocIndex).map(function (k) {
+    var e = iocIndex[k];
+    e.key = k;
+    return e;
+  });
+
+  var familyList = Object.keys(DB.families).map(function (k) {
+    var f = DB.families[k];
+    var names = [f.label, f.title, k].concat(f.aliases || []).filter(Boolean);
+    return { key: k, family: f, names: names, blob: names.join("\n").toLowerCase() };
+  });
+
+  var campaignList = INTEL.campaigns.map(function (g) {
+    return {
+      group: g,
+      blob: [g.id, g.families.join(" "),
+             g.shared_indicators.map(function (s) { return s.value; }).join(" ")]
+        .join("\n").toLowerCase()
+    };
+  });
+
+  // レポートから貼り付けた無害化表記(1.2.3[.]4 や hxxp://)も検索できるようにする
+  function refang(s) {
+    return String(s)
+      .replace(/\[\.\]|\(\.\)/g, ".")
+      .replace(/\[:\]/g, ":")
+      .replace(/^h(x{2}|tt)p(s?):\/\//i, "http$2://")
+      .replace(/\[at\]/gi, "@");
+  }
+  function normalizeQuery(s) { return refang(String(s || "").trim()).toLowerCase(); }
+
+  // 完全一致 → 前方一致 → 部分一致 の順に並べるためのスコア
+  function matchScore(hay, needle) {
+    if (!hay) return -1;
+    if (hay === needle) return 3;
+    if (hay.indexOf(needle) === 0) return 2;
+    return hay.indexOf(needle) >= 0 ? 1 : -1;
+  }
+
+  function searchAll(rawQuery, limit) {
+    var q = normalizeQuery(rawQuery);
+    var cap = limit || 25;
+    var out = { query: q, families: [], iocs: [], cases: [], campaigns: [], exactCase: null };
+    if (q.length < 2) return out;
+
+    if (/^[0-9a-f]{64}$/.test(q) && casesBySha[q]) out.exactCase = casesBySha[q];
+
+    familyList.forEach(function (f) {
+      var best = -1;
+      f.names.forEach(function (n) { best = Math.max(best, matchScore(n.toLowerCase(), q)); });
+      if (best > 0) out.families.push({ item: f, score: best });
+    });
+
+    iocList.forEach(function (e) {
+      var sc = matchScore(e.key, q);
+      if (sc > 0) out.iocs.push({ item: e, score: sc * 10 + Math.min(e.cases.length, 9) });
+    });
+
+    var terms = q.split(/\s+/).filter(Boolean);
+    DB.cases.forEach(function (c) {
+      for (var i = 0; i < terms.length; i++) {
+        if (c._search.indexOf(terms[i]) < 0) return;
+      }
+      var sc = c.sha256 === q ? 3 : (c.sha256.indexOf(q) === 0 ? 2 : 1);
+      out.cases.push({ item: c, score: sc });
+    });
+
+    campaignList.forEach(function (g) {
+      if (g.blob.indexOf(q) >= 0) out.campaigns.push({ item: g, score: 1 });
+    });
+
+    ["families", "iocs", "cases", "campaigns"].forEach(function (k) {
+      out[k].sort(function (a, b) { return b.score - a.score; });
+      out[k + "Total"] = out[k].length;
+      out[k] = out[k].slice(0, cap).map(function (x) { return x.item; });
+    });
+    return out;
+  }
+
   // 新着順の基準。追加日を主、履歴の解析日と初観測を補助に使う。
   function recencyKey(c) {
     var hist = (c.history && c.history[0] && c.history[0].analyzed_at) || "";
@@ -275,6 +379,7 @@
   }
 
   function route() {
+    if (typeof hideSuggest === "function") hideSuggest();
     var r = parseHash();
     var page = r.parts[0] || "dashboard";
     document.querySelectorAll(".nav a").forEach(function (a) {
@@ -286,6 +391,7 @@
       if (page === "families") return viewFamilies();
       if (page === "cases") return viewCases(r.query);
       if (page === "iocs") return viewIocs(r.query);
+      if (page === "search") return viewSearch(r.query);
       if (page === "intel" && r.parts[1]) return viewIntelDetail(decodeURIComponent(r.parts[1]));
       if (page === "intel") return viewIntelList(r.query);
       if (page === "family" && r.parts[1]) return viewFamily(r.parts[1], r.query);
@@ -583,6 +689,105 @@
     bindPager(function (p) {
       location.hash = buildHash(["iocs"], { q: q.q, type: q.type, page: String(p) });
     });
+  }
+
+  /* ---------- 統合検索 ---------- */
+
+  function viewSearch(q) {
+    var raw = q.q || "";
+    var res = searchAll(raw, 25);
+    var total = (res.familiesTotal || 0) + (res.iocsTotal || 0) +
+                (res.casesTotal || 0) + (res.campaignsTotal || 0);
+
+    var html = '<h1 class="page-title">検索</h1>' +
+      '<p class="page-sub">SHA-256・MD5・SHA-1、IPアドレス、ドメイン、URL、接続先、マルウェアファミリ名・別名、' +
+      'キャンペーン候補、ファイル名、タグ、コレクションを横断して検索します。' +
+      '無害化表記（<code>1.2.3[.]4</code>、<code>hxxp://</code>）もそのまま貼り付けられます。</p>';
+
+    html += '<div class="filterbar">' +
+      '<input type="search" id="gs-q" placeholder="例: 45.66.228.114 ／ ftp.vilimorin.com ／ AgentTesla ／ 3f091457" value="' + esc(raw) + '">' +
+      '<span class="count">' + (raw.trim().length < 2 ? "2文字以上で検索" : total + " 件") + "</span></div>";
+
+    if (raw.trim().length >= 2 && total === 0) {
+      html += '<div class="empty">「' + esc(raw) + '」に一致する項目がありません。' +
+        '<br><span class="small">ハッシュは先頭一致でも探せます。IOCは値の一部でも一致します。</span></div>';
+    }
+
+    if (res.exactCase) {
+      html += '<div class="section"><h2>完全一致した検体</h2>' +
+        '<div class="behavior-item"><span class="lbl mono"><a href="#/case/' + res.exactCase.sha256 + '">' +
+        esc(res.exactCase.sha256) + '</a></span> ' +
+        '<span class="badge accent">' + esc(familyLabel(res.exactCase.family)) + "</span>" +
+        '<div class="ev">SHA-256が完全一致しました。ケースページへ移動できます。</div></div></div>';
+    }
+
+    if (res.families.length) {
+      html += '<div class="section"><h2>マルウェアファミリ (' + res.familiesTotal + ")</h2>" +
+        '<div class="family-grid">' + res.families.map(function (f) {
+          return familyCard(f.family);
+        }).join("") + "</div></div>";
+    }
+
+    if (res.iocs.length) {
+      html += '<div class="section"><h2>IOC・通信先 (' + res.iocsTotal + ")" +
+        (res.iocsTotal > res.iocs.length ? ' <span class="muted small">上位' + res.iocs.length + '件を表示</span>' : "") +
+        '</h2><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        "<th>種別</th><th>値</th><th>役割</th><th class='num'>観測ケース</th><th>ファミリ</th><th></th></tr></thead><tbody>";
+      res.iocs.forEach(function (e) {
+        var fams = {};
+        e.cases.forEach(function (sha) {
+          var c = casesBySha[sha];
+          if (c) fams[c.family] = true;
+        });
+        var famKeys = Object.keys(fams);
+        html += "<tr><td class='nowrap small'>" + esc(e.types.join("、")) + "</td>" +
+          "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(e.value) + ")' title='クリックでコピー'>" + esc(e.value) + "</a></td>" +
+          "<td class='small'>" + esc(e.roles.slice(0, 2).join("、")) + "</td>" +
+          "<td class='num'>" + e.cases.length + "</td>" +
+          "<td class='small nowrap'>" + famKeys.slice(0, 2).map(function (k) {
+            return '<a href="#/family/' + esc(k) + '">' + esc(familyLabel(k)) + "</a>";
+          }).join(", ") + (famKeys.length > 2 ? " ほか" + (famKeys.length - 2) : "") + "</td>" +
+          "<td class='nowrap'>" + portalLink(e.value, "⊕", "btn small") + "</td></tr>";
+      });
+      html += "</tbody></table></div>" +
+        '<div class="muted small" style="margin-top:6px">「観測ケース」はこの値が出てくる検体ケースの数です。値をクリックするとコピー、⊕ でポータルのグラフ調査へ渡します。</div></div>';
+    }
+
+    if (res.cases.length) {
+      html += '<div class="section"><h2>検体ケース (' + res.casesTotal + ")" +
+        (res.casesTotal > res.cases.length
+          ? ' <a class="small" href="' + buildHash(["cases"], { q: raw }) + '">ケース検索で全' + res.casesTotal + '件を見る →</a>'
+          : "") +
+        "</h2>" + caseTable(sortCases(res.cases, "added_desc"), true) + "</div>";
+    }
+
+    if (res.campaigns.length) {
+      html += '<div class="section"><h2>キャンペーン相関候補 (' + res.campaignsTotal + ")</h2>" +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        "<th>candidate</th><th>ファミリ</th><th class='num'>case</th><th>確度</th></tr></thead><tbody>";
+      res.campaigns.forEach(function (g) {
+        var c = g.group;
+        html += "<tr><td class='mono nowrap'><a href='#/intel/" + encodeURIComponent(c.id) + "'>" + esc(intelShort(c.id)) + "</a></td>" +
+          "<td class='nowrap'>" + c.families.map(function (f) {
+            return '<a href="#/family/' + esc(f) + '">' + esc(familyLabel(f)) + "</a>";
+          }).join(", ") + "</td>" +
+          "<td class='num'>" + (c.member_count || c.members.length) + "</td>" +
+          "<td>" + confBadge(c.confidence) + "</td></tr>";
+      });
+      html += "</tbody></table></div></div>";
+    }
+
+    app.innerHTML = html;
+
+    var input = document.getElementById("gs-q");
+    var timer = null;
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      var v = input.value;
+      timer = setTimeout(function () { location.hash = buildHash(["search"], { q: v.trim() }); }, 350);
+    });
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 
   /* ---------- キャンペーン相関 (intelligence) ---------- */
@@ -1023,13 +1228,85 @@
 
   /* ---------- 起動 ---------- */
 
+  /* ---------- ヘッダー検索(入力中の候補表示) ---------- */
+
+  var gInput = document.getElementById("global-search-input");
+  var gBox = document.getElementById("global-suggest");
+
+  function hideSuggest() { if (gBox) { gBox.hidden = true; gBox.innerHTML = ""; } }
+
+  function renderSuggest(raw) {
+    if (!gBox) return;
+    var res = searchAll(raw, 5);
+    var total = (res.familiesTotal || 0) + (res.iocsTotal || 0) +
+                (res.casesTotal || 0) + (res.campaignsTotal || 0);
+    if (normalizeQuery(raw).length < 2) return hideSuggest();
+
+    var rows = [];
+    if (res.exactCase) {
+      rows.push(suggestRow("#/case/" + res.exactCase.sha256, "検体",
+        shortSha(res.exactCase.sha256), familyLabel(res.exactCase.family) + " / SHA-256完全一致"));
+    }
+    res.families.forEach(function (f) {
+      rows.push(suggestRow("#/family/" + f.key, "ファミリ", f.family.label || f.key,
+        f.family.case_count + " ケース"));
+    });
+    res.iocs.forEach(function (e) {
+      rows.push(suggestRow(buildHash(["search"], { q: e.value }), e.types[0] || "IOC",
+        e.value, e.cases.length + " ケースで観測"));
+    });
+    res.cases.forEach(function (c) {
+      rows.push(suggestRow("#/case/" + c.sha256, "検体", shortSha(c.sha256),
+        familyLabel(c.family) + (c.file_name ? " / " + c.file_name : "")));
+    });
+    res.campaigns.forEach(function (g) {
+      rows.push(suggestRow("#/intel/" + encodeURIComponent(g.group.id), "キャンペーン",
+        intelShort(g.group.id), (g.group.member_count || 0) + " ケース"));
+    });
+
+    if (!rows.length) {
+      gBox.innerHTML = '<div class="gsg-empty">一致なし</div>';
+    } else {
+      gBox.innerHTML = rows.slice(0, 12).join("") +
+        '<a class="gsg-all" href="' + buildHash(["search"], { q: raw.trim() }) + '">' +
+        "すべての結果を見る (" + total + " 件) →</a>";
+    }
+    gBox.hidden = false;
+  }
+
+  function suggestRow(href, kind, label, sub) {
+    return '<a class="gsg-row" href="' + esc(href) + '">' +
+      '<span class="gsg-kind">' + esc(kind) + "</span>" +
+      '<span class="gsg-label mono">' + esc(label) + "</span>" +
+      '<span class="gsg-sub">' + esc(sub || "") + "</span></a>";
+  }
+
+  var gTimer = null;
+  gInput.addEventListener("input", function () {
+    clearTimeout(gTimer);
+    var v = gInput.value;
+    gTimer = setTimeout(function () { renderSuggest(v); }, 180);
+  });
+  gInput.addEventListener("focus", function () {
+    if (gInput.value.trim().length >= 2) renderSuggest(gInput.value);
+  });
+  gInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") { hideSuggest(); gInput.blur(); }
+  });
+  document.addEventListener("click", function (ev) {
+    if (gBox && !gBox.contains(ev.target) && ev.target !== gInput) hideSuggest();
+  });
+
   document.getElementById("global-search").addEventListener("submit", function (ev) {
     ev.preventDefault();
-    var v = document.getElementById("global-search-input").value.trim();
+    var v = gInput.value.trim();
+    clearTimeout(gTimer);   // 保留中の候補描画が後から開くのを防ぐ
+    hideSuggest();
+    // SHA-256が完全一致するときだけケースへ直行し、それ以外は統合検索へ送る
     if (/^[0-9a-f]{64}$/i.test(v) && casesBySha[v.toLowerCase()]) {
       location.hash = "#/case/" + v.toLowerCase();
     } else {
-      location.hash = buildHash(["cases"], { q: v });
+      location.hash = buildHash(["search"], { q: v });
     }
   });
 
