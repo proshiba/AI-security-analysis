@@ -153,10 +153,13 @@ def test_new_detectors_and_registry_entries_are_bounded() -> None:
         assert registry[family]["known_sample_sha256"]
 
     formbook = family_module("formbook_loader", "detect.py")
-    synthetic = b"MZ BSJB Rfc2898DeriveBytes Aes AppDomain Load"
+    generic = b"MZ BSJB Rfc2898DeriveBytes Aes AppDomain Load"
+    assert formbook.detect(generic, Path("generic.exe"))["matched"] is False
+    synthetic = generic + b" resources/bartia.m4a"
     result = formbook.detect(synthetic, Path("synthetic.exe"))
     assert result["matched"] is True
     assert result["observations"]["reviewed_hash"] is False
+    assert result["observations"]["dotnet_markers"]["reviewed_resource"] is True
 
 
 def test_batch10_yara_rules_compile() -> None:

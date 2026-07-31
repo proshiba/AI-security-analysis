@@ -68,6 +68,9 @@ MACHO_MAGICS = {
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 MAX_PNG_CHUNKS = 4096
 SCRIPT_SUFFIXES = {
+    ".au3",
+    ".html",
+    ".htm",
     ".js",
     ".nsi",
     ".jse",
@@ -162,14 +165,25 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         return "cab"
     if data.startswith((b"Rar!\x1a\x07\x00", b"Rar!\x1a\x07\x01\x00")):
         return "rar"
-    if suffix == ".a3x" or "autoit-a3x" in name.lower():
+    lineage_tail = name.lower().rsplit("::", 1)[-1]
+    if suffix == ".a3x" or lineage_tail.endswith("autoit-a3x"):
         return "autoit-a3x"
     if zipfile.is_zipfile(io.BytesIO(data)):
         return "zip"
     if data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
         return "ole"
     if suffix in SCRIPT_SUFFIXES or data[:256].lstrip().lower().startswith(
-        (b"function ", b"var ", b"$", b"on error", b"tell application", b"#!/bin/")
+        (
+            b"<!doctype html",
+            b"<html",
+            b"<script",
+            b"function ",
+            b"var ",
+            b"$",
+            b"on error",
+            b"tell application",
+            b"#!/bin/",
+        )
     ):
         return "script"
     if data.startswith((b"\xff\xfe", b"\xfe\xff")) or data[:512].count(b"\x00") >= 64:
@@ -1216,7 +1230,7 @@ def recover_autoit_script(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "payloads": payloads,
             "sample_executed": False,
         },
-        [("autoit-decompiled-script", script), *recovered],
+        [("autoit-decompiled-script.au3", script), *recovered],
     )
 
 
@@ -1452,7 +1466,12 @@ def sevenzip_extract(
         return {**listing, "status": "declared_size_blocked"}, []
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp)
-        suffix = Path(name).suffix or ".bin"
+        candidate_suffix = Path(name).suffix
+        suffix = (
+            candidate_suffix
+            if re.fullmatch(r"\.[A-Za-z0-9]{1,16}", candidate_suffix)
+            else ".bin"
+        )
         source, output = root / f"input{suffix}", root / "out"
         source.write_bytes(data)
         command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
@@ -1697,18 +1716,31 @@ def unpack_bytes(
         artifacts.extend(recovered)
     elif kind == "script":
         artifacts.extend(recover_encoded_blobs(data))
-        report["javascript_dropper"], recovered = recover_javascript_dropper(data)
-        artifacts.extend(recovered)
-        report["javascript_string_array"], transformed = deobfuscate_string_array(data)
-        if transformed:
-            artifacts.append(("javascript-string-array-deobfuscated", transformed))
-        report["javascript_plain_string_array"], transformed = (
-            deobfuscate_plain_string_array(data)
-        )
-        if transformed:
-            artifacts.append(
-                ("javascript-plain-string-array-deobfuscated", transformed)
+        if Path(name).suffix.lower() == ".au3":
+            for field in (
+                "javascript_dropper",
+                "javascript_string_array",
+                "javascript_plain_string_array",
+            ):
+                report[field] = {
+                    "status": "not_applicable_autoit_source",
+                    "executed": False,
+                }
+        else:
+            report["javascript_dropper"], recovered = recover_javascript_dropper(data)
+            artifacts.extend(recovered)
+            report["javascript_string_array"], transformed = deobfuscate_string_array(
+                data
             )
+            if transformed:
+                artifacts.append(("javascript-string-array-deobfuscated", transformed))
+            report["javascript_plain_string_array"], transformed = (
+                deobfuscate_plain_string_array(data)
+            )
+            if transformed:
+                artifacts.append(
+                    ("javascript-plain-string-array-deobfuscated", transformed)
+                )
     elif kind == "data":
         report["profiled_transforms"], recovered = recover_profiled_transforms(
             static_data,

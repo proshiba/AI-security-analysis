@@ -1,0 +1,35 @@
+{
+  "analysis_complete": true,
+  "analysis_contract_sha256": "31349432206df24668de9c1f9f9de5ff07be00e8df462553415beb92f2c00424",
+  "cases": [
+    {
+      "attribution_basis": "one_shot_static_detector",
+      "case_path": "analysis-results/malware/owareaper/versions/unknown/cases/6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4",
+      "confirmed_static_c2_observations": 2,
+      "family": "owareaper",
+      "file_type": "html",
+      "first_seen": "2026-07-29 10:09:38",
+      "handler_failures": 0,
+      "handler_successes": 1,
+      "publication_stage": "complete",
+      "reported_signature": "OWAReaper",
+      "sha256": "6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4",
+      "static_config_recovered": true,
+      "static_logic_status": "automated_script_structure"
+    }
+  ],
+  "confirmed_static_c2_observations": 2,
+  "counts": {
+    "owareaper": 1
+  },
+  "handler_failures": 0,
+  "handler_successes": 1,
+  "network_contacted": false,
+  "publication_stage": "complete",
+  "samples_executed": false,
+  "schema_version": 1,
+  "static_config_recovered": 1,
+  "static_logic_status": {
+    "automated_script_structure": 1
+  }
+}

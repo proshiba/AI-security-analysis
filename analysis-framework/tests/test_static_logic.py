@@ -117,6 +117,28 @@ def test_script_logic_is_recorded_without_raw_literals() -> None:
     assert "静的ロジック解析" in render_static_logic_markdown(report)
 
 
+def test_html_embedded_javascript_is_recorded_as_script_logic() -> None:
+    """HTML拡張子と埋め込みJavaScriptを実行せずに処理単位として記録する。"""
+
+    html = b"""<!doctype html><html><script>
+    function collectMailbox() {
+      const payload = atob("Y29tbWFuZA==");
+      return fetch("/owa/service.svc", {method: "POST", body: payload});
+    }
+    </script></html>"""
+    report = build_static_logic_report(
+        sha256=SHA_A,
+        family="owareaper",
+        source_name="mailbox.html",
+        data=html,
+    )
+
+    assert report["status"] == "automated_script_structure"
+    assert report["coverage"]["function_count"] == 1
+    assert report["functions"][0]["name"] == "collectMailbox"
+    assert report["functions"][0]["raw_pseudocode_exported"] is False
+
+
 def test_reviewed_call_graph_resolves_names_and_callers() -> None:
     report = build_static_logic_report(
         sha256="c" * 64,

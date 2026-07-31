@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """認証済みMalwareBazaar検体を再帰的かつ安全に静的トリアージする。"""
+
 from __future__ import annotations
 
 import argparse
@@ -44,6 +45,20 @@ GENERIC_MAX_MEMBERS = 256
 GENERIC_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 GENERIC_MAX_COMPRESSION_RATIO = 100.0
 MAX_BASE64_ENCODED_LENGTH = 1024 * 1024
+DEFAULT_STRING_SCAN_LIMIT = 500_000
+MAX_BASE64_CANDIDATES = 10_000
+STATIC_LAYER_DELEGATED_FORMATS = {
+    "7z",
+    "apple-disk-image",
+    "asar",
+    "autoit-a3x",
+    "cab",
+    "java-class",
+    "macho",
+    "png",
+    "rar",
+    "xz",
+}
 
 
 def entropy(data: bytes) -> float:
@@ -55,16 +70,14 @@ def entropy(data: bytes) -> float:
     return round(-sum((n / len(data)) * math.log2(n / len(data)) for n in counts if n), 4)
 
 
-def extract_strings_with_coverage(data: bytes, limit: int = 20_000) -> tuple[list[dict], dict]:
+def extract_strings_with_coverage(data: bytes, limit: int = DEFAULT_STRING_SCAN_LIMIT) -> tuple[list[dict], dict]:
     """文字列を上限付きで抽出し、打切り有無を返す。"""
 
     if limit <= 0:
         raise ValueError("文字列抽出上限は正数で指定してください")
     ascii_values = []
     for match in PRINTABLE.finditer(data):
-        ascii_values.append(
-            {"offset": match.start(), "encoding": "ascii", "value": match.group().decode("ascii")}
-        )
+        ascii_values.append({"offset": match.start(), "encoding": "ascii", "value": match.group().decode("ascii")})
         if len(ascii_values) > limit:
             break
     wide_values = []
@@ -140,6 +153,7 @@ def script_info(
     output_dir: Path,
     *,
     persist_normalized_text: bool = True,
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
 ) -> dict:
     """スクリプトを実行せず解析し、必要な場合だけ正規化本文を保存する。"""
 
@@ -173,27 +187,27 @@ def script_info(
         except (ValueError, binascii.Error):
             continue
         if len(blob) >= 32:
-            base64_hits.append({
-                "offset": match.start(),
-                "encoded_length": encoded_length,
-                "decoded_size": len(blob),
-                "decoded_sha256": sha256_bytes(blob),
-                "magic": blob[:16].hex(),
-            })
-            if len(base64_hits) > 100:
+            base64_hits.append(
+                {
+                    "offset": match.start(),
+                    "encoded_length": encoded_length,
+                    "decoded_size": len(blob),
+                    "decoded_sha256": sha256_bytes(blob),
+                    "magic": blob[:16].hex(),
+                }
+            )
+            if len(base64_hits) > MAX_BASE64_CANDIDATES:
                 break
     filename = safe_output_name(name)
     normalized_text = None
     if persist_normalized_text:
         output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / f"{filename}.normalized.txt").write_text(
-            text, encoding="utf-8", errors="replace"
-        )
+        (output_dir / f"{filename}.normalized.txt").write_text(text, encoding="utf-8", errors="replace")
         normalized_text = f"scripts/{filename}.normalized.txt"
     strings = []
     string_scan_truncated = False
     for match in re.finditer(r"[\x20-\x7e]{4,}", text):
-        if len(strings) >= 20_000:
+        if len(strings) >= string_scan_limit:
             string_scan_truncated = True
             break
         strings.append({"offset": match.start(), "encoding": "text", "value": match.group()})
@@ -201,16 +215,16 @@ def script_info(
         "encoding": encoding,
         "line_count": text.count("\n") + 1,
         "indicators": indicators,
-        "base64_candidates": base64_hits[:100],
+        "base64_candidates": base64_hits[:MAX_BASE64_CANDIDATES],
         "base64_scan": {
-            "candidate_limit": 100,
+            "candidate_limit": MAX_BASE64_CANDIDATES,
             "encoded_length_limit": MAX_BASE64_ENCODED_LENGTH,
             "oversized_candidates": oversized_base64,
-            "truncated": len(base64_hits) > 100 or oversized_base64 > 0,
+            "truncated": len(base64_hits) > MAX_BASE64_CANDIDATES or oversized_base64 > 0,
         },
         "iocs": extract_iocs(strings),
         "string_scan": {
-            "limit": 20_000,
+            "limit": string_scan_limit,
             "returned": len(strings),
             "truncated": string_scan_truncated,
         },
@@ -218,16 +232,15 @@ def script_info(
     }
 
 
-def pe_info(data: bytes) -> dict:
+def pe_info(data: bytes, *, string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT) -> dict:
     pe = pefile.PE(data=data, fast_load=False)
     imports = {
         entry.dll.decode(errors="replace"): [
-            item.name.decode(errors="replace") if item.name else f"ordinal:{item.ordinal}"
-            for item in entry.imports
+            item.name.decode(errors="replace") if item.name else f"ordinal:{item.ordinal}" for item in entry.imports
         ]
         for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])
     }
-    strings, string_scan = extract_strings_with_coverage(data)
+    strings, string_scan = extract_strings_with_coverage(data, string_scan_limit)
     com = pe.OPTIONAL_HEADER.DATA_DIRECTORY[14]
     return {
         "machine": hex(pe.FILE_HEADER.Machine),
@@ -247,12 +260,16 @@ def pe_info(data: bytes) -> dict:
         ],
         "string_scan": string_scan,
         "iocs": extract_iocs(strings),
-        "behavior_strings": sorted({
-            item["value"] for item in strings if re.search(
-                r"(?i)(smtp|ftp|telegram|discord|password|credential|keylog|wallet|outlook|firefox|chrome|mutex|remcos|agent.?tesla|registry|schtasks|powershell)",
-                item["value"],
-            )
-        })[:1000],
+        "behavior_strings": sorted(
+            {
+                item["value"]
+                for item in strings
+                if re.search(
+                    r"(?i)(smtp|ftp|telegram|discord|password|credential|keylog|wallet|outlook|firefox|chrome|mutex|remcos|agent.?tesla|registry|schtasks|powershell)",
+                    item["value"],
+                )
+            }
+        )[:1000],
     }
 
 
@@ -289,6 +306,7 @@ def analyze(
     persist_normalized_text: bool = True,
     recurse_archives: bool = True,
     _archive_budget: dict[str, int] | None = None,
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
 ) -> dict:
     """1つのバイト列を上限付きで汎用静的トリアージする。"""
 
@@ -306,7 +324,7 @@ def analyze(
         result["type"] = "elf"
         try:
             layout = parse_elf_layout(data)
-            strings, string_scan = extract_strings_with_coverage(data)
+            strings, string_scan = extract_strings_with_coverage(data, string_scan_limit)
             result["elf"] = {
                 "bits": layout.bits,
                 "byte_order": layout.byte_order,
@@ -314,8 +332,10 @@ def analyze(
                 "entry_point": hex(layout.entry_point),
                 "load_segments": [
                     {
-                        "offset": segment.offset, "virtual_address": hex(segment.virtual_address),
-                        "file_size": segment.file_size, "memory_size": segment.memory_size,
+                        "offset": segment.offset,
+                        "virtual_address": hex(segment.virtual_address),
+                        "file_size": segment.file_size,
+                        "memory_size": segment.memory_size,
                     }
                     for segment in layout.segments
                 ],
@@ -327,9 +347,14 @@ def analyze(
     elif detected_format == "pe":
         result["type"] = "pe"
         try:
-            result["pe"] = pe_info(data)
+            result["pe"] = pe_info(data, string_scan_limit=string_scan_limit)
         except Exception as exc:
             result["pe_error"] = f"{type(exc).__name__}: {exc}"
+    elif detected_format in STATIC_LAYER_DELEGATED_FORMATS and not recurse_archives:
+        result.update(
+            type=detected_format,
+            format_specific_analysis="delegated_to_static_layer_pipeline",
+        )
     elif detected_format == "zip":
         result["type"] = "zip"
         if not recurse_archives:
@@ -358,6 +383,7 @@ def analyze(
                         depth + 1,
                         persist_normalized_text=persist_normalized_text,
                         recurse_archives=recurse_archives,
+                        string_scan_limit=string_scan_limit,
                         _archive_budget=_archive_budget,
                     )
                     for member in members
@@ -374,10 +400,11 @@ def analyze(
                 data,
                 output_dir,
                 persist_normalized_text=persist_normalized_text,
+                string_scan_limit=string_scan_limit,
             ),
         )
     elif detected_format != "data":
-        strings, string_scan = extract_strings_with_coverage(data)
+        strings, string_scan = extract_strings_with_coverage(data, string_scan_limit)
         result.update(
             type=detected_format,
             string_scan=string_scan,
@@ -385,7 +412,7 @@ def analyze(
             format_specific_analysis="not_implemented",
         )
     else:
-        strings, string_scan = extract_strings_with_coverage(data)
+        strings, string_scan = extract_strings_with_coverage(data, string_scan_limit)
         result.update(type="data", string_scan=string_scan, iocs=extract_iocs(strings))
     issues = _coverage_issues(result)
     if result.get("type") == "rar":
@@ -400,18 +427,10 @@ def analyze(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="認証済みMalwareBazaar ZIPを実行せず安全に静的トリアージします。"
-    )
-    parser.add_argument(
-        "--outer-zip", required=True, type=Path, help="解析する外装ZIPのpath"
-    )
-    parser.add_argument(
-        "--output-dir", required=True, type=Path, help="解析結果を保存するdirectory"
-    )
-    parser.add_argument(
-        "--password", default="infected", help="外装ZIPのpassword（既定: infected）"
-    )
+    parser = argparse.ArgumentParser(description="認証済みMalwareBazaar ZIPを実行せず安全に静的トリアージします。")
+    parser.add_argument("--outer-zip", required=True, type=Path, help="解析する外装ZIPのpath")
+    parser.add_argument("--output-dir", required=True, type=Path, help="解析結果を保存するdirectory")
+    parser.add_argument("--password", default="infected", help="外装ZIPのpassword（既定: infected）")
     args = parser.parse_args()
     members = read_aes_zip_members(args.outer_zip, password=args.password)
     analyzed = [analyze(member.name, member.data, args.output_dir / "scripts") for member in members]

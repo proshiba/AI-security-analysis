@@ -1,0 +1,1513 @@
+{
+  "schema_version": 1,
+  "collection_id": "clickfix-daily-20260731",
+  "analysis_date": "2026-07-31",
+  "generated_at_utc": "2026-07-30T23:09:17.782578+00:00",
+  "selection": {
+    "limit": 50,
+    "maximum": 50,
+    "policy": "明示指定tbhadvisors.com、本日ThreatFox clickfix/clearfake、clickfix.pro最新行の順でdomain重複を除外"
+  },
+  "source_counts": {
+    "ClickFix Hunter": 1,
+    "ClickFix Campaign Monitor": 49
+  },
+  "case_count": 50,
+  "cases": [
+    {
+      "case_id": "20260731-clickfix-hunter-efdbd9a6673f",
+      "domain": "tbhadvisors.com",
+      "observed_at": "2026-07-27T22:22:02.212Z",
+      "source": "ClickFix Hunter",
+      "source_id": "efdbd9a6673f",
+      "relative_path": "tbhadvisors.com/cases/20260731-clickfix-hunter-efdbd9a6673f",
+      "command_pattern": "telegram_dead_drop_powershell",
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 2,
+        "http_statuses": [
+          200
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "149.154.167.99",
+          "162.159.135.42"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 2
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "captcha"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "reachable_but_tokens_absent",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-081e64cf6799",
+      "domain": "project-jetbrk03429.pages.dev",
+      "observed_at": "2026-07-30T22:02:08.927Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "081e64cf6799",
+      "relative_path": "project-jetbrk03429.pages.dev/cases/20260731-clickfix-pro-081e64cf6799",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          200
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "172.66.44.83",
+          "172.66.47.173"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-4ef402106c9a",
+      "domain": "vn3oxoji.readthisintro.xyz",
+      "observed_at": "2026-07-30T05:20:57.157Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "4ef402106c9a",
+      "relative_path": "vn3oxoji.readthisintro.xyz/cases/20260731-clickfix-pro-4ef402106c9a",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.6.120",
+          "172.67.134.212"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-b22c16f20a2e",
+      "domain": "it-irrigation-control-network.garden",
+      "observed_at": "2026-07-29T13:59:28.295Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b22c16f20a2e",
+      "relative_path": "it-irrigation-control-network.garden/cases/20260731-clickfix-pro-b22c16f20a2e",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.53.94",
+          "172.67.211.151"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-4dc947af600f",
+      "domain": "pr7b8geo.simply-bpo.me",
+      "observed_at": "2026-07-28T22:22:50.996Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "4dc947af600f",
+      "relative_path": "pr7b8geo.simply-bpo.me/cases/20260731-clickfix-pro-4dc947af600f",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-d0d2355fb525",
+      "domain": "spamgym.asia",
+      "observed_at": "2026-07-28T15:33:25.002Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "d0d2355fb525",
+      "relative_path": "spamgym.asia/cases/20260731-clickfix-pro-d0d2355fb525",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.52.93",
+          "172.67.197.145"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-34c1f7ed77a4",
+      "domain": "hl8gdae9.kkslot777.asia",
+      "observed_at": "2026-07-28T00:09:33.484Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "34c1f7ed77a4",
+      "relative_path": "hl8gdae9.kkslot777.asia/cases/20260731-clickfix-pro-34c1f7ed77a4",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-b9ae066b2849",
+      "domain": "rct52dop.shop-lipogummy.com",
+      "observed_at": "2026-07-27T10:21:36.670Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b9ae066b2849",
+      "relative_path": "rct52dop.shop-lipogummy.com/cases/20260731-clickfix-pro-b9ae066b2849",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-1c03f398bbcf",
+      "domain": "509ukk9c.enf90.vip",
+      "observed_at": "2026-07-27T01:14:13.124Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "1c03f398bbcf",
+      "relative_path": "509ukk9c.enf90.vip/cases/20260731-clickfix-pro-1c03f398bbcf",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.27.120",
+          "172.67.169.69"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-e3121f903611",
+      "domain": "8yajh9kt.en-us--tupitea.com",
+      "observed_at": "2026-07-26T20:12:14.111Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "e3121f903611",
+      "relative_path": "8yajh9kt.en-us--tupitea.com/cases/20260731-clickfix-pro-e3121f903611",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-f65a07daf9af",
+      "domain": "0mx8cbge.fa1xbet.vip",
+      "observed_at": "2026-07-25T20:00:16.749Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "f65a07daf9af",
+      "relative_path": "0mx8cbge.fa1xbet.vip/cases/20260731-clickfix-pro-f65a07daf9af",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          206
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "72.251.7.22",
+          "72.251.7.23"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-63b7177f03cd",
+      "domain": "i0wrocb4.bet90forward.win",
+      "observed_at": "2026-07-25T19:41:30.613Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "63b7177f03cd",
+      "relative_path": "i0wrocb4.bet90forward.win/cases/20260731-clickfix-pro-63b7177f03cd",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.95.112",
+          "172.67.144.166"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-9496a20d4111",
+      "domain": "sh6ze53a.bet90forward.win",
+      "observed_at": "2026-07-25T10:30:47.764Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "9496a20d4111",
+      "relative_path": "sh6ze53a.bet90forward.win/cases/20260731-clickfix-pro-9496a20d4111",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.95.112",
+          "172.67.144.166"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-1eb782d9e612",
+      "domain": "olptz5o4.jadoou.beauty",
+      "observed_at": "2026-07-25T06:52:25.047Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "1eb782d9e612",
+      "relative_path": "olptz5o4.jadoou.beauty/cases/20260731-clickfix-pro-1eb782d9e612",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          403
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.66.137",
+          "172.67.160.103"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-4b352c2a4ded",
+      "domain": "b7tibc5u.luxerabet1000.com",
+      "observed_at": "2026-07-23T17:16:30.984Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "4b352c2a4ded",
+      "relative_path": "b7tibc5u.luxerabet1000.com/cases/20260731-clickfix-pro-4b352c2a4ded",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.42.49",
+          "172.67.200.193"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-58c442057afc",
+      "domain": "iiamtrbo.liketudong.biz",
+      "observed_at": "2026-07-23T14:43:46.145Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "58c442057afc",
+      "relative_path": "iiamtrbo.liketudong.biz/cases/20260731-clickfix-pro-58c442057afc",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.44.218",
+          "172.67.203.240"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-87cc85a6e820",
+      "domain": "4dfx0u7r.stgsolar.hu",
+      "observed_at": "2026-07-23T14:37:30.945Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "87cc85a6e820",
+      "relative_path": "4dfx0u7r.stgsolar.hu/cases/20260731-clickfix-pro-87cc85a6e820",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.78.216",
+          "172.67.137.163"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-edead9fa1e9a",
+      "domain": "rwxe9b0g.riherino.com",
+      "observed_at": "2026-07-23T13:50:53.604Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "edead9fa1e9a",
+      "relative_path": "rwxe9b0g.riherino.com/cases/20260731-clickfix-pro-edead9fa1e9a",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          200
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.25.159",
+          "172.67.134.93"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-3051662a57fa",
+      "domain": "5ufm19dl.pdfbama.com",
+      "observed_at": "2026-07-23T13:25:44.099Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3051662a57fa",
+      "relative_path": "5ufm19dl.pdfbama.com/cases/20260731-clickfix-pro-3051662a57fa",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-7bfc176c9c0f",
+      "domain": "gac8up0t.thetokestudio.com",
+      "observed_at": "2026-07-23T11:25:53.166Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "7bfc176c9c0f",
+      "relative_path": "gac8up0t.thetokestudio.com/cases/20260731-clickfix-pro-7bfc176c9c0f",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-fb008c99a0ad",
+      "domain": "xt19c0ua.casinomhub.bet",
+      "observed_at": "2026-07-23T11:07:00.103Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "fb008c99a0ad",
+      "relative_path": "xt19c0ua.casinomhub.bet/cases/20260731-clickfix-pro-fb008c99a0ad",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.19.71",
+          "172.67.185.156"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-ef77ae9762d8",
+      "domain": "bjf54ffm.behtarin-site-shartbandi.com",
+      "observed_at": "2026-07-23T10:18:15.336Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "ef77ae9762d8",
+      "relative_path": "bjf54ffm.behtarin-site-shartbandi.com/cases/20260731-clickfix-pro-ef77ae9762d8",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-3eddd67a8d9d",
+      "domain": "qhy0wolx.casinomhub.bet",
+      "observed_at": "2026-07-23T08:33:22.089Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3eddd67a8d9d",
+      "relative_path": "qhy0wolx.casinomhub.bet/cases/20260731-clickfix-pro-3eddd67a8d9d",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.19.71",
+          "172.67.185.156"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-547a6a1d2f21",
+      "domain": "7g5swyfn.bazipoop.com",
+      "observed_at": "2026-07-23T06:13:23.764Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "547a6a1d2f21",
+      "relative_path": "7g5swyfn.bazipoop.com/cases/20260731-clickfix-pro-547a6a1d2f21",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.26.116",
+          "172.67.168.67"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-288e9d499336",
+      "domain": "b53jdkck.photoshopvn.net",
+      "observed_at": "2026-07-23T06:12:27.401Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "288e9d499336",
+      "relative_path": "b53jdkck.photoshopvn.net/cases/20260731-clickfix-pro-288e9d499336",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.69.195",
+          "172.67.212.201"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-d849de1bf3dd",
+      "domain": "sax166rh.funkboi.com",
+      "observed_at": "2026-07-23T05:21:21.744Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "d849de1bf3dd",
+      "relative_path": "sax166rh.funkboi.com/cases/20260731-clickfix-pro-d849de1bf3dd",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.84.82",
+          "172.67.190.75"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-ab4b3587dd98",
+      "domain": "tafhu17n.nextbahis.blog",
+      "observed_at": "2026-07-22T22:03:54.104Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "ab4b3587dd98",
+      "relative_path": "tafhu17n.nextbahis.blog/cases/20260731-clickfix-pro-ab4b3587dd98",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-286a3a305f2f",
+      "domain": "fvidq4p8.kaltourusa.com",
+      "observed_at": "2026-07-22T20:52:31.019Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "286a3a305f2f",
+      "relative_path": "fvidq4p8.kaltourusa.com/cases/20260731-clickfix-pro-286a3a305f2f",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-0f75e42b02a6",
+      "domain": "3cqx4k4v.kaltourusa.com",
+      "observed_at": "2026-07-22T20:39:03.657Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "0f75e42b02a6",
+      "relative_path": "3cqx4k4v.kaltourusa.com/cases/20260731-clickfix-pro-0f75e42b02a6",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-f3634936efe2",
+      "domain": "q486u4hr.kaltourusa.com",
+      "observed_at": "2026-07-22T20:15:52.976Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "f3634936efe2",
+      "relative_path": "q486u4hr.kaltourusa.com/cases/20260731-clickfix-pro-f3634936efe2",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-3e4ef13e2a6c",
+      "domain": "tld44yiu.jennyrussianbluepalace.com",
+      "observed_at": "2026-07-22T18:08:54.039Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3e4ef13e2a6c",
+      "relative_path": "tld44yiu.jennyrussianbluepalace.com/cases/20260731-clickfix-pro-3e4ef13e2a6c",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-642bc43f84b0",
+      "domain": "mlmaatvd.behtarin-site-shartbandi.com",
+      "observed_at": "2026-07-22T14:50:31.753Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "642bc43f84b0",
+      "relative_path": "mlmaatvd.behtarin-site-shartbandi.com/cases/20260731-clickfix-pro-642bc43f84b0",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-df378c3ffc03",
+      "domain": "hdz7omr1.nextbahis.blog",
+      "observed_at": "2026-07-22T11:53:07.658Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "df378c3ffc03",
+      "relative_path": "hdz7omr1.nextbahis.blog/cases/20260731-clickfix-pro-df378c3ffc03",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-f0025103e835",
+      "domain": "p43qsij4.nextbahis.one",
+      "observed_at": "2026-07-22T11:11:59.985Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "f0025103e835",
+      "relative_path": "p43qsij4.nextbahis.one/cases/20260731-clickfix-pro-f0025103e835",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-3e0864c324be",
+      "domain": "impur-treacheryperepelitsa.wiki",
+      "observed_at": "2026-07-22T11:03:00.560Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3e0864c324be",
+      "relative_path": "impur-treacheryperepelitsa.wiki/cases/20260731-clickfix-pro-3e0864c324be",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.62.168",
+          "172.67.137.140"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-7d2b6e8733e2",
+      "domain": "gardenworkflowhub.garden",
+      "observed_at": "2026-07-22T11:01:11.784Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "7d2b6e8733e2",
+      "relative_path": "gardenworkflowhub.garden/cases/20260731-clickfix-pro-7d2b6e8733e2",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.95.155",
+          "172.67.145.151"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-3f053cebc8da",
+      "domain": "subterranean-mineral-map.garden",
+      "observed_at": "2026-07-22T10:57:03.485Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3f053cebc8da",
+      "relative_path": "subterranean-mineral-map.garden/cases/20260731-clickfix-pro-3f053cebc8da",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          207
+        ],
+        "webdav_multistatus_observed": true,
+        "public_addresses": [
+          "104.21.22.195",
+          "172.67.206.225"
+        ],
+        "redirects": [],
+        "body_types": {
+          "other": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-02d19a627bf0",
+      "domain": "g1wgxqj5.nextbahis.one",
+      "observed_at": "2026-07-22T04:24:27.023Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "02d19a627bf0",
+      "relative_path": "g1wgxqj5.nextbahis.one/cases/20260731-clickfix-pro-02d19a627bf0",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-5785efaf31a2",
+      "domain": "cr9i8up3.stgsolar.hu",
+      "observed_at": "2026-07-21T14:22:46.119Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "5785efaf31a2",
+      "relative_path": "cr9i8up3.stgsolar.hu/cases/20260731-clickfix-pro-5785efaf31a2",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.78.216",
+          "172.67.137.163"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-0ca12f966de0",
+      "domain": "g9epkl53.site-asli-bedon-filter-1xbet.com",
+      "observed_at": "2026-07-21T12:12:41.297Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "0ca12f966de0",
+      "relative_path": "g9epkl53.site-asli-bedon-filter-1xbet.com/cases/20260731-clickfix-pro-0ca12f966de0",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-5835741a4e40",
+      "domain": "2718gc20.seresniki.com",
+      "observed_at": "2026-07-21T12:07:12.120Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "5835741a4e40",
+      "relative_path": "2718gc20.seresniki.com/cases/20260731-clickfix-pro-5835741a4e40",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          521
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "104.21.85.141",
+          "172.67.206.113"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [
+          "cloudflare"
+        ],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-ee314747e780",
+      "domain": "7apd7ite.everestpointnorthglenn.org",
+      "observed_at": "2026-07-21T11:22:29.076Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "ee314747e780",
+      "relative_path": "7apd7ite.everestpointnorthglenn.org/cases/20260731-clickfix-pro-ee314747e780",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-150f862d69d0",
+      "domain": "7wzfqmf9.behtarin-site-shartbandi.com",
+      "observed_at": "2026-07-21T08:28:14.391Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "150f862d69d0",
+      "relative_path": "7wzfqmf9.behtarin-site-shartbandi.com/cases/20260731-clickfix-pro-150f862d69d0",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-956d72226d0d",
+      "domain": "r2qz0qa2.poker-online.bet",
+      "observed_at": "2026-07-21T07:02:50.328Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "956d72226d0d",
+      "relative_path": "r2qz0qa2.poker-online.bet/cases/20260731-clickfix-pro-956d72226d0d",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": true,
+        "successful_http_hops": 1,
+        "http_statuses": [
+          206
+        ],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [
+          "72.251.7.22",
+          "72.251.7.23"
+        ],
+        "redirects": [],
+        "body_types": {
+          "html": 1
+        },
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-e74bc41ef0ed",
+      "domain": "1s3hqwvr.varzeshlife.ir",
+      "observed_at": "2026-07-21T06:06:20.562Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "e74bc41ef0ed",
+      "relative_path": "1s3hqwvr.varzeshlife.ir/cases/20260731-clickfix-pro-e74bc41ef0ed",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-b74e8249a675",
+      "domain": "iahg2idr.evansunitedspringcarnivalsherman.com",
+      "observed_at": "2026-07-21T05:33:18.284Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b74e8249a675",
+      "relative_path": "iahg2idr.evansunitedspringcarnivalsherman.com/cases/20260731-clickfix-pro-b74e8249a675",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-7defb31c9621",
+      "domain": "ewyjl357.flashhomebuyerskc.com",
+      "observed_at": "2026-07-21T05:32:55.663Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "7defb31c9621",
+      "relative_path": "ewyjl357.flashhomebuyerskc.com/cases/20260731-clickfix-pro-7defb31c9621",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-b365f7c49319",
+      "domain": "w8sxay63.varzeshlife.ir",
+      "observed_at": "2026-07-21T04:53:01.576Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b365f7c49319",
+      "relative_path": "w8sxay63.varzeshlife.ir/cases/20260731-clickfix-pro-b365f7c49319",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-7d33546b2901",
+      "domain": "luy6lvmh.site-takhtenard-sharti-betland.com",
+      "observed_at": "2026-07-21T04:02:40.716Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "7d33546b2901",
+      "relative_path": "luy6lvmh.site-takhtenard-sharti-betland.com/cases/20260731-clickfix-pro-7d33546b2901",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    },
+    {
+      "case_id": "20260731-clickfix-pro-f14190fcb603",
+      "domain": "yeo0jmkq.kimsnailsalonmadison.com",
+      "observed_at": "2026-07-21T02:02:09.741Z",
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "f14190fcb603",
+      "relative_path": "yeo0jmkq.kimsnailsalonmadison.com/cases/20260731-clickfix-pro-f14190fcb603",
+      "command_pattern": null,
+      "candidate_urls": [],
+      "sha256_candidates": [],
+      "live": {
+        "reachable": false,
+        "successful_http_hops": 0,
+        "http_statuses": [],
+        "webdav_multistatus_observed": false,
+        "public_addresses": [],
+        "redirects": [],
+        "body_types": {},
+        "clipboard_api_observed_live": false,
+        "lure_markers_live": [],
+        "candidate_commands_live": [],
+        "telegram_resolver_state": "not_applicable",
+        "binary_payloads_observed": [],
+        "tls_certificates": []
+      }
+    }
+  ]
+}

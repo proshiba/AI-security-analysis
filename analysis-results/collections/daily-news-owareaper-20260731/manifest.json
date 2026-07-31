@@ -1,0 +1,62 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": "HTML",
+        "file_name": "ta488.html",
+        "file_size": 68829,
+        "file_type": "html",
+        "first_seen": "2026-07-29 10:09:38",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4",
+        "signature": "OWAReaper",
+        "ssdeep": null,
+        "tags": [
+          "html",
+          "TA488"
+        ],
+        "tlsh": null
+      },
+      "sha256": "6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4",
+      "zip_sha256": "cbb4c97cb9d6b5d237469601a0860d2db765a51feef17ab78b1867bd3bc506b0",
+      "zip_size": 24277
+    }
+  ],
+  "analysis_complete": true,
+  "analysis_contract_sha256": "31349432206df24668de9c1f9f9de5ff07be00e8df462553415beb92f2c00424",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4"
+    }
+  ],
+  "collection_id": "daily-news-owareaper-20260731",
+  "complete": true,
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "owareaper",
+      "path": "sources/owareaper"
+    }
+  ],
+  "file_types": [
+    "html"
+  ],
+  "first_seen_newest": "2026-07-29 10:09:38",
+  "first_seen_oldest": "2026-07-29 10:09:38",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "complete",
+  "query_limit": 1,
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": "2026-07-31T00:00:00+09:00",
+  "selection_mode": "daily_news_ioc",
+  "source": "MalwareBazaar Community API"
+}

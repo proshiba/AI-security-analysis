@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260731-clickfix-pro-f14190fcb603",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-07-21T02:02:09.741Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "yeo0jmkq.kimsnailsalonmadison.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    }
+  ]
+}

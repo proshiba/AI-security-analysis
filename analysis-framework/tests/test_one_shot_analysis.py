@@ -698,7 +698,11 @@ def test_generic_string_limit_is_reported_as_partial(tmp_path: Path) -> None:
 
     data = b"\0".join([b"ABCD"] * 20_002)
     result = one_shot.analyze_family_sample.analyze(
-        "many.bin", data, tmp_path, persist_normalized_text=False
+        "many.bin",
+        data,
+        tmp_path,
+        persist_normalized_text=False,
+        string_scan_limit=20_000,
     )
     assert result["string_scan"]["truncated"] is True
     assert result["analysis_coverage"]["status"] == "partial"
