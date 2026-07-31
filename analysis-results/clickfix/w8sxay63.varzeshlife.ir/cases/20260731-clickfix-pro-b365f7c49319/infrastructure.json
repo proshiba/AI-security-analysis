@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "case_id": "20260731-clickfix-pro-b365f7c49319",
+  "domain": "w8sxay63.varzeshlife.ir",
+  "observed_at": "2026-07-21T04:53:01.576Z",
+  "investigated_at_utc": "2026-07-30T23:18:12.290826+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "b365f7c49319"
+    },
+    "active_bounded_get": {
+      "reachable": false,
+      "http_statuses": [],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [],
+      "landing_public_addresses": [],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 3,
+        "records": []
+      },
+      "AAAA": {
+        "status": 3,
+        "records": []
+      },
+      "CNAME": {
+        "status": 3,
+        "records": []
+      },
+      "NS": {
+        "status": 3,
+        "records": []
+      },
+      "MX": {
+        "status": 3,
+        "records": []
+      }
+    },
+    "domain_rdap": null,
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": null,
+      "rdap": null,
+      "asn": null,
+      "shodan_internetdb": null
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "rdap:domain",
+      "error": "HTTPError",
+      "http_status": 404
+    },
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

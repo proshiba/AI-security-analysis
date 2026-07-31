@@ -25,7 +25,18 @@ TOKEN_RE = re.compile(
     r"==|!=|<=|>=|<<|>>|&&|\|\||\^|&|\||\+|-|\*|/|%|=|<|>",
     re.IGNORECASE,
 )
-SCRIPT_EXTENSIONS = {".bat", ".cmd", ".js", ".jse", ".ps1", ".py", ".sh", ".vbs"}
+SCRIPT_EXTENSIONS = {
+    ".bat",
+    ".cmd",
+    ".htm",
+    ".html",
+    ".js",
+    ".jse",
+    ".ps1",
+    ".py",
+    ".sh",
+    ".vbs",
+}
 CONTROL_WORDS = {
     "break",
     "case",
@@ -354,7 +365,8 @@ def _decode_script(data: bytes, source_name: str) -> str | None:
         printable = sum(character.isprintable() or character.isspace() for character in text)
         if text and printable / len(text) >= 0.85:
             if suffix in SCRIPT_EXTENSIONS or re.search(
-                r"(?i)(?:powershell|function\s+|#!/|createobject|wscript|frombase64string)",
+                r"(?i)(?:<!doctype\s+html|<html|<script|powershell|function\s+|#!/|"
+                r"createobject|wscript|frombase64string|eval\s*\(\s*atob)",
                 text,
             ):
                 return text

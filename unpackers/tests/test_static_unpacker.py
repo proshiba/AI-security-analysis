@@ -180,6 +180,7 @@ def test_aes_zip_password_and_member_name_are_propagated() -> None:
     assert report["unpack_status"] == "artifacts_recovered"
     assert artifacts == [("zip-script-stage.ps1", b"Write-Output 'fixture'")]
 
+
 def test_zip_aggregate_and_ratio_quotas_fail_closed() -> None:
     """部分アーティファクトを保持する前にアーカイブ全体を拒否する。"""
     stream = io.BytesIO()
@@ -278,10 +279,35 @@ def test_valid_pe_carving_and_cab_detection(monkeypatch: pytest.MonkeyPatch) -> 
     carved = unpacker.carve_embedded_pes(payload)
     assert len(carved) == 1 and len(carved[0][1]) == 0x400
     assert unpacker.detect_format(b"MSCF" + b"X" * 32, "x") == "cab"
+    assert unpacker.detect_format(b"Func Main()\nEndFunc", "decoded.au3") == "script"
+    assert (
+        unpacker.detect_format(
+            b"Func Main()\nEndFunc",
+            "sample.exe::7z-autoit-a3x::autoit-decompiled-script.au3",
+        )
+        == "script"
+    )
+    assert ".au3" in unpacker.SCRIPT_SUFFIXES
     assert unpacker.detect_format(b"opaque", "payload.a3x") == "autoit-a3x"
     autoit, scripts = unpacker.recover_autoit_script(b"invalid a3x")
     assert autoit["status"] in {"decompile_failed", "invalid_or_oversized_output"}
     assert scripts == []
+
+
+def test_autoit_source_skips_javascript_specific_transforms() -> None:
+    """逆コンパイル済みAutoItにはJavaScript専用変換を適用しない。"""
+
+    report, artifacts = unpacker.unpack_bytes(
+        b"Func Main()\nLocal $value = 1\nEndFunc", "decoded.au3"
+    )
+    assert report["format"] == "script"
+    for field in (
+        "javascript_dropper",
+        "javascript_string_array",
+        "javascript_plain_string_array",
+    ):
+        assert report[field]["status"] == "not_applicable_autoit_source"
+    assert artifacts == []
 
 
 def test_split_reassembly_and_external_extract_preflight(tmp_path: Path) -> None:
@@ -424,12 +450,8 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
             [],
         ),
     )
-    monkeypatch.setattr(
-        unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, [])
-    )
-    monkeypatch.setattr(
-        unpacker, "recover_donut_payloads", lambda _data: ({}, [])
-    )
+    monkeypatch.setattr(unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, []))
+    monkeypatch.setattr(unpacker, "recover_donut_payloads", lambda _data: ({}, []))
     monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _data: [])
     observed: list[tuple[bytes, dict[str, object]]] = []
 
@@ -487,6 +509,40 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
     assert inventory_passwords == [""]
     assert all(not argument.startswith("-p") for argument in commands[0])
     assert report["archive_unlock_attempted"] is False
+    assert report["status"] == "extracted"
+    assert artifacts == []
+
+
+def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """復元layer名のWindows禁則文字を7-Zip一時pathへ持ち込まない。"""
+
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["Cab"],
+            "members": [],
+            "total_members": 0,
+            "declared_total_size": 0,
+            "archive_unlock_attempted": False,
+        }
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"MSCFfixture",
+        tmp_path / "7z.exe",
+        name="sample.exe::pe-resource-cab",
+    )
+    source = Path(commands[0][-1])
+    assert source.name == "input.bin"
     assert report["status"] == "extracted"
     assert artifacts == []
 

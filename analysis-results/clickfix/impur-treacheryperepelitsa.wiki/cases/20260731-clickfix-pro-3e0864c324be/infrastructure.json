@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "case_id": "20260731-clickfix-pro-3e0864c324be",
+  "domain": "impur-treacheryperepelitsa.wiki",
+  "observed_at": "2026-07-22T11:03:00.560Z",
+  "investigated_at_utc": "2026-07-30T23:15:58.709237+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "3e0864c324be"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        207
+      ],
+      "webdav_multistatus_observed": true,
+      "redirects": [],
+      "public_addresses": [
+        "104.21.62.168",
+        "172.67.137.140"
+      ],
+      "landing_public_addresses": [
+        "104.21.62.168",
+        "172.67.137.140"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "impur-treacheryperepelitsa.wiki",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.137.140"
+          },
+          {
+            "name": "impur-treacheryperepelitsa.wiki",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.62.168"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "impur-treacheryperepelitsa.wiki",
+            "type": 2,
+            "ttl": 21600,
+            "data": "kyrie.ns.cloudflare.com"
+          },
+          {
+            "name": "impur-treacheryperepelitsa.wiki",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ada.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "impur-treacheryperepelitsa.wiki",
+      "unicode_name": "impur-treacheryperepelitsa.wiki",
+      "handle": null,
+      "status": [
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2026-05-13T16:58:07Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-05-13T16:58:07Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2026-07-12T16:58:11Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-07-30T23:15:31Z"
+        }
+      ],
+      "nameservers": [
+        "ada.ns.cloudflare.com",
+        "kyrie.ns.cloudflare.com"
+      ],
+      "registrar_handles": [
+        "303"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "104.21.62.168",
+      "rdap": null,
+      "asn": {
+        "ip": "104.21.62.168",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.62.168",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    },
+    {
+      "source": "rdap:ip",
+      "error": "URLError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

@@ -525,6 +525,11 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
             for raw_key, item in value.items():
                 key = str(raw_key).casefold()
                 child = f"{path}.{raw_key}"
+                if (
+                    item == "validation_failed"
+                    and ".profiled_transforms.attempts[" in path
+                ):
+                    continue
                 if key == "unpack_status" and _is_incomplete_static_status(item):
                     issues.append(f"{child}:{item}")
                 elif key == "status" and _is_incomplete_static_status(item):

@@ -279,6 +279,56 @@ def test_static_layer_incompleteness_makes_case_partial(label: str, layer_report
     assert completion["resumable"] is False
 
 
+def test_profile_validation_miss_is_not_a_static_layer_failure() -> None:
+    """profile候補の非該当は復元失敗ではなく、正常なnegative判定として扱う。"""
+
+    layer_report = {
+        "counts": {"limit_events": 0},
+        "steps": [
+            {
+                "status": "succeeded",
+                "report": {
+                    "profiled_transforms": {
+                        "status": "no_profile_recovered_artifact",
+                        "attempts": [{"status": "validation_failed"}],
+                    }
+                },
+            }
+        ],
+        "limit_events": [],
+    }
+    completion = one_shot._completion_state(
+        assessment_only=False,
+        generic_status="complete",
+        layer_report=layer_report,
+        layer_selections=[],
+        selected_families=[],
+        applicability=[],
+        executions=[],
+        logic_report={"status": "complete"},
+    )
+    assert completion["status"] == "triaged_unknown"
+    assert completion["complete"] is True
+
+
+@pytest.mark.parametrize(
+    ("name", "data"),
+    [("stage.cab", b"MSCFfixture"), ("stage.a3x", b"opaque")],
+)
+def test_generic_triage_delegates_recovered_container_layers(name: str, data: bytes, tmp_path: Path) -> None:
+    """復元済みcontainer layerはstatic pipelineへ委譲し、二重の未実装判定を避ける。"""
+
+    result = one_shot.analyze_family_sample.analyze(
+        name,
+        data,
+        tmp_path,
+        persist_normalized_text=False,
+        recurse_archives=False,
+    )
+    assert result["format_specific_analysis"] == "delegated_to_static_layer_pipeline"
+    assert result["analysis_coverage"]["status"] == "complete"
+
+
 def _raw_unit(name: str, data: bytes) -> one_shot.InputUnit:
     digest = hashlib.sha256(data).hexdigest()
     return one_shot.InputUnit(
@@ -464,6 +514,18 @@ def test_bounded_payload_adapter_accepts_apple_disk_image() -> None:
             spec.input_formats,
             actual_format,
         )
+
+
+def test_html_magic_is_detected_as_script_without_suffix() -> None:
+    """HTML本文は拡張子に依存せず静的script解析へ振り分ける。"""
+
+    assert (
+        one_shot.detect_format(
+            b"<!doctype html><html><script>function run(){}</script></html>",
+            "download.bin",
+        )
+        == "script"
+    )
 
 
 def test_profile_string_scan_reserves_capacity_for_utf16() -> None:
@@ -937,6 +999,19 @@ def test_script_base64_candidate_has_encoded_size_limit(tmp_path: Path) -> None:
     assert scan["oversized_candidates"] == 1
     assert scan["truncated"] is True
     assert result["analysis_coverage"]["status"] == "partial"
+
+
+def test_script_base64_scan_keeps_more_than_legacy_hundred_candidates(tmp_path: Path) -> None:
+    """入力上限内のBase64候補を旧100件表示上限で打ち切らない。"""
+
+    payload = (("A" * 80) + "\n") * 101
+    result = one_shot.analyze_family_sample.analyze(
+        "many.js", payload.encode(), tmp_path, persist_normalized_text=False
+    )
+    scan = result["script"]["base64_scan"]
+    assert scan["candidate_limit"] == 10_000
+    assert len(result["script"]["base64_candidates"]) == 101
+    assert scan["truncated"] is False
 
 
 def test_analysis_contract_components_include_shared_dependencies() -> None:

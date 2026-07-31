@@ -25,7 +25,10 @@ def fixture_html() -> bytes:
     encoded = base64.b64encode(payload).decode("ascii")
     midpoint = len(encoded) // 2
     return (
-        "<html><div contenteditable><span class='social-icon'>"
+        "<html><img src='data:image/svg+xml;base64,AAAA#not:base64()'>"
+        "<div contenteditable><span class='social-icon-first'>"
+        "<img src='data:image/svg+xml;base64,AAAA#decoy:not-base64'></span>"
+        "<span class='social-icon'>"
         f"<img src='data:image/png;base64,AA#{encoded[:midpoint]}'>"
         f"<img src='data:image/png;base64,AA#{encoded[midpoint:]}'>"
         "</span></div>ZXZhbChhdG9i</html>"
@@ -41,6 +44,8 @@ def test_structural_detector_and_extractor() -> None:
     assert detection["campaigns"][0]["campaign_type"] == "ta488_owareaper_half_click"
     assert config["static_config_recovered"] is True
     assert {item["host"] for item in config["network_endpoints"]} == {"acocdn.com", "asecdns.com"}
+    assert {item["host"] for item in config["c2"]} == {"acocdn.com", "asecdns.com"}
+    assert all(item["confidence"] == "confirmed_static_configuration" for item in config["c2"])
     assert config["decoded_payload"]["content_exported"] is False
     assert config["safety"]["sample_executed"] is False
 
