@@ -182,6 +182,20 @@ SUMMARY_BY_ROLE = {
 class GhidraMcpError(RuntimeError):
     """Ghidra MCP requestの失敗を表す。"""
 
+def _request_timed_out(error: BaseException) -> bool:
+    """例外連鎖に通信タイムアウトが含まれるかを判定する。"""
+
+    current: BaseException | None = error
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        if isinstance(current, TimeoutError):
+            return True
+        if isinstance(current, URLError) and isinstance(current.reason, TimeoutError):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
 
 def _json_dump(path: Path, value: Any) -> None:
     """JSONを決定的にUTF-8で保存する。"""
@@ -1679,6 +1693,7 @@ def analyze_program(
     project_root: str,
     *,
     analysis_timeout: int,
+    skip_auto_analysis: bool = False,
 ) -> dict[str, Any]:
     """1つのPE layerをGhidra MCPで解析し、private raw成果物を保存する。"""
 
@@ -1718,12 +1733,17 @@ def analyze_program(
             import_body: dict[str, Any] = {
                 "file_path": str(item.input_path.resolve()),
                 "project_folder": folder,
-                "auto_analyze": not managed_cil_primary,
+                "auto_analyze": not managed_cil_primary and not skip_auto_analysis,
             }
             try:
                 imported = client.post("/import_file", import_body)
                 import_mode = "automatic_loader"
             except GhidraMcpError as automatic_error:
+                # import処理は応答タイムアウト後もGhidra側で完了し得る。ここで
+                # raw importへ切り替えると、同じ検体が「.0」付きで重複登録される。
+                # 通信タイムアウトは再実行時の既存program検出に委ねる。
+                if _request_timed_out(automatic_error):
+                    raise
                 raw_parameters = _raw_pe_import_parameters(data)
                 if raw_parameters is None:
                     raise automatic_error
@@ -1775,6 +1795,15 @@ def analyze_program(
         )
         status = dict(raw_status) if isinstance(raw_status, Mapping) else {}
         analysis_mode = "managed_cil_primary_with_ghidra_structure"
+    elif skip_auto_analysis:
+        raw_status = (
+            preopened_status_raw
+            if preopened_status_raw is not None
+            else _program_get("/analysis_status")
+        )
+        status = dict(raw_status) if isinstance(raw_status, Mapping) else {}
+        status["documented_limit"] = "auto_analysis_skipped_after_repeated_timeout"
+        analysis_mode = "native_ghidra_limited_without_auto_analysis"
     else:
         status = _wait_for_analysis(
             client,
@@ -3588,6 +3617,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             private_output,
             args.project_root,
             analysis_timeout=args.analysis_timeout,
+            skip_auto_analysis=item.sha256 in args.skip_auto_analysis_sha256,
         )
         if cached_complete:
             cached_programs += 1
@@ -3742,6 +3772,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--skip-auto-analysis-sha256",
+        action="append",
+        default=[],
+        type=str.lower,
+        metavar="SHA256",
+        help="反復timeoutを確認したprogramをauto-analysisなしの限定解析として処理します",
+    )
+    parser.add_argument(
         "--request-timeout",
         type=int,
         default=3600,
@@ -3762,6 +3800,11 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.max_new_programs is not None and args.max_new_programs < 0:
         raise ValueError("--max-new-programsは0以上で指定してください")
+    invalid_hashes = [
+        value for value in args.skip_auto_analysis_sha256 if not SHA256_RE.fullmatch(value)
+    ]
+    if invalid_hashes:
+        raise ValueError("--skip-auto-analysis-sha256は64文字のSHA-256で指定してください")
     result = run(args)
     print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
     return 0

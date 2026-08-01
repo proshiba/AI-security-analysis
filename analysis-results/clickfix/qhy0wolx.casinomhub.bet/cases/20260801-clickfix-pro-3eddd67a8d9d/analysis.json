@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-pro-3eddd67a8d9d",
+  "domain": "qhy0wolx.casinomhub.bet",
+  "observed_at": "2026-07-23T08:33:22.089Z",
+  "analysis_date": "2026-08-01",
+  "source": {
+    "name": "ClickFix Campaign Monitor",
+    "id": "3eddd67a8d9d",
+    "url": "https://clickfix.pro/",
+    "tags": [
+      "ClearFake"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": null
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      207
+    ],
+    "webdav_multistatus_observed": true,
+    "public_addresses": [
+      "104.21.19.71",
+      "172.67.185.156"
+    ],
+    "redirects": [],
+    "body_types": {
+      "other": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": [],
+    "tls_certificates": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-pro-5785efaf31a2",
+  "domain": "cr9i8up3.stgsolar.hu",
+  "probed_at_utc": "2026-08-01T00:50:45.976678+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://cr9i8up3.stgsolar.hu/",
+        "host": "cr9i8up3.stgsolar.hu",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://cr9i8up3.stgsolar.hu/",
+            "host": "cr9i8up3.stgsolar.hu",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 521,
+          "reason": "<none>",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "7012",
+          "location": null,
+          "bytes_read": 7012,
+          "body_truncated": false,
+          "body_sha256": "87bb8985ede448d472e84382d3d7fd86f8918027f06c69c4c77659d9174508d1",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.78.216",
+              "172.67.137.163"
+            ],
+            "public_addresses": [
+              "104.21.78.216",
+              "172.67.137.163"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 190.6,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "stgsolar.hu | 521: Web server is down",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

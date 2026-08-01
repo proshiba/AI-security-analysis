@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-hunter-efdbd9a6673f",
+  "source": {
+    "provider": "ClickFix Hunter",
+    "observed_at": "2026-07-27T22:22:02.212Z"
+  },
+  "command_pattern": "telegram_dead_drop_powershell",
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "tbhadvisors.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Hunter"
+    },
+    {
+      "type": "ip",
+      "value": "149.154.167.99",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "162.159.135.42",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://t.me/<redacted>",
+      "role": "context_only_dead_drop_resolver",
+      "confidence": "confirmed_in_clipboard_command",
+      "source": "ClickFix Hunter"
+    }
+  ]
+}

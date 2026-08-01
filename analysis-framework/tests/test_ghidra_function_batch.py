@@ -174,6 +174,62 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     assert all(call[1] != "/save_program" for call in client.calls)
 
 
+def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """import応答のタイムアウト時に同じPEをraw形式で再登録しない。"""
+
+    class TimeoutImportClient:
+        def __init__(self) -> None:
+            self.import_calls = 0
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            assert endpoint in {"/analysis_status", "/open_program"}
+            raise target.GhidraMcpError("programは未登録です")
+
+        def post(
+            self,
+            endpoint: str,
+            _body: dict[str, object],
+            **_query: object,
+        ) -> object:
+            assert endpoint == "/import_file"
+            self.import_calls += 1
+            try:
+                raise TimeoutError("Ghidraの応答待ちが時間切れです")
+            except TimeoutError as error:
+                raise target.GhidraMcpError("POST /import_file failed") from error
+
+    data = b"MZ" + b"\x00" * 510
+    digest = hashlib.sha256(data).hexdigest()
+    input_path = tmp_path / f"{digest}.quarantine.bin"
+    input_path.write_bytes(data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=input_path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+    monkeypatch.setattr(
+        target,
+        "_raw_pe_import_parameters",
+        lambda _data: {"language": "x86:LE:64:default", "compiler_spec": "windows"},
+    )
+
+    client = TimeoutImportClient()
+    with pytest.raises(target.GhidraMcpError, match="import_file"):
+        target.analyze_program(
+            client,
+            item,
+            tmp_path / "private",
+            "/Malware/Test",
+            analysis_timeout=1,
+        )
+    assert client.import_calls == 1
+
+
 def test_client_accepts_only_local_plain_http() -> None:
     """Ghidra MCP接続先をlocalhostの平文HTTPに限定する。"""
 
@@ -1293,6 +1349,7 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
     assert defaults.upx is None
     assert defaults.sevenzip is None
     assert defaults.diec is None
+    assert defaults.skip_auto_analysis_sha256 == []
 
     selected = parser.parse_args(
         common
@@ -1303,11 +1360,16 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
             str(tmp_path / "7z.exe"),
             "--diec",
             str(tmp_path / "diec.exe"),
+            "--skip-auto-analysis-sha256",
+            "A" * 64,
+            "--skip-auto-analysis-sha256",
+            "b" * 64,
         ]
     )
     assert selected.upx == tmp_path / "upx.exe"
     assert selected.sevenzip == tmp_path / "7z.exe"
     assert selected.diec == tmp_path / "diec.exe"
+    assert selected.skip_auto_analysis_sha256 == ["a" * 64, "b" * 64]
 
 
 def test_prepare_inputs_replays_child_layers_with_same_tools(

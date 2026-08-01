@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-pro-df378c3ffc03",
+  "domain": "hdz7omr1.nextbahis.blog",
+  "probed_at_utc": "2026-08-01T00:50:45.628394+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://hdz7omr1.nextbahis.blog/",
+        "host": "hdz7omr1.nextbahis.blog",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "blocked",
+          "reason": "public addressを確認できない",
+          "url": {
+            "sanitized": "https://hdz7omr1.nextbahis.blog/",
+            "host": "hdz7omr1.nextbahis.blog",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "dns": {
+            "status": "error",
+            "error": "gaierror",
+            "addresses": [],
+            "public_addresses": []
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    },
+    {
+      "requested": {
+        "sanitized": "http://hdz7omr1.nextbahis.blog/",
+        "host": "hdz7omr1.nextbahis.blog",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "blocked",
+          "reason": "public addressを確認できない",
+          "url": {
+            "sanitized": "http://hdz7omr1.nextbahis.blog/",
+            "host": "hdz7omr1.nextbahis.blog",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "dns": {
+            "status": "error",
+            "error": "gaierror",
+            "addresses": [],
+            "public_addresses": []
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

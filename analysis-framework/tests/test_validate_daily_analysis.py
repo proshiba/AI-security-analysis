@@ -25,7 +25,7 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
-def _complete_repository(root: Path) -> Path:
+def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     news = root / "analysis-results" / "research" / "daily-news-malware" / ANALYSIS_DATE
     news.mkdir(parents=True)
     for name in target.NEWS_FILES:
@@ -61,7 +61,12 @@ def _complete_repository(root: Path) -> Path:
     )
 
     compact = ANALYSIS_DATE.replace("-", "")
-    malwarebazaar = root / "analysis-results" / "collections" / f"malwarebazaar-windows-{compact}-0050"
+    malwarebazaar = (
+        root
+        / "analysis-results"
+        / "collections"
+        / f"malwarebazaar-windows-{compact}-{malwarebazaar_count:04d}"
+    )
     malwarebazaar.mkdir(parents=True)
     (malwarebazaar / "README.md").write_text(
         "# MalwareBazaar解析\n",
@@ -70,10 +75,16 @@ def _complete_repository(root: Path) -> Path:
     _write_json(
         malwarebazaar / "manifest.json",
         {
-            "requested": 50,
-            "downloaded": 50,
-            "cases": [{"sha256": f"{index:064x}"} for index in range(50)],
-            "acquisition_items": [{"sha256": f"{index:064x}"} for index in range(50)],
+            "requested": malwarebazaar_count,
+            "downloaded": malwarebazaar_count,
+            "cases": [
+                {"sha256": f"{index:064x}"}
+                for index in range(malwarebazaar_count)
+            ],
+            "acquisition_items": [
+                {"sha256": f"{index:064x}"}
+                for index in range(malwarebazaar_count)
+            ],
             "acquisition_complete": True,
             "analysis_complete": True,
             "complete": True,
@@ -177,6 +188,25 @@ def test_missing_clickfix_case_fails_daily_completion(tmp_path: Path) -> None:
 
     assert result["complete"] is False
     assert any(finding["code"] == "clickfix_case_count" for finding in result["lanes"][2]["findings"])
+
+
+def test_complete_daily_analysis_supports_100_malwarebazaar_cases(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path, malwarebazaar_count=100)
+
+    result = target.validate_daily_analysis(
+        repository,
+        ANALYSIS_DATE,
+        malwarebazaar_count=100,
+    )
+
+    assert result["complete"] is True
+    assert result["required_lanes"] == [
+        "daily_news",
+        "malwarebazaar_100",
+        "clickfix_50",
+    ]
+    assert result["lanes"][1]["expected_cases"] == 100
+    assert result["lanes"][1]["actual_cases"] == 100
 
 
 def test_partial_malwarebazaar_fails_daily_completion(tmp_path: Path) -> None:
