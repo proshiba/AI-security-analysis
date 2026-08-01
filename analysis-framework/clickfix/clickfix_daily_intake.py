@@ -1677,7 +1677,7 @@ def render_collection_readme(
 
 ## 結論
 
-2026年7月30日時点の最新情報を最大50件へ正規化しました。ThreatFoxの本日観測を優先し、
+{analysis_date}時点の最新情報を最大50件へ正規化しました。ThreatFoxの本日観測を優先し、
 明示指定の`tbhadvisors.com`とclickfix.proの最新行で補完しています。
 
 - 解析対象: {len(rendered)}件
@@ -1689,7 +1689,7 @@ def render_collection_readme(
 - マルウェア実行: 0件
 
 情報源の最新時刻と「本日観測」は別です。ClickFix Hunterとclickfix.proは取得時点で
-7月29日以前が最新でしたが、ThreatFoxには{analysis_date}の新規IOCがありました。
+{analysis_date}より前の観測を含み、ThreatFoxには{analysis_date}の新規IOCがありました。
 
 ## 情報源別
 

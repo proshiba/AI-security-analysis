@@ -106,10 +106,21 @@ def _pending_count(value: Any) -> int:
     return value if isinstance(value, int) else 0
 
 
-def validate_malwarebazaar(repository: Path, analysis_date: str) -> dict[str, Any]:
+def validate_malwarebazaar(
+    repository: Path,
+    analysis_date: str,
+    expected_cases: int = EXPECTED_CASES,
+) -> dict[str, Any]:
+    if expected_cases <= 0:
+        raise ValueError("MalwareBazaar件数は正の整数である必要があります")
     findings: list[dict[str, str]] = []
     compact = analysis_date.replace("-", "")
-    root = repository / "analysis-results" / "collections" / f"malwarebazaar-windows-{compact}-0050"
+    root = (
+        repository
+        / "analysis-results"
+        / "collections"
+        / f"malwarebazaar-windows-{compact}-{expected_cases:04d}"
+    )
     _files(root, {"README.md", "manifest.json", "publication-summary.json"}, findings)
     manifest_path = root / "manifest.json"
     manifest = _json(manifest_path, findings)
@@ -122,12 +133,12 @@ def validate_malwarebazaar(repository: Path, analysis_date: str) -> dict[str, An
         "acquisition_items": len(acquisitions) if isinstance(acquisitions, list) else -1,
     }
     for field, actual in checks.items():
-        if actual != EXPECTED_CASES:
+        if actual != expected_cases:
             _finding(
                 findings,
                 f"malwarebazaar_{field}_count",
                 manifest_path,
-                f"{field}は{EXPECTED_CASES}である必要があります: actual={actual}",
+                f"{field}は{expected_cases}である必要があります: actual={actual}",
             )
     for field in ("acquisition_complete", "analysis_complete", "complete"):
         if manifest.get(field) is not True:
@@ -154,9 +165,9 @@ def validate_malwarebazaar(repository: Path, analysis_date: str) -> dict[str, An
             "publication-summaryのanalysis_completeがtrueではありません。",
         )
     return {
-        "name": "malwarebazaar_50",
+        "name": f"malwarebazaar_{expected_cases}",
         "root": root.as_posix(),
-        "expected_cases": EXPECTED_CASES,
+        "expected_cases": expected_cases,
         "actual_cases": len(cases) if isinstance(cases, list) else 0,
         "complete": not findings,
         "findings": findings,
@@ -261,18 +272,25 @@ def validate_daily_analysis(
     repository: Path,
     analysis_date: str,
     news_source_date: str | None = None,
+    malwarebazaar_count: int = EXPECTED_CASES,
 ) -> dict[str, Any]:
+    if malwarebazaar_count <= 0:
+        raise ValueError("MalwareBazaar件数は正の整数である必要があります")
     effective_news_date = news_source_date or analysis_date
     lanes = [
         validate_news(repository, effective_news_date),
-        validate_malwarebazaar(repository, analysis_date),
+        validate_malwarebazaar(repository, analysis_date, malwarebazaar_count),
         validate_clickfix(repository, analysis_date),
     ]
     return {
         "schema_version": 1,
         "analysis_date": analysis_date,
         "news_source_date": effective_news_date,
-        "required_lanes": ["daily_news", "malwarebazaar_50", "clickfix_50"],
+        "required_lanes": [
+            "daily_news",
+            f"malwarebazaar_{malwarebazaar_count}",
+            "clickfix_50",
+        ],
         "complete": all(lane["complete"] for lane in lanes),
         "finding_count": sum(len(lane["findings"]) for lane in lanes),
         "lanes": lanes,
@@ -292,7 +310,15 @@ def main(argv: list[str] | None = None) -> int:
         "--news-source-date",
         help="tech-memo最新公開日。省略時はanalysis-dateと同じ日付を使う。",
     )
+    parser.add_argument(
+        "--malwarebazaar-count",
+        type=int,
+        default=EXPECTED_CASES,
+        help="検証対象のMalwareBazaar日次解析件数。既定値は50。",
+    )
     arguments = parser.parse_args(argv)
+    if arguments.malwarebazaar_count <= 0:
+        parser.error("--malwarebazaar-countは正の整数で指定してください")
     analysis_date = datetime.strptime(arguments.analysis_date, "%Y-%m-%d").date().isoformat()
     news_source_date = None
     if arguments.news_source_date:
@@ -301,6 +327,7 @@ def main(argv: list[str] | None = None) -> int:
         arguments.repository.resolve(),
         analysis_date,
         news_source_date,
+        arguments.malwarebazaar_count,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["complete"] else 1

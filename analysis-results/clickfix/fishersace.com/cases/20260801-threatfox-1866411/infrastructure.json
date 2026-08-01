@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-threatfox-1866411",
+  "domain": "fishersace.com",
+  "observed_at": "2026-08-01 00:01:47 UTC",
+  "investigated_at_utc": "2026-08-01T00:51:36.013456+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1866411"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        200
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "104.21.2.105",
+        "172.67.129.22"
+      ],
+      "landing_public_addresses": [
+        "104.21.2.105",
+        "172.67.129.22"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "fishersace.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.2.105"
+          },
+          {
+            "name": "fishersace.com",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.129.22"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "fishersace.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "kallie.ns.cloudflare.com"
+          },
+          {
+            "name": "fishersace.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "chance.ns.cloudflare.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "FISHERSACE.COM",
+      "unicode_name": null,
+      "handle": "3104262130_DOMAIN_COM-VRSN",
+      "status": [
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2026-05-27T10:28:51Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-05-27T10:28:51Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2026-05-29T05:56:48Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-08-01T00:51:02Z"
+        }
+      ],
+      "nameservers": [
+        "chance.ns.cloudflare.com",
+        "kallie.ns.cloudflare.com"
+      ],
+      "registrar_handles": [
+        "1923"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "104.21.2.105",
+      "rdap": null,
+      "asn": {
+        "ip": "104.21.2.105",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.2.105",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "new.recordcity.jp",
+          "recordcity.jp"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "HTTPError",
+      "http_status": 429
+    },
+    {
+      "source": "rdap:ip",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

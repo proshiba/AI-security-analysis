@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-pro-e3121f903611",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-07-26T20:12:14.111Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "8yajh9kt.en-us--tupitea.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    }
+  ]
+}

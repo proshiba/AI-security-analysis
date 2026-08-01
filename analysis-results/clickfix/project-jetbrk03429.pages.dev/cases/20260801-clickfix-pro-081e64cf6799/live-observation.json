@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-clickfix-pro-081e64cf6799",
+  "domain": "project-jetbrk03429.pages.dev",
+  "probed_at_utc": "2026-08-01T00:50:44.212232+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://project-jetbrk03429.pages.dev/",
+        "host": "project-jetbrk03429.pages.dev",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://project-jetbrk03429.pages.dev/",
+            "host": "project-jetbrk03429.pages.dev",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html; charset=utf-8",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 262144,
+          "body_truncated": true,
+          "body_sha256": "918b98041625fbd8c76f1aba6c717f49a244969c5c5b6e7cf563258cd22ddc53",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.66.47.173",
+              "172.66.44.83"
+            ],
+            "public_addresses": [
+              "172.66.47.173",
+              "172.66.44.83"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 140.5,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "All Developer Tools and Products by JetBrains",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 12
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "case_id": "20260801-threatfox-1866411",
+  "domain": "fishersace.com",
+  "observed_at": "2026-08-01 00:01:47 UTC",
+  "analysis_date": "2026-08-01",
+  "source": {
+    "name": "ThreatFox",
+    "id": "1866411",
+    "url": "https://threatfox.abuse.ch/browse/tag/clearfake/",
+    "tags": [
+      "ClearFake",
+      "clearfake"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": 100
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      200
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "104.21.2.105",
+      "172.67.129.22"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": [],
+    "tls_certificates": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}
