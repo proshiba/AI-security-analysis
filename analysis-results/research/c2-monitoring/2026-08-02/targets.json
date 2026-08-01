@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "analysis_window": {
+    "start": "2026-07-26T00:00:00+09:00",
+    "end": "2026-08-02T23:59:59+09:00",
+    "timezone": "Asia/Tokyo"
+  },
+  "reviewed_at": "2026-08-02",
+  "review_policy": "構造化C2設定、process帰属済みsandbox通信、または個別caseのC2節で裏付けられた完全一致endpointだけを採用。配布先、decoy、正規通信、local proxyは除外。",
+  "targets": [
+    {
+      "target_id": "valleyrat-haochisadnka-6685",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6685,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-27"],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ]
+    },
+    {
+      "target_id": "valleyrat-haochisadnka-6698",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6698,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-27"],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ]
+    },
+    {
+      "target_id": "valleyrat-haochisadnka-6699",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6699,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-27"],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ]
+    },
+    {
+      "target_id": "valleyrat-pure26-56001",
+      "family": "ValleyRAT（PureRAT系終端候補を含む配布chain）",
+      "host": "pure26.myftp.org",
+      "port": 56001,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-31"],
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/README.md:通信",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/OVERALL-LOGIC.md:通信先"
+      ]
+    },
+    {
+      "target_id": "purelogs-uvexio-8443",
+      "family": "PureLogs（PureRAT / PureHVNC同梱候補）",
+      "host": "logs.uvexio.com",
+      "port": 8443,
+      "protocol": "https",
+      "method": "http_get",
+      "transport": "direct",
+      "http_path": "/ping",
+      "timeout_seconds": 5.0,
+      "maximum_response_bytes": 256,
+      "sample_sha256s": [
+        "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-29"],
+      "sources": [
+        "analysis_history.yaml: PureLogs 2026-07-29 c2",
+        "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
+      ]
+    },
+    {
+      "target_id": "purelogs-vexexo-56001",
+      "family": "PureLogs（PureRAT / PureHVNC同梱候補）",
+      "host": "tea.vexexo.com",
+      "port": 56001,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-29"],
+      "sources": [
+        "analysis_history.yaml: PureLogs 2026-07-29 c2",
+        "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
+      ]
+    },
+    {
+      "target_id": "agenttesla-vilimorin-21",
+      "family": "AgentTesla",
+      "host": "ftp.vilimorin.com",
+      "port": 21,
+      "protocol": "tcp",
+      "method": "passive_banner",
+      "transport": "direct",
+      "timeout_seconds": 5.0,
+      "maximum_response_bytes": 256,
+      "sample_sha256s": [
+        "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": ["2026-07-29"],
+      "sources": [
+        "analysis_history.yaml: AgentTesla 2026-07-29 c2",
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/README.md:C2"
+      ]
+    },
+    {
+      "target_id": "efimer-onion-route-gfoq",
+      "family": "Efimer",
+      "host": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "tor-socks5",
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ]
+    },
+    {
+      "target_id": "efimer-onion-route-hek5",
+      "family": "Efimer",
+      "host": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "tor-socks5",
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ]
+    },
+    {
+      "target_id": "efimer-onion-repla-swjx",
+      "family": "Efimer",
+      "host": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "tor-socks5",
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ]
+    }
+  ]
+}

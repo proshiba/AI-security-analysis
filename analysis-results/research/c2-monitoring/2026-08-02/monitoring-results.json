@@ -1,0 +1,743 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-01T23:25:28.698355+00:00",
+  "analysis_window": {
+    "start": "2026-07-26T00:00:00+09:00",
+    "end": "2026-08-02T23:59:59+09:00",
+    "timezone": "Asia/Tokyo"
+  },
+  "policy": {
+    "exact_targets_only": true,
+    "one_bounded_probe_per_target": true,
+    "maximum_timeout_seconds": 5,
+    "maximum_response_bytes": 256,
+    "redirect_followed": false,
+    "malware_checkin_sent": false,
+    "victim_metadata_sent": false,
+    "command_polling_performed": false,
+    "range_scan_performed": false,
+    "tcp_open_confirms_c2": false,
+    "network_enabled": true
+  },
+  "target_count": 10,
+  "state_counts": {
+    "application_endpoint_reachable_c2_not_confirmed": 1,
+    "not_reachable_at_observation": 4,
+    "server_first_response_reachable_c2_not_confirmed": 1,
+    "transport_reachable_c2_not_confirmed": 4
+  },
+  "results": [
+    {
+      "target_id": "valleyrat-haochisadnka-6685",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6685,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:37.141338+00:00",
+        "host": "haochisadnka.cc",
+        "port": 6685,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+        ],
+        "resolved_ips": [
+          "134.122.185.201"
+        ],
+        "tcp_status": "open",
+        "status": "tcp_connect_only",
+        "server_data_read": false,
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:haochisadnka.cc port:6685",
+            "ip:134.122.185.201 port:6685"
+          ],
+          "recommended_combination": "ip:134.122.185.201 port:6685",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 446.99
+      },
+      "assessment": {
+        "state": "transport_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.9,
+        "c2_operational_confidence": 0.25,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.0,
+        "reason": "TCP到達性のみでC2 applicationは未確認"
+      }
+    },
+    {
+      "target_id": "valleyrat-haochisadnka-6698",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6698,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:37.588418+00:00",
+        "host": "haochisadnka.cc",
+        "port": 6698,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+        ],
+        "resolved_ips": [
+          "134.122.185.201"
+        ],
+        "tcp_status": "open",
+        "status": "tcp_connect_only",
+        "server_data_read": false,
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:haochisadnka.cc port:6698",
+            "ip:134.122.185.201 port:6698"
+          ],
+          "recommended_combination": "ip:134.122.185.201 port:6698",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 215.28
+      },
+      "assessment": {
+        "state": "transport_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.9,
+        "c2_operational_confidence": 0.25,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.0,
+        "reason": "TCP到達性のみでC2 applicationは未確認"
+      }
+    },
+    {
+      "target_id": "valleyrat-haochisadnka-6699",
+      "family": "ValleyRAT / Winos",
+      "host": "haochisadnka.cc",
+      "port": 6699,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
+      "sources": [
+        "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:37.803792+00:00",
+        "host": "haochisadnka.cc",
+        "port": 6699,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": false,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": false,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+        ],
+        "resolved_ips": [
+          "134.122.185.201"
+        ],
+        "status": "timeout",
+        "error": "timed out",
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:haochisadnka.cc port:6699",
+            "ip:134.122.185.201 port:6699"
+          ],
+          "recommended_combination": "ip:134.122.185.201 port:6699",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 3006.39
+      },
+      "assessment": {
+        "state": "not_reachable_at_observation",
+        "reachability_confidence": 0.0,
+        "c2_operational_confidence": 0.0,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.4,
+        "reason": "この観測時点では到達応答なし。停止の恒久判定ではない"
+      }
+    },
+    {
+      "target_id": "valleyrat-pure26-56001",
+      "family": "ValleyRAT（PureRAT系終端候補を含む配布chain）",
+      "host": "pure26.myftp.org",
+      "port": 56001,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-31"
+      ],
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/README.md:通信",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/OVERALL-LOGIC.md:通信先"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:40.810329+00:00",
+        "host": "pure26.myftp.org",
+        "port": 56001,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b"
+        ],
+        "resolved_ips": [
+          "151.241.154.227"
+        ],
+        "tcp_status": "open",
+        "status": "tcp_connect_only",
+        "server_data_read": false,
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:pure26.myftp.org port:56001",
+            "ip:151.241.154.227 port:56001"
+          ],
+          "recommended_combination": "ip:151.241.154.227 port:56001",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 92.1
+      },
+      "assessment": {
+        "state": "transport_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.9,
+        "c2_operational_confidence": 0.25,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.0,
+        "reason": "TCP到達性のみでC2 applicationは未確認"
+      }
+    },
+    {
+      "target_id": "purelogs-uvexio-8443",
+      "family": "PureLogs（PureRAT / PureHVNC同梱候補）",
+      "host": "logs.uvexio.com",
+      "port": 8443,
+      "protocol": "https",
+      "transport": "direct",
+      "method": "http_get",
+      "method_description": "DNS解決＋TLS/HTTP GET 1回（redirectなし）",
+      "http_path": "/ping",
+      "sample_sha256s": [
+        "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
+      "sources": [
+        "analysis_history.yaml: PureLogs 2026-07-29 c2",
+        "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:40.902487+00:00",
+        "host": "logs.uvexio.com",
+        "port": 8443,
+        "protocol": "https",
+        "timeout_seconds": 5.0,
+        "maximum_response_bytes": 256,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": true,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+        ],
+        "resolved_ips": [
+          "193.26.115.118"
+        ],
+        "tcp_status": "open",
+        "tls": {
+          "version": "TLSv1.2",
+          "cipher": [
+            "ECDHE-RSA-AES256-GCM-SHA384",
+            "TLSv1.2",
+            256
+          ],
+          "certificate_sha256": "9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3",
+          "certificate_length": 1406,
+          "subject": "CN=Cipher Digital,O=Integrations,OU=Automation,C=QA",
+          "issuer": "CN=Cipher Digital,O=Integrations,OU=Automation,C=QA",
+          "serial_number_hex": "0xe13c87c8d686396",
+          "not_valid_before": "2026-07-05T16:11:50+00:00",
+          "not_valid_after": "2028-07-24T16:11:50+00:00"
+        },
+        "http": {
+          "status": 200,
+          "title": null,
+          "headers": {
+            "content-length": "2",
+            "content-type": "text/plain",
+            "connection": "close"
+          },
+          "path": "/ping",
+          "redirect_followed": false
+        },
+        "status": "http_response",
+        "banner": {
+          "length": 85,
+          "sha256": "541fddffd54b0c4c3a18bcc3b7fc9eb7cee9f162190964553faf69ac38c03746",
+          "shodan_mmh3": 1253065926,
+          "ftp_220_marker": false
+        },
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:logs.uvexio.com port:8443",
+            "ip:193.26.115.118 port:8443",
+            "hash:1253065926",
+            "ssl.cert.fingerprint:9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3"
+          ],
+          "recommended_combination": "ip:193.26.115.118 port:8443 hash:1253065926 ssl.cert.fingerprint:9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。",
+          "banner_hash_algorithm": "取得した raw banner の signed MurmurHash3 x86_32"
+        },
+        "elapsed_ms": 371.45
+      },
+      "assessment": {
+        "state": "application_endpoint_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.95,
+        "c2_operational_confidence": 0.6,
+        "method_confidence_ceiling": 0.6,
+        "negative_observation_confidence": 0.0,
+        "reason": "限定HTTP応答を確認したが所有者・C2 protocolは未確認"
+      }
+    },
+    {
+      "target_id": "purelogs-vexexo-56001",
+      "family": "PureLogs（PureRAT / PureHVNC同梱候補）",
+      "host": "tea.vexexo.com",
+      "port": 56001,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
+      "sources": [
+        "analysis_history.yaml: PureLogs 2026-07-29 c2",
+        "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:41.275650+00:00",
+        "host": "tea.vexexo.com",
+        "port": 56001,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+        ],
+        "resolved_ips": [
+          "185.139.214.102"
+        ],
+        "tcp_status": "open",
+        "status": "tcp_connect_only",
+        "server_data_read": false,
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:tea.vexexo.com port:56001",
+            "ip:185.139.214.102 port:56001"
+          ],
+          "recommended_combination": "ip:185.139.214.102 port:56001",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 75.34
+      },
+      "assessment": {
+        "state": "transport_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.9,
+        "c2_operational_confidence": 0.25,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.0,
+        "reason": "TCP到達性のみでC2 applicationは未確認"
+      }
+    },
+    {
+      "target_id": "agenttesla-vilimorin-21",
+      "family": "AgentTesla",
+      "host": "ftp.vilimorin.com",
+      "port": 21,
+      "protocol": "tcp",
+      "transport": "direct",
+      "method": "passive_banner",
+      "method_description": "DNS解決＋単一TCP接続＋server-first banner限定受信",
+      "http_path": null,
+      "sample_sha256s": [
+        "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
+      "sources": [
+        "analysis_history.yaml: AgentTesla 2026-07-29 c2",
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/README.md:C2"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:20:41.351008+00:00",
+        "host": "ftp.vilimorin.com",
+        "port": 21,
+        "protocol": "tcp",
+        "timeout_seconds": 5.0,
+        "maximum_response_bytes": 256,
+        "alive": true,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": true,
+        "transport": "direct",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
+        ],
+        "resolved_ips": [
+          "66.29.137.55"
+        ],
+        "tcp_status": "open",
+        "status": "banner_received",
+        "banner": {
+          "length": 256,
+          "sha256": "0a3f64b116b989d34589e3a02c866f275cb4bf764ef031a5237b5d43cfdee12f",
+          "shodan_mmh3": -704789451,
+          "ftp_220_marker": true
+        },
+        "shodan": {
+          "applicable": true,
+          "queries": [
+            "hostname:ftp.vilimorin.com port:21",
+            "ip:66.29.137.55 port:21",
+            "hash:-704789451"
+          ],
+          "recommended_combination": "ip:66.29.137.55 port:21 hash:-704789451",
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。",
+          "banner_hash_algorithm": "取得した raw banner の signed MurmurHash3 x86_32"
+        },
+        "elapsed_ms": 116.37
+      },
+      "assessment": {
+        "state": "server_first_response_reachable_c2_not_confirmed",
+        "reachability_confidence": 0.95,
+        "c2_operational_confidence": 0.5,
+        "method_confidence_ceiling": 0.55,
+        "negative_observation_confidence": 0.0,
+        "reason": "server-first応答を確認したがmalware固有fingerprintではない"
+      }
+    },
+    {
+      "target_id": "efimer-onion-route-gfoq",
+      "family": "Efimer",
+      "host": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "transport": "tor-socks5",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01"
+      ],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:24:27.950592+00:00",
+        "host": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion",
+        "port": 80,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": false,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": false,
+        "transport": "socks5",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        ],
+        "proxy": {
+          "host": "127.0.0.1",
+          "port": 9050
+        },
+        "proxy_connection_established": true,
+        "proxy_control_data_sent": true,
+        "status": "timeout",
+        "error": "timed out",
+        "shodan": {
+          "applicable": false,
+          "queries": [],
+          "recommended_combination": null,
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 3004.19
+      },
+      "assessment": {
+        "state": "not_reachable_at_observation",
+        "reachability_confidence": 0.0,
+        "c2_operational_confidence": 0.0,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.4,
+        "reason": "この観測時点では到達応答なし。停止の恒久判定ではない"
+      }
+    },
+    {
+      "target_id": "efimer-onion-route-hek5",
+      "family": "Efimer",
+      "host": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "transport": "tor-socks5",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01"
+      ],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:24:30.955001+00:00",
+        "host": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion",
+        "port": 80,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": false,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": false,
+        "transport": "socks5",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        ],
+        "proxy": {
+          "host": "127.0.0.1",
+          "port": 9050
+        },
+        "proxy_connection_established": true,
+        "proxy_control_data_sent": true,
+        "status": "timeout",
+        "error": "timed out",
+        "shodan": {
+          "applicable": false,
+          "queries": [],
+          "recommended_combination": null,
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 3016.25
+      },
+      "assessment": {
+        "state": "not_reachable_at_observation",
+        "reachability_confidence": 0.0,
+        "c2_operational_confidence": 0.0,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.4,
+        "reason": "この観測時点では到達応答なし。停止の恒久判定ではない"
+      }
+    },
+    {
+      "target_id": "efimer-onion-repla-swjx",
+      "family": "Efimer",
+      "host": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion",
+      "port": 80,
+      "protocol": "tcp",
+      "transport": "tor-socks5",
+      "method": "tcp_connect",
+      "method_description": "DNS解決＋単一TCP接続（送受信なし）",
+      "http_path": null,
+      "sample_sha256s": [
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+      ],
+      "associated_case_count": 91,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01"
+      ],
+      "sources": [
+        "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+      ],
+      "observation": {
+        "schema_version": 2,
+        "timestamp_utc": "2026-08-01T23:24:33.971375+00:00",
+        "host": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion",
+        "port": 80,
+        "protocol": "tcp",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 0,
+        "alive": false,
+        "c2_confirmed": false,
+        "network_contacted": true,
+        "target_contact_attempted": true,
+        "target_connection_established": false,
+        "transport": "socks5",
+        "application_data_sent": false,
+        "target_role": "c2",
+        "sample_sha256s": [
+          "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        ],
+        "proxy": {
+          "host": "127.0.0.1",
+          "port": 9050
+        },
+        "proxy_connection_established": true,
+        "proxy_control_data_sent": true,
+        "status": "timeout",
+        "error": "timed out",
+        "shodan": {
+          "applicable": false,
+          "queries": [],
+          "recommended_combination": null,
+          "warning": "運用前に Shodan 上で再検証すること。IP、banner、証明書、JARM は変化または共有され得る。"
+        },
+        "elapsed_ms": 3016.39
+      },
+      "assessment": {
+        "state": "not_reachable_at_observation",
+        "reachability_confidence": 0.0,
+        "c2_operational_confidence": 0.0,
+        "method_confidence_ceiling": 0.25,
+        "negative_observation_confidence": 0.4,
+        "reason": "この観測時点では到達応答なし。停止の恒久判定ではない"
+      }
+    }
+  ],
+  "target_contact_attempted_count": 10,
+  "observation_environment": {
+    "tor": {
+      "used_for_target_count": 3,
+      "version": "0.4.9.11",
+      "archive_sha256": "6ac067402c7b4a3dc37887ed3754b3914b67fdc220c966190683e9ccf91abf0f",
+      "official_checksum_source": "https://archive.torproject.org/tor-package-archive/torbrowser/15.0.18/sha256sums-signed-build.txt",
+      "socks_listener": "127.0.0.1:9050",
+      "bootstrapped_100_percent": true,
+      "temporary_process_stopped_after_probe": true
+    }
+  }
+}
