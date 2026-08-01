@@ -1,0 +1,7 @@
+# 2026-07-31????????????rule????????????????????????
+
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"MALWARE ValleyRAT bdp.edu.vn pwn new stage download"; flow:to_server,established; http_header:field host; content:"bdp.edu.vn",fast_pattern,nocase; http_uri:path; content:"/pwn/new/",nocase; pcre:"/\/pwn\/new\/(?:puredk1?\.(?:dll|txt)|pdf\.exe)/i"; classtype:trojan-activity; sid:9100052; rev:1;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"MALWARE Japanese LNK curl disguised VBE download"; flow:to_server,established; http_header:field host; content:"103.77.242.187",fast_pattern; http_uri:path; content:"/logo.png",nocase; http_header:field user-agent; content:"curl/",nocase; classtype:trojan-activity; sid:9100053; rev:1;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"MALWARE Japanese LNK decoy PDF retrieval"; flow:to_server,established; http_header:field host; content:"103.77.242.187",fast_pattern; http_uri:path; content:"/data.pdf",nocase; classtype:trojan-activity; sid:9100054; rev:1;)
+
+# pure26.myftp.org:56001??????host/port???payload signature?????????????????????????????rule???????

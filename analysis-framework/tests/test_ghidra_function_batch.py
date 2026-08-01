@@ -105,8 +105,12 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
         ) -> object:
             self.calls.append(("post", endpoint, {**query, "body": body}))
             if endpoint == "/import_file":
+                if "language" not in body:
+                    raise target.GhidraMcpError("標準loaderで読み込めません")
                 self.imported = True
                 assert body["auto_analyze"] is False
+                assert body["language"] == "x86:LE:64:default"
+                assert body["compiler_spec"] == "windows"
                 return {
                     "path": (
                         "/Malware/Test/"
@@ -136,6 +140,14 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     monkeypatch.setattr(target, "_is_managed_pe", lambda _data: True)
     monkeypatch.setattr(
         target,
+        "_raw_pe_import_parameters",
+        lambda _data: {
+            "language": "x86:LE:64:default",
+            "compiler_spec": "windows",
+        },
+    )
+    monkeypatch.setattr(
+        target,
         "_all_functions",
         lambda _client, _program: pytest.fail(
             "managed CIL正本経路でGhidra疑似関数を列挙してはならない"
@@ -153,6 +165,7 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     )
 
     assert result["analysis_mode"] == "managed_cil_primary_with_ghidra_structure"
+    assert result["import_mode"] == "raw_pe_fallback"
     assert result["mcp_responses_valid"] is True
     assert all(call[1] != "/run_analysis" for call in client.calls)
     assert all(call[1] != "/get_full_call_graph" for call in client.calls)
@@ -1520,8 +1533,9 @@ def test_refresh_promotes_short_initial_cache_after_project_rotation(
 
     class RotatedProjectClient:
         def get(self, endpoint: str, **_query: object) -> object:
-            assert endpoint == "/open_program"
-            raise target.GhidraMcpError("programは退避済み")
+            raise AssertionError(
+                f"終端到達済みキャッシュではGETしてはいけません: {endpoint}"
+            )
 
         def post(
             self,

@@ -437,7 +437,7 @@ def test_static_layers_recover_payload_at_shared_depth_four() -> None:
         member_name = f"layer-{index}.zip"
 
     layers, _report = one_shot.recover_static_layers(_raw_unit("outer.zip", blob))
-    assert one_shot.MAX_STATIC_DEPTH == 4
+    assert one_shot.MAX_STATIC_DEPTH == 6
     assert any(item.depth == 4 and item.public()["format"] == "script" for item in layers)
 
 

@@ -332,6 +332,28 @@ def _is_managed_pe(data: bytes) -> bool:
             pe.close()
 
 
+def _raw_pe_import_parameters(data: bytes) -> dict[str, str] | None:
+    """標準loaderで読めないx86 PE向けのraw import指定を返す。"""
+
+    if not data.startswith(b"MZ"):
+        return None
+    pe: pefile.PE | None = None
+    try:
+        pe = pefile.PE(data=data, fast_load=True)
+        language = {
+            0x014C: "x86:LE:32:default",
+            0x8664: "x86:LE:64:default",
+        }.get(int(pe.FILE_HEADER.Machine))
+        if language is None:
+            return None
+        return {"language": language, "compiler_spec": "windows"}
+    except Exception:
+        return None
+    finally:
+        if pe is not None:
+            pe.close()
+
+
 def _normalize_static_tool(value: Path | None, label: str) -> Path | None:
     """明示指定した外部静的toolを実在する通常fileへ限定する。"""
 
@@ -1680,6 +1702,7 @@ def analyze_program(
         folder = _safe_project_path(f"{project_root}/{case_sha[:8]}/layers/{item.sha256[:8]}")
     expected_program = _safe_project_path(f"{folder}/{item.input_path.name}")
     program: str | None = None
+    import_mode = "preexisting_program"
     preopened_status_raw: Any = None
     try:
         preopened_status_raw = client.get("/analysis_status", program=expected_program)
@@ -1690,15 +1713,25 @@ def analyze_program(
         try:
             opened = client.get("/open_program", path=expected_program, auto_analyze=False)
             program = str((opened or {}).get("path") or expected_program)
+            import_mode = "opened_existing_program"
         except GhidraMcpError:
-            imported = client.post(
-                "/import_file",
-                {
-                    "file_path": str(item.input_path.resolve()),
-                    "project_folder": folder,
-                    "auto_analyze": not managed_cil_primary,
-                },
-            )
+            import_body: dict[str, Any] = {
+                "file_path": str(item.input_path.resolve()),
+                "project_folder": folder,
+                "auto_analyze": not managed_cil_primary,
+            }
+            try:
+                imported = client.post("/import_file", import_body)
+                import_mode = "automatic_loader"
+            except GhidraMcpError as automatic_error:
+                raw_parameters = _raw_pe_import_parameters(data)
+                if raw_parameters is None:
+                    raise automatic_error
+                imported = client.post(
+                    "/import_file",
+                    {**import_body, **raw_parameters},
+                )
+                import_mode = "raw_pe_fallback"
             if not isinstance(imported, Mapping) or not imported.get("path"):
                 raise GhidraMcpError(f"import responseにprogram pathがありません: {item.sha256}")
             program = _safe_project_path(str(imported["path"]))
@@ -1845,6 +1878,7 @@ def analyze_program(
         "metadata": metadata_raw,
         "analysis_status": status,
         "analysis_mode": analysis_mode,
+        "import_mode": import_mode,
         "functions": functions,
         "call_graph": call_graph,
         "imports": imports,
@@ -1883,6 +1917,7 @@ def analyze_program(
         "program_selector": program,
         "metadata": _parse_metadata(metadata_raw),
         "analysis_mode": analysis_mode,
+        "import_mode": import_mode,
         "relationships": item.relationships,
         "functions": records,
         "function_inventory_count": len(records),
@@ -1943,15 +1978,24 @@ def refresh_complete_program_artifacts(
         raw_index = json.loads(raw_index_path.read_text(encoding="utf-8-sig"))
         opened_program: str | None = None
         open_error: GhidraMcpError | None = None
-        try:
-            opened = client.get("/open_program", path=program, auto_analyze=False)
-            opened_program = _safe_project_path(str((opened or {}).get("path") or program))
-            if opened_program != program:
-                raise GhidraMcpError(
-                    f"完全取得時のprogram selectorが一致しません: {opened_program} != {program}"
-                )
-        except GhidraMcpError as error:
-            open_error = error
+        initial_cache_terminal = all(
+            len(_page_values(raw_index.get(name), endpoint)) < initial_limits[name]
+            for name, endpoint in endpoints.items()
+        )
+        if initial_cache_terminal:
+            open_error = GhidraMcpError(
+                "初回MCP応答で全ページング対象の終端到達を確認済みです"
+            )
+        else:
+            try:
+                opened = client.get("/open_program", path=program, auto_analyze=False)
+                opened_program = _safe_project_path(str((opened or {}).get("path") or program))
+                if opened_program != program:
+                    raise GhidraMcpError(
+                        f"完全取得時のprogram selectorが一致しません: {opened_program} != {program}"
+                    )
+            except GhidraMcpError as error:
+                open_error = error
         retrieved: dict[str, list[Any]] = {}
         coverage: dict[str, dict[str, Any]] = {}
         for name, endpoint in endpoints.items():

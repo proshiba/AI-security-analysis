@@ -5051,3 +5051,1203 @@ analyses:
     c2: []
     notes: "374型・2,126 managed methodを棚卸し。Pure系配布系統との関連は強く支持されるが、終端family、版、config、C2は未独立確認。過去事例のC2を転記せず、検体・CLR・CILは実行していない。"
     result_path: analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: dcc4899e3c3a30ba66cb03b92ff74755338f422f4ba47f1060a9503dde31fdfd
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/dcc4899e3c3a30ba66cb03b92ff74755338f422f4ba47f1060a9503dde31fdfd/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 2670c97b169e77527f6db4726e58db1c95926c35b56e292c0a3a975dd6656cb8
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/2670c97b169e77527f6db4726e58db1c95926c35b56e292c0a3a975dd6656cb8/
+
+  - malware_type: "wannacry"
+    analyzed_at: 2026-07-31
+    sample_sha256: 05be5a8131993a5034bc4a57963f0c8860aeb3188dd906ed78d95439d15d813e
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:wannacry"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/wannacry/versions/unknown/cases/05be5a8131993a5034bc4a57963f0c8860aeb3188dd906ed78d95439d15d813e/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 4bb4b92b54c8ecd1db145f986e9725e9d327713cd9262dbe010318afd6af8137
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/4bb4b92b54c8ecd1db145f986e9725e9d327713cd9262dbe010318afd6af8137/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: ed1d3f69fbbd5576c2ed8dba45ba22c4f6884eb311d4f6e389203846d512ec11
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ed1d3f69fbbd5576c2ed8dba45ba22c4f6884eb311d4f6e389203846d512ec11/
+
+  - malware_type: "wannacry"
+    analyzed_at: 2026-07-31
+    sample_sha256: 93f1112efb938edee0b52aa69c28303d99b489ec0d785af553250478546ec647
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:wannacry"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/wannacry/versions/unknown/cases/93f1112efb938edee0b52aa69c28303d99b489ec0d785af553250478546ec647/
+
+  - malware_type: "nanocore"
+    analyzed_at: 2026-07-31
+    sample_sha256: 589e46d07f1239dd6b8b07a00d5739279648863d9cc78ced1a05fb034fc16122
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:nanocore"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/nanocore/versions/unknown/cases/589e46d07f1239dd6b8b07a00d5739279648863d9cc78ced1a05fb034fc16122/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: b2388fb3fedb1d62f7a6cd1719613b5f298c56e677de981f339550a6b7a3daf3
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b2388fb3fedb1d62f7a6cd1719613b5f298c56e677de981f339550a6b7a3daf3/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: c076437d6a30f394ea3f97331987884228703b350026da16337e7c1b4d740b66
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c076437d6a30f394ea3f97331987884228703b350026da16337e7c1b4d740b66/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: c50a08b67bbe92e4afae7bb28b33af820001aa384ee82ad1a88e16d623c14e6d
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c50a08b67bbe92e4afae7bb28b33af820001aa384ee82ad1a88e16d623c14e6d/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8cd988e1f749a5e008128df6f2b7da55c2760fbcdf414f26260331db723e6a15
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/8cd988e1f749a5e008128df6f2b7da55c2760fbcdf414f26260331db723e6a15/
+
+  - malware_type: "wannacry"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8489605870dd2735a8298cbb05db98cc6dc1d49e30caf3aa7d3260cc8fecdead
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:wannacry"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/wannacry/versions/unknown/cases/8489605870dd2735a8298cbb05db98cc6dc1d49e30caf3aa7d3260cc8fecdead/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: c2ae41bff71b9d5dd6d5845f1cda894729f406db9501c3afca402420b91515c0
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/c2ae41bff71b9d5dd6d5845f1cda894729f406db9501c3afca402420b91515c0/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-07-31
+    sample_sha256: 58b16700b8a3b8f0db2fb2e14b8c3e835270111518e67239b373a81ffd265b9a
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:valleyrat"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/58b16700b8a3b8f0db2fb2e14b8c3e835270111518e67239b373a81ffd265b9a/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: b9b09102f0be935f39d742fe72bb0b98815d2a21b3f9b96c403ed1fb143a816c
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b9b09102f0be935f39d742fe72bb0b98815d2a21b3f9b96c403ed1fb143a816c/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: d8a5b845155fb8b7c1e6f584c1632049071ea72a8b64748e54d9e7a9802af31f
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d8a5b845155fb8b7c1e6f584c1632049071ea72a8b64748e54d9e7a9802af31f/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 2135da1fbfb04479247c4268d2002059ca335b5384929093644e4896c44a37bb
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2135da1fbfb04479247c4268d2002059ca335b5384929093644e4896c44a37bb/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 1650509e245d62930fcd56d8f8aafe5e8ed9a57c746f027d7565fc732b77d7dd
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1650509e245d62930fcd56d8f8aafe5e8ed9a57c746f027d7565fc732b77d7dd/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: f40c9170ce158fb797deb5bd41f4110b51439d9fd9217944a01c325a6ca5c1c8
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f40c9170ce158fb797deb5bd41f4110b51439d9fd9217944a01c325a6ca5c1c8/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 4f55629fddb7c272fe500b6a132fb15341d2f58ca29fb597be19ebdb77e1994d
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4f55629fddb7c272fe500b6a132fb15341d2f58ca29fb597be19ebdb77e1994d/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: eba88b2d0eaa3aee3ed5065d902ae7445adf6f5874e3b47691637112168dca30
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/eba88b2d0eaa3aee3ed5065d902ae7445adf6f5874e3b47691637112168dca30/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 03c5743f47a1fda44c176239e5db1fce92956512abeff90104c89fff4762acbd
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/03c5743f47a1fda44c176239e5db1fce92956512abeff90104c89fff4762acbd/
+
+  - malware_type: "snakekeylogger"
+    analyzed_at: 2026-07-31
+    sample_sha256: ac08f4de2a47aa64d78f1844d326d6822f1fc17dfc040ef36ee5a1028f326a18
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:snakekeylogger"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/snakekeylogger/versions/unknown/cases/ac08f4de2a47aa64d78f1844d326d6822f1fc17dfc040ef36ee5a1028f326a18/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 88a809fd0fbcfe06987d6c3ec704c78f0c5a1d83aee1ce8b54954d6a6a9d6f87
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/88a809fd0fbcfe06987d6c3ec704c78f0c5a1d83aee1ce8b54954d6a6a9d6f87/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: b4f3acd50d0947aded733854216516d46990d57ce5e2cdcfdec432f0e498472a
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/b4f3acd50d0947aded733854216516d46990d57ce5e2cdcfdec432f0e498472a/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: d60b04ecea3adb58b4369d4e52121377a9bc28fa1a29b69ceee60144c47492a2
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d60b04ecea3adb58b4369d4e52121377a9bc28fa1a29b69ceee60144c47492a2/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 7e4549de761b5bdb361bf22e3f3069539400448094c45d2e84175d76b6553853
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7e4549de761b5bdb361bf22e3f3069539400448094c45d2e84175d76b6553853/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: fbc2b2bc5365528b68b60a150e85407c0f51952b95c272ac7d85714fd1e0e8bd
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/fbc2b2bc5365528b68b60a150e85407c0f51952b95c272ac7d85714fd1e0e8bd/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 5c33e3dfa983e99e0dc1618fdf7893c43182d6ef079f34fe3c94887b63ab274c
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5c33e3dfa983e99e0dc1618fdf7893c43182d6ef079f34fe3c94887b63ab274c/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: c0daec5c4417c16de8bced454b51cc02c0ee57ff66257b9516d6ae69ecf539ef
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c0daec5c4417c16de8bced454b51cc02c0ee57ff66257b9516d6ae69ecf539ef/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: fbefbd142aa9e842754ad914e9a3b14a60129fe8b9863db23e2c8c697b5923aa
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/fbefbd142aa9e842754ad914e9a3b14a60129fe8b9863db23e2c8c697b5923aa/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 90f2ac28649c8877379014012263125fdb86489ccc8d6cc80180437dbdf3be8c
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/90f2ac28649c8877379014012263125fdb86489ccc8d6cc80180437dbdf3be8c/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: f68b0ab0aa45a9119c1a097c4d64dd3250733f771b34cec0699e3f9a7c88d79e
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f68b0ab0aa45a9119c1a097c4d64dd3250733f771b34cec0699e3f9a7c88d79e/
+
+  - malware_type: "remusstealer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8a8857de50c2170ca7af40786168a6526e8190e297ec55e3d6a71fbfd21c3b17
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:remusstealer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/remusstealer/versions/unknown/cases/8a8857de50c2170ca7af40786168a6526e8190e297ec55e3d6a71fbfd21c3b17/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 691b0e2f9555f229e921b0679f72452fe66c0d2432156efa4ff18c3f3724066a
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/691b0e2f9555f229e921b0679f72452fe66c0d2432156efa4ff18c3f3724066a/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: d1226435633f94e588dd20b6d15540dc18f30dcc3df1111795f24ef5d60cff06
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d1226435633f94e588dd20b6d15540dc18f30dcc3df1111795f24ef5d60cff06/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 98d3876e0850a8a70afc220e945c24723b5ea973f187eacf23958acfa9df2e68
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/98d3876e0850a8a70afc220e945c24723b5ea973f187eacf23958acfa9df2e68/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 475e69baae47f29ca6e4689e5953926b5a1357d69ed8e0022b85804cff62d51e
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/475e69baae47f29ca6e4689e5953926b5a1357d69ed8e0022b85804cff62d51e/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 1a020229e3b01d58230ab2512fdb373b22d91676b441a792240a01f72b27affb
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1a020229e3b01d58230ab2512fdb373b22d91676b441a792240a01f72b27affb/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 1f49316f60cee5fd365ecda4b1c43fcfe10ec5a52fd0721b4eeb811afeab77ba
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1f49316f60cee5fd365ecda4b1c43fcfe10ec5a52fd0721b4eeb811afeab77ba/
+
+  - malware_type: "dotnet-resource-loader"
+    analyzed_at: 2026-07-31
+    sample_sha256: d35d30ccc119aacab7cbf48fdddb54a9149507f79e99d102e37b43958e80e835
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:dotnet-resource-loader"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/d35d30ccc119aacab7cbf48fdddb54a9149507f79e99d102e37b43958e80e835/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 4dadfe0d60ca295ca0a3865cccf3d47c09ffbd05f2e2d76a578e8d645ab72f6b
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/4dadfe0d60ca295ca0a3865cccf3d47c09ffbd05f2e2d76a578e8d645ab72f6b/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8802527c317068b4b824d7bc1843dee0e52e047c7fae4997d577c11349c1ef01
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/8802527c317068b4b824d7bc1843dee0e52e047c7fae4997d577c11349c1ef01/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 5ee86cbcd296e0998ca20ee65a7506fb3baecfb7ce98eede29bff1a6a6e0fc95
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5ee86cbcd296e0998ca20ee65a7506fb3baecfb7ce98eede29bff1a6a6e0fc95/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: b6bc55d2b6e281b5bbf84f589a2847544233ad4b7abd05f942f27cba26703b8b
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/b6bc55d2b6e281b5bbf84f589a2847544233ad4b7abd05f942f27cba26703b8b/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: ff1c3a2866f389f8ec2e4d57600446da4d131bad8ded341aa6619c0a0d35f752
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/ff1c3a2866f389f8ec2e4d57600446da4d131bad8ded341aa6619c0a0d35f752/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: ee2169a39bff9da6e3152e80a13b0bd9dc1e55c3ab191ca387bf8ede1ebdcd8d
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/ee2169a39bff9da6e3152e80a13b0bd9dc1e55c3ab191ca387bf8ede1ebdcd8d/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: f901e1a138129e819f4759f30102e94a9987409f0978c9505c2d679d1a0880e2
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/f901e1a138129e819f4759f30102e94a9987409f0978c9505c2d679d1a0880e2/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 798b6a521d6763f1b684f6d2a6c91e3eab92425dbd9265372a132aba1e213c5f
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/798b6a521d6763f1b684f6d2a6c91e3eab92425dbd9265372a132aba1e213c5f/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 72ba37f28406579b8556ca03137e7c2c4bed79e5fc875e560c017f161840fa65
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/72ba37f28406579b8556ca03137e7c2c4bed79e5fc875e560c017f161840fa65/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 16efe20ecbe454a3390e05e1641c91bbbf436a2ab1c830b76dc6c8a8b4843f14
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/16efe20ecbe454a3390e05e1641c91bbbf436a2ab1c830b76dc6c8a8b4843f14/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 7072509bfed6050e7f498f78adbb2fa8dd6b3ffb5ac71c2a3dff942bd484b413
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/7072509bfed6050e7f498f78adbb2fa8dd6b3ffb5ac71c2a3dff942bd484b413/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: cea15fe7edd6b1b26f4326901781c16034ebe195cdb89ede2338e91c1d7ce6ac
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/cea15fe7edd6b1b26f4326901781c16034ebe195cdb89ede2338e91c1d7ce6ac/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 39e07fb60fbf206b06d1b5b2b74848d9d393c6bd66fd11e003436cd7ee6b5788
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/39e07fb60fbf206b06d1b5b2b74848d9d393c6bd66fd11e003436cd7ee6b5788/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 99cd8530772b5bb986883ebfd09410bfd5328581a3e993472826eda78d6e3405
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/99cd8530772b5bb986883ebfd09410bfd5328581a3e993472826eda78d6e3405/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 375f8a4ff4eafe485b210a9ffb6a84bdbdb9c52ae602293ddae53717935e8daa
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/375f8a4ff4eafe485b210a9ffb6a84bdbdb9c52ae602293ddae53717935e8daa/
+
+  - malware_type: "dotnet-resource-loader"
+    analyzed_at: 2026-07-31
+    sample_sha256: cb8d68041200958ef7c8b1c5d5cb82c2545f2d89b67dd49c564242f2f009362c
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:dotnet-resource-loader"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/cb8d68041200958ef7c8b1c5d5cb82c2545f2d89b67dd49c564242f2f009362c/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: c200f2497e8169897a1f0569e720331faf5f2fbc50530614641d612b4488797c
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/c200f2497e8169897a1f0569e720331faf5f2fbc50530614641d612b4488797c/
+
+  - malware_type: "stealc"
+    analyzed_at: 2026-07-31
+    sample_sha256: 0c16963f43604246e81f006d1f7df0a7258b36b929252c1502d92fea573d86aa
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:stealc"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/0c16963f43604246e81f006d1f7df0a7258b36b929252c1502d92fea573d86aa/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 1bfb41a19de49c9c0dc63f434ff46f51ccba78e25629031bfda16e56b0f09df9
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1bfb41a19de49c9c0dc63f434ff46f51ccba78e25629031bfda16e56b0f09df9/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 504d3db673cea7561272630dcdbcb132c470cdb6b4735af762f541f3adf19942
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/504d3db673cea7561272630dcdbcb132c470cdb6b4735af762f541f3adf19942/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-07-31
+    sample_sha256: 4ce994747eb5fb4113f23d42f22a089e099c6690980dac9c92d26a28762e25ef
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:valleyrat"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/4ce994747eb5fb4113f23d42f22a089e099c6690980dac9c92d26a28762e25ef/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-07-31
+    sample_sha256: 324126d263910469357915525f2637ec1b0a2a6b875399b96c979687fed86e40
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:valleyrat"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/324126d263910469357915525f2637ec1b0a2a6b875399b96c979687fed86e40/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 2cc5df961162f8f9cea6273cb82756ea591f1d5ee62ee5cd0f19bc12cda7b7d3
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2cc5df961162f8f9cea6273cb82756ea591f1d5ee62ee5cd0f19bc12cda7b7d3/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: fce8ba975afa37727c61a9940c81c8e20da1de724f8a10b44b89d7ed44d7f526
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/fce8ba975afa37727c61a9940c81c8e20da1de724f8a10b44b89d7ed44d7f526/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 586b43c58f513ae9a476bf9d6e1614d616e80edc539279a03975fc68a81a496e
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/586b43c58f513ae9a476bf9d6e1614d616e80edc539279a03975fc68a81a496e/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 7b80dec3ee801e2d7d11373961448a7217078cb2721aef71fa2fd19534be3794
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/7b80dec3ee801e2d7d11373961448a7217078cb2721aef71fa2fd19534be3794/
+
+  - malware_type: "agenttesla"
+    analyzed_at: 2026-07-31
+    sample_sha256: 3dd18766ce04fb157b0323e5302cfc09257f0856d6eb8e6452392c6adbd17cd4
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:agenttesla"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/3dd18766ce04fb157b0323e5302cfc09257f0856d6eb8e6452392c6adbd17cd4/
+
+  - malware_type: "dotnet-resource-loader"
+    analyzed_at: 2026-07-31
+    sample_sha256: 6a2ba34451531f67b1fda9e5f46fc827a9af9944c348da0d81bc2e3a2b1195b1
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:dotnet-resource-loader"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/6a2ba34451531f67b1fda9e5f46fc827a9af9944c348da0d81bc2e3a2b1195b1/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-07-31
+    sample_sha256: b9ddd7f8aaeb1247eaa881caf75f8749d4b7c4442408c37d9bb57ad9927ee19a
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:valleyrat"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/b9ddd7f8aaeb1247eaa881caf75f8749d4b7c4442408c37d9bb57ad9927ee19a/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 0d925c5400e17a96f4137f8cfc31fbd3890e96dddf178ce96d16388fe5b867a7
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/0d925c5400e17a96f4137f8cfc31fbd3890e96dddf178ce96d16388fe5b867a7/
+
+  - malware_type: "vidar"
+    analyzed_at: 2026-07-31
+    sample_sha256: 316a011169a7b30844d28b1e1afd0add0343f8310464ef9410569c8b12929068
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:vidar"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/316a011169a7b30844d28b1e1afd0add0343f8310464ef9410569c8b12929068/
+
+  - malware_type: "vidar"
+    analyzed_at: 2026-07-31
+    sample_sha256: 88de646b346b25c8bb1ad21ce2884499e9281597122d91162248e10bd7c935dd
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:vidar"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/88de646b346b25c8bb1ad21ce2884499e9281597122d91162248e10bd7c935dd/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 6231e3ba7d5643ee173f92ef33d2dafa4bc2986954b16cd53195a3b87e3aa5a5
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6231e3ba7d5643ee173f92ef33d2dafa4bc2986954b16cd53195a3b87e3aa5a5/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 7c421556d7798939bfdd5cf2cc5bd7b441224cfcd85b8f06858587a0f3e22871
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7c421556d7798939bfdd5cf2cc5bd7b441224cfcd85b8f06858587a0f3e22871/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 376f66963489712e9cf479b7bd7540f24bc3019a712ac1b341466515e81a9b88
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/376f66963489712e9cf479b7bd7540f24bc3019a712ac1b341466515e81a9b88/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 84b41806926f1046b6e23b7b8b1f1665c095b5e68d8b73ce71516a4beebf254a
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/84b41806926f1046b6e23b7b8b1f1665c095b5e68d8b73ce71516a4beebf254a/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 6d2790be771ec07b236ea618dc29e1b1364618521d6806483f0e515d99fde7d2
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6d2790be771ec07b236ea618dc29e1b1364618521d6806483f0e515d99fde7d2/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8b77fb002e30e9cb667858d0f08e2c5c12ed450aca0d7293ecc092d639bdd1b9
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8b77fb002e30e9cb667858d0f08e2c5c12ed450aca0d7293ecc092d639bdd1b9/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 1945428f1a5bcac0595556d7acba0802c96ef9d9552a91c77d71f7bfd89c22f4
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1945428f1a5bcac0595556d7acba0802c96ef9d9552a91c77d71f7bfd89c22f4/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 594683e84aee02d2b6e0866bb55f8c665909cd96501a581d86be52126e63495f
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/594683e84aee02d2b6e0866bb55f8c665909cd96501a581d86be52126e63495f/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: e2075682a3b7d3aa51ab2864e35feca4d3331ee59430cbae634a443983ab64f8
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e2075682a3b7d3aa51ab2864e35feca4d3331ee59430cbae634a443983ab64f8/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 20df2cf7270385a42b4a82122f5fd5dffb450f3f52bb483342722d0683635de0
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/20df2cf7270385a42b4a82122f5fd5dffb450f3f52bb483342722d0683635de0/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 0ecc8ca00c5f331e2bb732b2295c8e019592d333c2ae0270653bc2900384a700
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0ecc8ca00c5f331e2bb732b2295c8e019592d333c2ae0270653bc2900384a700/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 667857e8cc7eb4db2280f1ad08066284a6f18c017aee3f039c8b7e811ed95aeb
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/667857e8cc7eb4db2280f1ad08066284a6f18c017aee3f039c8b7e811ed95aeb/
+
+  - malware_type: "xworm"
+    analyzed_at: 2026-07-31
+    sample_sha256: a06ca2f848c977ba268366038cfbe8f696c0e25424001ff9cff2271c5a16a258
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:xworm"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/xworm/versions/unknown/cases/a06ca2f848c977ba268366038cfbe8f696c0e25424001ff9cff2271c5a16a258/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: cc21168e7a28352288ff3daea0adaa3c7a4ace0b7c07a1411039c5dd6d47c66f
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/cc21168e7a28352288ff3daea0adaa3c7a4ace0b7c07a1411039c5dd6d47c66f/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 255ef1d6f1da0b68446f349349d966c43ecbc96dca378836b9cc37abc013d671
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/255ef1d6f1da0b68446f349349d966c43ecbc96dca378836b9cc37abc013d671/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8ae5d15c1784e3462020a6784a729a8f2540e7433dd1b18d5d8c589da3358e43
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8ae5d15c1784e3462020a6784a729a8f2540e7433dd1b18d5d8c589da3358e43/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 9454ca8bf4989d4088b8c80f430d852d13e85c09252275113d7132c0041dd1a9
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/9454ca8bf4989d4088b8c80f430d852d13e85c09252275113d7132c0041dd1a9/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 40560c7370ec0e7d3f9eedf55774cd9fc09f13f1a01f822e9d8830b57ea8d9cc
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/40560c7370ec0e7d3f9eedf55774cd9fc09f13f1a01f822e9d8830b57ea8d9cc/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 95ac4f25ca24aab7a5a443b813a3f92f0bbbc0a431e5e75764609f9214c114b3
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/95ac4f25ca24aab7a5a443b813a3f92f0bbbc0a431e5e75764609f9214c114b3/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 0eb86f9973e6be36c1a192201bae9afa2ac94c576082310701c70784fae4481b
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0eb86f9973e6be36c1a192201bae9afa2ac94c576082310701c70784fae4481b/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 6defc35bfc6f3e62dbe357f0f9b2063fbfadaf80574382a9c141d4897140a1a2
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6defc35bfc6f3e62dbe357f0f9b2063fbfadaf80574382a9c141d4897140a1a2/
+
+  - malware_type: "efimer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 8a5cd46a4e91474deaeea3fb1277bc993524a547bd09138a15fefa456155d4b6
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:efimer"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/efimer/versions/unknown/cases/8a5cd46a4e91474deaeea3fb1277bc993524a547bd09138a15fefa456155d4b6/
+
+  - malware_type: "unclassified"
+    analyzed_at: 2026-07-31
+    sample_sha256: 9a5f306198f54047e7be608395869dc6d6dfc30757a04035c3c422f8c1a3495d
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:unclassified"
+      - "format:exe"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/9a5f306198f54047e7be608395869dc6d6dfc30757a04035c3c422f8c1a3495d/
+
+  - malware_type: "acrstealer"
+    analyzed_at: 2026-07-31
+    sample_sha256: ecbf4e342f75e17d2d758f84cbdbfaef5d12e0d06e90c01407202030ff279c69
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:acrstealer"
+      - "format:dll"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/acrstealer/versions/unknown/cases/ecbf4e342f75e17d2d758f84cbdbfaef5d12e0d06e90c01407202030ff279c69/
+
+  - malware_type: "acrstealer"
+    analyzed_at: 2026-07-31
+    sample_sha256: 0efa8e622c0934005785633b80e82e52a67f300e52ec1b15200205ddfd2e5a48
+    analysis_level: characteristic_function_static_analysis
+    campaign_type: malwarebazaar_newest_windows_batch
+    matched_patterns:
+      - "family:acrstealer"
+      - "format:dll"
+    c2: []
+    notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
+    result_path: analysis-results/malware/acrstealer/versions/unknown/cases/0efa8e622c0934005785633b80e82e52a67f300e52ec1b15200205ddfd2e5a48/
