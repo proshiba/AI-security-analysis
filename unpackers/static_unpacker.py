@@ -49,6 +49,7 @@ from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
 )
+from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
 from unpackers.static_control_flow import analyze_pe_control_flow
 
 MAX_ARTIFACT = 256 * 1024 * 1024
@@ -552,6 +553,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             control_context.pop("sections", None)
             control_context.pop("import_names", None)
     managed_il = None
+    managed_protector = None
     if is_dotnet:
         managed_il = analyze_managed_pe(data)
         # Preserve counts, marker provenance, resource hashes, dispatcher
@@ -564,6 +566,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         if isinstance(malformed, list) and len(malformed) > 128:
             managed_il["malformed_method_bodies"] = malformed[:128]
             managed_il["malformed_method_bodies_truncated"] = True
+        managed_protector = analyze_managed_protector(data)
     return (
         {
             "machine": hex(pe.FILE_HEADER.Machine),
@@ -593,6 +596,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "invalid_png_resources": invalid_png_resources,
             "control_flow_triage": control_flow,
             "managed_il_triage": managed_il,
+            "managed_protector_profile": managed_protector,
         },
         artifacts,
     )

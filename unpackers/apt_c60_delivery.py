@@ -149,29 +149,81 @@ def extract_printable_strings(data: bytes, minimum: int = 4) -> list[str]:
 
 
 def inspect_lnk(data: bytes) -> dict:
-    """Extract embedded script URLs and high-signal actions from LNK bytes."""
+    """Extract URLs, commands, and high-signal actions from LNK bytes."""
+    if len(data) > MAX_ARCHIVE:
+        raise ValueError("LNK exceeds the size limit")
     strings = extract_printable_strings(data)
     text = "\n".join(strings)
     urls = sorted(set(re.findall(r"https?://[^\s\"'<>]+", text, re.I)))
+    action_markers = (
+        "mshta",
+        "certutil -decode",
+        "tar -xzvf",
+        "CopyFile",
+        "copy /b",
+        "reg add",
+        "WScript.Shell",
+        "cmd.exe",
+        "powershell",
+        "curl",
+        "explorer",
+        "wscript",
+        "cscript",
+        ".vbe",
+    )
     actions = [
-        marker
-        for marker in (
-            "mshta",
-            "certutil -decode",
-            "tar -xzvf",
-            "CopyFile",
-            "copy /b",
-            "reg add",
-            "WScript.Shell",
-        )
-        if marker.lower() in text.lower()
+        marker for marker in action_markers if marker.lower() in text.lower()
     ]
+    command_markers = (
+        "cmd.exe",
+        "powershell",
+        "mshta",
+        "curl ",
+        "certutil ",
+        "wscript",
+        "cscript",
+    )
+    commands = [
+        value
+        for value in strings
+        if len(value) <= 16_384
+        and any(marker in value.lower() for marker in command_markers)
+    ][:64]
+    output_paths = sorted(
+        set(
+            match.strip('"')
+            for command in commands
+            for match in re.findall(
+                r"(?i)(?:-o|/out:)\s+(\"?[^\s&|]+\"?)",
+                command,
+            )
+        )
+    )
+    file_candidates = sorted(
+        set(
+            re.findall(
+                r"(?i)(?:%[A-Z_]+%|[A-Z]:\\)[^\r\n\"'<>|]{1,260}?"
+                r"\.(?:exe|dll|sys|vbe|vbs|js|ps1|bat|cmd|pdf|png)",
+                text,
+            )
+        )
+    )[:256]
     scripts = re.findall(r"<script\b.*?</script>", text, re.I | re.S)
+    is_shell_link = (
+        len(data) >= 76
+        and data[:4] == b"L\x00\x00\x00"
+        and data[4:20] == bytes.fromhex("0114020000000000c000000000000046")
+    )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "sha256": sha256_bytes(data),
+        "size": len(data),
+        "is_shell_link": is_shell_link,
         "urls": urls,
         "actions": actions,
+        "commands": commands,
+        "output_paths": output_paths,
+        "file_candidates": file_candidates,
         "embedded_script_count": len(scripts),
         "embedded_script_sha256": [
             sha256_bytes(item.encode("utf-8")) for item in scripts

@@ -24,7 +24,7 @@
 | 一般的な base64/hex | size と format を gate とする decode | child layer |
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
-`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。
+`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
 
 ## 使用 tool
 
@@ -51,6 +51,16 @@ $DiE = 'C:\Users\Administrator\Tools\DetectItEasy-3.21\die\diec.exe'
 report には hash、size、format、変換、信頼度、検体を実行していないこと、network 接続を行っていないことを記録します。
 
 NSIS native 定数解析には Python package `capstone` が必要です。register/immediate 演算の線形な伝播だけを行い、memory、call、branch、検体を emulate しません。
+
+managed protectorだけを確認する場合は次を使用します。既定出力はproxy件数とresource inventoryだけで、完全なtoken対応表は `--include-records` を明示した場合だけ含めます。
+
+```powershell
+& $Python .\unpackers\managed_proxy_deobfuscator.py `
+  C:\analysis\managed-payload.bin `
+  --output C:\analysis\managed-protector.json
+```
+
+入力、CLR、CILを実行せず、resource数64 MiB、入力512 MiB、proxy record 16,384件の上限を適用します。暗号化assemblyのsample固有鍵は自動推測せず、`limitations` と次の静的解析対象へ残します。
 
 ## 再帰的 family pipeline
 

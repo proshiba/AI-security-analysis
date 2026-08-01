@@ -30,33 +30,58 @@ def render_history_entries(summary: dict, result_root: str, analyzed_at: str) ->
         if not SHA256.fullmatch(sha256):
             raise ValueError(f"invalid SHA-256 in summary: {sha256}")
         attribution = case.get("attribution") or {}
-        family = str(attribution.get("family") or "unknown")
+        publication_case = bool(case.get("case_path"))
+        family = str(case.get("family") or attribution.get("family") or "unknown")
         confidence = str(attribution.get("confidence") or "low")
         supported = family != "unknown" and confidence in {"medium", "high"}
-        malware_type = family if supported else "Unclassified"
-        if supported:
+        malware_type = family if publication_case or supported else "Unclassified"
+        if publication_case:
+            note = (
+                "特徴関数の静的解析と公開成果物の生成を完了しました。"
+                "検体実行とインフラ接続は行っていません。"
+            )
+        elif supported:
             note = f"{confidence} 信頼度の静的ファミリー帰属。抽出した通信値は未確認候補のままです。検体実行とインフラ接続は行っていません。"
         elif family != "unknown":
             note = f"{family} は低信頼の暫定候補であり、確認済みファミリー帰属または C2 とは扱いません。検体実行とインフラ接続は行っていません。"
         else:
             note = "制限付き静的根拠から防御可能なファミリー帰属を得られませんでした。検体実行とインフラ接続は行っていません。"
-        case_path = canonical_malware_case_path(
-            resolved_root, "unclassified", sha256, "unknown"
+        if publication_case:
+            result_path = str(case["case_path"]).replace("\\", "/").rstrip("/")
+        else:
+            case_path = canonical_malware_case_path(
+                resolved_root, "unclassified", sha256, "unknown"
+            )
+            result_path = (
+                root / case_path.relative_to(resolved_root)
+            ).as_posix().rstrip("/")
+        file_type = str(
+            case.get("file_type")
+            or (case.get("source") or {}).get("file_type")
+            or "unknown"
         )
-        result_path = (
-            root / case_path.relative_to(resolved_root)
-        ).as_posix().rstrip("/")
-        file_type = str((case.get("source") or {}).get("file_type") or "unknown")
+        analysis_level = (
+            "characteristic_function_static_analysis"
+            if publication_case
+            else "static_family_attribution"
+        )
+        campaign_type = (
+            "malwarebazaar_newest_windows_batch"
+            if publication_case
+            else "malwarebazaar_unsigned_newest_batch"
+        )
+        matched_patterns = ["family:" + family]
+        if not publication_case:
+            matched_patterns.append("confidence:" + confidence)
+        matched_patterns.append("format:" + file_type)
         lines = [
             f"  - malware_type: {yaml_scalar(malware_type)}",
             f"    analyzed_at: {analyzed_at}",
             f"    sample_sha256: {sha256}",
-            "    analysis_level: static_family_attribution",
-            "    campaign_type: malwarebazaar_unsigned_newest_batch",
+            f"    analysis_level: {analysis_level}",
+            f"    campaign_type: {campaign_type}",
             "    matched_patterns:",
-            f"      - {yaml_scalar('family:' + family)}",
-            f"      - {yaml_scalar('confidence:' + confidence)}",
-            f"      - {yaml_scalar('format:' + file_type)}",
+            *(f"      - {yaml_scalar(pattern)}" for pattern in matched_patterns),
             "    c2: []",
             f"    notes: {yaml_scalar(note)}",
             f"    result_path: {result_path}/",
