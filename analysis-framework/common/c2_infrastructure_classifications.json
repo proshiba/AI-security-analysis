@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-08-02",
+  "policy": {
+    "confirmed_requires": "provider自身の明示、政府措置、または信頼できる脅威インテリジェンスによる明示的な防弾ホスティング評価",
+    "suspected_requires": "高密度かつ継続的なC2悪用等の複数の状況証拠。ただしprovider運営主体の意図は未確認",
+    "abuse_alone_is_not_confirmation": true,
+    "shared_cdn_is_not_origin": true
+  },
+  "tag_definitions": {
+    "dns_resolution": "DNS解決先",
+    "hosting": "ホスティング",
+    "cdn": "CDN",
+    "anycast_shared_edge": "Anycast／共有エッジ",
+    "vpn_proxy": "VPN／Proxy",
+    "tor_related": "Tor関連",
+    "domain_service": "ドメイン事業者",
+    "c2_candidate": "C2候補インフラ",
+    "bulletproof_hosting": "防弾ホスティング",
+    "bulletproof_hosting_suspected": "防弾ホスティング - 疑い"
+  },
+  "rules": [
+    {
+      "id": "spamhaus-as210558-bulletproof",
+      "match": {
+        "asns": [210558],
+        "organization_contains": ["1337 Services"]
+      },
+      "tags": ["hosting", "bulletproof_hosting"],
+      "bulletproof_hosting": {
+        "classification": "confirmed",
+        "label": "防弾ホスティング",
+        "confidence": 0.95,
+        "reason": "Spamhausはas210558.netをbulletproof hosterの例として明示し、2025年後半の報告では当該networkを防弾ホスティングとサイバー犯罪の拡散目的で運営されると評価している。",
+        "sources": [
+          {
+            "title": "Spamhaus Botnet Spotlight: Pressure rises on botnets — but the fight is far from over",
+            "url": "https://www.spamhaus.org/resource-hub/botnet-c-c/botnet-spotlight-pressure-rises-on-botnets-but-the-fight-is-far-from-over/",
+            "published": "2026-01-27",
+            "retrieved": "2026-08-02"
+          }
+        ]
+      }
+    },
+    {
+      "id": "silent-push-as200019-alexhost-bulletproof",
+      "match": {
+        "asns": [200019],
+        "organization_contains": ["Alexhost", "LEBEDEV-A-E"]
+      },
+      "tags": ["hosting", "bulletproof_hosting"],
+      "bulletproof_hosting": {
+        "classification": "confirmed",
+        "label": "防弾ホスティング",
+        "confidence": 0.9,
+        "reason": "Silent PushはAlexHostの自社marketingと複数の調査方法を照合し、ASN 200019を管理するbulletproof hosting providerとして掲載している。",
+        "sources": [
+          {
+            "title": "Silent Push White Paper: Bulletproof Hosting",
+            "url": "https://info.silentpush.com/hubfs/SP-WP-bulletproof-hosting.pdf",
+            "retrieved": "2026-08-02"
+          }
+        ]
+      }
+    },
+    {
+      "id": "spamhaus-as152194-ctgserver-suspected",
+      "match": {
+        "asns": [152194],
+        "organization_contains": ["CTG Server"]
+      },
+      "tags": ["hosting", "bulletproof_hosting_suspected"],
+      "bulletproof_hosting": {
+        "classification": "suspected",
+        "label": "防弾ホスティング - 疑い",
+        "confidence": 0.65,
+        "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+        "sources": [
+          {
+            "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+            "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf",
+            "observation_period": "2025-07/2025-12",
+            "retrieved": "2026-08-02"
+          }
+        ]
+      }
+    }
+  ]
+}

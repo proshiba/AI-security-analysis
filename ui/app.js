@@ -432,6 +432,14 @@
     if (!g) return "";
     return [g.city, g.region, g.country].filter(Boolean).join(", ");
   }
+  function c2LifecycleLabel(ep) {
+    var lifecycle = ep.lifecycle || {};
+    if (lifecycle.status === "active_on") return "継続監視（ON）";
+    if (lifecycle.status === "active_grace") return "継続監視（OFF猶予）";
+    if (lifecycle.status === "active_unobserved") return "継続監視（未観測）";
+    if (lifecycle.status === "retired_stopped") return "停止（監視対象外）";
+    return ep.active === false ? "停止（監視対象外）" : "継続監視";
+  }
 
   function confBar(value, label) {
     var v = typeof value === "number" ? value : 0;
@@ -458,6 +466,7 @@
   function c2MapPoints() {
     var byPlace = {};
     C2.endpoints.forEach(function (ep) {
+      if (ep.active === false) return;
       var ips = (ep.latest && ep.latest.resolved_ips) || [];
       ips.forEach(function (ip) {
         var g = c2GeoOf(ip);
@@ -505,11 +514,12 @@
 
     var noGeo = 0;
     C2.endpoints.forEach(function (ep) {
+      if (ep.active === false) return;
       var ips = (ep.latest && ep.latest.resolved_ips) || [];
       if (!ips.length || !ips.some(function (ip) { return c2GeoOf(ip); })) noGeo++;
     });
 
-    return '<div class="section c2map-section"><h2>C2インフラの所在（最新観測）</h2>' +
+    return '<div class="section c2map-section"><h2>継続監視中C2インフラの所在（最新観測）</h2>' +
       '<div class="c2map-wrap">' +
       '<svg id="c2map" viewBox="0 0 ' + map.width + " " + map.height + '" ' +
       'preserveAspectRatio="xMidYMid meet" role="img" aria-label="C2インフラの世界地図">' +
@@ -532,25 +542,23 @@
   function c2EndpointRow(ep, index) {
     var l = ep.latest || {};
     var ips = l.resolved_ips || [];
-    var geoHtml = ips.map(function (ip) {
-      var g = c2GeoOf(ip);
-      return '<div class="ipline"><span class="mono">' + esc(ip) + "</span>" +
-        (g ? '<span class="ipgeo">' + esc(g.country_code || "") + " " + esc(geoLabel(g)) +
-          (g.asn ? ' <span class="muted">AS' + esc(g.asn) + " " + esc(g.org || "") + "</span>" : "") +
-          "</span>" : '<span class="ipgeo muted">geo未取得</span>') + "</div>";
-    }).join("");
-
+    var dnsHistory = (ep.dns_tracking && ep.dns_tracking.history) || [];
+    var latestDnsPoint = dnsHistory.length ? dnsHistory[dnsHistory.length - 1] : {};
+    var geoHtml = ipCell(ips, latestDnsPoint.ip_details || []);
     var caseLinks = (ep.cases || []).slice(0, 4).map(function (sha) {
       return "<a class='mono' href='#/case/" + sha + "'>" + shortSha(sha) + "</a>";
     }).join(" ");
     var extra = (ep.case_count || 0) - (ep.cases || []).length;
+    var lifecycle = ep.lifecycle || {};
+    var lifecycleDetail = lifecycle.inactive_days ? " / OFF " + lifecycle.inactive_days + "日" : "";
 
     return '<tr class="c2row" data-idx="' + index + '">' +
       "<td class='nowrap'>" + esc(ep.family || "") + "</td>" +
       "<td class='mono'>" + esc(ep.host) + ":" + esc(ep.port) +
         (ep.http_path ? " <span class='muted'>" + esc(ep.http_path) + "</span>" : "") +
         (ep.onion ? " <span class='tag'>Tor</span>" : "") + "</td>" +
-      "<td><span class='badge " + toneClass(l.tone) + "'>" + esc(l.state_label || "") + "</span>" +
+      "<td><span class='badge " + toneClass(l.tone) + "'>" + esc(l.state_label || "") + "</span> " +
+        "<span class='tag'>" + esc(c2LifecycleLabel(ep) + lifecycleDetail) + "</span>" +
         "<div class='muted small'>" + esc(l.reason || "") + "</div></td>" +
       "<td class='conf'>" + confBar(l.reachability, "到達") + confBar(l.c2_operational, "C2稼働") +
         confBar(l.ceiling, "手法上限") + "</td>" +
@@ -561,46 +569,113 @@
       "<td class='nowrap mono small'>" + esc((l.date || "")) + "</td></tr>";
   }
 
-  function ipCell(ips) {
-    return (ips && ips.length ? ips : ["解決なし"]).map(function (ip) {
-      var g = c2GeoOf(ip);
-      return "<span class='mono'>" + esc(ip) + "</span>" +
-        (g && g.country_code ? " <span class='muted'>" + esc(g.country_code) + "</span>" : "");
-    }).join("<br>");
+  function ipDetailsByAddress(details) {
+    var indexed = {};
+    (details || []).forEach(function (detail) {
+      if (detail && detail.ip) indexed[detail.ip] = detail;
+    });
+    return indexed;
   }
 
+  function infrastructureTagsHtml(detail) {
+    if (!detail || !detail.infrastructure) return "";
+    var seen = {};
+    var values = (detail.infrastructure.tags || []).map(function (tag) {
+      seen[tag.label] = true;
+      return '<span class="tag" title="' + esc(tag.basis || "") + '">' +
+        esc(tag.label) + "</span>";
+    });
+    var bulletproof = detail.infrastructure.bulletproof_hosting || {};
+    if (bulletproof.label && !seen[bulletproof.label]) {
+      values.push('<span class="tag" title="' + esc(bulletproof.reason || "") + '">' +
+        esc(bulletproof.label) + "</span>");
+    }
+    return values.length ? '<div class="small">' + values.join(" ") + "</div>" : "";
+  }
+
+  function localGeoLabel(detail) {
+    if (!detail || !detail.geo) return "";
+    var geo = detail.geo;
+    return [geo.country_name, geo.subdivision_name, geo.city_name].filter(Boolean).join(" / ");
+  }
+
+  function ipCell(ips, details) {
+    var indexed = ipDetailsByAddress(details);
+    return (ips && ips.length ? ips : ["解決なし"]).map(function (ip) {
+      var detail = indexed[ip];
+      var globalGeo = c2GeoOf(ip);
+      var asn = detail && detail.as;
+      var meta = [];
+      if (asn && asn.asn) meta.push("AS" + asn.asn + (asn.organization ? " " + asn.organization : ""));
+      if (detail && localGeoLabel(detail)) meta.push(localGeoLabel(detail));
+      else if (globalGeo && geoLabel(globalGeo)) meta.push(geoLabel(globalGeo));
+      return '<div class="ipline"><span class="mono">' + esc(ip) + "</span>" +
+        (meta.length ? '<span class="ipgeo muted">' + esc(meta.join(" / ")) + "</span>" : "") +
+        infrastructureTagsHtml(detail) + "</div>";
+    }).join("");
+  }
+
+  function transitionHtml(transition) {
+    if (!transition) return "";
+    var from = transition.from || [];
+    var to = transition.to || [];
+    return '<div class="small" style="margin-top:6px">' +
+      '<div><b>旧IP</b>' + ipCell(from.map(function (item) { return item.ip; }), from) + "</div>" +
+      '<div class="muted">↓</div>' +
+      '<div><b>新IP</b>' + ipCell(to.map(function (item) { return item.ip; }), to) + "</div>" +
+      "</div>";
+  }
   function timelineHtml(t) {
     var cells = t.points.map(function (p, i) {
-      var moved = i > 0 && t.points[i - 1].ips.join() !== p.ips.join();
-      return '<li class="' + (moved ? "moved" : "") + '">' +
+      var fallbackMoved = i > 0 && t.points[i - 1].ips.join() !== p.ips.join();
+      var rawMoved = typeof p.raw_ip_changed === "boolean" ? p.raw_ip_changed : fallbackMoved;
+      var infrastructureMoved = !!p.infrastructure_ip_change;
+      var cdnIgnored = p.change_classification === "shared_cdn_rotation_ignored";
+      var flag = infrastructureMoved ? "インフラ変化" :
+        (cdnIgnored ? "CDNローテーション（除外）" : (rawMoved ? "IP変化" : ""));
+      return '<li class="' + (infrastructureMoved ? "moved" : (cdnIgnored ? "cdn-rotation" : "")) + '">' +
         '<span class="tl-date mono">' + esc(p.date) + "</span>" +
-        '<span class="tl-ips">' + ipCell(p.ips) + "</span>" +
-        (moved ? '<span class="tl-flag">変化</span>' : "") + "</li>";
+        '<div class="tl-ips">' + ipCell(p.ips, p.ip_details) + transitionHtml(p.transition) + "</div>" +
+        (flag ? '<span class="tl-flag">' + esc(flag) + "</span>" : "") +
+        (cdnIgnored && p.shared_cdn_provider ?
+          '<span class="muted small">' + esc(p.shared_cdn_provider) + "</span>" : "") + "</li>";
     }).join("");
+    var changeLabel = t.changes ?
+      '<span class="tl-chg">' +
+        (t.source === "c2-monitor" ? "インフラ変化 " : "IP変化 ") +
+        t.changes + " 回</span>" :
+      (t.ignored_cdn_rotations ?
+        '<span class="muted small">CDNローテーション ' + t.ignored_cdn_rotations + " 回（除外）</span>" :
+        '<span class="muted small">変化なし</span>');
     return '<div class="tl"><div class="tl-host">' +
       portalLink(t.host, esc(t.host), "mono", "ポータルのグラフ調査で開く") +
-      '<span class="tl-src">' + esc(t.source) + "</span>" +
-      (t.changes ? '<span class="tl-chg">' + t.changes + " 回変化</span>"
-                 : '<span class="muted small">変化なし</span>') +
+      '<span class="tl-src">' + esc(t.source) + "</span>" + changeLabel +
       (t.path ? " <a class='small' target='_blank' rel='noopener noreferrer' href='" +
         esc(fileUrl(t.path, true)) + "'>成果物</a>" : "") +
       "</div><ul class='tl-list'>" + cells + "</ul></div>";
   }
-
   // 変化のあった系列だけ時系列を展開し、残りは絞り込める一覧に畳む。
   // 観測が積み上がるまでは大半が「変化なし」なので、既定で全部展開すると
   // ページが単調な繰り返しで埋まってしまう。
   function ipHistoryHtml() {
     var rows = (C2.ip_history || []).filter(function (t) { return t.points && t.points.length; });
-    var changed = rows.filter(function (t) { return t.changes > 0; });
-    var stable = rows.filter(function (t) { return !t.changes; });
+    var changed = rows.filter(function (t) { return (t.raw_changes || t.changes || 0) > 0; });
+    var stable = rows.filter(function (t) { return !(t.raw_changes || t.changes || 0); });
+    var infrastructureChanged = rows.filter(function (t) {
+      return t.source === "c2-monitor" && t.changes > 0;
+    }).length;
+    var ignoredCdnRotations = rows.reduce(function (n, t) {
+      return n + (t.ignored_cdn_rotations || 0);
+    }, 0);
 
     var html = '<div class="section"><h2>ドメインの解決IP推移</h2>' +
       '<p class="muted small">C2監視ランと ClickFix 基盤調査の日付別caseから、同一ホストの解決IPを時系列に並べています。' +
-      "IPが入れ替わった系列を先に出し、変化していない系列は下の一覧に畳んでいます。</p>";
+      "共有CDN内のedge IP入替は生の履歴へ残しますが、C2インフラ変化件数から除外します。</p>";
 
-    html += '<div class="ip-sum">対象 <b>' + rows.length + "</b> ホスト ／ 解決IPが変化したのは <b>" +
-      changed.length + "</b> ホスト ／ 観測点の総数 " +
+    html += '<div class="ip-sum">対象 <b>' + rows.length + "</b> ホスト ／ 生IP変化 <b>" +
+      changed.length + "</b> ホスト ／ CDN除外後のインフラ変化 <b>" + infrastructureChanged +
+      "</b> ホスト ／ CDNローテーション除外 <b>" + ignoredCdnRotations +
+      "</b> 回 ／ 観測点の総数 " +
       rows.reduce(function (n, t) { return n + t.points.length; }, 0) + "</div>";
 
     if (changed.length) {
@@ -623,7 +698,7 @@
           "<td class='mono'>" + portalLink(t.host, esc(t.host), "mono") + "</td>" +
           "<td class='small'>" + esc(t.source) + "</td>" +
           "<td class='num mono'>" + t.points.length + "</td>" +
-          "<td>" + ipCell(last.ips) + "</td>" +
+          "<td>" + ipCell(last.ips, last.ip_details) + "</td>" +
           "<td class='nowrap mono small'>" + esc(last.date) + "</td></tr>";
       }).join("") +
       "</tbody></table></div></div></div>";
@@ -657,16 +732,19 @@
     }
     var run = C2.runs[0] || {};
     var eps = C2.endpoints;
-    var reachable = eps.filter(function (e) { return e.latest && e.latest.alive; }).length;
-    var strongEps = eps.filter(function (e) { return e.latest && (e.latest.c2_operational || 0) >= 0.5; }).length;
+    var activeEps = eps.filter(function (e) { return e.active !== false; });
+    var retiredEps = eps.filter(function (e) { return e.active === false; });
+    var reachable = activeEps.filter(function (e) { return e.latest && e.latest.alive; }).length;
+    var strongEps = activeEps.filter(function (e) { return e.latest && (e.latest.c2_operational || 0) >= 0.5; }).length;
 
     var html = '<h1 class="page-title">C2稼働状況</h1>' +
-      '<p class="page-sub">解析済み検体から人がレビューしたC2 endpointへ、限定的な観測を1回だけ行った結果です。' +
-      "到達性と「C2 applicationが稼働している確度」は別々に扱います。</p>" +
+      '<p class="page-sub">解析済み検体から人がレビューしたC2 endpointを日次で継続監視した結果です。' +
+      "到達性と「C2 applicationが稼働している確度」は分離し、7日以上ONがなく2回以上OFFを実観測した対象だけを停止履歴へ移します。</p>" +
       '<div class="stat-grid">' +
-      statCard(eps.length, "監視endpoint") +
-      statCard(reachable, "観測時に応答あり") +
-      statCard(eps.length - reachable, "応答なし") +
+      statCard(activeEps.length, "継続監視endpoint") +
+      statCard(retiredEps.length, "停止履歴endpoint") +
+      statCard(reachable, "監視中・応答あり") +
+      statCard(activeEps.length - reachable, "監視中・応答なし／未観測") +
       statCard(strongEps, "C2稼働確度 0.5以上") +
       statCard((C2.plotted_ips || []).length, "geo取得済みIP") +
       '<div class="stat-card"><div class="num small-num mono">' + esc(run.date || "") +
@@ -692,6 +770,8 @@
       "<li><b>C2稼働</b>: 観測が、解析済みmalwareのC2 application稼働を示す確度です。TCP接続だけなら最大 0.25 です。</li>" +
       "<li><b>手法上限</b>: その確認方法が成功時でも単独で到達できる上限です。malware固有protocolとの一致がない限り 0.60 以下です。</li>" +
       "<li>応答なしは<b>恒久停止を意味しません</b>。connection refused は比較的強い停止側観測、timeout は firewall や経路都合でも生じる弱い観測です。</li>" +
+      "<li>最新OFFかつ、最後のON以後または初回OFFから7日以上、2回以上のOFF実観測が揃った場合だけ停止履歴へ移し、次回active対象から外します。未観測は停止日数へ数えません。</li>" +
+      "<li>共有CDN内のedge IPローテーションは履歴へ残しますが、C2インフラ自体のIP変化には数えません。</li>" +
       "<li>位置情報は登録情報ベースの推定です。設置場所やC2所有者の確定には使えません。</li>" +
       "</ul>" +
       '<p class="muted small">安全境界: 完全一致host・単一portへ各1回、timeout最大 ' +

@@ -9,6 +9,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from c2_monitoring_history import (
+    apply_monitoring_history,
+    carry_forward_active_targets,
+    load_latest_active_plan,
+)
 from maxmind_c2_enrichment import (
     EDITIONS,
     MaxMindDownloadError,
@@ -193,6 +198,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets", type=Path, required=True)
     parser.add_argument("--output-directory", type=Path, required=True)
+    parser.add_argument(
+        "--history-root",
+        type=Path,
+        help="過去runとactive対象を読むroot。既定値はoutput-directoryの親。",
+    )
     parser.add_argument("--maxmind-cache-dir", type=Path, required=True)
     parser.add_argument("--refresh-maxmind-databases", action="store_true")
     parser.add_argument(
@@ -206,6 +216,12 @@ def main() -> int:
 
     try:
         plan = json.loads(args.targets.read_text(encoding="utf-8"))
+        history_root = (args.history_root or args.output_directory.parent).resolve()
+        previous_active = load_latest_active_plan(
+            history_root,
+            current_run_name=args.output_directory.name,
+        )
+        plan, carried_forward = carry_forward_active_targets(plan, previous_active)
         validate_plan(plan)
         acquired, freshness = acquire_private_databases(
             args.maxmind_cache_dir,
@@ -213,7 +229,19 @@ def main() -> int:
             max_build_age_hours=(args.maxmind_max_build_age_hours if args.allow_network else None),
         )
         result = monitor(plan, allow_network=args.allow_network)
+        result["monitoring_continuity"] = {
+            "schema_version": 1,
+            "previous_active_plan_found": previous_active is not None,
+            "carried_forward_target_count": carried_forward,
+            "effective_target_count": len(plan["targets"]),
+        }
         result, maxmind_summary = enrich_with_acquired_databases(result, acquired, freshness)
+        result, monitoring_history, active_plan = apply_monitoring_history(
+            result,
+            plan,
+            history_root=history_root,
+            current_run_name=args.output_directory.name,
+        )
     except (OSError, json.JSONDecodeError, PlanError, ValueError, MaxMindDownloadError) as exc:
         parser.error(str(exc))
 
@@ -221,6 +249,9 @@ def main() -> int:
     results_path = args.output_directory / "monitoring-results.json"
     readme_path = args.output_directory / "README.md"
     write_json(results_path, result)
+    write_json(args.output_directory / "monitoring-history.json", monitoring_history)
+    write_json(args.output_directory / "effective-targets.json", plan)
+    write_json(args.output_directory / "active-targets.json", active_plan)
     readme_path.write_text(render_enriched_report(result), encoding="utf-8")
     print(
         json.dumps(
@@ -230,6 +261,8 @@ def main() -> int:
                 "output_directory": str(args.output_directory),
                 "network_enabled": args.allow_network,
                 "maxmind": maxmind_summary,
+                "monitoring_history": result["monitoring_history_summary"],
+                "carried_forward_target_count": carried_forward,
             },
             ensure_ascii=False,
             indent=2,

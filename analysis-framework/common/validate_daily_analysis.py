@@ -283,7 +283,15 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
     """dailyのC2限定ライブチェックとMaxMind鮮度更新を検証する。"""
     findings: list[dict[str, str]] = []
     root = repository / "analysis-results" / "research" / "c2-monitoring" / analysis_date
-    _files(root, {"README.md", "monitoring-results.json", "targets.json"}, findings)
+    required_files = {
+        "README.md",
+        "monitoring-results.json",
+        "targets.json",
+        "effective-targets.json",
+        "active-targets.json",
+        "monitoring-history.json",
+    }
+    _files(root, required_files, findings)
     results_path = root / "monitoring-results.json"
     result = _json(results_path, findings)
     policy = result.get("policy") if isinstance(result.get("policy"), dict) else {}
@@ -326,6 +334,256 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
                 "c2_live_check_missing_timestamp",
                 results_path,
                 "全C2結果にライブ観測時刻が必要です。",
+            )
+            break
+        availability = item.get("availability_status")
+        dns_tracking = item.get("dns_tracking") if isinstance(item, dict) else {}
+        lifecycle = item.get("monitoring_lifecycle") if isinstance(item, dict) else {}
+        if availability not in {"on", "off", "not_observed"}:
+            _finding(
+                findings,
+                "c2_monitoring_availability_missing",
+                results_path,
+                "全C2結果にON／OFF／未観測の正規化状態が必要です。",
+            )
+            break
+        if not isinstance(dns_tracking, dict) or not isinstance(
+            dns_tracking.get("history"), list
+        ):
+            _finding(
+                findings,
+                "c2_dns_history_missing",
+                results_path,
+                "全C2結果にDNS/IP遷移履歴が必要です。",
+            )
+            break
+        dns_history = dns_tracking.get("history")
+        dns_transitions = dns_tracking.get("transitions")
+        if not isinstance(dns_transitions, list):
+            _finding(
+                findings,
+                "c2_dns_transitions_missing",
+                results_path,
+                "全C2結果に旧IPから新IPへの遷移event listが必要です。",
+            )
+            break
+        invalid_detail = False
+        for point in dns_history:
+            if not isinstance(point, dict):
+                invalid_detail = True
+                break
+            ips = point.get("ips") if isinstance(point.get("ips"), list) else []
+            ip_details = (
+                point.get("ip_details")
+                if isinstance(point.get("ip_details"), list)
+                else []
+            )
+            if len(ip_details) != len(ips):
+                invalid_detail = True
+                break
+            for detail in ip_details:
+                infrastructure = (
+                    detail.get("infrastructure")
+                    if isinstance(detail, dict)
+                    and isinstance(detail.get("infrastructure"), dict)
+                    else {}
+                )
+                bulletproof = (
+                    infrastructure.get("bulletproof_hosting")
+                    if isinstance(infrastructure.get("bulletproof_hosting"), dict)
+                    else {}
+                )
+                if (
+                    not isinstance(detail, dict)
+                    or not isinstance(detail.get("as"), dict)
+                    or not isinstance(detail.get("geo"), dict)
+                    or not isinstance(infrastructure.get("tags"), list)
+                    or bulletproof.get("classification")
+                    not in {"confirmed", "suspected", "not_indicated", "unknown"}
+                ):
+                    invalid_detail = True
+                    break
+            if invalid_detail:
+                break
+        if invalid_detail:
+            _finding(
+                findings,
+                "c2_dns_ip_enrichment_incomplete",
+                results_path,
+                "DNS履歴の全IPにAS、Geo、インフラタグ、防弾ホスティング評価が必要です。",
+            )
+            break
+        if any(
+            not isinstance(transition, dict)
+            or not isinstance(transition.get("from"), list)
+            or not isinstance(transition.get("to"), list)
+            or not isinstance(transition.get("added"), list)
+            or not isinstance(transition.get("removed"), list)
+            for transition in dns_transitions
+        ):
+            _finding(
+                findings,
+                "c2_dns_transition_enrichment_incomplete",
+                results_path,
+                "全DNS遷移eventに旧側、新側、追加、消失のIP詳細が必要です。",
+            )
+            break
+        if not isinstance(lifecycle, dict) or lifecycle.get("status") not in {
+            "active_on",
+            "active_grace",
+            "active_unobserved",
+            "retired_stopped",
+        }:
+            _finding(
+                findings,
+                "c2_monitoring_lifecycle_missing",
+                results_path,
+                "全C2結果に継続監視または停止のライフサイクル状態が必要です。",
+            )
+            break
+
+    history_summary = (
+        result.get("monitoring_history_summary")
+        if isinstance(result.get("monitoring_history_summary"), dict)
+        else {}
+    )
+    if history_summary.get("retirement_after_days_without_on") != 7:
+        _finding(
+            findings,
+            "c2_retirement_threshold_not_seven_days",
+            results_path,
+            "C2監視停止閾値はONなし7日である必要があります。",
+        )
+    minimum_off = history_summary.get("minimum_off_observations")
+    if not isinstance(minimum_off, int) or isinstance(minimum_off, bool) or minimum_off < 2:
+        _finding(
+            findings,
+            "c2_retirement_off_observations_too_low",
+            results_path,
+            "停止判定には2回以上のOFF実観測が必要です。",
+        )
+    if history_summary.get("shared_cdn_rotation_counts_as_infrastructure_change") is not False:
+        _finding(
+            findings,
+            "c2_shared_cdn_rotation_not_excluded",
+            results_path,
+            "共有CDN内のIPローテーションはインフラIP変化件数から除外する必要があります。",
+        )
+
+    active_path = root / "active-targets.json"
+    active_plan = _json(active_path, findings)
+    active_targets = active_plan.get("targets") if isinstance(active_plan.get("targets"), list) else []
+    expected_active = history_summary.get("active_target_count")
+    if not isinstance(expected_active, int) or len(active_targets) != expected_active:
+        _finding(
+            findings,
+            "c2_active_target_count_mismatch",
+            active_path,
+            "次回active監視対象件数が履歴要約と一致しません。",
+        )
+    active_keys = {
+        (
+            str(item.get("host") or "").casefold().rstrip("."),
+            item.get("port"),
+            str(item.get("protocol") or "tcp").casefold(),
+            str(item.get("transport") or "direct").casefold(),
+            str(item.get("http_path") or ""),
+        )
+        for item in active_targets
+        if isinstance(item, dict)
+    }
+    for item in observations:
+        if not isinstance(item, dict):
+            continue
+        lifecycle = item.get("monitoring_lifecycle")
+        if not isinstance(lifecycle, dict) or lifecycle.get("status") != "retired_stopped":
+            continue
+        key = (
+            str(item.get("host") or "").casefold().rstrip("."),
+            item.get("port"),
+            str(item.get("protocol") or "tcp").casefold(),
+            str(item.get("transport") or "direct").casefold(),
+            str(item.get("http_path") or ""),
+        )
+        if key in active_keys:
+            _finding(
+                findings,
+                "c2_retired_target_still_active",
+                active_path,
+                "停止履歴へ移したC2が次回active監視対象に残っています。",
+            )
+            break
+    effective_path = root / "effective-targets.json"
+    effective_plan = _json(effective_path, findings)
+    effective_targets = (
+        effective_plan.get("targets")
+        if isinstance(effective_plan.get("targets"), list)
+        else []
+    )
+    if len(effective_targets) != target_count:
+        _finding(
+            findings,
+            "c2_effective_target_count_mismatch",
+            effective_path,
+            "今回の実効監視対象件数がライブ観測結果件数と一致しません。",
+        )
+
+    history_path = root / "monitoring-history.json"
+    monitoring_history = _json(history_path, findings)
+    history_endpoints = (
+        monitoring_history.get("endpoints")
+        if isinstance(monitoring_history.get("endpoints"), list)
+        else []
+    )
+    if monitoring_history.get("current_run") != analysis_date:
+        _finding(
+            findings,
+            "c2_monitoring_history_date_mismatch",
+            history_path,
+            "監視履歴のcurrent_runがdaily解析日と一致しません。",
+        )
+    if len(history_endpoints) < len(observations):
+        _finding(
+            findings,
+            "c2_monitoring_history_endpoint_count",
+            history_path,
+            "停止済みを含む監視履歴endpoint数が今回の観測件数を下回っています。",
+        )
+    for endpoint in history_endpoints:
+        if not isinstance(endpoint, dict):
+            _finding(
+                findings,
+                "c2_monitoring_history_invalid_endpoint",
+                history_path,
+                "監視履歴endpointはobjectである必要があります。",
+            )
+            break
+        dns_tracking = endpoint.get("dns_tracking")
+        lifecycle = endpoint.get("monitoring_lifecycle")
+        events = endpoint.get("events")
+        if (
+            not isinstance(dns_tracking, dict)
+            or not isinstance(dns_tracking.get("history"), list)
+            or not isinstance(lifecycle, dict)
+            or not isinstance(events, list)
+        ):
+            _finding(
+                findings,
+                "c2_monitoring_history_incomplete_endpoint",
+                history_path,
+                "全監視履歴endpointにDNS履歴、ライフサイクル、状態遷移eventが必要です。",
+            )
+            break
+        if lifecycle.get("status") == "retired_stopped" and not any(
+            isinstance(event, dict)
+            and event.get("event") == "monitoring_stopped_after_7d_without_on"
+            for event in events
+        ):
+            _finding(
+                findings,
+                "c2_retirement_event_missing",
+                history_path,
+                "停止済みC2には監視停止eventが必要です。",
             )
             break
     maxmind = result.get("maxmind") if isinstance(result.get("maxmind"), dict) else {}

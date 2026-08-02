@@ -160,7 +160,45 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     c2 = root / "analysis-results" / "research" / "c2-monitoring" / ANALYSIS_DATE
     c2.mkdir(parents=True)
     (c2 / "README.md").write_text("# C2ライブチェック\n", encoding="utf-8")
-    _write_json(c2 / "targets.json", {"schema_version": 1, "targets": [{}]})
+    c2_target = {
+        "target_id": "fixture-c2",
+        "host": "c2.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+    }
+    c2_target_plan = {"schema_version": 1, "targets": [c2_target]}
+    _write_json(c2 / "targets.json", c2_target_plan)
+    _write_json(c2 / "effective-targets.json", c2_target_plan)
+    _write_json(
+        c2 / "active-targets.json",
+        {
+            **c2_target_plan,
+            "lifecycle_policy": {
+                "retirement_after_days_without_on": 7,
+                "minimum_off_observations": 2,
+                "shared_cdn_rotation_counts_as_infrastructure_change": False,
+            },
+        },
+    )
+    _write_json(
+        c2 / "monitoring-history.json",
+        {
+            "schema_version": 1,
+            "current_run": ANALYSIS_DATE,
+            "endpoints": [
+                {
+                    **c2_target,
+                    "dns_tracking": {"history": [], "transitions": []},
+                    "monitoring_lifecycle": {
+                        "status": "active_on",
+                        "active": True,
+                    },
+                    "events": [],
+                }
+            ],
+        },
+    )
     _write_json(
         c2 / "monitoring-results.json",
         {
@@ -176,11 +214,41 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
             "target_count": 1,
             "results": [
                 {
+                    **c2_target,
+                    "availability_status": "on",
                     "observation": {
                         "timestamp_utc": "2026-07-30T00:00:00+00:00",
-                    }
+                    },
+                    "dns_tracking": {
+                        "history": [
+                            {
+                                "date": ANALYSIS_DATE,
+                                "observed_at_utc": "2026-07-30T00:00:00+00:00",
+                                "ips": [],
+                                "ip_details": [],
+                                "raw_ip_changed": False,
+                                "infrastructure_ip_change": False,
+                                "change_classification": "initial_observation",
+                                "transition": None,
+                            }
+                        ],
+                        "transitions": [],
+                    },
+                    "monitoring_lifecycle": {
+                        "status": "active_on",
+                        "active": True,
+                    },
                 }
             ],
+            "monitoring_history_summary": {
+                "schema_version": 1,
+                "endpoint_count": 1,
+                "active_target_count": 1,
+                "retired_target_count": 0,
+                "retirement_after_days_without_on": 7,
+                "minimum_off_observations": 2,
+                "shared_cdn_rotation_counts_as_infrastructure_change": False,
+            },
             "maxmind": {
                 "freshness_policy": {
                     "checked_before_live_check": True,

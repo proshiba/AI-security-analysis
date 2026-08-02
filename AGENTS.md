@@ -198,10 +198,19 @@
 
 - C2監視結果を作成または更新するときは、観測時に得たglobal IPをGeoLite2 City/ASNで照合し、Geo・AS情報とDB provenanceを結果へ付与すること。
 - 標準経路として`analysis-framework/common/run_c2_monitoring_pipeline.py`を使い、限定観測、MaxMind照合、JSON／Markdown生成を一括実行すること。
-- daily解析では、当日解析から得たC2候補を`targets.json`へ統合し、統合ランナーを`--allow-network`付きで実行すること。ライブチェック未実施のままdaily解析を完了扱い、commit、pushまたはPR更新してはならない。
+- daily解析では、`build_all_c2_monitoring_targets.py`で`analysis-results`全体のIOC履歴のC2／control／exfil候補を再収集し、`.onion`を除く通常のglobal IP／FQDNを100% `targets.json`へ反映してから、統合ランナーを`--allow-network`付きで実行すること。既知portは完全一致endpointへ限定接続し、port不明hostはDNS-onlyとしてC2稼働と区別すること。`candidate-inventory.json`へ走査数、カバレッジ、除外理由を残すこと。ライブチェック未実施のままdaily解析を完了扱い、commit、pushまたはPR更新してはならない。
+- 静的解析または過去の限定観測でmalware固有heartbeat、check-in、server-first handshakeを復元済みのC2は、単純な`tcp_connect`へ降格させず、`c2_protocol_probe_profiles.json`のレビュー済み完全一致profileを適用すること。profile ID、host、port、protocol、methodが一致しない場合はfail-closedとし、未知または未レビュー対象へmalware protocolを送信しないこと。
+- active protocolの送信値、期待応答長、SNI、IP pinningは`targets.json`へ直接記述せず、レビュー済みregistryだけを正本とすること。1対象1回、最大3秒、Winos／vvaSは最大64 byte、N520 server-firstは44 byteに限定し、victim metadata、stage要求、command polling、任意commandを送信しないこと。結果にはprofile適用数、実送信数、protocol確認数を残すこと。
 - ライブチェック前にGeoLite2 City/ASN両DBのbuild時刻を確認し、いずれかが24時間以上前なら両DBを更新して公式checksumを検証すること。鮮度確認または取得に失敗した場合は、先にC2へ接続せずfail-closedで終了すること。
 - `MAXMIND_LICENSE_KEY`、Authorization header、署名付きdownload URL、MMDB本体をリポジトリや公開成果物へ保存しないこと。DBはリポジトリ外のprivate cacheへ保存すること。
 - GeoLite2は概略位置情報であり、個人・住所・攻撃者所在地・C2稼働を確定する根拠として扱わないこと。
+- C2のdomainは日次観測ごとのA／AAAA解決先、ASN、organization、観測日時を履歴化すること。生IPの変化は保持し、同一Cloudflare、Akamai、Fastly等の共有CDN provider内のedge IPローテーションはC2インフラ変化件数から除外すること。CDN provider変更または非CDN IP変更は別に記録すること。
+- DNS/IP履歴の各IPにはAS番号・AS組織、国・地域・都市、インフラタグ、防弾ホスティング評価を保存すること。IP集合が変わった場合は、旧側、新側、追加、消失の各集合に完全なIP詳細を保持し、単純なIP文字列だけの遷移を作らないこと。
+- インフラタグは根拠と確度を持たせ、`DNS解決先`、`ホスティング`、`CDN`、`Anycast／共有エッジ`、`VPN／Proxy`、`Tor関連`、`ドメイン事業者`、`C2候補インフラ`を区別すること。service種別タグはproviderの悪性、攻撃者、C2所有を意味しない。
+- `防弾ホスティング`はprovider自身の明示、政府措置、または信頼できる脅威インテリジェンスの明示評価がある場合だけ付与すること。高密度かつ継続的なC2悪用等の状況証拠に基づく場合は`防弾ホスティング - 疑い`に限定し、単一の悪性IP観測だけでは付与しないこと。共有CDN edgeからoriginを推定しないこと。
+- 防弾ホスティングとインフラ分類のregistryには、根拠URL、公開日または観測期間、取得日、確度、判断理由を保存すること。根拠の更新時は過去履歴を消さず、評価変更が追跡できる形にすること。
+- 全履歴から再生成した対象へ直近の`active-targets.json`を統合し、ON、7日未満のOFF、未観測の対象を継続監視すること。`.onion`は監視対象へ再追加しないこと。最新観測がOFFで、最後のON以後または初回OFFから7日以上経過し、2回以上のOFF実観測がある対象だけを`retired_stopped`として停止履歴へ移し、次回active対象から外すこと。単発timeout、DNS解決失敗、DNS-only観測だけで停止しないこと。
+- 停止と再開の状態遷移は`monitoring-history.json`へ残すこと。停止済み対象が後日ONになった場合は再開履歴を付け、active監視へ戻すこと。
 
 ## 新規解析の全体反映ルール
 
