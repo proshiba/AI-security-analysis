@@ -237,6 +237,245 @@ def load_history() -> dict[str, list[dict]]:
 CODE_GROUP_CASE_CAP = 20
 
 
+C2_STATE_LABELS = {
+    "c2_protocol_confirmed": ("C2プロトコル一致", "confirmed"),
+    "application_endpoint_reachable_c2_not_confirmed": ("HTTP応答あり(C2未確認)", "app"),
+    "server_first_response_reachable_c2_not_confirmed": ("banner応答あり(C2未確認)", "app"),
+    "tls_endpoint_reachable_c2_not_confirmed": ("TLS成立(C2未確認)", "tls"),
+    "transport_reachable_c2_not_confirmed": ("TCP到達(C2未確認)", "tcp"),
+    "not_reachable_at_observation": ("観測時点で応答なし", "down"),
+    "not_observed_proxy_unavailable": ("観測経路なし(未観測)", "unknown"),
+}
+
+
+def c2_geo_table(run_dirs: list[Path]) -> dict[str, dict]:
+    """日付別の ip-geo.json を統合する。新しい観測の値で上書きする。"""
+    table: dict[str, dict] = {}
+    for run_dir in run_dirs:
+        payload = read_json(run_dir / "ip-geo.json") or {}
+        for entry in payload.get("ips") or []:
+            address = entry.get("ip")
+            if not address or not entry.get("geo_resolved"):
+                continue
+            table[address] = {
+                "country": entry.get("country"),
+                "country_code": entry.get("country_code"),
+                "continent": entry.get("continent"),
+                "region": entry.get("region"),
+                "city": entry.get("city"),
+                "lat": entry.get("latitude"),
+                "lon": entry.get("longitude"),
+                "asn": entry.get("asn"),
+                "org": entry.get("organization"),
+                "isp": entry.get("isp"),
+                "observed_on": run_dir.name,
+            }
+    return table
+
+
+def clickfix_dns_timeline() -> list[dict]:
+    """ClickFix基盤の日付別caseから、ドメインの解決IP推移を組み立てる。
+
+    `analysis-results/clickfix/<domain>/cases/<YYYYMMDD-...>/infrastructure.json`
+    はcase毎に観測時点のAレコードを持つ。同一ドメインの複数caseを日付順に
+    並べ、解決結果が変わった時点だけを遷移として残す。
+    """
+    root = RESULTS / "clickfix"
+    if not root.is_dir():
+        return []
+    timelines: list[dict] = []
+    for domain_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+        points: list[dict] = []
+        for case_dir in sorted((domain_dir / "cases").glob("*")):
+            payload = read_json(case_dir / "infrastructure.json")
+            if not payload:
+                continue
+            layers = payload.get("evidence_layers") or {}
+            records = ((layers.get("current_passive_dns") or {}).get("A") or {})
+            addresses = sorted(
+                {
+                    str(record.get("data"))
+                    for record in records.get("records") or []
+                    if record.get("type") == 1 and record.get("data")
+                }
+            )
+            pivot = layers.get("ip_pivot") or {}
+            asn = pivot.get("asn") or {}
+            stamp = case_dir.name[:8]
+            points.append(
+                {
+                    "date": f"{stamp[0:4]}-{stamp[4:6]}-{stamp[6:8]}" if len(stamp) == 8 else stamp,
+                    "case": case_dir.name,
+                    "ips": addresses,
+                    "dns_status": records.get("status"),
+                    "pivot": pivot.get("address"),
+                    "country_code": asn.get("country_code"),
+                    "asn": asn.get("asn"),
+                    "org": asn.get("organization") or asn.get("isp"),
+                }
+            )
+        if not points:
+            continue
+        points.sort(key=lambda item: item["date"])
+        timelines.append(
+            {
+                "host": domain_dir.name,
+                "source": "clickfix",
+                "path": (domain_dir.relative_to(REPO_ROOT)).as_posix(),
+                "points": points,
+                "changes": sum(
+                    1
+                    for index in range(1, len(points))
+                    if points[index]["ips"] != points[index - 1]["ips"]
+                ),
+            }
+        )
+    return timelines
+
+
+def load_c2_monitoring(known_shas: set[str]) -> dict:
+    """C2稼働監視の日付別ランを集約し、endpoint毎の観測履歴とgeoを返す。
+
+    `analysis-results/research/c2-monitoring/<YYYY-MM-DD>/` を新しい順に読み、
+    endpoint(host:port)ごとに最新観測と全ランの履歴を持たせる。到達性と
+    C2稼働確度は生成側でも混ぜず、そのままUIへ渡す。
+    """
+    root = RESULTS / "research" / "c2-monitoring"
+    run_dirs = sorted(
+        (p for p in root.glob("*") if p.is_dir() and read_json(p / "monitoring-results.json")),
+        reverse=True,
+    ) if root.is_dir() else []
+
+    runs: list[dict] = []
+    endpoints: dict[str, dict] = {}
+    host_points: dict[str, list[dict]] = {}
+
+    for run_dir in run_dirs:
+        payload = read_json(run_dir / "monitoring-results.json") or {}
+        runs.append(
+            {
+                "date": run_dir.name,
+                "path": run_dir.relative_to(REPO_ROOT).as_posix(),
+                "generated_at": payload.get("generated_at_utc"),
+                "window": payload.get("analysis_window"),
+                "target_count": payload.get("target_count"),
+                "state_counts": payload.get("state_counts"),
+                "policy": payload.get("policy"),
+                "environment": payload.get("observation_environment"),
+            }
+        )
+        for entry in payload.get("results") or []:
+            host = entry.get("host")
+            port = entry.get("port")
+            if not host:
+                continue
+            key = f"{host}:{port}"
+            observation = entry.get("observation") or {}
+            assessment = entry.get("assessment") or {}
+            state = assessment.get("state")
+            label, tone = C2_STATE_LABELS.get(state, (state, "unknown"))
+            point = {
+                "date": run_dir.name,
+                "timestamp": observation.get("timestamp_utc"),
+                "state": state,
+                "state_label": label,
+                "tone": tone,
+                "alive": bool(observation.get("alive")),
+                "resolved_ips": observation.get("resolved_ips") or [],
+                "tcp_status": observation.get("tcp_status"),
+                "status": observation.get("status"),
+                "elapsed_ms": observation.get("elapsed_ms"),
+                "reachability": assessment.get("reachability_confidence"),
+                "c2_operational": assessment.get("c2_operational_confidence"),
+                "ceiling": assessment.get("method_confidence_ceiling"),
+                "negative": assessment.get("negative_observation_confidence"),
+                "reason": assessment.get("reason"),
+            }
+            record = endpoints.get(key)
+            if record is None:
+                record = {
+                    "id": entry.get("target_id") or key,
+                    "host": host,
+                    "port": port,
+                    "protocol": entry.get("protocol"),
+                    "transport": entry.get("transport"),
+                    "method": entry.get("method"),
+                    "method_label": entry.get("method_description"),
+                    "http_path": entry.get("http_path"),
+                    "family": entry.get("family"),
+                    "onion": str(host).endswith(".onion"),
+                    "cases": [
+                        sha for sha in entry.get("sample_sha256s") or [] if sha in known_shas
+                    ],
+                    "case_count": entry.get("associated_case_count"),
+                    "analyzed_dates": entry.get("analyzed_dates") or [],
+                    "sources": entry.get("sources") or [],
+                    "shodan": observation.get("shodan"),
+                    "history": [],
+                }
+                endpoints[key] = record
+            record["history"].append(point)
+            if point["resolved_ips"]:
+                host_points.setdefault(host, []).append(
+                    {"date": run_dir.name, "case": None, "ips": sorted(point["resolved_ips"])}
+                )
+
+    ordered: list[dict] = []
+    for record in endpoints.values():
+        # run_dirs は新しい順に読んでいるので history の先頭が最新観測
+        record["latest"] = record["history"][0] if record["history"] else None
+        ordered.append(record)
+    ordered.sort(
+        key=lambda item: (
+            -(item["latest"] or {}).get("c2_operational", 0) or 0,
+            str(item.get("family") or ""),
+            str(item.get("host")),
+            item.get("port") or 0,
+        )
+    )
+
+    monitor_timelines = []
+    for host, points in sorted(host_points.items()):
+        merged: dict[str, set] = {}
+        for point in points:
+            merged.setdefault(point["date"], set()).update(point["ips"])
+        series = [
+            {"date": date, "case": None, "ips": sorted(values)}
+            for date, values in sorted(merged.items())
+        ]
+        monitor_timelines.append(
+            {
+                "host": host,
+                "source": "c2-monitor",
+                "path": None,
+                "points": series,
+                "changes": sum(
+                    1
+                    for index in range(1, len(series))
+                    if series[index]["ips"] != series[index - 1]["ips"]
+                ),
+            }
+        )
+
+    geo = c2_geo_table(run_dirs)
+    plotted = sorted(
+        {
+            address
+            for record in ordered
+            for address in (record["latest"] or {}).get("resolved_ips", [])
+            if address in geo
+        }
+    )
+    return {
+        "runs": runs,
+        "endpoints": ordered,
+        "geo": geo,
+        "ip_history": monitor_timelines + clickfix_dns_timeline(),
+        "state_labels": {k: {"label": v[0], "tone": v[1]} for k, v in C2_STATE_LABELS.items()},
+        "plotted_ips": plotted,
+    }
+
+
 def load_intel(known_shas: set[str]) -> dict:
     """intelligence調査が参照するcampaign相関候補とコード類似索引を集約する。
 
@@ -696,6 +935,7 @@ def build() -> dict:
     orphan_history = sum(1 for sha in history if sha not in known_shas)
 
     intel = load_intel(known_shas)
+    c2monitor = load_c2_monitoring(known_shas)
 
     stats = {
         "case_total": len(cases),
@@ -707,6 +947,9 @@ def build() -> dict:
         "orphan_history": orphan_history,
         "campaign_candidates": len(intel["campaigns"]),
         "code_links": len(intel["code_links"]),
+        "c2_endpoints": len(c2monitor["endpoints"]),
+        "c2_runs": len(c2monitor["runs"]),
+        "c2_geo_ips": len(c2monitor["geo"]),
     }
 
     return {
@@ -716,6 +959,7 @@ def build() -> dict:
         "families": families,
         "cases": cases,
         "intel": intel,
+        "c2monitor": c2monitor,
     }
 
 

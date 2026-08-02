@@ -81,6 +81,7 @@ python3 ui/build_portal_index.py --validate # 仕様v1の自己検証だけを�
 | ケース検索 (`#/cases`) | SHA-256、ファミリ、キャンペーン種別、コレクション、C2有無、IOC値、ファイル名の横断検索 |
 | IOC検索 (`#/iocs`) | 全ケースの `IOC-LIST.md` を集約したIOC表。種別フィルタと値の一括コピー、各行から横断ポータルのグラフ調査へのpivot（⊕） |
 | キャンペーン相関 (`#/intel`) | intelligence調査のcampaign相関候補一覧・詳細（共有指標、相関ケース、ルール、制約） |
+| C2稼働状況 (`#/c2`) | C2監視ランの最新観測。**世界地図へのIPプロット**（ホイールで拡大／ドラッグで移動／点クリックで一覧を絞り込み）、endpoint一覧（到達・C2稼働・手法上限のconfidence）、**ドメインの解決IP推移**、観測の読み方と安全境界 |
 | ファミリ別ページ (`#/family/<key>`) | ケース一覧、YARA/Sigmaルール、概要・OSINT・技術解析・版情報などの文書タブ |
 | ケース別ページ (`#/case/<sha256>`) | 判定・検体メタデータ、C2、挙動・機能、検体特徴、IOC表、検知ルール、解析履歴タイムライン、ケースREADME、成果物ファイルへのリンク |
 
@@ -123,8 +124,37 @@ UIのフッターに、解析で参照している外部サービスのクレジ
 | 解析対象検体の取得 | MalwareBazaar（abuse.ch）、VX-Underground |
 | サンドボックス・照会 | VirusTotal（file behaviours の挙動・ハッシュ照会）、Hatching Triage（process／network 証跡）、ANY.RUN、Shodan（受動的なインフラ調査） |
 | 公開情報・知識ベース | MITRE ATT&CK、JPCERT/CC、および各セキュリティベンダー・研究者の公開レポート |
+| インフラ位置・地図 | ipwho.is（C2 IPの国・都市・ASN照会。対象C2へは接続しない）、Natural Earth（世界地図の輪郭 / public domain）、Tor Project（.onion endpointの観測経路） |
 
 個別の出典は各ケース／ファミリの `OSINT.md` に記載しています。掲載は `ui/index.html` のフッター（`.credits`）を直接編集します。参照先を増減した場合はここも更新してください。
+
+## C2稼働状況と世界地図
+
+`#/c2` は `monitor_recent_c2.py` の観測結果を表示します。**到達性**と**C2 applicationが稼働している確度**は生成側でもUI側でも混ぜず、`到達` / `C2稼働` / `手法上限` の3本を別々に出します。TCP接続だけで到達しても、C2稼働確度は 0.25 を超えません。
+
+地図に必要な緯度経度は、監視結果とは別の成果物から読みます。
+
+```bash
+# 解決IPのgeo照会(既定は計画表示のみ。--allow-network で初めて外部へ出る)
+python3 analysis-framework/common/enrich_c2_geo.py \
+  --results analysis-results/research/c2-monitoring/2026-08-02/ --allow-network
+
+# 網羅の検証(通信なし)
+python3 analysis-framework/common/enrich_c2_geo.py \
+  --results analysis-results/research/c2-monitoring/2026-08-02/ --check
+```
+
+照会先は第三者のIP情報API（`ipwho.is`）だけで、**監視対象のC2へは接続しません**。private／loopback／reserved と `.onion` は照会対象外です。位置は登録情報ベースの推定であり、設置場所やC2所有者の確定には使えません。UIでもその旨を併記しています。
+
+世界地図の輪郭は Natural Earth 110m（public domain）を等距円筒で投影して `ui/worldmap.js` に同梱しています（約120KiB、176か国）。外部CDNは読みません。地図とプロット点には同じ投影を掛けるので、点と国境は必ず一致します。再生成は次のとおりです。
+
+```bash
+python3 ui/build_world_map.py    # 既定でNatural Earthの110m countriesを取得して再生成
+python3 ui/build_world_map.py --check
+```
+
+`worldmap.js` は取り込み済みの静的アセットなので、デプロイのたびに再生成はしません（生成には外部取得が必要なため、CIの整合性チェックには含めていません）。
+
 
 ## グラフ調査は横断ポータルへ集約
 
@@ -150,6 +180,8 @@ https://proshiba.github.io/research_bench/#/search/<値>
 - `analysis-results/malware/<family>/` の `README.md`・`OSINT.md`・`TECHNICAL-ANALYSIS.md`・`VERSIONS.md`・`CAMPAIGNS.md`・`BEHAVIOR-C2.md` と `rules/`(YARA/Sigma)
 - `analysis_history.yaml`: 検体SHA-256ごとの解析履歴(解析日、解析レベル、campaign type、一致パターン、主要C2)
 - `analysis-results/research/campaigns/correlated-*/campaigns.json`（最新版）: `intelligence/` 定期調査が参照するcampaign相関候補とcase別label
+- `analysis-results/research/c2-monitoring/<YYYY-MM-DD>/`: `monitoring-results.json`（endpoint毎の観測と到達／C2稼働confidence）と `ip-geo.json`（解決IPの国・都市・緯度経度・ASN）。日付ディレクトリを新しい順に読み、endpoint(host:port)単位で最新観測と全ランの履歴を持たせます
+- `analysis-results/clickfix/<domain>/cases/<YYYYMMDD-...>/infrastructure.json`: 日付別caseのAレコードから、ドメインの解決IP推移を組み立てます
 - `analysis-results/catalog/code-similarity.json`: 意味トークン列SHA-256が完全一致する関数groupだけをケース間リンクへ集約（SimHash近似は含めない）。21ケース以上に広がるgroupはlibrary/compiler由来の可能性が高いため除外
 
 サイズ抑制のため、ケース単位の `STATIC-LOGIC.md` と `FEATURES.md` は全文を埋め込まず、ケースページの「成果物ファイル」からのリンク参照とします(挙動・特徴は `features.json` 由来の構造化データで表示します)。

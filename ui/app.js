@@ -392,6 +392,7 @@
       if (page === "cases") return viewCases(r.query);
       if (page === "iocs") return viewIocs(r.query);
       if (page === "search") return viewSearch(r.query);
+      if (page === "c2") return viewC2(r.query);
       if (page === "intel" && r.parts[1]) return viewIntelDetail(decodeURIComponent(r.parts[1]));
       if (page === "intel") return viewIntelList(r.query);
       if (page === "family" && r.parts[1]) return viewFamily(r.parts[1], r.query);
@@ -401,6 +402,433 @@
       app.innerHTML = '<div class="empty">表示中にエラーが発生しました: ' + esc(e.message) + "</div>";
       throw e;
     }
+  }
+
+  /* ---------- C2稼働状況 ---------- */
+
+  var C2 = DB.c2monitor || { runs: [], endpoints: [], geo: {}, ip_history: [], plotted_ips: [] };
+
+  // 観測結果の強さを配色に対応させる。到達したかどうかではなく、
+  // 「C2 applicationの稼働をどこまで示すか」で段階を分ける。
+  var C2_TONES = {
+    confirmed: "t-confirmed", app: "t-app", tls: "t-tls",
+    tcp: "t-tcp", down: "t-down", unknown: "t-unknown"
+  };
+
+  function toneClass(tone) { return C2_TONES[tone] || C2_TONES.unknown; }
+
+  function c2GeoOf(ip) { return C2.geo && C2.geo[ip]; }
+
+  // ケースSHA-256から、そのケース由来のC2を監視しているendpointを引く
+  var c2ByCase = {};
+  C2.endpoints.forEach(function (ep) {
+    (ep.cases || []).forEach(function (sha) {
+      (c2ByCase[sha] = c2ByCase[sha] || []).push(ep);
+    });
+  });
+  function c2EndpointsForCase(sha) { return c2ByCase[sha] || []; }
+
+  function geoLabel(g) {
+    if (!g) return "";
+    return [g.city, g.region, g.country].filter(Boolean).join(", ");
+  }
+
+  function confBar(value, label) {
+    var v = typeof value === "number" ? value : 0;
+    var pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
+    return '<div class="cbar" title="' + esc(label + ": " + v) + '">' +
+      '<span class="cbar-lbl">' + esc(label) + "</span>" +
+      '<span class="cbar-track"><span class="cbar-fill" style="width:' + pct + '%"></span></span>' +
+      '<span class="cbar-num mono">' + v.toFixed(2) + "</span></div>";
+  }
+
+  // 地図とプロット点へ同じ等距円筒変換をかける。worldmap.js の bounds が
+  // 変わっても点がずれないよう、投影の定数は必ず地図データ側から読む。
+  function mapProjector(map) {
+    var scale = map.width / (map.bounds.max_lon - map.bounds.min_lon);
+    return function (lat, lon) {
+      return {
+        x: (lon - map.bounds.min_lon) * scale,
+        y: (map.bounds.max_lat - lat) * scale
+      };
+    };
+  }
+
+  // 同じ座標に複数IPが載ることがあるので、地点単位へ束ねる。
+  function c2MapPoints() {
+    var byPlace = {};
+    C2.endpoints.forEach(function (ep) {
+      var ips = (ep.latest && ep.latest.resolved_ips) || [];
+      ips.forEach(function (ip) {
+        var g = c2GeoOf(ip);
+        if (!g || typeof g.lat !== "number" || typeof g.lon !== "number") return;
+        var key = g.lat + "," + g.lon;
+        if (!byPlace[key]) byPlace[key] = { geo: g, ips: [], eps: [] };
+        if (byPlace[key].ips.indexOf(ip) < 0) byPlace[key].ips.push(ip);
+        byPlace[key].eps.push(ep);
+      });
+    });
+    return Object.keys(byPlace).map(function (k) { return byPlace[k]; });
+  }
+
+  function strongest(eps) {
+    var best = null;
+    eps.forEach(function (ep) {
+      var v = (ep.latest && ep.latest.c2_operational) || 0;
+      if (!best || v > ((best.latest && best.latest.c2_operational) || 0)) best = ep;
+    });
+    return best;
+  }
+
+  function c2MapHtml() {
+    var map = window.WORLD_MAP;
+    if (!map) return '<div class="empty">地図データ(worldmap.js)が読み込まれていません。</div>';
+    var points = c2MapPoints();
+    var project = mapProjector(map);
+    var hot = {};
+    points.forEach(function (p) { if (p.geo.country_code) hot[p.geo.country_code] = true; });
+
+    var land = map.countries.map(function (c) {
+      var cls = "land" + (hot[c.cc] ? " land-hot" : "");
+      return '<path class="' + cls + '" d="' + c.d + '"><title>' + esc(c.name) + "</title></path>";
+    }).join("");
+
+    var marks = points.map(function (p, i) {
+      var pos = project(p.geo.lat, p.geo.lon);
+      var lead = strongest(p.eps);
+      var tone = toneClass((lead && lead.latest && lead.latest.tone) || "unknown");
+      var r = 3.2 + Math.min(4, p.eps.length - 1) * 0.9;
+      return '<g class="mark ' + tone + '" data-idx="' + i + '">' +
+        '<circle class="mark-halo" cx="' + pos.x + '" cy="' + pos.y + '" r="' + (r + 4) + '"></circle>' +
+        '<circle class="mark-dot" cx="' + pos.x + '" cy="' + pos.y + '" r="' + r + '"></circle></g>';
+    }).join("");
+
+    var noGeo = 0;
+    C2.endpoints.forEach(function (ep) {
+      var ips = (ep.latest && ep.latest.resolved_ips) || [];
+      if (!ips.length || !ips.some(function (ip) { return c2GeoOf(ip); })) noGeo++;
+    });
+
+    return '<div class="section c2map-section"><h2>C2インフラの所在（最新観測）</h2>' +
+      '<div class="c2map-wrap">' +
+      '<svg id="c2map" viewBox="0 0 ' + map.width + " " + map.height + '" ' +
+      'preserveAspectRatio="xMidYMid meet" role="img" aria-label="C2インフラの世界地図">' +
+      '<g id="c2map-view"><g class="lands">' + land + "</g>" + marks + "</g></svg>" +
+      '<div id="c2map-tip" class="c2map-tip" hidden></div>' +
+      '<div class="c2map-tools"><button type="button" id="c2map-reset" class="btn-mini">表示をリセット</button>' +
+      '<span class="muted small">ホイールで拡大・ドラッグで移動。点をクリックすると下の一覧を絞り込みます。</span></div>' +
+      "</div>" +
+      '<div class="c2map-legend">' +
+      Object.keys(C2.state_labels || {}).map(function (k) {
+        var s = C2.state_labels[k];
+        return '<span class="lg"><i class="' + toneClass(s.tone) + '"></i>' + esc(s.label) + "</span>";
+      }).join("") + "</div>" +
+      '<p class="muted small">プロットは最新観測でDNS解決できたIPだけです（' + points.length + "地点 / " +
+      esc((C2.plotted_ips || []).length) + "IP)。" +
+      (noGeo ? "解決IPが無い、またはgeo未取得のendpointが " + noGeo + " 件あります（.onion を含む）。" : "") +
+      "位置は登録情報ベースの推定で、物理的な設置場所やC2所有者を示すものではありません。</p></div>";
+  }
+
+  function c2EndpointRow(ep, index) {
+    var l = ep.latest || {};
+    var ips = l.resolved_ips || [];
+    var geoHtml = ips.map(function (ip) {
+      var g = c2GeoOf(ip);
+      return '<div class="ipline"><span class="mono">' + esc(ip) + "</span>" +
+        (g ? '<span class="ipgeo">' + esc(g.country_code || "") + " " + esc(geoLabel(g)) +
+          (g.asn ? ' <span class="muted">AS' + esc(g.asn) + " " + esc(g.org || "") + "</span>" : "") +
+          "</span>" : '<span class="ipgeo muted">geo未取得</span>') + "</div>";
+    }).join("");
+
+    var caseLinks = (ep.cases || []).slice(0, 4).map(function (sha) {
+      return "<a class='mono' href='#/case/" + sha + "'>" + shortSha(sha) + "</a>";
+    }).join(" ");
+    var extra = (ep.case_count || 0) - (ep.cases || []).length;
+
+    return '<tr class="c2row" data-idx="' + index + '">' +
+      "<td class='nowrap'>" + esc(ep.family || "") + "</td>" +
+      "<td class='mono'>" + esc(ep.host) + ":" + esc(ep.port) +
+        (ep.http_path ? " <span class='muted'>" + esc(ep.http_path) + "</span>" : "") +
+        (ep.onion ? " <span class='tag'>Tor</span>" : "") + "</td>" +
+      "<td><span class='badge " + toneClass(l.tone) + "'>" + esc(l.state_label || "") + "</span>" +
+        "<div class='muted small'>" + esc(l.reason || "") + "</div></td>" +
+      "<td class='conf'>" + confBar(l.reachability, "到達") + confBar(l.c2_operational, "C2稼働") +
+        confBar(l.ceiling, "手法上限") + "</td>" +
+      "<td>" + (geoHtml || "<span class='muted'>―</span>") + "</td>" +
+      "<td class='small'>" + esc(ep.method_label || ep.method || "") + "</td>" +
+      "<td class='small'>" + (caseLinks || "<span class='muted'>―</span>") +
+        (extra > 0 ? " <span class='muted'>+" + extra + "</span>" : "") + "</td>" +
+      "<td class='nowrap mono small'>" + esc((l.date || "")) + "</td></tr>";
+  }
+
+  function ipCell(ips) {
+    return (ips && ips.length ? ips : ["解決なし"]).map(function (ip) {
+      var g = c2GeoOf(ip);
+      return "<span class='mono'>" + esc(ip) + "</span>" +
+        (g && g.country_code ? " <span class='muted'>" + esc(g.country_code) + "</span>" : "");
+    }).join("<br>");
+  }
+
+  function timelineHtml(t) {
+    var cells = t.points.map(function (p, i) {
+      var moved = i > 0 && t.points[i - 1].ips.join() !== p.ips.join();
+      return '<li class="' + (moved ? "moved" : "") + '">' +
+        '<span class="tl-date mono">' + esc(p.date) + "</span>" +
+        '<span class="tl-ips">' + ipCell(p.ips) + "</span>" +
+        (moved ? '<span class="tl-flag">変化</span>' : "") + "</li>";
+    }).join("");
+    return '<div class="tl"><div class="tl-host">' +
+      portalLink(t.host, esc(t.host), "mono", "ポータルのグラフ調査で開く") +
+      '<span class="tl-src">' + esc(t.source) + "</span>" +
+      (t.changes ? '<span class="tl-chg">' + t.changes + " 回変化</span>"
+                 : '<span class="muted small">変化なし</span>') +
+      (t.path ? " <a class='small' target='_blank' rel='noopener noreferrer' href='" +
+        esc(fileUrl(t.path, true)) + "'>成果物</a>" : "") +
+      "</div><ul class='tl-list'>" + cells + "</ul></div>";
+  }
+
+  // 変化のあった系列だけ時系列を展開し、残りは絞り込める一覧に畳む。
+  // 観測が積み上がるまでは大半が「変化なし」なので、既定で全部展開すると
+  // ページが単調な繰り返しで埋まってしまう。
+  function ipHistoryHtml() {
+    var rows = (C2.ip_history || []).filter(function (t) { return t.points && t.points.length; });
+    var changed = rows.filter(function (t) { return t.changes > 0; });
+    var stable = rows.filter(function (t) { return !t.changes; });
+
+    var html = '<div class="section"><h2>ドメインの解決IP推移</h2>' +
+      '<p class="muted small">C2監視ランと ClickFix 基盤調査の日付別caseから、同一ホストの解決IPを時系列に並べています。' +
+      "IPが入れ替わった系列を先に出し、変化していない系列は下の一覧に畳んでいます。</p>";
+
+    html += '<div class="ip-sum">対象 <b>' + rows.length + "</b> ホスト ／ 解決IPが変化したのは <b>" +
+      changed.length + "</b> ホスト ／ 観測点の総数 " +
+      rows.reduce(function (n, t) { return n + t.points.length; }, 0) + "</div>";
+
+    if (changed.length) {
+      html += changed.map(timelineHtml).join("");
+    } else {
+      html += '<div class="empty">解決IPが入れ替わったホストはまだありません。' +
+        "同じホストを別日に再観測した時点で、ここに遷移が並びます。</div>";
+    }
+
+    html += '<div class="ip-stable"><div class="ip-stable-head">' +
+      "<h3>観測済みホスト（" + stable.length + "）</h3>" +
+      '<input id="ip-hist-q" type="search" autocomplete="off" placeholder="ホスト名で絞り込み">' +
+      '<span id="ip-hist-count" class="muted small"></span></div>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      "<th>ホスト</th><th>取得元</th><th class='num'>観測回数</th><th>最新の解決IP</th><th>最新観測日</th>" +
+      "</tr></thead><tbody id='ip-hist-rows'>" +
+      stable.map(function (t) {
+        var last = t.points[t.points.length - 1];
+        return "<tr class='iphrow' data-host='" + esc(t.host.toLowerCase()) + "'>" +
+          "<td class='mono'>" + portalLink(t.host, esc(t.host), "mono") + "</td>" +
+          "<td class='small'>" + esc(t.source) + "</td>" +
+          "<td class='num mono'>" + t.points.length + "</td>" +
+          "<td>" + ipCell(last.ips) + "</td>" +
+          "<td class='nowrap mono small'>" + esc(last.date) + "</td></tr>";
+      }).join("") +
+      "</tbody></table></div></div></div>";
+    return html;
+  }
+
+  function wireIpHistory() {
+    var input = document.getElementById("ip-hist-q");
+    if (!input) return;
+    var rows = Array.prototype.slice.call(document.querySelectorAll("#ip-hist-rows .iphrow"));
+    var count = document.getElementById("ip-hist-count");
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (tr) {
+        var hit = !q || tr.getAttribute("data-host").indexOf(q) >= 0;
+        tr.hidden = !hit;
+        if (hit) shown++;
+      });
+      if (count) count.textContent = q ? shown + " / " + rows.length + " 件" : "";
+    });
+  }
+
+  function viewC2(query) {
+    if (!C2.endpoints.length) {
+      app.innerHTML = '<h1 class="page-title">C2稼働状況</h1>' +
+        '<div class="empty">C2監視の成果物がまだありません。' +
+        "<code>analysis-framework/common/monitor_recent_c2.py</code> の結果が " +
+        "<code>analysis-results/research/c2-monitoring/</code> に入ると表示されます。</div>";
+      return;
+    }
+    var run = C2.runs[0] || {};
+    var eps = C2.endpoints;
+    var reachable = eps.filter(function (e) { return e.latest && e.latest.alive; }).length;
+    var strongEps = eps.filter(function (e) { return e.latest && (e.latest.c2_operational || 0) >= 0.5; }).length;
+
+    var html = '<h1 class="page-title">C2稼働状況</h1>' +
+      '<p class="page-sub">解析済み検体から人がレビューしたC2 endpointへ、限定的な観測を1回だけ行った結果です。' +
+      "到達性と「C2 applicationが稼働している確度」は別々に扱います。</p>" +
+      '<div class="stat-grid">' +
+      statCard(eps.length, "監視endpoint") +
+      statCard(reachable, "観測時に応答あり") +
+      statCard(eps.length - reachable, "応答なし") +
+      statCard(strongEps, "C2稼働確度 0.5以上") +
+      statCard((C2.plotted_ips || []).length, "geo取得済みIP") +
+      '<div class="stat-card"><div class="num small-num mono">' + esc(run.date || "") +
+      '</div><div class="lbl">最新観測日</div></div>' +
+      "</div>";
+
+    html += c2MapHtml();
+
+    html += '<div class="section"><h2>監視endpoint一覧' +
+      '<span id="c2-filter-note" class="small muted"></span></h2>' +
+      '<div class="tbl-wrap"><table class="tbl c2tbl"><thead><tr>' +
+      "<th>ファミリー</th><th>endpoint</th><th>観測結果</th><th>confidence</th>" +
+      "<th>解決IP / 所在</th><th>確認方法</th><th>関連ケース</th><th>観測日</th>" +
+      "</tr></thead><tbody id='c2-rows'>" +
+      eps.map(c2EndpointRow).join("") + "</tbody></table></div></div>";
+
+    html += ipHistoryHtml();
+
+    var pol = run.policy || {};
+    html += '<div class="section"><h2>観測の読み方と安全境界</h2>' +
+      '<ul class="notes">' +
+      "<li><b>到達</b>: 今回のtransport／application到達観測の確からしさです。</li>" +
+      "<li><b>C2稼働</b>: 観測が、解析済みmalwareのC2 application稼働を示す確度です。TCP接続だけなら最大 0.25 です。</li>" +
+      "<li><b>手法上限</b>: その確認方法が成功時でも単独で到達できる上限です。malware固有protocolとの一致がない限り 0.60 以下です。</li>" +
+      "<li>応答なしは<b>恒久停止を意味しません</b>。connection refused は比較的強い停止側観測、timeout は firewall や経路都合でも生じる弱い観測です。</li>" +
+      "<li>位置情報は登録情報ベースの推定です。設置場所やC2所有者の確定には使えません。</li>" +
+      "</ul>" +
+      '<p class="muted small">安全境界: 完全一致host・単一portへ各1回、timeout最大 ' +
+      esc(pol.maximum_timeout_seconds || "―") + " 秒、応答最大 " + esc(pol.maximum_response_bytes || "―") +
+      " byte。malware check-in、victim metadata、stage要求、command polling、port range走査、redirect追跡は行いません。" +
+      (run.path ? ' 元データ: <a target="_blank" rel="noopener noreferrer" href="' +
+        esc(fileUrl(run.path, true)) + '">' + esc(run.path) + "</a>" : "") + "</p></div>";
+
+    app.innerHTML = html;
+    wireC2Map(eps);
+    wireIpHistory();
+  }
+
+  // 地図の拡大・移動と、点から一覧への絞り込みを繋ぐ。
+  function wireC2Map(eps) {
+    var svg = document.getElementById("c2map");
+    if (!svg || !window.WORLD_MAP) return;
+    var view = document.getElementById("c2map-view");
+    var tip = document.getElementById("c2map-tip");
+    var wrap = svg.parentNode;
+    var points = c2MapPoints();
+    var state = { k: 1, x: 0, y: 0 };
+
+    function apply() {
+      view.setAttribute("transform", "translate(" + state.x + "," + state.y + ") scale(" + state.k + ")");
+      // 拡大しても点と国境の見た目が潰れないよう、線幅と半径を逆補正する
+      view.style.setProperty("--inv", 1 / state.k);
+    }
+    apply();
+
+    svg.addEventListener("wheel", function (ev) {
+      ev.preventDefault();
+      var rect = svg.getBoundingClientRect();
+      var map = window.WORLD_MAP;
+      var sx = (ev.clientX - rect.left) / rect.width * map.width;
+      var sy = (ev.clientY - rect.top) / rect.height * map.height;
+      var next = Math.max(1, Math.min(12, state.k * (ev.deltaY < 0 ? 1.2 : 1 / 1.2)));
+      state.x = sx - (sx - state.x) * (next / state.k);
+      state.y = sy - (sy - state.y) * (next / state.k);
+      state.k = next;
+      clampPan();
+      apply();
+    }, { passive: false });
+
+    function clampPan() {
+      var map = window.WORLD_MAP;
+      var minX = map.width * (1 - state.k), minY = map.height * (1 - state.k);
+      state.x = Math.max(minX, Math.min(0, state.x));
+      state.y = Math.max(minY, Math.min(0, state.y));
+    }
+
+    // ポインタを押した時点で setPointerCapture すると、続く click の target が
+    // SVGルートへ付け替えられ、点のクリック判定が効かなくなる。実際に動いて
+    // からドラッグと見なし、そこで初めてキャプチャする。
+    var drag = null;
+    var DRAG_SLOP = 3;
+    svg.addEventListener("pointerdown", function (ev) {
+      drag = { x: ev.clientX, y: ev.clientY, ox: state.x, oy: state.y, moved: false, id: ev.pointerId };
+    });
+    svg.addEventListener("pointermove", function (ev) {
+      if (drag) {
+        if (!drag.moved) {
+          if (Math.abs(ev.clientX - drag.x) < DRAG_SLOP && Math.abs(ev.clientY - drag.y) < DRAG_SLOP) return;
+          drag.moved = true;
+          svg.classList.add("dragging");
+          try { svg.setPointerCapture(drag.id); } catch (e) {}
+        }
+        var rect = svg.getBoundingClientRect();
+        var map = window.WORLD_MAP;
+        state.x = drag.ox + (ev.clientX - drag.x) / rect.width * map.width;
+        state.y = drag.oy + (ev.clientY - drag.y) / rect.height * map.height;
+        clampPan();
+        apply();
+        tip.hidden = true;
+        return;
+      }
+      var g = ev.target.closest ? ev.target.closest(".mark") : null;
+      if (!g) { tip.hidden = true; return; }
+      var p = points[Number(g.getAttribute("data-idx"))];
+      if (!p) return;
+      tip.innerHTML = '<div class="tip-place">' + esc(geoLabel(p.geo)) + " (" + esc(p.geo.country_code || "") + ")</div>" +
+        '<div class="tip-ip mono">' + p.ips.map(esc).join("<br>") + "</div>" +
+        (p.geo.asn ? '<div class="tip-asn">AS' + esc(p.geo.asn) + " " + esc(p.geo.org || "") + "</div>" : "") +
+        '<div class="tip-eps">' + p.eps.map(function (e) {
+          return '<span class="badge ' + toneClass(e.latest && e.latest.tone) + '">' +
+            esc(e.host + ":" + e.port) + "</span>";
+        }).join("") + "</div>";
+      tip.hidden = false;
+      var wrapRect = wrap.getBoundingClientRect();
+      tip.style.left = Math.min(wrapRect.width - 240, ev.clientX - wrapRect.left + 12) + "px";
+      tip.style.top = (ev.clientY - wrapRect.top + 12) + "px";
+    });
+    var suppressClick = false;
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (name) {
+      svg.addEventListener(name, function (ev) {
+        if (drag) {
+          // 移動を伴ったポインタ操作は、地図の移動であってクリックではない
+          suppressClick = drag.moved;
+          if (drag.moved) {
+            svg.classList.remove("dragging");
+            try { svg.releasePointerCapture(drag.id); } catch (e) {}
+          }
+          drag = null;
+        }
+        if (name !== "pointerup") tip.hidden = true;
+      });
+    });
+
+    svg.addEventListener("click", function (ev) {
+      if (suppressClick) { suppressClick = false; return; }
+      var g = ev.target.closest ? ev.target.closest(".mark") : null;
+      var note = document.getElementById("c2-filter-note");
+      var rows = document.querySelectorAll("#c2-rows .c2row");
+      if (!g) {
+        rows.forEach(function (tr) { tr.hidden = false; });
+        if (note) note.textContent = "";
+        return;
+      }
+      var p = points[Number(g.getAttribute("data-idx"))];
+      var keys = {};
+      p.eps.forEach(function (e) { keys[e.host + ":" + e.port] = true; });
+      rows.forEach(function (tr) {
+        var ep = eps[Number(tr.getAttribute("data-idx"))];
+        tr.hidden = !keys[ep.host + ":" + ep.port];
+      });
+      if (note) note.textContent = "／ " + geoLabel(p.geo) + " の " + p.eps.length + " 件を表示中（地図の余白をクリックで解除）";
+      document.getElementById("c2-rows").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    var reset = document.getElementById("c2map-reset");
+    if (reset) reset.addEventListener("click", function () {
+      state = { k: 1, x: 0, y: 0 };
+      apply();
+      document.querySelectorAll("#c2-rows .c2row").forEach(function (tr) { tr.hidden = false; });
+      var note = document.getElementById("c2-filter-note");
+      if (note) note.textContent = "";
+    });
   }
 
   /* ---------- ダッシュボード ---------- */
@@ -428,6 +856,8 @@
       statCard(s.history_total, "解析履歴レコード") +
       '<a class="stat-card" href="#/intel" style="text-decoration:none"><div class="num">' + esc(s.campaign_candidates || 0) +
       '</div><div class="lbl">campaign相関候補 →</div></a>' +
+      '<a class="stat-card" href="#/c2" style="text-decoration:none"><div class="num">' + esc(s.c2_endpoints || 0) +
+      '</div><div class="lbl">C2稼働監視 endpoint →</div></a>' +
       "</div>";
 
     // 統計カードの直下に横断検索。入力すると下の内容がリアルタイムに絞り込まれる。
@@ -1142,6 +1572,30 @@
             " " + portalLink(v, "⊕") + "</span>";
         }).join("") +
         '<div class="muted small" style="margin-top:6px">値はケースのIOC一覧・解析履歴からの集約です。役割・確度は下のIOC表と履歴を参照してください。</div></div></div>';
+    }
+
+    // このケースのC2が稼働監視の対象なら、最新観測をその場で見せる
+    var watched = c2EndpointsForCase(c.sha256);
+    if (watched.length) {
+      html += '<div class="section"><h2>C2稼働状況 <a class="small" href="#/c2">監視一覧へ →</a></h2>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        "<th>endpoint</th><th>観測結果</th><th>C2稼働確度</th><th>解決IP / 所在</th><th>観測日</th>" +
+        "</tr></thead><tbody>" +
+        watched.map(function (ep) {
+          var l = ep.latest || {};
+          var ips = (l.resolved_ips || []).map(function (ip) {
+            var g = c2GeoOf(ip);
+            return '<span class="mono">' + esc(ip) + "</span>" +
+              (g ? ' <span class="muted small">' + esc(g.country_code || "") + " " + esc(geoLabel(g)) + "</span>" : "");
+          }).join("<br>");
+          return "<tr><td class='mono'>" + esc(ep.host) + ":" + esc(ep.port) + "</td>" +
+            "<td><span class='badge " + toneClass(l.tone) + "'>" + esc(l.state_label || "") + "</span></td>" +
+            "<td class='mono'>" + esc(typeof l.c2_operational === "number" ? l.c2_operational.toFixed(2) : "―") + "</td>" +
+            "<td>" + (ips || "<span class='muted'>―</span>") + "</td>" +
+            "<td class='nowrap mono small'>" + esc(l.date || "") + "</td></tr>";
+        }).join("") +
+        "</tbody></table></div>" +
+        '<div class="muted small" style="margin-top:6px">到達性はC2稼働の確定ではありません。応答なしも恒久停止を意味しません。</div></div>';
     }
 
     // campaign相関・コード類似 (intelligence)

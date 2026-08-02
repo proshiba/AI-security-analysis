@@ -31,7 +31,8 @@ code, .mono { font-family: var(--mono); }
 /* ---------- top bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; gap: 20px;
+  /* ナビ項目が増えても狭い幅でページごと横スクロールしないよう折り返す */
+  display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
   padding: 10px 20px;
   background: rgba(13, 17, 23, 0.95);
   border-bottom: 1px solid var(--border);
@@ -40,13 +41,13 @@ code, .mono { font-family: var(--mono); }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 700; white-space: nowrap; }
 .brand:hover { text-decoration: none; }
 .brand-mark { color: var(--accent-2); font-size: 18px; }
-.nav { display: flex; gap: 4px; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
 .nav a {
   padding: 6px 12px; border-radius: 6px; color: var(--text-dim); white-space: nowrap;
 }
 .nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
 .nav a.active { color: var(--text); background: var(--panel-2); }
-.global-search { margin-left: auto; flex: 0 1 380px; }
+.global-search { margin-left: auto; flex: 1 1 260px; max-width: 380px; min-width: 0; }
 .global-search input {
   width: 100%; padding: 7px 12px;
   background: var(--panel); color: var(--text);
@@ -298,3 +299,139 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 .pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; }
 .empty { padding: 30px; text-align: center; color: var(--text-dim); }
+
+/* ---------- C2稼働状況 ---------- */
+
+/* 観測の強さ(C2 applicationの稼働をどこまで示すか)を1系統の配色で表す。
+   到達したかどうかではなく、確度の段階に対応させる。 */
+.t-confirmed { --tone: #ff6b7a; }
+.t-app       { --tone: #ffc76b; }
+.t-tls       { --tone: #d7b3ff; }
+.t-tcp       { --tone: #4fa8ff; }
+.t-down      { --tone: #6b7a8b; }
+.t-unknown   { --tone: #8b9bb0; }
+
+.badge.t-confirmed, .badge.t-app, .badge.t-tls,
+.badge.t-tcp, .badge.t-down, .badge.t-unknown {
+  color: var(--tone);
+  border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.stat-card .num.small-num { font-size: 18px; padding-top: 6px; }
+
+.c2map-wrap {
+  position: relative;
+  background: linear-gradient(180deg, #0b1220, #0d1117);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#c2map { display: block; width: 100%; height: auto; touch-action: none; cursor: grab; }
+#c2map.dragging { cursor: grabbing; }
+#c2map-view { --inv: 1; }
+#c2map .land {
+  fill: #1b2534;
+  stroke: #2c3a4f;
+  stroke-width: calc(0.5px * var(--inv));
+  vector-effect: non-scaling-stroke;
+}
+#c2map .land-hot { fill: #24344a; stroke: #3d5273; }
+#c2map .mark { cursor: pointer; }
+#c2map .mark-dot {
+  fill: var(--tone);
+  stroke: #0d1117;
+  stroke-width: calc(1px * var(--inv));
+}
+#c2map .mark-halo { fill: var(--tone); opacity: .18; }
+#c2map .mark:hover .mark-halo { opacity: .38; }
+
+.c2map-tip {
+  position: absolute;
+  z-index: 5;
+  max-width: 260px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+}
+.c2map-tip .tip-place { font-weight: 700; }
+.c2map-tip .tip-ip { margin: 4px 0; color: var(--accent-2); }
+.c2map-tip .tip-asn { color: var(--text-dim); }
+.c2map-tip .tip-eps { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+
+.c2map-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.btn-mini {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-mini:hover { border-color: var(--accent); }
+
+.c2map-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--text-dim); }
+.c2map-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.c2map-legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--tone); display: inline-block; }
+
+.c2tbl td { vertical-align: top; }
+.c2tbl .conf { min-width: 190px; }
+.cbar { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 2px 0; }
+.cbar-lbl { color: var(--text-dim); width: 58px; flex: none; }
+.cbar-track { flex: 1 1 auto; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.cbar-fill { display: block; height: 100%; background: var(--accent); }
+.cbar-num { width: 30px; flex: none; text-align: right; color: var(--text-dim); }
+
+.ipline { margin-bottom: 4px; }
+.ipgeo { display: block; font-size: 11px; color: var(--text-dim); }
+
+/* 解決IPの推移 */
+.tl { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: var(--panel); }
+.tl-host { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.tl-src { font-size: 11px; color: var(--text-dim); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; }
+.tl-chg { font-size: 11px; color: var(--warn); }
+.tl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tl-list li {
+  position: relative;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--bg-alt);
+  font-size: 12px;
+}
+.tl-list li.moved { border-left-color: var(--warn); }
+.tl-date { display: block; color: var(--text-dim); font-size: 11px; }
+.tl-flag { display: block; margin-top: 3px; font-size: 10px; color: var(--warn); }
+
+.notes { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8; }
+.notes b { color: var(--text); }
+.ip-sum { font-size: 13px; color: var(--text-dim); margin: 10px 0 12px; }
+.ip-sum b { color: var(--text); font-family: var(--mono); }
+.ip-stable { margin-top: 16px; }
+.ip-stable-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.ip-stable-head h3 { font-size: 13px; margin: 0; color: var(--text-dim); font-weight: 600; }
+.ip-stable-head input {
+  flex: 0 1 280px;
+  padding: 6px 10px;
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+}
+.ip-stable-head input:focus { outline: none; border-color: var(--accent); }
