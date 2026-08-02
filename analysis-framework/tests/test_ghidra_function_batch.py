@@ -17,6 +17,29 @@ if str(COMMON) not in sys.path:
 import analysis_contract  # noqa: E402
 import ghidra_function_batch as target  # noqa: E402
 
+def _minimal_pe(marker: bytes) -> bytes:
+    """実行不能だがPE parserで検証できる最小headerを返す。"""
+
+    data = bytearray(0x200)
+    data[:2] = b"MZ"
+    pe_offset = 0x80
+    data[0x3C:0x40] = pe_offset.to_bytes(4, "little")
+    data[pe_offset : pe_offset + 4] = b"PE\0\0"
+    coff = pe_offset + 4
+    data[coff : coff + 2] = (0x14C).to_bytes(2, "little")
+    data[coff + 16 : coff + 18] = (0xE0).to_bytes(2, "little")
+    optional = pe_offset + 24
+    data[optional : optional + 2] = (0x10B).to_bytes(2, "little")
+    data[optional + 92 : optional + 96] = (16).to_bytes(4, "little")
+    return bytes(data) + marker
+
+
+def test_is_pe_rejects_truncated_mz_candidate() -> None:
+    """MZだけを持つ切断resourceをGhidra import対象へ昇格しない。"""
+
+    assert target._is_pe(b"MZ") is False
+    assert target._is_pe(b"MZ" + bytes(193)) is False
+    assert target._is_pe(b"not-a-pe") is False
 
 class FakeClient:
     """pagination test用の最小Ghidra MCP client。"""
@@ -1220,7 +1243,7 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
 
     from types import SimpleNamespace
 
-    root_data = b"MZ-static-tool-contract"
+    root_data = _minimal_pe(b"static-tool-contract")
     digest = hashlib.sha256(root_data).hexdigest()
     short_root = tmp_path.parents[2] / (
         "tool-contract-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
@@ -1380,8 +1403,8 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
 
     from types import SimpleNamespace
 
-    root_data = b"MZ-root-with-child"
-    child_data = b"MZ-recovered-child"
+    root_data = _minimal_pe(b"root-with-child")
+    child_data = _minimal_pe(b"recovered-child")
     digest = hashlib.sha256(root_data).hexdigest()
     child_digest = hashlib.sha256(child_data).hexdigest()
     short_root = tmp_path.parents[2] / (

@@ -91,13 +91,13 @@ def test_shodan_queries_exclude_loopback_and_private_addresses() -> None:
 
 
 def test_shodan_queries_keep_public_hostname_and_address() -> None:
-    args = SimpleNamespace(host="c2.example", port=69)
+    args = SimpleNamespace(host="www.python.org", port=69)
     value = c2_detector.build_shodan_queries(
         args,
         {"resolved_ips": ["41.216.189.236", "127.0.0.1"]},
     )
     assert value["queries"] == [
-        "hostname:c2.example port:69",
+        "hostname:www.python.org port:69",
         "ip:41.216.189.236 port:69",
     ]
     assert "127.0.0.1" not in json.dumps(value)
@@ -429,3 +429,83 @@ def test_collect_jarm_timeout_terminates_helper(
     assert elapsed < 3.0
     time.sleep(0.9)
     assert not marker.exists()
+
+def _http_validation_args(**overrides: object) -> SimpleNamespace:
+    values = {
+        "host": "www.python.org",
+        "http_host": None,
+        "http_path": "/",
+        "sni": None,
+        "mxgo_recipient_path": "/fixture.txt",
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"host": "bad host"},
+        {"http_host": "user:secret@www.python.org"},
+        {"http_host": "https://www.python.org/path"},
+        {"http_host": "www.python.org/path"},
+        {"sni": "https://www.python.org"},
+        {"http_path": "https://attacker.invalid/a"},
+        {"http_host": "www.python.org?token=secret"},
+        {"http_host": "www.python.org#fragment"},
+        {"http_path": "//attacker.invalid/a"},
+        {"http_path": "/has space"},
+        {"mxgo_recipient_path": "relative"},
+        {"http_path": "/" + ("a" * 2048)},
+    ],
+)
+def test_validate_http_request_fields_rejects_ambiguous_forms(
+    overrides: dict[str, object],
+) -> None:
+    """authorityとorigin-form以外のHTTP入力を拒否する。"""
+    with pytest.raises(ValueError):
+        c2_detector.validate_http_request_fields(_http_validation_args(**overrides))
+
+
+def test_validate_http_request_fields_accepts_safe_authority_and_paths() -> None:
+    """正規ホスト、任意port、origin-formパスを許可する。"""
+    c2_detector.validate_http_request_fields(
+        _http_validation_args(
+            http_host="www.python.org:8443",
+            sni="www.python.org",
+            http_path="/gate?id=1",
+        )
+    )
+
+
+def test_sanitize_response_headers_redacts_credentials_and_bounds_values() -> None:
+    """Cookieや認証値を成果物へ保存せず、応答値を有界化する。"""
+    headers = {
+        "content-type": "text/plain",
+        "set-cookie": "session=unique-secret",
+        "authorization": "Bearer unique-token",
+        "x-api-key": "unique-key",
+        "x-long": "x" * 5000,
+        "x-control": "safe\r\nunsafe",
+    }
+    sanitized, redacted = c2_detector.sanitize_response_headers(headers)
+    assert sanitized["content-type"] == "text/plain"
+    assert sanitized["set-cookie"] == "[REDACTED]"
+    assert sanitized["authorization"] == "[REDACTED]"
+    assert sanitized["x-api-key"] == "[REDACTED]"
+    assert redacted == ["authorization", "set-cookie", "x-api-key"]
+    assert len(sanitized["x-long"]) == 1024
+    assert "\r" not in sanitized["x-control"] and "\n" not in sanitized["x-control"]
+    serialized = json.dumps(sanitized)
+    for secret in ("unique-secret", "unique-token", "unique-key"):
+        assert secret not in serialized
+
+
+@pytest.mark.parametrize("host", ["bad host", "localhost", "example.com", "host\r\nport:22"])
+def test_build_shodan_queries_rejects_invalid_or_non_public_host(host: str) -> None:
+    """プログラムから渡された検索式注入候補もfail-closedで除外する。"""
+    value = c2_detector.build_shodan_queries(
+        SimpleNamespace(host=host, port=443),
+        {"resolved_ips": []},
+    )
+    assert value["queries"] == []

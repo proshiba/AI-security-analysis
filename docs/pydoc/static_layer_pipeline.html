@@ -17,7 +17,8 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -66,6 +67,8 @@
     outer_size: 'int',
     member_name: 'str | None' = None
 ) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="InputUnit-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">入力メタデータとraw入力のhash・size整合性を検証する。</span></dd></dl>
 
 <dl><dt><a name="InputUnit-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
@@ -161,7 +164,7 @@ Data and other attributes defined here:<br>
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#StaticLayerPolicy">StaticLayerPolicy</a>(<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_layers:&nbsp;'int'&nbsp;=&nbsp;32,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;max_depth:&nbsp;'int'&nbsp;=&nbsp;4,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_depth:&nbsp;'int'&nbsp;=&nbsp;6,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_layer_size:&nbsp;'int'&nbsp;=&nbsp;67108864,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_total_size:&nbsp;'int'&nbsp;=&nbsp;268435456,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_compression_ratio:&nbsp;'float'&nbsp;=&nbsp;100.0<br>
@@ -179,7 +182,7 @@ Data and other attributes defined here:<br>
 <dl><dt><a name="StaticLayerPolicy-__init__"><strong>__init__</strong></a>(
     self,
     max_layers: 'int' = 32,
-    max_depth: 'int' = 4,
+    max_depth: 'int' = 6,
     max_layer_size: 'int' = 67108864,
     max_total_size: 'int' = 268435456,
     max_compression_ratio: 'float' = 100.0
@@ -207,7 +210,7 @@ Data descriptors defined here:<br>
 Data and other attributes defined here:<br>
 <dl><dt><strong>__annotations__</strong> = {'max_compression_ratio': 'float', 'max_depth': 'int', 'max_layer_size': 'int', 'max_layers': 'int', 'max_total_size': 'int'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'max_compression_ratio': Field(name='max_compression_ratio',type='float',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_depth': Field(name='max_depth',type='int',default=4,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layer_size': Field(name='max_layer_size',type='int',default=6...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layers': Field(name='max_layers',type='int',default=32,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_total_size': Field(name='max_total_size',type='int',default=2...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'max_compression_ratio': Field(name='max_compression_ratio',type='float',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_depth': Field(name='max_depth',type='int',default=6,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layer_size': Field(name='max_layer_size',type='int',default=6...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layers': Field(name='max_layers',type='int',default=32,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_total_size': Field(name='max_total_size',type='int',default=2...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
@@ -215,7 +218,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>max_compression_ratio</strong> = 100.0</dl>
 
-<dl><dt><strong>max_depth</strong> = 4</dl>
+<dl><dt><strong>max_depth</strong> = 6</dl>
 
 <dl><dt><strong>max_layer_size</strong> = 67108864</dl>
 
@@ -233,7 +236,7 @@ Data and other attributes defined here:<br>
     unit: 'InputUnit',
     *,
     unpacker: 'Unpacker | None' = None,
-    sanitizer: 'Sanitizer' = &lt;function _identity at 0x0000029E53A8D580&gt;,
+    sanitizer: 'Sanitizer' = &lt;function _identity at 0x0000014A072EE8E0&gt;,
     policy: 'StaticLayerPolicy | None' = None,
     upx: 'Path | None' = None,
     sevenzip: 'Path | None' = None,
@@ -251,7 +254,7 @@ Data and other attributes defined here:<br>
 <strong>MAX_RECOVERED_LAYER_SIZE</strong> = 67108864<br>
 <strong>MAX_RECOVERED_TOTAL_SIZE</strong> = 268435456<br>
 <strong>MAX_STATIC_COMPRESSION_RATIO</strong> = 100.0<br>
-<strong>MAX_STATIC_DEPTH</strong> = 4<br>
+<strong>MAX_STATIC_DEPTH</strong> = 6<br>
 <strong>MAX_STATIC_LAYERS</strong> = 32<br>
 <strong>Sanitizer</strong> = typing.Callable[[typing.Any], typing.Any]<br>
 <strong>Unpacker</strong> = typing.Callable[..., tuple[dict[str, typing.Any], list[tuple[str, bytes]]]]</td></tr></table>

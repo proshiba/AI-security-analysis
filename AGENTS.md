@@ -45,6 +45,16 @@
 - 結論は `confirmed`、`inferred`、`unverified` のように信頼度を明示し、根拠と未検証事項を分けて書くこと。
 - 配布先、decoy/正規アプリ通信、最終C2を混同しないこと。
 - 正規署名付きhostやdecoy installerは、bundle内の同居関係、悪性DLL load、process帰属付き通信などの相関なしに単体で悪性判定しないこと。
+## 包括解析・後段payload・C2確認のルール
+
+- 新規検体は最初のdropperまたは表層PEだけで完了扱いにしないこと。静的layer、resource、埋め込みPE、script、memory image、dumped file、配布URL、公開sandboxの完全SHA-256一致を確認し、後段候補の有無と探索範囲をcaseごとに残すこと。
+- 後段成果物を取得できる場合は、親検体SHA-256、解析ID／task、成果物名、取得元API pathの分類、成果物SHA-256、size、親と同一か、取得日時、実行有無を記録すること。取得物はリポジトリ外へ暗号化保存し、実行せず同じ静的解析pipelineへ再帰的に渡すこと。
+- Triage成果物の取得では`triage_artifact_retrieval.py`を使い、完全SHA-256一致、公開解析、認証なし公開ページの二重確認、redirect禁止、件数・単体size・総size上限を必須とすること。private解析、owner付き解析、hash不一致、404成果物を別経路で迂回取得しないこと。
+- 公開sandbox証跡と後段解析結果は`publish_triage_case_evidence.py`で正規化し、`triage-evidence.json`と`TRIAGE.md`へ残すこと。raw command、private path、生API応答、token、artifact binaryを公開しないこと。
+- sandboxの`network_context`は正規OSや共有serviceのbackground trafficを含むため`context_only`とすること。config extractor由来endpointだけを`c2_candidate_external_sandbox_config`として候補IOCへ追加できるが、静的config、process帰属、malware protocol応答なしに確認済みC2へ昇格しないこと。
+- 新規解析で得たC2／control／exfil候補は、解析回だけの一部targetsではなく`build_all_c2_monitoring_targets.py`で全履歴を再生成してから監視すること。現在のtaskでライブ通信が明示許可されている場合は、MaxMind DB鮮度確認後に`run_c2_monitoring_pipeline.py --allow-network`を実行すること。許可がない場合はライブ確認を実施せず、未実施理由をblockerとして残すこと。
+- 後段が得られなかった場合も「なし」と断定せず、候補なし、公開解析なし、404、size上限、復号未解決、時限配布停止などを区別し、次に必要な最小手順を記録すること。
+- 取得、正規化、親子関係、IOC統合、C2監視対象生成は再利用可能なscriptへ実装し、成功、拒否、hash不一致、private除外、上限超過、冪等再実行のunit testを追加すること。
 
 ## 関数ロジックとコード類似性の記録ルール
 

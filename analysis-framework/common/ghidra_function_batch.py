@@ -318,7 +318,7 @@ def _is_pe(data: bytes) -> bool:
     try:
         pefile.PE(data=data, fast_load=True)
     except Exception:
-        return True
+        return False
     return True
 
 

@@ -213,15 +213,16 @@ def load_curated_evidence(path: Path | None) -> dict[str, dict]:
 
 
 def select_targets(summary: dict) -> list[dict]:
-    """Return low-confidence or unknown cases in their existing order."""
-    return [
-        case for case in summary.get("cases") or []
-        if "error" not in case and (
-            (case.get("attribution") or {}).get("confidence") == "low"
-            or (case.get("attribution") or {}).get("family") == "unknown"
-        )
-    ]
-
+    """低確度または帰属未解決のcaseを既存順で返す。"""
+    targets = []
+    for case in summary.get("cases") or []:
+        if "error" in case:
+            continue
+        attribution = case.get("attribution") or {}
+        family = str(attribution.get("family") or case.get("family") or "").lower()
+        if attribution.get("confidence") == "low" or family in {"unknown", "unclassified"}:
+            targets.append(case)
+    return targets
 
 def sanitize_reference(value: str | None) -> str | None:
     """Remove URL user information, query strings, and fragments from references."""

@@ -78,6 +78,7 @@ from static_logic import (  # noqa: E402
 )
 from malware_io import (  # noqa: E402
     read_single_aes_zip_member,
+    read_file_capped,
     safe_output_name,
     sha256_bytes,
     write_json,
@@ -133,7 +134,7 @@ def _inside(path: Path, root: Path) -> bool:
 def collect_inputs(inputs: list[Path], output: Path, max_files: int) -> list[Path]:
     """ファイルとディレクトリを決定的に展開し、symlinkと出力先を除外する。"""
 
-    if max_files <= 0:
+    if isinstance(max_files, bool) or not isinstance(max_files, int) or max_files <= 0:
         raise ValueError("max_files must be positive")
     collected: dict[str, Path] = {}
     for supplied in inputs:
@@ -174,10 +175,18 @@ def read_input_unit(
 ) -> InputUnit:
     """生ファイルまたは認証済み単一メンバーZIPをメモリ内で読み込む。"""
 
+    if archive_mode not in {"auto", "raw", "malwarebazaar"}:
+        raise ValueError(f"unsupported archive_mode: {archive_mode!r}")
+    if (
+        isinstance(max_file_size, bool)
+        or not isinstance(max_file_size, int)
+        or max_file_size <= 0
+    ):
+        raise ValueError("max_file_size must be a positive integer")
     size = path.stat().st_size
     if size > max_file_size:
         raise ValueError(f"入力サイズが上限 {max_file_size} bytes を超えました")
-    outer = path.read_bytes()
+    outer = read_file_capped(path, max_size=max_file_size)
     outer_digest = sha256_bytes(outer)
     encrypted, member_count = _zip_envelope_shape(outer)
     unwrap = archive_mode == "malwarebazaar" or (archive_mode == "auto" and encrypted and member_count == 1)

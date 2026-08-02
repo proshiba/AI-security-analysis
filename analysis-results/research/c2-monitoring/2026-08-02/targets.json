@@ -7,15 +7,15 @@
   "collection_scope": "all_historical_c2",
   "onion_excluded_by_policy": true,
   "inventory_summary": {
-    "scanned_ioc_file_count": 1349,
-    "candidate_evidence_record_count": 219,
-    "ordinary_candidate_host_count": 69,
-    "planned_ordinary_host_count": 69,
-    "planned_endpoint_count": 89,
+    "scanned_ioc_file_count": 1399,
+    "candidate_evidence_record_count": 225,
+    "ordinary_candidate_host_count": 75,
+    "planned_ordinary_host_count": 75,
+    "planned_endpoint_count": 95,
     "reviewed_protocol_target_count": 4,
     "reviewed_profile_only_target_count": 3,
-    "network_service_endpoint_count": 86,
-    "dns_only_target_count": 3,
+    "network_service_endpoint_count": 91,
+    "dns_only_target_count": 4,
     "ordinary_host_coverage_percent": 100.0
   },
   "targets": [
@@ -1116,6 +1116,29 @@
       "maximum_response_bytes": 256
     },
     {
+      "target_id": "all-history-896534c992dd",
+      "family": "unclassified",
+      "host": "bsc.blockrazor.xyz",
+      "port": 0,
+      "protocol": "dns",
+      "method": "dns_resolve",
+      "transport": "direct",
+      "sample_sha256s": [
+        "350e3bddcd39098123be338cfcd12ef78a0d6cfabc48a17c6dacf31397880b3c"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/unclassified/versions/unknown/cases/350e3bddcd39098123be338cfcd12ef78a0d6cfabc48a17c6dacf31397880b3c/iocs.json:network[0]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
       "target_id": "all-history-3bb7172b6602",
       "family": "jackskid/research-campaigns",
       "host": "deformed.su",
@@ -1302,6 +1325,29 @@
       "roles": [
         "c2_domain_from_static_config",
         "c2_url_from_static_config"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
+      "target_id": "all-history-5fd262eec197",
+      "family": "remusstealer",
+      "host": "fimmora.surf",
+      "port": 6504,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20/iocs.json:network[0]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
       ],
       "selection_basis": "全解析履歴のC2/control/exfil候補",
       "timeout_seconds": 3.0,
@@ -1745,6 +1791,29 @@
       "maximum_response_bytes": 256
     },
     {
+      "target_id": "all-history-0f93a52fb13a",
+      "family": "nanocore",
+      "host": "netkata.io",
+      "port": 443,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba/iocs.json:network[0]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
       "target_id": "all-history-bc3cb80ff4e5",
       "family": "remcosrat",
       "host": "neuvo.ydns.eu",
@@ -2080,6 +2149,29 @@
       "maximum_response_bytes": 256
     },
     {
+      "target_id": "all-history-cf18d18cbd4d",
+      "family": "remusstealer",
+      "host": "tzpx.courses",
+      "port": 4437,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20/iocs.json:network[1]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
       "target_id": "all-history-5e01a3fa8247",
       "family": "shadowpad",
       "host": "websencl.com",
@@ -2255,6 +2347,29 @@
       "maximum_response_bytes": 256
     },
     {
+      "target_id": "all-history-3a4a8d0cc748",
+      "family": "nanocore",
+      "host": "www.netkata.io",
+      "port": 443,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba/iocs.json:network[1]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
       "target_id": "all-history-af14bdf6535c",
       "family": "shadowpad",
       "host": "www.pneword.net",
@@ -2324,6 +2439,29 @@
       "roles": [
         "c2_domain_exact_hash_primary_source",
         "c2_endpoint_http_tcp_udp"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 256
+    },
+    {
+      "target_id": "all-history-e5e4ae00dc61",
+      "family": "remusstealer",
+      "host": "zelpx.garden",
+      "port": 9895,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [],
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20/iocs.json:network[2]"
+      ],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
       ],
       "selection_basis": "全解析履歴のC2/control/exfil候補",
       "timeout_seconds": 3.0,

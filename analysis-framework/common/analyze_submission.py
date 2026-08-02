@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recursively inventory ZIP/MSI/CAB/PE submissions in memory without execution."""
+"""ZIP・MSI・CAB・PE提出物を実行せず、メモリ内で有界に再帰調査する。"""
 from __future__ import annotations
 import argparse
 import io
@@ -12,9 +12,15 @@ import cabarchive
 import olefile
 import pefile
 from analyze_iso9660 import SECTOR, analyze_iso_image, is_iso9660
-from malware_io import read_aes_zip_members, safety_metadata, sha256_bytes, sha256_file, validate_member_name, write_json
+from malware_io import read_aes_zip_members, read_zip_members, safety_metadata, sha256_bytes, sha256_file, validate_member_name, write_json
 
 NETWORK = re.compile(rb"(?:https?://[^\x00-\x20\"'<>]{4,300}|(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,24}(?::\d{1,5})?)", re.I)
+
+MAX_NESTED_MEMBER_SIZE = 64 * 1024 * 1024
+MAX_NESTED_MEMBERS = 256
+MAX_NESTED_TOTAL_SIZE = 256 * 1024 * 1024
+MAX_NESTED_COMPRESSION_RATIO = 100.0
+
 
 def entropy(data: bytes) -> float:
     if not data:
@@ -53,8 +59,16 @@ def pe_info(data: bytes) -> dict:
     }
 
 def analyze_zip(data: bytes, depth: int) -> list[dict]:
-    with zipfile.ZipFile(io.BytesIO(data)) as archive:
-        return [analyze_blob(validate_member_name(info.filename), archive.read(info), depth) for info in archive.infolist() if not info.is_dir()]
+    """内包ZIPを有界に読み込み、検証済みメンバーだけを再帰解析する。"""
+
+    members = read_zip_members(
+        data,
+        max_member_size=MAX_NESTED_MEMBER_SIZE,
+        max_members=MAX_NESTED_MEMBERS,
+        max_total_size=MAX_NESTED_TOTAL_SIZE,
+        max_compression_ratio=MAX_NESTED_COMPRESSION_RATIO,
+    )
+    return [analyze_blob(member.name, member.data, depth) for member in members]
 
 def analyze_cab(data: bytes, depth: int) -> list[dict]:
     archive = cabarchive.CabArchive(data)

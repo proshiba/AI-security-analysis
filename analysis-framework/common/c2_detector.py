@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Bounded C2 liveness and Internet-scanner fingerprint collection.
+"""C2生存確認とInternet scanner指紋を有界に収集する。
 
-The default operation is an offline preflight. A live probe requires explicit
-network opt-in and never downloads a declared stage, follows redirects, or
-executes data. Protocol confirmation is separate from TCP/HTTP/TLS reachability.
+既定動作はoffline preflightとし、live probeは明示許可を要求する。
+後段payload取得、redirect追従、data実行は行わず、到達性とprotocol確認を分離する。
 """
 from __future__ import annotations
 
@@ -29,6 +28,13 @@ from n520_protocol import decode_stream as decode_n520_stream
 from n520_protocol import derive_session_key as derive_n520_session_key
 from n520_protocol import extract_plugin as extract_n520_plugin
 from n520_protocol import parse_handshake as parse_n520_handshake
+from network_target import (
+    NetworkTargetError,
+    is_public_ip,
+    normalize_host,
+    parse_network_target,
+    shodan_target_query,
+)
 
 
 JARM_STDOUT_LIMIT_BYTES = 64 * 1024
@@ -39,7 +45,7 @@ JARM_PROCESS_STOP_GRACE_SECONDS = 1.0
 
 
 def murmur3_32(data: bytes, seed: int = 0) -> int:
-    """Implement the murmur3 32 operation for the analysis framework."""
+    """Shodan互換のMurmurHash3 x86_32を計算する。"""
     c1, c2, h1 = 0xCC9E2D51, 0x1B873593, seed & 0xFFFFFFFF
     rounded = len(data) & ~3
     for offset in range(0, rounded, 4):
@@ -70,35 +76,35 @@ def murmur3_32(data: bytes, seed: int = 0) -> int:
 
 class TitleParser(html.parser.HTMLParser):
     def __init__(self) -> None:
-        """Implement the   init   operation for the analysis framework."""
+        """title抽出用HTML parserを初期化する。"""
         super().__init__()
         self.in_title = False
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, _attrs) -> None:
-        """Implement the handle starttag operation for the analysis framework."""
+        """title開始tagを検出する。"""
         if tag.lower() == "title":
             self.in_title = True
 
     def handle_endtag(self, tag: str) -> None:
-        """Implement the handle endtag operation for the analysis framework."""
+        """title終了tagを検出する。"""
         if tag.lower() == "title":
             self.in_title = False
 
     def handle_data(self, data: str) -> None:
-        """Implement the handle data operation for the analysis framework."""
+        """title内のtextだけを保持する。"""
         if self.in_title:
             self.parts.append(data)
 
     @property
     def title(self) -> str | None:
-        """Implement the title operation for the analysis framework."""
+        """正規化した有界titleを返す。"""
         value = " ".join(" ".join(self.parts).split())
         return value[:512] or None
 
 
 def parse_headers(raw: bytes) -> tuple[int | None, dict[str, str], bytes]:
-    """Implement the parse headers operation for the analysis framework."""
+    """有界HTTP応答からstatus、header、bodyを分離する。"""
     head, separator, body = raw.partition(b"\r\n\r\n")
     lines = head.split(b"\r\n")
     status = None
@@ -112,32 +118,60 @@ def parse_headers(raw: bytes) -> tuple[int | None, dict[str, str], bytes]:
             headers[key.decode("latin1").strip().lower()] = value.decode("latin1").strip()
     return status, headers, body if separator else b""
 
+SENSITIVE_HTTP_HEADERS = {
+    "authorization",
+    "cookie",
+    "proxy-authorization",
+    "set-cookie",
+    "set-cookie2",
+    "x-api-key",
+    "x-auth-token",
+}
+
+
+def sanitize_response_headers(headers: object) -> tuple[dict[str, str], list[str]]:
+    """HTTP応答ヘッダーを有界化し、資格情報を含む値を秘匿する。"""
+
+    if not isinstance(headers, dict):
+        return {}, []
+    sanitized: dict[str, str] = {}
+    redacted: list[str] = []
+    for raw_name, raw_value in list(headers.items())[:128]:
+        name = str(raw_name).strip().lower()[:256]
+        if not name or any(ord(character) < 32 or ord(character) == 127 for character in name):
+            continue
+        if name in SENSITIVE_HTTP_HEADERS:
+            sanitized[name] = "[REDACTED]"
+            redacted.append(name)
+            continue
+        value = str(raw_value)[:1024]
+        sanitized[name] = "".join(
+            character if ord(character) >= 32 and ord(character) != 127 else "?"
+            for character in value
+        )
+    return sanitized, sorted(redacted)
+
 
 def mxgo_loopback_target(host: str) -> bool:
-    """Restrict active MX-Go protocol emulation to the local lab."""
+    """MX-Goの能動protocol再現をlocal labだけへ制限する。"""
     return host.lower() in {"localhost", "127.0.0.1", "::1"}
 
 
 def is_public_shodan_address(value: str) -> bool:
-    """Return whether an IP address is meaningful as a Shodan Internet pivot."""
-    try:
-        return ipaddress.ip_address(value).is_global
-    except ValueError:
-        return False
+    """IPがShodanのInternet pivotとして公開対象かを返す。"""
+    return is_public_ip(value)
 
 
 def build_shodan_queries(args, result: dict, tls: dict | None = None) -> dict:
-    """Build passive pivots without emitting private, loopback, or reserved IP filters."""
+    """private、loopback、予約IPを除外して受動検索式を構築する。"""
     queries: list[str] = []
     try:
-        parsed_host = ipaddress.ip_address(args.host)
-    except ValueError:
-        parsed_host = None
-        if not args.host.lower().endswith(".onion"):
-            queries.append(f"hostname:{args.host} port:{args.port}")
-    else:
-        if parsed_host.is_global:
-            queries.append(f"ip:{args.host} port:{args.port}")
+        target = parse_network_target(args.host, args.port)
+    except NetworkTargetError:
+        target = None
+    target_query = shodan_target_query(target) if target else None
+    if target_query:
+        queries.append(target_query)
     for resolved_ip in result.get("resolved_ips", []):
         if not is_public_shodan_address(resolved_ip):
             continue
@@ -172,7 +206,7 @@ def build_shodan_queries(args, result: dict, tls: dict | None = None) -> dict:
 
 
 def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
-    """Build a synthetic heartbeat without collecting host identifiers."""
+    """host識別子を収集せず、合成heartbeatを構築する。"""
     return {
         "client_id": client_id[:128],
         "mxc_id": "LAB-MXC-000000000000",
@@ -189,7 +223,7 @@ def build_mxgo_heartbeat(client_id: str = "LAB-MXGO-000000000000") -> dict:
 
 
 def validate_http_request_fields(args) -> None:
-    """Reject CR/LF in every value that can enter an HTTP request line or Host header."""
+    """HTTP request lineとHostへ入る値をauthority・origin-formとして検証する。"""
     fields = {
         "host": getattr(args, "host", None),
         "HTTP host": getattr(args, "http_host", None),
@@ -201,9 +235,33 @@ def validate_http_request_fields(args) -> None:
         if value is not None and ("\r" in str(value) or "\n" in str(value)):
             raise ValueError(f"{label} must not contain CR/LF")
 
+    normalize_host(str(fields["host"]))
+    http_host = fields["HTTP host"]
+    if http_host is not None:
+        raw_http_host = str(http_host)
+        target = parse_network_target(raw_http_host)
+        if target.scheme or target.path or target.userinfo_present or any(item in raw_http_host for item in "/?#"):
+            raise ValueError("HTTP host must be a host or host:port authority")
+    sni = fields["SNI/HTTP host"]
+    if sni is not None:
+        normalize_host(str(sni))
+    for label in ("HTTP path", "MX-Go HTTP path"):
+        value = fields[label]
+        if value is None:
+            continue
+        path = str(value)
+        if (
+            len(path) > 2048
+            or not path.startswith("/")
+            or path.startswith("//")
+            or "://" in path
+            or any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in path)
+        ):
+            raise ValueError(f"{label} must be a bounded origin-form path")
+
 
 def preflight_probe(args) -> dict:
-    """Describe a probe without DNS resolution, socket creation, or subprocesses."""
+    """DNS、socket、subprocessを使わずprobe計画を記述する。"""
     started = time.perf_counter()
     protocol = getattr(args, "protocol", "tcp")
     max_bytes = getattr(args, "max_bytes", 65536)
@@ -260,7 +318,7 @@ def preflight_probe(args) -> dict:
 
 
 def read_exact(sock: socket.socket, size: int) -> bytes:
-    """Read an exact, small protocol field or fail closed."""
+    """小さいprotocol fieldを指定長だけ読み、欠落時はfail-closedにする。"""
     chunks: list[bytes] = []
     remaining = size
     while remaining:
@@ -280,7 +338,7 @@ def socks5_connect(
     timeout: float,
     result: dict | None = None,
 ) -> socket.socket:
-    """Open a SOCKS5 CONNECT tunnel without proxy authentication."""
+    """proxy認証なしのSOCKS5 CONNECT tunnelを開く。"""
     connection = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
     try:
         if result is not None:
@@ -325,7 +383,7 @@ def socks5_connect(
 
 
 def open_bounded_connection(args, result: dict) -> socket.socket:
-    """Open either a direct socket or a localhost SOCKS5 tunnel."""
+    """直接socketまたはlocalhost SOCKS5 tunnelを開く。"""
     proxy_host = getattr(args, "proxy_host", None)
     if proxy_host:
         if proxy_host.lower() not in {"localhost", "127.0.0.1", "::1"}:
@@ -348,7 +406,7 @@ def open_bounded_connection(args, result: dict) -> socket.socket:
 
 
 def read_bounded(sock: socket.socket, maximum: int) -> bytes:
-    """Implement the read bounded operation for the analysis framework."""
+    """応答を指定上限まで読み込む。"""
     chunks, total = [], 0
     while total < maximum:
         try:
@@ -418,7 +476,7 @@ def probe_udp(args, result: dict, started: float) -> dict:
 
 
 def read_for_duration(sock: socket.socket, maximum: int, duration: float) -> bytes:
-    """Read a bounded N520 response window and stop cleanly on idle timeout."""
+    """N520応答を有界時間・容量で読み、idle timeout時に停止する。"""
     chunks, total = [], 0
     deadline = time.monotonic() + duration
     while total < maximum and time.monotonic() < deadline:
@@ -435,7 +493,7 @@ def read_for_duration(sock: socket.socket, maximum: int, duration: float) -> byt
 
 
 def write_n520_archive(path: Path, password: str, frames: list[dict], plugins: list[dict]) -> None:
-    """Store encrypted frames and recovered plugin bytes only in an AES ZIP."""
+    """暗号化frameと復元plugin byte列だけをAES-ZIPへ保存する。"""
     import pyzipper
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -452,7 +510,7 @@ def write_n520_archive(path: Path, password: str, frames: list[dict], plugins: l
 
 
 def tls_metadata(sock: ssl.SSLSocket) -> dict:
-    """Implement the tls metadata operation for the analysis framework."""
+    """TLS証明書と接続metadataを有界に収集する。"""
     der = sock.getpeercert(binary_form=True)
     result = {
         "version": sock.version(),
@@ -632,7 +690,7 @@ def collect_jarm(
     *,
     allow_network: bool = False,
 ) -> dict:
-    """Collect a JARM fingerprint with bounded helper output and fail-closed cleanup."""
+    """helper出力を制限し、fail-closed cleanup付きでJARMを収集する。"""
     if not allow_network:
         return {
             "status": "not_collected",
@@ -712,7 +770,7 @@ def collect_jarm(
 
 
 def probe(args) -> dict:
-    """Implement the probe operation for the analysis framework."""
+    """offline既定と明示許可を守ってC2 probeを実行する。"""
     validate_http_request_fields(args)
     if not getattr(args, "allow_network", False):
         return preflight_probe(args)
@@ -863,11 +921,13 @@ def probe(args) -> dict:
                 connection.sendall(request)
                 raw = read_bounded(connection, args.max_bytes)
                 status, headers, response_body = parse_headers(raw)
+                safe_headers, redacted_headers = sanitize_response_headers(headers)
                 result.update({
                     "status": "mxgo_lab_response" if status else ("protocol_mismatch" if raw else "connected_no_response"),
                     "application_data_sent": True,
                     "mxgo_mode": args.mxgo_mode,
-                    "http": {"status": status, "headers": headers, "path": (
+                    "http": {"status": status, "headers": safe_headers,
+                             "redacted_headers": redacted_headers, "path": (
                         "/api/v1/heartbeat_direct" if args.mxgo_mode == "checkin" else args.mxgo_recipient_path
                     )},
                 })
@@ -903,9 +963,17 @@ def probe(args) -> dict:
                 result["application_data_sent"] = True
                 raw = read_bounded(connection, args.max_bytes)
                 status, headers, body = parse_headers(raw)
+                safe_headers, redacted_headers = sanitize_response_headers(headers)
                 parser = TitleParser()
                 parser.feed(body.decode("utf-8", errors="replace"))
-                result["http"] = {"status": status, "title": parser.title, "headers": headers, "path": args.http_path, "redirect_followed": False}
+                result["http"] = {
+                    "status": status,
+                    "title": parser.title,
+                    "headers": safe_headers,
+                    "redacted_headers": redacted_headers,
+                    "path": args.http_path,
+                    "redirect_followed": False,
+                }
                 result["status"] = "http_response" if status else ("protocol_mismatch" if raw else "connected_no_response")
             else:
                 if getattr(args, "connect_only", False):
@@ -947,7 +1015,7 @@ def probe(args) -> dict:
 
 
 def main() -> int:
-    """Implement the main operation for the analysis framework."""
+    """CLI入力を検証し、probe結果をJSONで出力する。"""
     parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
     parser.add_argument("host")
     parser.add_argument("port", type=int)
