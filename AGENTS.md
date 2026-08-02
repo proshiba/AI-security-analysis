@@ -205,6 +205,16 @@
 - ハッシュ、サイズ、関係、指標、証拠、明示的な制約だけを公開すること。復元した生バイナリや、開始時・終了時のホスト安全確認出力を公開してはならない。
 
 ## C2監視とMaxMindエンリッチのルール
+## 終端ペイロード未取得ケースの優先取得ルール
+
+- 新規検体を外部sourceから選定する前に、`analysis-framework/common/build_terminal_payload_gap_inventory.py --repository . --check`を実行し、`intelligence/terminal-payload-recovery/README.md`のP0から順にfamilyを選ぶこと。台帳が不一致なら`--write`で更新してから選定すること。
+- 「最新版」は固定hashではなく、取得時点のfirst seen降順で照会すること。既存SHA-256を除外し、leaf DLL／loader単体より、親archive、sidecar、resource、script、decoyを含む完全な配布chainを優先すること。
+- `source_material_absent`のケースは同じrootへ復号処理を繰り返さず、同familyの新しい完全配布物、exact sampleの公開sandbox artifact、memory dump、dumped file、親子relationを優先して探すこと。
+- ローカルでは検体を実行しないこと。静的復元で不足する場合は、公開sandboxの既存実行または別途承認された隔離環境から、完全一致hashを検証できるdump／memory artifactを取得して静的pipelineへ戻すこと。
+- 外層やpackerだけの解析、`partial`解除、family tagだけで終端到達としないこと。終端artifactのSHA-256、親子関係、復元方法、終端family・version・config・C2の確認結果、または追加stageがない根拠を残すこと。
+- gapを閉じる場合は、case `report.json`の`classification.terminal_family_confirmed`と`case_state.complete`をともに`true`とし、終端artifactの根拠をcase文書へ記録すること。古い難解析台帳の記録は履歴として残してよいが、構造化された完了証拠なしに自動除外しないこと。
+- 新規解析または再解析後は同生成器を`--write`、続けて`--check`で実行し、台帳、ケース一覧、CSV、family優先表を同期すること。
+
 
 - C2監視結果を作成または更新するときは、観測時に得たglobal IPをGeoLite2 City/ASNで照合し、Geo・AS情報とDB provenanceを結果へ付与すること。
 - 標準経路として`analysis-framework/common/run_c2_monitoring_pipeline.py`を使い、限定観測、MaxMind照合、JSON／Markdown生成を一括実行すること。

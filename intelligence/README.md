@@ -39,6 +39,7 @@
 - [campaign相関処理](../analysis-framework/common/correlate_campaigns.py)
 - [ハッシュ限定OSINT補強処理](../analysis-framework/common/osint_hash_enricher.py)
 - [派生成果物一括更新処理](../analysis-framework/common/refresh_derived_artifacts.py)
+- [終端ペイロード未取得ケースと最新版取得優先表](terminal-payload-recovery/README.md)
 
 ## 調査の基本方針
 
@@ -72,7 +73,7 @@
 
 | 周期 | 主なタスク | 目的 |
 |---|---|---|
-| 毎日 | `INT-D01`～`INT-D03` | 新規検体、IOC差分、強い既知一致の即時把握 |
+| 毎日・検体取得前 | `INT-D01`～`INT-D03`、`INT-D05` | 新規検体、IOC差分、強い既知一致、終端未取得familyの最新版優先 |
 | 毎週 | `INT-W01`～`INT-W08` | 実装変化、コード共有、インフラ再利用、未解決case、検知不足、候補lineage、候補間ブリッジ、PCAP由来通信検知の整理 |
 | 毎月 | `INT-M01`～`INT-M03` | operation仮説、actor帰属仮説、相関閾値のレビュー |
 | 四半期 | `INT-Q01` | データ品質、schema、解析coverage、調査負債の見直し |

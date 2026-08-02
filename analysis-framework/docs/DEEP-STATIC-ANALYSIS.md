@@ -4,6 +4,23 @@
 
 このワークフローは、通常の string、PE metadata、1 pass の decompile では terminal payload または config を復元できなかった検体を再調査します。精査済み inventory は `analysis-framework/inventories/static-hard-cases.yaml` です。現在は対象内の 80 case と、必要な terminal byte が提出検体に存在しなかった 5 case を分けて記録しています。byte がないことは取得または感染 chain の境界であり、deobfuscator で無から再構築することはできません。
 
+## 終端ペイロード未取得台帳との接続
+
+深層静的解析の対象80ケースと、必要byteが提出物に存在しなかった5ケースは、現在のcase reportおよび人が読める未復元記録と統合し、[終端ペイロード未取得ケースと最新版取得優先表](../../intelligence/terminal-payload-recovery/README.md)として確認できます。
+
+```powershell
+py -3.13 .\analysis-framework\common\build_terminal_payload_gap_inventory.py --repository . --write
+py -3.13 .\analysis-framework\common\build_terminal_payload_gap_inventory.py --repository . --check
+```
+
+台帳は次の3状態を分けます。
+
+- `explicit_unrecovered`: 現在のreportまたはケース文書が終端未取得を明記する。
+- `curated_recovery_backlog`: 精査済み難解析台帳に残るが、最新成果物で解決有無の再確認が必要である。
+- `source_material_absent`: 必要な終端byteが提出物になく、同じrootの静的処理だけでは復元できない。
+
+`source_material_absent`は、同じrootへ別のdeobfuscatorを試す問題ではありません。同familyの取得時点の最新版について、leaf単体ではなく完全な配布chainを取得するか、完全一致hashの公開sandboxからdump・memory artifactを探します。終端artifactのSHA-256、親子関係、復元方法を記録し、終端family、version、config、C2を解析した後にだけ完了へ移します。
+
 このワークフローが生成するのは解析優先度を決める根拠であり、protector を自動帰属するものではありません。特に、この corpus では古典的な control flow flattening（CFF）は**証明されていません**。indegree の高い hub、strongly connected component、密な entry graph は dispatcher 復元を優先する根拠にはなりますが、それだけで検体が flatten されているとは判断できません。CFF finding には、dispatcher state の復元と、変換後 block から元の successor への再現可能な mapping が必要です。この基準は、[Tigress](https://tigress.wtf/flatten.html) が説明する dispatcher 中心の変換、および [Debray らの研究](https://www.cs.arizona.edu/~debray/Publications/unflatten.pdf)が扱う復元問題と整合します。
 
 同様に `not_observed` は、**上限付きで再帰 decode した entry point CFG では観測されなかった**ことだけを意味します。image の別領域、復元 child、未訪問 callback、動的に供給される code にその手法がないという意味ではありません。`suspected` は調査経路を選ぶ hint であり、この文書に示す証明なしに確定 finding へ昇格させてはいけません。

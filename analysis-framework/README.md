@@ -197,7 +197,19 @@ python common/osint_hash_enricher.py `
 `inventories/static-hard-cases.yaml` は、過去に解析が難航したケース、阻害要因、認証済み子ハッシュを記録します。`common/deep_static_triage.py` は上限付きのメモリ内再帰静的解析を実行し、無害化したJSONとMarkdownだけを公開します。ネイティブエントリのCFG観測は `unpackers/static_control_flow.py`、マネージドPEのメタデータ、CIL、リソースのトリアージは `unpackers/managed_il_triage.py` から得ます。
 
 このワークフローは、検体を実行またはCPUエミュレーションせず、抽出したインフラにも接続せず、復元バイナリレイヤーも書き出しません。`suspected` の制御フロー技法は優先順位付けの手掛かりであり、確認済み帰属ではありません。証拠基準、手法対応表、コマンド、出力、失敗時確認は [静的深掘り解析](docs/DEEP-STATIC-ANALYSIS.md) を参照してください。
+
+### 終端ペイロード未取得台帳
+
+`common/build_terminal_payload_gap_inventory.py`は、精査済み`inventories/static-hard-cases.yaml`、case `report.json`、人が読めるcase文書を統合し、終端payloadまたは終端familyへ到達していないケースを`intelligence/terminal-payload-recovery/`へ生成します。単なる`partial`や最終C2だけの未回収は自動対象にしません。
+
+```powershell
+py -3.13 .\common\build_terminal_payload_gap_inventory.py --repository .. --write
+py -3.13 .\common\build_terminal_payload_gap_inventory.py --repository .. --check
+```
+
+最新版は取得時点で再照会し、P0 family、既存hash除外、完全配布chain、公開sandboxのexact artifact／memoryの順で選びます。構造化reportが終端family確認済みかつcase完了を示すまで、古い未取得根拠を自動的に閉じません。
 ## 新規caseの全体反映
+
 
 case追加・更新後は、`common/refresh_case_inventory.py`を使ってmetadata identity、全case catalog、README件数、IOC索引、コード類似性、checksum、UI、portal indexを依存順に更新します。`partial`や`triaged_unknown`もcatalogへ登録し、解析完了状態は`report.json`とcollection manifestに分離して保持します。
 
