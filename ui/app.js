@@ -516,7 +516,7 @@
       '<g id="c2map-view"><g class="lands">' + land + "</g>" + marks + "</g></svg>" +
       '<div id="c2map-tip" class="c2map-tip" hidden></div>' +
       '<div class="c2map-tools"><button type="button" id="c2map-reset" class="btn-mini">表示をリセット</button>' +
-      '<span class="muted small">ホイールで拡大・ドラッグで移動。点をクリックすると下の一覧を絞り込みます。</span></div>' +
+      '<span class="muted small">ホイールで拡大・ドラッグで移動。点をクリックすると下の一覧を絞り込みます（解除は絞り込み表示の ✕）。</span></div>' +
       "</div>" +
       '<div class="c2map-legend">' +
       Object.keys(C2.state_labels || {}).map(function (k) {
@@ -675,8 +675,14 @@
 
     html += c2MapHtml();
 
-    html += '<div class="section"><h2>監視endpoint一覧' +
-      '<span id="c2-filter-note" class="small muted"></span></h2>' +
+    html += '<div class="section"><h2>監視endpoint一覧</h2>' +
+      '<div id="c2-filter-bar" class="filter-bar" hidden>' +
+      '<span class="filter-bar-lead">絞り込み中</span>' +
+      '<span class="filter-chip"><span class="filter-chip-icon" aria-hidden="true">◉</span>' +
+      '<span class="filter-chip-text" id="c2-filter-text"></span>' +
+      '<button type="button" class="filter-chip-x" id="c2-filter-clear"' +
+      ' aria-label="絞り込みを解除">✕</button></span>' +
+      '<span class="filter-bar-count muted small" id="c2-filter-count"></span></div>' +
       '<div class="tbl-wrap"><table class="tbl c2tbl"><thead><tr>' +
       "<th>ファミリー</th><th>endpoint</th><th>観測結果</th><th>confidence</th>" +
       "<th>解決IP / 所在</th><th>確認方法</th><th>関連ケース</th><th>観測日</th>" +
@@ -800,34 +806,56 @@
       });
     });
 
+    var bar = document.getElementById("c2-filter-bar");
+    var barText = document.getElementById("c2-filter-text");
+    var barCount = document.getElementById("c2-filter-count");
+    var rows = Array.prototype.slice.call(document.querySelectorAll("#c2-rows .c2row"));
+
+    function clearFilter() {
+      rows.forEach(function (tr) { tr.hidden = false; });
+      svg.querySelectorAll(".mark.selected").forEach(function (m) { m.classList.remove("selected"); });
+      if (bar) bar.hidden = true;
+    }
+
+    function applyFilter(index) {
+      var p = points[index];
+      if (!p) return;
+      var keys = {};
+      p.eps.forEach(function (e) { keys[e.host + ":" + e.port] = true; });
+      var shown = 0;
+      rows.forEach(function (tr) {
+        var ep = eps[Number(tr.getAttribute("data-idx"))];
+        var hit = !!keys[ep.host + ":" + ep.port];
+        tr.hidden = !hit;
+        if (hit) shown++;
+      });
+      svg.querySelectorAll(".mark.selected").forEach(function (m) { m.classList.remove("selected"); });
+      var mark = svg.querySelector('.mark[data-idx="' + index + '"]');
+      if (mark) mark.classList.add("selected");
+      if (bar) {
+        barText.textContent = geoLabel(p.geo) + (p.geo.country_code ? " (" + p.geo.country_code + ")" : "") +
+          " ・ " + p.ips.join(", ");
+        barCount.textContent = shown + " / " + rows.length + " 件を表示中";
+        bar.hidden = false;
+      }
+      document.getElementById("c2-filter-bar").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    var clearBtn = document.getElementById("c2-filter-clear");
+    if (clearBtn) clearBtn.addEventListener("click", clearFilter);
+
     svg.addEventListener("click", function (ev) {
       if (suppressClick) { suppressClick = false; return; }
       var g = ev.target.closest ? ev.target.closest(".mark") : null;
-      var note = document.getElementById("c2-filter-note");
-      var rows = document.querySelectorAll("#c2-rows .c2row");
-      if (!g) {
-        rows.forEach(function (tr) { tr.hidden = false; });
-        if (note) note.textContent = "";
-        return;
-      }
-      var p = points[Number(g.getAttribute("data-idx"))];
-      var keys = {};
-      p.eps.forEach(function (e) { keys[e.host + ":" + e.port] = true; });
-      rows.forEach(function (tr) {
-        var ep = eps[Number(tr.getAttribute("data-idx"))];
-        tr.hidden = !keys[ep.host + ":" + ep.port];
-      });
-      if (note) note.textContent = "／ " + geoLabel(p.geo) + " の " + p.eps.length + " 件を表示中（地図の余白をクリックで解除）";
-      document.getElementById("c2-rows").scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!g) { clearFilter(); return; }
+      applyFilter(Number(g.getAttribute("data-idx")));
     });
 
     var reset = document.getElementById("c2map-reset");
     if (reset) reset.addEventListener("click", function () {
       state = { k: 1, x: 0, y: 0 };
       apply();
-      document.querySelectorAll("#c2-rows .c2row").forEach(function (tr) { tr.hidden = false; });
-      var note = document.getElementById("c2-filter-note");
-      if (note) note.textContent = "";
+      clearFilter();
     });
   }
 
