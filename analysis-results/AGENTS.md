@@ -25,6 +25,8 @@
 - 文書の見出し、本文、表の人間向けlabel、図の説明、制約、根拠、確度、誤検知評価は日本語で記述します。マルウェア名、アクター名、API名、path、JSON key、schema enum、command、hash、domain、URL、IOCなどの技術識別子は原表記を維持できます。
 - OSINTの原題や引用を原文で残す場合は、日本語題または日本語要約を併記します。英語の原文だけで概要や根拠を記述しません。
 - generatorが作るREADME、IOC表、索引、監査文書も日本語にします。生成結果だけを翻訳せず、template／knowledge data／rendererを修正し、再生成しても英語へ戻らないようにします。
+- 完全SHA-256一致の公開sandbox解析を参照したcase、またはdump／memory／dropped fileを取得したcaseには、`triage-evidence.json`と`TRIAGE.md`を置きます。親子hash、取得可否、取得不能理由、後段静的解析状態、config endpoint候補と通信contextの境界を記録します。
+- sandbox config endpointを`iocs.json`へ加える場合は`c2_candidate_external_sandbox_config`とし、確認済み静的C2と区別します。sandbox background trafficはIOCへ昇格しません。
 
 ## IOC専用一覧
 

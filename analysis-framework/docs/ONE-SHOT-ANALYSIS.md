@@ -130,6 +130,8 @@ HANDLER_CONTRACT = {
 
 `case_state.blockers` には完了を妨げた理由を列挙します。`report.json` の `analysis_contract` は、パイプライン契約バージョン、解析コード、`requirements.txt`、Python実装、主要依存パッケージ版、レジストリ、検出器、抽出器、アンパッカー、ルール、ハンドラーカタログ、結果へ影響する設定から作ったSHA-256指紋です。`artifact_sha256` はケース内の必須成果物ごとの内容ハッシュ、`report_semantic_sha256` はseal field自身を除くreport全体の決定的な内容ハッシュです。
 
+`analyze_sample.py`の完了は、入力された層に対する静的解析の完了です。包括解析ではこれに加えて、公開サンドボックスの完全一致hash照会、後段payload・memory image・drop物の取得可否確認と追加静的解析、設定から得たC2候補を含む全履歴ライブ確認を実施します。一次dropperだけを解析して包括完了とは判定しません。具体的な一括手順は[MALWAREBAZAAR-WINDOWS-BATCH.md](MALWAREBAZAAR-WINDOWS-BATCH.md)を参照してください。
+
 正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。関数ロジックのレビューと類似性判定は[静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
 ## 判定だけを行う

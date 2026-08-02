@@ -59,7 +59,8 @@ password、token、API key、URL の user information・query string・fragment�
 ```powershell
 python common/osint_hash_enricher.py `
   --summary ..\analysis-results\collections\<batch>\sources\unclassified\summary.json `
-  --output ..\analysis-results\malware\unclassified\versions\unknown `
+  --output ..\analysis-results\collections\<batch>\sources\unclassified `
+  --results-root ..\analysis-results --collection-id <batch> `
   --registry osint\hash_sources.yaml `
   --cache ..\.work\<batch>\osint-cache `
   --private-manifest ..\.work\<batch>\manifest.json `

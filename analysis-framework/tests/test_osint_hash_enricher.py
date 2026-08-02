@@ -147,8 +147,9 @@ def test_select_targets_only_returns_low_or_unknown() -> None:
         {"sha256": "a", "attribution": {"family": "x", "confidence": "medium"}},
         {"sha256": "b", "attribution": {"family": "unknown", "confidence": "medium"}},
         {"sha256": "c", "attribution": {"family": "x", "confidence": "low"}},
+        {"sha256": "d", "family": "unclassified", "attribution_basis": "no_supported_family_evidence"},
     ]}
-    assert [item["sha256"] for item in osint.select_targets(summary)] == ["b", "c"]
+    assert [item["sha256"] for item in osint.select_targets(summary)] == ["b", "c", "d"]
 
 
 def test_new_family_aliases_are_available() -> None:

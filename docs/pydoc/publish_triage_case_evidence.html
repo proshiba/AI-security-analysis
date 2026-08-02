@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module publish_triage_case_evidence</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">publish_triage_case_evidence</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cpublish_triage_case_evidence.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\publish_triage_case_evidence.py</a></td></tr></table>
+    <p><span class="code">完全ハッシュ一致の公開Triage証跡と後段取得結果を正規ケースへ公開する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">公開証拠反映CLIの引数parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Triage証拠の検証・公開処理を実行する。</span></dd></dl>
+ <dl><dt><a name="-publish"><strong>publish</strong></a>(
+    repository: 'Path',
+    collection_id: 'str',
+    triage_result: 'Path',
+    artifact_manifest: 'Path | None',
+    artifact_analysis_summary: 'Path | None',
+    *,
+    write: 'bool'
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">公開Triage証拠と後段解析状態を正規caseへ反映する。</span></dd></dl>
+ <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">現在時刻をUTCのISO&nbsp;8601形式で返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>END_MARKER</strong> = '&lt;!-- triage-public-evidence:end --&gt;'<br>
+<strong>SAFE_NAME_RE</strong> = re.compile('^[^\\\\/\\x00-\\x1f]{1,240}$')<br>
+<strong>SAMPLE_ID_RE</strong> = re.compile('^\\d{6}-[a-z0-9]{10}$')<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
+<strong>START_MARKER</strong> = '&lt;!-- triage-public-evidence:start --&gt;'</td></tr></table>
+</body></html>

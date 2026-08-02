@@ -35,6 +35,8 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "analyze_unknown_set",
         "update_unknown_analysis_history",
         "osint_hash_enricher",
+        "triage_artifact_retrieval",
+        "publish_triage_case_evidence",
         "deep_static_triage",
         "analyze_stealer_set",
         "c2_candidate_detector",

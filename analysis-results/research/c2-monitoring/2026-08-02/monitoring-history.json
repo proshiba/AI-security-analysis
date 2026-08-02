@@ -80,7 +80,7 @@
             "ips": [
               "118.107.21.88"
             ],
-            "observed_at_utc": "2026-08-02T08:05:08.345460+00:00",
+            "observed_at_utc": "2026-08-02T11:05:01.615380+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -101,10 +101,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:08.345460+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:01.615380+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:08.345460+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:08.345460+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:01.615380+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:01.615380+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -181,7 +181,7 @@
             "ips": [
               "154.82.93.206"
             ],
-            "observed_at_utc": "2026-08-02T08:05:11.359467+00:00",
+            "observed_at_utc": "2026-08-02T11:05:04.624429+00:00",
             "organizations": [
               "Tcloudnet"
             ],
@@ -202,10 +202,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:11.359467+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:04.624429+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:11.359467+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:11.359467+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:04.624429+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:04.624429+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -282,7 +282,7 @@
             "ips": [
               "159.65.247.13"
             ],
-            "observed_at_utc": "2026-08-02T08:05:14.360103+00:00",
+            "observed_at_utc": "2026-08-02T11:05:07.638265+00:00",
             "organizations": [
               "DigitalOcean, LLC"
             ],
@@ -303,10 +303,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:14.360103+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:07.638265+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:14.360103+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:14.360103+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:07.638265+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:07.638265+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -377,7 +377,7 @@
             "ips": [
               "160.119.69.4"
             ],
-            "observed_at_utc": "2026-08-02T08:05:16.405886+00:00",
+            "observed_at_utc": "2026-08-02T11:05:09.710897+00:00",
             "organizations": [
               "Alsycon B.V."
             ],
@@ -398,10 +398,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:16.405886+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:09.710897+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:16.405886+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:16.405886+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:09.710897+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:09.710897+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -484,7 +484,7 @@
             "ips": [
               "162.0.238.10"
             ],
-            "observed_at_utc": "2026-08-02T08:05:19.406890+00:00",
+            "observed_at_utc": "2026-08-02T11:05:12.711126+00:00",
             "organizations": [
               "Namecheap, Inc."
             ],
@@ -505,10 +505,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:19.406890+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:12.711126+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:19.406890+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:19.406890+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:12.711126+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:12.711126+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -597,7 +597,7 @@
             "ips": [
               "172.233.124.230"
             ],
-            "observed_at_utc": "2026-08-02T08:05:22.409141+00:00",
+            "observed_at_utc": "2026-08-02T11:05:15.716741+00:00",
             "organizations": [
               "Akamai Connected Cloud"
             ],
@@ -618,10 +618,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:22.409141+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:15.716741+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:22.409141+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:22.409141+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:15.716741+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:15.716741+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -698,7 +698,7 @@
             "ips": [
               "185.106.94.206"
             ],
-            "observed_at_utc": "2026-08-02T08:05:25.410740+00:00",
+            "observed_at_utc": "2026-08-02T11:05:18.717325+00:00",
             "organizations": [
               "First Server Limited"
             ],
@@ -719,10 +719,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:25.410740+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:18.717325+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:25.410740+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:25.410740+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:18.717325+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:18.717325+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -793,7 +793,7 @@
             "ips": [
               "185.196.41.201"
             ],
-            "observed_at_utc": "2026-08-02T08:05:28.412914+00:00",
+            "observed_at_utc": "2026-08-02T11:05:21.246119+00:00",
             "organizations": [
               "Anton Levin"
             ],
@@ -814,10 +814,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:28.412914+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:21.246119+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:28.412914+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:28.412914+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:21.246119+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:21.246119+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -911,7 +911,7 @@
             "ips": [
               "192.252.180.45"
             ],
-            "observed_at_utc": "2026-08-02T08:05:31.414824+00:00",
+            "observed_at_utc": "2026-08-02T11:05:24.247428+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -932,10 +932,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:31.414824+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:24.247428+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:31.414824+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:31.414824+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:24.247428+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:24.247428+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1006,7 +1006,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:34.429977+00:00",
+            "observed_at_utc": "2026-08-02T11:05:27.248772+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1027,10 +1027,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:34.429977+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:27.248772+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:34.429977+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:34.429977+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:27.248772+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:27.248772+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1101,7 +1101,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:36.759242+00:00",
+            "observed_at_utc": "2026-08-02T11:05:29.618256+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1122,10 +1122,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:36.759242+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:29.618256+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:36.759242+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:36.759242+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:29.618256+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:29.618256+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1196,7 +1196,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:39.141847+00:00",
+            "observed_at_utc": "2026-08-02T11:05:31.941604+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1217,10 +1217,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:39.141847+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:31.941604+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:39.141847+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:39.141847+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:31.941604+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:31.941604+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1291,7 +1291,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:41.527704+00:00",
+            "observed_at_utc": "2026-08-02T11:05:34.310040+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1312,10 +1312,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:41.527704+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:34.310040+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:41.527704+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:41.527704+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:34.310040+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:34.310040+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1386,7 +1386,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:43.925404+00:00",
+            "observed_at_utc": "2026-08-02T11:05:36.676857+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1407,10 +1407,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:43.925404+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:36.676857+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:43.925404+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:43.925404+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:36.676857+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:36.676857+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1481,7 +1481,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:46.290178+00:00",
+            "observed_at_utc": "2026-08-02T11:05:39.006842+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1502,10 +1502,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:46.290178+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:39.006842+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:46.290178+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:46.290178+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:39.006842+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:39.006842+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1576,7 +1576,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:48.625735+00:00",
+            "observed_at_utc": "2026-08-02T11:05:41.321702+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1597,10 +1597,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:48.625735+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:41.321702+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:48.625735+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:48.625735+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:41.321702+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:41.321702+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1671,7 +1671,7 @@
             "ips": [
               "193.46.218.20"
             ],
-            "observed_at_utc": "2026-08-02T08:05:51.627646+00:00",
+            "observed_at_utc": "2026-08-02T11:05:43.641357+00:00",
             "organizations": [
               "ZhouyiSat Communications"
             ],
@@ -1692,10 +1692,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:51.627646+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:43.641357+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:51.627646+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:51.627646+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:43.641357+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:43.641357+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -1766,7 +1766,7 @@
             "ips": [
               "196.251.107.171"
             ],
-            "observed_at_utc": "2026-08-02T08:05:53.960914+00:00",
+            "observed_at_utc": "2026-08-02T11:05:45.975127+00:00",
             "organizations": [
               "Femo It Solutions Limited"
             ],
@@ -1787,11 +1787,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:53.960914+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:45.975127+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:53.960914+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:53.960914+00:00",
-        "last_on_at_utc": "2026-08-02T08:05:53.960914+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:45.975127+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:45.975127+00:00",
+        "last_on_at_utc": "2026-08-02T11:05:45.975127+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -1884,7 +1884,7 @@
             "ips": [
               "202.95.8.27"
             ],
-            "observed_at_utc": "2026-08-02T08:05:54.081127+00:00",
+            "observed_at_utc": "2026-08-02T11:05:46.072668+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -1905,10 +1905,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:54.081127+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:46.072668+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:54.081127+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:54.081127+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:46.072668+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:46.072668+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2002,7 +2002,7 @@
             "ips": [
               "202.95.8.27"
             ],
-            "observed_at_utc": "2026-08-02T08:05:57.081585+00:00",
+            "observed_at_utc": "2026-08-02T11:05:49.075015+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -2023,10 +2023,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:05:57.081585+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:49.075015+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:05:57.081585+00:00",
-        "last_observed_at_utc": "2026-08-02T08:05:57.081585+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:49.075015+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:49.075015+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2097,7 +2097,7 @@
             "ips": [
               "217.32.184.17"
             ],
-            "observed_at_utc": "2026-08-02T08:06:00.083609+00:00",
+            "observed_at_utc": "2026-08-02T11:05:52.076168+00:00",
             "organizations": [
               "British Telecommunications Limited"
             ],
@@ -2118,10 +2118,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:00.083609+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:52.076168+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:00.083609+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:00.083609+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:52.076168+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:52.076168+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2192,7 +2192,7 @@
             "ips": [
               "217.60.195.187"
             ],
-            "observed_at_utc": "2026-08-02T08:06:03.085905+00:00",
+            "observed_at_utc": "2026-08-02T11:05:55.076478+00:00",
             "organizations": [
               "Swissnet LLC"
             ],
@@ -2213,10 +2213,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:03.085905+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:55.076478+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:03.085905+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:03.085905+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:55.076478+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:55.076478+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2287,7 +2287,7 @@
             "ips": [
               "31.77.168.180"
             ],
-            "observed_at_utc": "2026-08-02T08:06:05.548713+00:00",
+            "observed_at_utc": "2026-08-02T11:05:57.555736+00:00",
             "organizations": [
               "QWINS LTD"
             ],
@@ -2308,10 +2308,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:05.548713+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:57.555736+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:05.548713+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:05.548713+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:57.555736+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:57.555736+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2382,7 +2382,7 @@
             "ips": [
               "37.27.30.5"
             ],
-            "observed_at_utc": "2026-08-02T08:06:07.989617+00:00",
+            "observed_at_utc": "2026-08-02T11:05:59.987048+00:00",
             "organizations": [
               "Hetzner Online GmbH"
             ],
@@ -2403,10 +2403,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:07.989617+00:00",
+        "first_observed_at_utc": "2026-08-02T11:05:59.987048+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:07.989617+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:07.989617+00:00",
+        "inactive_since_utc": "2026-08-02T11:05:59.987048+00:00",
+        "last_observed_at_utc": "2026-08-02T11:05:59.987048+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2477,7 +2477,7 @@
             "ips": [
               "37.27.30.5"
             ],
-            "observed_at_utc": "2026-08-02T08:06:10.485743+00:00",
+            "observed_at_utc": "2026-08-02T11:06:02.516920+00:00",
             "organizations": [
               "Hetzner Online GmbH"
             ],
@@ -2498,10 +2498,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:10.485743+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:02.516920+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:10.485743+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:10.485743+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:02.516920+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:02.516920+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2572,7 +2572,7 @@
             "ips": [
               "37.27.30.5"
             ],
-            "observed_at_utc": "2026-08-02T08:06:12.993607+00:00",
+            "observed_at_utc": "2026-08-02T11:06:05.092809+00:00",
             "organizations": [
               "Hetzner Online GmbH"
             ],
@@ -2593,10 +2593,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:12.993607+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:05.092809+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:12.993607+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:12.993607+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:05.092809+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:05.092809+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2667,7 +2667,7 @@
             "ips": [
               "40.86.87.10"
             ],
-            "observed_at_utc": "2026-08-02T08:06:15.498861+00:00",
+            "observed_at_utc": "2026-08-02T11:06:07.585768+00:00",
             "organizations": [
               "Microsoft Corporation"
             ],
@@ -2688,10 +2688,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:15.498861+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:07.585768+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:15.498861+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:15.498861+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:07.585768+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:07.585768+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2786,7 +2786,7 @@
             "ips": [
               "45.154.98.115"
             ],
-            "observed_at_utc": "2026-08-02T08:06:18.502141+00:00",
+            "observed_at_utc": "2026-08-02T11:06:10.586853+00:00",
             "organizations": [
               "1337 Services GmbH"
             ],
@@ -2807,10 +2807,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:18.502141+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:10.586853+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:18.502141+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:18.502141+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:10.586853+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:10.586853+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -2887,7 +2887,7 @@
             "ips": [
               "45.55.193.40"
             ],
-            "observed_at_utc": "2026-08-02T08:06:20.955953+00:00",
+            "observed_at_utc": "2026-08-02T11:06:13.064902+00:00",
             "organizations": [
               "DigitalOcean, LLC"
             ],
@@ -2908,10 +2908,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:20.955953+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:13.064902+00:00",
         "inactive_days": 0.0,
         "inactive_since_utc": null,
-        "last_observed_at_utc": "2026-08-02T08:06:20.955953+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:13.064902+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
@@ -2982,7 +2982,7 @@
             "ips": [
               "45.66.228.114"
             ],
-            "observed_at_utc": "2026-08-02T08:06:20.956047+00:00",
+            "observed_at_utc": "2026-08-02T11:06:13.064996+00:00",
             "organizations": [
               "Play2go International Limited"
             ],
@@ -3003,10 +3003,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:20.956047+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:13.064996+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:20.956047+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:20.956047+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:13.064996+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:13.064996+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3077,7 +3077,7 @@
             "ips": [
               "45.95.147.178"
             ],
-            "observed_at_utc": "2026-08-02T08:06:23.440002+00:00",
+            "observed_at_utc": "2026-08-02T11:06:15.551288+00:00",
             "organizations": [
               "Alsycon B.V."
             ],
@@ -3098,11 +3098,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:23.440002+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:15.551288+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:23.440002+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:23.440002+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:23.440002+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:15.551288+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:15.551288+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:15.551288+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -3172,7 +3172,7 @@
             "ips": [
               "61.111.250.139"
             ],
-            "observed_at_utc": "2026-08-02T08:06:23.529611+00:00",
+            "observed_at_utc": "2026-08-02T11:06:15.649345+00:00",
             "organizations": [
               "MOACK.Co.LTD"
             ],
@@ -3193,10 +3193,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:23.529611+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:15.649345+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:23.529611+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:23.529611+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:15.649345+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:15.649345+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3267,7 +3267,7 @@
             "ips": [
               "64.89.163.215"
             ],
-            "observed_at_utc": "2026-08-02T08:06:26.529574+00:00",
+            "observed_at_utc": "2026-08-02T11:06:18.650015+00:00",
             "organizations": [
               "Netiface America, Inc."
             ],
@@ -3288,11 +3288,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:26.529574+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:18.650015+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:26.529574+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:26.529574+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:26.529574+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:18.650015+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:18.650015+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:18.650015+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -3362,7 +3362,7 @@
             "ips": [
               "65.222.202.53"
             ],
-            "observed_at_utc": "2026-08-02T08:06:26.673647+00:00",
+            "observed_at_utc": "2026-08-02T11:06:18.800582+00:00",
             "organizations": [
               "Verizon Business"
             ],
@@ -3383,10 +3383,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:26.673647+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:18.800582+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:26.673647+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:26.673647+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:18.800582+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:18.800582+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3463,7 +3463,7 @@
             "ips": [
               "216.230.233.12"
             ],
-            "observed_at_utc": "2026-08-02T08:06:29.674742+00:00",
+            "observed_at_utc": "2026-08-02T11:06:21.801988+00:00",
             "organizations": [
               "The Optimal Link Corporation"
             ],
@@ -3484,11 +3484,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.674742+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:21.801988+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:29.674742+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:29.674742+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:29.674742+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:21.801988+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:21.801988+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:21.801988+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -3646,7 +3646,7 @@
               "104.21.70.36",
               "172.67.219.31"
             ],
-            "observed_at_utc": "2026-08-02T08:06:29.708706+00:00",
+            "observed_at_utc": "2026-08-02T11:06:21.912605+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -3667,10 +3667,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.708706+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:21.912605+00:00",
         "inactive_days": 0.0,
         "inactive_since_utc": null,
-        "last_observed_at_utc": "2026-08-02T08:06:29.708706+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:21.912605+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
@@ -3697,7 +3697,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:29.709314+00:00",
+            "observed_at_utc": "2026-08-02T11:06:21.927005+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -3716,10 +3716,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.709314+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:21.927005+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:29.709314+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:29.709314+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:21.927005+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:21.927005+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3796,7 +3796,7 @@
             "ips": [
               "146.70.81.56"
             ],
-            "observed_at_utc": "2026-08-02T08:06:29.710458+00:00",
+            "observed_at_utc": "2026-08-02T11:06:21.932754+00:00",
             "organizations": [
               "M247 Europe SRL"
             ],
@@ -3817,10 +3817,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.710458+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:21.932754+00:00",
         "inactive_days": 0.0,
         "inactive_since_utc": null,
-        "last_observed_at_utc": "2026-08-02T08:06:29.710458+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:21.932754+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
@@ -3847,7 +3847,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:29.710964+00:00",
+            "observed_at_utc": "2026-08-02T11:06:22.043851+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -3866,10 +3866,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.710964+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:22.043851+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:29.710964+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:29.710964+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:22.043851+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:22.043851+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3946,7 +3946,7 @@
             "ips": [
               "116.204.169.70"
             ],
-            "observed_at_utc": "2026-08-02T08:06:29.712008+00:00",
+            "observed_at_utc": "2026-08-02T11:06:22.056805+00:00",
             "organizations": [
               "MOACK.Co.LTD"
             ],
@@ -3967,10 +3967,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:29.712008+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:22.056805+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:29.712008+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:29.712008+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:22.056805+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:22.056805+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -3997,7 +3997,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:32.721855+00:00",
+            "observed_at_utc": "2026-08-02T11:06:25.069879+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4016,10 +4016,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:32.721855+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:25.069879+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:32.721855+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:32.721855+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:25.069879+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:25.069879+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4038,6 +4038,253 @@
       "dns_tracking": {
         "history": [
           {
+            "asns": [
+              13335
+            ],
+            "assessment_state": "dns_resolved_c2_service_not_confirmed",
+            "availability": "not_observed",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "104.26.8.35"
+              },
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "104.26.9.35"
+              },
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "172.67.72.107"
+              }
+            ],
+            "ips": [
+              "104.26.8.35",
+              "104.26.9.35",
+              "172.67.72.107"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:25.151168+00:00",
+            "organizations": [
+              "Cloudflare, Inc."
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": "Cloudflare"
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "bsc.blockrazor.xyz|0|dns|direct|",
+      "events": [],
+      "family": "unclassified",
+      "host": "bsc.blockrazor.xyz",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:25.151168+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": null,
+        "last_observed_at_utc": "2026-08-02T11:06:25.151168+00:00",
+        "last_on_at_utc": null,
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_unobserved",
+        "transition": null
+      },
+      "port": 0,
+      "protocol": "dns",
+      "target_id": "all-history-896534c992dd",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
             "asns": [],
             "assessment_state": "not_reachable_at_observation",
             "availability": "off",
@@ -4046,7 +4293,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:32.723377+00:00",
+            "observed_at_utc": "2026-08-02T11:06:25.168663+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4065,10 +4312,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:32.723377+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:25.168663+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:32.723377+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:32.723377+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:25.168663+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:25.168663+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4227,7 +4474,7 @@
               "104.21.20.102",
               "172.67.192.84"
             ],
-            "observed_at_utc": "2026-08-02T08:06:32.724300+00:00",
+            "observed_at_utc": "2026-08-02T11:06:25.201857+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -4248,11 +4495,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:32.724300+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:25.201857+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:32.724300+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:32.724300+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:32.724300+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:25.201857+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:25.201857+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:25.201857+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -4410,7 +4657,7 @@
               "104.21.0.212",
               "172.67.128.76"
             ],
-            "observed_at_utc": "2026-08-02T08:06:32.738216+00:00",
+            "observed_at_utc": "2026-08-02T11:06:25.222643+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -4431,10 +4678,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:32.738216+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:25.222643+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:32.738216+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:32.738216+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:25.222643+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:25.222643+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4461,7 +4708,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.751892+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.232912+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4480,10 +4727,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.751892+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.232912+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.751892+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.751892+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.232912+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.232912+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4510,7 +4757,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.753314+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.255920+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4529,10 +4776,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.753314+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.255920+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.753314+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.753314+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.255920+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.255920+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4559,7 +4806,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.754302+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.275516+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4578,10 +4825,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.754302+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.275516+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.754302+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.754302+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.275516+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.275516+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4658,7 +4905,7 @@
             "ips": [
               "34.173.140.217"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.754927+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.278892+00:00",
             "organizations": [
               "Google LLC"
             ],
@@ -4679,11 +4926,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.754927+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.278892+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.754927+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.754927+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.754927+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.278892+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.278892+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.278892+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -4701,6 +4948,113 @@
       "dns_tracking": {
         "history": [
           {
+            "asns": [
+              14061
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 14061,
+                  "organization": "DigitalOcean, LLC"
+                },
+                "geo": {
+                  "accuracy_radius_km": 20,
+                  "city_name": "クリフトン",
+                  "continent_code": "NA",
+                  "continent_name": "北アメリカ",
+                  "country_iso_code": "US",
+                  "country_name": "アメリカ",
+                  "is_anycast": null,
+                  "latitude": 40.8364,
+                  "longitude": -74.1403,
+                  "subdivision_iso_code": "NJ",
+                  "subdivision_name": "ニュージャージー州",
+                  "time_zone": "America/New_York"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "unknown",
+                    "confidence": 0.0,
+                    "label": "防弾ホスティング判定不能",
+                    "reason": "防弾ホスティングと評価する肯定的なprovider／ASN証拠がregistryにない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: DigitalOcean, LLC",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "165.227.123.79"
+              }
+            ],
+            "ips": [
+              "165.227.123.79"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:31.329687+00:00",
+            "organizations": [
+              "DigitalOcean, LLC"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "fimmora.surf|6504|tcp|direct|",
+      "events": [],
+      "family": "remusstealer",
+      "host": "fimmora.surf",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:31.329687+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-02T11:06:31.329687+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.329687+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.329687+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 6504,
+      "protocol": "tcp",
+      "target_id": "all-history-5fd262eec197",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
             "asns": [],
             "assessment_state": "not_reachable_at_observation",
             "availability": "off",
@@ -4709,7 +5063,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.783094+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.344208+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4728,10 +5082,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.783094+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.344208+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.783094+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.783094+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.344208+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.344208+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -4890,7 +5244,7 @@
               "104.21.37.79",
               "172.67.205.230"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.784290+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.350455+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -4911,11 +5265,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.784290+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.350455+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.784290+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.784290+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.784290+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.350455+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.350455+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.350455+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -4941,7 +5295,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.786925+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.360202+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -4960,10 +5314,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.786925+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.360202+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.786925+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.786925+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.360202+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.360202+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -5052,7 +5406,7 @@
             "ips": [
               "199.188.201.213"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.787703+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.370262+00:00",
             "organizations": [
               "Namecheap, Inc."
             ],
@@ -5073,11 +5427,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.787703+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.370262+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.787703+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.787703+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.787703+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.370262+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.370262+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.370262+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5165,7 +5519,7 @@
             "ips": [
               "66.29.137.55"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.845484+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.440247+00:00",
             "organizations": [
               "Namecheap, Inc."
             ],
@@ -5186,11 +5540,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.845484+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.440247+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.845484+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.845484+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.845484+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.440247+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.440247+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.440247+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5266,7 +5620,7 @@
             "ips": [
               "166.0.192.57"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.903360+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.532763+00:00",
             "organizations": [
               "Snaju Development"
             ],
@@ -5287,11 +5641,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.903360+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.532763+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.903360+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.903360+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.903360+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.532763+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.532763+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.532763+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5449,7 +5803,7 @@
               "104.21.20.102",
               "172.67.192.84"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.955045+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.631751+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -5470,11 +5824,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.955045+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.631751+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.955045+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.955045+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.955045+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.631751+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.631751+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.631751+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5632,7 +5986,7 @@
               "104.21.29.202",
               "172.67.149.199"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.957633+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.652242+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -5653,11 +6007,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.957633+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.652242+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.957633+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.957633+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.957633+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.652242+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.652242+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.652242+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5683,7 +6037,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.960464+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.661356+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -5702,10 +6056,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.960464+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.661356+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.960464+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.960464+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.661356+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.661356+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -5732,7 +6086,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:38.961310+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.709799+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -5751,10 +6105,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.961310+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.709799+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.961310+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.961310+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.709799+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.709799+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -5854,7 +6208,7 @@
             "ips": [
               "134.122.185.201"
             ],
-            "observed_at_utc": "2026-08-02T08:06:38.961930+00:00",
+            "observed_at_utc": "2026-08-02T11:06:31.715930+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -5875,11 +6229,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:38.961930+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:31.715930+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:38.961930+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:38.961930+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:38.961930+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:31.715930+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:31.715930+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:31.715930+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -5978,7 +6332,7 @@
             "ips": [
               "134.122.185.201"
             ],
-            "observed_at_utc": "2026-08-02T08:06:39.387214+00:00",
+            "observed_at_utc": "2026-08-02T11:06:32.406008+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -5999,11 +6353,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:39.387214+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:32.406008+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:39.387214+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:39.387214+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:39.387214+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:32.406008+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:32.406008+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:32.406008+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -6102,7 +6456,7 @@
             "ips": [
               "134.122.185.201"
             ],
-            "observed_at_utc": "2026-08-02T08:06:39.601964+00:00",
+            "observed_at_utc": "2026-08-02T11:06:32.621406+00:00",
             "organizations": [
               "CTG Server Limited"
             ],
@@ -6123,10 +6477,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:39.601964+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:32.621406+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:39.601964+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:39.601964+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:32.621406+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:32.621406+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -6203,7 +6557,7 @@
             "ips": [
               "31.56.209.153"
             ],
-            "observed_at_utc": "2026-08-02T08:06:42.611611+00:00",
+            "observed_at_utc": "2026-08-02T11:06:35.625919+00:00",
             "organizations": [
               "Swissnet LLC"
             ],
@@ -6224,10 +6578,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:42.611611+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:35.625919+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:42.611611+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:42.611611+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:35.625919+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:35.625919+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -6304,7 +6658,7 @@
             "ips": [
               "45.90.163.37"
             ],
-            "observed_at_utc": "2026-08-02T08:06:45.076281+00:00",
+            "observed_at_utc": "2026-08-02T11:06:38.652522+00:00",
             "organizations": [
               "Sapinet SAS"
             ],
@@ -6325,11 +6679,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:45.076281+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:38.652522+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:45.076281+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:45.076281+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:45.076281+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:38.652522+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:38.652522+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:38.652522+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -6429,7 +6783,7 @@
             "ips": [
               "193.26.115.118"
             ],
-            "observed_at_utc": "2026-08-02T08:06:45.165361+00:00",
+            "observed_at_utc": "2026-08-02T11:06:38.774133+00:00",
             "organizations": [
               "1337 Services GmbH"
             ],
@@ -6450,11 +6804,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:45.165361+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:38.774133+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:45.165361+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:45.165361+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:45.165361+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:38.774133+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:38.774133+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:38.774133+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -6536,7 +6890,7 @@
             "ips": [
               "162.35.179.210"
             ],
-            "observed_at_utc": "2026-08-02T08:06:45.191160+00:00",
+            "observed_at_utc": "2026-08-02T11:06:38.825961+00:00",
             "organizations": [
               "Interserver, Inc"
             ],
@@ -6557,10 +6911,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:45.191160+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:38.825961+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:45.191160+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:45.191160+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:38.825961+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:38.825961+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -6579,6 +6933,189 @@
       "dns_tracking": {
         "history": [
           {
+            "asns": [
+              13335
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "104.21.0.147"
+              },
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "172.67.186.8"
+              }
+            ],
+            "ips": [
+              "104.21.0.147",
+              "172.67.186.8"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:40.992070+00:00",
+            "organizations": [
+              "Cloudflare, Inc."
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": "Cloudflare"
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "netkata.io|443|tcp|direct|",
+      "events": [],
+      "family": "nanocore",
+      "host": "netkata.io",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:40.992070+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-02T11:06:40.992070+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:40.992070+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:40.992070+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 443,
+      "protocol": "tcp",
+      "target_id": "all-history-0f93a52fb13a",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
             "asns": [],
             "assessment_state": "not_reachable_at_observation",
             "availability": "off",
@@ -6587,7 +7124,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:47.358142+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.021966+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -6606,10 +7143,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.358142+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.021966+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.358142+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.358142+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.021966+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.021966+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -6636,7 +7173,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:47.359381+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.664650+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -6655,10 +7192,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.359381+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.664650+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.359381+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.359381+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.664650+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.664650+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -6741,7 +7278,7 @@
             "ips": [
               "162.249.125.140"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.386845+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.692225+00:00",
             "organizations": [
               "Interkvm Host Srl"
             ],
@@ -6762,11 +7299,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.386845+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.692225+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.386845+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.386845+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.386845+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.692225+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.692225+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:41.692225+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -6842,7 +7379,7 @@
             "ips": [
               "151.241.154.227"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.513708+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.826726+00:00",
             "organizations": [
               "12651980 CANADA INC."
             ],
@@ -6863,11 +7400,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.513708+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.826726+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.513708+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.513708+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.513708+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.826726+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.826726+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:41.826726+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -7025,7 +7562,7 @@
               "104.21.20.102",
               "172.67.192.84"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.600113+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.954721+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -7046,11 +7583,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.600113+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.954721+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.600113+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.600113+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.600113+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.954721+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.954721+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:41.954721+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -7076,7 +7613,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:47.619598+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.965310+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -7095,10 +7632,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.619598+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.965310+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.619598+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.619598+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.965310+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.965310+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7187,7 +7724,7 @@
             "ips": [
               "199.188.201.73"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.620932+00:00",
+            "observed_at_utc": "2026-08-02T11:06:41.968640+00:00",
             "organizations": [
               "Namecheap, Inc."
             ],
@@ -7208,11 +7745,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.620932+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:41.968640+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.620932+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.620932+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.620932+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:41.968640+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:41.968640+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:41.968640+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -7238,7 +7775,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:47.676091+00:00",
+            "observed_at_utc": "2026-08-02T11:06:42.028107+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -7257,10 +7794,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.676091+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:42.028107+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.676091+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.676091+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:42.028107+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:42.028107+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7337,7 +7874,7 @@
             "ips": [
               "76.76.21.21"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.677489+00:00",
+            "observed_at_utc": "2026-08-02T11:06:42.048453+00:00",
             "organizations": [
               "Amazon.com, Inc."
             ],
@@ -7358,11 +7895,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.677489+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:42.048453+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.677489+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.677489+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.677489+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:42.048453+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:42.048453+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:42.048453+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -7461,7 +7998,7 @@
             "ips": [
               "185.139.214.102"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.679929+00:00",
+            "observed_at_utc": "2026-08-02T11:06:42.084690+00:00",
             "organizations": [
               "Alexhost Srl"
             ],
@@ -7482,11 +8019,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.679929+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:42.084690+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.679929+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.679929+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:47.679929+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:42.084690+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:42.084690+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:42.084690+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -7562,7 +8099,7 @@
             "ips": [
               "194.56.225.109"
             ],
-            "observed_at_utc": "2026-08-02T08:06:47.739678+00:00",
+            "observed_at_utc": "2026-08-02T11:06:42.161097+00:00",
             "organizations": [
               "SpeedyPage Ltd"
             ],
@@ -7583,10 +8120,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:47.739678+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:42.161097+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:47.739678+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:47.739678+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:42.161097+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:42.161097+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7663,7 +8200,7 @@
             "ips": [
               "194.56.225.109"
             ],
-            "observed_at_utc": "2026-08-02T08:06:50.742750+00:00",
+            "observed_at_utc": "2026-08-02T11:06:45.176324+00:00",
             "organizations": [
               "SpeedyPage Ltd"
             ],
@@ -7684,10 +8221,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:50.742750+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:45.176324+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:50.742750+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:50.742750+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:45.176324+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:45.176324+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7764,7 +8301,7 @@
             "ips": [
               "194.56.225.109"
             ],
-            "observed_at_utc": "2026-08-02T08:06:53.743950+00:00",
+            "observed_at_utc": "2026-08-02T11:06:48.178733+00:00",
             "organizations": [
               "SpeedyPage Ltd"
             ],
@@ -7785,10 +8322,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:53.743950+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:48.178733+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:53.743950+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:53.743950+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:48.178733+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:48.178733+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7815,7 +8352,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.746324+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.183631+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -7834,10 +8371,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.746324+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.183631+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.746324+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.746324+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.183631+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.183631+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -7850,6 +8387,113 @@
       "port": 9000,
       "protocol": "tcp",
       "target_id": "all-history-660c4ff881ec",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              47583
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 47583,
+                  "organization": "Hostinger International Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 20,
+                  "city_name": "サンパウロ",
+                  "continent_code": "SA",
+                  "continent_name": "南アメリカ",
+                  "country_iso_code": "BR",
+                  "country_name": "ブラジル連邦共和国",
+                  "is_anycast": null,
+                  "latitude": -23.5475,
+                  "longitude": -46.6361,
+                  "subdivision_iso_code": "SP",
+                  "subdivision_name": "サンパウロ州",
+                  "time_zone": "America/Sao_Paulo"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "unknown",
+                    "confidence": 0.0,
+                    "label": "防弾ホスティング判定不能",
+                    "reason": "防弾ホスティングと評価する肯定的なprovider／ASN証拠がregistryにない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Hostinger International Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "85.31.60.169"
+              }
+            ],
+            "ips": [
+              "85.31.60.169"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:51.193775+00:00",
+            "organizations": [
+              "Hostinger International Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "tzpx.courses|4437|tcp|direct|",
+      "events": [],
+      "family": "remusstealer",
+      "host": "tzpx.courses",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:51.193775+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-02T11:06:51.193775+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.193775+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.193775+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 4437,
+      "protocol": "tcp",
+      "target_id": "all-history-cf18d18cbd4d",
       "transport": "direct"
     },
     {
@@ -7914,7 +8558,7 @@
             "ips": [
               "54.146.6.253"
             ],
-            "observed_at_utc": "2026-08-02T08:06:56.747685+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.318448+00:00",
             "organizations": [
               "Amazon.com, Inc."
             ],
@@ -7935,11 +8579,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.747685+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.318448+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.747685+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.747685+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:56.747685+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.318448+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.318448+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.318448+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -8015,7 +8659,7 @@
             "ips": [
               "54.146.6.253"
             ],
-            "observed_at_utc": "2026-08-02T08:06:56.767817+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.355001+00:00",
             "organizations": [
               "Amazon.com, Inc."
             ],
@@ -8036,11 +8680,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.767817+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.355001+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.767817+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.767817+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:56.767817+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.355001+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.355001+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.355001+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -8116,7 +8760,7 @@
             "ips": [
               "54.146.6.253"
             ],
-            "observed_at_utc": "2026-08-02T08:06:56.770758+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.358145+00:00",
             "organizations": [
               "Amazon.com, Inc."
             ],
@@ -8137,11 +8781,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.770758+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.358145+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.770758+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.770758+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:56.770758+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.358145+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.358145+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.358145+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -8299,7 +8943,7 @@
               "104.21.45.164",
               "172.67.216.166"
             ],
-            "observed_at_utc": "2026-08-02T08:06:56.773676+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.361077+00:00",
             "organizations": [
               "Cloudflare, Inc."
             ],
@@ -8320,11 +8964,11 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.773676+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.361077+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.773676+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.773676+00:00",
-        "last_on_at_utc": "2026-08-02T08:06:56.773676+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.361077+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.361077+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.361077+00:00",
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 0,
         "retired_at_utc": null,
@@ -8350,7 +8994,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.798697+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.388781+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8369,10 +9013,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.798697+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.388781+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.798697+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.798697+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.388781+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.388781+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8399,7 +9043,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.799782+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.396061+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8418,10 +9062,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.799782+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.396061+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.799782+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.799782+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.396061+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.396061+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8448,7 +9092,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.800183+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.396825+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8467,10 +9111,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.800183+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.396825+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.800183+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.800183+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.396825+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.396825+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8489,6 +9133,189 @@
       "dns_tracking": {
         "history": [
           {
+            "asns": [
+              13335
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "104.21.0.147"
+              },
+              {
+                "as": {
+                  "asn": 13335,
+                  "organization": "Cloudflare, Inc."
+                },
+                "geo": {
+                  "accuracy_radius_km": null,
+                  "city_name": null,
+                  "continent_code": null,
+                  "continent_name": null,
+                  "country_iso_code": null,
+                  "country_name": null,
+                  "is_anycast": null,
+                  "latitude": null,
+                  "longitude": null,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": null
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "not_indicated",
+                    "confidence": 0.8,
+                    "label": "防弾ホスティング根拠なし（共有CDN）",
+                    "reason": "Cloudflareの共有edge IPであり、このIPだけからoriginの防弾ホスティング利用を評価できない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "共有CDN edgeとして観測",
+                      "confidence": 0.9,
+                      "id": "anycast_shared_edge",
+                      "label": "Anycast／共有エッジ"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "ASN／organizationが共有CDN Cloudflare と一致",
+                      "confidence": 0.98,
+                      "id": "cdn",
+                      "label": "CDN"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: Cloudflare, Inc.",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "172.67.186.8"
+              }
+            ],
+            "ips": [
+              "104.21.0.147",
+              "172.67.186.8"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:51.397266+00:00",
+            "organizations": [
+              "Cloudflare, Inc."
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": "Cloudflare"
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "www.netkata.io|443|tcp|direct|",
+      "events": [],
+      "family": "nanocore",
+      "host": "www.netkata.io",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:51.397266+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-02T11:06:51.397266+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.397266+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.397266+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 443,
+      "protocol": "tcp",
+      "target_id": "all-history-3a4a8d0cc748",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
             "asns": [],
             "assessment_state": "not_reachable_at_observation",
             "availability": "off",
@@ -8497,7 +9324,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.800533+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.421231+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8516,10 +9343,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.800533+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.421231+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.800533+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.800533+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.421231+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.421231+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8546,7 +9373,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.801067+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.426309+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8565,10 +9392,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.801067+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.426309+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.801067+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.801067+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.426309+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.426309+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8595,7 +9422,7 @@
             "infrastructure_ip_change": false,
             "ip_details": [],
             "ips": [],
-            "observed_at_utc": "2026-08-02T08:06:56.801368+00:00",
+            "observed_at_utc": "2026-08-02T11:06:51.426716+00:00",
             "organizations": [],
             "raw_ip_changed": false,
             "shared_cdn_provider": null
@@ -8614,10 +9441,10 @@
       "http_path": null,
       "monitoring_lifecycle": {
         "active": true,
-        "first_observed_at_utc": "2026-08-02T08:06:56.801368+00:00",
+        "first_observed_at_utc": "2026-08-02T11:06:51.426716+00:00",
         "inactive_days": 0.0,
-        "inactive_since_utc": "2026-08-02T08:06:56.801368+00:00",
-        "last_observed_at_utc": "2026-08-02T08:06:56.801368+00:00",
+        "inactive_since_utc": "2026-08-02T11:06:51.426716+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.426716+00:00",
         "last_on_at_utc": null,
         "minimum_off_observations": 2,
         "off_observation_count_since_last_on": 1,
@@ -8631,12 +9458,119 @@
       "protocol": "tcp",
       "target_id": "all-history-3b23558bb8cb",
       "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              14061
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-02",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 14061,
+                  "organization": "DigitalOcean, LLC"
+                },
+                "geo": {
+                  "accuracy_radius_km": 20,
+                  "city_name": "クリフトン",
+                  "continent_code": "NA",
+                  "continent_name": "北アメリカ",
+                  "country_iso_code": "US",
+                  "country_name": "アメリカ",
+                  "is_anycast": null,
+                  "latitude": 40.8364,
+                  "longitude": -74.1403,
+                  "subdivision_iso_code": "NJ",
+                  "subdivision_name": "ニュージャージー州",
+                  "time_zone": "America/New_York"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "unknown",
+                    "confidence": 0.0,
+                    "label": "防弾ホスティング判定不能",
+                    "reason": "防弾ホスティングと評価する肯定的なprovider／ASN証拠がregistryにない。",
+                    "sources": []
+                  },
+                  "matched_rules": [],
+                  "tags": [
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: DigitalOcean, LLC",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "134.209.42.122"
+              }
+            ],
+            "ips": [
+              "134.209.42.122"
+            ],
+            "observed_at_utc": "2026-08-02T11:06:51.427113+00:00",
+            "organizations": [
+              "DigitalOcean, LLC"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "zelpx.garden|9895|tcp|direct|",
+      "events": [],
+      "family": "remusstealer",
+      "host": "zelpx.garden",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-02T11:06:51.427113+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-02T11:06:51.427113+00:00",
+        "last_observed_at_utc": "2026-08-02T11:06:51.427113+00:00",
+        "last_on_at_utc": "2026-08-02T11:06:51.427113+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 9895,
+      "protocol": "tcp",
+      "target_id": "all-history-e5e4ae00dc61",
+      "transport": "direct"
     }
   ],
-  "generated_at_utc": "2026-08-02T08:06:57.099304+00:00",
+  "generated_at_utc": "2026-08-02T11:06:51.762165+00:00",
   "policy": {
-    "active_target_count": 89,
-    "endpoint_count": 89,
+    "active_target_count": 95,
+    "endpoint_count": 95,
     "minimum_off_observations": 2,
     "retired_target_count": 0,
     "retirement_after_days_without_on": 7,

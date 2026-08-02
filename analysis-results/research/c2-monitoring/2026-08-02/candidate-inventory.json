@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-08-02T08:01:03.634220+00:00",
+  "generated_at_utc": "2026-08-02T11:04:43.588603+00:00",
   "scope": "analysis-results配下の全IOC履歴（malware／clickfix／research）",
   "policy": {
     "onion_excluded": true,
@@ -9,22 +9,22 @@
     "unknown_port_check": "DNS解決のみ（C2稼働確認とは扱わない）",
     "distribution_only_and_explicit_non_c2_excluded": true
   },
-  "scanned_ioc_file_count": 1349,
+  "scanned_ioc_file_count": 1399,
   "parse_error_count": 0,
-  "candidate_evidence_record_count": 219,
-  "ordinary_candidate_host_count": 69,
-  "planned_ordinary_host_count": 69,
-  "planned_endpoint_count": 89,
+  "candidate_evidence_record_count": 225,
+  "ordinary_candidate_host_count": 75,
+  "planned_ordinary_host_count": 75,
+  "planned_endpoint_count": 95,
   "reviewed_protocol_target_count": 4,
   "reviewed_profile_only_target_count": 3,
-  "network_service_endpoint_count": 86,
-  "dns_only_target_count": 3,
+  "network_service_endpoint_count": 91,
+  "dns_only_target_count": 4,
   "ordinary_host_coverage_percent": 100.0,
   "exclusion_reason_counts": {
     "distribution_only": 69,
     "explicit_non_c2_role": 299,
     "non_dns_name_excluded": 10,
-    "onion_excluded_by_policy": 484,
+    "onion_excluded_by_policy": 488,
     "role_not_c2": 2164
   },
   "exclusions": [
@@ -6343,6 +6343,50 @@
       "family": "efimer",
       "sample_sha256": "54cb86f9c1832999fcb4fb78bc5254c69de12cae15c60934b798858e1b27b934",
       "confidence": "confirmed_static_decryption",
+      "host": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion",
+      "port": 80,
+      "reason": "onion_excluded_by_policy"
+    },
+    {
+      "source": "analysis-results/malware/efimer/versions/unknown/cases/587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c/iocs.json:network[0]",
+      "container": "network",
+      "role": "beacon_or_tasking",
+      "family": "efimer",
+      "sample_sha256": "587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c",
+      "confidence": "confirmed_static_configuration",
+      "host": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion",
+      "port": 80,
+      "reason": "onion_excluded_by_policy"
+    },
+    {
+      "source": "analysis-results/malware/efimer/versions/unknown/cases/587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c/iocs.json:network[1]",
+      "container": "network",
+      "role": "file_exfiltration",
+      "family": "efimer",
+      "sample_sha256": "587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c",
+      "confidence": "confirmed_static_configuration",
+      "host": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion",
+      "port": 80,
+      "reason": "onion_excluded_by_policy"
+    },
+    {
+      "source": "analysis-results/malware/efimer/versions/unknown/cases/587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c/iocs.json:network[2]",
+      "container": "network",
+      "role": "beacon_or_tasking",
+      "family": "efimer",
+      "sample_sha256": "587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c",
+      "confidence": "confirmed_static_configuration",
+      "host": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion",
+      "port": 80,
+      "reason": "onion_excluded_by_policy"
+    },
+    {
+      "source": "analysis-results/malware/efimer/versions/unknown/cases/587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c/iocs.json:network[3]",
+      "container": "network",
+      "role": "wallet_replacement_configuration",
+      "family": "efimer",
+      "sample_sha256": "587fec092b6fb6fbbf3cead3a22061956d39ba949f65653f46ed60be8ffc704c",
+      "confidence": "confirmed_static_configuration",
       "host": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion",
       "port": 80,
       "reason": "onion_excluded_by_policy"

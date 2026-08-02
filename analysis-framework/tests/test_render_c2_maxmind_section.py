@@ -32,5 +32,7 @@ def test_render_and_idempotent_insert() -> None:
     once = MODULE.insert_section("# report\n\n## 安全境界\n", section)
     twice = MODULE.insert_section(once, section)
     assert "AS15169 / Google LLC" in twice
+    assert "GeoLite2 City DB構築時刻" in twice
+    assert "MaxMind帰属表記（原文）" in twice
     assert twice.count("<!-- maxmind-enrichment:start -->") == 1
     assert twice.index("## MaxMind Geo/ASエンリッチ") < twice.index("## 安全境界")
