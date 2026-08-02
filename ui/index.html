@@ -19,6 +19,7 @@
     <a href="#/cases" data-nav="cases">ケース検索</a>
     <a href="#/iocs" data-nav="iocs">IOC検索</a>
     <a href="#/intel" data-nav="intel">キャンペーン相関</a>
+    <a href="#/c2" data-nav="c2">C2稼働状況</a>
   </nav>
   <form id="global-search" class="global-search" role="search">
     <input id="global-search-input" type="search" autocomplete="off"
@@ -46,6 +47,12 @@
         <a href="https://any.run/" target="_blank" rel="noopener noreferrer">ANY.RUN</a>、
         <a href="https://www.shodan.io/" target="_blank" rel="noopener noreferrer">Shodan</a>（受動的なインフラ調査）
       </dd>
+      <dt>インフラ位置・地図</dt>
+      <dd>
+        <a href="https://ipwhois.io/" target="_blank" rel="noopener noreferrer">ipwho.is</a>（C2 IPの国・都市・ASN照会。対象C2へは接続していません）、
+        <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>（世界地図の輪郭 / public domain）、
+        <a href="https://www.torproject.org/" target="_blank" rel="noopener noreferrer">Tor Project</a>（.onion endpointの観測経路）
+      </dd>
       <dt>公開情報・知識ベース</dt>
       <dd>
         <a href="https://attack.mitre.org/" target="_blank" rel="noopener noreferrer">MITRE ATT&amp;CK</a>、
@@ -58,6 +65,7 @@
   <p class="footer-note">データ生成: <code>python3 ui/generate_ui_data.py</code> ／ 検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</p>
 </footer>
 <script src="data.js"></script>
+<script src="worldmap.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -54,6 +54,22 @@ py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
 - `not_observed_proxy_unavailable`: Tor等の観測経路がなく、対象へ接続できていない。
 - `c2_protocol_confirmed`: review済みmalware固有server-first protocolが一致した場合だけ使用する。
 
+## 解決IPのgeo付与
+
+UIの世界地図プロット用に、解決IPの国・都市・緯度経度・ASNを別成果物として保存します。照会先は第三者のIP情報API(`ipwho.is`)だけで、**監視対象のC2へは接続しません**。private／loopback／reservedと`.onion`は照会しません。
+
+```powershell
+py -3.13 .\analysis-framework\common\enrich_c2_geo.py `
+  --results .\analysis-results\research\c2-monitoring\2026-08-02\ `
+  --allow-network
+```
+
+`--allow-network`なしでは照会対象の一覧を表示するだけです。`--check`は通信せず、既存`ip-geo.json`が全ての解決IPを網羅しているかだけを検証します。
+
+geolocationは登録情報ベースの推定です。物理的な設置場所やC2所有者の確定には使わず、ASNやhosting事業者の傾向を見る材料として扱います。
+
+## 判定の補足
+
 停止側の判断は`negative_observation_confidence`も確認します。明示的なconnection refusedは比較的強い観測、timeoutはfirewall、遅延、Tor circuit不成立でも生じる弱い観測です。前回結果を上書きせず日付別ディレクトリへ保存し、DNS、証明書、banner hashの変化を時系列比較します。
 
 ## 安全境界

@@ -1,0 +1,119 @@
+{
+  "errors": [],
+  "generated_at_utc": "2026-08-02T03:44:27.939881+00:00",
+  "interpretation": {
+    "c2_ownership_confirmed": false,
+    "note": "geolocationは登録情報ベースの推定であり、設置場所やC2所有者を確定しない。",
+    "physical_location_confirmed": false,
+    "registry_based_estimate": true
+  },
+  "ip_count": 5,
+  "ips": [
+    {
+      "asn": 152194,
+      "city": "Beijing",
+      "continent": "Asia",
+      "continent_code": "AS",
+      "country": "China",
+      "country_code": "CN",
+      "domain": "ctgserver.com",
+      "geo_resolved": true,
+      "hosts": [
+        "haochisadnka.cc"
+      ],
+      "ip": "134.122.185.201",
+      "isp": "Ctg Server Limited",
+      "latitude": 39.9011,
+      "longitude": 116.421,
+      "organization": "Ctg Server Ltd.",
+      "region": "Beijing",
+      "timezone": "Asia/Shanghai"
+    },
+    {
+      "asn": 399486,
+      "city": "Paris",
+      "continent": "Europe",
+      "continent_code": "EU",
+      "country": "France",
+      "country_code": "FR",
+      "domain": "virtuo.net",
+      "geo_resolved": true,
+      "hosts": [
+        "pure26.myftp.org"
+      ],
+      "ip": "151.241.154.227",
+      "isp": "CANADA INC.",
+      "latitude": 48.8534,
+      "longitude": 2.3488,
+      "organization": "Virtuo Holdings Inc.",
+      "region": "Ile-de-France",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "asn": 200019,
+      "city": "Las Vegas",
+      "continent": "North America",
+      "continent_code": "NA",
+      "country": "United States",
+      "country_code": "US",
+      "domain": "alexhost.com",
+      "geo_resolved": true,
+      "hosts": [
+        "tea.vexexo.com"
+      ],
+      "ip": "185.139.214.102",
+      "isp": "ALEXHOST SRL",
+      "latitude": 36.1716,
+      "longitude": -115.1392,
+      "organization": "ALEXHOST SRL",
+      "region": "Nevada",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "asn": 210558,
+      "city": "Miami",
+      "continent": "North America",
+      "continent_code": "NA",
+      "country": "United States",
+      "country_code": "US",
+      "domain": "as210558.net",
+      "geo_resolved": true,
+      "hosts": [
+        "logs.uvexio.com"
+      ],
+      "ip": "193.26.115.118",
+      "isp": "1337 Services GmbH",
+      "latitude": 25.7701,
+      "longitude": -80.1928,
+      "organization": "1337 Services GmbH",
+      "region": "Florida",
+      "timezone": "America/New_York"
+    },
+    {
+      "asn": 22612,
+      "city": "Los Angeles",
+      "continent": "North America",
+      "continent_code": "NA",
+      "country": "United States",
+      "country_code": "US",
+      "domain": "namecheap.com",
+      "geo_resolved": true,
+      "hosts": [
+        "ftp.vilimorin.com"
+      ],
+      "ip": "66.29.137.55",
+      "isp": "Namecheap, Inc.",
+      "latitude": 34.0033,
+      "longitude": -118.4298,
+      "organization": "Namecheap, Inc.",
+      "region": "California",
+      "timezone": "America/Los_Angeles"
+    }
+  ],
+  "network_enabled": true,
+  "resolved_count": 5,
+  "schema_version": 1,
+  "source": "ipwho.is",
+  "source_url": "https://ipwho.is/",
+  "target_c2_contacted": false
+}
