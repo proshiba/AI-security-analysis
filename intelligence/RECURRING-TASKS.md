@@ -14,6 +14,7 @@
 | `INT-D02` | 毎日 | P0 | IOC差分、再観測、役割変更の突合 |
 | `INT-D03` | 毎日 | P0 | 強い既知fingerprint一致の速報判定 |
 | `INT-D04` | 依頼時 | P0 | tech-memo最新記事・IOC、MalwareBazaar最新Windows 50検体、ClickFix／ClearFake 50件のdaily解析 |
+| `INT-D05` | daily解析・検体取得前 | P0 | 終端payload未取得familyの最新版取得・終端再解析 |
 | `INT-W01` | 毎週 | P1 | family、config、protocol、配布chainの変化検出 |
 | `INT-W02` | 毎週 | P1 | 関数コード類似性と共有componentの整理 |
 | `INT-W03` | 毎週 | P1 | インフラ再利用とlifecycleの整理 |
@@ -31,6 +32,44 @@
 `INT-D04`は時刻指定で自動起動しません。ユーザーが「daily解析」を依頼した時だけ実行し、
 [dailyマルウェア解析タスク](DAILY-NEWS-MALWARE.md)に定義した記事・IOC解析と
 MalwareBazaar 50検体解析、ClickFix／ClearFake 50件解析を同じ実行単位で行います。
+
+MalwareBazaar 50検体を選定する前に`INT-D05`を実行し、P0 familyで取得可能な最新版を50件の内数として優先します。取得できない場合は理由を残し、件数を古い検体で黙って代替しません。
+
+## `INT-D05`: 終端payload未取得familyの最新版取得・終端再解析
+
+**目的**
+
+過去にloader、packer、暗号化resource、仮想化境界、または不完全な提出物で停止したfamilyについて、新しい完全配布物とsandbox artifactを優先取得し、終端payloadまで解析できる状態へ改善します。
+
+**入力**
+
+- `intelligence/terminal-payload-recovery/inventory.json`
+- `analysis-framework/inventories/static-hard-cases.yaml`
+- `analysis-results/catalog/cases.json`
+- MalwareBazaarの取得時点のfirst seen降順候補
+- Triage等のexact sample artifact、memory dump、dumped file、親子relation
+
+**自動処理**
+
+1. `build_terminal_payload_gap_inventory.py --check`で台帳同期を確認する。
+2. P0、P1、P2の順でfamilyを選び、取得時点の最新版から既存SHA-256を除外する。
+3. leaf単体より、親archive、sidecar、script、resource、decoyを含む完全な配布chainを優先する。
+4. 各layerをSHA-256で認証し、親・復元方法・子の関係を保持して静的pipelineへ再帰投入する。
+5. 静的に停止した関数、鍵、resource、protector境界を記録し、公開sandboxに完全一致するdump／memory artifactがあれば入力として再開する。
+6. 終端payloadを確認したケースは構造化された完了状態を更新し、台帳を再生成する。
+
+**完了条件**
+
+- 終端artifactのSHA-256と親子関係がある。
+- 終端family、version、config、C2を確認したか、未確認理由と次の最小手順を分離している。
+- 外層だけ、packerだけ、取得URLだけを終端解析としていない。
+- `classification.terminal_family_confirmed=true`かつ`case_state.complete=true`にする場合、終端artifactの根拠をケース成果物へ残している。
+- 復元binary、memory dump、資格情報を公開成果物へ保存していない。
+- 台帳の`--write`後に`--check`が一致する。
+
+**安全境界**
+
+このタスク定義だけで検体実行、検体upload、配布URL接続、C2接続を許可しません。取得と外部接続は、その実行時のユーザー許可と各sourceの安全ルールに従います。
 
 ## `INT-D01`: 新規・更新caseの差分triage
 

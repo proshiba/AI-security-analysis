@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module build_terminal_payload_gap_inventory</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">build_terminal_payload_gap_inventory</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cbuild_terminal_payload_gap_inventory.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\build_terminal_payload_gap_inventory.py</a></td></tr></table>
+    <p><span class="code">終端ペイロード未取得ケースと最新版取得優先表を決定的に生成する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="csv.html">csv</a><br>
+</td><td class="multicolumn"><a href="io.html">io</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="yaml.html">yaml</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_inventory"><strong>build_inventory</strong></a>(repository: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">過去成果物から終端ペイロード未取得ケースとfamily優先表を構築する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、生成・同期確認の終了コードを返す。</span></dd></dl>
+ <dl><dt><a name="-render_outputs"><strong>render_outputs</strong></a>(inventory: 'dict[str, Any]') -&gt; 'dict[str, str]'</dt><dd><span class="code">台帳JSONから日本語README、全ケース表、CSV、JSONを描画する。</span></dd></dl>
+ <dl><dt><a name="-sync_outputs"><strong>sync_outputs</strong></a>(repository: 'Path', output_dir: 'Path', *, write: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">期待される生成物との差分を返し、指定時だけ原子的に更新する。</span></dd></dl>
+</td></tr></table>
+</body></html>
