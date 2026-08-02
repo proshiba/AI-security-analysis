@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "case_id": "20260802-clickfix-pro-2888264ba647",
+  "domain": "subterranean-mineral-map.garden",
+  "probed_at_utc": "2026-08-01T23:43:47.531876+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://subterranean-mineral-map.garden/",
+        "host": "subterranean-mineral-map.garden",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://subterranean-mineral-map.garden/",
+            "host": "subterranean-mineral-map.garden",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 207,
+          "reason": "Multi-Status",
+          "content_type": "application/xml; charset=UTF-8",
+          "content_length_header": "284",
+          "location": null,
+          "bytes_read": 284,
+          "body_truncated": false,
+          "body_sha256": "895c1659456e12ff7a6aa48e19522a26a24d874fbdecdde27860b0face3b504e",
+          "body_type": "other",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.22.195",
+              "172.67.206.225"
+            ],
+            "public_addresses": [
+              "104.21.22.195",
+              "172.67.206.225"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 658.3,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": null,
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": []
+}

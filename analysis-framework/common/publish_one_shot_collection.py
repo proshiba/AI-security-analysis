@@ -83,6 +83,7 @@ INTERNAL_FAMILY_TO_PUBLIC = {
     "dotnet_resource_loader": "dotnet-resource-loader",
     "formbook_loader": "formbook",
     "linux_downloader": "linux-downloader",
+    "maskgram_stealer": "maskgram-stealer",
 }
 PUBLIC_METADATA_KEYS = (
     "sha256_hash",
@@ -472,7 +473,17 @@ def confirmed_static_handler_iocs(
             continue
         result = artifact.get("result")
         candidates = result.get("c2") if isinstance(result, dict) else None
+        config_endpoint_mode = False
+        if isinstance(result, dict) and not isinstance(candidates, list):
+            candidates = result.get("config_endpoints")
+            config_endpoint_mode = isinstance(candidates, list)
         if not isinstance(candidates, list):
+            continue
+        static_evidence = result.get("static_evidence") if isinstance(result, dict) else None
+        if config_endpoint_mode and (
+            not isinstance(static_evidence, dict)
+            or static_evidence.get("all_expected_fields_validated") is not True
+        ):
             continue
         handler = artifact.get("handler") or {}
         source = f"handler:{handler.get('id')}"
@@ -480,6 +491,12 @@ def confirmed_static_handler_iocs(
             if not isinstance(candidate, dict):
                 continue
             record = dict(candidate)
+            if config_endpoint_mode and not isinstance(record.get("evidence"), dict):
+                record["evidence"] = {
+                    "kind": "position_independent_static_config",
+                    "resolved_from": record.get("resolved_from"),
+                    "all_expected_fields_validated": True,
+                }
             record["source"] = source
             candidates_for_normalization.append(record)
     return normalize_confirmed_network_iocs(candidates_for_normalization)

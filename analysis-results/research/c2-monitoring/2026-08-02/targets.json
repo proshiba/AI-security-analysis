@@ -20,7 +20,9 @@
         "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-27"],
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
       "sources": [
         "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
         "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
@@ -38,7 +40,9 @@
         "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-27"],
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
       "sources": [
         "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
         "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
@@ -56,7 +60,9 @@
         "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-27"],
+      "analyzed_dates": [
+        "2026-07-27"
+      ],
       "sources": [
         "analysis_history.yaml: ValleyRAT / Winos 2026-07-27 c2",
         "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/README.md:C2稼働確認"
@@ -74,7 +80,9 @@
         "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-31"],
+      "analyzed_dates": [
+        "2026-07-31"
+      ],
       "sources": [
         "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/README.md:通信",
         "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/OVERALL-LOGIC.md:通信先"
@@ -95,7 +103,9 @@
         "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-29"],
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
       "sources": [
         "analysis_history.yaml: PureLogs 2026-07-29 c2",
         "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
@@ -113,7 +123,9 @@
         "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-29"],
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
       "sources": [
         "analysis_history.yaml: PureLogs 2026-07-29 c2",
         "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2"
@@ -133,7 +145,9 @@
         "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
       ],
       "associated_case_count": 1,
-      "analyzed_dates": ["2026-07-29"],
+      "analyzed_dates": [
+        "2026-07-29"
+      ],
       "sources": [
         "analysis_history.yaml: AgentTesla 2026-07-29 c2",
         "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/README.md:C2"
@@ -148,13 +162,28 @@
       "method": "tcp_connect",
       "transport": "tor-socks5",
       "sample_sha256s": [
-        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d",
+        "5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071",
+        "d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb",
+        "266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8",
+        "e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326"
       ],
-      "associated_case_count": 91,
-      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "associated_case_count": 95,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01",
+        "2026-08-02"
+      ],
       "sources": [
         "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
-        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約",
+        "analysis-results/malware/efimer/versions/unknown/cases/5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071/iocs.json:network[0]",
+        "analysis-results/malware/efimer/versions/unknown/cases/d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb/iocs.json:network[0]",
+        "analysis-results/malware/efimer/versions/unknown/cases/266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8/iocs.json:network[0]",
+        "analysis-results/malware/efimer/versions/unknown/cases/e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326/iocs.json:network[0]"
+      ],
+      "roles": [
+        "beacon_or_tasking"
       ]
     },
     {
@@ -166,13 +195,28 @@
       "method": "tcp_connect",
       "transport": "tor-socks5",
       "sample_sha256s": [
-        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d",
+        "5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071",
+        "d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb",
+        "266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8",
+        "e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326"
       ],
-      "associated_case_count": 91,
-      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "associated_case_count": 95,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01",
+        "2026-08-02"
+      ],
       "sources": [
         "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
-        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約",
+        "analysis-results/malware/efimer/versions/unknown/cases/5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071/iocs.json:network[2]",
+        "analysis-results/malware/efimer/versions/unknown/cases/d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb/iocs.json:network[2]",
+        "analysis-results/malware/efimer/versions/unknown/cases/266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8/iocs.json:network[2]",
+        "analysis-results/malware/efimer/versions/unknown/cases/e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326/iocs.json:network[2]"
+      ],
+      "roles": [
+        "beacon_or_tasking"
       ]
     },
     {
@@ -184,13 +228,94 @@
       "method": "tcp_connect",
       "transport": "tor-socks5",
       "sample_sha256s": [
-        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d"
+        "f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d",
+        "5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071",
+        "d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb",
+        "266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8",
+        "e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326"
       ],
-      "associated_case_count": 91,
-      "analyzed_dates": ["2026-07-27", "2026-08-01"],
+      "associated_case_count": 95,
+      "analyzed_dates": [
+        "2026-07-27",
+        "2026-08-01",
+        "2026-08-02"
+      ],
       "sources": [
         "analysis-results/malware/efimer/versions/unknown/cases/f02758770d616fc8ff7ddbe5caf069d4bbd2bae5422a32a95cfa8c7f6a0a9b8d/handler-results.json:results[0].result.c2",
-        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約"
+        "過去1週間にGit追加されたEfimer 91 caseのhandler-results.json完全一致集約",
+        "analysis-results/malware/efimer/versions/unknown/cases/5e7928e464b8274c85179ed0d6b03668b19d6129a40e06a7309b15944d1fd071/iocs.json:network[3]",
+        "analysis-results/malware/efimer/versions/unknown/cases/d9438d408b84c4163116e57198768a83300895f442e0129e202cc2184b18cffb/iocs.json:network[3]",
+        "analysis-results/malware/efimer/versions/unknown/cases/266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8/iocs.json:network[3]",
+        "analysis-results/malware/efimer/versions/unknown/cases/e3620b7fe4c3cbdf89ac002190d6b04eaa810094fb657fd5351b0faeb1df7326/iocs.json:network[3]"
+      ],
+      "roles": [
+        "wallet_replacement_configuration"
+      ]
+    },
+    {
+      "target_id": "maskgram-stealer-ec9a6baa0628",
+      "family": "maskgram-stealer",
+      "host": "wintersonyae246leisekoshachiy.icu",
+      "port": 443,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-08-02"
+      ],
+      "sources": [
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a/iocs.json:network[0]"
+      ],
+      "roles": [
+        "c2"
+      ]
+    },
+    {
+      "target_id": "maskgram-stealer-e1e4067834cc",
+      "family": "maskgram-stealer",
+      "host": "samtpfotchensnezhok9566leisegepard.sbs",
+      "port": 443,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-08-02"
+      ],
+      "sources": [
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a/iocs.json:network[1]"
+      ],
+      "roles": [
+        "c2"
+      ]
+    },
+    {
+      "target_id": "maskgram-stealer-2e4331599ed5",
+      "family": "maskgram-stealer",
+      "host": "geschmeidig6307-kotyatanet.sbs",
+      "port": 443,
+      "protocol": "tcp",
+      "method": "tcp_connect",
+      "transport": "direct",
+      "sample_sha256s": [
+        "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a"
+      ],
+      "associated_case_count": 1,
+      "analyzed_dates": [
+        "2026-08-02"
+      ],
+      "sources": [
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a/iocs.json:network[2]"
+      ],
+      "roles": [
+        "c2"
       ]
     }
   ]

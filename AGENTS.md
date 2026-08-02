@@ -137,8 +137,8 @@
 
 ## daily解析の完了条件
 
-- daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、ClickFix／ClearFake 50件の3系統を同じ日付の実行単位で扱うこと。3系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
-- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が3系統すべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queueは件数を満たす代替として扱わないこと。
+- daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、ClickFix／ClearFake 50件、当日解析で得たC2候補のライブチェックとMaxMindエンリッチの4系統を同じ日付の実行単位で扱うこと。4系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
+- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が4系統すべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queue、C2ライブチェック未実施は完了として扱わないこと。
 - ユーザーが当該実行で明示的にpush／PRを省略するよう指定しない限り、解析成果を専用branchへpushし、検証内容と未完了項目を記載したdraft PRを作成すること。
 - pushまたはPR作成が認証・権限・競合・外部サービス障害で失敗した場合は、解析自体を完了と偽装せず、失敗した段階と再開に必要な操作を報告すること。
 
@@ -193,6 +193,15 @@
 - 新しいprotector変換を手動で復元できた場合は、検体固有の一回限りの処理で終わらせず、size上限と出力形式検証を持つfail-closedなunpacker／profileとして実装し、`unpackers/static_unpacker.py`へ統合して正常系・誤検知抑止・破損入力のテストを追加すること。
 - 静的検証にはGhidra MCPを優先し、必ず明示的なプログラムセレクターを使用すること。localhostだけで運用し、任意スクリプト実行は無効のままにすること。
 - ハッシュ、サイズ、関係、指標、証拠、明示的な制約だけを公開すること。復元した生バイナリや、開始時・終了時のホスト安全確認出力を公開してはならない。
+
+## C2監視とMaxMindエンリッチのルール
+
+- C2監視結果を作成または更新するときは、観測時に得たglobal IPをGeoLite2 City/ASNで照合し、Geo・AS情報とDB provenanceを結果へ付与すること。
+- 標準経路として`analysis-framework/common/run_c2_monitoring_pipeline.py`を使い、限定観測、MaxMind照合、JSON／Markdown生成を一括実行すること。
+- daily解析では、当日解析から得たC2候補を`targets.json`へ統合し、統合ランナーを`--allow-network`付きで実行すること。ライブチェック未実施のままdaily解析を完了扱い、commit、pushまたはPR更新してはならない。
+- ライブチェック前にGeoLite2 City/ASN両DBのbuild時刻を確認し、いずれかが24時間以上前なら両DBを更新して公式checksumを検証すること。鮮度確認または取得に失敗した場合は、先にC2へ接続せずfail-closedで終了すること。
+- `MAXMIND_LICENSE_KEY`、Authorization header、署名付きdownload URL、MMDB本体をリポジトリや公開成果物へ保存しないこと。DBはリポジトリ外のprivate cacheへ保存すること。
+- GeoLite2は概略位置情報であり、個人・住所・攻撃者所在地・C2稼働を確定する根拠として扱わないこと。
 
 ## 新規解析の全体反映ルール
 

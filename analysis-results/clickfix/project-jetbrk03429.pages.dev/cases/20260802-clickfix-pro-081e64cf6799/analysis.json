@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "case_id": "20260802-clickfix-pro-081e64cf6799",
+  "domain": "project-jetbrk03429.pages.dev",
+  "observed_at": "2026-07-30T22:02:08.927Z",
+  "analysis_date": "2026-08-02",
+  "source": {
+    "name": "ClickFix Campaign Monitor",
+    "id": "081e64cf6799",
+    "url": "https://clickfix.pro/",
+    "tags": [
+      "ClickFix WebAssembly"
+    ],
+    "reported_malware": "未確認",
+    "confidence": null
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      200
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "172.66.44.83",
+      "172.66.47.173"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": [],
+    "tls_certificates": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": false,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

@@ -1,0 +1,2 @@
+# C2 Geo/AS enrichmentでのみ必要な追加依存関係
+geoip2>=5.0.0

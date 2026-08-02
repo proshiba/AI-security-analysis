@@ -157,10 +157,61 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
             "cases": cases,
         },
     )
+    c2 = root / "analysis-results" / "research" / "c2-monitoring" / ANALYSIS_DATE
+    c2.mkdir(parents=True)
+    (c2 / "README.md").write_text("# C2ライブチェック\n", encoding="utf-8")
+    _write_json(c2 / "targets.json", {"schema_version": 1, "targets": [{}]})
+    _write_json(
+        c2 / "monitoring-results.json",
+        {
+            "schema_version": 1,
+            "analysis_window": {
+                "start": ANALYSIS_DATE,
+                "end": f"{ANALYSIS_DATE}T23:59:59+09:00",
+            },
+            "policy": {
+                "network_enabled": True,
+                "one_bounded_probe_per_target": True,
+            },
+            "target_count": 1,
+            "results": [
+                {
+                    "observation": {
+                        "timestamp_utc": "2026-07-30T00:00:00+00:00",
+                    }
+                }
+            ],
+            "maxmind": {
+                "freshness_policy": {
+                    "checked_before_live_check": True,
+                    "maximum_build_age_hours": 24,
+                    "stale_before_refresh": {
+                        "GeoLite2-City": True,
+                        "GeoLite2-ASN": False,
+                    },
+                    "build_epoch_before_refresh": {
+                        "GeoLite2-City": 1785628800,
+                        "GeoLite2-ASN": 1785715200,
+                    },
+                    "refresh_performed": True,
+                    "stale_after_refresh": {
+                        "GeoLite2-City": True,
+                        "GeoLite2-ASN": False,
+                    },
+                    "latest_available_still_stale": True,
+                },
+                "city_database": {"official_checksum_verified": True},
+                "asn_database": {"official_checksum_verified": True},
+                "license_key_published": False,
+                "download_url_published": False,
+                "mmdb_published": False,
+            },
+        },
+    )
     return root
 
 
-def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
+def test_complete_four_lane_daily_analysis_passes(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
 
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
@@ -171,6 +222,7 @@ def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
         "daily_news",
         "malwarebazaar_50",
         "clickfix_50",
+        "c2_live_check",
     ]
 
 
@@ -204,6 +256,7 @@ def test_complete_daily_analysis_supports_100_malwarebazaar_cases(tmp_path: Path
         "daily_news",
         "malwarebazaar_100",
         "clickfix_50",
+        "c2_live_check",
     ]
     assert result["lanes"][1]["expected_cases"] == 100
     assert result["lanes"][1]["actual_cases"] == 100
@@ -261,3 +314,24 @@ def test_news_source_date_can_differ_from_execution_date(tmp_path: Path) -> None
     assert result["complete"] is True
     assert result["analysis_date"] == ANALYSIS_DATE
     assert result["news_source_date"] == source_date
+
+
+def test_stale_maxmind_database_without_refresh_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    results_path = (
+        repository
+        / "analysis-results"
+        / "research"
+        / "c2-monitoring"
+        / ANALYSIS_DATE
+        / "monitoring-results.json"
+    )
+    result = json.loads(results_path.read_text(encoding="utf-8"))
+    result["maxmind"]["freshness_policy"]["refresh_performed"] = False
+    _write_json(results_path, result)
+
+    validated = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert validated["complete"] is False
+    codes = {item["code"] for item in validated["lanes"][3]["findings"]}
+    assert "maxmind_stale_database_not_refreshed" in codes

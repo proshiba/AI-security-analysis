@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""daily解析の3系統が揃い、安全条件を満たすことを検証する。"""
+"""daily解析の4系統が揃い、安全条件を満たすことを検証する。"""
 
 from __future__ import annotations
 
@@ -59,6 +59,17 @@ def _files(root: Path, names: set[str], findings: list[dict[str, str]]) -> None:
     for name in sorted(names):
         if not (root / name).is_file():
             _finding(findings, "missing_file", root / name, "必須成果物がありません。")
+
+
+def _window_date(value: object) -> str | None:
+    """日付またはtimezone付きISO日時をdaily比較用の日付へ正規化する。"""
+
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return None
 
 
 def validate_news(repository: Path, source_date: str) -> dict[str, Any]:
@@ -268,6 +279,151 @@ def validate_clickfix(repository: Path, analysis_date: str) -> dict[str, Any]:
     }
 
 
+def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, Any]:
+    """dailyのC2限定ライブチェックとMaxMind鮮度更新を検証する。"""
+    findings: list[dict[str, str]] = []
+    root = repository / "analysis-results" / "research" / "c2-monitoring" / analysis_date
+    _files(root, {"README.md", "monitoring-results.json", "targets.json"}, findings)
+    results_path = root / "monitoring-results.json"
+    result = _json(results_path, findings)
+    policy = result.get("policy") if isinstance(result.get("policy"), dict) else {}
+    if policy.get("network_enabled") is not True:
+        _finding(
+            findings,
+            "c2_live_check_not_enabled",
+            results_path,
+            "dailyではC2ライブチェックを有効にする必要があります。",
+        )
+    if policy.get("one_bounded_probe_per_target") is not True:
+        _finding(
+            findings,
+            "c2_live_check_not_bounded",
+            results_path,
+            "対象ごとの限定probeが確認できません。",
+        )
+    target_count = result.get("target_count")
+    observations = result.get("results") if isinstance(result.get("results"), list) else []
+    if not isinstance(target_count, int) or target_count <= 0 or len(observations) != target_count:
+        _finding(
+            findings,
+            "c2_live_check_target_count",
+            results_path,
+            "C2ライブチェック対象と結果件数が一致する正数である必要があります。",
+        )
+    window = result.get("analysis_window") if isinstance(result.get("analysis_window"), dict) else {}
+    if _window_date(window.get("end")) != analysis_date:
+        _finding(
+            findings,
+            "c2_live_check_date_mismatch",
+            results_path,
+            "analysis_window.endがdaily解析日と一致しません。",
+        )
+    for item in observations:
+        observation = item.get("observation") if isinstance(item, dict) else {}
+        if not isinstance(observation, dict) or not observation.get("timestamp_utc"):
+            _finding(
+                findings,
+                "c2_live_check_missing_timestamp",
+                results_path,
+                "全C2結果にライブ観測時刻が必要です。",
+            )
+            break
+    maxmind = result.get("maxmind") if isinstance(result.get("maxmind"), dict) else {}
+    freshness = (
+        maxmind.get("freshness_policy")
+        if isinstance(maxmind.get("freshness_policy"), dict)
+        else {}
+    )
+    if freshness.get("checked_before_live_check") is not True:
+        _finding(
+            findings,
+            "maxmind_freshness_not_checked_before_live",
+            results_path,
+            "ライブチェック前のMaxMind DB鮮度確認がありません。",
+        )
+    maximum_age = freshness.get("maximum_build_age_hours")
+    if not isinstance(maximum_age, (int, float)) or isinstance(maximum_age, bool) or maximum_age > 24:
+        _finding(
+            findings,
+            "maxmind_maximum_age_over_24_hours",
+            results_path,
+            "MaxMind DB build age上限は24時間以下である必要があります。",
+        )
+    expected_editions = ("GeoLite2-City", "GeoLite2-ASN")
+    stale_before = freshness.get("stale_before_refresh")
+    if not isinstance(stale_before, dict) or any(
+        not isinstance(stale_before.get(edition), bool) for edition in expected_editions
+    ):
+        _finding(
+            findings,
+            "maxmind_stale_before_incomplete",
+            results_path,
+            "City/ASN双方の更新前鮮度判定が必要です。",
+        )
+        stale_before = {}
+    build_epoch_before = freshness.get("build_epoch_before_refresh")
+    if not isinstance(build_epoch_before, dict) or any(
+        not isinstance(build_epoch_before.get(edition), int)
+        or isinstance(build_epoch_before.get(edition), bool)
+        or build_epoch_before.get(edition, 0) <= 0
+        for edition in expected_editions
+    ):
+        _finding(
+            findings,
+            "maxmind_build_epoch_before_incomplete",
+            results_path,
+            "City/ASN双方の更新前build epochが必要です。",
+        )
+    if any(stale_before.values()):
+        if freshness.get("refresh_performed") is not True:
+            _finding(
+                findings,
+                "maxmind_stale_database_not_refreshed",
+                results_path,
+                "24時間以上前のMaxMind DBを更新していません。",
+            )
+        stale_after = freshness.get("stale_after_refresh")
+        if not isinstance(stale_after, dict) or any(
+            not isinstance(stale_after.get(edition), bool) for edition in expected_editions
+        ):
+            _finding(
+                findings,
+                "maxmind_stale_after_incomplete",
+                results_path,
+                "更新後のCity/ASN双方の鮮度判定が必要です。",
+            )
+        elif (
+            any(stale_after.values())
+            and freshness.get("latest_available_still_stale") is not True
+        ):
+            _finding(
+                findings,
+                "maxmind_latest_stale_not_recorded",
+                results_path,
+                "最新版自体が24時間超の場合は、その事実を明示する必要があります。",
+            )
+    for database_key in ("city_database", "asn_database"):
+        database = maxmind.get(database_key) if isinstance(maxmind.get(database_key), dict) else {}
+        if database.get("official_checksum_verified") is not True:
+            _finding(
+                findings,
+                f"maxmind_{database_key}_checksum_unverified",
+                results_path,
+                "MaxMind DBの公式checksum検証がありません。",
+            )
+    for flag in ("license_key_published", "download_url_published", "mmdb_published"):
+        if maxmind.get(flag) is not False:
+            _finding(findings, f"maxmind_unsafe_{flag}", results_path, f"{flag}がfalseではありません。")
+    return {
+        "name": "c2_live_check",
+        "root": root.as_posix(),
+        "expected_cases": target_count if isinstance(target_count, int) else 0,
+        "actual_cases": len(observations),
+        "complete": not findings,
+        "findings": findings,
+    }
+
+
 def validate_daily_analysis(
     repository: Path,
     analysis_date: str,
@@ -281,6 +437,7 @@ def validate_daily_analysis(
         validate_news(repository, effective_news_date),
         validate_malwarebazaar(repository, analysis_date, malwarebazaar_count),
         validate_clickfix(repository, analysis_date),
+        validate_c2_live_check(repository, analysis_date),
     ]
     return {
         "schema_version": 1,
@@ -290,6 +447,7 @@ def validate_daily_analysis(
             "daily_news",
             f"malwarebazaar_{malwarebazaar_count}",
             "clickfix_50",
+            "c2_live_check",
         ],
         "complete": all(lane["complete"] for lane in lanes),
         "finding_count": sum(len(lane["findings"]) for lane in lanes),
