@@ -1240,3 +1240,66 @@ def test_runtime_versions_are_stable_contract_material() -> None:
         "ruff",
         "yara-python",
     }
+
+@pytest.mark.parametrize("max_files", [True, False, 1.5, "1", 0, -1])
+def test_collect_inputs_rejects_non_integer_or_non_positive_limits(
+    tmp_path: Path,
+    max_files: object,
+) -> None:
+    """boolを含む曖昧なファイル数上限をプログラム呼び出しでも拒否する。"""
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"A")
+    with pytest.raises(ValueError, match="max_files"):
+        one_shot.collect_inputs([sample], tmp_path / "output", max_files)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("archive_mode", "max_file_size"),
+    [
+        ("invalid", 10),
+        ("auto", True),
+        ("auto", 0),
+        ("auto", -1),
+        ("auto", 1.5),
+        ("auto", "10"),
+    ],
+)
+def test_read_input_unit_rejects_invalid_programmatic_contract(
+    tmp_path: Path,
+    archive_mode: object,
+    max_file_size: object,
+) -> None:
+    """CLIを経由しない呼び出しでもmodeとサイズ上限を検証する。"""
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"A")
+    with pytest.raises(ValueError):
+        one_shot.read_input_unit(
+            sample,
+            password="infected",
+            archive_mode=archive_mode,  # type: ignore[arg-type]
+            max_file_size=max_file_size,  # type: ignore[arg-type]
+        )
+
+
+def test_read_input_unit_uses_capped_stream_reader(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """stat後に肥大化する入力も共通ストリーム上限で停止できる構成にする。"""
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"A")
+    calls: list[tuple[Path, int]] = []
+
+    def capped(path: Path, *, max_size: int) -> bytes:
+        calls.append((path, max_size))
+        return b"RAW"
+
+    monkeypatch.setattr(one_shot, "read_file_capped", capped)
+    unit = one_shot.read_input_unit(
+        sample,
+        password="infected",
+        archive_mode="raw",
+        max_file_size=4,
+    )
+    assert calls == [(sample, 4)]
+    assert unit.data == b"RAW"

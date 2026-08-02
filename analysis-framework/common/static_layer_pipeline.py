@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
+import re
 from typing import Any, Callable
 
 from unpackers.static_unpacker import detect_format
@@ -28,6 +29,34 @@ class InputUnit:
     outer_sha256: str
     outer_size: int
     member_name: str | None = None
+
+    def __post_init__(self) -> None:
+        """入力メタデータとraw入力のhash・size整合性を検証する。"""
+
+        if (
+            not isinstance(self.source_name, str)
+            or not self.source_name
+            or len(self.source_name) > 4096
+            or any(ord(character) < 32 or ord(character) == 127 for character in self.source_name)
+        ):
+            raise ValueError("source_name must be a bounded string without controls")
+        if not isinstance(self.data, bytes):
+            raise TypeError("data must be immutable bytes")
+        if not isinstance(self.input_kind, str) or not self.input_kind:
+            raise ValueError("input_kind must be a non-empty string")
+        if not re.fullmatch(r"[0-9a-f]{64}", self.outer_sha256):
+            raise ValueError("outer_sha256 must be a lowercase SHA-256 digest")
+        if isinstance(self.outer_size, bool) or not isinstance(self.outer_size, int) or self.outer_size < 0:
+            raise ValueError("outer_size must be a non-negative integer")
+        if self.input_kind == "raw":
+            if self.outer_size != len(self.data):
+                raise ValueError("raw outer_size does not match data")
+            if self.outer_sha256 != hashlib.sha256(self.data).hexdigest():
+                raise ValueError("raw outer_sha256 does not match data")
+        if self.member_name is not None and (
+            not isinstance(self.member_name, str) or not self.member_name
+        ):
+            raise ValueError("member_name must be a non-empty string when present")
 
 
 @dataclass(frozen=True)
@@ -101,6 +130,33 @@ def _identity(value: Any) -> Any:
     return value
 
 
+def _safe_sanitize(sanitizer: Sanitizer, value: Any) -> Any:
+    """サニタイザー自体の失敗時も未加工値を公開せず、型情報だけを返す。"""
+
+    try:
+        return sanitizer(value)
+    except Exception as exc:
+        return {
+            "sanitization_failed": True,
+            "error_type": type(exc).__name__,
+        }
+
+
+def _artifact_label(value: object) -> str:
+    """unpacker由来の種別を制御文字なしの有界ラベルへ変換する。"""
+
+    try:
+        text = str(value)
+    except Exception:
+        return "artifact"
+    text = "".join(
+        character if 32 <= ord(character) < 127 else "_"
+        for character in text
+    )
+    text = re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("._")
+    return (text or "artifact")[:80]
+
+
 def recover_static_layers(
     unit: InputUnit,
     *,
@@ -132,6 +188,7 @@ def recover_static_layers(
     seen = {root.sha256}
     steps: list[dict[str, Any]] = []
     recovered_total = 0
+    deduplicated_artifacts = 0
     cursor = 0
     limit_events: list[dict[str, Any]] = []
     while cursor < len(layers):
@@ -184,7 +241,7 @@ def recover_static_layers(
             step = {
                 "input_layer": layer.public(),
                 "status": "succeeded",
-                "report": sanitizer(report),
+                "report": _safe_sanitize(sanitizer, report),
                 "accepted_children": [],
             }
         except Exception as exc:
@@ -192,7 +249,7 @@ def recover_static_layers(
                 {
                     "input_layer": layer.public(),
                     "status": "failed",
-                    "error": sanitizer(f"{type(exc).__name__}: {exc}"),
+                    "error": _safe_sanitize(sanitizer, f"{type(exc).__name__}: {exc}"),
                 }
             )
             continue
@@ -206,6 +263,7 @@ def recover_static_layers(
                 )
                 continue
             artifact_kind, blob = artifact
+            artifact_kind = _artifact_label(artifact_kind)
             if not isinstance(blob, bytes):
                 limit_events.append(
                     {
@@ -215,8 +273,18 @@ def recover_static_layers(
                     }
                 )
                 continue
+            if not blob:
+                limit_events.append(
+                    {
+                        "parent_sha256": layer.sha256,
+                        "kind": artifact_kind,
+                        "reason": "empty_artifact_rejected",
+                    }
+                )
+                continue
             digest = hashlib.sha256(blob).hexdigest()
             if digest in seen:
+                deduplicated_artifacts += 1
                 continue
             if len(blob) > effective_policy.max_layer_size:
                 limit_events.append(
@@ -272,6 +340,7 @@ def recover_static_layers(
             "recovered_layers": len(layers) - 1,
             "recovered_bytes": recovered_total,
             "limit_events": len(limit_events),
+            "deduplicated_artifacts": deduplicated_artifacts,
         },
         "layers": [item.public() for item in layers],
         "steps": steps,

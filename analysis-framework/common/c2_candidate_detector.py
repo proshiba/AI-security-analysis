@@ -9,13 +9,18 @@ import json
 from pathlib import Path
 import re
 import sys
-from urllib.parse import SplitResult, urlsplit, urlunsplit
+from urllib.parse import SplitResult, urlsplit
 
 REPO = Path(__file__).parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from extractors.profiled_family import profile_for  # noqa: E402
+from network_target import (  # noqa: E402
+    NetworkTargetError,
+    parse_network_target,
+    shodan_target_query,
+)
 
 NON_C2_ROLES = {
     "certificate_service",
@@ -208,32 +213,30 @@ def _public_hostname(value: str) -> bool:
 
 def target_from_finding(finding: dict) -> tuple[str, int | None] | None:
     """ネットワーク所見を正規化したホストと任意ポートへ変換する。"""
+    if not isinstance(finding, dict):
+        return None
     value = str(finding.get("value", ""))
-    if finding.get("kind") == "network.url":
-        return _target_from_text(value)
-    if finding.get("kind") in {"network.endpoint", "exfiltration.endpoint"}:
-        target = _target_from_text(value)
-        return target if target and target[1] is not None else None
-    return None
+    kind = finding.get("kind")
+    if kind not in {"network.url", "network.endpoint", "exfiltration.endpoint"}:
+        return None
+    try:
+        target = parse_network_target(
+            value,
+            require_port=kind in {"network.endpoint", "exfiltration.endpoint"},
+        )
+    except NetworkTargetError:
+        return None
+    return target.host, target.port
 
 
 def shodan_queries(host: str, port: int | None = None) -> list[str]:
     """対象へ接続せず、公開ホストだけの受動Shodan検索式を生成する。"""
-    target = _target_from_text(host, port)
-    if target is None:
-        return []
-    normalized_host, normalized_port = target
     try:
-        ipaddress.ip_address(normalized_host)
-    except ValueError:
-        if not _public_hostname(normalized_host):
-            return []
-        base = f"hostname:{normalized_host}"
-    else:
-        if not _public_ip(normalized_host):
-            return []
-        base = f"ip:{normalized_host}"
-    return [f"{base} port:{normalized_port}" if normalized_port is not None else base]
+        target = parse_network_target(host, port)
+    except NetworkTargetError:
+        return []
+    query = shodan_target_query(target)
+    return [query] if query else []
 
 
 def _sanitized_finding(finding: dict, host: str, port: int | None) -> dict:
@@ -241,22 +244,30 @@ def _sanitized_finding(finding: dict, host: str, port: int | None) -> dict:
     sanitized = dict(finding)
     formatted_host = f"[{host}]" if ":" in host else host
     if finding.get("kind") == "network.url":
-        raw = str(finding.get("value", ""))
         try:
-            parsed = urlsplit(raw if "://" in raw else f"//{raw}")
-        except ValueError:
-            parsed = SplitResult("", "", "", "", "")
-        authority = formatted_host + (f":{port}" if port is not None else "")
-        sanitized["value"] = urlunsplit((parsed.scheme.lower(), authority, parsed.path, "", ""))
+            target = parse_network_target(str(finding.get("value", "")))
+        except NetworkTargetError:
+            sanitized["value"] = formatted_host + (f":{port}" if port is not None else "")
+        else:
+            sanitized["value"] = target.sanitized_value()
     else:
         sanitized["value"] = formatted_host + (f":{port}" if port is not None else "")
     return sanitized
 
 
-def assess(result: dict) -> dict:
+def assess(result: object) -> dict:
     """抽出所見を保守的に評価し、無害化した来歴を保持する。"""
+    if not isinstance(result, dict):
+        result = {}
+    raw_findings = result.get("findings", [])
+    if not isinstance(raw_findings, list):
+        raw_findings = []
     rows = []
-    for finding in result.get("findings", []):
+    ignored_findings = 0
+    for finding in raw_findings:
+        if not isinstance(finding, dict):
+            ignored_findings += 1
+            continue
         if finding.get("role") in NON_C2_ROLES:
             continue
         target = target_from_finding(finding)
@@ -286,6 +297,7 @@ def assess(result: dict) -> dict:
         "family": family,
         "assessment": confidence,
         "protocol_profile": protocol_profile(family),
+        "ignored_finding_count": ignored_findings,
         "targets": rows,
         "network_contacted": False,
         "sample_executed": False,

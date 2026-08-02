@@ -8,12 +8,11 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">c2_detector</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Cc2_detector.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\c2_detector.py</a></td></tr></table>
-    <p><span class="code">Bounded&nbsp;C2&nbsp;liveness&nbsp;and&nbsp;Internet-scanner&nbsp;fingerprint&nbsp;collection.<br>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cc2_detector.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\c2_detector.py</a></td></tr></table>
+    <p><span class="code">C2生存確認とInternet&nbsp;scanner指紋を有界に収集する。<br>
 &nbsp;<br>
-The&nbsp;default&nbsp;operation&nbsp;is&nbsp;an&nbsp;offline&nbsp;preflight.&nbsp;A&nbsp;live&nbsp;probe&nbsp;requires&nbsp;explicit<br>
-network&nbsp;opt-in&nbsp;and&nbsp;never&nbsp;downloads&nbsp;a&nbsp;declared&nbsp;stage,&nbsp;follows&nbsp;redirects,&nbsp;or<br>
-executes&nbsp;data.&nbsp;Protocol&nbsp;confirmation&nbsp;is&nbsp;separate&nbsp;from&nbsp;TCP/HTTP/TLS&nbsp;reachability.</span></p>
+既定動作はoffline&nbsp;preflightとし、live&nbsp;probeは明示許可を要求する。<br>
+後段payload取得、redirect追従、data実行は行わず、到達性とprotocol確認を分離する。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -66,18 +65,18 @@ executes&nbsp;data.&nbsp;Protocol&nbsp;confirmation&nbsp;is&nbsp;separate&nbsp;f
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="TitleParser-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;the&nbsp;&nbsp;&nbsp;init&nbsp;&nbsp;&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
+<dl><dt><a name="TitleParser-__init__"><strong>__init__</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">title抽出用HTML&nbsp;parserを初期化する。</span></dd></dl>
 
-<dl><dt><a name="TitleParser-handle_data"><strong>handle_data</strong></a>(self, data: 'str') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;the&nbsp;handle&nbsp;data&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
+<dl><dt><a name="TitleParser-handle_data"><strong>handle_data</strong></a>(self, data: 'str') -&gt; 'None'</dt><dd><span class="code">title内のtextだけを保持する。</span></dd></dl>
 
-<dl><dt><a name="TitleParser-handle_endtag"><strong>handle_endtag</strong></a>(self, tag: 'str') -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;the&nbsp;handle&nbsp;endtag&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
+<dl><dt><a name="TitleParser-handle_endtag"><strong>handle_endtag</strong></a>(self, tag: 'str') -&gt; 'None'</dt><dd><span class="code">title終了tagを検出する。</span></dd></dl>
 
-<dl><dt><a name="TitleParser-handle_starttag"><strong>handle_starttag</strong></a>(self, tag: 'str', _attrs) -&gt; 'None'</dt><dd><span class="code">Implement&nbsp;the&nbsp;handle&nbsp;starttag&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
+<dl><dt><a name="TitleParser-handle_starttag"><strong>handle_starttag</strong></a>(self, tag: 'str', _attrs) -&gt; 'None'</dt><dd><span class="code">title開始tagを検出する。</span></dd></dl>
 
 <hr>
 Readonly properties defined here:<br>
 <dl><dt><strong>title</strong></dt>
-<dd><span class="code">Implement&nbsp;the&nbsp;title&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd>
+<dd><span class="code">正規化した有界titleを返す。</span></dd>
 </dl>
 <hr>
 Methods inherited from <a href="html.parser.html#HTMLParser">html.parser.HTMLParser</a>:<br>
@@ -167,19 +166,45 @@ Data descriptors inherited from <a href="_markupbase.html#ParserBase">_markupbas
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_mxgo_heartbeat"><strong>build_mxgo_heartbeat</strong></a>(client_id: 'str' = 'LAB-MXGO-000000000000') -&gt; 'dict'</dt><dd><span class="code">Build&nbsp;a&nbsp;synthetic&nbsp;heartbeat&nbsp;without&nbsp;collecting&nbsp;host&nbsp;identifiers.</span></dd></dl>
- <dl><dt><a name="-collect_jarm"><strong>collect_jarm</strong></a>(host: 'str', port: 'int', script: 'Path | None', timeout: 'float', *, allow_network: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">Collect&nbsp;a&nbsp;JARM&nbsp;fingerprint&nbsp;with&nbsp;bounded&nbsp;helper&nbsp;output&nbsp;and&nbsp;fail-closed&nbsp;cleanup.</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">Implement&nbsp;the&nbsp;main&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-murmur3_32"><strong>murmur3_32</strong></a>(data: 'bytes', seed: 'int' = 0) -&gt; 'int'</dt><dd><span class="code">Implement&nbsp;the&nbsp;murmur3&nbsp;32&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-mxgo_loopback_target"><strong>mxgo_loopback_target</strong></a>(host: 'str') -&gt; 'bool'</dt><dd><span class="code">Restrict&nbsp;active&nbsp;MX-Go&nbsp;protocol&nbsp;emulation&nbsp;to&nbsp;the&nbsp;local&nbsp;lab.</span></dd></dl>
- <dl><dt><a name="-parse_headers"><strong>parse_headers</strong></a>(raw: 'bytes') -&gt; 'tuple[int | None, dict[str, str], bytes]'</dt><dd><span class="code">Implement&nbsp;the&nbsp;parse&nbsp;headers&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-preflight_probe"><strong>preflight_probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">Describe&nbsp;a&nbsp;probe&nbsp;without&nbsp;DNS&nbsp;resolution,&nbsp;socket&nbsp;creation,&nbsp;or&nbsp;subprocesses.</span></dd></dl>
- <dl><dt><a name="-probe"><strong>probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">Implement&nbsp;the&nbsp;probe&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-read_bounded"><strong>read_bounded</strong></a>(sock: 'socket.socket', maximum: 'int') -&gt; 'bytes'</dt><dd><span class="code">Implement&nbsp;the&nbsp;read&nbsp;bounded&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-read_for_duration"><strong>read_for_duration</strong></a>(sock: 'socket.socket', maximum: 'int', duration: 'float') -&gt; 'bytes'</dt><dd><span class="code">Read&nbsp;a&nbsp;bounded&nbsp;N520&nbsp;response&nbsp;window&nbsp;and&nbsp;stop&nbsp;cleanly&nbsp;on&nbsp;idle&nbsp;timeout.</span></dd></dl>
- <dl><dt><a name="-tls_metadata"><strong>tls_metadata</strong></a>(sock: 'ssl.SSLSocket') -&gt; 'dict'</dt><dd><span class="code">Implement&nbsp;the&nbsp;tls&nbsp;metadata&nbsp;operation&nbsp;for&nbsp;the&nbsp;analysis&nbsp;framework.</span></dd></dl>
- <dl><dt><a name="-validate_http_request_fields"><strong>validate_http_request_fields</strong></a>(args) -&gt; 'None'</dt><dd><span class="code">Reject&nbsp;CR/LF&nbsp;in&nbsp;every&nbsp;value&nbsp;that&nbsp;can&nbsp;enter&nbsp;an&nbsp;HTTP&nbsp;request&nbsp;line&nbsp;or&nbsp;Host&nbsp;header.</span></dd></dl>
- <dl><dt><a name="-write_n520_archive"><strong>write_n520_archive</strong></a>(path: 'Path', password: 'str', frames: 'list[dict]', plugins: 'list[dict]') -&gt; 'None'</dt><dd><span class="code">Store&nbsp;encrypted&nbsp;frames&nbsp;and&nbsp;recovered&nbsp;plugin&nbsp;bytes&nbsp;only&nbsp;in&nbsp;an&nbsp;AES&nbsp;ZIP.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_mxgo_heartbeat"><strong>build_mxgo_heartbeat</strong></a>(client_id: 'str' = 'LAB-MXGO-000000000000') -&gt; 'dict'</dt><dd><span class="code">host識別子を収集せず、合成heartbeatを構築する。</span></dd></dl>
+ <dl><dt><a name="-build_shodan_queries"><strong>build_shodan_queries</strong></a>(args, result: 'dict', tls: 'dict | None' = None) -&gt; 'dict'</dt><dd><span class="code">private、loopback、予約IPを除外して受動検索式を構築する。</span></dd></dl>
+ <dl><dt><a name="-collect_jarm"><strong>collect_jarm</strong></a>(
+    host: 'str',
+    port: 'int',
+    script: 'Path | None',
+    timeout: 'float',
+    *,
+    allow_network: 'bool' = False
+) -&gt; 'dict'</dt><dd><span class="code">helper出力を制限し、fail-closed&nbsp;cleanup付きでJARMを収集する。</span></dd></dl>
+ <dl><dt><a name="-is_public_shodan_address"><strong>is_public_shodan_address</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">IPがShodanのInternet&nbsp;pivotとして公開対象かを返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">CLI入力を検証し、probe結果をJSONで出力する。</span></dd></dl>
+ <dl><dt><a name="-murmur3_32"><strong>murmur3_32</strong></a>(data: 'bytes', seed: 'int' = 0) -&gt; 'int'</dt><dd><span class="code">Shodan互換のMurmurHash3&nbsp;x86_32を計算する。</span></dd></dl>
+ <dl><dt><a name="-mxgo_loopback_target"><strong>mxgo_loopback_target</strong></a>(host: 'str') -&gt; 'bool'</dt><dd><span class="code">MX-Goの能動protocol再現をlocal&nbsp;labだけへ制限する。</span></dd></dl>
+ <dl><dt><a name="-open_bounded_connection"><strong>open_bounded_connection</strong></a>(args, result: 'dict') -&gt; 'socket.socket'</dt><dd><span class="code">直接socketまたはlocalhost&nbsp;SOCKS5&nbsp;tunnelを開く。</span></dd></dl>
+ <dl><dt><a name="-parse_headers"><strong>parse_headers</strong></a>(raw: 'bytes') -&gt; 'tuple[int | None, dict[str, str], bytes]'</dt><dd><span class="code">有界HTTP応答からstatus、header、bodyを分離する。</span></dd></dl>
+ <dl><dt><a name="-preflight_probe"><strong>preflight_probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">DNS、socket、subprocessを使わずprobe計画を記述する。</span></dd></dl>
+ <dl><dt><a name="-probe"><strong>probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">offline既定と明示許可を守ってC2&nbsp;probeを実行する。</span></dd></dl>
+ <dl><dt><a name="-probe_udp"><strong>probe_udp</strong></a>(args, result: 'dict', started: 'float') -&gt; 'dict'</dt><dd><span class="code">空データグラム1件だけでUDP到達性を限定確認する。</span></dd></dl>
+ <dl><dt><a name="-read_bounded"><strong>read_bounded</strong></a>(sock: 'socket.socket', maximum: 'int') -&gt; 'bytes'</dt><dd><span class="code">応答を指定上限まで読み込む。</span></dd></dl>
+ <dl><dt><a name="-read_exact"><strong>read_exact</strong></a>(sock: 'socket.socket', size: 'int') -&gt; 'bytes'</dt><dd><span class="code">小さいprotocol&nbsp;fieldを指定長だけ読み、欠落時はfail-closedにする。</span></dd></dl>
+ <dl><dt><a name="-read_for_duration"><strong>read_for_duration</strong></a>(sock: 'socket.socket', maximum: 'int', duration: 'float') -&gt; 'bytes'</dt><dd><span class="code">N520応答を有界時間・容量で読み、idle&nbsp;timeout時に停止する。</span></dd></dl>
+ <dl><dt><a name="-sanitize_response_headers"><strong>sanitize_response_headers</strong></a>(headers: 'object') -&gt; 'tuple[dict[str, str], list[str]]'</dt><dd><span class="code">HTTP応答ヘッダーを有界化し、資格情報を含む値を秘匿する。</span></dd></dl>
+ <dl><dt><a name="-socks5_connect"><strong>socks5_connect</strong></a>(
+    proxy_host: 'str',
+    proxy_port: 'int',
+    target_host: 'str',
+    target_port: 'int',
+    timeout: 'float',
+    result: 'dict | None' = None
+) -&gt; 'socket.socket'</dt><dd><span class="code">proxy認証なしのSOCKS5&nbsp;CONNECT&nbsp;tunnelを開く。</span></dd></dl>
+ <dl><dt><a name="-tls_metadata"><strong>tls_metadata</strong></a>(sock: 'ssl.SSLSocket') -&gt; 'dict'</dt><dd><span class="code">TLS証明書と接続metadataを有界に収集する。</span></dd></dl>
+ <dl><dt><a name="-validate_http_request_fields"><strong>validate_http_request_fields</strong></a>(args) -&gt; 'None'</dt><dd><span class="code">HTTP&nbsp;request&nbsp;lineとHostへ入る値をauthority・origin-formとして検証する。</span></dd></dl>
+ <dl><dt><a name="-write_n520_archive"><strong>write_n520_archive</strong></a>(
+    path: 'Path',
+    password: 'str',
+    frames: 'list[dict]',
+    plugins: 'list[dict]'
+) -&gt; 'None'</dt><dd><span class="code">暗号化frameと復元plugin&nbsp;byte列だけをAES-ZIPへ保存する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -190,5 +215,6 @@ Data descriptors inherited from <a href="_markupbase.html#ParserBase">_markupbas
 <strong>JARM_PROCESS_STOP_GRACE_SECONDS</strong> = 1.0<br>
 <strong>JARM_PROCESS_TIMEOUT_MULTIPLIER</strong> = 12.0<br>
 <strong>JARM_STDERR_LIMIT_BYTES</strong> = 16384<br>
-<strong>JARM_STDOUT_LIMIT_BYTES</strong> = 65536</td></tr></table>
+<strong>JARM_STDOUT_LIMIT_BYTES</strong> = 65536<br>
+<strong>SENSITIVE_HTTP_HEADERS</strong> = {'authorization', 'cookie', 'proxy-authorization', 'set-cookie', 'set-cookie2', 'x-api-key', ...}</td></tr></table>
 </body></html>

@@ -245,3 +245,33 @@ def test_cli(tmp_path: Path) -> None:
     assert detector.build_parser().parse_args(args).output == output
     assert detector.main(args) == 0
     assert json.loads(output.read_text())["targets"] == []
+
+@pytest.mark.parametrize("payload", [None, [], "invalid", {"findings": {}}, {"findings": "invalid"}])
+def test_assess_rejects_malformed_top_level_data_without_exception(payload: object) -> None:
+    """不正なトップレベル値やfindingsをfail-closedで扱う。"""
+    result = detector.assess(payload)
+    assert result["assessment"] == "none"
+    assert result["targets"] == []
+    assert result["ignored_finding_count"] == 0
+
+
+def test_assess_ignores_non_object_findings_and_keeps_valid_rows() -> None:
+    """壊れた所見だけを除外し、同じ配列内の正常所見は評価する。"""
+    result = detector.assess(
+        {
+            "family": "fixture",
+            "findings": [
+                None,
+                "invalid",
+                ["invalid"],
+                {
+                    "kind": "network.endpoint",
+                    "value": "www.python.org:443",
+                    "confidence": "candidate",
+                },
+            ],
+        }
+    )
+    assert result["ignored_finding_count"] == 3
+    assert len(result["targets"]) == 1
+    assert result["targets"][0]["host"] == "www.python.org"
