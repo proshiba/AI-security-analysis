@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "valleyrat-winos-heartbeat-20260727",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "host": "haochisadnka.cc",
+      "port": 6685,
+      "protocol": "winos",
+      "method": "winos_heartbeat",
+      "handler": "valleyrat_winos_reviewed",
+      "pinned_ips": [
+        "134.122.185.201"
+      ],
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 64,
+      "role": "Winos control channel",
+      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/iocs.json:network[0]"
+    },
+    {
+      "profile_id": "valleyrat-vvas-8bf54-6666",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6"
+      ],
+      "host": "202.95.8.27",
+      "port": 6666,
+      "protocol": "vvas",
+      "method": "vvas_checkin",
+      "handler": "c2_detector_vvas",
+      "send_hex": "333200",
+      "expected_stage_size": 307214,
+      "expected_header_size": 14,
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 64,
+      "role": "vvaS primary C2",
+      "source": "analysis-framework/malware/valleyrat/config/profiles/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6.json:live_c2_targets[0]"
+    },
+    {
+      "profile_id": "valleyrat-vvas-8bf54-8888",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6"
+      ],
+      "host": "202.95.8.27",
+      "port": 8888,
+      "protocol": "vvas",
+      "method": "vvas_checkin",
+      "handler": "c2_detector_vvas",
+      "send_hex": "333200",
+      "expected_stage_size": 307214,
+      "expected_header_size": 14,
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 64,
+      "role": "vvaS secondary C2",
+      "source": "analysis-framework/malware/valleyrat/config/profiles/8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6.json:live_c2_targets[1]"
+    },
+    {
+      "profile_id": "valleyrat-n520-d11e793-9999",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
+      ],
+      "host": "118.107.21.88",
+      "port": 9999,
+      "protocol": "n520",
+      "method": "n520_server_first",
+      "handler": "c2_detector_n520_server_first",
+      "sni": "update.microsoft.com",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 44,
+      "role": "N520 interactive C2",
+      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/n520-live-summary.json:c2"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "case_id": "20260802-clickfix-pro-34c1f7ed77a4",
+  "domain": "hl8gdae9.kkslot777.asia",
+  "observed_at": "2026-07-28T00:09:33.484Z",
+  "analysis_date": "2026-08-02",
+  "source": {
+    "name": "ClickFix Campaign Monitor",
+    "id": "34c1f7ed77a4",
+    "url": "https://clickfix.pro/",
+    "tags": [
+      "ClearFake"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": null
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": false,
+    "successful_http_hops": 0,
+    "http_statuses": [],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [],
+    "redirects": [],
+    "body_types": {},
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": [],
+    "tls_certificates": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

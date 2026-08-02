@@ -200,6 +200,7 @@ def test_choose_family_rejects_modern_result_without_handler_execution() -> None
     [
         ("dotnet_resource_loader", "dotnet-resource-loader"),
         ("formbook_loader", "formbook"),
+        ("maskgram_stealer", "maskgram-stealer"),
         ("linux_downloader", "linux-downloader"),
     ],
 )
@@ -418,6 +419,61 @@ def test_confirmed_static_handler_iocs_are_sanitized_deduplicated_and_traceable(
     assert "user:pass" not in rendered
     assert "token=secret" not in rendered
     assert "candidate.example" not in rendered
+
+
+def test_confirmed_static_handler_iocs_accept_validated_config_endpoints() -> None:
+    """検証済みconfig_endpointsを確認済みIOC境界へ正規化する。"""
+
+    handler_id = "maskgram_stealer:extract_config.py:extract_config"
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": {"sufficient": True},
+    }
+    artifact = confirmed_handler_artifact(handler_id, [])
+    artifact["result"] = {
+        "config_endpoints": [
+            {
+                "host": "c2.example",
+                "port": 443,
+                "transport": "https",
+                "role": "c2",
+                "resolved_from": "telegram",
+                "confidence": "confirmed_static_configuration",
+            }
+        ],
+        "static_evidence": {"all_expected_fields_validated": True},
+    }
+
+    records = publisher.confirmed_static_handler_iocs([(execution, artifact)])
+
+    assert len(records) == 1
+    assert records[0]["host"] == "c2.example"
+    assert records[0]["evidence"]["all_expected_fields_validated"] is True
+
+
+def test_config_endpoints_fail_closed_without_full_static_validation() -> None:
+    """全項目の静的検証がないconfig_endpointsは公開しない。"""
+
+    handler_id = "maskgram_stealer:extract_config.py:extract_config"
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": {"sufficient": True},
+    }
+    artifact = confirmed_handler_artifact(handler_id, [])
+    artifact["result"] = {
+        "config_endpoints": [
+            {
+                "host": "unvalidated.example",
+                "port": 443,
+                "confidence": "confirmed_static_configuration",
+            }
+        ],
+        "static_evidence": {"all_expected_fields_validated": False},
+    }
+
+    assert publisher.confirmed_static_handler_iocs([(execution, artifact)]) == []
 
 
 @pytest.mark.parametrize(

@@ -11,7 +11,7 @@
 
 ## 現行基盤
 
-- [dailyマルウェア解析の3系統取込](DAILY-NEWS-MALWARE-INTAKE.md)
+- [dailyマルウェア解析の4系統取込](DAILY-NEWS-MALWARE-INTAKE.md)
 - [ClickFix／ClearFake 50件の収集・インフラ・Triage照合](../clickfix/README.md)
 - [一括静的解析と解析器適用可否判定](ONE-SHOT-ANALYSIS.md)
 - [MalwareBazaar最新Windows検体の一括静的解析](MALWAREBAZAAR-WINDOWS-BATCH.md)

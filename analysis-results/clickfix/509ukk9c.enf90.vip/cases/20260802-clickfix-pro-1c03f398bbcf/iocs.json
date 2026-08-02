@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "20260802-clickfix-pro-1c03f398bbcf",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-07-27T01:14:13.124Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "509ukk9c.enf90.vip",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.27.120",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.169.69",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

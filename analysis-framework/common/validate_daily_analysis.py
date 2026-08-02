@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""daily解析の3系統が揃い、安全条件を満たすことを検証する。"""
+"""daily解析の4系統が揃い、安全条件を満たすことを検証する。"""
 
 from __future__ import annotations
 
@@ -59,6 +59,17 @@ def _files(root: Path, names: set[str], findings: list[dict[str, str]]) -> None:
     for name in sorted(names):
         if not (root / name).is_file():
             _finding(findings, "missing_file", root / name, "必須成果物がありません。")
+
+
+def _window_date(value: object) -> str | None:
+    """日付またはtimezone付きISO日時をdaily比較用の日付へ正規化する。"""
+
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return None
 
 
 def validate_news(repository: Path, source_date: str) -> dict[str, Any]:
@@ -268,6 +279,409 @@ def validate_clickfix(repository: Path, analysis_date: str) -> dict[str, Any]:
     }
 
 
+def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, Any]:
+    """dailyのC2限定ライブチェックとMaxMind鮮度更新を検証する。"""
+    findings: list[dict[str, str]] = []
+    root = repository / "analysis-results" / "research" / "c2-monitoring" / analysis_date
+    required_files = {
+        "README.md",
+        "monitoring-results.json",
+        "targets.json",
+        "effective-targets.json",
+        "active-targets.json",
+        "monitoring-history.json",
+    }
+    _files(root, required_files, findings)
+    results_path = root / "monitoring-results.json"
+    result = _json(results_path, findings)
+    policy = result.get("policy") if isinstance(result.get("policy"), dict) else {}
+    if policy.get("network_enabled") is not True:
+        _finding(
+            findings,
+            "c2_live_check_not_enabled",
+            results_path,
+            "dailyではC2ライブチェックを有効にする必要があります。",
+        )
+    if policy.get("one_bounded_probe_per_target") is not True:
+        _finding(
+            findings,
+            "c2_live_check_not_bounded",
+            results_path,
+            "対象ごとの限定probeが確認できません。",
+        )
+    target_count = result.get("target_count")
+    observations = result.get("results") if isinstance(result.get("results"), list) else []
+    if not isinstance(target_count, int) or target_count <= 0 or len(observations) != target_count:
+        _finding(
+            findings,
+            "c2_live_check_target_count",
+            results_path,
+            "C2ライブチェック対象と結果件数が一致する正数である必要があります。",
+        )
+    window = result.get("analysis_window") if isinstance(result.get("analysis_window"), dict) else {}
+    if _window_date(window.get("end")) != analysis_date:
+        _finding(
+            findings,
+            "c2_live_check_date_mismatch",
+            results_path,
+            "analysis_window.endがdaily解析日と一致しません。",
+        )
+    for item in observations:
+        observation = item.get("observation") if isinstance(item, dict) else {}
+        if not isinstance(observation, dict) or not observation.get("timestamp_utc"):
+            _finding(
+                findings,
+                "c2_live_check_missing_timestamp",
+                results_path,
+                "全C2結果にライブ観測時刻が必要です。",
+            )
+            break
+        availability = item.get("availability_status")
+        dns_tracking = item.get("dns_tracking") if isinstance(item, dict) else {}
+        lifecycle = item.get("monitoring_lifecycle") if isinstance(item, dict) else {}
+        if availability not in {"on", "off", "not_observed"}:
+            _finding(
+                findings,
+                "c2_monitoring_availability_missing",
+                results_path,
+                "全C2結果にON／OFF／未観測の正規化状態が必要です。",
+            )
+            break
+        if not isinstance(dns_tracking, dict) or not isinstance(
+            dns_tracking.get("history"), list
+        ):
+            _finding(
+                findings,
+                "c2_dns_history_missing",
+                results_path,
+                "全C2結果にDNS/IP遷移履歴が必要です。",
+            )
+            break
+        dns_history = dns_tracking.get("history")
+        dns_transitions = dns_tracking.get("transitions")
+        if not isinstance(dns_transitions, list):
+            _finding(
+                findings,
+                "c2_dns_transitions_missing",
+                results_path,
+                "全C2結果に旧IPから新IPへの遷移event listが必要です。",
+            )
+            break
+        invalid_detail = False
+        for point in dns_history:
+            if not isinstance(point, dict):
+                invalid_detail = True
+                break
+            ips = point.get("ips") if isinstance(point.get("ips"), list) else []
+            ip_details = (
+                point.get("ip_details")
+                if isinstance(point.get("ip_details"), list)
+                else []
+            )
+            if len(ip_details) != len(ips):
+                invalid_detail = True
+                break
+            for detail in ip_details:
+                infrastructure = (
+                    detail.get("infrastructure")
+                    if isinstance(detail, dict)
+                    and isinstance(detail.get("infrastructure"), dict)
+                    else {}
+                )
+                bulletproof = (
+                    infrastructure.get("bulletproof_hosting")
+                    if isinstance(infrastructure.get("bulletproof_hosting"), dict)
+                    else {}
+                )
+                if (
+                    not isinstance(detail, dict)
+                    or not isinstance(detail.get("as"), dict)
+                    or not isinstance(detail.get("geo"), dict)
+                    or not isinstance(infrastructure.get("tags"), list)
+                    or bulletproof.get("classification")
+                    not in {"confirmed", "suspected", "not_indicated", "unknown"}
+                ):
+                    invalid_detail = True
+                    break
+            if invalid_detail:
+                break
+        if invalid_detail:
+            _finding(
+                findings,
+                "c2_dns_ip_enrichment_incomplete",
+                results_path,
+                "DNS履歴の全IPにAS、Geo、インフラタグ、防弾ホスティング評価が必要です。",
+            )
+            break
+        if any(
+            not isinstance(transition, dict)
+            or not isinstance(transition.get("from"), list)
+            or not isinstance(transition.get("to"), list)
+            or not isinstance(transition.get("added"), list)
+            or not isinstance(transition.get("removed"), list)
+            for transition in dns_transitions
+        ):
+            _finding(
+                findings,
+                "c2_dns_transition_enrichment_incomplete",
+                results_path,
+                "全DNS遷移eventに旧側、新側、追加、消失のIP詳細が必要です。",
+            )
+            break
+        if not isinstance(lifecycle, dict) or lifecycle.get("status") not in {
+            "active_on",
+            "active_grace",
+            "active_unobserved",
+            "retired_stopped",
+        }:
+            _finding(
+                findings,
+                "c2_monitoring_lifecycle_missing",
+                results_path,
+                "全C2結果に継続監視または停止のライフサイクル状態が必要です。",
+            )
+            break
+
+    history_summary = (
+        result.get("monitoring_history_summary")
+        if isinstance(result.get("monitoring_history_summary"), dict)
+        else {}
+    )
+    if history_summary.get("retirement_after_days_without_on") != 7:
+        _finding(
+            findings,
+            "c2_retirement_threshold_not_seven_days",
+            results_path,
+            "C2監視停止閾値はONなし7日である必要があります。",
+        )
+    minimum_off = history_summary.get("minimum_off_observations")
+    if not isinstance(minimum_off, int) or isinstance(minimum_off, bool) or minimum_off < 2:
+        _finding(
+            findings,
+            "c2_retirement_off_observations_too_low",
+            results_path,
+            "停止判定には2回以上のOFF実観測が必要です。",
+        )
+    if history_summary.get("shared_cdn_rotation_counts_as_infrastructure_change") is not False:
+        _finding(
+            findings,
+            "c2_shared_cdn_rotation_not_excluded",
+            results_path,
+            "共有CDN内のIPローテーションはインフラIP変化件数から除外する必要があります。",
+        )
+
+    active_path = root / "active-targets.json"
+    active_plan = _json(active_path, findings)
+    active_targets = active_plan.get("targets") if isinstance(active_plan.get("targets"), list) else []
+    expected_active = history_summary.get("active_target_count")
+    if not isinstance(expected_active, int) or len(active_targets) != expected_active:
+        _finding(
+            findings,
+            "c2_active_target_count_mismatch",
+            active_path,
+            "次回active監視対象件数が履歴要約と一致しません。",
+        )
+    active_keys = {
+        (
+            str(item.get("host") or "").casefold().rstrip("."),
+            item.get("port"),
+            str(item.get("protocol") or "tcp").casefold(),
+            str(item.get("transport") or "direct").casefold(),
+            str(item.get("http_path") or ""),
+        )
+        for item in active_targets
+        if isinstance(item, dict)
+    }
+    for item in observations:
+        if not isinstance(item, dict):
+            continue
+        lifecycle = item.get("monitoring_lifecycle")
+        if not isinstance(lifecycle, dict) or lifecycle.get("status") != "retired_stopped":
+            continue
+        key = (
+            str(item.get("host") or "").casefold().rstrip("."),
+            item.get("port"),
+            str(item.get("protocol") or "tcp").casefold(),
+            str(item.get("transport") or "direct").casefold(),
+            str(item.get("http_path") or ""),
+        )
+        if key in active_keys:
+            _finding(
+                findings,
+                "c2_retired_target_still_active",
+                active_path,
+                "停止履歴へ移したC2が次回active監視対象に残っています。",
+            )
+            break
+    effective_path = root / "effective-targets.json"
+    effective_plan = _json(effective_path, findings)
+    effective_targets = (
+        effective_plan.get("targets")
+        if isinstance(effective_plan.get("targets"), list)
+        else []
+    )
+    if len(effective_targets) != target_count:
+        _finding(
+            findings,
+            "c2_effective_target_count_mismatch",
+            effective_path,
+            "今回の実効監視対象件数がライブ観測結果件数と一致しません。",
+        )
+
+    history_path = root / "monitoring-history.json"
+    monitoring_history = _json(history_path, findings)
+    history_endpoints = (
+        monitoring_history.get("endpoints")
+        if isinstance(monitoring_history.get("endpoints"), list)
+        else []
+    )
+    if monitoring_history.get("current_run") != analysis_date:
+        _finding(
+            findings,
+            "c2_monitoring_history_date_mismatch",
+            history_path,
+            "監視履歴のcurrent_runがdaily解析日と一致しません。",
+        )
+    if len(history_endpoints) < len(observations):
+        _finding(
+            findings,
+            "c2_monitoring_history_endpoint_count",
+            history_path,
+            "停止済みを含む監視履歴endpoint数が今回の観測件数を下回っています。",
+        )
+    for endpoint in history_endpoints:
+        if not isinstance(endpoint, dict):
+            _finding(
+                findings,
+                "c2_monitoring_history_invalid_endpoint",
+                history_path,
+                "監視履歴endpointはobjectである必要があります。",
+            )
+            break
+        dns_tracking = endpoint.get("dns_tracking")
+        lifecycle = endpoint.get("monitoring_lifecycle")
+        events = endpoint.get("events")
+        if (
+            not isinstance(dns_tracking, dict)
+            or not isinstance(dns_tracking.get("history"), list)
+            or not isinstance(lifecycle, dict)
+            or not isinstance(events, list)
+        ):
+            _finding(
+                findings,
+                "c2_monitoring_history_incomplete_endpoint",
+                history_path,
+                "全監視履歴endpointにDNS履歴、ライフサイクル、状態遷移eventが必要です。",
+            )
+            break
+        if lifecycle.get("status") == "retired_stopped" and not any(
+            isinstance(event, dict)
+            and event.get("event") == "monitoring_stopped_after_7d_without_on"
+            for event in events
+        ):
+            _finding(
+                findings,
+                "c2_retirement_event_missing",
+                history_path,
+                "停止済みC2には監視停止eventが必要です。",
+            )
+            break
+    maxmind = result.get("maxmind") if isinstance(result.get("maxmind"), dict) else {}
+    freshness = (
+        maxmind.get("freshness_policy")
+        if isinstance(maxmind.get("freshness_policy"), dict)
+        else {}
+    )
+    if freshness.get("checked_before_live_check") is not True:
+        _finding(
+            findings,
+            "maxmind_freshness_not_checked_before_live",
+            results_path,
+            "ライブチェック前のMaxMind DB鮮度確認がありません。",
+        )
+    maximum_age = freshness.get("maximum_build_age_hours")
+    if not isinstance(maximum_age, (int, float)) or isinstance(maximum_age, bool) or maximum_age > 24:
+        _finding(
+            findings,
+            "maxmind_maximum_age_over_24_hours",
+            results_path,
+            "MaxMind DB build age上限は24時間以下である必要があります。",
+        )
+    expected_editions = ("GeoLite2-City", "GeoLite2-ASN")
+    stale_before = freshness.get("stale_before_refresh")
+    if not isinstance(stale_before, dict) or any(
+        not isinstance(stale_before.get(edition), bool) for edition in expected_editions
+    ):
+        _finding(
+            findings,
+            "maxmind_stale_before_incomplete",
+            results_path,
+            "City/ASN双方の更新前鮮度判定が必要です。",
+        )
+        stale_before = {}
+    build_epoch_before = freshness.get("build_epoch_before_refresh")
+    if not isinstance(build_epoch_before, dict) or any(
+        not isinstance(build_epoch_before.get(edition), int)
+        or isinstance(build_epoch_before.get(edition), bool)
+        or build_epoch_before.get(edition, 0) <= 0
+        for edition in expected_editions
+    ):
+        _finding(
+            findings,
+            "maxmind_build_epoch_before_incomplete",
+            results_path,
+            "City/ASN双方の更新前build epochが必要です。",
+        )
+    if any(stale_before.values()):
+        if freshness.get("refresh_performed") is not True:
+            _finding(
+                findings,
+                "maxmind_stale_database_not_refreshed",
+                results_path,
+                "24時間以上前のMaxMind DBを更新していません。",
+            )
+        stale_after = freshness.get("stale_after_refresh")
+        if not isinstance(stale_after, dict) or any(
+            not isinstance(stale_after.get(edition), bool) for edition in expected_editions
+        ):
+            _finding(
+                findings,
+                "maxmind_stale_after_incomplete",
+                results_path,
+                "更新後のCity/ASN双方の鮮度判定が必要です。",
+            )
+        elif (
+            any(stale_after.values())
+            and freshness.get("latest_available_still_stale") is not True
+        ):
+            _finding(
+                findings,
+                "maxmind_latest_stale_not_recorded",
+                results_path,
+                "最新版自体が24時間超の場合は、その事実を明示する必要があります。",
+            )
+    for database_key in ("city_database", "asn_database"):
+        database = maxmind.get(database_key) if isinstance(maxmind.get(database_key), dict) else {}
+        if database.get("official_checksum_verified") is not True:
+            _finding(
+                findings,
+                f"maxmind_{database_key}_checksum_unverified",
+                results_path,
+                "MaxMind DBの公式checksum検証がありません。",
+            )
+    for flag in ("license_key_published", "download_url_published", "mmdb_published"):
+        if maxmind.get(flag) is not False:
+            _finding(findings, f"maxmind_unsafe_{flag}", results_path, f"{flag}がfalseではありません。")
+    return {
+        "name": "c2_live_check",
+        "root": root.as_posix(),
+        "expected_cases": target_count if isinstance(target_count, int) else 0,
+        "actual_cases": len(observations),
+        "complete": not findings,
+        "findings": findings,
+    }
+
+
 def validate_daily_analysis(
     repository: Path,
     analysis_date: str,
@@ -281,6 +695,7 @@ def validate_daily_analysis(
         validate_news(repository, effective_news_date),
         validate_malwarebazaar(repository, analysis_date, malwarebazaar_count),
         validate_clickfix(repository, analysis_date),
+        validate_c2_live_check(repository, analysis_date),
     ]
     return {
         "schema_version": 1,
@@ -290,6 +705,7 @@ def validate_daily_analysis(
             "daily_news",
             f"malwarebazaar_{malwarebazaar_count}",
             "clickfix_50",
+            "c2_live_check",
         ],
         "complete": all(lane["complete"] for lane in lanes),
         "finding_count": sum(len(lane["findings"]) for lane in lanes),

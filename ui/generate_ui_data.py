@@ -245,17 +245,19 @@ C2_STATE_LABELS = {
     "transport_reachable_c2_not_confirmed": ("TCP到達(C2未確認)", "tcp"),
     "not_reachable_at_observation": ("観測時点で応答なし", "down"),
     "not_observed_proxy_unavailable": ("観測経路なし(未観測)", "unknown"),
+    "dns_resolved_c2_service_not_confirmed": ("DNS解決あり(C2 service未確認)", "dns"),
+    "dns_not_resolved": ("DNS解決なし(C2 service未観測)", "unknown"),
 }
 
 
 def c2_geo_table(run_dirs: list[Path]) -> dict[str, dict]:
-    """日付別の ip-geo.json を統合する。新しい観測の値で上書きする。"""
+    """日付別Geo表とC2監視内のMaxMind詳細を新しい観測優先で統合する。"""
     table: dict[str, dict] = {}
     for run_dir in run_dirs:
         payload = read_json(run_dir / "ip-geo.json") or {}
         for entry in payload.get("ips") or []:
             address = entry.get("ip")
-            if not address or not entry.get("geo_resolved"):
+            if not address or not entry.get("geo_resolved") or address in table:
                 continue
             table[address] = {
                 "country": entry.get("country"),
@@ -269,10 +271,33 @@ def c2_geo_table(run_dirs: list[Path]) -> dict[str, dict]:
                 "org": entry.get("organization"),
                 "isp": entry.get("isp"),
                 "observed_on": run_dir.name,
+                "source": "ip-geo.json",
             }
+        monitoring = read_json(run_dir / "monitoring-results.json") or {}
+        for result in monitoring.get("results") or []:
+            dns_history = (result.get("dns_tracking") or {}).get("history") or []
+            for point in reversed(dns_history):
+                for detail in point.get("ip_details") or []:
+                    address = detail.get("ip")
+                    geo = detail.get("geo") or {}
+                    as_record = detail.get("as") or {}
+                    if not address or not geo or address in table:
+                        continue
+                    table[address] = {
+                        "country": geo.get("country_name"),
+                        "country_code": geo.get("country_iso_code"),
+                        "continent": geo.get("continent_name"),
+                        "region": geo.get("subdivision_name"),
+                        "city": geo.get("city_name"),
+                        "lat": geo.get("latitude"),
+                        "lon": geo.get("longitude"),
+                        "asn": as_record.get("asn"),
+                        "org": as_record.get("organization"),
+                        "isp": None,
+                        "observed_on": point.get("date") or run_dir.name,
+                        "source": "GeoLite2 City/ASN",
+                    }
     return table
-
-
 def clickfix_dns_timeline() -> list[dict]:
     """ClickFix基盤の日付別caseから、ドメインの解決IP推移を組み立てる。
 
@@ -362,6 +387,8 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
                 "state_counts": payload.get("state_counts"),
                 "policy": payload.get("policy"),
                 "environment": payload.get("observation_environment"),
+                "monitoring_history": payload.get("monitoring_history_summary"),
+                "continuity": payload.get("monitoring_continuity"),
             }
         )
         for entry in payload.get("results") or []:
@@ -369,7 +396,15 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
             port = entry.get("port")
             if not host:
                 continue
-            key = f"{host}:{port}"
+            key = "|".join(
+                (
+                    str(host).casefold().rstrip("."),
+                    str(port or 0),
+                    str(entry.get("protocol") or "tcp").casefold(),
+                    str(entry.get("transport") or "direct").casefold(),
+                    str(entry.get("http_path") or ""),
+                )
+            )
             observation = entry.get("observation") or {}
             assessment = entry.get("assessment") or {}
             state = assessment.get("state")
@@ -381,6 +416,7 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
                 "state_label": label,
                 "tone": tone,
                 "alive": bool(observation.get("alive")),
+                "availability": entry.get("availability_status"),
                 "resolved_ips": observation.get("resolved_ips") or [],
                 "tcp_status": observation.get("tcp_status"),
                 "status": observation.get("status"),
@@ -411,13 +447,41 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
                     "analyzed_dates": entry.get("analyzed_dates") or [],
                     "sources": entry.get("sources") or [],
                     "shodan": observation.get("shodan"),
+                    "active": (entry.get("monitoring_lifecycle") or {}).get("active", True),
+                    "lifecycle": entry.get("monitoring_lifecycle") or {},
+                    "dns_tracking": entry.get("dns_tracking") or {},
                     "history": [],
                 }
                 endpoints[key] = record
             record["history"].append(point)
-            if point["resolved_ips"]:
+            dns_tracking = entry.get("dns_tracking") if isinstance(entry.get("dns_tracking"), dict) else {}
+            dns_history = dns_tracking.get("history") if isinstance(dns_tracking.get("history"), list) else []
+            if record["history"] == [point] and dns_history:
+                for dns_point in dns_history:
+                    if not isinstance(dns_point, dict):
+                        continue
+                    host_points.setdefault(host, []).append(
+                        {
+                            "date": dns_point.get("date") or run_dir.name,
+                            "case": None,
+                            "ips": sorted(dns_point.get("ips") or []),
+                            "raw_ip_changed": bool(dns_point.get("raw_ip_changed")),
+                            "infrastructure_ip_change": bool(
+                                dns_point.get("infrastructure_ip_change")
+                            ),
+                            "change_classification": dns_point.get("change_classification"),
+                            "shared_cdn_provider": dns_point.get("shared_cdn_provider"),
+                            "ip_details": dns_point.get("ip_details") or [],
+                            "transition": dns_point.get("transition"),
+                        }
+                    )
+            elif not record.get("dns_tracking") and point["resolved_ips"]:
                 host_points.setdefault(host, []).append(
-                    {"date": run_dir.name, "case": None, "ips": sorted(point["resolved_ips"])}
+                    {
+                        "date": run_dir.name,
+                        "case": None,
+                        "ips": sorted(point["resolved_ips"]),
+                    }
                 )
 
     ordered: list[dict] = []
@@ -436,32 +500,103 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
 
     monitor_timelines = []
     for host, points in sorted(host_points.items()):
-        merged: dict[str, set] = {}
+        merged: dict[str, dict] = {}
         for point in points:
-            merged.setdefault(point["date"], set()).update(point["ips"])
-        series = [
-            {"date": date, "case": None, "ips": sorted(values)}
-            for date, values in sorted(merged.items())
-        ]
+            date = str(point["date"])
+            bucket = merged.setdefault(
+                date,
+                {
+                    "ips": set(),
+                    "raw_ip_changed": False,
+                    "infrastructure_ip_change": False,
+                    "classifications": set(),
+                    "shared_cdn_providers": set(),
+                    "ip_details": {},
+                    "transitions": [],
+                },
+            )
+            bucket["ips"].update(point["ips"])
+            bucket["raw_ip_changed"] = (
+                bucket["raw_ip_changed"] or point.get("raw_ip_changed", False)
+            )
+            bucket["infrastructure_ip_change"] = (
+                bucket["infrastructure_ip_change"]
+                or point.get("infrastructure_ip_change", False)
+            )
+            if point.get("change_classification"):
+                bucket["classifications"].add(point["change_classification"])
+            if point.get("shared_cdn_provider"):
+                bucket["shared_cdn_providers"].add(point["shared_cdn_provider"])
+            for detail in point.get("ip_details", []):
+                if isinstance(detail, dict) and detail.get("ip"):
+                    bucket["ip_details"].setdefault(detail["ip"], detail)
+            transition = point.get("transition")
+            if isinstance(transition, dict) and transition not in bucket["transitions"]:
+                bucket["transitions"].append(transition)
+        series = []
+        previous_ips: list[str] | None = None
+        for date, values in sorted(merged.items()):
+            ips = sorted(values["ips"])
+            raw_changed = values["raw_ip_changed"] or (
+                previous_ips is not None and ips != previous_ips
+            )
+            infrastructure_changed = values["infrastructure_ip_change"]
+            classifications = values["classifications"]
+            if infrastructure_changed:
+                classification = "infrastructure_ip_change"
+            elif "shared_cdn_rotation_ignored" in classifications:
+                classification = "shared_cdn_rotation_ignored"
+            elif "resolution_state_changed" in classifications:
+                classification = "resolution_state_changed"
+            elif raw_changed:
+                classification = "raw_ip_change_unclassified"
+            elif previous_ips is None:
+                classification = "initial_observation"
+            else:
+                classification = "unchanged"
+            series.append(
+                {
+                    "date": date,
+                    "case": None,
+                    "ips": ips,
+                    "ip_details": [
+                        values["ip_details"][address]
+                        for address in ips
+                        if address in values["ip_details"]
+                    ],
+                    "raw_ip_changed": raw_changed,
+                    "infrastructure_ip_change": infrastructure_changed,
+                    "change_classification": classification,
+                    "shared_cdn_provider": ", ".join(
+                        sorted(values["shared_cdn_providers"])
+                    )
+                    or None,
+                    "transition": (
+                        values["transitions"][0] if values["transitions"] else None
+                    ),
+                }
+            )
+            previous_ips = ips
         monitor_timelines.append(
             {
                 "host": host,
                 "source": "c2-monitor",
                 "path": None,
                 "points": series,
-                "changes": sum(
-                    1
-                    for index in range(1, len(series))
-                    if series[index]["ips"] != series[index - 1]["ips"]
+                "changes": sum(point["infrastructure_ip_change"] for point in series),
+                "raw_changes": sum(point["raw_ip_changed"] for point in series),
+                "ignored_cdn_rotations": sum(
+                    point["change_classification"] == "shared_cdn_rotation_ignored"
+                    for point in series
                 ),
             }
         )
-
     geo = c2_geo_table(run_dirs)
     plotted = sorted(
         {
             address
             for record in ordered
+            if record.get("active", True)
             for address in (record["latest"] or {}).get("resolved_ips", [])
             if address in geo
         }

@@ -57,6 +57,23 @@ collectorはstation IDを送信せず、最大16 MiB、最大30秒だけ受信�
 - custom protocolのbanner hashがShodanで有効なのは、Shodan側が互換probe payloadを使った場合だけです。
 - 結果にはtimestampを付け、過去のDNS／IP／証明書観測を上書きしません。
 
+## 日次の継続監視
+
+daily解析で明示的に許可されたC2ライブチェックは、[`build_all_c2_monitoring_targets.py`](build_all_c2_monitoring_targets.py)で`analysis-results`全体のIOC履歴から対象を再生成し、[`run_c2_monitoring_pipeline.py`](run_c2_monitoring_pipeline.py)で観測する経路を標準とします。`.onion`は対象外とし、通常のglobal IP／FQDNは全件を計画へ含めます。既知portは完全一致endpointへ限定probeを1回だけ実行し、port不明hostはDNS解決だけを行ってC2稼働とは判定しません。直近の`active-targets.json`も統合します。
+
+既知のmalware固有protocolは[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)を正本とします。`targets.json`には`protocol_profile_id`だけを保持し、送信byte列、期待header、SNI、IP pinningはregistryから解決します。IDとhost/portが完全一致しない場合は接続前に拒否します。現在のレビュー済みprofileは、Winos制御portへのheartbeat 1 frame、vvaSへの固定3 byte check-in、N520のserver-first 44 byte handshakeです。Winosのstage portではstageを要求せず、N520ではcheck-inを送りません。いずれもvictim metadata、command polling、任意commandを送信しません。
+
+結果では`tcp_connect`成功を`transport_reachable_c2_not_confirmed`、固有protocolの完全一致だけを`c2_protocol_confirmed`として区別します。静的解析でprotocolを復元済みのendpointを、実装上の都合だけで`tcp_connect`へ降格させてはいけません。
+
+DNSのA／AAAA解決先は観測日時、ASN、organizationとともに履歴化します。Cloudflare、Akamai、Fastly等の同一共有CDN内でedge IPだけが変わった場合は、生のIP変化として残しつつC2インフラ変化件数から除外します。
+
+履歴の各IPにはAS番号・AS組織、国・地域・都市、インフラタグ、防弾ホスティング評価を付与します。IP集合が変化したeventは、旧IP集合と新IP集合の双方に同じ詳細を保持し、追加IPと消失IPも分けて記録します。共有CDNのedge IPはoriginではないため、CDN判定だけから防弾ホスティングや攻撃者インフラへ帰属させません。
+
+防弾ホスティング評価は根拠付きregistryで管理し、信頼できる情報源による明示評価がある場合だけ`防弾ホスティング`、複数の状況証拠はあるが運営意図を確認できない場合は`防弾ホスティング - 疑い`とします。単一IPの悪用観測やorganization名だけでは確定しません。
+
+ONの対象、7日未満のOFF、proxy利用不可等の未観測対象は次回も監視します。最新観測がOFFで、最後のON以後または初回OFFから7日以上経過し、その間に2回以上のOFF実観測がある対象だけを停止履歴へ移し、次回のactive対象から外します。停止済み対象に新しいON証拠が得られた場合は、再開eventを残して監視へ戻します。
+
+成果物と再実行手順は[`RUN-C2-MONITORING-PIPELINE.md`](RUN-C2-MONITORING-PIPELINE.md)を参照してください。
 ## MX-Goのlocalhost限定protocol mode
 
 `mxgo` は封じ込めを優先したlab modeです。`preview` はDNSやnetwork activityなしで合成heartbeatの説明を生成します。`checkin` と `recipients` は `localhost`、`127.0.0.1`、`::1` だけを受け付け、`--mxgo-allow-loopback-network` を必須とします。recipient結果には件数とhashだけを含めます。詳細は [MX-Go emulator](../../emulators/unclassified/mx_go/README.md) を参照してください。
