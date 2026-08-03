@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.static_unpacker</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cstatic_unpacker.py">c:\users\administrator\ai-security-analysis\unpackers\static_unpacker.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cunpackers%5Cstatic_unpacker.py">c:\users\administrator\ai-security-analysis-daily-20260727\unpackers\static_unpacker.py</a></td></tr></table>
     <p><span class="code">検体を実行せず、上限付きで静的展開とアーティファクト復元を行う。</span></p>
 <p>
 <table class="section">
@@ -19,19 +19,21 @@
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
 <a href="base64.html">base64</a><br>
 <a href="binascii.html">binascii</a><br>
+<a href="cabarchive.html">cabarchive</a><br>
 <a href="dnfile.html">dnfile</a><br>
-<a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"><a href="io.html">io</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="io.html">io</a><br>
 <a href="json.html">json</a><br>
 <a href="math.html">math</a><br>
-<a href="pefile.html">pefile</a><br>
+<a href="olefile.html">olefile</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
 <a href="pyzipper.html">pyzipper</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="re.html">re</a><br>
 <a href="struct.html">struct</a><br>
 <a href="subprocess.html">subprocess</a><br>
-<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
 <a href="tempfile.html">tempfile</a><br>
-</td><td class="multicolumn"><a href="zipfile.html">zipfile</a><br>
+<a href="zipfile.html">zipfile</a><br>
 <a href="zlib.html">zlib</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
@@ -48,9 +50,22 @@
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。</span></dd></dl>
  <dl><dt><a name="-pe_resource_children"><strong>pe_resource_children</strong></a>(blob: 'bytes') -&gt; 'tuple[str, list[tuple[str, bytes]], dict[str, object] | None]'</dt><dd><span class="code">PEリソースを直接検査し、次層として意味がある内容だけを返す。</span></dd></dl>
  <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。</span></dd></dl>
- <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]', *, max_parts: 'int' = 512, max_artifact_size: 'int' = 268435456) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
+ <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(
+    files: 'dict[str, bytes]',
+    *,
+    max_parts: 'int' = 512,
+    max_artifact_size: 'int' = 268435456
+) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
  <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoItのRC4・LZNT1ローダー式からPEペイロードを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_autoit_script"><strong>recover_autoit_script</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoIt&nbsp;A3Xを逆コンパイルし、XOR・RC4・LZNT1層を静的に復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_cab_members"><strong>recover_cab_members</strong></a>(
+    data: 'bytes',
+    *,
+    max_members: 'int' = 512,
+    max_member_size: 'int' = 268435456,
+    max_total_size: 'int' = 805306368
+) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">CABをPython&nbsp;parserだけで有界に展開し、解析価値のあるmemberを返す。</span></dd></dl>
+ <dl><dt><a name="-recover_detached_idat_stream"><strong>recover_detached_idat_stream</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">PNGヘッダを持たないCRC-validな連続IDAT/IEND列を境界付きで調べる。</span></dd></dl>
  <dl><dt><a name="-recover_dotnet_bitmap_payloads"><strong>recover_dotnet_bitmap_payloads</strong></a>(resource_set: 'object') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">シリアライズ済み.NET&nbsp;BitmapリソースのRGB画素に隠されたPEストリームを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_dotnet_resources"><strong>recover_dotnet_resources</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">.NET&nbsp;manifestリソースを棚卸しし、不透明な符号化ペイロード素材を保持する。</span></dd></dl>
  <dl><dt><a name="-recover_encoded_blobs"><strong>recover_encoded_blobs</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">スクリプトから構造上有意なBase64ブロブを上限付きで復元する。<br>
@@ -58,21 +73,68 @@
 コマンドファイルはcertutil&nbsp;-decodeの前に、多数のecho行で1つのペイロードを<br>
 出力することがある。これらの断片はリダイレクト先ごとに再構築する。<br>
 無作為な高エントロピー引数は個別に保持しない。</span></dd></dl>
+ <dl><dt><a name="-recover_ole_streams"><strong>recover_ole_streams</strong></a>(
+    data: 'bytes',
+    *,
+    max_members: 'int' = 512,
+    max_member_size: 'int' = 268435456,
+    max_total_size: 'int' = 805306368
+) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">MSI/OLE&nbsp;streamを有界に列挙し、実行可能層とCAB等だけを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_png_concealed_data"><strong>recover_png_concealed_data</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">PNGのIDAT内で画像zlib終端後に連結されたデータを上限付きで復元する。</span></dd></dl>
- <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368, max_compression_ratio: 'float' = 200.0, read_chunk_size: 'int' = 1048576, password: 'str | bytes' = b'') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。</span></dd></dl>
+ <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(
+    data: 'bytes',
+    *,
+    max_members: 'int' = 512,
+    max_member_size: 'int' = 268435456,
+    max_total_size: 'int' = 805306368,
+    max_compression_ratio: 'float' = 200.0,
+    read_chunk_size: 'int' = 1048576,
+    password: 'str | bytes' = b''
+) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。</span></dd></dl>
+ <dl><dt><a name="-recovery_candidate_priority"><strong>recovery_candidate_priority</strong></a>(blob: 'bytes', kind: 'str', name: 'str') -&gt; 'int'</dt><dd><span class="code">後段の層上限で重要な候補が落ちないよう、静的証跡だけで優先度を付ける。</span></dd></dl>
  <dl><dt><a name="-repetitive_padding"><strong>repetitive_padding</strong></a>(data: 'bytes', max_period: 'int' = 32) -&gt; 'dict[str, object] | None'</dt><dd><span class="code">短いバイトパターンの反復だけで構成されたバッファ全体を識別する。</span></dd></dl>
- <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
+ <dl><dt><a name="-run_die"><strong>run_die</strong></a>(
+    data: 'bytes',
+    executable: 'Path',
+    name: 'str' = 'sample.bin',
+    timeout: 'float' = 120.0
+) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">データ変換としてUPX展開を呼び出し、出力PEを検証する。</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。</span></dd></dl>
- <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
+ <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
+    data: 'bytes',
+    executable: 'Path',
+    name: 'str' = 'input.bin',
+    password: 'str' = '',
+    *,
+    max_members: 'int' = 512,
+    max_member_size: 'int' = 268435456,
+    max_total_size: 'int' = 805306368
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
  <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">アーカイブ候補の識別と一覧化だけに7-Zipを使用する。</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">バイト列の小文字SHA-256ダイジェストを返す。</span></dd></dl>
- <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = '', max_archive_members: 'int' = 512, max_archive_member_size: 'int' = 268435456, max_archive_total_size: 'int' = 805306368, max_archive_compression_ratio: 'float' = 200.0) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">上限付き静的復元を実行し、メタデータとアーティファクトを返す。<br>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(
+    data: 'bytes',
+    name: 'str' = 'sample',
+    upx: 'Path | None' = None,
+    sevenzip: 'Path | None' = None,
+    diec: 'Path | None' = None,
+    force_container_probe: 'bool' = False,
+    archive_password: 'str' = '',
+    max_archive_members: 'int' = 512,
+    max_archive_member_size: 'int' = 268435456,
+    max_archive_total_size: 'int' = 805306368,
+    max_archive_compression_ratio: 'float' = 200.0
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">上限付き静的復元を実行し、メタデータとアーティファクトを返す。<br>
 forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、<br>
 レビュー済みインベントリの手掛かりに使用する。入力は実行せず、<br>
 設定済みアーカイブパーサーによる検査だけを許可する。</span></dd></dl>
  <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">*offset*にあるPEの上限付きファイル範囲を返し、無効なら``None``を返す。</span></dd></dl>
- <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。</span></dd></dl>
+ <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(
+    path: 'Path',
+    artifacts: 'list[tuple[str, bytes]]',
+    password: 'str' = 'infected'
+) -&gt; 'None'</dt><dd><span class="code">復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -86,10 +148,11 @@ forceフラグは、汎用コンテナ判定に合致しない既知NSISキャ�
 <strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
 <strong>MAX_ARTIFACT</strong> = 268435456<br>
 <strong>MAX_COMPRESSION_RATIO</strong> = 200.0<br>
+<strong>MAX_DETACHED_IDAT_CANDIDATES</strong> = 256<br>
 <strong>MAX_EXTRACTED_TOTAL</strong> = 805306368<br>
 <strong>MAX_PNG_CHUNKS</strong> = 4096<br>
 <strong>MAX_RETAINED_MEMBERS</strong> = 128<br>
 <strong>PNG_MAGIC</strong> = b'\x89PNG\r\n\x1a\n'<br>
-<strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.bat', '.bin', ...}<br>
-<strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.bat', '.cmd', '.hta', '.js', '.jse', ...}</td></tr></table>
+<strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.au3', '.bat', ...}<br>
+<strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.au3', '.bat', '.cmd', '.hta', '.htm', ...}</td></tr></table>
 </body></html>

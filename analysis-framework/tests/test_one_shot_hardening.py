@@ -311,6 +311,62 @@ def test_profile_validation_miss_is_not_a_static_layer_failure() -> None:
     assert completion["complete"] is True
 
 
+def test_successful_sevenzip_cab_fallback_is_complete() -> None:
+    """LZX非対応の内蔵CAB parser失敗を、完全な代替抽出成功後に残さない。"""
+
+    issues = one_shot._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "report": {
+                        "format": "cab",
+                        "unpack_status": "artifacts_recovered",
+                        "cab": {
+                            "status": "parse_failed",
+                            "error": "NotSupportedError: LZX compression not supported",
+                        },
+                        "sevenzip": {
+                            "status": "extracted",
+                            "extract_exit_code": 0,
+                            "inventory": [{"name": "payload.bin", "status": "extracted"}],
+                        },
+                    },
+                }
+            ]
+        }
+    )
+    assert issues == []
+
+
+def test_embedded_installer_recovery_supersedes_partial_sevenzip() -> None:
+    """専用parserが全recordを復元した場合、補助7-Zip失敗をblockerにしない。"""
+
+    issues = one_shot._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "report": {
+                        "format": "pe",
+                        "unpack_status": "artifacts_recovered",
+                        "embedded_installer_archive": {
+                            "status": "artifacts_recovered",
+                            "record_count": 2,
+                        },
+                        "sevenzip": {
+                            "status": "partially_extracted",
+                            "extract_exit_code": 2,
+                            "inventory": [{"name": "package.dat", "status": "empty_file"}],
+                        },
+                    },
+                }
+            ]
+        }
+    )
+    assert issues == []
+
+
 @pytest.mark.parametrize(
     ("name", "data"),
     [("stage.cab", b"MSCFfixture"), ("stage.a3x", b"opaque")],
@@ -383,7 +439,7 @@ def test_one_shot_static_layers_propagate_remaining_quotas(
     )
     assert len(calls) == 1
     assert calls[0]["archive_password"] == "infected"
-    assert calls[0]["max_archive_members"] == one_shot.MAX_STATIC_LAYERS - 1
+    assert calls[0]["max_archive_members"] == one_shot.MAX_ARCHIVE_MEMBERS
     assert calls[0]["max_archive_member_size"] == one_shot.MAX_RECOVERED_LAYER_SIZE
     assert calls[0]["max_archive_total_size"] == one_shot.MAX_RECOVERED_TOTAL_SIZE
     assert calls[0]["max_archive_compression_ratio"] == one_shot.MAX_STATIC_COMPRESSION_RATIO
@@ -1014,6 +1070,30 @@ def test_script_base64_scan_keeps_more_than_legacy_hundred_candidates(tmp_path: 
     assert scan["truncated"] is False
 
 
+def test_script_base64_scan_bounds_retention_without_stopping_scan(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """全候補を走査し、公開inventoryだけを有界化した場合はpartialにしない。"""
+
+    monkeypatch.setattr(
+        one_shot.analyze_family_sample,
+        "MAX_BASE64_CANDIDATES",
+        2,
+    )
+    payload = (("A" * 80) + "\n") * 3
+    result = one_shot.analyze_family_sample.analyze(
+        "many.js", payload.encode(), tmp_path, persist_normalized_text=False
+    )
+    scan = result["script"]["base64_scan"]
+    assert len(result["script"]["base64_candidates"]) == 2
+    assert scan["total_candidates"] == 3
+    assert scan["omitted_candidates"] == 1
+    assert scan["retention_limited"] is True
+    assert scan["truncated"] is False
+    assert result["analysis_coverage"]["status"] == "complete"
+
+
 def test_analysis_contract_components_include_shared_dependencies() -> None:
     """resume fingerprintへ共有I/O、detector support、profile、campaign定義を含める。"""
 
@@ -1240,6 +1320,7 @@ def test_runtime_versions_are_stable_contract_material() -> None:
         "ruff",
         "yara-python",
     }
+
 
 @pytest.mark.parametrize("max_files", [True, False, 1.5, "1", 0, -1])
 def test_collect_inputs_rejects_non_integer_or_non_positive_limits(

@@ -3,7 +3,7 @@
   "profiles": [
     {
       "id": "rotate_right_xor_c6_donut",
-      "description": "データ長に対する0x3ef14の剰余だけ右回転し、0xc6でXORしたDonut sidecar",
+      "description": "入力長に対する0x3ef14の剰余だけ右ローテートし、0xc6でXORするDonut sidecar変換",
       "artifact_kind": "rotated-xor-donut-shellcode",
       "input_formats": [
         "data"

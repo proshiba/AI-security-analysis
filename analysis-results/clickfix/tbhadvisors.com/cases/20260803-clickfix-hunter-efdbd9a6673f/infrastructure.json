@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "case_id": "20260803-clickfix-hunter-efdbd9a6673f",
+  "domain": "tbhadvisors.com",
+  "observed_at": "2026-07-27T22:22:02.212Z",
+  "investigated_at_utc": "2026-08-02T22:32:10.416310+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ClickFix Hunter",
+      "source_id": "efdbd9a6673f"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        200
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "149.154.167.99",
+        "162.159.135.42"
+      ],
+      "landing_public_addresses": [
+        "162.159.135.42"
+      ],
+      "stage_public_addresses": [
+        "149.154.167.99"
+      ],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "tbhadvisors.com",
+            "type": 1,
+            "ttl": 600,
+            "data": "162.159.135.42"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "tbhadvisors.com",
+            "type": 2,
+            "ttl": 3600,
+            "data": "ns21.domaincontrol.com"
+          },
+          {
+            "name": "tbhadvisors.com",
+            "type": 2,
+            "ttl": 3600,
+            "data": "ns22.domaincontrol.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": [
+          {
+            "name": "tbhadvisors.com",
+            "type": 15,
+            "ttl": 1800,
+            "data": "20 tbhadvisors-com.mx2.arsmtp.com"
+          },
+          {
+            "name": "tbhadvisors.com",
+            "type": 15,
+            "ttl": 1800,
+            "data": "10 tbhadvisors-com.mx1.arsmtp.com"
+          }
+        ]
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "TBHADVISORS.COM",
+      "unicode_name": null,
+      "handle": "1897756975_DOMAIN_COM-VRSN",
+      "status": [
+        "client delete prohibited",
+        "client renew prohibited",
+        "client transfer prohibited",
+        "client update prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2015-01-23T19:12:48Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-01-23T19:12:48Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2025-01-24T12:32:28Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-08-02T22:31:21Z"
+        }
+      ],
+      "nameservers": [
+        "ns21.domaincontrol.com",
+        "ns22.domaincontrol.com"
+      ],
+      "registrar_handles": [
+        "146"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "162.159.135.42",
+      "rdap": {
+        "handle": "NET-162-158-0-0-1",
+        "name": "CLOUDFLARENET",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "162.158.0.0",
+        "end_address": "162.159.255.255",
+        "parent_handle": "NET-162-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2024-09-04T07:53:56-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2013-05-23T13:31:01-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "162.159.135.42",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "162.159.135.42",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "kinsta.cloud",
+          "tools.predictiveindex.com",
+          "ubcmillwrights.com",
+          "www.ubcmillwrights.com"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

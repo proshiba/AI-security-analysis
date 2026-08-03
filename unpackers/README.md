@@ -153,3 +153,24 @@ command の順序と失敗時の確認は `docs/APT-C60-2026-WORKFLOW.md` を参
 `profiled_transform.py` は `profiles/byte_transforms.json` を読み、入力形式と任意のファイルsuffixに合う変換だけを適用します。新しいローダーの回転量やXOR鍵をPythonへ直接追加せず、JSONのoperation列と構造validatorで定義できます。`rotated_xor_donut.py` は旧CLIと関数APIを維持する薄い互換ラッパーです。
 
 プロファイルから実行できるのは反転、左右ローテート、単一byte XOR、繰り返し鍵XOR、上限付きsliceだけです。任意コード、式評価、外部コマンド、ネットワーク処理は呼び出せません。詳しい追加手順は [拡張可能な静的解析プロファイル](../analysis-framework/docs/EXTENSIBLE-STATIC-PROFILES.md) を参照してください。
+
+## MSI／OLE／CABとdetached IDAT
+
+`static_unpacker.py`はMSIをOLEとして扱い、stream数、単体サイズ、合計サイズの上限内でCAB、PE、ZIP、script、設定候補を復元する。CABはまず純粋Pythonの解析器を使い、LZXなどの非対応圧縮方式や解析失敗で復元できない場合だけ、利用者が`--sevenzip`で明示したローカル実行ファイルへフォールバックする。MSI自体や内包ファイルは実行しない。
+
+PNG signatureやIHDRを持たず、CRC-validな`IDAT`が2個以上連続して`IEND`で終わるデータはdetached IDATとして記録する。結合データがzlibとして正常終端した場合だけ復元層を出力する。zlibでない場合は暗号化・独自変換候補として境界、チャンク数、SHA-256、エントロピーだけを保存し、推測したバイト列は出力しない。
+
+多数の正規ファイルを含むCABでは、設定名を参照するPEとdetached IDATを後段解析へ優先する。優先度はファミリー確定ではなく、層数上限で重要証跡が落ちることを防ぐための順序である。
+
+archive内の棚卸し上限は512、再帰解析で採用する静的層上限は64であり、別々に適用する。棚卸し件数が採用層上限を超えてもコンテナ全体を拒否せず、優先順位に従って境界内の層を採用する。
+
+MSIの標準テーブルを相関する場合は、読み取り専用の`msi_static_inventory.py`を使用する。
+
+```powershell
+python unpackers/msi_static_inventory.py `
+  --input C:\analysis\sample.msi `
+  --output C:\analysis\msi-inventory.json `
+  --max-rows 4096
+```
+
+入力サイズは既定で256MiBを上限とし、SHA-256はストリーム単位で計算する。出力には絶対パスを残さず、入力ファイル名、`File`、`CustomAction`、`InstallExecuteSequence`、`Media`、カスタムアクションのsource IDから実ファイル名への対応を含む。Windows Installerのインストール処理は呼び出さない。

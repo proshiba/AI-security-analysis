@@ -163,11 +163,12 @@ Data and other attributes defined here:<br>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#StaticLayerPolicy">StaticLayerPolicy</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;max_layers:&nbsp;'int'&nbsp;=&nbsp;32,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_layers:&nbsp;'int'&nbsp;=&nbsp;64,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_depth:&nbsp;'int'&nbsp;=&nbsp;6,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_layer_size:&nbsp;'int'&nbsp;=&nbsp;67108864,<br>
 &nbsp;&nbsp;&nbsp;&nbsp;max_total_size:&nbsp;'int'&nbsp;=&nbsp;268435456,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;max_compression_ratio:&nbsp;'float'&nbsp;=&nbsp;100.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_compression_ratio:&nbsp;'float'&nbsp;=&nbsp;100.0,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_archive_members:&nbsp;'int'&nbsp;=&nbsp;512<br>
 )&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 再帰展開の件数・深さ・容量・圧縮率上限をまとめた共有ポリシー。<br>&nbsp;</span></td></tr>
@@ -181,11 +182,12 @@ Data and other attributes defined here:<br>
 
 <dl><dt><a name="StaticLayerPolicy-__init__"><strong>__init__</strong></a>(
     self,
-    max_layers: 'int' = 32,
+    max_layers: 'int' = 64,
     max_depth: 'int' = 6,
     max_layer_size: 'int' = 67108864,
     max_total_size: 'int' = 268435456,
-    max_compression_ratio: 'float' = 100.0
+    max_compression_ratio: 'float' = 100.0,
+    max_archive_members: 'int' = 512
 ) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="StaticLayerPolicy-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt></dl>
@@ -208,13 +210,15 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'max_compression_ratio': 'float', 'max_depth': 'int', 'max_layer_size': 'int', 'max_layers': 'int', 'max_total_size': 'int'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'max_archive_members': 'int', 'max_compression_ratio': 'float', 'max_depth': 'int', 'max_layer_size': 'int', 'max_layers': 'int', 'max_total_size': 'int'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'max_compression_ratio': Field(name='max_compression_ratio',type='float',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_depth': Field(name='max_depth',type='int',default=6,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layer_size': Field(name='max_layer_size',type='int',default=6...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layers': Field(name='max_layers',type='int',default=32,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_total_size': Field(name='max_total_size',type='int',default=2...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'max_archive_members': Field(name='max_archive_members',type='int',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_compression_ratio': Field(name='max_compression_ratio',type='float',...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_depth': Field(name='max_depth',type='int',default=6,defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layer_size': Field(name='max_layer_size',type='int',default=6...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_layers': Field(name='max_layers',type='int',default=64,de...appingproxy({}),kw_only=False,_field_type=_FIELD), 'max_total_size': Field(name='max_total_size',type='int',default=2...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('max_layers', 'max_depth', 'max_layer_size', 'max_total_size', 'max_compression_ratio')</dl>
+<dl><dt><strong>__match_args__</strong> = ('max_layers', 'max_depth', 'max_layer_size', 'max_total_size', 'max_compression_ratio', 'max_archive_members')</dl>
+
+<dl><dt><strong>max_archive_members</strong> = 512</dl>
 
 <dl><dt><strong>max_compression_ratio</strong> = 100.0</dl>
 
@@ -222,7 +226,7 @@ Data and other attributes defined here:<br>
 
 <dl><dt><strong>max_layer_size</strong> = 67108864</dl>
 
-<dl><dt><strong>max_layers</strong> = 32</dl>
+<dl><dt><strong>max_layers</strong> = 64</dl>
 
 <dl><dt><strong>max_total_size</strong> = 268435456</dl>
 
@@ -236,7 +240,7 @@ Data and other attributes defined here:<br>
     unit: 'InputUnit',
     *,
     unpacker: 'Unpacker | None' = None,
-    sanitizer: 'Sanitizer' = &lt;function _identity at 0x0000014A072EE8E0&gt;,
+    sanitizer: 'Sanitizer' = &lt;function _identity at 0x00000156636A3560&gt;,
     policy: 'StaticLayerPolicy | None' = None,
     upx: 'Path | None' = None,
     sevenzip: 'Path | None' = None,
@@ -251,11 +255,12 @@ Data and other attributes defined here:<br>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>Callable</strong> = typing.Callable<br>
+<strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
 <strong>MAX_RECOVERED_LAYER_SIZE</strong> = 67108864<br>
 <strong>MAX_RECOVERED_TOTAL_SIZE</strong> = 268435456<br>
 <strong>MAX_STATIC_COMPRESSION_RATIO</strong> = 100.0<br>
 <strong>MAX_STATIC_DEPTH</strong> = 6<br>
-<strong>MAX_STATIC_LAYERS</strong> = 32<br>
+<strong>MAX_STATIC_LAYERS</strong> = 64<br>
 <strong>Sanitizer</strong> = typing.Callable[[typing.Any], typing.Any]<br>
 <strong>Unpacker</strong> = typing.Callable[..., tuple[dict[str, typing.Any], list[tuple[str, bytes]]]]</td></tr></table>
 </body></html>

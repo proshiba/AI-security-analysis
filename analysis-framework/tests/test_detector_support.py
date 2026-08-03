@@ -55,3 +55,26 @@ def test_signature_threshold_cannot_be_lowered_to_one() -> None:
     """Make the multi-evidence safety invariant non-optional."""
     with pytest.raises(ValueError, match="at least two"):
         known_campaign_result(b"marker", {}, [(b"marker", "marker")], minimum_signatures=1)
+
+
+def test_utf16le_signatures_are_correlated_with_encoding_evidence() -> None:
+    """管理コードのUTF-16LE literalも独立markerとして相関する。"""
+
+    signatures = [
+        (b"Client.Connection", "transport"),
+        (b"Plugin.Plugin", "plugin"),
+        (b"OfflineKeylog sending", "keylogger"),
+    ]
+    data = b"Client.Connection " + "Plugin.Plugin OfflineKeylog sending".encode("utf-16le")
+    result = known_campaign_result(
+        data,
+        {},
+        signatures,
+        minimum_signatures=3,
+    )
+    assert result["matched"] is True
+    assert result["observations"]["signature_encodings"] == {
+        "transport": ["ascii"],
+        "plugin": ["utf-16le"],
+        "keylogger": ["utf-16le"],
+    }

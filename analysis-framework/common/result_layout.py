@@ -19,13 +19,9 @@ from typing import Any, Iterable
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
-VERSION_KEY_RE = re.compile(
-    r"^(?:unknown|v[A-Za-z0-9][A-Za-z0-9.-]{0,47}|20\d{2}-[A-Za-z0-9][A-Za-z0-9.-]{0,42})$"
-)
+VERSION_KEY_RE = re.compile(r"^(?:unknown|v[A-Za-z0-9][A-Za-z0-9.-]{0,47}|20\d{2}-[A-Za-z0-9][A-Za-z0-9.-]{0,42})$")
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
-COLLECTION_RE = re.compile(
-    r"^(?:refresh|vx-underground|malwarebazaar|malwarebazaar-unknown)-\d{8}$"
-)
+COLLECTION_RE = re.compile(r"^(?:refresh|vx-underground|malwarebazaar|malwarebazaar-unknown)-\d{8}$")
 MARKDOWN_LINK_RE = re.compile(r"(!?\[[^\]]*\]\()([^)]+)(\))")
 HISTORY_PATH_RE = re.compile(
     r"^(?P<prefix>\s*result_path:\s*[\"']?)(?P<path>[^\"'\r\n]+?)(?P<suffix>[\"']?\s*)$",
@@ -33,19 +29,16 @@ HISTORY_PATH_RE = re.compile(
 )
 
 _EXCLUDED_TREES = {".git", ".work", ".cache", ".venv", "node_modules", "__pycache__"}
-_RESULT_ROOT_DIRECTORY_ALLOWLIST = {
-    "_shared", "catalog", "collections", "malware", "network-traffic", "research"
-}
+_RESULT_ROOT_DIRECTORY_ALLOWLIST = {"_shared", "catalog", "collections", "malware", "network-traffic", "research"}
 _RESULT_ROOT_FILE_ALLOWLIST = {"AGENTS.md", "IOC-INDEX.md", "README.md"}
 _CLICKFIX_DOMAIN_RE = re.compile(
     r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
     r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
 )
-_CLICKFIX_CASE_RE = re.compile(
-    r"^20\d{6}-(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+$"
-)
+_CLICKFIX_CASE_RE = re.compile(r"^20\d{6}-(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+$")
 _CLICKFIX_CASE_FILES = {
     "FEATURES.md",
+    "INFECTION-CHAIN.md",
     "INFRASTRUCTURE.md",
     "IOC-LIST.md",
     "OVERALL-LOGIC.md",
@@ -63,7 +56,14 @@ _VERSION_SOURCES: dict[
     tuple[tuple[str, tuple[str | int, ...], str, str, str, str], ...],
 ] = {
     "amadey": (
-        ("analysis.json", ("config", "config", "version"), "$.config.config.version", "confirmed", "sample_specific_static_family_config", "high"),
+        (
+            "analysis.json",
+            ("config", "config", "version"),
+            "$.config.config.version",
+            "confirmed",
+            "sample_specific_static_family_config",
+            "high",
+        ),
         (
             "analysis.json",
             ("config", "config", "selected_layer_config", "config", "version"),
@@ -74,7 +74,14 @@ _VERSION_SOURCES: dict[
         ),
     ),
     "latrodectus": (
-        ("analysis.json", ("config", "config", "version"), "$.config.config.version", "confirmed", "sample_specific_static_family_config", "high"),
+        (
+            "analysis.json",
+            ("config", "config", "version"),
+            "$.config.config.version",
+            "confirmed",
+            "sample_specific_static_family_config",
+            "high",
+        ),
         (
             "analysis.json",
             ("config", "config", "selected_layer_config", "config", "version"),
@@ -84,12 +91,66 @@ _VERSION_SOURCES: dict[
             "high",
         ),
     ),
-    "mirai-derived-ens-doh-bot": (("config.json", ("configuration", "bot_version"), "$.configuration.bot_version", "confirmed", "sample_embedded_bot_version", "high"),),
-    "purehvnc": (("config.json", ("config", "version_candidates", 0), "$.config.version_candidates[0]", "confirmed", "terminal_managed_static_config", "high"),),
-    "remcosrat": (("indicators.json", ("version",), "$.version", "confirmed", "family_config_or_process_attributed_evidence", "high"),),
-    "spyglace": (("config.json", ("config", "version"), "$.config.version", "confirmed", "sample_specific_static_family_config", "high"),),
-    "venomrat": (("indicators.json", ("version",), "$.version", "reported", "external_sandbox_process_attributed_report", "medium"),),
-    "xmrig": (("config.json", ("version",), "$.version", "confirmed", "sample_embedded_version_and_official_release_match", "high"),),
+    "mirai-derived-ens-doh-bot": (
+        (
+            "config.json",
+            ("configuration", "bot_version"),
+            "$.configuration.bot_version",
+            "confirmed",
+            "sample_embedded_bot_version",
+            "high",
+        ),
+    ),
+    "purehvnc": (
+        (
+            "config.json",
+            ("config", "version_candidates", 0),
+            "$.config.version_candidates[0]",
+            "confirmed",
+            "terminal_managed_static_config",
+            "high",
+        ),
+    ),
+    "remcosrat": (
+        (
+            "indicators.json",
+            ("version",),
+            "$.version",
+            "confirmed",
+            "family_config_or_process_attributed_evidence",
+            "high",
+        ),
+    ),
+    "spyglace": (
+        (
+            "config.json",
+            ("config", "version"),
+            "$.config.version",
+            "confirmed",
+            "sample_specific_static_family_config",
+            "high",
+        ),
+    ),
+    "venomrat": (
+        (
+            "indicators.json",
+            ("version",),
+            "$.version",
+            "reported",
+            "external_sandbox_process_attributed_report",
+            "medium",
+        ),
+    ),
+    "xmrig": (
+        (
+            "config.json",
+            ("version",),
+            "$.version",
+            "confirmed",
+            "sample_embedded_version_and_official_release_match",
+            "high",
+        ),
+    ),
 }
 _VERSION_VALUE_RE = {
     "amadey": re.compile(r"^\d+\.\d+$"),
@@ -137,6 +198,7 @@ def _is_planned_clickfix_artifact(relative: Path) -> bool:
         and _CLICKFIX_CASE_RE.fullmatch(parts[3])
         and parts[4:] == ("rules", "sigma.yml")
     )
+
 
 def _relative(path: Path, repository: Path) -> str:
     return path.resolve().relative_to(repository.resolve()).as_posix()
@@ -186,9 +248,7 @@ def canonical_collection_root(results_root: Path, collection_id: str) -> Path:
     )
 
 
-def canonical_collection_source_path(
-    results_root: Path, collection_id: str, family: str
-) -> Path:
+def canonical_collection_source_path(results_root: Path, collection_id: str, family: str) -> Path:
     """collection 内の family 別集約 path を返す。"""
 
     if not FAMILY_RE.fullmatch(family):
@@ -196,9 +256,7 @@ def canonical_collection_source_path(
     return canonical_collection_root(results_root, collection_id) / "sources" / family
 
 
-def canonical_collection_manifest_path(
-    results_root: Path, collection_id: str
-) -> Path:
+def canonical_collection_manifest_path(results_root: Path, collection_id: str) -> Path:
     """collection manifest の固定 path を返す。"""
 
     return canonical_collection_root(results_root, collection_id) / "manifest.json"
@@ -233,9 +291,7 @@ def resolve_catalog_case_path(
         entry = (catalog.get("cases") or {}).get(sha256) if isinstance(catalog, dict) else None
         if not isinstance(entry, dict):
             if family is not None:
-                return canonical_malware_case_path(
-                    root, family, sha256, fallback_version_key
-                )
+                return canonical_malware_case_path(root, family, sha256, fallback_version_key)
             raise LayoutPlanError(f"case is missing from catalog: {sha256}")
         if family is not None and entry.get("family") != family:
             raise LayoutPlanError(f"catalog family mismatch for {sha256}")
@@ -285,9 +341,7 @@ def _version_key(value: str) -> str:
     return key
 
 
-def resolve_malware_version(
-    case_directory: Path, family: str, repository: Path
-) -> dict[str, Any]:
+def resolve_malware_version(case_directory: Path, family: str, repository: Path) -> dict[str, Any]:
     """許可した family 固有 JSON pointer だけから版を保守的に返す。
 
     schema、runtime、依存 package、packer、PE/.NET file version は探索対象に
@@ -414,16 +468,12 @@ def _case_context(case_directory: Path, results_root: Path) -> tuple[str, list[s
             raise LayoutPlanError(f"canonical case has an invalid depth: {relative}")
         family = parts[1]
         legacy = []
-    elif (
-        len(parts) == 6
-        and tuple(parts[:5])
-        == (
-            "research",
-            "supply-chain",
-            "npm",
-            "axios-plain-crypto-js-2026",
-            "cases",
-        )
+    elif len(parts) == 6 and tuple(parts[:5]) == (
+        "research",
+        "supply-chain",
+        "npm",
+        "axios-plain-crypto-js-2026",
+        "cases",
     ):
         family = "npm-supply-chain"
         legacy = []
@@ -447,8 +497,7 @@ def _metadata_collection_ids(case_directory: Path) -> list[str]:
         raise LayoutPlanError(f"invalid case metadata: {path}")
     values = document.get("collections", [])
     if not isinstance(values, list) or not all(
-        isinstance(value, str) and SAFE_ID_RE.fullmatch(value)
-        for value in values
+        isinstance(value, str) and SAFE_ID_RE.fullmatch(value) for value in values
     ):
         raise LayoutPlanError(f"invalid collection IDs in case metadata: {path}")
     return sorted(set(values))
@@ -488,11 +537,7 @@ def _existing_collection_documents(results_root: Path) -> dict[str, dict[str, An
             if not isinstance(item, dict):
                 raise LayoutPlanError(f"invalid collection family source: {path}")
             family, source = item.get("family"), item.get("path")
-            if (
-                not isinstance(family, str)
-                or not FAMILY_RE.fullmatch(family)
-                or source != f"sources/{family}"
-            ):
+            if not isinstance(family, str) or not FAMILY_RE.fullmatch(family) or source != f"sources/{family}":
                 raise LayoutPlanError(f"invalid collection family source: {path}")
             family_sources.add((family, source))
         documents[collection_id] = {
@@ -504,9 +549,7 @@ def _existing_collection_documents(results_root: Path) -> dict[str, dict[str, An
 
 def _tree_fingerprint(path: Path, excluded_cases: set[Path] | None = None) -> str:
     digest = hashlib.sha256()
-    excluded_cases = {
-        Path(os.path.abspath(item)) for item in (excluded_cases or set())
-    }
+    excluded_cases = {Path(os.path.abspath(item)) for item in (excluded_cases or set())}
     if path.is_file():
         content = path.read_bytes()
         digest.update(path.name.encode("utf-8"))
@@ -582,8 +625,7 @@ def _move_record(
         (
             Path(os.path.abspath(case))
             for case in (excluded_cases or set())
-            if source_absolute == Path(os.path.abspath(case))
-            or source_absolute in Path(os.path.abspath(case)).parents
+            if source_absolute == Path(os.path.abspath(case)) or source_absolute in Path(os.path.abspath(case)).parents
         ),
         key=lambda path: str(path).casefold(),
     )
@@ -594,9 +636,7 @@ def _move_record(
         "target": target.resolve().relative_to(repository.resolve()).as_posix(),
         "source_fingerprint": _tree_fingerprint(source, set(relevant_exclusions)),
         "fingerprint_method": _FINGERPRINT_METHOD,
-        "fingerprint_excluded_case_sources": [
-            _relative(path, repository) for path in relevant_exclusions
-        ],
+        "fingerprint_excluded_case_sources": [_relative(path, repository) for path in relevant_exclusions],
     }
 
 
@@ -707,16 +747,12 @@ def _artifact_moves(
     for case in cases:
         source = case_paths[case["sha256"]]
         relative = source.relative_to(results_root)
-        canonical_supply_chain = (
-            len(relative.parts) == 6
-            and tuple(relative.parts[:5])
-            == (
-                "research",
-                "supply-chain",
-                "npm",
-                "axios-plain-crypto-js-2026",
-                "cases",
-            )
+        canonical_supply_chain = len(relative.parts) == 6 and tuple(relative.parts[:5]) == (
+            "research",
+            "supply-chain",
+            "npm",
+            "axios-plain-crypto-js-2026",
+            "cases",
         )
         if relative.parts[0] == "malware" or canonical_supply_chain:
             continue
@@ -724,11 +760,7 @@ def _artifact_moves(
         top = results_root / relative.parts[0]
         families[family] = top
         family_targets[family] = (
-            results_root
-            / "research"
-            / "supply-chain"
-            / "npm"
-            / "axios-plain-crypto-js-2026"
+            results_root / "research" / "supply-chain" / "npm" / "axios-plain-crypto-js-2026"
             if case["case_kind"] == "supply_chain_payload"
             else results_root / "malware" / family
         )
@@ -741,16 +773,10 @@ def _artifact_moves(
     excluded = set(case_paths.values())
     for (family, collection), source in sorted(run_roots.items()):
         target = canonical_collection_source_path(results_root, collection, family)
-        moves.append(
-            _move_record(
-                repository, source, target, "collection_source", 2, excluded
-            )
-        )
+        moves.append(_move_record(repository, source, target, "collection_source", 2, excluded))
     for (family, group), source in sorted(special_groups.items()):
         target = results_root / "malware" / family / "groups" / Path(group)
-        moves.append(
-            _move_record(repository, source, target, "legacy_group", 2, excluded)
-        )
+        moves.append(_move_record(repository, source, target, "legacy_group", 2, excluded))
 
     reserved = {"cases", "campaigns"}
     run_sources = {path.resolve() for path in run_roots.values()}
@@ -760,9 +786,7 @@ def _artifact_moves(
         for child in sorted(top.iterdir(), key=lambda value: value.name.casefold()):
             if child.name in reserved or child.resolve() in run_sources | group_sources:
                 continue
-            if child.is_dir() and child.name.startswith(
-                ("refresh-", "vx-underground-", "malwarebazaar-")
-            ):
+            if child.is_dir() and child.name.startswith(("refresh-", "vx-underground-", "malwarebazaar-")):
                 continue
             moves.append(
                 _move_record(
@@ -787,9 +811,7 @@ def _collision_findings(
         targets[move["target"].casefold()].append(move["source"])
     for target, sources in sorted(targets.items()):
         if len(sources) > 1:
-            errors.append(
-                {"code": "duplicate_move_target", "target": target, "sources": sorted(sources)}
-            )
+            errors.append({"code": "duplicate_move_target", "target": target, "sources": sorted(sources)})
     source_paths = {(repository / item["source"]).resolve() for item in moves}
     for move in moves:
         target = repository / move["target"]
@@ -810,15 +832,9 @@ def _collision_findings(
     return errors, conflicts
 
 
-def _overlapping_move_errors(
-    repository: Path, moves: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _overlapping_move_errors(repository: Path, moves: list[dict[str, Any]]) -> list[dict[str, Any]]:
     errors: list[dict[str, Any]] = []
-    staged = [
-        (item, Path(os.path.abspath(repository / item["source"])))
-        for item in moves
-        if item["stage"] > 1
-    ]
+    staged = [(item, Path(os.path.abspath(repository / item["source"]))) for item in moves if item["stage"] > 1]
     for index, (first, first_path) in enumerate(staged):
         for second, second_path in staged[index + 1 :]:
             if first["stage"] != second["stage"]:
@@ -850,8 +866,7 @@ def _target_path_findings(
         for path in files:
             absolute = Path(os.path.abspath(path))
             if move["kind"] != "case" and (
-                absolute in case_sources
-                or any(parent in case_sources for parent in absolute.parents)
+                absolute in case_sources or any(parent in case_sources for parent in absolute.parents)
             ):
                 continue
             future = target if source.is_file() else target / path.relative_to(source)
@@ -873,11 +888,7 @@ def _target_path_findings(
 
 def _iter_repository_files(repository: Path, suffix: str) -> Iterable[Path]:
     for current, directories, filenames in os.walk(repository):
-        directories[:] = sorted(
-            directory
-            for directory in directories
-            if directory not in _EXCLUDED_TREES
-        )
+        directories[:] = sorted(directory for directory in directories if directory not in _EXCLUDED_TREES)
         base = Path(current)
         for filename in sorted(filenames):
             if filename.endswith(suffix):
@@ -913,11 +924,7 @@ def _markdown_updates(repository: Path, mapper: _PathMapper) -> list[dict[str, A
             base, separator, fragment = target.partition("#")
             if not base:
                 continue
-            old_target = (
-                repository / base.lstrip("/")
-                if base.startswith("/")
-                else path.parent / base
-            ).resolve()
+            old_target = (repository / base.lstrip("/") if base.startswith("/") else path.parent / base).resolve()
             new_target = mapper.map(old_target)
             if old_target == new_target and path.resolve() == future_file:
                 continue
@@ -925,9 +932,7 @@ def _markdown_updates(repository: Path, mapper: _PathMapper) -> list[dict[str, A
             if base.endswith("/") and not new_base.endswith("/"):
                 new_base += "/"
             new_target_text = new_base + (separator + fragment if separator else "")
-            replacement = (
-                f"<{new_target_text}>{trailer}" if angle else f"{new_target_text}{trailer}"
-            )
+            replacement = f"<{new_target_text}>{trailer}" if angle else f"{new_target_text}{trailer}"
             if replacement == match.group(2):
                 continue
             updates.append(
@@ -978,9 +983,7 @@ def _walk_strings(value: Any, pointer: str = "$") -> Iterable[tuple[str, str]]:
         yield pointer, value
 
 
-def _json_reference_updates(
-    repository: Path, results_root: Path, mapper: _PathMapper
-) -> list[dict[str, Any]]:
+def _json_reference_updates(repository: Path, results_root: Path, mapper: _PathMapper) -> list[dict[str, Any]]:
     updates: list[dict[str, Any]] = []
     for path in sorted(results_root.rglob("*.json")):
         if any(SHA256_RE.fullmatch(parent.name.lower()) for parent in path.parents):
@@ -994,16 +997,9 @@ def _json_reference_updates(
             lowered = value.lower().replace("\\", "/")
             if value.startswith(("http://", "https://")):
                 continue
-            if not (
-                lowered.startswith(("analysis-results/", "cases/", "../"))
-                or "/cases/" in lowered
-            ):
+            if not (lowered.startswith(("analysis-results/", "cases/", "../")) or "/cases/" in lowered):
                 continue
-            old = (
-                repository / value
-                if lowered.startswith("analysis-results/")
-                else path.parent / value
-            ).resolve()
+            old = (repository / value if lowered.startswith("analysis-results/") else path.parent / value).resolve()
             new = mapper.map(old)
             if old == new:
                 continue
@@ -1028,17 +1024,10 @@ def _render_checksum_manifest(path: Path) -> str:
 
     rows = []
     for item in sorted(
-        (
-            candidate
-            for candidate in path.parent.rglob("*")
-            if candidate.is_file() and candidate != path
-        ),
+        (candidate for candidate in path.parent.rglob("*") if candidate.is_file() and candidate != path),
         key=lambda value: value.as_posix().casefold(),
     ):
-        rows.append(
-            f"{hashlib.sha256(item.read_bytes()).hexdigest()}  "
-            f"{item.relative_to(path.parent).as_posix()}"
-        )
+        rows.append(f"{hashlib.sha256(item.read_bytes()).hexdigest()}  {item.relative_to(path.parent).as_posix()}")
     return "\n".join(rows) + ("\n" if rows else "")
 
 
@@ -1052,16 +1041,9 @@ def _manifest_updates(
     for path in sorted(repository.glob("analysis-results/**/manifest.sha256")):
         lines = [line for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line]
         future = mapper.map(path)
-        affected_reference = any(
-            candidate == path.parent or path.parent in candidate.parents
-            for candidate in changed
-        )
+        affected_reference = any(candidate == path.parent or path.parent in candidate.parents for candidate in changed)
         current = path.read_text(encoding="utf-8", errors="replace")
-        if (
-            not mapper.prefixes
-            and not affected_reference
-            and current == _render_checksum_manifest(path)
-        ):
+        if not mapper.prefixes and not affected_reference and current == _render_checksum_manifest(path):
             continue
         updates.append(
             {
@@ -1105,9 +1087,7 @@ def _catalog_case(case: dict[str, Any]) -> dict[str, Any]:
     return entry
 
 
-def _unclassified_attribution(
-    case_directory: Path, legacy_segments: list[str]
-) -> tuple[str, str | None]:
+def _unclassified_attribution(case_directory: Path, legacy_segments: list[str]) -> tuple[str, str | None]:
     """未分類 case の保守的な帰属状態と provisional cluster を返す。"""
 
     cluster = "mx-go" if "mx-go" in legacy_segments else None
@@ -1117,9 +1097,7 @@ def _unclassified_attribution(
     if isinstance(metadata, dict):
         status = str(metadata.get("attribution_status") or "")
         recorded_cluster = str(metadata.get("provisional_cluster_id") or "")
-        if status in {"unresolved", "provisional"} and (
-            not recorded_cluster or FAMILY_RE.fullmatch(recorded_cluster)
-        ):
+        if status in {"unresolved", "provisional"} and (not recorded_cluster or FAMILY_RE.fullmatch(recorded_cluster)):
             return status, recorded_cluster or None
     document = _safe_json(case_directory / "case.json")
     attribution = document.get("attribution") if isinstance(document, dict) else None
@@ -1172,16 +1150,12 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         family, legacy, collection = _case_context(source, results_root)
         source_relative = source.relative_to(results_root)
         source_top = source_relative.parts[0]
-        canonical_supply_chain = (
-            len(source_relative.parts) == 6
-            and tuple(source_relative.parts[:5])
-            == (
-                "research",
-                "supply-chain",
-                "npm",
-                "axios-plain-crypto-js-2026",
-                "cases",
-            )
+        canonical_supply_chain = len(source_relative.parts) == 6 and tuple(source_relative.parts[:5]) == (
+            "research",
+            "supply-chain",
+            "npm",
+            "axios-plain-crypto-js-2026",
+            "cases",
         )
         if source_top == "npm-supply-chain" or canonical_supply_chain:
             case_kind = "supply_chain_payload"
@@ -1199,13 +1173,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                 "evidence": [],
             }
             target = (
-                results_root
-                / "research"
-                / "supply-chain"
-                / "npm"
-                / "axios-plain-crypto-js-2026"
-                / "cases"
-                / digest
+                results_root / "research" / "supply-chain" / "npm" / "axios-plain-crypto-js-2026" / "cases" / digest
             ).resolve()
         else:
             version = (
@@ -1214,12 +1182,12 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                     results_root=results_root,
                     family=family,
                     sha256=digest,
-                ) if case_kind == "malware" else None
+                )
+                if case_kind == "malware"
+                else None
             ) or resolve_malware_version(source, family, repository)
             version_key = version["normalized_key"]
-            target = canonical_malware_case_path(
-                results_root, family, digest, version_key
-            )
+            target = canonical_malware_case_path(results_root, family, digest, version_key)
         collections = sorted(
             {
                 *([collection] if collection else []),
@@ -1237,9 +1205,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
             "collections": collections,
         }
         if case_kind == "unclassified":
-            attribution_status, provisional_cluster = _unclassified_attribution(
-                source, legacy
-            )
+            attribution_status, provisional_cluster = _unclassified_attribution(source, legacy)
             case["attribution_status"] = attribution_status
             if provisional_cluster:
                 case["provisional_cluster_id"] = provisional_cluster
@@ -1248,9 +1214,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         for collection_id in collections:
             collection_members[collection_id].append(digest)
         if source != target:
-            case_moves.append(
-                _move_record(repository, source, target, "case", 1)
-            )
+            case_moves.append(_move_record(repository, source, target, "case", 1))
     cases.sort(key=lambda item: item["sha256"])
     case_moves.sort(key=lambda item: item["source"])
 
@@ -1263,9 +1227,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
     collision_errors, content_conflicts = _collision_findings(repository, moves)
     errors.extend(collision_errors)
     errors.extend(_overlapping_move_errors(repository, moves))
-    longest, length_errors = _target_path_findings(
-        repository, moves, set(case_paths.values()), maximum_path_length
-    )
+    longest, length_errors = _target_path_findings(repository, moves, set(case_paths.values()), maximum_path_length)
     errors.extend(length_errors)
     move_sources = [Path(os.path.abspath(repository / item["source"])) for item in moves]
     for path in sorted(results_root.rglob("*")):
@@ -1281,9 +1243,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         absolute = Path(os.path.abspath(path))
         if any(source == absolute or source in absolute.parents for source in move_sources):
             continue
-        errors.append(
-            {"code": "unplanned_result_root_artifact", "path": _relative(path, repository)}
-        )
+        errors.append({"code": "unplanned_result_root_artifact", "path": _relative(path, repository)})
     errors.sort(key=lambda item: json.dumps(item, sort_keys=True))
 
     existing_collections = _existing_collection_documents(results_root)
@@ -1295,8 +1255,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         source_moves = [
             item
             for item in artifact_moves
-            if item["kind"] == "collection_source"
-            and Path(item["target"]).parent.parent.name == collection_id
+            if item["kind"] == "collection_source" and Path(item["target"]).parent.parent.name == collection_id
         ]
         source_families = {Path(item["target"]).name for item in source_moves}
         existing_sources_root = collection_root / "sources"
@@ -1305,14 +1264,9 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                 if not child.is_dir():
                     continue
                 if not FAMILY_RE.fullmatch(child.name):
-                    raise LayoutPlanError(
-                        f"unsafe existing collection family: {child.name!r}"
-                    )
+                    raise LayoutPlanError(f"unsafe existing collection family: {child.name!r}")
                 source_families.add(child.name)
-        family_sources = [
-            {"family": family, "path": f"sources/{family}"}
-            for family in sorted(source_families)
-        ]
+        family_sources = [{"family": family, "path": f"sources/{family}"} for family in sorted(source_families)]
         existing = existing_collections.get(collection_id)
         if existing is not None:
             if existing["cases"] != set(members):
@@ -1324,9 +1278,7 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
                         "manifest_only": sorted(existing["cases"] - set(members)),
                     }
                 )
-            planned_sources = {
-                (item["family"], item["path"]) for item in family_sources
-            }
+            planned_sources = {(item["family"], item["path"]) for item in family_sources}
             if existing["family_sources"] != planned_sources:
                 errors.append(
                     {
@@ -1337,15 +1289,14 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         collections.append(
             {
                 "collection_id": collection_id,
-                "manifest_path": canonical_collection_manifest_path(
-                    results_root, collection_id
-                ).relative_to(repository).as_posix(),
+                "manifest_path": canonical_collection_manifest_path(results_root, collection_id)
+                .relative_to(repository)
+                .as_posix(),
                 "source_directories": sorted(
                     {
                         item["source"]
                         for item in artifact_moves
-                        if item["kind"] == "collection_source"
-                        and f"/{collection_id}" in item["source"]
+                        if item["kind"] == "collection_source" and f"/{collection_id}" in item["source"]
                     }
                 ),
                 "family_sources": family_sources,
@@ -1357,15 +1308,10 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
 
     catalog = {
         "schema_version": SCHEMA_VERSION,
-        "cases": {
-            case["sha256"]: _catalog_case(case)
-            for case in cases
-        },
+        "cases": {case["sha256"]: _catalog_case(case) for case in cases},
     }
     malware_cases = [case for case in cases if case["case_kind"] == "malware"]
-    unclassified_cases = [
-        case for case in cases if case["case_kind"] == "unclassified"
-    ]
+    unclassified_cases = [case for case in cases if case["case_kind"] == "unclassified"]
     versioned_cases = malware_cases + unclassified_cases
     confirmed = sum(case["malware_version"]["status"] == "confirmed" for case in versioned_cases)
     reported = sum(case["malware_version"]["status"] == "reported" for case in versioned_cases)
@@ -1378,14 +1324,8 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         repository,
         mapper,
         (
-            *(
-                item.get("future_file") or item["file"]
-                for item in markdown_updates
-            ),
-            *(
-                item.get("future_file") or item["file"]
-                for item in json_updates
-            ),
+            *(item.get("future_file") or item["file"] for item in markdown_updates),
+            *(item.get("future_file") or item["file"] for item in json_updates),
             *(item["file"] for item in history_updates),
         ),
     )
@@ -1395,24 +1335,18 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
         "mode": "static_repository_layout_plan",
         "write_performed": False,
         "repository": ".",
-        "target_case_schema": (
-            "analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>"
-        ),
+        "target_case_schema": ("analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>"),
         "counts": {
             "case_directories": len(source_directories),
             "malware_cases": len(malware_cases),
             "unclassified_cases": len(unclassified_cases),
             "provisional_unclassified_cases": sum(
-                case.get("attribution_status") == "provisional"
-                for case in unclassified_cases
+                case.get("attribution_status") == "provisional" for case in unclassified_cases
             ),
             "unresolved_unclassified_cases": sum(
-                case.get("attribution_status") == "unresolved"
-                for case in unclassified_cases
+                case.get("attribution_status") == "unresolved" for case in unclassified_cases
             ),
-            "supply_chain_payload_cases": sum(
-                case["case_kind"] == "supply_chain_payload" for case in cases
-            ),
+            "supply_chain_payload_cases": sum(case["case_kind"] == "supply_chain_payload" for case in cases),
             "unique_case_hashes": len(by_hash),
             "case_moves": len(case_moves),
             "artifact_moves": len(artifact_moves),
@@ -1457,14 +1391,10 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
             "result_root_directory_allowlist": sorted(_RESULT_ROOT_DIRECTORY_ALLOWLIST),
             "expected_case_count": len(source_directories),
             "expected_unique_sha256": len(by_hash),
-            "expected_duplicate_sha256": sum(
-                max(0, len(paths) - 1) for paths in by_hash.values()
-            ),
+            "expected_duplicate_sha256": sum(max(0, len(paths) - 1) for paths in by_hash.values()),
             "expected_move_collisions": len(collision_errors),
             "expected_content_conflicts": len(content_conflicts),
-            "expected_collection_memberships": sum(
-                len(item["cases"]) for item in collections
-            ),
+            "expected_collection_memberships": sum(len(item["cases"]) for item in collections),
             "samples_opened": False,
             "sample_execution": False,
             "cpu_or_cil_emulation": False,
@@ -1498,9 +1428,7 @@ def _remove_empty_descendants(path: Path) -> None:
             pass
 
 
-def _apply_text_updates(
-    repository: Path, updates: list[dict[str, Any]], future_key: str
-) -> None:
+def _apply_text_updates(repository: Path, updates: list[dict[str, Any]], future_key: str) -> None:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for update in updates:
         grouped[update.get(future_key) or update["file"]].append(update)
@@ -1516,9 +1444,7 @@ def _apply_text_updates(
 
 
 def _regenerate_manifest(path: Path) -> None:
-    path.write_text(
-        _render_checksum_manifest(path), encoding="utf-8", newline="\n"
-    )
+    path.write_text(_render_checksum_manifest(path), encoding="utf-8", newline="\n")
 
 
 def _write_bytes_atomic(path: Path, value: bytes) -> None:
@@ -1552,15 +1478,9 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
             raise LayoutPlanError(f"move target appeared: {move['target']}")
         exclusions: set[Path] = set()
         for relative in move.get("fingerprint_excluded_case_sources") or []:
-            excluded = _require_contained(
-                repository / relative, repository, "fingerprint exclusion"
-            )
-            if not SHA256_RE.fullmatch(excluded.name.lower()) or not _path_under(
-                excluded, source
-            ):
-                raise LayoutPlanError(
-                    f"invalid fingerprint exclusion for {move['source']}: {relative}"
-                )
+            excluded = _require_contained(repository / relative, repository, "fingerprint exclusion")
+            if not SHA256_RE.fullmatch(excluded.name.lower()) or not _path_under(excluded, source):
+                raise LayoutPlanError(f"invalid fingerprint exclusion for {move['source']}: {relative}")
             exclusions.add(excluded)
         actual = _tree_fingerprint(source, exclusions)
         if actual != move.get("source_fingerprint"):
@@ -1570,19 +1490,11 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
     generated: list[Path] = []
     results_root = repository / "analysis-results"
     original_directories = {
-        Path(os.path.abspath(path))
-        for path in (results_root, *results_root.rglob("*"))
-        if path.is_dir()
+        Path(os.path.abspath(path)) for path in (results_root, *results_root.rglob("*")) if path.is_dir()
     }
-    original_files = {
-        Path(os.path.abspath(path)) for path in results_root.rglob("*") if path.is_file()
-    }
+    original_files = {Path(os.path.abspath(path)) for path in results_root.rglob("*") if path.is_file()}
     references = plan["reference_update_plan"]
-    backup_relatives = {
-        item["file"]
-        for group in ("markdown", "json", "history")
-        for item in references[group]
-    }
+    backup_relatives = {item["file"] for group in ("markdown", "json", "history") for item in references[group]}
     backup_relatives.update(item["path"] for item in references["checksum_manifests"])
     original_bytes = {
         relative: (repository / relative).read_bytes()
@@ -1608,16 +1520,12 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
             metadata_path = target / "metadata.json"
             if metadata_path.exists():
                 if _safe_json(metadata_path) != case["metadata"]:
-                    raise LayoutPlanError(
-                        f"existing metadata differs from plan: {metadata_path}"
-                    )
+                    raise LayoutPlanError(f"existing metadata differs from plan: {metadata_path}")
             else:
                 _write_json(metadata_path, case["metadata"])
                 generated.append(metadata_path)
 
-        catalog_path = _require_contained(
-            repository / plan["catalog"]["path"], repository, "catalog path"
-        )
+        catalog_path = _require_contained(repository / plan["catalog"]["path"], repository, "catalog path")
         if catalog_path.exists():
             if _safe_json(catalog_path) != plan["catalog"]["document"]:
                 raise LayoutPlanError(f"existing catalog differs from plan: {catalog_path}")
@@ -1626,9 +1534,7 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
             generated.append(catalog_path)
 
         for collection in plan["collections"]:
-            manifest = _require_contained(
-                repository / collection["manifest_path"], repository, "collection manifest"
-            )
+            manifest = _require_contained(repository / collection["manifest_path"], repository, "collection manifest")
             document = {
                 "schema_version": SCHEMA_VERSION,
                 "collection_id": collection["collection_id"],
@@ -1637,9 +1543,7 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
             }
             if manifest.exists():
                 if _safe_json(manifest) != document:
-                    raise LayoutPlanError(
-                        f"existing collection differs from plan: {manifest}"
-                    )
+                    raise LayoutPlanError(f"existing collection differs from plan: {manifest}")
             else:
                 _write_json(manifest, document)
                 generated.append(manifest)
@@ -1648,9 +1552,7 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
         _apply_text_updates(repository, references["json"], "future_file")
         _apply_text_updates(repository, references["history"], "file")
         for manifest in references["checksum_manifests"]:
-            path = _require_contained(
-                repository / manifest["future_path"], repository, "checksum manifest"
-            )
+            path = _require_contained(repository / manifest["future_path"], repository, "checksum manifest")
             _regenerate_manifest(path)
 
         for child in sorted(path for path in results_root.iterdir() if path.is_dir()):
@@ -1662,28 +1564,18 @@ def apply_layout_plan(repository: Path, plan: dict[str, Any]) -> dict[str, Any]:
             except OSError:
                 pass
         post_cases = [
-            path
-            for path in results_root.rglob("*")
-            if path.is_dir() and SHA256_RE.fullmatch(path.name.lower())
+            path for path in results_root.rglob("*") if path.is_dir() and SHA256_RE.fullmatch(path.name.lower())
         ]
         invalid = []
         for path in post_cases:
             parts = path.relative_to(results_root).parts
-            malware_shape = (
-                len(parts) == 6
-                and parts[0] == "malware"
-                and parts[2] == "versions"
-                and parts[4] == "cases"
-            )
-            supply_chain_shape = (
-                len(parts) == 6
-                and parts[:5] == (
-                    "research",
-                    "supply-chain",
-                    "npm",
-                    "axios-plain-crypto-js-2026",
-                    "cases",
-                )
+            malware_shape = len(parts) == 6 and parts[0] == "malware" and parts[2] == "versions" and parts[4] == "cases"
+            supply_chain_shape = len(parts) == 6 and parts[:5] == (
+                "research",
+                "supply-chain",
+                "npm",
+                "axios-plain-crypto-js-2026",
+                "cases",
             )
             if not malware_shape and not supply_chain_shape:
                 invalid.append(path.relative_to(results_root).as_posix())

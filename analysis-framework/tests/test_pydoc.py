@@ -66,6 +66,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "backfill_static_logic",
         "ghidra_function_batch",
         "validate_function_analysis",
+        "validate_text_integrity",
         "overall_logic_diagrams",
         "refresh_overall_logic_diagrams",
         "result_publication",

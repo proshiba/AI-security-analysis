@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module validate_text_integrity</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">validate_text_integrity</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cvalidate_text_integrity.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\validate_text_integrity.py</a></td></tr></table>
+    <p><span class="code">公開成果物と人間向けソースのUTF-8整合性および文字化けを検査する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLIから検査し、問題がある場合は非0で終了する。</span></dd></dl>
+ <dl><dt><a name="-validate_text_integrity"><strong>validate_text_integrity</strong></a>(repository: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">repository内の対象テキストを走査し、機械判定結果を返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DERIVED_JSON_PATHS</strong> = {'analysis-results/catalog/code-similarity.json', 'analysis-results/catalog/logic-similarity.json'}<br>
+<strong>HUMAN_SUFFIXES</strong> = {'.html', '.js', '.md', '.py', '.yaml', '.yml'}<br>
+<strong>Iterator</strong> = typing.Iterator<br>
+<strong>MOJIBAKE</strong> = re.compile('(?:縺|繧|譁|蜿|荳|螟|逕|螳|險|驥|霆|蟄|譛|邱|鬥|縲)[\\uFF61-\\uFF9F]')<br>
+<strong>QUESTION_RUN</strong> = re.compile('\\?{3,}')<br>
+<strong>RAW_JSON_KEYS</strong> = {'archive_member', 'body_excerpt', 'display_name', 'file_name', 'file_name_raw', 'filename', ...}<br>
+<strong>RAW_JSON_NAMES</strong> = {'generic-triage.json', 'live-observation.json', 'malwarebazaar-manifest.json', 'static-layers.json'}<br>
+<strong>SKIP_DIRECTORIES</strong> = {'.git', '.mypy_cache', '.pytest_cache', '.ruff_cache', '.venv', '.work', ...}<br>
+<strong>TEXT_SUFFIXES</strong> = {'.css', '.csv', '.html', '.js', '.json', '.md', ...}</td></tr></table>
+</body></html>

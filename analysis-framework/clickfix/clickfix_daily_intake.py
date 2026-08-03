@@ -942,6 +942,85 @@ def _iter_hops(observation: dict[str, Any]) -> Iterable[dict[str, Any]]:
         yield from probe.get("hops", [])
 
 
+def normalize_browser_observation(
+    value: dict[str, Any],
+    item: SelectedCase,
+) -> dict[str, Any]:
+    """privateブラウザ観測を検証し、clipboard値の公開用特徴を生成する。"""
+
+    if not isinstance(value, dict) or value.get("schema_version") != 1:
+        raise ValueError("browser observationのschema_versionは1が必要です")
+    if value.get("case_id") != item.case_id:
+        raise ValueError("browser observationのcase_idが選定caseと一致しません")
+    if str(value.get("domain") or "").lower() != item.domain.lower():
+        raise ValueError("browser observationのdomainが選定caseと一致しません")
+    status = str(value.get("status") or "")
+    if status not in {"ok", "blocked", "unreachable", "error"}:
+        raise ValueError("browser observationのstatusが不正です")
+
+    policy = dict(value.get("policy") or {})
+    unsafe_flags = (
+        "command_executed",
+        "command_pasted",
+        "credentials_sent",
+        "form_submitted",
+        "payload_opened",
+    )
+    enabled_unsafe = [flag for flag in unsafe_flags if policy.get(flag) is True]
+    if enabled_unsafe:
+        raise ValueError("禁止されたブラウザ操作が記録されています: " + ", ".join(enabled_unsafe))
+
+    raw_page = dict(value.get("page") or {})
+    final_url = str(raw_page.get("final_url") or "")
+    page = {
+        "title": str(raw_page.get("title") or "")[:512] or None,
+        "final_url": sanitize_url(final_url) if final_url else None,
+        "lure_markers": sorted(
+            {str(marker).strip().lower()[:128] for marker in raw_page.get("lure_markers") or [] if str(marker).strip()}
+        )[:50],
+        "dom_sha256": str(raw_page.get("dom_sha256") or "") or None,
+    }
+    if page["dom_sha256"] and not re.fullmatch(r"[0-9a-f]{64}", page["dom_sha256"]):
+        raise ValueError("browser observationのdom_sha256が不正です")
+
+    events = []
+    for raw_event in list(value.get("clipboard_events") or [])[:20]:
+        if not isinstance(raw_event, dict):
+            continue
+        private_value = str(raw_event.get("private_value") or "")
+        if len(private_value) > 16_384:
+            raise ValueError("clipboard値が上限を超えています")
+        profile = command_profile(private_value) if private_value else None
+        if profile is not None:
+            profile["stage_urls"] = [sanitize_url(url)["sanitized"] for url in extract_stage_urls(private_value)]
+        events.append(
+            {
+                "api": str(raw_event.get("api") or "unknown")[:128],
+                "value_sha256": hashlib.sha256(private_value.encode("utf-8")).hexdigest(),
+                "value_length": len(private_value),
+                "private_value": private_value,
+                "command_profile": profile,
+            }
+        )
+
+    return {
+        "schema_version": 1,
+        "case_id": item.case_id,
+        "domain": item.domain,
+        "observed_at_utc": str(value.get("observed_at_utc") or ""),
+        "status": status,
+        "policy": {
+            "javascript_executed": bool(policy.get("javascript_executed")),
+            "clipboard_intercepted": bool(policy.get("clipboard_intercepted")),
+            "native_clipboard_write_suppressed": bool(policy.get("native_clipboard_write_suppressed")),
+            **{flag: False for flag in unsafe_flags},
+        },
+        "page": page,
+        "clipboard_events": events,
+        "failure_reason": str(value.get("failure_reason") or "")[:2_048] or None,
+    }
+
+
 def public_observation(observation: dict[str, Any]) -> dict[str, Any]:
     """private情報と通常サイト資産の列挙を除いたライブ観測を返す。"""
 
@@ -953,6 +1032,9 @@ def public_observation(observation: dict[str, Any]) -> dict[str, Any]:
             command.pop("private_command", None)
         referenced = text_analysis.pop("referenced_urls", [])
         text_analysis["referenced_url_count"] = len(referenced)
+    browser = value.get("browser_observation") or {}
+    for event in browser.get("clipboard_events") or []:
+        event.pop("private_value", None)
     return value
 
 
@@ -993,6 +1075,20 @@ def observation_summary(observation: dict[str, Any]) -> dict[str, Any]:
         lure_markers.update(analysis.get("lure_markers") or [])
         for command in analysis.get("candidate_commands") or []:
             public = {key: value for key, value in command.items() if key != "private_command"}
+            if public.get("command_sha256") not in {item.get("command_sha256") for item in commands}:
+                commands.append(public)
+
+    browser = observation.get("browser_observation") or {}
+    browser_policy = browser.get("policy") or {}
+    browser_events = browser.get("clipboard_events") or []
+    if browser:
+        clipboard = clipboard or bool(browser_events)
+        lure_markers.update((browser.get("page") or {}).get("lure_markers") or [])
+        for event in browser_events:
+            profile = event.get("command_profile")
+            if not profile:
+                continue
+            public = dict(profile)
             if public.get("command_sha256") not in {item.get("command_sha256") for item in commands}:
                 commands.append(public)
 
@@ -1037,6 +1133,11 @@ def observation_summary(observation: dict[str, Any]) -> dict[str, Any]:
         "telegram_resolver_state": telegram_state,
         "binary_payloads_observed": payloads,
         "tls_certificates": list(certificates.values()),
+        "browser_attempted": bool(browser),
+        "browser_status": str(browser.get("status") or "not_attempted"),
+        "browser_javascript_executed": bool(browser_policy.get("javascript_executed")),
+        "browser_clipboard_intercepted": bool(browser_policy.get("clipboard_intercepted")),
+        "browser_clipboard_events": len(browser_events),
     }
 
 
@@ -1402,6 +1503,212 @@ def _mermaid_label(value: str) -> str:
     return value.replace('"', "'").replace("\n", " ")[:100]
 
 
+def build_infection_chain(
+    item: SelectedCase,
+    summary: dict[str, Any],
+    command: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """ClickFixの感染チェーンを共通phaseと根拠へ正規化する。"""
+
+    def stage(
+        phase_id: str,
+        phase: str,
+        label: str,
+        status: str,
+        confidence: str,
+        evidence: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "phase_id": phase_id,
+            "phase": phase,
+            "label": label,
+            "status": status,
+            "confidence": confidence,
+            "evidence": evidence,
+            "observed_at": item.observed_at if status in {"observed", "provider_reported"} else None,
+        }
+
+    if summary["browser_status"] == "ok":
+        landing_status = "observed"
+        landing_evidence = ["実ブラウザでJavaScript実行後のページ状態を確認"]
+    elif summary["reachable"]:
+        landing_status = "observed"
+        landing_evidence = [f"HTTP応答を確認: {summary['http_statuses']}"]
+    else:
+        landing_status = "provider_reported"
+        landing_evidence = [f"{item.source}が配布domainとして報告"]
+
+    if summary["lure_markers_live"]:
+        lure_status = "observed"
+        lure_evidence = ["ライブ本文またはブラウザDOMでlure markerを確認"]
+    else:
+        lure_status = "provider_reported"
+        lure_evidence = ["情報源のClickFix／ClearFake分類に基づく"]
+
+    if summary["browser_clipboard_events"]:
+        clipboard_status = "observed"
+        clipboard_evidence = [f"実ブラウザでclipboard書き込みeventを{summary['browser_clipboard_events']}件intercept"]
+    elif item.raw_command:
+        clipboard_status = "provider_reported"
+        clipboard_evidence = ["情報源がclipboard commandを提示"]
+    elif summary["clipboard_api_observed_live"]:
+        clipboard_status = "recovered"
+        clipboard_evidence = ["HTML／script本文からclipboard API参照を静的確認"]
+    else:
+        clipboard_status = "not_observed"
+        clipboard_evidence = ["clipboard書き込み値を確認できず"]
+
+    processes = list((command or {}).get("processes") or [])
+    if command:
+        execution_status = "recovered"
+        execution_evidence = [
+            f"command SHA-256 {command['command_sha256']}を静的解析",
+            f"command系列 {command['pattern']}",
+        ]
+    else:
+        execution_status = "not_retrieved"
+        execution_evidence = ["実行commandを取得できず"]
+
+    stage_urls = list((command or {}).get("stage_urls") or [])
+    if stage_urls:
+        resolver_status = "recovered"
+        resolver_evidence = [f"commandから次段URLを{len(stage_urls)}件復元"]
+    elif summary["telegram_resolver_state"] == "next_stage_recovered":
+        resolver_status = "observed"
+        resolver_evidence = ["dead-drop resolverから次段hostをライブ復元"]
+    elif summary["webdav_multistatus_observed"]:
+        resolver_status = "observed"
+        resolver_evidence = ["HTTP 207 Multi-Statusを観測しWebDAV endpoint候補を確認"]
+    else:
+        resolver_status = "not_retrieved"
+        resolver_evidence = ["resolverまたは次段取得先を復元できず"]
+
+    payloads = summary["binary_payloads_observed"]
+    payload_status = "observed" if payloads else "not_retrieved"
+    payload_evidence = [f"終端候補binaryを{len(payloads)}件観測"] if payloads else ["終端payloadを取得できず"]
+    stages = [
+        stage("CF-01", "landing", "配布・侵害ページへの到達", landing_status, "high", landing_evidence),
+        stage("CF-02", "lure", "fake CAPTCHA／verification表示", lure_status, "medium", lure_evidence),
+        stage("CF-03", "clipboard", "clipboardへのcommand設定", clipboard_status, "high", clipboard_evidence),
+        stage(
+            "CF-04",
+            "user_execution",
+            "利用者による貼り付け・実行",
+            "not_observed",
+            "unresolved",
+            ["安全上再現しておらず、sandbox等の実行証跡もこの工程では未統合"],
+        ),
+        stage(
+            "CF-05",
+            "shell_lolbin",
+            "shell／LOLBINによる後続処理",
+            execution_status,
+            "high" if command else "unresolved",
+            execution_evidence + (["process候補: " + " -> ".join(processes)] if processes else []),
+        ),
+        stage("CF-06", "resolver_stage", "resolver／次段取得", resolver_status, "medium", resolver_evidence),
+        stage("CF-07", "terminal_payload", "終端payload／malware", payload_status, "high", payload_evidence),
+    ]
+    if clipboard_status == "not_observed":
+        stopped_at = "CF-03"
+    elif not command:
+        stopped_at = "CF-05"
+    elif resolver_status == "not_retrieved":
+        stopped_at = "CF-06"
+    elif not payloads:
+        stopped_at = "CF-07"
+    else:
+        stopped_at = "complete"
+    confirmed_statuses = {"observed", "provider_reported", "recovered"}
+    edges = []
+    for source, target in zip(stages, stages[1:]):
+        edges.append(
+            {
+                "source": source["phase_id"],
+                "target": target["phase_id"],
+                "status": "supported" if target["status"] in confirmed_statuses else "unresolved",
+            }
+        )
+    return {
+        "schema_version": 1,
+        "chain_complete": bool(payloads),
+        "stopped_at": stopped_at,
+        "stages": stages,
+        "edges": edges,
+        "stage_urls": stage_urls,
+        "processes": processes,
+    }
+
+
+def render_infection_chain(chain: dict[str, Any]) -> str:
+    """構造化感染チェーンを根拠表とMermaid図へ変換する。"""
+
+    stages = chain["stages"]
+    nodes = "\n".join(
+        f'  {stage["phase_id"].replace("-", "")}["{stage["phase_id"]}: {_mermaid_label(stage["label"])}\\n{stage["status"]}"]'
+        for stage in stages
+    )
+    edges = "\n".join(
+        f"  {edge['source'].replace('-', '')} {'-->' if edge['status'] == 'supported' else '-.未解決.->'} "
+        f"{edge['target'].replace('-', '')}"
+        for edge in chain["edges"]
+    )
+    rows = "\n".join(
+        f"| `{stage['phase_id']}` | {stage['label']} | `{stage['status']}` | `{stage['confidence']}` | "
+        f"{'<br>'.join(stage['evidence'])} |"
+        for stage in stages
+    )
+    urls = "\n".join(f"- `{url}`" for url in chain["stage_urls"]) or "- 次段URLは未復元です。"
+    processes = " → ".join(f"`{process}`" for process in chain["processes"]) or "未確認"
+    stopped = "全段階を取得" if chain["stopped_at"] == "complete" else f"`{chain['stopped_at']}`で停止"
+    next_action = {
+        "CF-03": "実ブラウザでcopy操作とclipboard interceptionを再試行する。",
+        "CF-05": "provider、DOM、Triageから生commandまたはcommand hash対応を追加取得する。",
+        "CF-06": "commandの復号、dead-drop、WebDAV、redirectを再解析する。",
+        "CF-07": "次段URL、Triage artifact、memory／dumpから終端payloadを取得する。",
+        "complete": "取得payloadをcanonical malware caseとして別途解析する。",
+    }[chain["stopped_at"]]
+    return f"""# 感染チェーン
+
+## 到達状況
+
+- 結果: {stopped}
+- 終端payloadまで完了: `{"yes" if chain["chain_complete"] else "no"}`
+- 次の解析: {next_action}
+
+## 段階図
+
+```mermaid
+flowchart LR
+{nodes}
+{edges}
+```
+
+実線は観測、情報源報告、または静的復元で支持されたedgeです。点線は未観測・未取得です。
+利用者がcommandを実行した事実は、このcase固有のsandbox証跡がない限り観測済みとしません。
+
+## 段階別根拠
+
+| Phase | 処理 | 状態 | 確度 | 根拠 |
+|---|---|---|---|---|
+{rows}
+
+## プロセスチェーン
+
+{processes}
+
+## 復元した次段URL
+
+{urls}
+
+## 判定上の注意
+
+- ClickFix／ClearFake tagだけで終端malware、campaign、actorを補完しません。
+- landing、payload取得先、dead-drop resolver、終端C2を役割別に扱います。
+- ペイロード未取得でも、到達済みphaseと停止位置を残し、次回調査へ引き継ぎます。
+"""
+
+
 def render_overall_logic(
     item: SelectedCase,
     summary: dict[str, Any],
@@ -1487,6 +1794,19 @@ def render_case_readme(
         if summary["reachable"]
         else "HTTP応答を確認できず"
     )
+    if summary["browser_attempted"]:
+        browser_status_text = (
+            f"{summary['browser_status']}（JavaScript "
+            f"{'実行' if summary['browser_javascript_executed'] else '未実行'}、"
+            f"clipboard event {summary['browser_clipboard_events']}件）"
+        )
+        browser_constraint = (
+            "実ブラウザでJavaScript実行後の状態を観測し、clipboard書き込み値はinterceptしました。"
+            "取得commandはOS clipboardへ転送せず、貼り付け・実行していません。"
+        )
+    else:
+        browser_status_text = "未試行"
+        browser_constraint = "実ブラウザ観測は未試行で、GET本文だけを静的に確認しました。"
     command_summary = command["summary"] if command else "実行commandは未取得"
     stage_urls = [sanitize_url(value)["sanitized"] for value in extract_stage_urls(item.raw_command or "")]
     stage_lines = (
@@ -1550,6 +1870,7 @@ def render_case_readme(
 - 情報源の確度: `{confidence}`
 - 情報源上のマルウェア表記: `{item.reported_malware}`
 - ライブ確認: {live_status}
+- 実ブラウザ確認: {browser_status_text}
 
 `ClearFake`または`ClickFix`は配布cluster／手法を示し、終端マルウェアのfamily名とは限りません。
 本caseでは配布先、stage取得先、終端C2を役割別に分けています。
@@ -1572,7 +1893,8 @@ LummaStealer、NetSupport RAT等の終端familyを、このcaseの個別証跡�
 
 {live_chain_text}
 
-図は[全体ロジック](OVERALL-LOGIC.md)を参照してください。
+段階別の状態、根拠、停止位置は[感染チェーン](INFECTION-CHAIN.md)、
+実行・モジュール比較図は[全体ロジック](OVERALL-LOGIC.md)を参照してください。
 
 ## 実行されるプロセスとcommand
 
@@ -1610,7 +1932,7 @@ domain単独の検知は行いません。
 ## 確度と制約
 
 - provider報告とcommandは`confirmed_provider_report`、解析時のHTTP/DNSは`observed_at_analysis_time`です。
-- JavaScriptを実行せず、GET本文を上限付きで取得して静的に確認しました。
+- {browser_constraint}
 - 検体、script、DLL、PEをローカル実行していません。
 - geo-fence、bot対策、時限配信、1回限りのtokenにより、provider観測とライブ結果が異なる可能性があります。
 - {item.note or "追加注記なし"}
@@ -1637,6 +1959,7 @@ def render_features(
 | 配布手法 | ClickFix / fake verification | provider報告 |
 | domain | `{item.domain}` | provider報告 |
 | clipboard | `{clipboard}` | providerまたはライブHTML |
+| 実ブラウザ | `{summary["browser_status"]}` / event `{summary["browser_clipboard_events"]}`件 | 解析時ブラウザ観測 |
 | command系列 | `{command["pattern"] if command else "未確認"}` | 静的command解析 |
 | HTTP応答 | `{summary["http_statuses"]}` | 解析時ライブ観測 |
 | WebDAV Multi-Status | `{webdav}` | GET応答 |
@@ -1661,6 +1984,9 @@ def render_collection_readme(
     telegram_stopped = sum(
         item["live"]["telegram_resolver_state"] == "reachable_but_tokens_absent" for item in rendered
     )
+    browser_attempted = sum(item["live"]["browser_attempted"] for item in rendered)
+    browser_javascript = sum(item["live"]["browser_javascript_executed"] for item in rendered)
+    clipboard_events = sum(item["live"]["browser_clipboard_events"] for item in rendered)
     source_rows = "\n".join(f"| {source}（情報源） | {count} |" for source, count in sorted(by_source.items()))
     pattern_rows = "\n".join(
         f"| `{pattern}` | {count} |"
@@ -1685,7 +2011,9 @@ def render_collection_readme(
 - 終端binaryを上限内で観測: {payloads}件
 - HTTP 207 WebDAV Multi-Status観測: {webdav}件
 - Telegram resolverで次段token未復元: {telegram_stopped}件
-- JavaScript実行: 0件
+- 実ブラウザ観測試行: {browser_attempted}件
+- JavaScript実行後の観測: {browser_javascript}件
+- clipboard書き込みevent: {clipboard_events}件
 - マルウェア実行: 0件
 
 情報源の最新時刻と「本日観測」は別です。ClickFix Hunterとclickfix.proは取得時点で
@@ -1748,7 +2076,8 @@ ClickFixは手法であり、ClearFakeはWeb inject／配布clusterです。同�
 
 - ライブ確認はGET、最大{MAX_REDIRECTS}リダイレクト、landing {BASE_BODY_LIMIT} bytes、
   stage {STAGE_BODY_LIMIT} bytesに制限しました。
-- JavaScript、clipboard操作、Windows command、取得物は実行していません。
+- 実ブラウザではJavaScriptと表示上のcopy操作を観測し、clipboard値をinterceptしました。
+- 取得したWindows command、script、binaryは貼り付け・実行していません。
 - provider生応答と取得本文はGit管理外へ保存し、公開側には正規化結果だけを残しました。
 - TLS証明書検証を無効にした限定観測を含むため、本文hashと時刻を証跡として併記しています。
 - 収集ID: `{manifest["collection_id"]}`
@@ -1771,7 +2100,7 @@ ClickFix、ClearFake、fake CAPTCHA、WebDAV型ClickFixのdomain／case別調査
 - 1回の解析対象は最大{DEFAULT_LIMIT}件です。
 - 配布domain、stage取得先、dead-drop resolver、終端C2を区別します。
 - ClearFake／ClickFix tagだけで終端malware、campaign、actorを確定しません。
-- 実サイト確認は上限付きGETと静的本文解析を基本とし、取得したcommandやmalwareを実行しません。
+- 実サイト確認は上限付きGETと実ブラウザ観測を行い、clipboard値をinterceptして解析します。取得したcommandやmalwareは実行しません。
 - 配布マルウェアのhashまたはbinaryを取得した場合は、既存のcanonical malware caseへ別途登録します。
 - ペイロード未取得でも、DNS・RDAP・CT・netblock・ASN・Shodan InternetDBによるインフラ調査を継続します。
 - Triageの公開済み解析をdomain／取得済み完全URL／hashで照合し、process、command hash、通信、dump／memory／PCAP候補を確認します。
@@ -1793,11 +2122,13 @@ def publish(
         summary = observation_summary(observations[item.case_id])
         if item.raw_command:
             command = command_profile(item.raw_command)
+            command["stage_urls"] = [sanitize_url(url)["sanitized"] for url in extract_stage_urls(item.raw_command)]
         elif summary["candidate_commands_live"]:
             command = dict(summary["candidate_commands_live"][0])
         else:
             command = None
         iocs = build_iocs(item, summary, command)
+        infection_chain = build_infection_chain(item, summary, command)
         relative = Path("analysis-results") / "clickfix" / item.domain / "cases" / item.case_id
         case_root = repository / relative
         public_live = public_observation(observations[item.case_id])
@@ -1817,6 +2148,7 @@ def publish(
             },
             "command": command,
             "live_summary": summary,
+            "infection_chain": infection_chain,
             "terminal_payload": {
                 "status": ("binary_observed" if summary["binary_payloads_observed"] else "not_retrieved"),
                 "family": None,
@@ -1843,6 +2175,10 @@ def publish(
         _write_text(
             case_root / "OVERALL-LOGIC.md",
             render_overall_logic(item, summary, command),
+        )
+        _write_text(
+            case_root / "INFECTION-CHAIN.md",
+            render_infection_chain(infection_chain),
         )
         _write_text(case_root / "IOC-LIST.md", render_ioc_list(iocs))
         _write_text(
@@ -1908,6 +2244,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-dir", type=Path)
     parser.add_argument("--collect-sources", action="store_true")
     parser.add_argument("--allow-live-probes", action="store_true")
+    parser.add_argument("--require-browser-observations", action="store_true")
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
     parser.add_argument("--workers", type=int, default=8)
@@ -1997,6 +2334,26 @@ def main(argv: list[str] | None = None) -> int:
             if not path.is_file():
                 raise SystemExit("ライブ観測を省略する場合は既存private-observation.jsonが必要です: " + str(path))
             observations[item.case_id] = json.loads(path.read_text(encoding="utf-8"))
+
+    missing_browser = []
+    for item in selected:
+        case_private = private_root / "cases" / item.case_id
+        browser_path = case_private / "browser-observation.json"
+        if not browser_path.is_file():
+            missing_browser.append(item.case_id)
+            continue
+        try:
+            browser_value = json.loads(browser_path.read_text(encoding="utf-8"))
+            normalized = normalize_browser_observation(browser_value, item)
+        except (json.JSONDecodeError, ValueError) as error:
+            raise SystemExit(f"browser observationが不正です: {browser_path}: {error}") from error
+        observations[item.case_id]["browser_observation"] = normalized
+        atomic_json(browser_path, normalized)
+        atomic_json(case_private / "private-observation.json", observations[item.case_id])
+    if arguments.require_browser_observations and missing_browser:
+        preview = ", ".join(missing_browser[:5])
+        raise SystemExit(f"実ブラウザ観測が不足しています: missing={len(missing_browser)} examples={preview}")
+
     manifest = None
     if arguments.write:
         manifest = publish(repository, analysis_date, selected, observations)
@@ -2005,6 +2362,12 @@ def main(argv: list[str] | None = None) -> int:
         "selected": len(selected),
         "source_counts": dict(Counter(item.source for item in selected)),
         "live_reachable": sum(observation_summary(observations[item.case_id])["reachable"] for item in selected),
+        "browser_attempted": sum(
+            observation_summary(observations[item.case_id])["browser_attempted"] for item in selected
+        ),
+        "clipboard_events_observed": sum(
+            observation_summary(observations[item.case_id])["browser_clipboard_events"] for item in selected
+        ),
         "binary_payloads_observed": sum(
             len(observation_summary(observations[item.case_id])["binary_payloads_observed"]) for item in selected
         ),

@@ -62,10 +62,7 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
 
     compact = ANALYSIS_DATE.replace("-", "")
     malwarebazaar = (
-        root
-        / "analysis-results"
-        / "collections"
-        / f"malwarebazaar-windows-{compact}-{malwarebazaar_count:04d}"
+        root / "analysis-results" / "collections" / f"malwarebazaar-windows-{compact}-{malwarebazaar_count:04d}"
     )
     malwarebazaar.mkdir(parents=True)
     (malwarebazaar / "README.md").write_text(
@@ -77,14 +74,8 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         {
             "requested": malwarebazaar_count,
             "downloaded": malwarebazaar_count,
-            "cases": [
-                {"sha256": f"{index:064x}"}
-                for index in range(malwarebazaar_count)
-            ],
-            "acquisition_items": [
-                {"sha256": f"{index:064x}"}
-                for index in range(malwarebazaar_count)
-            ],
+            "cases": [{"sha256": f"{index:064x}"} for index in range(malwarebazaar_count)],
+            "acquisition_items": [{"sha256": f"{index:064x}"} for index in range(malwarebazaar_count)],
             "acquisition_complete": True,
             "analysis_complete": True,
             "complete": True,
@@ -387,12 +378,7 @@ def test_news_source_date_can_differ_from_execution_date(tmp_path: Path) -> None
 def test_stale_maxmind_database_without_refresh_fails_daily_completion(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
     results_path = (
-        repository
-        / "analysis-results"
-        / "research"
-        / "c2-monitoring"
-        / ANALYSIS_DATE
-        / "monitoring-results.json"
+        repository / "analysis-results" / "research" / "c2-monitoring" / ANALYSIS_DATE / "monitoring-results.json"
     )
     result = json.loads(results_path.read_text(encoding="utf-8"))
     result["maxmind"]["freshness_policy"]["refresh_performed"] = False
@@ -403,3 +389,14 @@ def test_stale_maxmind_database_without_refresh_fails_daily_completion(tmp_path:
     assert validated["complete"] is False
     codes = {item["code"] for item in validated["lanes"][3]["findings"]}
     assert "maxmind_stale_database_not_refreshed" in codes
+
+
+def test_text_integrity_failure_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    readme = repository / "analysis-results" / "research" / "daily-news-malware" / ANALYSIS_DATE / "README.md"
+    readme.write_text("# 縺薙ｌ縺ｯ文字化けです\n", encoding="utf-8")
+
+    validated = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert validated["complete"] is False
+    assert validated["quality_gates"][0]["findings"][0]["code"] == "japanese_mojibake"

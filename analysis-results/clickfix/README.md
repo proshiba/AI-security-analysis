@@ -6,14 +6,14 @@ ClickFix、ClearFake、fake CAPTCHA、WebDAV型ClickFixのdomain／case別調査
 
 ## 最新調査
 
-- [2026-08-02 日次調査](collections/clickfix-daily-20260802/README.md)
+- [2026-08-03 日次調査](collections/clickfix-daily-20260803/README.md)
 
 ## 運用原則
 
 - 1回の解析対象は最大50件です。
 - 配布domain、stage取得先、dead-drop resolver、終端C2を区別します。
 - ClearFake／ClickFix tagだけで終端malware、campaign、actorを確定しません。
-- 実サイト確認は上限付きGETと静的本文解析を基本とし、取得したcommandやmalwareを実行しません。
+- 実サイト確認は上限付きGETと実ブラウザ観測を行い、clipboard値をinterceptして解析します。取得したcommandやmalwareは実行しません。
 - 配布マルウェアのhashまたはbinaryを取得した場合は、既存のcanonical malware caseへ別途登録します。
 - ペイロード未取得でも、DNS・RDAP・CT・netblock・ASN・Shodan InternetDBによるインフラ調査を継続します。
 - Triageの公開済み解析をdomain／取得済み完全URL／hashで照合し、process、command hash、通信、dump／memory／PCAP候補を確認します。

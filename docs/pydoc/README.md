@@ -22,7 +22,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
   malwarebazaar_batch analyze_sample analysis_contract handler_catalog classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
   generate_ioc_lists deep_static_triage `
-  unpackers.static_unpacker unpackers.static_control_flow unpackers.managed_il_triage `
+  unpackers.static_unpacker unpackers.msi_static_inventory unpackers.static_control_flow unpackers.managed_il_triage `
   unpackers.javascript_obfuscator unpackers.javascript_dropper_unpacker unpackers.nsis_unpacker `
   emulators.stealers.lab `
   extractors extractors.common extractors.config_extractor extractors.stealer_common `
@@ -50,6 +50,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `deep_static_triage.html`：範囲限定のinventory orchestration、memory内layer復元、公開可能なreport
 - `unpackers.static_control_flow.html`：範囲限定のnative PE／raw x86 control-flow triage
 - `unpackers.managed_il_triage.html`：範囲限定の.NET metadata、IL、managed obfuscation triage
+- `unpackers.msi_static_inventory.html`：MSIの主要テーブルを読み取り専用で棚卸しし、File IDとCustomActionを相関
 - `unpackers.profiled_transform.html`：許可リスト方式の宣言型byte変換と構造検証
 - `unpackers.rotated_xor_donut.html`：旧回転・XOR Donut APIの互換ラッパー
 - `audit_analysis_coverage.html`：repository内だけで行う完全性とartifact contractの監査
@@ -73,6 +74,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `result_publication.html`：生成器から固定case配置、catalog、collection membershipを同期する共通公開処理
 - `sync_result_catalog.html`：固定レイアウトから全case identity metadataとcatalogを安全に同期する処理
 - `refresh_case_inventory.html`：README件数、IOC、コード類似性、checksum、UIまでを依存順に一括更新・検証する処理
+- `validate_text_integrity.html`：UTF-8不正、置換文字、連続疑問符、典型的な日本語文字化けを公開前に検出する品質ゲート
 
 両moduleは公開済み成果物だけを読み、検体実行、CPU／CILエミュレーション、外部通信を行いません。詳細は [成果物レイアウト仕様](../../analysis-framework/docs/RESULT-LAYOUT.md) を参照してください。
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """daily解析の4系統が揃い、安全条件を満たすことを検証する。"""
 
 from __future__ import annotations
@@ -7,7 +8,13 @@ import argparse
 from datetime import datetime
 import json
 from pathlib import Path
+import sys
 from typing import Any
+
+COMMON_DIRECTORY = Path(__file__).resolve().parent
+if str(COMMON_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(COMMON_DIRECTORY))
+from validate_text_integrity import validate_text_integrity
 
 EXPECTED_CASES = 50
 NEWS_FILES = {
@@ -126,12 +133,7 @@ def validate_malwarebazaar(
         raise ValueError("MalwareBazaar件数は正の整数である必要があります")
     findings: list[dict[str, str]] = []
     compact = analysis_date.replace("-", "")
-    root = (
-        repository
-        / "analysis-results"
-        / "collections"
-        / f"malwarebazaar-windows-{compact}-{expected_cases:04d}"
-    )
+    root = repository / "analysis-results" / "collections" / f"malwarebazaar-windows-{compact}-{expected_cases:04d}"
     _files(root, {"README.md", "manifest.json", "publication-summary.json"}, findings)
     manifest_path = root / "manifest.json"
     manifest = _json(manifest_path, findings)
@@ -347,9 +349,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
                 "全C2結果にON／OFF／未観測の正規化状態が必要です。",
             )
             break
-        if not isinstance(dns_tracking, dict) or not isinstance(
-            dns_tracking.get("history"), list
-        ):
+        if not isinstance(dns_tracking, dict) or not isinstance(dns_tracking.get("history"), list):
             _finding(
                 findings,
                 "c2_dns_history_missing",
@@ -373,19 +373,14 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
                 invalid_detail = True
                 break
             ips = point.get("ips") if isinstance(point.get("ips"), list) else []
-            ip_details = (
-                point.get("ip_details")
-                if isinstance(point.get("ip_details"), list)
-                else []
-            )
+            ip_details = point.get("ip_details") if isinstance(point.get("ip_details"), list) else []
             if len(ip_details) != len(ips):
                 invalid_detail = True
                 break
             for detail in ip_details:
                 infrastructure = (
                     detail.get("infrastructure")
-                    if isinstance(detail, dict)
-                    and isinstance(detail.get("infrastructure"), dict)
+                    if isinstance(detail, dict) and isinstance(detail.get("infrastructure"), dict)
                     else {}
                 )
                 bulletproof = (
@@ -398,8 +393,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
                     or not isinstance(detail.get("as"), dict)
                     or not isinstance(detail.get("geo"), dict)
                     or not isinstance(infrastructure.get("tags"), list)
-                    or bulletproof.get("classification")
-                    not in {"confirmed", "suspected", "not_indicated", "unknown"}
+                    or bulletproof.get("classification") not in {"confirmed", "suspected", "not_indicated", "unknown"}
                 ):
                     invalid_detail = True
                     break
@@ -443,9 +437,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
             break
 
     history_summary = (
-        result.get("monitoring_history_summary")
-        if isinstance(result.get("monitoring_history_summary"), dict)
-        else {}
+        result.get("monitoring_history_summary") if isinstance(result.get("monitoring_history_summary"), dict) else {}
     )
     if history_summary.get("retirement_after_days_without_on") != 7:
         _finding(
@@ -515,11 +507,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
             break
     effective_path = root / "effective-targets.json"
     effective_plan = _json(effective_path, findings)
-    effective_targets = (
-        effective_plan.get("targets")
-        if isinstance(effective_plan.get("targets"), list)
-        else []
-    )
+    effective_targets = effective_plan.get("targets") if isinstance(effective_plan.get("targets"), list) else []
     if len(effective_targets) != target_count:
         _finding(
             findings,
@@ -531,9 +519,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
     history_path = root / "monitoring-history.json"
     monitoring_history = _json(history_path, findings)
     history_endpoints = (
-        monitoring_history.get("endpoints")
-        if isinstance(monitoring_history.get("endpoints"), list)
-        else []
+        monitoring_history.get("endpoints") if isinstance(monitoring_history.get("endpoints"), list) else []
     )
     if monitoring_history.get("current_run") != analysis_date:
         _finding(
@@ -575,8 +561,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
             )
             break
         if lifecycle.get("status") == "retired_stopped" and not any(
-            isinstance(event, dict)
-            and event.get("event") == "monitoring_stopped_after_7d_without_on"
+            isinstance(event, dict) and event.get("event") == "monitoring_stopped_after_7d_without_on"
             for event in events
         ):
             _finding(
@@ -587,11 +572,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
             )
             break
     maxmind = result.get("maxmind") if isinstance(result.get("maxmind"), dict) else {}
-    freshness = (
-        maxmind.get("freshness_policy")
-        if isinstance(maxmind.get("freshness_policy"), dict)
-        else {}
-    )
+    freshness = maxmind.get("freshness_policy") if isinstance(maxmind.get("freshness_policy"), dict) else {}
     if freshness.get("checked_before_live_check") is not True:
         _finding(
             findings,
@@ -650,10 +631,7 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
                 results_path,
                 "更新後のCity/ASN双方の鮮度判定が必要です。",
             )
-        elif (
-            any(stale_after.values())
-            and freshness.get("latest_available_still_stale") is not True
-        ):
+        elif any(stale_after.values()) and freshness.get("latest_available_still_stale") is not True:
             _finding(
                 findings,
                 "maxmind_latest_stale_not_recorded",
@@ -697,6 +675,7 @@ def validate_daily_analysis(
         validate_clickfix(repository, analysis_date),
         validate_c2_live_check(repository, analysis_date),
     ]
+    quality_gates = [validate_text_integrity(repository)]
     return {
         "schema_version": 1,
         "analysis_date": analysis_date,
@@ -707,9 +686,12 @@ def validate_daily_analysis(
             "clickfix_50",
             "c2_live_check",
         ],
-        "complete": all(lane["complete"] for lane in lanes),
-        "finding_count": sum(len(lane["findings"]) for lane in lanes),
+        "required_quality_gates": ["text_integrity"],
+        "complete": all(lane["complete"] for lane in lanes) and all(gate["complete"] for gate in quality_gates),
+        "finding_count": sum(len(lane["findings"]) for lane in lanes)
+        + sum(len(gate["findings"]) for gate in quality_gates),
         "lanes": lanes,
+        "quality_gates": quality_gates,
         "safety": {
             "validator_network_contacted": False,
             "samples_opened": False,

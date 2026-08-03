@@ -26,7 +26,9 @@
 - マルウェア名、脅威アクター名、製品名、API名、関数名、class名、JSON／YAML key、schema enum、file path、command、hash、domain、URL、IOC、rule identifierなどの技術識別子は、正確性と機械可読性のため原表記を維持してよい。
 - 公開情報の原題や短い引用を原文で残す場合は、日本語の題名または要約を併記し、原文だけで説明を完結させないこと。翻訳によって帰属や確度を強めないこと。
 - 機械生成文書は、出力だけを手編集せず、generator、template、knowledge dataを日本語対応させること。再生成後も日本語へ収束することを確認すること。
+- テキストはUTF-8で読み書きすること。Windows PowerShell 5.1の既定encodingへ依存する`Get-Content`／`Set-Content`／pipelineで日本語を再保存せず、使用時は`-Encoding UTF8`を明示すること。
 - 文書を追加・変更した後は、可能な範囲で `localize_result_markdown.py` のdry-run、`audit_japanese_docs.py --fail-on-findings`、local link監査、`git diff --check`を実行すること。公開Python APIのdocstringを変更した場合はpydocも再生成すること。
+- 公開前に`analysis-framework/common/validate_text_integrity.py --repository .`を実行し、UTF-8不正、U+FFFD、連続疑問符、典型的な日本語文字化けが0件であることを確認すること。外部providerが原文から疑問符を返した場合は、raw値と「原文復元不能」を分離して記録すること。
 
 ## 安全ルール
 
@@ -135,8 +137,11 @@
 ## ClickFix日次調査のルール
 
 - ClickFix／ClearFake調査は`analysis-framework/clickfix/clickfix_daily_intake.py`を使い、1回あたり最大50件、domain重複なしで選定すること。明示指定case、当日のThreatFox `clickfix`／`clearfake` tag、ClickFix Campaign Monitorの最新記録の順に扱い、情報源の観測日と解析日を区別すること。
-- 公開成果物は`analysis-results/clickfix/<domain>/cases/<case-id>/`、実行単位の一覧は`analysis-results/clickfix/collections/clickfix-daily-<YYYYMMDD>/`へ保存すること。各caseに`README.md`、`FEATURES.md`、`OVERALL-LOGIC.md`、`INFRASTRUCTURE.md`、`TRIAGE.md`、`analysis.json`、`infrastructure.json`、`triage-evidence.json`、`iocs.json`、`IOC-LIST.md`、`live-observation.json`、`rules/sigma.yml`を置くこと。
-- 実サイト確認は、ユーザーが許可した範囲内で上限付きGETと静的本文解析に限定すること。JavaScript、clipboard command、PowerShell、取得script／binaryを実行せず、form入力、認証情報送信、POST、WebDAV変更系method、malware protocolを送信しないこと。private／loopback／link-localへ解決したhostには接続しないこと。
+- 公開成果物は`analysis-results/clickfix/<domain>/cases/<case-id>/`、実行単位の一覧は`analysis-results/clickfix/collections/clickfix-daily-<YYYYMMDD>/`へ保存すること。各caseに`README.md`、`FEATURES.md`、`OVERALL-LOGIC.md`、`INFECTION-CHAIN.md`、`INFRASTRUCTURE.md`、`TRIAGE.md`、`analysis.json`、`infrastructure.json`、`triage-evidence.json`、`iocs.json`、`IOC-LIST.md`、`live-observation.json`、`rules/sigma.yml`を置くこと。
+- 実サイト確認は、上限付きGETと静的本文解析に加え、実ブラウザでJavaScript実行後のDOM、redirect、network request、fake CAPTCHA／verification表示、clipboard書き込みを観測すること。ブラウザ観測前に対象hostがprivate／loopback／link-localへ解決しないことを確認し、該当する場合は接続しないこと。
+- clipboardは`navigator.clipboard.writeText`、`ClipboardItem`、legacy copy event等をページ初期化時からinterceptし、書き込み値をGit管理外へ記録すること。可能な限りOS clipboardへの実書き込みを抑止し、取得commandをRun dialog、terminal、PowerShell、cmd、LOLBINへ貼り付けたり実行したりしないこと。copy／verify等の表示操作は再現してよいが、認証情報送信、form送信、POST、WebDAV変更系method、malware protocol、取得script／binaryの実行は行わないこと。
+- ブラウザ観測は成功時だけでなく、到達不能、challenge停止、geo-fence、copy操作なし、clipboard interception未対応もcase別の`browser-observation.json`へ記録すること。日次ClickFix解析では50件すべてについてブラウザ観測を試行し、`--require-browser-observations`で欠落を検出すること。
+- 感染チェーンはlanding／inject、lure表示、clipboard設定、利用者による貼り付け・実行、shell／LOLBIN、resolver／次段取得、終端payloadの共通phaseへ分解すること。各phaseに`observed`、`provider_reported`、`recovered`、`inferred`、`not_observed`、`not_retrieved`相当の状態、根拠、観測日時を付け、caseの停止位置と未解決edgeを`INFECTION-CHAIN.md`と`analysis.json`へ残すこと。利用者がcommandを実行した事実はsandbox等の根拠がない限り観測済みとしないこと。
 - provider生応答、取得本文、生command、token、invite pathは`.work/clickfix/`等の追跡対象外領域へ保存すること。公開側はhash、無害化URL、HTTP status、本文種別、根拠、確度へ正規化すること。ライブDNSの共有基盤IP、Telegram等のdual-use resolver、通常サイト資産は`context_only`としてIOCから除外すること。
 - ClickFix／ClearFake tagは手法またはWeb配布clusterであり、終端malware、campaign、actorの確定根拠にしないこと。配布binaryまたは完全hashを取得した場合はClickFix caseだけで完了扱いにせず、`analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>/`へ別caseとして静的解析すること。
 - payload取得の成否にかかわらず、`clickfix_infrastructure_enrichment.py`でcurrent DNS（A／AAAA／CNAME／NS／MX）、RDAP、証明書透明性、leaf証明書fingerprint、IP netblock、ASN、Shodan InternetDBを調査し、情報源観測日時と調査日時を分離すること。履歴passive DNSを取得できない場合は未取得と明記し、共有CDN、正規サイト侵害、sinkholeの可能性を残すこと。
@@ -148,7 +153,7 @@
 ## daily解析の完了条件
 
 - daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、ClickFix／ClearFake 50件、当日解析で得たC2候補のライブチェックとMaxMindエンリッチの4系統を同じ日付の実行単位で扱うこと。4系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
-- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が4系統すべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queue、C2ライブチェック未実施は完了として扱わないこと。
+- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が4系統と文字化け品質ゲートのすべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queue、C2ライブチェック未実施、UTF-8不正、日本語文字化けは完了として扱わないこと。
 - ユーザーが当該実行で明示的にpush／PRを省略するよう指定しない限り、解析成果を専用branchへpushし、検証内容と未完了項目を記載したdraft PRを作成すること。
 - pushまたはPR作成が認証・権限・競合・外部サービス障害で失敗した場合は、解析自体を完了と偽装せず、失敗した段階と再開に必要な操作を報告すること。
 

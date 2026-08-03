@@ -21,7 +21,9 @@ import zipfile
 import zlib
 from unpackers.path_safety import safe_member_name as validate_member_name
 
+import cabarchive
 import dnfile
+import olefile
 import pefile
 import pyzipper
 
@@ -43,6 +45,7 @@ from unpackers.container_recovery import (
 )
 from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
+from unpackers.embedded_installer_archive import recover_embedded_installer_archive
 from unpackers.profiled_transform import recover_profiled_transforms
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
 from unpackers.managed_il_triage import (
@@ -68,6 +71,7 @@ MACHO_MAGICS = {
 }
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 MAX_PNG_CHUNKS = 4096
+MAX_DETACHED_IDAT_CANDIDATES = 256
 SCRIPT_SUFFIXES = {
     ".au3",
     ".html",
@@ -284,6 +288,97 @@ def recover_png_concealed_data(
     return report, artifacts
 
 
+def recover_detached_idat_stream(
+    data: bytes,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """PNGヘッダを持たないCRC-validな連続IDAT/IEND列を境界付きで調べる。"""
+
+    marker_offset = 0
+    candidates_checked = 0
+    while candidates_checked < MAX_DETACHED_IDAT_CANDIDATES:
+        marker = data.find(b"IDAT", marker_offset)
+        if marker < 4:
+            if marker < 0:
+                break
+            marker_offset = marker + 4
+            continue
+        candidates_checked += 1
+        start = marker - 4
+        cursor = start
+        idat = bytearray()
+        chunk_count = 0
+        end_offset = None
+        while cursor + 12 <= len(data) and chunk_count < MAX_PNG_CHUNKS:
+            length = int.from_bytes(data[cursor : cursor + 4], "big")
+            kind = data[cursor + 4 : cursor + 8]
+            payload_start = cursor + 8
+            payload_end = payload_start + length
+            crc_end = payload_end + 4
+            if length > MAX_ARTIFACT or crc_end > len(data):
+                break
+            payload = data[payload_start:payload_end]
+            expected_crc = int.from_bytes(data[payload_end:crc_end], "big")
+            if zlib.crc32(kind + payload) & 0xFFFFFFFF != expected_crc:
+                break
+            if kind == b"IDAT":
+                if len(idat) + length > MAX_ARTIFACT:
+                    return {
+                        "status": "idat_size_blocked",
+                        "start_offset": start,
+                        "chunk_count": chunk_count,
+                    }, []
+                idat.extend(payload)
+                chunk_count += 1
+                cursor = crc_end
+                continue
+            if kind == b"IEND" and length == 0 and chunk_count >= 2:
+                end_offset = crc_end
+            break
+        if end_offset is None:
+            marker_offset = marker + 4
+            continue
+
+        payload = bytes(idat)
+        report: dict[str, object] = {
+            "status": "detached_idat_found",
+            "start_offset": start,
+            "end_offset": end_offset,
+            "prefix_size": start,
+            "trailing_size": len(data) - end_offset,
+            "chunk_count": chunk_count,
+            "idat_size": len(payload),
+            "idat_sha256": sha256_bytes(payload),
+            "idat_entropy": entropy(payload),
+            "candidates_checked": candidates_checked,
+            "executed": False,
+            "network_contacted": False,
+        }
+        inflater = zlib.decompressobj()
+        try:
+            recovered = inflater.decompress(payload, MAX_ARTIFACT + 1)
+            if len(recovered) <= MAX_ARTIFACT and inflater.eof:
+                recovered += inflater.flush()
+                if len(recovered) <= MAX_ARTIFACT:
+                    report.update(
+                        status="detached_idat_zlib_recovered",
+                        recovered_size=len(recovered),
+                        recovered_sha256=sha256_bytes(recovered),
+                    )
+                    return report, [("detached-idat-zlib", recovered)]
+        except zlib.error:
+            pass
+        report["status"] = "encrypted_or_non_zlib_detached_idat"
+        report["recovery_limit"] = "静的zlib復号不可。鍵または独自変換の特定が必要"
+        return report, []
+
+    return {
+        "status": "not_found",
+        "candidates_checked": candidates_checked,
+        "executed": False,
+        "network_contacted": False,
+    }, []
+
+
 def pe_resource_children(
     blob: bytes,
 ) -> tuple[str, list[tuple[str, bytes]], dict[str, object] | None]:
@@ -329,6 +424,8 @@ def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
     try:
         image = pefile.PE(data=data[offset:], fast_load=True)
         if not 1 <= image.FILE_HEADER.NumberOfSections <= 96:
+            return None
+        if len(image.sections) != image.FILE_HEADER.NumberOfSections:
             return None
         extent = int(image.OPTIONAL_HEADER.SizeOfHeaders)
         for section in image.sections:
@@ -1412,6 +1509,22 @@ def reassemble_split_parts(
     return reports, artifacts
 
 
+def recovery_candidate_priority(blob: bytes, kind: str, name: str) -> int:
+    """後段の層上限で重要な候補が落ちないよう、静的証跡だけで優先度を付ける。"""
+
+    lowered = blob.lower()
+    if kind == "pe" and any(
+        marker in lowered for marker in (b"loader4.cfg", b"audio_pool.tmp")
+    ):
+        return 0
+    if kind == "data":
+        detached, _ = recover_detached_idat_stream(blob)
+        if detached["status"] != "not_found":
+            return 0
+        return 2
+    return 1
+
+
 def sevenzip_extract(
     data: bytes,
     executable: Path,
@@ -1537,6 +1650,17 @@ def sevenzip_extract(
                 )
                 continue
             blob = entry.read_bytes()
+            if not blob:
+                inventory.append(
+                    {
+                        "name": relative,
+                        "size": 0,
+                        "sha256": sha256_bytes(blob),
+                        "format": "data",
+                        "status": "empty_file",
+                    }
+                )
+                continue
             kind = detect_format(blob, relative)
             item = {
                 "name": relative,
@@ -1551,7 +1675,8 @@ def sevenzip_extract(
             keep = keep or ".part-" in entry.name.lower()
             keep = keep or (not suffix and len(blob) <= 16 * 1024 * 1024)
             if keep:
-                priority = 0 if kind != "data" else 1
+                priority = recovery_candidate_priority(blob, kind, relative)
+                item["recovery_priority"] = priority
                 candidates.append((priority, relative, blob, kind))
         candidates.sort(key=lambda item: (item[0], item[1].lower()))
         selected = candidates[: min(MAX_RETAINED_MEMBERS, max_members)]
@@ -1581,6 +1706,158 @@ def sevenzip_extract(
             },
             artifacts,
         )
+
+
+def recover_ole_streams(
+    data: bytes,
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """MSI/OLE streamを有界に列挙し、実行可能層とCAB等だけを復元する。"""
+
+    if not data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return {"status": "not_ole"}, []
+    try:
+        ole = olefile.OleFileIO(io.BytesIO(data))
+    except Exception as exc:
+        return {"status": "parse_failed", "error": f"{type(exc).__name__}: {exc}"}, []
+
+    inventory: list[dict[str, object]] = []
+    artifacts: list[tuple[str, bytes]] = []
+    total_size = 0
+    try:
+        paths = ole.listdir(streams=True, storages=False)
+        if len(paths) > max_members:
+            return {
+                "status": "member_limit_blocked",
+                "stream_count": len(paths),
+                "max_members": max_members,
+                "inventory": [],
+            }, []
+        for parts in paths:
+            name = "/".join(str(part) for part in parts)
+            try:
+                size = int(ole.get_size(parts))
+            except Exception as exc:
+                inventory.append(
+                    {
+                        "name": name,
+                        "status": "metadata_error",
+                        "error": f"{type(exc).__name__}: {exc}",
+                    }
+                )
+                continue
+            item: dict[str, object] = {"name": name, "size": size}
+            if size < 0 or size > max_member_size:
+                item["status"] = "size_blocked"
+                inventory.append(item)
+                continue
+            total_size += size
+            if total_size > max_total_size:
+                item["status"] = "total_size_blocked"
+                inventory.append(item)
+                continue
+            try:
+                blob = ole.openstream(parts).read(max_member_size + 1)
+            except Exception as exc:
+                item.update(
+                    status="read_failed",
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+                inventory.append(item)
+                continue
+            if len(blob) != size or len(blob) > max_member_size:
+                item["status"] = "size_mismatch_blocked"
+                inventory.append(item)
+                continue
+            kind = detect_format(blob, name)
+            item.update(
+                status="inspected",
+                format=kind,
+                sha256=sha256_bytes(blob),
+            )
+            inventory.append(item)
+            if kind in {"cab", "pe", "zip", "script", "png", "7z", "rar"}:
+                artifacts.append((f"ole-{kind}-stream", blob))
+    finally:
+        ole.close()
+
+    return {
+        "status": "artifacts_recovered" if artifacts else "no_artifact_recovered",
+        "stream_count": len(inventory),
+        "inspected_total_size": total_size,
+        "inventory": inventory,
+        "executed": False,
+        "network_contacted": False,
+    }, artifacts
+
+
+def recover_cab_members(
+    data: bytes,
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """CABをPython parserだけで有界に展開し、解析価値のあるmemberを返す。"""
+
+    if not data.startswith(b"MSCF"):
+        return {"status": "not_cab"}, []
+    try:
+        archive = cabarchive.CabArchive(data)
+        members = list(archive.items())
+    except Exception as exc:
+        return {"status": "parse_failed", "error": f"{type(exc).__name__}: {exc}"}, []
+    if len(members) > max_members:
+        return {
+            "status": "member_limit_blocked",
+            "member_count": len(members),
+            "max_members": max_members,
+            "inventory": [],
+        }, []
+
+    inventory: list[dict[str, object]] = []
+    artifacts: list[tuple[str, bytes]] = []
+    total_size = 0
+    for raw_name, member in members:
+        try:
+            name = validate_member_name(str(raw_name))
+        except ValueError:
+            inventory.append({"name": str(raw_name), "status": "path_blocked"})
+            continue
+        blob = member.buf
+        if not isinstance(blob, bytes):
+            blob = bytes(blob)
+        size = len(blob)
+        item: dict[str, object] = {"name": name, "size": size}
+        if size > max_member_size:
+            item["status"] = "size_blocked"
+            inventory.append(item)
+            continue
+        total_size += size
+        if total_size > max_total_size:
+            item["status"] = "total_size_blocked"
+            inventory.append(item)
+            continue
+        kind = detect_format(blob, name)
+        item.update(status="extracted", format=kind, sha256=sha256_bytes(blob))
+        inventory.append(item)
+        suffix = Path(name).suffix.lower()
+        keep = kind != "data" or suffix in RECOVERY_SUFFIXES
+        keep = keep or (not suffix and size <= 16 * 1024 * 1024)
+        if keep:
+            artifacts.append((f"cab-{kind}", blob))
+
+    return {
+        "status": "artifacts_recovered" if artifacts else "no_artifact_recovered",
+        "member_count": len(inventory),
+        "extracted_total_size": total_size,
+        "inventory": inventory,
+        "executed": False,
+        "network_contacted": False,
+    }, artifacts
 
 
 def unpack_bytes(
@@ -1635,6 +1912,27 @@ def unpack_bytes(
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
         artifacts.extend(recovered)
+        embedded_archives = [
+            (artifact_kind, artifact_data)
+            for artifact_kind, artifact_data in artifacts
+            if artifact_data.startswith(b"PK\x03\x04")
+        ]
+        embedded_report, embedded_artifacts, consumed_archives = (
+            recover_embedded_installer_archive(
+                static_data,
+                embedded_archives,
+                max_member_size=max_archive_member_size,
+                max_total_size=max_archive_total_size,
+            )
+        )
+        report["embedded_installer_archive"] = embedded_report
+        if embedded_artifacts:
+            artifacts = [
+                item
+                for item in artifacts
+                if sha256_bytes(item[1]) not in consumed_archives
+            ]
+            artifacts.extend(embedded_artifacts)
         report["donut_wrapper"], recovered = recover_xor32_donut_wrapper(static_data)
         artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
@@ -1677,6 +1975,33 @@ def unpack_bytes(
         report["xz"], recovered_blob = recover_xz(data)
         if recovered_blob:
             artifacts.append(("xz-decompressed", recovered_blob))
+    elif kind == "ole":
+        report["ole"], recovered = recover_ole_streams(
+            data,
+            max_members=max_archive_members,
+            max_member_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
+        )
+        artifacts.extend(recovered)
+    elif kind == "cab":
+        report["cab"], recovered = recover_cab_members(
+            data,
+            max_members=max_archive_members,
+            max_member_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
+        )
+        artifacts.extend(recovered)
+        if sevenzip and not recovered:
+            report["sevenzip"], recovered = sevenzip_extract(
+                data,
+                sevenzip,
+                name,
+                archive_password,
+                max_members=max_archive_members,
+                max_member_size=max_archive_member_size,
+                max_total_size=max_archive_total_size,
+            )
+            artifacts.extend(recovered)
     elif kind == "zip":
         try:
             report["zip"], recovered = recover_zip(
@@ -1701,7 +2026,7 @@ def unpack_bytes(
         except (ValueError, zipfile.BadZipFile) as exc:
             report["zip_error"] = str(exc)
             report["unpack_status"] = "bounded_limit"
-    elif kind in {"7z", "apple-disk-image", "cab", "rar"} and sevenzip:
+    elif kind in {"7z", "apple-disk-image", "rar"} and sevenzip:
         report["sevenzip"], recovered = sevenzip_extract(
             data,
             sevenzip,
@@ -1746,6 +2071,8 @@ def unpack_bytes(
                     ("javascript-plain-string-array-deobfuscated", transformed)
                 )
     elif kind == "data":
+        report["detached_idat"], recovered = recover_detached_idat_stream(data)
+        artifacts.extend(recovered)
         report["profiled_transforms"], recovered = recover_profiled_transforms(
             static_data,
             input_format=kind,
