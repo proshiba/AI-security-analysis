@@ -697,7 +697,13 @@
 
     html += c2MapHtml();
 
-    html += '<div class="section"><h2>監視endpoint一覧</h2>' +
+    var downCount = eps.length - reachable;
+    html += '<div class="section"><h2 class="head-row">監視endpoint一覧' +
+      '<label class="toggle" title="観測時に応答が無かったendpointの表示を切り替えます">' +
+      '<input type="checkbox" id="c2-show-down" checked>' +
+      '<span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>' +
+      '<span class="toggle-text">応答なしを表示<span class="muted small"> (' + downCount + ")</span></span>" +
+      "</label></h2>" +
       '<form id="c2-search" class="c2-search" role="search" onsubmit="return false">' +
       '<input id="c2-q" type="search" autocomplete="off" aria-label="endpointを絞り込み"' +
       ' placeholder="ファミリー / ホスト / IP / 国・都市 / ASN / 観測結果 で絞り込み（入力するとリアルタイムに検索）">' +
@@ -838,8 +844,15 @@
     var input = document.getElementById("c2-q");
     var emptyBox = document.getElementById("c2-empty");
     var rows = Array.prototype.slice.call(document.querySelectorAll("#c2-rows .c2row"));
+    var toggle = document.getElementById("c2-show-down");
     var haystacks = eps.map(c2Haystack);
-    var filter = { place: null, query: "" };
+    var filter = { place: null, query: "", hideDown: false };
+
+    function matchesAlive(index) {
+      if (!filter.hideDown) return true;
+      var ep = eps[Number(rows[index].getAttribute("data-idx"))];
+      return !!(ep.latest && ep.latest.alive);
+    }
 
     function matchesQuery(index) {
       if (!filter.query) return true;
@@ -866,7 +879,7 @@
     function render() {
       var shown = 0;
       rows.forEach(function (tr, i) {
-        var hit = matchesPlace(i) && matchesQuery(i);
+        var hit = matchesPlace(i) && matchesQuery(i) && matchesAlive(i);
         tr.hidden = !hit;
         if (hit) shown++;
       });
@@ -885,6 +898,7 @@
           "地点の絞り込みを解除");
       }
       if (filter.query) html += chipHtml("query", "⌕", input.value.trim(), "検索の絞り込みを解除");
+      if (filter.hideDown) html += chipHtml("down", "◐", "応答なしを非表示", "応答なしを再表示");
       if (chips) chips.innerHTML = html;
       if (bar) bar.hidden = !html;
       if (barCount) barCount.textContent = shown + " / " + rows.length + " 件を表示中";
@@ -904,8 +918,15 @@
     if (chips) chips.addEventListener("click", function (ev) {
       var btn = ev.target.closest ? ev.target.closest("[data-clear]") : null;
       if (!btn) return;
-      if (btn.getAttribute("data-clear") === "place") filter.place = null;
+      var kind = btn.getAttribute("data-clear");
+      if (kind === "place") filter.place = null;
+      else if (kind === "down") { filter.hideDown = false; if (toggle) toggle.checked = true; }
       else { filter.query = ""; input.value = ""; }
+      render();
+    });
+
+    if (toggle) toggle.addEventListener("change", function () {
+      filter.hideDown = !toggle.checked;
       render();
     });
 
@@ -935,7 +956,9 @@
       apply();
       filter.place = null;
       filter.query = "";
+      filter.hideDown = false;
       if (input) input.value = "";
+      if (toggle) toggle.checked = true;
       render();
     });
 
