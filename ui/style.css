@@ -454,6 +454,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   border-radius: 8px;
 }
 .filter-bar-lead { font-size: 12px; color: var(--text-dim); flex: none; }
+.filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .filter-chip {
   display: inline-flex;
   align-items: center;
@@ -490,3 +491,23 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   stroke: #fff;
   stroke-width: calc(1.8px * var(--inv));
 }
+
+/* 世界地図の下に置く、endpoint一覧のリアルタイム絞り込み */
+.c2-search { display: flex; align-items: center; margin: 0 0 10px; }
+.c2-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 14px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.c2-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 168, 255, .12);
+}
+#c2-empty[hidden] { display: none; }
