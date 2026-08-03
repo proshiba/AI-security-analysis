@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "case_id": "20260803-clickfix-pro-1d5741ff12fd",
+  "domain": "emsj32em.roundtheclockcare.net",
+  "probed_at_utc": "2026-08-02T22:19:58.631644+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://emsj32em.roundtheclockcare.net/",
+        "host": "emsj32em.roundtheclockcare.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "blocked",
+          "reason": "public addressを確認できない",
+          "url": {
+            "sanitized": "https://emsj32em.roundtheclockcare.net/",
+            "host": "emsj32em.roundtheclockcare.net",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "dns": {
+            "status": "error",
+            "error": "gaierror",
+            "addresses": [],
+            "public_addresses": []
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    },
+    {
+      "requested": {
+        "sanitized": "http://emsj32em.roundtheclockcare.net/",
+        "host": "emsj32em.roundtheclockcare.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "blocked",
+          "reason": "public addressを確認できない",
+          "url": {
+            "sanitized": "http://emsj32em.roundtheclockcare.net/",
+            "host": "emsj32em.roundtheclockcare.net",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "dns": {
+            "status": "error",
+            "error": "gaierror",
+            "addresses": [],
+            "public_addresses": []
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260803-clickfix-pro-1d5741ff12fd",
+    "domain": "emsj32em.roundtheclockcare.net",
+    "observed_at_utc": "2026-08-02T22:28:51.539185+00:00",
+    "status": "unreachable",
+    "policy": {
+      "javascript_executed": false,
+      "clipboard_intercepted": false,
+      "native_clipboard_write_suppressed": false,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": null,
+      "final_url": {
+        "sanitized": "https://emsj32em.roundtheclockcare.net/",
+        "host": "emsj32em.roundtheclockcare.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

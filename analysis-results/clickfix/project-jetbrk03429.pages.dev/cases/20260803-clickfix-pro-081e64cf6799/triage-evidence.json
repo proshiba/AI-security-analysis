@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260803-clickfix-pro-081e64cf6799",
+  "domain": "project-jetbrk03429.pages.dev",
+  "queried_at_utc": "2026-08-02T22:43:05.105072+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 0
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 0,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

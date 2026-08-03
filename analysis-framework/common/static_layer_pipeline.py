@@ -12,11 +12,12 @@ from typing import Any, Callable
 from unpackers.static_unpacker import detect_format
 
 
-MAX_STATIC_LAYERS = 32
+MAX_STATIC_LAYERS = 64
 MAX_STATIC_DEPTH = 6
 MAX_RECOVERED_LAYER_SIZE = 64 * 1024 * 1024
 MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
 MAX_STATIC_COMPRESSION_RATIO = 100.0
+MAX_ARCHIVE_MEMBERS = 512
 
 
 @dataclass(frozen=True)
@@ -53,9 +54,7 @@ class InputUnit:
                 raise ValueError("raw outer_size does not match data")
             if self.outer_sha256 != hashlib.sha256(self.data).hexdigest():
                 raise ValueError("raw outer_sha256 does not match data")
-        if self.member_name is not None and (
-            not isinstance(self.member_name, str) or not self.member_name
-        ):
+        if self.member_name is not None and (not isinstance(self.member_name, str) or not self.member_name):
             raise ValueError("member_name must be a non-empty string when present")
 
 
@@ -93,6 +92,7 @@ class StaticLayerPolicy:
     max_layer_size: int = MAX_RECOVERED_LAYER_SIZE
     max_total_size: int = MAX_RECOVERED_TOTAL_SIZE
     max_compression_ratio: float = MAX_STATIC_COMPRESSION_RATIO
+    max_archive_members: int = MAX_ARCHIVE_MEMBERS
 
     def __post_init__(self) -> None:
         for field, value in (
@@ -100,6 +100,7 @@ class StaticLayerPolicy:
             ("max_depth", self.max_depth),
             ("max_layer_size", self.max_layer_size),
             ("max_total_size", self.max_total_size),
+            ("max_archive_members", self.max_archive_members),
         ):
             if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
                 raise ValueError(f"{field}は正の整数で指定してください")
@@ -119,6 +120,7 @@ class StaticLayerPolicy:
             "max_recovered_layer_size": self.max_layer_size,
             "max_recovered_total_size": self.max_total_size,
             "max_archive_compression_ratio": self.max_compression_ratio,
+            "max_archive_members": self.max_archive_members,
         }
 
 
@@ -149,10 +151,7 @@ def _artifact_label(value: object) -> str:
         text = str(value)
     except Exception:
         return "artifact"
-    text = "".join(
-        character if 32 <= ord(character) < 127 else "_"
-        for character in text
-    )
+    text = "".join(character if 32 <= ord(character) < 127 else "_" for character in text)
     text = re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("._")
     return (text or "artifact")[:80]
 
@@ -228,7 +227,7 @@ def recover_static_layers(
                 diec=diec,
                 force_container_probe=force_container_probe,
                 archive_password=archive_password,
-                max_archive_members=remaining_layers,
+                max_archive_members=effective_policy.max_archive_members,
                 max_archive_member_size=min(
                     effective_policy.max_layer_size,
                     remaining_total,

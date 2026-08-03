@@ -540,6 +540,7 @@ def test_clickfix_fixed_layout_is_allowed_but_unknown_file_is_rejected(
     case.mkdir(parents=True)
     (case / "README.md").write_text("# ClickFix case\n", encoding="utf-8")
     (case / "FEATURES.md").write_text("# 特徴\n", encoding="utf-8")
+    (case / "INFECTION-CHAIN.md").write_text("# 感染チェーン\n", encoding="utf-8")
     (case / "INFRASTRUCTURE.md").write_text("# インフラ\n", encoding="utf-8")
     (case / "TRIAGE.md").write_text("# Triage\n", encoding="utf-8")
     (case / "infrastructure.json").write_text("{}\n", encoding="utf-8")

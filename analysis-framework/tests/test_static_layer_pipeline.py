@@ -42,11 +42,12 @@ def test_custom_unpacker_and_policy_are_reusable() -> None:
             max_layer_size=32,
             max_total_size=64,
             max_compression_ratio=25.0,
+            max_archive_members=7,
         ),
     )
     assert [item.data for item in layers] == [b"root", b"child"]
     assert layers[1].transform == "decoded-child"
-    assert calls[0]["max_archive_members"] == 2
+    assert calls[0]["max_archive_members"] == 7
     assert calls[0]["max_archive_compression_ratio"] == 25.0
     assert report["limits"]["max_layers"] == 3
     assert report["executed_sample"] is False
@@ -87,11 +88,13 @@ def test_malformed_and_oversized_artifacts_are_rejected() -> None:
         {"max_layer_size": 0},
         {"max_total_size": 0},
         {"max_compression_ratio": 0},
+        {"max_archive_members": 0},
     ],
 )
 def test_policy_rejects_nonpositive_limits(kwargs: dict[str, object]) -> None:
     with pytest.raises(ValueError):
         StaticLayerPolicy(**kwargs)
+
 
 @pytest.mark.parametrize(
     "changes",
@@ -136,6 +139,7 @@ def test_authenticated_member_keeps_outer_archive_metadata() -> None:
 
 def test_sanitizer_failure_never_leaks_unsanitized_error() -> None:
     """サニタイザー自身が失敗しても未加工の例外文字列を成果物へ残さない。"""
+
     def unpacker(_data: bytes, _name: str, **_kwargs):
         raise ValueError("unique-sensitive-unpacker-error")
 
@@ -152,6 +156,7 @@ def test_sanitizer_failure_never_leaks_unsanitized_error() -> None:
 
 def test_sanitizer_failure_on_report_keeps_step_structurally_valid() -> None:
     """正常unpackerのreport秘匿に失敗してもstepを成功として閉じる。"""
+
     def unpacker(_data: bytes, _name: str, **_kwargs):
         return {"secret": "unique-report-secret"}, []
 
@@ -185,9 +190,7 @@ def test_empty_duplicate_and_untrusted_artifact_labels_are_bounded() -> None:
     assert set(layers[1].transform) <= set("abcdefghijklmnopqrstuvwxyz._-")
     assert "\r" not in layers[1].name and "\n" not in layers[1].name
     assert report["counts"]["deduplicated_artifacts"] == 1
-    assert {item["reason"] for item in report["limit_events"]} == {
-        "empty_artifact_rejected"
-    }
+    assert {item["reason"] for item in report["limit_events"]} == {"empty_artifact_rejected"}
 
 
 @pytest.mark.parametrize(
@@ -201,6 +204,7 @@ def test_empty_duplicate_and_untrusted_artifact_labels_are_bounded() -> None:
 )
 def test_unpacker_contract_violations_become_failed_steps(result: object) -> None:
     """壊れたunpacker戻り値をパイプライン外へ例外として漏らさない。"""
+
     def unpacker(_data: bytes, _name: str, **_kwargs):
         return result
 

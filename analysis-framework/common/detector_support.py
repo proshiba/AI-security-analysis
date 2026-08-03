@@ -1,6 +1,8 @@
-"""Shared input normalization for conservative family detectors."""
+"""保守的なファミリー検出器で共有する入力正規化と証跡相関。"""
+
 from __future__ import annotations
 from malware_io import ArchiveValidationError, read_single_aes_zip_member, sha256_bytes
+
 
 def unwrap_single_submission(data: bytes, password: str = "infected") -> tuple[bytes, str, str | None]:
     """Unwrap a single-member ZIP when possible, otherwise keep the original bytes.
@@ -15,6 +17,7 @@ def unwrap_single_submission(data: bytes, password: str = "infected") -> tuple[b
         return member.data, member.name, None
     except ArchiveValidationError as exc:
         return data, "", str(exc)
+
 
 def known_campaign_result(
     data: bytes,
@@ -35,29 +38,50 @@ def known_campaign_result(
     campaign = campaigns.get(digest)
     lower = inner[:6_000_000].lower()
     matched_signatures: list[tuple[bytes, str]] = []
+    encodings_by_token: dict[bytes, list[str]] = {}
     seen_tokens: set[bytes] = set()
     for token, description in signatures:
         normalized = token.lower()
-        if not normalized or normalized in seen_tokens or normalized not in lower:
+        if not normalized or normalized in seen_tokens:
+            continue
+        encodings: list[str] = []
+        if normalized in lower:
+            encodings.append("ascii")
+        try:
+            wide = normalized.decode("ascii").encode("utf-16le")
+        except UnicodeDecodeError:
+            wide = b""
+        if wide and wide in lower:
+            encodings.append("utf-16le")
+        if not encodings:
             continue
         seen_tokens.add(normalized)
         matched_signatures.append((normalized, description))
+        encodings_by_token[normalized] = encodings
     independent_signatures = [
         (token, description)
         for token, description in matched_signatures
         if not any(token != other and token in other for other, _description in matched_signatures)
     ]
     signature_hits = [description for _token, description in independent_signatures]
+    signature_encodings = {description: encodings_by_token[token] for token, description in independent_signatures}
     reasons = ["known inner SHA-256"] if campaign else []
     if campaign or len(signature_hits) >= minimum_signatures:
         reasons.extend(signature_hits)
     if not campaign and len(signature_hits) >= minimum_signatures:
         campaign = "unresolved_family_artifact"
-    candidates = [] if not campaign else [{"campaign_type": campaign, "confidence": "high" if digest in campaigns else "medium", "reasons": reasons}]
+    candidates = (
+        []
+        if not campaign
+        else [
+            {"campaign_type": campaign, "confidence": "high" if digest in campaigns else "medium", "reasons": reasons}
+        ]
+    )
     observations = {
         "inner_sha256": digest,
         "member": member,
         "signature_hits": signature_hits,
+        "signature_encodings": signature_encodings,
         "signature_threshold": minimum_signatures,
     }
     if unwrap_error and not member:

@@ -17,6 +17,7 @@ if str(COMMON) not in sys.path:
 import analysis_contract  # noqa: E402
 import ghidra_function_batch as target  # noqa: E402
 
+
 def _minimal_pe(marker: bytes) -> bytes:
     """実行不能だがPE parserで検証できる最小headerを返す。"""
 
@@ -40,6 +41,7 @@ def test_is_pe_rejects_truncated_mz_candidate() -> None:
     assert target._is_pe(b"MZ") is False
     assert target._is_pe(b"MZ" + bytes(193)) is False
     assert target._is_pe(b"not-a-pe") is False
+
 
 class FakeClient:
     """pagination test用の最小Ghidra MCP client。"""
@@ -75,11 +77,14 @@ def test_managed_cil_parser_diagnostics_do_not_leak(
 
     monkeypatch.setattr(target.dnfile, "dnPE", noisy_parser)
 
-    assert target._managed_cil_records(
-        b"MZ",
-        tmp_path / "cil-instructions.raw.jsonl",
-        "a" * 64,
-    ) == []
+    assert (
+        target._managed_cil_records(
+            b"MZ",
+            tmp_path / "cil-instructions.raw.jsonl",
+            "a" * 64,
+        )
+        == []
+    )
     captured = capsys.readouterr()
     assert "SECRET_DNFILE_DIAGNOSTIC" not in captured.out
     assert "SECRET_DNFILE_DIAGNOSTIC" not in captured.err
@@ -134,12 +139,7 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
                 assert body["auto_analyze"] is False
                 assert body["language"] == "x86:LE:64:default"
                 assert body["compiler_spec"] == "windows"
-                return {
-                    "path": (
-                        "/Malware/Test/"
-                        f"{digest[:8]}/{input_path.name}"
-                    )
-                }
+                return {"path": (f"/Malware/Test/{digest[:8]}/{input_path.name}")}
             if endpoint == "/close_program":
                 return {}
             raise AssertionError(f"予期しないPOST endpoint: {endpoint}")
@@ -172,9 +172,7 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     monkeypatch.setattr(
         target,
         "_all_functions",
-        lambda _client, _program: pytest.fail(
-            "managed CIL正本経路でGhidra疑似関数を列挙してはならない"
-        ),
+        lambda _client, _program: pytest.fail("managed CIL正本経路でGhidra疑似関数を列挙してはならない"),
     )
     monkeypatch.setattr(target, "_managed_cil_records", lambda *_args: [])
 
@@ -412,10 +410,7 @@ def test_decompile_all_respects_server_batch_limit_and_records_every_function(
             if endpoint == "/batch_decompile":
                 addresses = str(query["functions"]).split(",")
                 assert len(addresses) <= 20
-                return {
-                    address: f"void f_{address}(void) {{ return; }}"
-                    for address in addresses
-                }
+                return {address: f"void f_{address}(void) {{ return; }}" for address in addresses}
             raise AssertionError(f"予期しないendpoint: {endpoint}")
 
     client = DecompileClient()
@@ -588,6 +583,7 @@ def test_characteristic_selection_uses_structural_fallback_without_body() -> Non
     assert records[0]["selected_for_characteristic_analysis"] is True
     assert "no_internal_body_structural_fallback" in records[0]["selection_reasons"]
 
+
 def test_overall_logic_documents_phases_without_inventing_edges() -> None:
     """代表関数の役割を処理段階へ整理し、未観測edgeを生成しない。"""
 
@@ -650,8 +646,7 @@ def test_program_evidence_parses_ghidra_entry_point_text() -> None:
         "program_selector": "/Malware/Test/sample",
         "relationships": [{"depth": 0}],
         "entry_points": (
-            "entry @ 00401000 [Label] [external entry]\n"
-            "IMAGE_DOS_HEADER_00400000 @ 00400000 [Label] [program entry]"
+            "entry @ 00401000 [Label] [external entry]\nIMAGE_DOS_HEADER_00400000 @ 00400000 [Label] [program entry]"
         ),
         "metadata": {},
         "functions": [],
@@ -820,8 +815,20 @@ def test_private_artifact_validation_requires_all_selected_static_results(
             "api_call_chains": [],
             "opcode_hashes": {
                 "functions": [
-                    {"address": "0x1000", "hash": "b" * 64, "instruction_count": 1, "hash_status": "available", "program_selector": selector},
-                    {"address": "0x2000", "hash": "c" * 64, "instruction_count": 1, "hash_status": "available", "program_selector": selector},
+                    {
+                        "address": "0x1000",
+                        "hash": "b" * 64,
+                        "instruction_count": 1,
+                        "hash_status": "available",
+                        "program_selector": selector,
+                    },
+                    {
+                        "address": "0x2000",
+                        "hash": "c" * 64,
+                        "instruction_count": 1,
+                        "hash_status": "available",
+                        "program_selector": selector,
+                    },
                 ],
                 "returned": 2,
                 "total_matching": 2,
@@ -1048,9 +1055,7 @@ def test_load_prepared_inputs_allows_missing_cache_for_complete_result(
 
     data = b"MZ-complete"
     digest = hashlib.sha256(data).hexdigest()
-    short_root = tmp_path.parents[2] / (
-        "resume-complete-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
-    )
+    short_root = tmp_path.parents[2] / ("resume-complete-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
     private = short_root / "private"
     target._json_dump(
         private / "input-relationships.json",
@@ -1106,9 +1111,7 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
             "blockers": [target.FUNCTION_ANALYSIS_BLOCKER],
         },
         "artifact_sha256": {
-            "static-logic.json": hashlib.sha256(
-                (case_dir / "static-logic.json").read_bytes()
-            ).hexdigest()
+            "static-logic.json": hashlib.sha256((case_dir / "static-logic.json").read_bytes()).hexdigest()
         },
     }
     analysis_contract.seal_report(report)
@@ -1133,6 +1136,76 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
     assert validation_calls == [{"expected_digest": digest, "require_resumable": True}]
 
 
+def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidraの完全証跡がある場合だけ汎用文字列保持上限を補完済みとする。"""
+
+    digest = "7" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "generic-triage.json",
+        {
+            "analysis_coverage": {"status": "partial"},
+            "pe": {"string_scan": {"truncated": True}},
+        },
+    )
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "status": "characteristic_function_static_analysis_complete",
+            "coverage": {
+                "all_characteristic_functions_attempted": True,
+                "all_characteristic_functions_explained": True,
+                "all_discovered_functions_inventoried": True,
+                "all_static_analysis_content_retained": True,
+                "function_bodies_reviewed": True,
+                "ghidra_program_count": 3,
+                "ghidra_programs_with_valid_mcp_responses": 3,
+            },
+        },
+    )
+    report = {
+        "classification": {"selected_families": []},
+        "generic_triage": "partial",
+        "limitations": [],
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": ["generic_triage_partial", target.FUNCTION_ANALYSIS_BLOCKER],
+        },
+        "artifact_sha256": {
+            name: hashlib.sha256((case_dir / name).read_bytes()).hexdigest()
+            for name in ("generic-triage.json", "static-logic.json")
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    validation_calls: list[dict[str, object]] = []
+
+    def no_errors(*args: object, **kwargs: object) -> list[str]:
+        validation_calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(target, "case_integrity_errors", no_errors)
+
+    assert target.finalize_case_report(case_dir) == "triaged_unknown"
+    refreshed = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed["case_state"] == {
+        "status": "triaged_unknown",
+        "complete": True,
+        "resumable": True,
+        "blockers": [],
+    }
+    assert "Ghidra MCP" in refreshed["limitations"][-1]
+    assert refreshed["generic_triage"] == "complete"
+    assert analysis_contract.verify_report_semantics(refreshed) == []
+    assert validation_calls == [{"expected_digest": digest, "require_resumable": True}]
+
+
 def test_finalize_case_report_preserves_unrelated_blocker(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1151,9 +1224,7 @@ def test_finalize_case_report_preserves_unrelated_blocker(
             "blockers": ["handler_failed", target.FUNCTION_ANALYSIS_BLOCKER],
         },
         "artifact_sha256": {
-            "static-logic.json": hashlib.sha256(
-                (case_dir / "static-logic.json").read_bytes()
-            ).hexdigest()
+            "static-logic.json": hashlib.sha256((case_dir / "static-logic.json").read_bytes()).hexdigest()
         },
     }
     analysis_contract.seal_report(report)
@@ -1177,6 +1248,7 @@ def test_finalize_case_report_preserves_unrelated_blocker(
     assert analysis_contract.verify_report_semantics(refreshed) == []
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
 
+
 def test_finalize_collection_registers_partial_case_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1185,16 +1257,7 @@ def test_finalize_collection_registers_partial_case_identity(
 
     repository = tmp_path / "repository"
     digest = "a" * 64
-    case_dir = (
-        repository
-        / "analysis-results"
-        / "malware"
-        / "unclassified"
-        / "versions"
-        / "unknown"
-        / "cases"
-        / digest
-    )
+    case_dir = repository / "analysis-results" / "malware" / "unclassified" / "versions" / "unknown" / "cases" / digest
     case_dir.mkdir(parents=True)
     target._json_dump(case_dir / "metadata.json", {"family": "unclassified"})
     target._json_dump(
@@ -1235,6 +1298,7 @@ def test_finalize_collection_registers_partial_case_identity(
     assert "partial_followup_required" in readme
     assert "`generic_triage_partial` | 1" in readme
 
+
 def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1245,20 +1309,9 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
 
     root_data = _minimal_pe(b"static-tool-contract")
     digest = hashlib.sha256(root_data).hexdigest()
-    short_root = tmp_path.parents[2] / (
-        "tool-contract-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
-    )
+    short_root = tmp_path.parents[2] / ("tool-contract-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
     repository = short_root / "r"
-    case_dir = (
-        repository
-        / "analysis-results"
-        / "malware"
-        / "test-family"
-        / "versions"
-        / "unknown"
-        / "cases"
-        / digest
-    )
+    case_dir = repository / "analysis-results" / "malware" / "test-family" / "versions" / "unknown" / "cases" / digest
     case_dir.mkdir(parents=True)
     collection = repository / "analysis-results" / "collections" / "test-collection"
     target._json_dump(
@@ -1278,10 +1331,7 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
         tool = short_root / f"{name}.exe"
         tool.write_bytes(f"fixture-{name}".encode("ascii"))
         tools[name] = tool.resolve()
-    identities = {
-        name: target._static_tool_identity(tool)
-        for name, tool in tools.items()
-    }
+    identities = {name: target._static_tool_identity(tool) for name, tool in tools.items()}
     target._json_dump(
         case_dir / "report.json",
         {
@@ -1305,9 +1355,7 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
     )
     sealed_report = target.load_json_object_strict(case_dir / "report.json")
     sealed_report["artifact_sha256"] = {
-        "static-layers.json": hashlib.sha256(
-            (case_dir / "static-layers.json").read_bytes()
-        ).hexdigest()
+        "static-layers.json": hashlib.sha256((case_dir / "static-layers.json").read_bytes()).hexdigest()
     }
     analysis_contract.seal_report(sealed_report)
     target._json_dump(case_dir / "report.json", sealed_report)
@@ -1337,13 +1385,9 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
     assert set(objects) == {digest}
     assert not non_pe
     assert observed == []
-    relationships = target.load_json_object_strict(
-        short_root / "p" / "input-relationships.json"
-    )
+    relationships = target.load_json_object_strict(short_root / "p" / "input-relationships.json")
     assert relationships["static_tools"] == identities
-    assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {
-        "authenticated_root_only"
-    }
+    assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {"authenticated_root_only"}
 
     with pytest.raises(ValueError, match="sevenzip"):
         target.prepare_inputs(
@@ -1407,20 +1451,9 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     child_data = _minimal_pe(b"recovered-child")
     digest = hashlib.sha256(root_data).hexdigest()
     child_digest = hashlib.sha256(child_data).hexdigest()
-    short_root = tmp_path.parents[2] / (
-        "child-replay-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
-    )
+    short_root = tmp_path.parents[2] / ("child-replay-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
     repository = short_root / "r"
-    case_dir = (
-        repository
-        / "analysis-results"
-        / "malware"
-        / "test-family"
-        / "versions"
-        / "unknown"
-        / "cases"
-        / digest
-    )
+    case_dir = repository / "analysis-results" / "malware" / "test-family" / "versions" / "unknown" / "cases" / digest
     case_dir.mkdir(parents=True)
     collection = repository / "analysis-results" / "collections" / "test-collection"
     target._json_dump(
@@ -1456,9 +1489,7 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     report = {
         "analysis_contract": {"settings": {"static_tools": identities}},
         "artifact_sha256": {
-            "static-layers.json": hashlib.sha256(
-                (case_dir / "static-layers.json").read_bytes()
-            ).hexdigest()
+            "static-layers.json": hashlib.sha256((case_dir / "static-layers.json").read_bytes()).hexdigest()
         },
     }
     analysis_contract.seal_report(report)
@@ -1502,12 +1533,8 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     assert set(objects) == {digest, child_digest}
     assert not non_pe
     assert observed == [identities]
-    relationships = target.load_json_object_strict(
-        short_root / "p" / "input-relationships.json"
-    )
-    assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {
-        "full_static_layer_replay"
-    }
+    relationships = target.load_json_object_strict(short_root / "p" / "input-relationships.json")
+    assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {"full_static_layer_replay"}
 
     monkeypatch.setattr(
         target,
@@ -1554,15 +1581,9 @@ def test_authenticated_public_layers_reject_invalid_or_missing_seals(
     }
     target._json_dump(case_dir / "static-layers.json", static_layers)
     report = {
-        "analysis_contract": {
-            "settings": {
-                "static_tools": {"upx": None, "sevenzip": None, "diec": None}
-            }
-        },
+        "analysis_contract": {"settings": {"static_tools": {"upx": None, "sevenzip": None, "diec": None}}},
         "artifact_sha256": {
-            "static-layers.json": hashlib.sha256(
-                (case_dir / "static-layers.json").read_bytes()
-            ).hexdigest()
+            "static-layers.json": hashlib.sha256((case_dir / "static-layers.json").read_bytes()).hexdigest()
         },
     }
     analysis_contract.seal_report(report)
@@ -1618,9 +1639,7 @@ def test_refresh_promotes_short_initial_cache_after_project_rotation(
 
     class RotatedProjectClient:
         def get(self, endpoint: str, **_query: object) -> object:
-            raise AssertionError(
-                f"終端到達済みキャッシュではGETしてはいけません: {endpoint}"
-            )
+            raise AssertionError(f"終端到達済みキャッシュではGETしてはいけません: {endpoint}")
 
         def post(
             self,
@@ -1641,10 +1660,7 @@ def test_refresh_promotes_short_initial_cache_after_project_rotation(
     saved = target.load_json_object_strict(object_dir / "program-result.json")
     assert saved["all_static_analysis_content_retained"] is True
     assert saved["retrieval_coverage"]["imports"]["complete"] is True
-    assert (
-        saved["retrieval_coverage"]["imports"]["source"]
-        == "authenticated_initial_response_cache"
-    )
+    assert saved["retrieval_coverage"]["imports"]["source"] == "authenticated_initial_response_cache"
     assert saved["retrieval_coverage"]["strings"]["item_count"] == 2
 
 

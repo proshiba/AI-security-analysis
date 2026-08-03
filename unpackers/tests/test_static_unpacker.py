@@ -68,6 +68,55 @@ def test_png_idat_zlib_unused_data_is_recovered_as_bounded_layer() -> None:
     assert artifacts == [("png-idat-zlib-unused-data", hidden)]
 
 
+def test_detached_idat_stream_is_recovered_without_png_header() -> None:
+    recovered = b"MZ" + b"P" * 64
+    compressed = zlib.compress(recovered)
+    midpoint = len(compressed) // 2
+    carrier = b"prefix-random-data" + _png_chunk(b"IDAT", compressed[:midpoint])
+    carrier += _png_chunk(b"IDAT", compressed[midpoint:]) + _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.recover_detached_idat_stream(carrier)
+
+    assert report["status"] == "detached_idat_zlib_recovered"
+    assert report["chunk_count"] == 2
+    assert report["prefix_size"] == len(b"prefix-random-data")
+    assert artifacts == [("detached-idat-zlib", recovered)]
+
+
+def test_detached_idat_stream_reports_non_zlib_without_emitting_payload() -> None:
+    carrier = b"X" * 19 + _png_chunk(b"IDAT", b"encrypted-one")
+    carrier += _png_chunk(b"IDAT", b"encrypted-two") + _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.recover_detached_idat_stream(carrier)
+
+    assert report["status"] == "encrypted_or_non_zlib_detached_idat"
+    assert report["chunk_count"] == 2
+    assert report["executed"] is False
+    assert report["network_contacted"] is False
+    assert artifacts == []
+
+
+def test_detached_idat_false_marker_fails_closed() -> None:
+    report, artifacts = unpacker.recover_detached_idat_stream(
+        b"noise" + (4).to_bytes(4, "big") + b"IDATbad!" + b"not-a-valid-crc"
+    )
+
+    assert report["status"] == "not_found"
+    assert artifacts == []
+
+
+def test_recovery_candidate_priority_prefers_loader_and_detached_idat() -> None:
+    compressed = zlib.compress(b"payload")
+    midpoint = len(compressed) // 2
+    carrier = _png_chunk(b"IDAT", compressed[:midpoint])
+    carrier += _png_chunk(b"IDAT", compressed[midpoint:]) + _png_chunk(b"IEND", b"")
+
+    assert unpacker.recovery_candidate_priority(b"MZloader4.cfg", "pe", "DG.dll") == 0
+    assert unpacker.recovery_candidate_priority(carrier, "data", "blob.cfg") == 0
+    assert unpacker.recovery_candidate_priority(b"MZordinary", "pe", "clean.dll") == 1
+    assert unpacker.recovery_candidate_priority(b"ordinary", "data", "blob.bin") == 2
+
+
 def test_plain_png_resource_is_inspected_without_becoming_a_layer() -> None:
     """通常のPNGリソースは検査するが、次の解析層として複製しない。"""
 
@@ -294,6 +343,26 @@ def test_valid_pe_carving_and_cab_detection(monkeypatch: pytest.MonkeyPatch) -> 
     assert scripts == []
 
 
+def test_valid_pe_extent_rejects_header_only_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """宣言section数と実在section数が異なるヘッダー断片を子PEへ昇格しない。"""
+
+    fake = SimpleNamespace(
+        FILE_HEADER=SimpleNamespace(NumberOfSections=3),
+        OPTIONAL_HEADER=SimpleNamespace(
+            SizeOfHeaders=0x200,
+            DATA_DIRECTORY=[
+                SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(16)
+            ],
+        ),
+        sections=[],
+    )
+    monkeypatch.setattr(unpacker.pefile, "PE", lambda **_: fake)
+    assert unpacker.valid_pe_extent(b"MZ" + bytes(0x1FE)) is None
+    assert unpacker.carve_embedded_pes(b"X" + b"MZ" + bytes(0x1FE)) == []
+
+
 def test_autoit_source_skips_javascript_specific_transforms() -> None:
     """逆コンパイル済みAutoItにはJavaScript専用変換を適用しない。"""
 
@@ -513,6 +582,48 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
     assert artifacts == []
 
 
+def test_sevenzip_empty_member_is_inventory_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """空memberを再帰解析artifactへ渡さず、inventoryへ事実だけを残す。"""
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["zip", "PE"],
+            "members": ["package.dat"],
+            "total_members": 1,
+            "declared_total_size": 0,
+            "archive_unlock_attempted": False,
+        }
+
+    def fake_run(command, **_kwargs):
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:])
+        output.mkdir(parents=True)
+        (output / "package.dat").write_bytes(b"")
+        return SimpleNamespace(returncode=2, stdout="", stderr="data error")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"MZfixture",
+        tmp_path / "7z.exe",
+        name="installer.exe",
+    )
+    assert report["status"] == "partially_extracted"
+    assert report["inventory"] == [
+        {
+            "name": "package.dat",
+            "size": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "format": "data",
+            "status": "empty_file",
+        }
+    ]
+    assert artifacts == []
+
+
 def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -589,3 +700,93 @@ def test_unpack_and_cli(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="paths must differ"):
         unpacker.main(["--input", str(source), "--output", str(source)])
     assert source.read_bytes() == original
+
+
+def test_recover_ole_streams_routes_cab_and_pe_without_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """MSI/OLE内のCAB・PEだけを次の静的解析層へ渡す。"""
+
+    streams = {
+        ("cab",): b"MSCF" + b"C" * 32,
+        ("payload",): b"MZ" + b"P" * 62,
+        ("table",): b"ordinary metadata",
+    }
+
+    class FakeOle:
+        def listdir(self, **_kwargs):
+            return [list(name) for name in streams]
+
+        def get_size(self, parts):
+            return len(streams[tuple(parts)])
+
+        def openstream(self, parts):
+            return io.BytesIO(streams[tuple(parts)])
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(unpacker.olefile, "OleFileIO", lambda _source: FakeOle())
+    report, artifacts = unpacker.recover_ole_streams(
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1fixture"
+    )
+
+    assert report["status"] == "artifacts_recovered"
+    assert report["stream_count"] == 3
+    assert [(kind, data[:4]) for kind, data in artifacts] == [
+        ("ole-cab-stream", b"MSCF"),
+        ("ole-pe-stream", b"MZPP"),
+    ]
+    assert report["executed"] is False and report["network_contacted"] is False
+
+
+def test_recover_ole_streams_fails_closed_on_member_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """OLE stream件数が上限を超えた場合は部分復元せず停止する。"""
+
+    class FakeOle:
+        def listdir(self, **_kwargs):
+            return [["one"], ["two"]]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(unpacker.olefile, "OleFileIO", lambda _source: FakeOle())
+    report, artifacts = unpacker.recover_ole_streams(
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1fixture",
+        max_members=1,
+    )
+    assert report["status"] == "member_limit_blocked"
+    assert artifacts == []
+
+
+def test_recover_cab_members_filters_paths_and_respects_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CAB memberのpath・sizeを検証し、許可した静的層だけを返す。"""
+
+    fake_archive = {
+        "payload.exe": SimpleNamespace(buf=b"MZ" + b"P" * 62),
+        "../escape.dll": SimpleNamespace(buf=b"MZ" + b"E" * 62),
+        "large.bin": SimpleNamespace(buf=b"L" * 129),
+        "note.txt": SimpleNamespace(buf=b"analysis note"),
+    }
+    monkeypatch.setattr(
+        unpacker.cabarchive,
+        "CabArchive",
+        lambda _data: fake_archive,
+    )
+    report, artifacts = unpacker.recover_cab_members(
+        b"MSCFfixture",
+        max_member_size=128,
+        max_total_size=512,
+    )
+
+    assert report["member_count"] == 4
+    assert ("cab-pe", b"MZ" + b"P" * 62) in artifacts
+    assert all(blob != b"MZ" + b"E" * 62 for _kind, blob in artifacts)
+    statuses = {item["name"]: item["status"] for item in report["inventory"]}
+    assert statuses["../escape.dll"] == "path_blocked"
+    assert statuses["large.bin"] == "size_blocked"
+    assert report["executed"] is False and report["network_contacted"] is False

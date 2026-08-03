@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260803-clickfix-pro-e3121f903611",
+  "domain": "8yajh9kt.en-us--tupitea.com",
+  "queried_at_utc": "2026-08-02T22:43:06.083656+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 0
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 0,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

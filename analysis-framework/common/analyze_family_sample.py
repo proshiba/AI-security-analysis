@@ -45,7 +45,9 @@ GENERIC_MAX_MEMBERS = 256
 GENERIC_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 GENERIC_MAX_COMPRESSION_RATIO = 100.0
 MAX_BASE64_ENCODED_LENGTH = 1024 * 1024
-DEFAULT_STRING_SCAN_LIMIT = 500_000
+# 大型PEでも全体走査を完了できるよう、実測上限を100万候補へ拡張する。
+# 件数上限は維持し、異常な入力でメモリを無制限に消費しない。
+DEFAULT_STRING_SCAN_LIMIT = 1_000_000
 MAX_BASE64_CANDIDATES = 10_000
 STATIC_LAYER_DELEGATED_FORMATS = {
     "7z",
@@ -176,6 +178,7 @@ def script_info(
         "unescape": "unescape(" in lowered,
     }
     base64_hits = []
+    base64_candidate_count = 0
     oversized_base64 = 0
     for match in re.finditer(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{80,}={0,2}(?![A-Za-z0-9+/])", text):
         encoded_length = match.end() - match.start()
@@ -187,6 +190,9 @@ def script_info(
         except (ValueError, binascii.Error):
             continue
         if len(blob) >= 32:
+            base64_candidate_count += 1
+            if len(base64_hits) >= MAX_BASE64_CANDIDATES:
+                continue
             base64_hits.append(
                 {
                     "offset": match.start(),
@@ -196,8 +202,6 @@ def script_info(
                     "magic": blob[:16].hex(),
                 }
             )
-            if len(base64_hits) > MAX_BASE64_CANDIDATES:
-                break
     filename = safe_output_name(name)
     normalized_text = None
     if persist_normalized_text:
@@ -218,9 +222,12 @@ def script_info(
         "base64_candidates": base64_hits[:MAX_BASE64_CANDIDATES],
         "base64_scan": {
             "candidate_limit": MAX_BASE64_CANDIDATES,
+            "total_candidates": base64_candidate_count,
+            "omitted_candidates": max(0, base64_candidate_count - len(base64_hits)),
+            "retention_limited": base64_candidate_count > len(base64_hits),
             "encoded_length_limit": MAX_BASE64_ENCODED_LENGTH,
             "oversized_candidates": oversized_base64,
-            "truncated": len(base64_hits) > MAX_BASE64_CANDIDATES or oversized_base64 > 0,
+            "truncated": oversized_base64 > 0,
         },
         "iocs": extract_iocs(strings),
         "string_scan": {

@@ -94,6 +94,7 @@ MAX_STATIC_DEPTH = static_layers.MAX_STATIC_DEPTH
 MAX_RECOVERED_LAYER_SIZE = static_layers.MAX_RECOVERED_LAYER_SIZE
 MAX_RECOVERED_TOTAL_SIZE = static_layers.MAX_RECOVERED_TOTAL_SIZE
 MAX_STATIC_COMPRESSION_RATIO = static_layers.MAX_STATIC_COMPRESSION_RATIO
+MAX_ARCHIVE_MEMBERS = static_layers.MAX_ARCHIVE_MEMBERS
 recover_layer_pipeline = static_layers.recover_static_layers
 
 
@@ -177,11 +178,7 @@ def read_input_unit(
 
     if archive_mode not in {"auto", "raw", "malwarebazaar"}:
         raise ValueError(f"unsupported archive_mode: {archive_mode!r}")
-    if (
-        isinstance(max_file_size, bool)
-        or not isinstance(max_file_size, int)
-        or max_file_size <= 0
-    ):
+    if isinstance(max_file_size, bool) or not isinstance(max_file_size, int) or max_file_size <= 0:
         raise ValueError("max_file_size must be a positive integer")
     size = path.stat().st_size
     if size > max_file_size:
@@ -534,10 +531,29 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
             for raw_key, item in value.items():
                 key = str(raw_key).casefold()
                 child = f"{path}.{raw_key}"
+                fallback = value.get("sevenzip")
+                authoritative = value.get("embedded_installer_archive")
                 if (
-                    item == "validation_failed"
-                    and ".profiled_transforms.attempts[" in path
+                    key == "sevenzip"
+                    and isinstance(item, dict)
+                    and item.get("status") == "partially_extracted"
+                    and isinstance(authoritative, dict)
+                    and authoritative.get("status") == "artifacts_recovered"
+                    and int(authoritative.get("record_count") or 0) > 0
                 ):
+                    continue
+                if (
+                    key == "cab"
+                    and isinstance(item, dict)
+                    and item.get("status") == "parse_failed"
+                    and isinstance(fallback, dict)
+                    and fallback.get("status") == "extracted"
+                    and fallback.get("extract_exit_code") == 0
+                ):
+                    # cabarchiveが未対応のLZXでも、境界付き7-Zip fallbackが
+                    # 全memberを正常展開できた場合は未完了にしない。
+                    continue
+                if item == "validation_failed" and ".profiled_transforms.attempts[" in path:
                     continue
                 if key == "unpack_status" and _is_incomplete_static_status(item):
                     issues.append(f"{child}:{item}")

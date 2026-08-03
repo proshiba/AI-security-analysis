@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-08-03",
+  "scope": {
+    "families": ["venomrat", "valleyrat", "hijackloader", "purehvnc", "purerat", "quasarrat"],
+    "selected_per_signature": 5,
+    "selected_total": 30,
+    "sample_executed": false,
+    "network_contacted": false
+  },
+  "representatives": [
+    {"family": "valleyrat", "sha256": "1217b7b48b21d322037e4f2b9a54b8f45e8e3674b094a97a2aa042fce3fe2004", "observed_at": "2026-07-31 20:23:17", "format": "msi", "result": "strong_msi_packed_pe_shape"},
+    {"family": "hijackloader", "sha256": "3cbc4be157777afb8f4a38673a1910fe7a615135e4819069818e590f4b82f717", "observed_at": "2026-07-23 12:04:22", "format": "msi", "result": "cab_side_load_and_detached_idat"},
+    {"family": "quasarrat", "sha256": "9270d36aa57eec3d44dc2d66929551198cb8a31d0ef383a726c38b75ad8144ba", "observed_at": "2026-07-28 06:52:02", "format": "pe", "result": "managed_xclient_topology"},
+    {"family": "venomrat", "sha256": "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073", "observed_at": "2025-08-13 15:18:35", "format": "pe", "result": "modular_messagepack_client"},
+    {"family": "purehvnc", "sha256": "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677", "observed_at": "2026-06-23 18:45:33", "format": "pe", "result": "rust_loader_candidate_not_family_confirmed"},
+    {"family": "purerat", "sha256": "728a2f85c9ff8bbb463e93253ec05e8f3933271887457c5a0f5d4933ec8712c7", "observed_at": "2026-07-30 13:17:21", "format": "xlsm", "result": "distribution_layer_terminal_payload_not_recovered"}
+  ],
+  "hijackloader": {
+    "malicious_module_sha256": "da0db01417df6ccfe6df054b08663ed59d377c065740a7a83921c033dbebb29e",
+    "detached_idat": {
+      "source_sha256": "e454a0ba4f9c35cd910df6da75cecbd291df900c0df80bf81098cc4a3c8a2111",
+      "start_offset": 16462,
+      "chunk_count": 249,
+      "idat_size": 2038840,
+      "idat_sha256": "6b4492478795a18c4ffe4f118b0886539acb255f19a3489ed2b860e565918e6b",
+      "entropy": 7.8788,
+      "status": "encrypted_or_non_zlib_detached_idat"
+    }
+  },
+  "verification": {
+    "pytest_passed": 1530,
+    "pytest_skipped": 4,
+    "ruff": "passed",
+    "japanese_audit_findings": 0,
+    "broken_local_links": 0
+  },
+  "cleanup": {
+    "scope": "re_downloadable_old_samples_and_cache_only",
+    "analysis_data_deleted": false,
+    "bytes_removed": 1204828685,
+    "free_bytes_after": 2697228288
+  }
+}
