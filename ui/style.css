@@ -435,3 +435,140 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   font-size: 12px;
 }
 .ip-stable-head input:focus { outline: none; border-color: var(--accent); }
+
+/* 地図クリックによる絞り込みの表示。何で絞られているかを表の直上に置き、
+   同じ場所の ✕ で解除できるようにする。 */
+/* 作者スタイルの display は UA の [hidden]{display:none} より優先されるため、
+   hidden 属性を効かせるには明示的に打ち消す必要がある */
+.filter-bar[hidden] { display: none; }
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: rgba(79, 168, 255, .08);
+  border: 1px solid rgba(79, 168, 255, .35);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+}
+.filter-bar-lead { font-size: 12px; color: var(--text-dim); flex: none; }
+.filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  max-width: 100%;
+}
+.filter-chip-icon { color: var(--accent); font-size: 11px; flex: none; }
+.filter-chip-text { font-family: var(--mono); overflow-wrap: anywhere; }
+.filter-chip-x {
+  flex: none;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+.filter-chip-x:hover { background: var(--danger); color: #0d1117; }
+.filter-chip-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.filter-bar-count { margin-left: auto; flex: none; }
+
+/* 絞り込みの元になっている地点を地図側でも示す */
+#c2map .mark.selected .mark-halo { opacity: .55; }
+#c2map .mark.selected .mark-dot {
+  stroke: #fff;
+  stroke-width: calc(1.8px * var(--inv));
+}
+
+/* 世界地図の下に置く、endpoint一覧のリアルタイム絞り込み */
+.c2-search { display: flex; align-items: center; margin: 0 0 10px; }
+.c2-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 14px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.c2-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 168, 255, .12);
+}
+#c2-empty[hidden] { display: none; }
+
+/* 見出し行に操作を並べる（見出しの下線は維持する） */
+.section > h2.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* トグルスイッチ。checkbox本体は隠さず透明で重ね、キーボード操作と
+   スクリーンリーダーの読み上げをそのまま活かす。 */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.toggle input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.toggle-track {
+  flex: none;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  transition: background .15s ease, border-color .15s ease;
+}
+.toggle-knob {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transform: translateX(0);
+  transition: transform .15s ease, background .15s ease;
+}
+.toggle input:checked ~ .toggle-track {
+  background: rgba(79, 168, 255, .25);
+  border-color: var(--accent);
+}
+.toggle input:checked ~ .toggle-track .toggle-knob {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+.toggle input:focus-visible ~ .toggle-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toggle input:checked ~ .toggle-text { color: var(--text); }

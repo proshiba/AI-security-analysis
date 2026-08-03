@@ -480,6 +480,47 @@
     return Object.keys(byPlace).map(function (k) { return byPlace[k]; });
   }
 
+  // endpoint 1件を検索対象の1本の文字列に畳む。ホスト・IPだけでなく
+  // 所在(国・都市)、ASN、観測結果、関連ケースのハッシュでも引けるようにする。
+  function c2Haystack(ep) {
+    var l = ep.latest || {};
+    var lifecycle = ep.lifecycle || {};
+    var parts = [
+      ep.family, ep.host, ep.host + ":" + ep.port, ep.port, ep.protocol, ep.transport,
+      ep.method, ep.method_label, ep.http_path, ep.onion ? "tor onion" : "",
+      l.state, l.state_label, l.reason, l.tcp_status, l.status, l.date, l.availability,
+      l.alive ? "応答あり alive" : "応答なし down",
+      // 一覧に出ている稼働ラベルでも引けるようにする
+      c2LifecycleLabel(ep), lifecycle.status, ep.active === false ? "停止 inactive" : "継続監視 active"
+    ];
+    // 表示と同じ情報で引けるよう、geo表と最新DNS観測の両方から所在を集める
+    var history = (ep.dns_tracking && ep.dns_tracking.history) || [];
+    var details = history.length ? history[history.length - 1].ip_details || [] : [];
+    details.forEach(function (detail) {
+      var as = detail.as || {};
+      var geo = detail.geo || {};
+      var infra = detail.infrastructure || {};
+      parts.push(detail.ip, as.organization, as.asn ? "as" + as.asn : "", as.asn,
+        geo.country_name, geo.country_iso_code, geo.city_name,
+        geo.subdivision_name, geo.continent_name);
+      // 一覧に出ている基盤タグ(防弾ホスティング等)でも引けるようにする
+      (infra.tags || []).forEach(function (tag) { parts.push(tag.label); });
+      if (infra.bulletproof_hosting) {
+        parts.push(infra.bulletproof_hosting.label, infra.bulletproof_hosting.classification);
+      }
+    });
+    (l.resolved_ips || []).forEach(function (ip) {
+      parts.push(ip);
+      var g = c2GeoOf(ip);
+      if (g) {
+        parts.push(g.country, g.country_code, g.city, g.region, g.continent,
+          g.org, g.isp, g.asn ? "as" + g.asn : "", g.asn);
+      }
+    });
+    (ep.cases || []).forEach(function (sha) { parts.push(sha); });
+    return normalizeQuery(parts.filter(Boolean).join(" "));
+  }
+
   function strongest(eps) {
     var best = null;
     eps.forEach(function (ep) {
@@ -526,7 +567,7 @@
       '<g id="c2map-view"><g class="lands">' + land + "</g>" + marks + "</g></svg>" +
       '<div id="c2map-tip" class="c2map-tip" hidden></div>' +
       '<div class="c2map-tools"><button type="button" id="c2map-reset" class="btn-mini">表示をリセット</button>' +
-      '<span class="muted small">ホイールで拡大・ドラッグで移動。点をクリックすると下の一覧を絞り込みます。</span></div>' +
+      '<span class="muted small">ホイールで拡大・ドラッグで移動。点をクリックすると下の一覧を絞り込みます（解除は絞り込み表示の ✕）。</span></div>' +
       "</div>" +
       '<div class="c2map-legend">' +
       Object.keys(C2.state_labels || {}).map(function (k) {
@@ -753,13 +794,27 @@
 
     html += c2MapHtml();
 
-    html += '<div class="section"><h2>監視endpoint一覧' +
-      '<span id="c2-filter-note" class="small muted"></span></h2>' +
+    var downCount = eps.length - reachable;
+    html += '<div class="section"><h2 class="head-row">監視endpoint一覧' +
+      '<label class="toggle" title="観測時に応答が無かったendpointの表示を切り替えます">' +
+      '<input type="checkbox" id="c2-show-down" checked>' +
+      '<span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>' +
+      '<span class="toggle-text">応答なしを表示<span class="muted small"> (' + downCount + ")</span></span>" +
+      "</label></h2>" +
+      '<form id="c2-search" class="c2-search" role="search" onsubmit="return false">' +
+      '<input id="c2-q" type="search" autocomplete="off" aria-label="endpointを絞り込み"' +
+      ' placeholder="ファミリー / ホスト / IP / 国・都市 / ASN / 観測結果 で絞り込み（入力するとリアルタイムに検索）">' +
+      "</form>" +
+      '<div id="c2-filter-bar" class="filter-bar" hidden>' +
+      '<span class="filter-bar-lead">絞り込み中</span>' +
+      '<span class="filter-chips" id="c2-filter-chips"></span>' +
+      '<span class="filter-bar-count muted small" id="c2-filter-count"></span></div>' +
       '<div class="tbl-wrap"><table class="tbl c2tbl"><thead><tr>' +
       "<th>ファミリー</th><th>endpoint</th><th>観測結果</th><th>confidence</th>" +
       "<th>解決IP / 所在</th><th>確認方法</th><th>関連ケース</th><th>観測日</th>" +
       "</tr></thead><tbody id='c2-rows'>" +
-      eps.map(c2EndpointRow).join("") + "</tbody></table></div></div>";
+      eps.map(c2EndpointRow).join("") + "</tbody></table>" +
+      '<div id="c2-empty" class="empty" hidden></div></div></div>';
 
     html += ipHistoryHtml();
 
@@ -880,35 +935,133 @@
       });
     });
 
+    // 地図クリックと検索窓は同じ絞り込み状態を共有し、掛け合わせで効かせる。
+    // どちらが効いているかはフィルタバーのチップで示し、チップごとに解除できる。
+    var bar = document.getElementById("c2-filter-bar");
+    var chips = document.getElementById("c2-filter-chips");
+    var barCount = document.getElementById("c2-filter-count");
+    var input = document.getElementById("c2-q");
+    var emptyBox = document.getElementById("c2-empty");
+    var rows = Array.prototype.slice.call(document.querySelectorAll("#c2-rows .c2row"));
+    var toggle = document.getElementById("c2-show-down");
+    var haystacks = eps.map(c2Haystack);
+    var filter = { place: null, query: "", hideDown: false };
+
+    function matchesAlive(index) {
+      if (!filter.hideDown) return true;
+      var ep = eps[Number(rows[index].getAttribute("data-idx"))];
+      return !!(ep.latest && ep.latest.alive);
+    }
+
+    function matchesQuery(index) {
+      if (!filter.query) return true;
+      var hay = haystacks[Number(rows[index].getAttribute("data-idx"))];
+      // 空白区切りは AND。ホスト名と国を同時に指定して絞れるようにする。
+      return filter.query.split(/\s+/).every(function (term) { return hay.indexOf(term) >= 0; });
+    }
+
+    function matchesPlace(index) {
+      if (filter.place === null) return true;
+      var p = points[filter.place];
+      if (!p) return true;
+      var ep = eps[Number(rows[index].getAttribute("data-idx"))];
+      return p.eps.some(function (e) { return e.host === ep.host && e.port === ep.port; });
+    }
+
+    function chipHtml(kind, icon, text, label) {
+      return '<span class="filter-chip"><span class="filter-chip-icon" aria-hidden="true">' + icon + "</span>" +
+        '<span class="filter-chip-text">' + esc(text) + "</span>" +
+        '<button type="button" class="filter-chip-x" data-clear="' + kind + '"' +
+        ' aria-label="' + esc(label) + '">✕</button></span>';
+    }
+
+    function render() {
+      var shown = 0;
+      rows.forEach(function (tr, i) {
+        var hit = matchesPlace(i) && matchesQuery(i) && matchesAlive(i);
+        tr.hidden = !hit;
+        if (hit) shown++;
+      });
+
+      svg.querySelectorAll(".mark.selected").forEach(function (m) { m.classList.remove("selected"); });
+      if (filter.place !== null) {
+        var mark = svg.querySelector('.mark[data-idx="' + filter.place + '"]');
+        if (mark) mark.classList.add("selected");
+      }
+
+      var html = "";
+      if (filter.place !== null) {
+        var p = points[filter.place];
+        html += chipHtml("place", "◉",
+          geoLabel(p.geo) + (p.geo.country_code ? " (" + p.geo.country_code + ")" : "") + " ・ " + p.ips.join(", "),
+          "地点の絞り込みを解除");
+      }
+      if (filter.query) html += chipHtml("query", "⌕", input.value.trim(), "検索の絞り込みを解除");
+      if (filter.hideDown) html += chipHtml("down", "◐", "応答なしを非表示", "応答なしを再表示");
+      if (chips) chips.innerHTML = html;
+      if (bar) bar.hidden = !html;
+      if (barCount) barCount.textContent = shown + " / " + rows.length + " 件を表示中";
+
+      if (emptyBox) {
+        emptyBox.hidden = shown > 0;
+        if (!shown) {
+          emptyBox.textContent = "この条件に一致するendpointはありません。" +
+            "監視対象は人がレビューしたC2だけなので、解析済みでも監視に載っていないendpointがあります。";
+        }
+      }
+    }
+
+    function setPlace(index) { filter.place = index; render(); }
+    function setQuery(value) { filter.query = normalizeQuery(value); render(); }
+
+    if (chips) chips.addEventListener("click", function (ev) {
+      var btn = ev.target.closest ? ev.target.closest("[data-clear]") : null;
+      if (!btn) return;
+      var kind = btn.getAttribute("data-clear");
+      if (kind === "place") filter.place = null;
+      else if (kind === "down") { filter.hideDown = false; if (toggle) toggle.checked = true; }
+      else { filter.query = ""; input.value = ""; }
+      render();
+    });
+
+    if (toggle) toggle.addEventListener("change", function () {
+      filter.hideDown = !toggle.checked;
+      render();
+    });
+
+    if (input) {
+      var qTimer = null;
+      input.addEventListener("input", function () {
+        clearTimeout(qTimer);
+        var value = input.value;
+        qTimer = setTimeout(function () { setQuery(value); }, 120);
+      });
+      input.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") { input.value = ""; setQuery(""); }
+      });
+    }
+
     svg.addEventListener("click", function (ev) {
       if (suppressClick) { suppressClick = false; return; }
       var g = ev.target.closest ? ev.target.closest(".mark") : null;
-      var note = document.getElementById("c2-filter-note");
-      var rows = document.querySelectorAll("#c2-rows .c2row");
-      if (!g) {
-        rows.forEach(function (tr) { tr.hidden = false; });
-        if (note) note.textContent = "";
-        return;
-      }
-      var p = points[Number(g.getAttribute("data-idx"))];
-      var keys = {};
-      p.eps.forEach(function (e) { keys[e.host + ":" + e.port] = true; });
-      rows.forEach(function (tr) {
-        var ep = eps[Number(tr.getAttribute("data-idx"))];
-        tr.hidden = !keys[ep.host + ":" + ep.port];
-      });
-      if (note) note.textContent = "／ " + geoLabel(p.geo) + " の " + p.eps.length + " 件を表示中（地図の余白をクリックで解除）";
-      document.getElementById("c2-rows").scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!g) { setPlace(null); return; }
+      setPlace(Number(g.getAttribute("data-idx")));
+      document.getElementById("c2-filter-bar").scrollIntoView({ behavior: "smooth", block: "center" });
     });
 
     var reset = document.getElementById("c2map-reset");
     if (reset) reset.addEventListener("click", function () {
       state = { k: 1, x: 0, y: 0 };
       apply();
-      document.querySelectorAll("#c2-rows .c2row").forEach(function (tr) { tr.hidden = false; });
-      var note = document.getElementById("c2-filter-note");
-      if (note) note.textContent = "";
+      filter.place = null;
+      filter.query = "";
+      filter.hideDown = false;
+      if (input) input.value = "";
+      if (toggle) toggle.checked = true;
+      render();
     });
+
+    render();
   }
 
   /* ---------- ダッシュボード ---------- */
