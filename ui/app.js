@@ -484,12 +484,31 @@
   // 所在(国・都市)、ASN、観測結果、関連ケースのハッシュでも引けるようにする。
   function c2Haystack(ep) {
     var l = ep.latest || {};
+    var lifecycle = ep.lifecycle || {};
     var parts = [
       ep.family, ep.host, ep.host + ":" + ep.port, ep.port, ep.protocol, ep.transport,
       ep.method, ep.method_label, ep.http_path, ep.onion ? "tor onion" : "",
-      l.state, l.state_label, l.reason, l.tcp_status, l.status, l.date,
-      l.alive ? "応答あり alive" : "応答なし down"
+      l.state, l.state_label, l.reason, l.tcp_status, l.status, l.date, l.availability,
+      l.alive ? "応答あり alive" : "応答なし down",
+      // 一覧に出ている稼働ラベルでも引けるようにする
+      c2LifecycleLabel(ep), lifecycle.status, ep.active === false ? "停止 inactive" : "継続監視 active"
     ];
+    // 表示と同じ情報で引けるよう、geo表と最新DNS観測の両方から所在を集める
+    var history = (ep.dns_tracking && ep.dns_tracking.history) || [];
+    var details = history.length ? history[history.length - 1].ip_details || [] : [];
+    details.forEach(function (detail) {
+      var as = detail.as || {};
+      var geo = detail.geo || {};
+      var infra = detail.infrastructure || {};
+      parts.push(detail.ip, as.organization, as.asn ? "as" + as.asn : "", as.asn,
+        geo.country_name, geo.country_iso_code, geo.city_name,
+        geo.subdivision_name, geo.continent_name);
+      // 一覧に出ている基盤タグ(防弾ホスティング等)でも引けるようにする
+      (infra.tags || []).forEach(function (tag) { parts.push(tag.label); });
+      if (infra.bulletproof_hosting) {
+        parts.push(infra.bulletproof_hosting.label, infra.bulletproof_hosting.classification);
+      }
+    });
     (l.resolved_ips || []).forEach(function (ip) {
       parts.push(ip);
       var g = c2GeoOf(ip);
