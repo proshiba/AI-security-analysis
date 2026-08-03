@@ -949,6 +949,13 @@
       "family": "efimer",
       "version_key": "unknown"
     },
+    "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "case_id": "sha256:12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "12b0e803c821a4c2b1b0e826ccb821f6bbcb421615a63ba5ce9e4c2a648c98df": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/12b0e803c821a4c2b1b0e826ccb821f6bbcb421615a63ba5ce9e4c2a648c98df",
@@ -3393,11 +3400,11 @@
       "version_key": "unknown"
     },
     "439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2": {
-      "canonical_path": "analysis-results/malware/quasarrat/versions/unknown/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2",
+      "canonical_path": "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2",
       "case_id": "sha256:439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2",
       "case_kind": "malware",
       "family": "quasarrat",
-      "version_key": "unknown"
+      "version_key": "v1.3.0.0"
     },
     "43b112c2bf170cb564047c064e9604dec8b28872e3171ec5c9c41f41baf92f53": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/43b112c2bf170cb564047c064e9604dec8b28872e3171ec5c9c41f41baf92f53",
@@ -5001,6 +5008,13 @@
       "case_id": "sha256:61858e50c96a6f37957e1d6e3249ddb49ebd5c592ddce8dacf039404897afe45",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "case_id": "sha256:61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb": {
@@ -8030,10 +8044,10 @@
       "version_key": "unknown"
     },
     "9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a": {
-      "canonical_path": "analysis-results/malware/hijackloader/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a",
+      "canonical_path": "analysis-results/malware/franz-electron-backdoor/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a",
       "case_id": "sha256:9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a",
       "case_kind": "malware",
-      "family": "hijackloader",
+      "family": "franz-electron-backdoor",
       "version_key": "unknown"
     },
     "9c0c712eb0969125e49ae2b43154bac9efa4617445de55696cb2bbad70fad02c": {
@@ -9841,10 +9855,10 @@
       "version_key": "unknown"
     },
     "bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153": {
-      "canonical_path": "analysis-results/malware/quasarrat/versions/unknown/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153",
+      "canonical_path": "analysis-results/malware/pulsarrat/versions/unknown/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153",
       "case_id": "sha256:bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153",
       "case_kind": "malware",
-      "family": "quasarrat",
+      "family": "pulsarrat",
       "version_key": "unknown"
     },
     "bfe2c25627eec3369b94ec60c1592e9cb38868f83f812a4ec506947d59ac8891": {
@@ -10094,11 +10108,11 @@
       "version_key": "unknown"
     },
     "c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627": {
-      "canonical_path": "analysis-results/malware/quasarrat/versions/unknown/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627",
+      "canonical_path": "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627",
       "case_id": "sha256:c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627",
       "case_kind": "malware",
       "family": "quasarrat",
-      "version_key": "unknown"
+      "version_key": "v1.3.0.0"
     },
     "c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad": {
       "canonical_path": "analysis-results/malware/remcosrat/versions/unknown/cases/c478f13eefa74178e585ec29988ab6bc045077b3db9dea930109793716928fad",
@@ -11310,6 +11324,13 @@
       "case_id": "sha256:e0968fdd46a966fd96963e0c082c826f0f4f68c6ae7c47db740e375b838a5166",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "case_id": "sha256:e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "e0e69bb3ffd353720874b03724fa6e8cf51021ba5ff2676582dbff4d44ee234e": {

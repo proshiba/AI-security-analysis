@@ -45,3 +45,16 @@ def test_inflated_pe_gap_recovery(monkeypatch) -> None:
     report, compact = recover_inflated_pe(minimal_inflated_pe())
     assert report["status"] == "recovered"
     assert compact is not None and len(compact) == 0x400
+
+
+def test_inflated_pe_preserves_nonuniform_gap(monkeypatch) -> None:
+    """証明書前の非一様データをpaddingと誤認して除去しない。"""
+
+    monkeypatch.setattr(recovery, "MAX_SECURITY_GAP", 64)
+    sample = bytearray(minimal_inflated_pe())
+    sample[0x420] = 0xA5
+    report, compact = recover_inflated_pe(bytes(sample))
+    assert report["status"] == "preserved_nonuniform_security_gap"
+    assert report["gap_size"] == 128
+    assert len(report["gap_sha256"]) == 64
+    assert compact is None

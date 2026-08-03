@@ -2895,47 +2895,49 @@ analyses:
     result_path: analysis-results/malware/xworm/versions/unknown/cases/fb39d3b564103e08a57ba475aa657a2cf1cedadbafecfa01948ddb7506de03a0/
 
   - malware_type: "quasarrat"
-    analyzed_at: 2026-07-17
+    analyzed_at: 2026-08-03
     sample_sha256: 439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2
-    analysis_level: bounded_static_profile
-    campaign_type: reviewed_direct_payload_or_wrapper
+    analysis_level: terminal_payload_and_authenticated_config_recovered
+    campaign_type: nativeaot_decoy_installer_quasar_cluster
     matched_patterns:
       - "source-signature:QuasarRAT"
-      - "profile:quasarrat"
-      - "format:exe"
-      - "static-config:unresolved"
-    c2: []
-    notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/
-
+      - "terminal-family:quasarrat"
+      - "version:v1.3.0.0"
+      - "authenticated-config:hmac-sha256"
+      - "delivery:inflated-nativeaot-loader"
+    c2:
+      - "stopman.ooguy.com:2002"
+    notes: "メモリ上の最終Quasarを再構築し、HMAC検証済み設定から版、C2、Mutex、Tagを復元した。検体実行とC2接続は行っていない。"
+    result_path: analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/
   - malware_type: "quasarrat"
-    analyzed_at: 2026-07-17
+    analyzed_at: 2026-08-03
     sample_sha256: c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627
-    analysis_level: bounded_static_profile
-    campaign_type: reviewed_direct_payload_or_wrapper
+    analysis_level: terminal_payload_and_authenticated_config_recovered
+    campaign_type: nativeaot_decoy_installer_quasar_cluster
     matched_patterns:
       - "source-signature:QuasarRAT"
-      - "profile:quasarrat"
-      - "format:exe"
-      - "static-config:unresolved"
-    c2: []
-    notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/
-
-  - malware_type: "quasarrat"
-    analyzed_at: 2026-07-17
+      - "terminal-family:quasarrat"
+      - "version:v1.3.0.0"
+      - "authenticated-config:hmac-sha256"
+      - "delivery:inflated-nativeaot-loader"
+    c2:
+      - "stopman.ooguy.com:2002"
+    notes: "メモリ上の最終Quasarを再構築し、HMAC検証済み設定から版、C2、Mutex、Tagを復元した。検体実行とC2接続は行っていない。"
+    result_path: analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/
+  - malware_type: "pulsarrat"
+    analyzed_at: 2026-08-03
     sample_sha256: bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153
-    analysis_level: bounded_static_profile
-    campaign_type: reviewed_direct_payload_or_wrapper
+    analysis_level: terminal_payload_recovered_config_pending
+    campaign_type: nativeaot_decoy_installer_pulsarrat
     matched_patterns:
       - "source-signature:QuasarRAT"
-      - "profile:quasarrat"
-      - "format:exe"
-      - "static-config:unresolved"
+      - "terminal-family:pulsarrat"
+      - "code-topology:FileHandlerXeno"
+      - "behavior:jsc-process-injection"
+      - "delivery:inflated-nativeaot-loader"
     c2: []
-    notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/malware/quasarrat/versions/unknown/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153/
-
+    notes: "公開サンドボックスの最終PEとメモリ像からPulsar固有のXenoファイル処理を確認し、Quasarから再分類した。C2、Mutex、版の静的復号は継続課題である。"
+    result_path: analysis-results/malware/pulsarrat/versions/unknown/cases/bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153/
   - malware_type: "quasarrat"
     analyzed_at: 2026-07-17
     sample_sha256: 308c4dfa19d1c4a47c9fbe46bb174b97e6deb192e78de2db02a7e09734d65279
@@ -3973,20 +3975,21 @@ analyses:
     notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
     result_path: analysis-results/malware/hijackloader/versions/unknown/cases/c68ede9934529477f86d80b5d02f5be7245ca6326cf0b02ac37516d6cfc8c2c4/
 
-  - malware_type: "hijackloader"
-    analyzed_at: 2026-07-17
+  - malware_type: "franz-electron-backdoor"
+    analyzed_at: 2026-08-03
     sample_sha256: 9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a
-    analysis_level: bounded_static_profile
-    campaign_type: staged_loader_or_container
+    analysis_level: modified_asar_control_flow_and_config_recovered
+    campaign_type: repacked_electron_backdoor
     matched_patterns:
       - "source-signature:HijackLoader"
-      - "profile:hijackloader"
-      - "format:exe"
-      - "static-config:unresolved"
-    c2: []
-    notes: "Exact MalwareBazaar signature and verified hash support family selection; encrypted config and candidate infrastructure remain separately qualified. No sample execution or infrastructure contact."
-    result_path: analysis-results/malware/hijackloader/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/
-
+      - "terminal-family:franz-electron-backdoor"
+      - "carrier:Franz-5.10.0"
+      - "task-schema:eval-and-base64-files"
+      - "persistence:electron-login-item"
+    c2:
+      - "https://web-telegram.ug/api/"
+    notes: "Inno SetupからFranzのapp.asarを展開し、周期ビーコン、任意JavaScript、後段EXE実行、端末ID永続化を確認した。HijackLoaderから再分類し、外部接続は行っていない。"
+    result_path: analysis-results/malware/franz-electron-backdoor/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/
   - malware_type: "hijackloader"
     analyzed_at: 2026-07-17
     sample_sha256: ab6be6dbe8499287e1f596d72791ed7be436c81b1c464ea388601dae07804401
@@ -7451,3 +7454,47 @@ analyses:
     c2: []
     notes: "特徴関数の静的解析と公開成果物の生成を完了しました。検体実行とインフラ接続は行っていません。"
     result_path: analysis-results/malware/vidar/versions/unknown/cases/3ba8def47d369dfdf0c15cbeaf33baa1677342c57de97d1d659a120b6c64c792/
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-08-04
+    sample_sha256: e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648
+    analysis_level: characteristic_function_static_analysis_and_network_stage_recovery
+    campaign_type: img_pdfcore8_winos_proxy_sideload
+    matched_patterns:
+      - "ZIP→IMG→ConvertToPDF/PDFCore8サイドロード"
+      - "Winos stage branch A"
+      - "ms-settings UAC bypass"
+    c2:
+      - "ljdnxz.cc:8856"
+      - "ljdnxz.cc:8868"
+    notes: "PCAPから後段PEを復元し、Ghidra MCPで代表関数を解析しました。control heartbeat応答を限定確認し、stage要求やoperation commandは送信していません。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-08-04
+    sample_sha256: 12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d
+    analysis_level: characteristic_function_static_analysis_and_network_stage_recovery
+    campaign_type: img_pdfcore8_winos_proxy_sideload
+    matched_patterns:
+      - "ZIP→IMG→ConvertToPDF/PDFCore8サイドロード"
+      - "Winos stage branch B"
+      - "ms-settings UAC bypass"
+    c2:
+      - "auk218.club:7811"
+      - "auk218.club:7800"
+    notes: "完全一致PCAPから別branchの後段PEを復元・解析しました。2026-08-04の限定確認では両portがtimeoutでした。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-08-04
+    sample_sha256: 61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5
+    analysis_level: characteristic_function_static_analysis_and_network_stage_recovery
+    campaign_type: img_pdfcore8_winos_proxy_sideload
+    matched_patterns:
+      - "ZIP→IMG→ConvertToPDF/PDFCore8サイドロード"
+      - "Winos stage branch A"
+      - "ケース1と後段PE完全一致"
+    c2:
+      - "haochisadnka.cc:6698"
+      - "haochisadnka.cc:6685"
+    notes: "配布URLから完全一致ZIPを取得し、PCAPからケース1と同一の後段PEを復元しました。control heartbeat応答を限定確認しました。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/

@@ -13,7 +13,17 @@ MAX_HEADER = 16 * 1024 * 1024
 MAX_MEMBER = 256 * 1024 * 1024
 MAX_MEMBERS = 4096
 MAX_TOTAL = 512 * 1024 * 1024
-RETAIN_SUFFIXES = {".js", ".cjs", ".mjs", ".json", ".node", ".dll", ".exe", ".bin", ".dat"}
+RETAIN_SUFFIXES = {
+    ".js",
+    ".cjs",
+    ".mjs",
+    ".json",
+    ".node",
+    ".dll",
+    ".exe",
+    ".bin",
+    ".dat",
+}
 
 
 def safe_asar_name(name: str) -> str:
@@ -26,17 +36,24 @@ def asar_header(data: bytes) -> tuple[dict, int]:
     if len(data) < 16:
         raise ValueError("truncated ASAR header")
     word0, word1, pickle_size, json_size = struct.unpack_from("<IIII", data)
-    if word0 != 4 or word1 != pickle_size + 4 or pickle_size != json_size + 4:
+    padding_size = pickle_size - json_size - 4
+    if word0 != 4 or word1 != pickle_size + 4 or not 0 <= padding_size <= 3:
         raise ValueError("invalid ASAR pickle lengths")
-    if not 2 <= json_size <= MAX_HEADER or 16 + json_size > len(data):
+    data_offset = 12 + pickle_size
+    json_end = 16 + json_size
+    if (
+        not 2 <= json_size <= MAX_HEADER
+        or data_offset > len(data)
+        or any(data[json_end:data_offset])
+    ):
         raise ValueError("ASAR JSON header exceeds bounds")
     try:
-        header = json.loads(data[16 : 16 + json_size].decode("utf-8"))
+        header = json.loads(data[16:json_end].decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("invalid ASAR JSON header") from exc
     if not isinstance(header, dict) or not isinstance(header.get("files"), dict):
         raise ValueError("ASAR header has no files tree")
-    return header, 12 + pickle_size
+    return header, data_offset
 
 
 def is_asar(data: bytes) -> bool:
@@ -86,17 +103,33 @@ def recover_asar(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             continue
         total += size
         if total > MAX_TOTAL:
-            inventory.append({"name": name, "size": size, "status": "total_size_blocked"})
+            inventory.append(
+                {"name": name, "size": size, "status": "total_size_blocked"}
+            )
             continue
         blob = data[start:end]
         digest = hashlib.sha256(blob).hexdigest()
         expected = str((node.get("integrity") or {}).get("hash") or "").lower()
-        integrity = "verified" if expected == digest else ("mismatch" if expected else "not_provided")
-        item = {"name": name, "size": size, "sha256": digest, "integrity": integrity, "status": "extracted"}
+        integrity = (
+            "verified"
+            if expected == digest
+            else ("mismatch" if expected else "not_provided")
+        )
+        item = {
+            "name": name,
+            "size": size,
+            "sha256": digest,
+            "integrity": integrity,
+            "status": "extracted",
+        }
         inventory.append(item)
         suffix = PurePosixPath(name).suffix.lower()
         if suffix in RETAIN_SUFFIXES and integrity != "mismatch":
-            kind = "asar-script" if suffix in {".js", ".cjs", ".mjs", ".json"} else "asar-native"
+            kind = (
+                "asar-script"
+                if suffix in {".js", ".cjs", ".mjs", ".json"}
+                else "asar-native"
+            )
             artifacts.append((kind, blob))
     return {
         "status": "extracted",

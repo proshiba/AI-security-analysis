@@ -20,6 +20,7 @@ from extractors.npm_supply_chain import extract as extract_npm_supply_chain
 from extractors.profiled_family import extractor_for, load_profiles
 from extractors.purehvnc import extract as extract_purehvnc
 from extractors.purelogs import extract as extract_purelogs
+from extractors.quasarrat import extract as extract_quasarrat
 from extractors.remcosrat import extract as extract_remcosrat
 from extractors.remusstealer import extract as extract_remusstealer
 from extractors.shadowpad import extract as extract_shadowpad
@@ -58,6 +59,7 @@ EXTRACTORS: dict[str, Extractor] = {
     "vidar": extract_vidar,
     "mx-go": extract_mx_go,
     **PROFILED_EXTRACTORS,
+    "quasarrat": extract_quasarrat,
 }
 ALIASES = {
     "acr-stealer": "acrstealer",

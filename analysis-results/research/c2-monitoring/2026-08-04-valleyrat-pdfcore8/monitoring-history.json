@@ -1,0 +1,685 @@
+{
+  "current_run": "2026-08-04-valleyrat-pdfcore8",
+  "endpoints": [
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [],
+            "assessment_state": "not_reachable_at_observation",
+            "availability": "off",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [],
+            "ips": [],
+            "observed_at_utc": "2026-08-03T23:16:37.936008+00:00",
+            "organizations": [],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "auk218.club|7800|winos|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:37.936008+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:37.936008+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:37.936008+00:00",
+        "last_on_at_utc": null,
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 1,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_grace",
+        "transition": null
+      },
+      "port": 7800,
+      "protocol": "winos",
+      "target_id": "valleyrat-auk218-control-7800",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              152194
+            ],
+            "assessment_state": "not_reachable_at_observation",
+            "availability": "off",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 152194,
+                  "organization": "CTG Server Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 1000,
+                  "city_name": null,
+                  "continent_code": "AS",
+                  "continent_name": "アジア",
+                  "country_iso_code": "SG",
+                  "country_name": "シンガポール",
+                  "is_anycast": null,
+                  "latitude": 1.3667,
+                  "longitude": 103.8,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": "Asia/Singapore"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "suspected",
+                    "confidence": 0.65,
+                    "label": "防弾ホスティング - 疑い",
+                    "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+                    "rule_id": "spamhaus-as152194-ctgserver-suspected",
+                    "sources": [
+                      {
+                        "observation_period": "2025-07/2025-12",
+                        "retrieved": "2026-08-02",
+                        "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+                        "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf"
+                      }
+                    ]
+                  },
+                  "matched_rules": [
+                    "spamhaus-as152194-ctgserver-suspected"
+                  ],
+                  "tags": [
+                    {
+                      "basis": "classification registry: spamhaus-as152194-ctgserver-suspected",
+                      "confidence": 0.65,
+                      "id": "bulletproof_hosting_suspected",
+                      "label": "防弾ホスティング - 疑い",
+                      "rule_id": "spamhaus-as152194-ctgserver-suspected"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: CTG Server Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "118.107.0.196"
+              }
+            ],
+            "ips": [
+              "118.107.0.196"
+            ],
+            "observed_at_utc": "2026-08-03T23:16:34.710188+00:00",
+            "organizations": [
+              "CTG Server Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "auk218.club|7811|tcp|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:34.710188+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:34.710188+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:34.710188+00:00",
+        "last_on_at_utc": null,
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 1,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_grace",
+        "transition": null
+      },
+      "port": 7811,
+      "protocol": "tcp",
+      "target_id": "valleyrat-auk218-stage-7811",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              152194
+            ],
+            "assessment_state": "c2_protocol_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 152194,
+                  "organization": "CTG Server Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 1000,
+                  "city_name": null,
+                  "continent_code": "AS",
+                  "continent_name": "アジア",
+                  "country_iso_code": "SG",
+                  "country_name": "シンガポール",
+                  "is_anycast": null,
+                  "latitude": 1.3667,
+                  "longitude": 103.8,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": "Asia/Singapore"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "suspected",
+                    "confidence": 0.65,
+                    "label": "防弾ホスティング - 疑い",
+                    "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+                    "rule_id": "spamhaus-as152194-ctgserver-suspected",
+                    "sources": [
+                      {
+                        "observation_period": "2025-07/2025-12",
+                        "retrieved": "2026-08-02",
+                        "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+                        "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf"
+                      }
+                    ]
+                  },
+                  "matched_rules": [
+                    "spamhaus-as152194-ctgserver-suspected"
+                  ],
+                  "tags": [
+                    {
+                      "basis": "classification registry: spamhaus-as152194-ctgserver-suspected",
+                      "confidence": 0.65,
+                      "id": "bulletproof_hosting_suspected",
+                      "label": "防弾ホスティング - 疑い",
+                      "rule_id": "spamhaus-as152194-ctgserver-suspected"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: CTG Server Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "134.122.185.201"
+              }
+            ],
+            "ips": [
+              "134.122.185.201"
+            ],
+            "observed_at_utc": "2026-08-03T23:16:41.383035+00:00",
+            "organizations": [
+              "CTG Server Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "haochisadnka.cc|6685|winos|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:41.383035+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:41.383035+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:41.383035+00:00",
+        "last_on_at_utc": "2026-08-03T23:16:41.383035+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 6685,
+      "protocol": "winos",
+      "target_id": "valleyrat-haochisadnka-control-6685",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              152194
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 152194,
+                  "organization": "CTG Server Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 1000,
+                  "city_name": null,
+                  "continent_code": "AS",
+                  "continent_name": "アジア",
+                  "country_iso_code": "SG",
+                  "country_name": "シンガポール",
+                  "is_anycast": null,
+                  "latitude": 1.3667,
+                  "longitude": 103.8,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": "Asia/Singapore"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "suspected",
+                    "confidence": 0.65,
+                    "label": "防弾ホスティング - 疑い",
+                    "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+                    "rule_id": "spamhaus-as152194-ctgserver-suspected",
+                    "sources": [
+                      {
+                        "observation_period": "2025-07/2025-12",
+                        "retrieved": "2026-08-02",
+                        "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+                        "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf"
+                      }
+                    ]
+                  },
+                  "matched_rules": [
+                    "spamhaus-as152194-ctgserver-suspected"
+                  ],
+                  "tags": [
+                    {
+                      "basis": "classification registry: spamhaus-as152194-ctgserver-suspected",
+                      "confidence": 0.65,
+                      "id": "bulletproof_hosting_suspected",
+                      "label": "防弾ホスティング - 疑い",
+                      "rule_id": "spamhaus-as152194-ctgserver-suspected"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: CTG Server Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "134.122.185.201"
+              }
+            ],
+            "ips": [
+              "134.122.185.201"
+            ],
+            "observed_at_utc": "2026-08-03T23:16:40.940055+00:00",
+            "organizations": [
+              "CTG Server Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "haochisadnka.cc|6698|tcp|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:40.940055+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:40.940055+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:40.940055+00:00",
+        "last_on_at_utc": "2026-08-03T23:16:40.940055+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 6698,
+      "protocol": "tcp",
+      "target_id": "valleyrat-haochisadnka-stage-6698",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              152194
+            ],
+            "assessment_state": "transport_reachable_c2_not_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 152194,
+                  "organization": "CTG Server Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 1000,
+                  "city_name": null,
+                  "continent_code": "AS",
+                  "continent_name": "アジア",
+                  "country_iso_code": "HK",
+                  "country_name": "香港",
+                  "is_anycast": null,
+                  "latitude": 22.2578,
+                  "longitude": 114.1657,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": "Asia/Hong_Kong"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "suspected",
+                    "confidence": 0.65,
+                    "label": "防弾ホスティング - 疑い",
+                    "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+                    "rule_id": "spamhaus-as152194-ctgserver-suspected",
+                    "sources": [
+                      {
+                        "observation_period": "2025-07/2025-12",
+                        "retrieved": "2026-08-02",
+                        "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+                        "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf"
+                      }
+                    ]
+                  },
+                  "matched_rules": [
+                    "spamhaus-as152194-ctgserver-suspected"
+                  ],
+                  "tags": [
+                    {
+                      "basis": "classification registry: spamhaus-as152194-ctgserver-suspected",
+                      "confidence": 0.65,
+                      "id": "bulletproof_hosting_suspected",
+                      "label": "防弾ホスティング - 疑い",
+                      "rule_id": "spamhaus-as152194-ctgserver-suspected"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: CTG Server Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "121.127.253.206"
+              }
+            ],
+            "ips": [
+              "121.127.253.206"
+            ],
+            "observed_at_utc": "2026-08-03T23:16:33.819129+00:00",
+            "organizations": [
+              "CTG Server Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "ljdnxz.cc|8856|tcp|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:33.819129+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:33.819129+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:33.819129+00:00",
+        "last_on_at_utc": "2026-08-03T23:16:33.819129+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 8856,
+      "protocol": "tcp",
+      "target_id": "valleyrat-ljdnxz-stage-8856",
+      "transport": "direct"
+    },
+    {
+      "dns_tracking": {
+        "history": [
+          {
+            "asns": [
+              152194
+            ],
+            "assessment_state": "c2_protocol_confirmed",
+            "availability": "on",
+            "change_classification": "initial_observation",
+            "date": "2026-08-04-valleyrat-pdfcore8",
+            "infrastructure_ip_change": false,
+            "ip_details": [
+              {
+                "as": {
+                  "asn": 152194,
+                  "organization": "CTG Server Limited"
+                },
+                "geo": {
+                  "accuracy_radius_km": 1000,
+                  "city_name": null,
+                  "continent_code": "AS",
+                  "continent_name": "アジア",
+                  "country_iso_code": "HK",
+                  "country_name": "香港",
+                  "is_anycast": null,
+                  "latitude": 22.2578,
+                  "longitude": 114.1657,
+                  "subdivision_iso_code": null,
+                  "subdivision_name": null,
+                  "time_zone": "Asia/Hong_Kong"
+                },
+                "infrastructure": {
+                  "bulletproof_hosting": {
+                    "classification": "suspected",
+                    "confidence": 0.65,
+                    "label": "防弾ホスティング - 疑い",
+                    "reason": "Spamhausはctgserver.comで2025年後半に新規botnet C2が109%増加し384件に達したと報告している。一方、provider自身が防弾運営を意図しているとの明示評価はないため疑いに限定する。",
+                    "rule_id": "spamhaus-as152194-ctgserver-suspected",
+                    "sources": [
+                      {
+                        "observation_period": "2025-07/2025-12",
+                        "retrieved": "2026-08-02",
+                        "title": "Spamhaus Botnet Threat Update Jul–Dec 2025",
+                        "url": "https://content.spamhaus.org/30bc0262-14ee-42d9-93bb-31985ef89497.pdf"
+                      }
+                    ]
+                  },
+                  "matched_rules": [
+                    "spamhaus-as152194-ctgserver-suspected"
+                  ],
+                  "tags": [
+                    {
+                      "basis": "classification registry: spamhaus-as152194-ctgserver-suspected",
+                      "confidence": 0.65,
+                      "id": "bulletproof_hosting_suspected",
+                      "label": "防弾ホスティング - 疑い",
+                      "rule_id": "spamhaus-as152194-ctgserver-suspected"
+                    },
+                    {
+                      "basis": "レビュー済みC2監視対象から観測",
+                      "confidence": 1.0,
+                      "id": "c2_candidate",
+                      "label": "C2候補インフラ"
+                    },
+                    {
+                      "basis": "FQDNのA／AAAA解決結果",
+                      "confidence": 1.0,
+                      "id": "dns_resolution",
+                      "label": "DNS解決先"
+                    },
+                    {
+                      "basis": "AS organizationのservice種別marker: CTG Server Limited",
+                      "confidence": 0.65,
+                      "id": "hosting",
+                      "label": "ホスティング"
+                    }
+                  ]
+                },
+                "ip": "121.127.253.206"
+              }
+            ],
+            "ips": [
+              "121.127.253.206"
+            ],
+            "observed_at_utc": "2026-08-03T23:16:34.269917+00:00",
+            "organizations": [
+              "CTG Server Limited"
+            ],
+            "raw_ip_changed": false,
+            "shared_cdn_provider": null
+          }
+        ],
+        "infrastructure_ip_change_count": 0,
+        "raw_ip_change_count": 0,
+        "schema_version": 1,
+        "shared_cdn_rotation_ignored_count": 0,
+        "transitions": []
+      },
+      "endpoint_key": "ljdnxz.cc|8868|winos|direct|",
+      "events": [],
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "http_path": null,
+      "monitoring_lifecycle": {
+        "active": true,
+        "first_observed_at_utc": "2026-08-03T23:16:34.269917+00:00",
+        "inactive_days": 0.0,
+        "inactive_since_utc": "2026-08-03T23:16:34.269917+00:00",
+        "last_observed_at_utc": "2026-08-03T23:16:34.269917+00:00",
+        "last_on_at_utc": "2026-08-03T23:16:34.269917+00:00",
+        "minimum_off_observations": 2,
+        "off_observation_count_since_last_on": 0,
+        "retired_at_utc": null,
+        "retirement_threshold_days": 7,
+        "schema_version": 1,
+        "status": "active_on",
+        "transition": null
+      },
+      "port": 8868,
+      "protocol": "winos",
+      "target_id": "valleyrat-ljdnxz-control-8868",
+      "transport": "direct"
+    }
+  ],
+  "generated_at_utc": "2026-08-03T23:16:42.132763+00:00",
+  "policy": {
+    "active_target_count": 6,
+    "endpoint_count": 6,
+    "minimum_off_observations": 2,
+    "retired_target_count": 0,
+    "retirement_after_days_without_on": 7,
+    "schema_version": 1,
+    "shared_cdn_rotation_counts_as_infrastructure_change": false
+  },
+  "schema_version": 1
+}

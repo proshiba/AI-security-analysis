@@ -36,7 +36,6 @@ def recover_xz(data: bytes) -> tuple[dict, bytes | None]:
             decompressor = lzma.LZMADecompressor(
                 format=lzma.FORMAT_XZ, memlimit=512 * 1024 * 1024
             )
-            before = len(output)
             limit = MAX_ARTIFACT - len(output) + 1
             if limit <= 0:
                 return {
@@ -126,9 +125,7 @@ def recover_macho_slices(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             item["status"] = "bounds_blocked"
         else:
             blob = data[offset : offset + size]
-            item.update(
-                status="recovered", sha256=hashlib.sha256(blob).hexdigest()
-            )
+            item.update(status="recovered", sha256=hashlib.sha256(blob).hexdigest())
             artifacts.append((f"macho-slice-{index}", blob))
         inventory.append(item)
     return {
@@ -151,7 +148,10 @@ def recover_inflated_pe(data: bytes) -> tuple[dict, bytes | None]:
             for section in image.sections
         )
         security = image.OPTIONAL_HEADER.DATA_DIRECTORY[4]
-        security_offset, security_size = int(security.VirtualAddress), int(security.Size)
+        security_offset, security_size = (
+            int(security.VirtualAddress),
+            int(security.Size),
+        )
     except (ValueError, AttributeError, IndexError, pefile.PEFormatError):
         return {"status": "parse_failed"}, None
     gap = security_offset - section_end
@@ -167,6 +167,16 @@ def recover_inflated_pe(data: bytes) -> tuple[dict, bytes | None]:
             "security_offset": security_offset,
             "security_size": security_size,
             "gap_size": max(gap, 0),
+        }, None
+    gap_data = data[section_end:security_offset]
+    if not gap_data or gap_data.count(gap_data[0]) != len(gap_data):
+        return {
+            "status": "preserved_nonuniform_security_gap",
+            "section_end": section_end,
+            "security_offset": security_offset,
+            "security_size": security_size,
+            "gap_size": gap,
+            "gap_sha256": hashlib.sha256(gap_data).hexdigest(),
         }, None
     compact = bytearray(data[:section_end])
     directory_offset = int(security.get_file_offset())
@@ -184,6 +194,7 @@ def recover_inflated_pe(data: bytes) -> tuple[dict, bytes | None]:
         "original_size": len(data),
         "recovered_size": len(recovered),
         "removed_gap_size": gap,
+        "padding_byte": gap_data[0],
         "security_size": security_size,
         "security_sha256": hashlib.sha256(certificate).hexdigest(),
         "sha256": hashlib.sha256(recovered).hexdigest(),

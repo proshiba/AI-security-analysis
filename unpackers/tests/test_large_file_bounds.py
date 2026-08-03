@@ -19,6 +19,64 @@ def test_entropy_uses_deterministic_three_window_sample(monkeypatch) -> None:
     assert unpacker.entropy(value) == expected
 
 
+def test_large_overlay_does_not_trigger_control_flow_triage() -> None:
+    """実行imageが小さい場合、巨大overlayだけではCFG解析を起動しない。"""
+
+    assert (
+        unpacker.should_analyze_pe_control_flow(
+            packing_suspected=False,
+            classification="not_packed",
+            executable_extent=512 * 1024,
+        )
+        is False
+    )
+    assert (
+        unpacker.should_analyze_pe_control_flow(
+            packing_suspected=False,
+            classification="not_packed",
+            executable_extent=33 * 1024 * 1024,
+        )
+        is True
+    )
+
+
+def test_repetitive_pe_overlay_emits_compact_executable(monkeypatch) -> None:
+    """規則的な巨大overlayを除去した実行可能領域を次段解析へ渡す。"""
+
+    class Section:
+        Name = b".text\0\0\0"
+        SizeOfRawData = 8
+        Misc_VirtualSize = 8
+        Characteristics = 0x60000020
+        VirtualAddress = 0x1000
+
+        @staticmethod
+        def get_data() -> bytes:
+            return b"A" * 8
+
+    directories = [SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(15)]
+    image = SimpleNamespace(
+        sections=[Section()],
+        OPTIONAL_HEADER=SimpleNamespace(
+            DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000
+        ),
+        FILE_HEADER=SimpleNamespace(Machine=0x8664),
+        get_overlay_data_start_offset=lambda: 64,
+    )
+    monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
+    monkeypatch.setattr(unpacker, "entropy", lambda _value: 1.0)
+    monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _value: [])
+    monkeypatch.setattr(
+        unpacker, "repetitive_padding", lambda _value: {"period": 4, "byte": None}
+    )
+    data = b"MZ" + b"A" * 62 + b"89:;" * 32
+
+    summary, artifacts = unpacker.pe_summary(data)
+
+    assert summary["overlay_repetitive_padding"] == {"period": 4, "byte": None}
+    assert artifacts == [("pe-overlay-padding-removed", data[:64])]
+
+
 def test_pe_section_entropy_uses_bounded_helper(monkeypatch) -> None:
     """Route PE section entropy through the shared bounded sampler."""
     section_data = b"A" * 32
@@ -41,13 +99,17 @@ def test_pe_section_entropy_uses_bounded_helper(monkeypatch) -> None:
     directories = [SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(15)]
     image = SimpleNamespace(
         sections=[Section()],
-        OPTIONAL_HEADER=SimpleNamespace(DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000),
+        OPTIONAL_HEADER=SimpleNamespace(
+            DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000
+        ),
         FILE_HEADER=SimpleNamespace(Machine=0x14C),
         get_overlay_data_start_offset=lambda: None,
     )
     monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
     observed: list[bytes] = []
-    monkeypatch.setattr(unpacker, "entropy", lambda value: observed.append(value) or 1.25)
+    monkeypatch.setattr(
+        unpacker, "entropy", lambda value: observed.append(value) or 1.25
+    )
 
     summary, artifacts = unpacker.pe_summary(b"MZ" + b"\0" * 64)
     assert observed == [section_data]
@@ -57,6 +119,7 @@ def test_pe_section_entropy_uses_bounded_helper(monkeypatch) -> None:
 
 def test_protected_pe_routes_to_bounded_cfg_without_block_bloat(monkeypatch) -> None:
     """Attach summarized CFG evidence only when PE protection is suspected."""
+
     class Section:
         Name = b".text\0\0\0"
         SizeOfRawData = 0x2000
@@ -71,7 +134,9 @@ def test_protected_pe_routes_to_bounded_cfg_without_block_bloat(monkeypatch) -> 
     directories = [SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(15)]
     image = SimpleNamespace(
         sections=[Section()],
-        OPTIONAL_HEADER=SimpleNamespace(DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000),
+        OPTIONAL_HEADER=SimpleNamespace(
+            DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000
+        ),
         FILE_HEADER=SimpleNamespace(Machine=0x14C),
         get_overlay_data_start_offset=lambda: None,
     )
@@ -145,6 +210,7 @@ def test_single_custom_dll_many_imports_marks_encrypted_sideload_host(
 
 def test_managed_pe_routes_to_bounded_il_summary(monkeypatch) -> None:
     """Keep managed counts and evidence while omitting large token inventories."""
+
     class Section:
         Name = b".text\0\0\0"
         SizeOfRawData = 16

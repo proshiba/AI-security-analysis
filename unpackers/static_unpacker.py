@@ -45,6 +45,7 @@ from unpackers.container_recovery import (
 )
 from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
+from unpackers.dotnet_bundle_unpacker import recover_dotnet_bundle
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
 from unpackers.profiled_transform import recover_profiled_transforms
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
@@ -396,6 +397,21 @@ def pe_resource_children(
     return resource_format, artifacts, None
 
 
+def should_analyze_pe_control_flow(
+    *,
+    packing_suspected: bool,
+    classification: str,
+    executable_extent: int,
+) -> bool:
+    """巨大overlayではなく実行image範囲を基準にCFG解析要否を決める。"""
+
+    return (
+        packing_suspected
+        or classification == "managed_loader_or_obfuscated"
+        or executable_extent > 32 * 1024 * 1024
+    )
+
+
 def repetitive_padding(data: bytes, max_period: int = 32) -> dict[str, object] | None:
     """短いバイトパターンの反復だけで構成されたバッファ全体を識別する。"""
     if len(data) < 4096:
@@ -504,6 +520,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     overlay = data[overlay_offset:] if overlay_offset is not None else b""
     overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
     overlay_padding = repetitive_padding(overlay) if overlay else None
+    if overlay and overlay_padding is not None and overlay_offset is not None:
+        artifacts.append(("pe-overlay-padding-removed", data[:overlay_offset]))
     if overlay and overlay_format != "data" and overlay_padding is None:
         artifacts.append((f"pe-overlay-{overlay_format}", overlay))
     artifacts.extend(carve_embedded_pes(overlay))
@@ -635,10 +653,10 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "suspected_encrypted_sideload_host",
     }
     control_flow = None
-    if (
-        packed
-        or classification == "managed_loader_or_obfuscated"
-        or len(data) > 32 * 1024 * 1024
+    if should_analyze_pe_control_flow(
+        packing_suspected=packed,
+        classification=classification,
+        executable_extent=image_end,
     ):
         control_flow = analyze_pe_control_flow(data)
         # The full block list is useful in a private analyst workspace but is
@@ -1345,7 +1363,7 @@ def run_die(
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-die-") as temp:
-        suffix = Path(name).suffix or ".bin"
+        suffix = safe_temporary_suffix(name)
         source = Path(temp) / f"sample{suffix}"
         source.write_bytes(data)
         try:
@@ -1375,6 +1393,13 @@ def run_die(
             "raw": document,
             "sample_executed": False,
         }
+
+
+def safe_temporary_suffix(name: str) -> str:
+    """復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。"""
+
+    candidate = Path(name).suffix
+    return candidate if re.fullmatch(r"\.[A-Za-z0-9]{1,16}", candidate) else ".bin"
 
 
 def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
@@ -1583,12 +1608,8 @@ def sevenzip_extract(
         return {**listing, "status": "declared_size_blocked"}, []
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp)
-        candidate_suffix = Path(name).suffix
-        suffix = (
-            candidate_suffix
-            if re.fullmatch(r"\.[A-Za-z0-9]{1,16}", candidate_suffix)
-            else ".bin"
-        )
+        suffix = safe_temporary_suffix(name)
+
         source, output = root / f"input{suffix}", root / "out"
         source.write_bytes(data)
         command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
@@ -1911,6 +1932,13 @@ def unpack_bytes(
             }
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
+        artifacts.extend(recovered)
+        report["dotnet_bundle"], recovered = recover_dotnet_bundle(
+            static_data,
+            max_entries=max_archive_members,
+            max_entry_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
+        )
         artifacts.extend(recovered)
         embedded_archives = [
             (artifact_kind, artifact_data)

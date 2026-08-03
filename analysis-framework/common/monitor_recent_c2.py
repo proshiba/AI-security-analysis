@@ -774,15 +774,28 @@ def render_markdown(result: dict) -> str:
             "今回、レビュー済みheartbeat／malware check-inは対象へ送信されませんでした。"
             "victim metadata、stage要求、command pollingは行っていません。"
         )
+    scope = str(result.get("collection_scope") or "provided_targets")
+    if scope == "all_historical_c2":
+        report_title = "# 全解析履歴のC2稼働状況"
+        scope_description = (
+            "`.onion`はユーザー指定により対象外です。通常のIP/FQDNは、"
+            "C2/control/exfil等の役割根拠を持つ全履歴IOCから自動抽出しています。"
+        )
+    else:
+        report_title = "# 対象限定のC2稼働状況"
+        scope_description = (
+            f"監視scopeは `{scope}` です。`.onion`は対象外で、"
+            "入力planへ明示した根拠付きendpointだけを確認しています。"
+        )
     return "\n".join(
         [
-            "# 全解析履歴のC2稼働状況",
+            report_title,
             "",
             f"対象期間は `{result['analysis_window']['start']}` から `{result['analysis_window']['end']}`、監視対象は {result['target_count']} endpointです。状態内訳は {summary} です。",
             "",
             coverage_summary,
             "",
-            "`.onion`はユーザー指定により対象外です。通常のIP/FQDNは、C2/control/exfil等の役割根拠を持つ全履歴IOCから自動抽出しています。",
+            scope_description,
             "",
             "この結果は観測時点のスナップショットです。TCP open、TLS証明書、一般HTTP/FTP応答だけではC2を確定しません。到達性とC2稼働確度を分離します。OFFが7日以上継続し、2回以上の実観測がある対象だけを停止扱いにして次回active対象から外します。",
             "",

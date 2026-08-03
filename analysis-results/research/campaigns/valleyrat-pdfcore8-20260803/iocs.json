@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "domains": ["ljdnxz.cc", "auk218.club", "haochisadnka.cc"],
+  "ips": ["121.127.253.206", "118.107.0.196", "134.122.185.201"],
+  "stage_endpoints": ["ljdnxz.cc:8856", "auk218.club:7811", "haochisadnka.cc:6698"],
+  "control_endpoints": ["ljdnxz.cc:8868", "auk218.club:7800", "haochisadnka.cc:6685"],
+  "recovered_stage_sha256": ["48e029896e618da275d85b86d4a5aab458c3e196e1f3c529453f9d5c44454721", "c1dc1f2f79a6f6ff30ef60524177b0c029f1ecb268a7089cec83d89861a65b8b"]
+}

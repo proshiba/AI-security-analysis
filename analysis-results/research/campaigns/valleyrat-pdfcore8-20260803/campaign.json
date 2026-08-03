@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "campaign_id": "valleyrat-japanese-malspam-pdfcore8-20260803",
+  "family": "valleyrat",
+  "actor_status": "unresolved",
+  "confidence": "medium_high",
+  "members": [
+    "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+    "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+    "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5"
+  ],
+  "branches": {
+    "winos_stage_branch_a": ["e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648", "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5"],
+    "winos_stage_branch_b": ["12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d"]
+  },
+  "shared_evidence": ["ZIP→IMG→ConvertToPDF/PDFCore8", "ms-settings UAC bypass", "ProgramData再配置", "watchdog script", "Winos stage/control channel"],
+  "attribution_guardrails": ["同一技術clusterを同一actorと断定しない", "domainまたはIPだけで関連付けない", "community tag単独で帰属しない"]
+}

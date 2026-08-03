@@ -18,6 +18,7 @@ from generate_ioc_lists import (  # noqa: E402
     generate,
     indicator_type,
     indicators_from_config,
+    indicators_from_indicators_json,
     indicators_from_ioc_json,
     read_relevant_markdown,
     render_ioc_list,
@@ -408,3 +409,137 @@ def test_generate_discovers_clickfix_case_and_excludes_context_only(
     assert "landing.example" in rendered
     assert "203.0.113.10" not in rendered
     assert "t.me" not in rendered
+
+
+def test_generate_indexes_reclassified_profile_run_aggregate(tmp_path: Path) -> None:
+    """取得時familyと確定familyが異なってもcatalogのSHA正本からIOCを集約する。"""
+
+    sample_hash = "f" * 64
+    results = tmp_path / "analysis-results"
+    run = results / "collections" / "malwarebazaar-run" / "sources" / "reported"
+    case = (
+        results
+        / "malware"
+        / "confirmed"
+        / "versions"
+        / "unknown"
+        / "cases"
+        / sample_hash
+    )
+    case.mkdir(parents=True)
+    run.mkdir(parents=True)
+    (results / "catalog").mkdir(parents=True)
+    (run / "README.md").write_text("# 取得時ラベル\n", encoding="utf-8")
+    (run / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source": "MalwareBazaar exact signature query",
+                "run_id": "malwarebazaar-run",
+                "family": "reported",
+                "items": [{"sha256": sample_hash}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (results / "collections" / "malwarebazaar-run" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "collection_id": "malwarebazaar-run",
+                "family_sources": [{"family": "reported", "path": "sources/reported"}],
+                "cases": [{"case_id": f"sha256:{sample_hash}"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (results / "catalog" / "cases.json").write_text(
+        json.dumps(
+            {
+                "cases": {
+                    sample_hash: {
+                        "canonical_path": case.relative_to(tmp_path).as_posix(),
+                        "case_id": f"sha256:{sample_hash}",
+                        "case_kind": "malware",
+                        "family": "confirmed",
+                        "version_key": "unknown",
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    (case / "indicators.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "sample_sha256": sample_hash,
+                "indicators": [
+                    {
+                        "type": "endpoint",
+                        "value": "reclassified.example:443",
+                        "role": "c2_candidate",
+                        "confidence": "candidate",
+                        "source": "fixture",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "analysis_history.yaml").write_text("analyses: []\n", encoding="utf-8")
+
+    result = generate(tmp_path, write=True)
+
+    assert result["analyses"] == 1
+    assert result["indicators"] == 2
+    assert "reclassified.example:443" in (run / "IOC-LIST.md").read_text(
+        encoding="utf-8"
+    )
+
+def test_structured_indicators_accept_defanged_values(tmp_path: Path) -> None:
+    """新形式の構造化IOCからdefanged endpointを安全に正規化する。"""
+
+    path = tmp_path / "indicators.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "sample_sha256": "a" * 64,
+                "indicators": [
+                    {
+                        "type": "endpoint",
+                        "value": "stopman[.]ooguy[.]com:2002",
+                        "role": "c2_candidate_static_config",
+                        "confidence": "high",
+                    }
+                ],
+                "excluded_context": [
+                    {"value": "1.1.1.1", "reason": "context_only"}
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert indicators_from_indicators_json(path) == [
+        Indicator(
+            "endpoint",
+            "stopman.ooguy.com:2002",
+            "c2_candidate_static_config",
+            "high",
+            "indicators.json",
+        )
+    ]
+
+
+def test_config_version_row_is_not_ipv4_ioc(tmp_path: Path) -> None:
+    """設定表の版番号をIPv4 IOCとして抽出しない。"""
+
+    path = tmp_path / "README.md"
+    path.write_text(
+        "# ケース\n\n## 復元設定\n\n| Version | `1.3.0.0` |\n",
+        encoding="utf-8",
+    )
+
+    assert read_relevant_markdown(path) == []

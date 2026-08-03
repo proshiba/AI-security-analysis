@@ -173,6 +173,7 @@ def indicator_type(value: str) -> str | None:
 def normalize_value(value: str) -> tuple[str, str] | None:
     """単一の候補を正規化し、種別と安全な値を返す。"""
     cleaned = value.strip().strip("`\"'").rstrip(".,;)]}")
+    cleaned = cleaned.replace("[.]", ".").replace("[:]", ":")
     if cleaned.lower().endswith("/tcp") and ENDPOINT_RE.fullmatch(cleaned.lower()):
         cleaned = cleaned[:-4]
     if cleaned.lower().startswith(("http://", "https://")):
@@ -212,6 +213,11 @@ def confidence_from_text(text: str, default: str = "recorded") -> str:
 def indicators_from_text(text: str, role: str, confidence: str, source: str) -> list[Indicator]:
     """明示的に関連する文章片からハッシュとネットワーク指標を抽出する。"""
     if any(marker in text.lower() for marker in EXCLUSION_MARKERS):
+        return []
+    if role == "config_ioc" and re.search(
+        r"(?i)(?:\bversion\b|バージョン|(?:^|\|)\s*版\s*(?:\||:))",
+        text,
+    ):
         return []
     values: list[str] = []
     text_without_urls = URL_RE.sub(" ", text)
@@ -331,6 +337,31 @@ def indicators_from_ioc_json(path: Path) -> list[Indicator]:
                 output.append(indicator)
 
     visit(value)
+    return output
+
+
+def indicators_from_indicators_json(path: Path) -> list[Indicator]:
+    """新しいcase `indicators.json` の公開対象配列だけを読み取る。"""
+
+    if not path.exists():
+        return []
+    value = json.loads(path.read_text(encoding="utf-8-sig"))
+    output: list[Indicator] = []
+    for finding in value.get("indicators") or []:
+        if not isinstance(finding, dict) or not isinstance(finding.get("value"), str):
+            continue
+        role = str(finding.get("role") or "recorded_ioc")
+        confidence = str(finding.get("confidence") or "recorded")
+        exclusion = f"{role} {confidence}".lower()
+        if any(marker in exclusion for marker in NON_IOC_MARKERS):
+            continue
+        normalized = normalize_value(finding["value"])
+        if not normalized:
+            continue
+        kind, safe_value = normalized
+        output.append(
+            Indicator(kind, safe_value, role, confidence, "indicators.json")
+        )
     return output
 
 
@@ -523,16 +554,30 @@ def _profile_run_indicators(directory: Path, results_root: Path) -> list[Indicat
         normalized = normalize_value(digest)
         if not normalized or normalized[0] != "sha256":
             raise ValueError(f"invalid aggregate manifest hash: {manifest_path}")
+        # collectionのfamilyは取得時ラベルであり、後続解析の確定familyと異なり得る。
+        # catalogが存在する場合はSHA-256を正本として現在のcaseへ解決する。
+        catalog_path = results_root / "catalog" / "cases.json"
         indicator_path = (
-            resolve_catalog_case_path(results_root, digest, family=family)
+            resolve_catalog_case_path(
+                results_root,
+                digest,
+                family=None if catalog_path.is_file() else family,
+            )
             / "indicators.json"
         )
         if not indicator_path.is_file():
             raise ValueError(f"missing aggregate case indicators: {indicator_path}")
         case = json.loads(indicator_path.read_text(encoding="utf-8-sig"))
-        if str((case.get("source") or {}).get("sha256") or "").lower() != digest:
+        case_digest = str(
+            (case.get("source") or {}).get("sha256")
+            or case.get("sample_sha256")
+            or ""
+        ).lower()
+        if case_digest != digest:
             raise ValueError(f"aggregate case hash mismatch: {indicator_path}")
-        findings.extend((case.get("static_analysis") or {}).get("findings") or [])
+        legacy_findings = (case.get("static_analysis") or {}).get("findings") or []
+        findings.extend(legacy_findings)
+        findings.extend(case.get("indicators") or [])
     return indicators_from_reviewed_findings(hashes, findings)
 
 
@@ -545,6 +590,7 @@ def collect_indicators(directory: Path, repository: Path, history: dict[str, dic
     values.extend(directory_hash_indicator(directory))
     values.extend(history_indicators(directory, repository, history))
     values.extend(indicators_from_ioc_json(directory / "iocs.json"))
+    values.extend(indicators_from_indicators_json(directory / "indicators.json"))
     values.extend(indicators_from_config(directory / "config.json"))
     values.extend(read_relevant_markdown(directory / "README.md"))
     return merge_indicators(values)
