@@ -9,8 +9,6 @@ from extractors.common import (
     ipv4_candidates,
     valid_host,
 )
-
-
 from extractors.stealer_common import infrastructure_urls
 
 
@@ -25,6 +23,11 @@ def identify_variant(strings: list[str]) -> str:
         return "single_pe_n520_managed"
     if "silverfox" in lower:
         return "silverfox_related"
+    if all(
+        item in lower
+        for item in ("myappdomainmanager", "initializenewdomain", "enumuilanguagesa")
+    ):
+        return "appdomainmanager_pixel_loader"
     winos_stage_markers = (
         "ipdatespecial",
         "sedebugprivilege",

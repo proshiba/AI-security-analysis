@@ -7,14 +7,13 @@ import argparse
 import hashlib
 import io
 import json
-from pathlib import Path
 import shutil
 import sys
 import zipfile
+from pathlib import Path
 from typing import Any
 
 import pyzipper
-
 
 COMMON_ROOT = Path(__file__).resolve().parent
 FRAMEWORK_ROOT = COMMON_ROOT.parent
@@ -41,6 +40,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_family_sample  # noqa: E402
 import classify_sample  # noqa: E402
+import static_layer_pipeline as static_layers  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
     build_pipeline_fingerprint,
@@ -55,6 +55,13 @@ from analysis_contract import (  # noqa: E402
     runtime_dependency_versions,
     seal_report,
 )
+from campaign_correlation import (  # noqa: E402
+    extract_campaign_evidence,
+    load_rules,
+    match_fingerprints,
+)
+from case_features import build_case_profile, render_features_markdown  # noqa: E402
+from extractors.profiled_family import clear_profile_cache  # noqa: E402
 from handler_catalog import (  # noqa: E402
     HandlerSpec,
     catalog_summary,
@@ -64,27 +71,19 @@ from handler_catalog import (  # noqa: E402
     load_handler,
     sanitize_public_value,
 )
-from extractors.profiled_family import clear_profile_cache  # noqa: E402
-from profiled_family_detector import clear_known_hash_cache  # noqa: E402
-from campaign_correlation import (  # noqa: E402
-    extract_campaign_evidence,
-    load_rules,
-    match_fingerprints,
-)
-from case_features import build_case_profile, render_features_markdown  # noqa: E402
-from static_logic import (  # noqa: E402
-    build_static_logic_report,
-    render_static_logic_markdown,
-)
 from malware_io import (  # noqa: E402
-    read_single_aes_zip_member,
     read_file_capped,
+    read_single_aes_zip_member,
     safe_output_name,
     sha256_bytes,
     write_json,
 )
+from profiled_family_detector import clear_known_hash_cache  # noqa: E402
+from static_logic import (  # noqa: E402
+    build_static_logic_report,
+    render_static_logic_markdown,
+)
 from unpackers.static_unpacker import detect_format, unpack_bytes  # noqa: E402
-import static_layer_pipeline as static_layers  # noqa: E402
 
 InputUnit = static_layers.InputUnit
 StaticLayer = static_layers.StaticLayer
@@ -244,9 +243,9 @@ def _layer_count_limit_reached(layer_report: dict[str, Any]) -> bool:
 
     events = layer_report.get("limit_events")
     return isinstance(events, list) and any(
-        isinstance(event, dict) and event.get("reason") == "layer_count_limit"
-        for event in events
+        isinstance(event, dict) and event.get("reason") == "layer_count_limit" for event in events
     )
+
 
 def _handler_evidence_score(value: Any) -> int:
     """互換用に、共通証拠tierから決定的なscoreだけを返す。"""
@@ -556,14 +555,11 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
                 fallback = value.get("sevenzip")
                 authoritative = value.get("embedded_installer_archive")
                 recovered = value.get("recovered")
-                embedded_dotnet_recovered = (
-                    isinstance(recovered, list)
-                    and any(
-                        isinstance(candidate, dict)
-                        and candidate.get("kind") == "embedded-pe"
-                        and candidate.get("sha256") in dotnet_recovered_layers
-                        for candidate in recovered
-                    )
+                embedded_dotnet_recovered = isinstance(recovered, list) and any(
+                    isinstance(candidate, dict)
+                    and candidate.get("kind") == "embedded-pe"
+                    and candidate.get("sha256") in dotnet_recovered_layers
+                    for candidate in recovered
                 )
                 if (
                     key == "sevenzip"
@@ -621,6 +617,36 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
             if isinstance(pe_report, dict) and pe_report.get("containerized") is True:
                 issues.append(f"steps[{index}].report:pe_container_extractor_unavailable")
     return sorted(set(issues))
+
+
+def _handler_static_logic_records(
+    case_dir: Path,
+    executions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """成功ハンドラーが公開した代表関数をcaseの標準ロジックへ集約する。"""
+
+    records: list[dict[str, Any]] = []
+    root = case_dir.resolve()
+    for execution in executions:
+        if execution.get("status") != "succeeded":
+            continue
+        relative = execution.get("result")
+        if not isinstance(relative, str):
+            continue
+        candidate = (case_dir / relative).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if not candidate.is_file():
+            continue
+        artifact = load_json_object_strict(candidate)
+        payload = artifact.get("result")
+        functions = payload.get("representative_functions") if isinstance(payload, dict) else None
+        if not isinstance(functions, list):
+            continue
+        records.extend(item for item in functions[:128] if isinstance(item, dict))
+    return records[:512]
 
 
 def _completion_state(
@@ -815,10 +841,7 @@ def analyze_unit(
             max_static_layers=max_static_layers,
             archive_password=archive_password,
         )
-        if (
-            retry_max_static_layers is not None
-            and _layer_count_limit_reached(layer_report)
-        ):
+        if retry_max_static_layers is not None and _layer_count_limit_reached(layer_report):
             initial_counts = layer_report.get("counts", {})
             initial_limit_events = layer_report.get("limit_events", [])
             layers, layer_report = recover_static_layers(
@@ -836,9 +859,7 @@ def analyze_unit(
                 "retry_max_static_layers": retry_max_static_layers,
                 "initial_counts": initial_counts,
                 "initial_limit_event_count": (
-                    len(initial_limit_events)
-                    if isinstance(initial_limit_events, list)
-                    else None
+                    len(initial_limit_events) if isinstance(initial_limit_events, list) else None
                 ),
             }
     write_json(case_dir / "static-layers.json", layer_report)
@@ -1084,11 +1105,16 @@ def analyze_unit(
         ],
     }
     write_json(case_dir / "report.json", report)
+    handler_logic_records = _handler_static_logic_records(case_dir, executions)
     logic_report = build_static_logic_report(
         sha256=digest,
         family=root_selection["selected_family"] or root_classification.get("malware_type"),
         source_name=unit.source_name,
-        data=None if assessment_only else unit.data,
+        data=None if assessment_only or handler_logic_records else unit.data,
+        records=handler_logic_records,
+        analysis_source=(
+            "campaign_handler_representative_functions" if handler_logic_records else "one_shot_static_analysis"
+        ),
     )
     write_json(case_dir / "static-logic.json", logic_report)
     (case_dir / "STATIC-LOGIC.md").write_text(render_static_logic_markdown(logic_report), encoding="utf-8")

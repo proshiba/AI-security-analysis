@@ -5,14 +5,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-
 MODULE_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "malware"
-    / "valleyrat"
-    / "campaigns"
-    / "signed_proxy_sideload"
-    / "analyze.py"
+    Path(__file__).resolve().parents[1] / "malware" / "valleyrat" / "campaigns" / "signed_proxy_sideload" / "analyze.py"
 )
 SPEC = importlib.util.spec_from_file_location("valleyrat_minimal_proxy", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
@@ -23,9 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 def test_six_export_pdfcore8_protected_proxy_is_recognized(monkeypatch) -> None:
     names = list(MODULE.PDFCORE_EXPORTS) + ["CorePluginInit", "CorePluginFin"]
-    symbols = [
-        SimpleNamespace(name=name.encode(), address=0xB170) for name in names
-    ]
+    symbols = [SimpleNamespace(name=name.encode(), address=0xB170) for name in names]
     imports = [
         SimpleNamespace(name=name.encode(), ordinal=0)
         for name in (
@@ -54,3 +46,16 @@ def test_six_export_pdfcore8_protected_proxy_is_recognized(monkeypatch) -> None:
     assert result["proxy_type"] == "pdfcore8_minimal_protected_proxy"
     assert result["export_count"] == 6
     assert result["export_target_peak_ratio"] == 1.0
+
+
+def test_compact_nvml_dat_loader_is_recognized() -> None:
+    result = MODULE.classify_proxy_profile(
+        exports=set(MODULE.NVML_EXPORTS),
+        all_imports={"QueueUserAPC", "VirtualAlloc", "VirtualProtect", "ReadFile"},
+        resource_types=set(),
+        sections=[],
+        export_target_peak_ratio=1.0,
+        text_markers={"nvml.dat", "snvml.dll", "runtimebroker.exe"},
+    )
+
+    assert result == "nvml_compact_dat_loader"
