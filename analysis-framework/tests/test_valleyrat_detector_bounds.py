@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import io
-from pathlib import Path
 import zipfile
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "malware" / "valleyrat" / "detect.py"
 SPEC = importlib.util.spec_from_file_location("valleyrat_bounded_detect", MODULE_PATH)
@@ -82,3 +82,19 @@ def test_generic_msi_with_cab_and_pe_is_not_attributed(
     result = DETECT.detect(raw_msi, Path("benign.msi"))
     assert result["matched"] is False
     assert result["campaigns"] == []
+
+
+def test_appdomainmanager_pixel_loader_requires_correlated_markers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    directories = [SimpleNamespace(Size=0) for _ in range(15)]
+    directories[14] = SimpleNamespace(Size=72)
+    fake_pe = SimpleNamespace(OPTIONAL_HEADER=SimpleNamespace(DATA_DIRECTORY=directories))
+    monkeypatch.setattr(DETECT.pefile, "PE", lambda **_kwargs: fake_pe)
+    data = b"MZ fixture MyAppDomainManager InitializeNewDomain VirtualAllocExNuma EnumUILanguagesA Win32_CacheMemory"
+
+    result = DETECT.detect(data, Path("loader.dll"))
+
+    assert result["matched"] is True
+    assert result["campaigns"][0]["campaign_type"] == "appdomainmanager_pixel_loader"
+    assert result["campaigns"][0]["confidence"] == "high"

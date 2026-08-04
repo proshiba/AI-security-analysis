@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMON = ROOT / "common"
@@ -73,3 +72,32 @@ def test_run_rejects_invalid_hash() -> None:
         assert "SHA-256" in str(error)
     else:
         raise AssertionError("無効なhashを拒否しませんでした")
+
+
+def test_enrich_hash_accepts_exact_extracted_analysis_target(monkeypatch) -> None:
+    query_hash = "d" * 64
+    root_hash = "e" * 64
+
+    def fake_api(path: str, _key: str, _timeout: float) -> dict:
+        if path.startswith("/search?"):
+            return {"data": [{"id": "260804-abcdefghij"}]}
+        if path == "/samples/260804-abcdefghij":
+            return {"sha256": root_hash, "private": False}
+        if path.endswith("/overview.json"):
+            return {
+                "sample": {"id": "260804-abcdefghij", "sha256": root_hash},
+                "targets": [{"sha256": query_hash, "target": "inner.dll", "tasks": []}],
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(module.triage, "_api_json", fake_api)
+    monkeypatch.setattr(
+        module.triage,
+        "summarize_overview",
+        lambda _value: {"behavioral_tasks": []},
+    )
+
+    result = module.enrich_hash(query_hash, "key", 1.0)
+
+    assert result["matches"][0]["matched_object"] == "analysis_target"
+    assert result["errors"] == []

@@ -6,11 +6,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import re
 import sys
 import urllib.parse
-
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CLICKFIX_ROOT = REPOSITORY_ROOT / "analysis-framework" / "clickfix"
@@ -18,7 +17,6 @@ if str(CLICKFIX_ROOT) not in sys.path:
     sys.path.insert(0, str(CLICKFIX_ROOT))
 
 import clickfix_triage_enrichment as triage  # noqa: E402
-
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -45,10 +43,7 @@ def collection_hashes(collection: Path) -> list[str]:
     summary_path = collection / "publication-summary.json"
     if summary_path.is_file():
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
-        hashes = [
-            str(case.get("sha256") or "").lower()
-            for case in summary.get("cases") or []
-        ]
+        hashes = [str(case.get("sha256") or "").lower() for case in summary.get("cases") or []]
         valid = sorted({value for value in hashes if SHA256_RE.fullmatch(value)})
         if valid:
             return valid
@@ -80,13 +75,18 @@ def enrich_hash(sha256: str, api_key: str, timeout: float) -> dict[str, object]:
         try:
             metadata = triage._api_json(f"/samples/{sample_id}", api_key, timeout)
             metadata_hash = str(metadata.get("sha256") or "").lower()
-            if metadata_hash != sha256:
-                errors.append({"sample_id": sample_id, "error": "sha256_mismatch"})
-                continue
             if metadata.get("private") is True or metadata.get("owner"):
                 errors.append({"sample_id": sample_id, "error": "private_result_omitted"})
                 continue
             overview = triage._api_json(f"/samples/{sample_id}/overview.json", api_key, timeout)
+            target_hashes = {
+                str(target.get("sha256") or "").lower()
+                for target in overview.get("targets") or []
+                if isinstance(target, dict)
+            }
+            if metadata_hash != sha256 and sha256 not in target_hashes:
+                errors.append({"sample_id": sample_id, "error": "sha256_mismatch"})
+                continue
             summarized = triage.summarize_overview(overview)
             reports = []
             for task in summarized["behavioral_tasks"][:2]:
@@ -103,6 +103,7 @@ def enrich_hash(sha256: str, api_key: str, timeout: float) -> dict[str, object]:
                 {
                     **summarized,
                     "sample_id": sample_id,
+                    "matched_object": "root_sample" if metadata_hash == sha256 else "analysis_target",
                     "triage_url": f"https://tria.ge/{sample_id}",
                     "visibility": "public_searchable_api",
                     "reports": reports,
