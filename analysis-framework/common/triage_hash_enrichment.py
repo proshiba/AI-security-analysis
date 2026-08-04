@@ -39,6 +39,31 @@ def collection_partial_hashes(collection: Path) -> list[str]:
     ]
 
 
+def collection_hashes(collection: Path) -> list[str]:
+    """collectionに属する全SHA-256を、公開段階に依存せず返す。"""
+
+    summary_path = collection / "publication-summary.json"
+    if summary_path.is_file():
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        hashes = [
+            str(case.get("sha256") or "").lower()
+            for case in summary.get("cases") or []
+        ]
+        valid = sorted({value for value in hashes if SHA256_RE.fullmatch(value)})
+        if valid:
+            return valid
+
+    manifest = json.loads((collection / "manifest.json").read_text(encoding="utf-8"))
+    hashes = []
+    for case in manifest.get("cases") or []:
+        value = str(case.get("sha256") or "").lower()
+        if not value:
+            value = str(case.get("case_id") or "").lower().removeprefix("sha256:")
+        if SHA256_RE.fullmatch(value):
+            hashes.append(value)
+    return sorted(set(hashes))
+
+
 def enrich_hash(sha256: str, api_key: str, timeout: float) -> dict[str, object]:
     response = triage._api_json(
         "/search?" + urllib.parse.urlencode({"query": f"sha256:{sha256}"}),
@@ -142,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     arguments = build_parser().parse_args(argv)
     hashes = list(arguments.hash)
     if arguments.collection:
-        hashes.extend(collection_partial_hashes(arguments.collection.resolve()))
+        hashes.extend(collection_hashes(arguments.collection.resolve()))
     api_key = os.environ.get("TRIAGE_API_KEY")
     if not api_key:
         raise SystemExit("TRIAGE_API_KEYが必要です")

@@ -25,6 +25,20 @@ FILE_TYPES = {
     5: "symbols",
 }
 
+RUNTIME_ASSEMBLY_PREFIXES = ("system.", "microsoft.")
+RUNTIME_ASSEMBLY_NAMES = {
+    "mscorlib.dll",
+    "netstandard.dll",
+    "windowsbase.dll",
+    "winrt.runtime.dll",
+}
+RUNTIME_NATIVE_NAMES = {
+    "coreclr.dll",
+    "clrjit.dll",
+    "hostfxr.dll",
+    "hostpolicy.dll",
+}
+
 
 class DotnetBundleError(ValueError):
     """bundleが不正、未対応、または安全上の上限を超えたことを示す。"""
@@ -40,6 +54,43 @@ class BundleEntry:
     file_type: int
     relative_path: str
 
+
+def _entry_basename(entry: BundleEntry) -> str:
+    return entry.relative_path.replace("\\", "/").rsplit("/", 1)[-1]
+
+
+def _application_stems(entries: list[BundleEntry]) -> set[str]:
+    """runtime/deps設定名からアプリケーション本体のstemを求める。"""
+
+    stems: set[str] = set()
+    for entry in entries:
+        name = _entry_basename(entry).casefold()
+        for suffix in (".runtimeconfig.json", ".deps.json"):
+            if name.endswith(suffix):
+                stems.add(name[: -len(suffix)])
+    return stems
+
+
+def _analysis_selection(entry: BundleEntry, application_stems: set[str]) -> tuple[bool, str]:
+    """全entryを台帳化した上で、再帰解析すべきartifactだけを選ぶ。"""
+
+    name = _entry_basename(entry).casefold()
+    if entry.file_type in {3, 4}:
+        return True, "application_configuration"
+    if entry.file_type == 5:
+        return False, "symbols_inventory_only"
+    if entry.file_type == 1:
+        stem = name[:-4] if name.endswith((".dll", ".exe")) else name
+        if stem in application_stems:
+            return True, "application_assembly"
+        if name in RUNTIME_ASSEMBLY_NAMES or name.startswith(RUNTIME_ASSEMBLY_PREFIXES):
+            return False, "dotnet_runtime_inventory_only"
+        return True, "non_runtime_assembly"
+    if entry.file_type == 2:
+        if name in RUNTIME_NATIVE_NAMES or name.startswith(("api-ms-win-", "clrcompression")):
+            return False, "dotnet_runtime_native_inventory_only"
+        return True, "non_runtime_native_binary"
+    return True, "unknown_entry_requires_analysis"
 
 def _read_exact(data: bytes, offset: int, size: int) -> tuple[bytes, int]:
     if offset < 0 or size < 0 or offset + size > len(data):
@@ -219,9 +270,12 @@ def recover_dotnet_bundle(
             "network_contacted": False,
         }, []
 
+    application_stems = _application_stems(entries)
     inventory: list[dict[str, object]] = []
     artifacts: list[tuple[str, bytes]] = []
+    recovered_entries = 0
     for entry in entries:
+        analysis_selected, selection_reason = _analysis_selection(entry, application_stems)
         stored_size = entry.compressed_size or entry.size
         stored = data[entry.offset : entry.offset + stored_size]
         try:
@@ -232,6 +286,8 @@ def recover_dotnet_bundle(
                     "name": entry.relative_path,
                     "status": "decompression_failed",
                     "error": type(exc).__name__,
+                    "analysis_selected": analysis_selected,
+                    "analysis_selection_reason": selection_reason,
                 }
             )
             continue
@@ -242,10 +298,13 @@ def recover_dotnet_bundle(
                     "status": "size_mismatch_blocked",
                     "declared_size": entry.size,
                     "actual_size": len(blob),
+                    "analysis_selected": analysis_selected,
+                    "analysis_selection_reason": selection_reason,
                 }
             )
             continue
         digest = hashlib.sha256(blob).hexdigest()
+        recovered_entries += 1
         inventory.append(
             {
                 "name": entry.relative_path,
@@ -255,13 +314,22 @@ def recover_dotnet_bundle(
                 "size": entry.size,
                 "compressed_size": entry.compressed_size,
                 "sha256": digest,
+                "analysis_selected": analysis_selected,
+                "analysis_selection_reason": selection_reason,
             }
         )
-        artifacts.append((f"dotnet-bundle-{FILE_TYPES[entry.file_type]}", blob))
+        if analysis_selected:
+            artifacts.append((f"dotnet-bundle-{FILE_TYPES[entry.file_type]}", blob))
 
     report["inventory"] = inventory
-    report["recovered_count"] = len(artifacts)
+    report["recovered_count"] = recovered_entries
+    report["analysis_artifact_count"] = len(artifacts)
+    report["analysis_excluded_count"] = recovered_entries - len(artifacts)
+    report["application_stems"] = sorted(application_stems)
+    report["analysis_selection"] = (
+        "全entryを名前・型・SHA-256付きで台帳化し、アプリ本体、設定、非標準依存関係を再帰解析対象とする"
+    )
     report["status"] = (
-        "recovered" if len(artifacts) == len(entries) else "partially_recovered"
+        "recovered" if recovered_entries == len(entries) else "partially_recovered"
     )
     return report, artifacts

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868012",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-08-04 00:21:27 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "a7r6cxyd.lacavamexicancocina.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.82.202",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.162.221",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

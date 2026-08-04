@@ -339,6 +339,114 @@ def test_successful_sevenzip_cab_fallback_is_complete() -> None:
     assert issues == []
 
 
+def test_successful_sevenzip_dotnet_bundle_fallback_is_complete() -> None:
+    """.NET bundleの内蔵parser失敗は、7-Zipの完全展開で補完できる。"""
+
+    issues = one_shot._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "report": {
+                        "format": "pe",
+                        "unpack_status": "artifacts_recovered",
+                        "dotnet_bundle": {"status": "parse_failed", "error": "unsupported bundle"},
+                        "sevenzip": {
+                            "status": "extracted",
+                            "extract_exit_code": 0,
+                            "inventory": [{"name": "payload.dll", "status": "extracted"}],
+                        },
+                    },
+                }
+            ]
+        }
+    )
+    assert issues == []
+
+
+def test_embedded_pe_dotnet_bundle_recovery_supersedes_outer_parse_failure() -> None:
+    """外層の誤ったbundle parse失敗は、同一embedded PEの完全復元で補完する。"""
+
+    child_sha256 = "a" * 64
+    issues = one_shot._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "input_layer": {"sha256": "b" * 64},
+                    "report": {
+                        "dotnet_bundle": {"status": "parse_failed", "error": "invalid offset"},
+                        "recovered": [
+                            {"kind": "embedded-pe", "sha256": child_sha256, "size": 100}
+                        ],
+                    },
+                },
+                {
+                    "status": "succeeded",
+                    "input_layer": {"sha256": child_sha256},
+                    "report": {"dotnet_bundle": {"status": "recovered"}},
+                },
+            ]
+        }
+    )
+
+    assert issues == []
+
+def test_recover_static_layers_honors_explicit_layer_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CLIから渡した静的復元層上限を共通パイプラインへ伝播する。"""
+
+    observed: dict[str, int] = {}
+
+    def fake_pipeline(unit: object, **kwargs: object) -> tuple[list[object], dict[str, object]]:
+        observed["max_layers"] = kwargs["policy"].max_layers  # type: ignore[union-attr]
+        return [], {}
+
+    monkeypatch.setattr(one_shot, "recover_layer_pipeline", fake_pipeline)
+    data = b"MZfixture"
+    unit = one_shot.InputUnit(
+        source_name="sample.exe",
+        data=data,
+        input_kind="raw",
+        outer_sha256=hashlib.sha256(data).hexdigest(),
+        outer_size=len(data),
+    )
+
+    one_shot.recover_static_layers(unit, max_static_layers=256)
+
+    assert observed == {"max_layers": 256}
+
+def test_layer_count_limit_detection_is_reason_specific() -> None:
+    """段階再試行は層数上限だけで発火し、他の制限では発火しない。"""
+
+    assert one_shot._layer_count_limit_reached(
+        {"limit_events": [{"reason": "layer_count_limit"}]}
+    )
+    assert not one_shot._layer_count_limit_reached(
+        {"limit_events": [{"reason": "recovered_total_limit"}]}
+    )
+    assert not one_shot._layer_count_limit_reached({"limit_events": "invalid"})
+
+
+def test_parser_accepts_adaptive_static_layer_limits() -> None:
+    """CLIで初回上限と再試行上限を別々に指定できる。"""
+
+    args = one_shot.build_parser().parse_args(
+        [
+            "--input",
+            "sample.zip",
+            "--output",
+            "out",
+            "--max-static-layers",
+            "64",
+            "--retry-max-static-layers",
+            "256",
+        ]
+    )
+    assert args.max_static_layers == 64
+    assert args.retry_max_static_layers == 256
+
 def test_embedded_installer_recovery_supersedes_partial_sevenzip() -> None:
     """専用parserが全recordを復元した場合、補助7-Zip失敗をblockerにしない。"""
 

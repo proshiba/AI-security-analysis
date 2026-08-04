@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-hunter-efdbd9a6673f",
+  "domain": "tbhadvisors.com",
+  "observed_at": "2026-07-27T22:22:02.212Z",
+  "analysis_date": "2026-08-04",
+  "source": {
+    "name": "ClickFix Hunter",
+    "id": "efdbd9a6673f",
+    "url": "https://clickfix.carsonww.com/domains/tbhadvisors.com",
+    "tags": [
+      "ClickFix",
+      "clipboard-hijack",
+      "fake-captcha"
+    ],
+    "reported_malware": "未確認",
+    "confidence": 100
+  },
+  "command": {
+    "pattern": "telegram_dead_drop_powershell",
+    "summary": "PowerShellが逆順文字列からTelegram URLを復元し、ページdescriptionの2トークンから次段hostを取得して `/l.dat` をメモリ内実行する。",
+    "processes": [
+      "powershell.exe"
+    ],
+    "command_sha256": "d2bf03344bcc740adb870c21a0c531478ad173e1a13ddcc1994eb258f081aaf1",
+    "stage_urls": [
+      "https://t.me/<redacted>"
+    ]
+  },
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 2,
+    "http_statuses": [
+      200
+    ],
+    "webdav_multistatus_observed": false,
+    "public_addresses": [
+      "149.154.167.99",
+      "162.159.135.42"
+    ],
+    "redirects": [],
+    "body_types": {
+      "html": 2
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [
+      "captcha"
+    ],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "reachable_but_tokens_absent",
+    "binary_payloads_observed": [],
+    "tls_certificates": [],
+    "browser_attempted": true,
+    "browser_status": "ok",
+    "browser_javascript_executed": true,
+    "browser_clipboard_intercepted": true,
+    "browser_clipboard_events": 0
+  },
+  "infection_chain": {
+    "schema_version": 1,
+    "chain_complete": false,
+    "stopped_at": "CF-07",
+    "stages": [
+      {
+        "phase_id": "CF-01",
+        "phase": "landing",
+        "label": "配布・侵害ページへの到達",
+        "status": "observed",
+        "confidence": "high",
+        "evidence": [
+          "実ブラウザでJavaScript実行後のページ状態を確認"
+        ],
+        "observed_at": "2026-07-27T22:22:02.212Z"
+      },
+      {
+        "phase_id": "CF-02",
+        "phase": "lure",
+        "label": "fake CAPTCHA／verification表示",
+        "status": "observed",
+        "confidence": "medium",
+        "evidence": [
+          "ライブ本文またはブラウザDOMでlure markerを確認"
+        ],
+        "observed_at": "2026-07-27T22:22:02.212Z"
+      },
+      {
+        "phase_id": "CF-03",
+        "phase": "clipboard",
+        "label": "clipboardへのcommand設定",
+        "status": "provider_reported",
+        "confidence": "high",
+        "evidence": [
+          "情報源がclipboard commandを提示"
+        ],
+        "observed_at": "2026-07-27T22:22:02.212Z"
+      },
+      {
+        "phase_id": "CF-04",
+        "phase": "user_execution",
+        "label": "利用者による貼り付け・実行",
+        "status": "not_observed",
+        "confidence": "unresolved",
+        "evidence": [
+          "安全上再現しておらず、sandbox等の実行証跡もこの工程では未統合"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-05",
+        "phase": "shell_lolbin",
+        "label": "shell／LOLBINによる後続処理",
+        "status": "recovered",
+        "confidence": "high",
+        "evidence": [
+          "command SHA-256 d2bf03344bcc740adb870c21a0c531478ad173e1a13ddcc1994eb258f081aaf1を静的解析",
+          "command系列 telegram_dead_drop_powershell",
+          "process候補: powershell.exe"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-06",
+        "phase": "resolver_stage",
+        "label": "resolver／次段取得",
+        "status": "recovered",
+        "confidence": "medium",
+        "evidence": [
+          "commandから次段URLを1件復元"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-07",
+        "phase": "terminal_payload",
+        "label": "終端payload／malware",
+        "status": "not_retrieved",
+        "confidence": "high",
+        "evidence": [
+          "終端payloadを取得できず"
+        ],
+        "observed_at": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "CF-01",
+        "target": "CF-02",
+        "status": "supported"
+      },
+      {
+        "source": "CF-02",
+        "target": "CF-03",
+        "status": "supported"
+      },
+      {
+        "source": "CF-03",
+        "target": "CF-04",
+        "status": "unresolved"
+      },
+      {
+        "source": "CF-04",
+        "target": "CF-05",
+        "status": "supported"
+      },
+      {
+        "source": "CF-05",
+        "target": "CF-06",
+        "status": "supported"
+      },
+      {
+        "source": "CF-06",
+        "target": "CF-07",
+        "status": "unresolved"
+      }
+    ],
+    "stage_urls": [
+      "https://t.me/<redacted>"
+    ],
+    "processes": [
+      "powershell.exe"
+    ]
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": false,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

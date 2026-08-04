@@ -644,6 +644,48 @@ def test_sevenzip_empty_member_is_inventory_only(
     assert artifacts == []
 
 
+def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """RARは既知候補を再試行し、reportにはpassword値を残さない。"""
+
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["Rar5"],
+            "members": ["eee.exe"],
+            "total_members": 1,
+            "declared_total_size": 9,
+            "archive_unlock_attempted": bool(password),
+        }
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:])
+        output.mkdir(parents=True)
+        if "-pWNcry@2ol7" in command:
+            (output / "eee.exe").write_bytes(b"MZpayload")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        (output / "eee.exe").write_bytes(b"")
+        return SimpleNamespace(returncode=2, stdout="", stderr="data error")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"Rar!fixture", tmp_path / "7z.exe", password="infected"
+    )
+
+    assert len(commands) == 2
+    assert report["status"] == "extracted"
+    assert report["archive_unlock_attempt_count"] == 2
+    assert report["archive_unlock_candidate_index"] == 1
+    assert "WNcry@2ol7" not in repr(report)
+    assert artifacts == [("7z-pe", b"MZpayload")]
+
 def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

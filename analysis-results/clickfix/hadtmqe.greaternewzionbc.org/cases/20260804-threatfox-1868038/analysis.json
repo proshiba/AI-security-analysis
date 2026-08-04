@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868038",
+  "domain": "hadtmqe.greaternewzionbc.org",
+  "observed_at": "2026-08-04 01:47:18 UTC",
+  "analysis_date": "2026-08-04",
+  "source": {
+    "name": "ThreatFox",
+    "id": "1868038",
+    "url": "https://threatfox.abuse.ch/browse/tag/clearfake/",
+    "tags": [
+      "ClearFake",
+      "Windows",
+      "clearfake",
+      "win-0x4679"
+    ],
+    "reported_malware": "ClearFake",
+    "confidence": 100
+  },
+  "command": null,
+  "live_summary": {
+    "reachable": true,
+    "successful_http_hops": 1,
+    "http_statuses": [
+      207
+    ],
+    "webdav_multistatus_observed": true,
+    "public_addresses": [
+      "104.21.14.198",
+      "172.67.160.78"
+    ],
+    "redirects": [],
+    "body_types": {
+      "other": 1
+    },
+    "clipboard_api_observed_live": false,
+    "lure_markers_live": [],
+    "candidate_commands_live": [],
+    "telegram_resolver_state": "not_applicable",
+    "binary_payloads_observed": [],
+    "tls_certificates": [],
+    "browser_attempted": true,
+    "browser_status": "ok",
+    "browser_javascript_executed": true,
+    "browser_clipboard_intercepted": true,
+    "browser_clipboard_events": 0
+  },
+  "infection_chain": {
+    "schema_version": 1,
+    "chain_complete": false,
+    "stopped_at": "CF-03",
+    "stages": [
+      {
+        "phase_id": "CF-01",
+        "phase": "landing",
+        "label": "配布・侵害ページへの到達",
+        "status": "observed",
+        "confidence": "high",
+        "evidence": [
+          "実ブラウザでJavaScript実行後のページ状態を確認"
+        ],
+        "observed_at": "2026-08-04 01:47:18 UTC"
+      },
+      {
+        "phase_id": "CF-02",
+        "phase": "lure",
+        "label": "fake CAPTCHA／verification表示",
+        "status": "provider_reported",
+        "confidence": "medium",
+        "evidence": [
+          "情報源のClickFix／ClearFake分類に基づく"
+        ],
+        "observed_at": "2026-08-04 01:47:18 UTC"
+      },
+      {
+        "phase_id": "CF-03",
+        "phase": "clipboard",
+        "label": "clipboardへのcommand設定",
+        "status": "not_observed",
+        "confidence": "high",
+        "evidence": [
+          "clipboard書き込み値を確認できず"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-04",
+        "phase": "user_execution",
+        "label": "利用者による貼り付け・実行",
+        "status": "not_observed",
+        "confidence": "unresolved",
+        "evidence": [
+          "安全上再現しておらず、sandbox等の実行証跡もこの工程では未統合"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-05",
+        "phase": "shell_lolbin",
+        "label": "shell／LOLBINによる後続処理",
+        "status": "not_retrieved",
+        "confidence": "unresolved",
+        "evidence": [
+          "実行commandを取得できず"
+        ],
+        "observed_at": null
+      },
+      {
+        "phase_id": "CF-06",
+        "phase": "resolver_stage",
+        "label": "resolver／次段取得",
+        "status": "observed",
+        "confidence": "medium",
+        "evidence": [
+          "HTTP 207 Multi-Statusを観測しWebDAV endpoint候補を確認"
+        ],
+        "observed_at": "2026-08-04 01:47:18 UTC"
+      },
+      {
+        "phase_id": "CF-07",
+        "phase": "terminal_payload",
+        "label": "終端payload／malware",
+        "status": "not_retrieved",
+        "confidence": "high",
+        "evidence": [
+          "終端payloadを取得できず"
+        ],
+        "observed_at": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "CF-01",
+        "target": "CF-02",
+        "status": "supported"
+      },
+      {
+        "source": "CF-02",
+        "target": "CF-03",
+        "status": "unresolved"
+      },
+      {
+        "source": "CF-03",
+        "target": "CF-04",
+        "status": "unresolved"
+      },
+      {
+        "source": "CF-04",
+        "target": "CF-05",
+        "status": "unresolved"
+      },
+      {
+        "source": "CF-05",
+        "target": "CF-06",
+        "status": "supported"
+      },
+      {
+        "source": "CF-06",
+        "target": "CF-07",
+        "status": "unresolved"
+      }
+    ],
+    "stage_urls": [],
+    "processes": []
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "artifacts": []
+  },
+  "attribution": {
+    "clickfix_is_technique": true,
+    "clearfake_is_distribution_cluster": true,
+    "terminal_malware_inferred_from_tag": false,
+    "actor": "unattributed"
+  }
+}

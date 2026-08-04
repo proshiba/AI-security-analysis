@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-pro-746294331452",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-08-01T03:40:28.455Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "y4h1lqu6.jadoou.lat",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    }
+  ]
+}

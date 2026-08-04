@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868022",
+  "domain": "betensured-tips.com",
+  "observed_at": "2026-08-04 01:15:03 UTC",
+  "investigated_at_utc": "2026-08-04T01:57:18.777494+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1868022"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        206
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "72.249.68.244"
+      ],
+      "landing_public_addresses": [
+        "72.249.68.244"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "betensured-tips.com",
+            "type": 1,
+            "ttl": 14400,
+            "data": "72.249.68.244"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "betensured-tips.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ns2.web-sites-solutions.com"
+          },
+          {
+            "name": "betensured-tips.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ns1.web-sites-solutions.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": [
+          {
+            "name": "betensured-tips.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "0 mail.betensured-tips.com"
+          }
+        ]
+      }
+    },
+    "domain_rdap": null,
+    "certificate_transparency": {
+      "certificate_rows": 109,
+      "names": [
+        "*.betensured-tips.com",
+        "betensured-tips.com"
+      ],
+      "issuers": [
+        "C=US, O=\"Cloudflare, Inc.\", CN=Cloudflare Inc ECC CA-3",
+        "C=US, O=Google Trust Services LLC, CN=GTS CA 1P5",
+        "C=US, O=Let's Encrypt, CN=E1",
+        "C=US, O=Let's Encrypt, CN=Let's Encrypt Authority X3",
+        "C=US, O=Let's Encrypt, CN=R10",
+        "C=US, O=Let's Encrypt, CN=R11",
+        "C=US, O=Let's Encrypt, CN=R12",
+        "C=US, O=Let's Encrypt, CN=R13",
+        "C=US, O=Let's Encrypt, CN=R3",
+        "C=US, O=Let's Encrypt, CN=YR1",
+        "C=US, ST=TX, L=Houston, O=\"cPanel, Inc.\", CN=\"cPanel, Inc. Certification Authority\""
+      ],
+      "recent_certificates": [
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-06-28T09:51:23",
+          "not_after": "2026-09-26T09:51:22",
+          "serial_number": "05c24f27d17364c0c52a16030d0d01fe2452"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-06-28T09:51:23",
+          "not_after": "2026-09-26T09:51:22",
+          "serial_number": "05c24f27d17364c0c52a16030d0d01fe2452"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-04-29T05:24:04",
+          "not_after": "2026-07-28T05:24:03",
+          "serial_number": "05586357feabe47ec1a2e8e47bb27df041ba"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-04-29T05:24:04",
+          "not_after": "2026-07-28T05:24:03",
+          "serial_number": "05586357feabe47ec1a2e8e47bb27df041ba"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-02-28T04:05:04",
+          "not_after": "2026-05-29T04:05:03",
+          "serial_number": "059e858e56c4f4ca69b0de28659b7328a324"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2026-02-28T04:05:04",
+          "not_after": "2026-05-29T04:05:03",
+          "serial_number": "059e858e56c4f4ca69b0de28659b7328a324"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-12-29T21:47:44",
+          "not_after": "2026-03-29T21:47:43",
+          "serial_number": "0639c2c9ab37d323754fede181d5e382524e"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-12-29T21:47:44",
+          "not_after": "2026-03-29T21:47:43",
+          "serial_number": "0639c2c9ab37d323754fede181d5e382524e"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-10-30T18:52:36",
+          "not_after": "2026-01-28T18:52:35",
+          "serial_number": "06a96eb74e9ffcb60d6bca342d6b46fb7b48"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-10-30T18:52:36",
+          "not_after": "2026-01-28T18:52:35",
+          "serial_number": "06a96eb74e9ffcb60d6bca342d6b46fb7b48"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-08-31T19:49:12",
+          "not_after": "2025-11-29T19:49:11",
+          "serial_number": "06874e42f7f11fe7e18f8376675a0b9640f4"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-08-31T19:49:12",
+          "not_after": "2025-11-29T19:49:11",
+          "serial_number": "06874e42f7f11fe7e18f8376675a0b9640f4"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-07-02T19:44:08",
+          "not_after": "2025-09-30T19:44:07",
+          "serial_number": "05990debca6d7089f60b6a481a9f67b14234"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-07-02T19:44:08",
+          "not_after": "2025-09-30T19:44:07",
+          "serial_number": "05990debca6d7089f60b6a481a9f67b14234"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-05-03T17:13:27",
+          "not_after": "2025-08-01T17:13:26",
+          "serial_number": "0658b496d8210d37a2bc9bbe547380064829"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-05-03T17:13:27",
+          "not_after": "2025-08-01T17:13:26",
+          "serial_number": "0658b496d8210d37a2bc9bbe547380064829"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-03-04T11:39:57",
+          "not_after": "2025-06-02T11:39:56",
+          "serial_number": "0318a9e37f582ad0e3c028521905def3000e"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-03-04T11:39:57",
+          "not_after": "2025-06-02T11:39:56",
+          "serial_number": "0318a9e37f582ad0e3c028521905def3000e"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-01-03T01:42:42",
+          "not_after": "2025-04-03T01:42:41",
+          "serial_number": "043b0bec1bcf72169daa7c8030667e98fcea"
+        },
+        {
+          "common_name": "betensured-tips.com",
+          "not_before": "2025-01-03T01:42:42",
+          "not_after": "2025-04-03T01:42:41",
+          "serial_number": "043b0bec1bcf72169daa7c8030667e98fcea"
+        }
+      ]
+    },
+    "ip_pivot": {
+      "address": "72.249.68.244",
+      "rdap": {
+        "handle": "NET-72-249-0-0-1",
+        "name": "COLO4-BLK2",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "72.249.0.0",
+        "end_address": "72.249.191.255",
+        "parent_handle": "NET-72-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2024-03-19T11:48:32-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2006-08-25T14:47:50-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "72.249.68.244",
+        "country_code": "US",
+        "asn": 17378,
+        "organization": "TierPoint, LLC",
+        "isp": "TierPoint, LLC",
+        "domain": "tierpoint.com"
+      },
+      "shodan_internetdb": {
+        "ip": "72.249.68.244",
+        "ports": [
+          21,
+          53,
+          80,
+          110,
+          443,
+          993
+        ],
+        "hostnames": [
+          "cloud.web-sites-solutions.com"
+        ],
+        "cpes": [
+          "cpe:/a:apache:http_server",
+          "cpe:/a:pureftpd:pure-ftpd"
+        ],
+        "vulns": [],
+        "tags": [
+          "starttls"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "rdap:domain",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}
