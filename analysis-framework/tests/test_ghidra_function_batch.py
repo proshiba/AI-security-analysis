@@ -1545,7 +1545,12 @@ def test_finalize_collection_registers_partial_case_identity(
 ) -> None:
     """解析がpartialでもidentityを登録し、完了状態はpartialのまま保持する。"""
 
-    repository = tmp_path / "repository"
+    # Windowsではpytestのテスト名付き一時パスと64桁digestの組み合わせが
+    # MAX_PATHを超えることがある。意味上は同じ一時領域内で短いrootを使う。
+    short_root = tmp_path.parents[2] / (
+        "fc-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
+    )
+    repository = short_root / "r"
     digest = "a" * 64
     case_dir = repository / "analysis-results" / "malware" / "unclassified" / "versions" / "unknown" / "cases" / digest
     case_dir.mkdir(parents=True)
