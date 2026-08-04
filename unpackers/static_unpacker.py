@@ -1606,28 +1606,51 @@ def sevenzip_extract(
         return {**listing, "status": "member_limit_blocked"}, []
     if listing.get("declared_total_size", 0) > max_total_size:
         return {**listing, "status": "declared_size_blocked"}, []
+    password_candidates = [effective_password]
+    if any(value.startswith("rar") for value in archive_types):
+        for candidate in ("WNcry@2ol7",):
+            if candidate not in password_candidates:
+                password_candidates.append(candidate)
+
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp)
         suffix = safe_temporary_suffix(name)
 
-        source, output = root / f"input{suffix}", root / "out"
+        source = root / f"input{suffix}"
         source.write_bytes(data)
-        command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
-        if effective_password:
-            command.append(f"-p{effective_password}")
-        command.extend([f"-o{output}", "--", str(source)])
-        try:
-            completed = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=180,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
+        attempts = []
+        for candidate_index, candidate_password in enumerate(password_candidates):
+            output = root / f"out-{candidate_index}"
+            command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
+            if candidate_password:
+                command.append(f"-p{candidate_password}")
+            command.extend([f"-o{output}", "--", str(source)])
+            try:
+                completed = subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=180,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                continue
+            extracted_size = sum(
+                entry.stat().st_size
+                for entry in output.rglob("*")
+                if entry.is_file() and not entry.is_symlink()
+            ) if output.is_dir() else 0
+            attempts.append((completed, output, candidate_index, extracted_size))
+            if completed.returncode == 0:
+                break
+        if not attempts:
             return {**listing, "status": "extract_timeout"}, []
+        completed, output, selected_candidate_index, _ = max(
+            attempts,
+            key=lambda item: (item[0].returncode == 0, item[3], -item[2]),
+        )
         inventory, candidates = [], []
         extracted_total = 0
         output_resolved = output.resolve()
@@ -1719,6 +1742,8 @@ def sevenzip_extract(
                 **listing,
                 "status": status,
                 "extract_exit_code": completed.returncode,
+                "archive_unlock_attempt_count": len(attempts),
+                "archive_unlock_candidate_index": selected_candidate_index,
                 "inventory": inventory[:max_members],
                 "extracted_total_size": extracted_total,
                 "retained_members": len(selected),

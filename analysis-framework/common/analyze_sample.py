@@ -221,6 +221,7 @@ def recover_static_layers(
     sevenzip: Path | None = None,
     diec: Path | None = None,
     force_container_probe: bool = False,
+    max_static_layers: int = MAX_STATIC_LAYERS,
     archive_password: str = "infected",
 ) -> tuple[list[StaticLayer], dict[str, Any]]:
     """共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。"""
@@ -229,7 +230,7 @@ def recover_static_layers(
         unit,
         unpacker=unpack_bytes,
         sanitizer=sanitize_public_value,
-        policy=StaticLayerPolicy(),
+        policy=StaticLayerPolicy(max_layers=max_static_layers),
         upx=upx,
         sevenzip=sevenzip,
         diec=diec,
@@ -237,6 +238,15 @@ def recover_static_layers(
         archive_password=archive_password,
     )
 
+
+def _layer_count_limit_reached(layer_report: dict[str, Any]) -> bool:
+    """静的復元が層数上限へ達した場合だけ再試行対象とする。"""
+
+    events = layer_report.get("limit_events")
+    return isinstance(events, list) and any(
+        isinstance(event, dict) and event.get("reason") == "layer_count_limit"
+        for event in events
+    )
 
 def _handler_evidence_score(value: Any) -> int:
     """互換用に、共通証拠tierから決定的なscoreだけを返す。"""
@@ -525,6 +535,18 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
     """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
 
     issues: list[str] = []
+    steps = layer_report.get("steps")
+    if not isinstance(steps, list):
+        steps = []
+    dotnet_recovered_layers = {
+        str(step.get("input_layer", {}).get("sha256"))
+        for step in steps
+        if isinstance(step, dict)
+        and isinstance(step.get("input_layer"), dict)
+        and isinstance(step.get("report"), dict)
+        and isinstance(step["report"].get("dotnet_bundle"), dict)
+        and step["report"]["dotnet_bundle"].get("status") == "recovered"
+    }
 
     def visit(value: Any, path: str) -> None:
         if isinstance(value, dict):
@@ -533,6 +555,16 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
                 child = f"{path}.{raw_key}"
                 fallback = value.get("sevenzip")
                 authoritative = value.get("embedded_installer_archive")
+                recovered = value.get("recovered")
+                embedded_dotnet_recovered = (
+                    isinstance(recovered, list)
+                    and any(
+                        isinstance(candidate, dict)
+                        and candidate.get("kind") == "embedded-pe"
+                        and candidate.get("sha256") in dotnet_recovered_layers
+                        for candidate in recovered
+                    )
+                )
                 if (
                     key == "sevenzip"
                     and isinstance(item, dict)
@@ -543,12 +575,17 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
                 ):
                     continue
                 if (
-                    key == "cab"
+                    key in {"cab", "dotnet_bundle"}
                     and isinstance(item, dict)
                     and item.get("status") == "parse_failed"
-                    and isinstance(fallback, dict)
-                    and fallback.get("status") == "extracted"
-                    and fallback.get("extract_exit_code") == 0
+                    and (
+                        (
+                            isinstance(fallback, dict)
+                            and fallback.get("status") == "extracted"
+                            and fallback.get("extract_exit_code") == 0
+                        )
+                        or (key == "dotnet_bundle" and embedded_dotnet_recovered)
+                    )
                 ):
                     # cabarchiveが未対応のLZXでも、境界付き7-Zip fallbackが
                     # 全memberを正常展開できた場合は未完了にしない。
@@ -568,9 +605,6 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 visit(item, f"{path}[{index}]")
 
-    steps = layer_report.get("steps")
-    if not isinstance(steps, list):
-        steps = []
     for index, step in enumerate(steps):
         if not isinstance(step, dict):
             issues.append(f"steps[{index}]:invalid")
@@ -743,6 +777,8 @@ def analyze_unit(
     sevenzip: Path | None = None,
     diec: Path | None = None,
     force_container_probe: bool = False,
+    max_static_layers: int = MAX_STATIC_LAYERS,
+    retry_max_static_layers: int | None = None,
     archive_password: str = "infected",
 ) -> dict[str, Any]:
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
@@ -776,8 +812,35 @@ def analyze_unit(
             sevenzip=sevenzip,
             diec=diec,
             force_container_probe=force_container_probe,
+            max_static_layers=max_static_layers,
             archive_password=archive_password,
         )
+        if (
+            retry_max_static_layers is not None
+            and _layer_count_limit_reached(layer_report)
+        ):
+            initial_counts = layer_report.get("counts", {})
+            initial_limit_events = layer_report.get("limit_events", [])
+            layers, layer_report = recover_static_layers(
+                unit,
+                upx=upx,
+                sevenzip=sevenzip,
+                diec=diec,
+                force_container_probe=force_container_probe,
+                max_static_layers=retry_max_static_layers,
+                archive_password=archive_password,
+            )
+            layer_report["adaptive_retry"] = {
+                "trigger": "layer_count_limit",
+                "initial_max_static_layers": max_static_layers,
+                "retry_max_static_layers": retry_max_static_layers,
+                "initial_counts": initial_counts,
+                "initial_limit_event_count": (
+                    len(initial_limit_events)
+                    if isinstance(initial_limit_events, list)
+                    else None
+                ),
+            }
     write_json(case_dir / "static-layers.json", layer_report)
 
     layer_selections: list[dict[str, Any]] = []
@@ -1214,6 +1277,8 @@ def _build_analysis_contract(
     sevenzip: Path | None = None,
     diec: Path | None = None,
     force_container_probe: bool = False,
+    max_static_layers: int = MAX_STATIC_LAYERS,
+    retry_max_static_layers: int | None = None,
     archive_password: str = "infected",
     assessment_only: bool,
     max_file_size: int,
@@ -1234,6 +1299,8 @@ def _build_analysis_contract(
         "max_file_size": max_file_size,
         "static_tools": _static_tool_settings(upx, sevenzip, diec),
         "force_container_probe": force_container_probe,
+        "max_static_layers": max_static_layers,
+        "retry_max_static_layers": retry_max_static_layers,
         "archive_password_fingerprint": hashlib.sha256(archive_password.encode("utf-8")).hexdigest(),
         "handler_catalog_sha256": hashlib.sha256(catalog).hexdigest(),
         "runtime": runtime_dependency_versions(),
@@ -1335,6 +1402,8 @@ def run_batch(
     sevenzip: Path | None = None,
     diec: Path | None = None,
     force_container_probe: bool = False,
+    max_static_layers: int = MAX_STATIC_LAYERS,
+    retry_max_static_layers: int | None = None,
     max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     resume: bool = False,
 ) -> dict[str, Any]:
@@ -1348,6 +1417,11 @@ def run_batch(
         raise ValueError("解析対象ファイルがありません")
     if not isinstance(password, str):
         raise TypeError("archive passwordは文字列で指定してください")
+    StaticLayerPolicy(max_layers=max_static_layers)
+    if retry_max_static_layers is not None:
+        StaticLayerPolicy(max_layers=retry_max_static_layers)
+        if retry_max_static_layers <= max_static_layers:
+            raise ValueError("retry_max_static_layersは初回上限より大きくしてください")
     upx = _normalize_tool_path(upx, "UPX")
     sevenzip = _normalize_tool_path(sevenzip, "7-Zip")
     diec = _normalize_tool_path(diec, "Detect It Easy CLI")
@@ -1372,6 +1446,8 @@ def run_batch(
         sevenzip=sevenzip,
         diec=diec,
         force_container_probe=force_container_probe,
+        max_static_layers=max_static_layers,
+        retry_max_static_layers=retry_max_static_layers,
         archive_password=password,
         max_file_size=max_file_size,
     )
@@ -1416,6 +1492,8 @@ def run_batch(
                     sevenzip=sevenzip,
                     diec=diec,
                     force_container_probe=force_container_probe,
+                    max_static_layers=max_static_layers,
+                    retry_max_static_layers=retry_max_static_layers,
                     archive_password=password,
                     assessment_only=assessment_only,
                     analysis_contract=analysis_contract,
@@ -1468,6 +1546,8 @@ def run_batch(
                 "diec": diec.name if diec else None,
             },
             "force_container_probe": force_container_probe,
+            "max_static_layers": max_static_layers,
+            "retry_max_static_layers": retry_max_static_layers,
             "resume": resume,
         },
         "executed_sample": False,
@@ -1537,6 +1617,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="任意のDetect It Easy CLI実行file。PE/Mach-O識別補助に使用します。",
     )
     parser.add_argument(
+        "--max-static-layers",
+        type=int,
+        default=MAX_STATIC_LAYERS,
+        help="静的復元で保持する層数の初回上限。正の整数で指定します。",
+    )
+    parser.add_argument(
+        "--retry-max-static-layers",
+        type=int,
+        help="初回に層数上限へ達した検体だけ再試行する上限。初回上限より大きく指定します。",
+    )
+    parser.add_argument(
         "--force-container-probe",
         action="store_true",
         help="レビュー済み手掛かりがあるPEを7-Zipで追加検査します。",
@@ -1562,6 +1653,8 @@ def main(argv: list[str] | None = None) -> int:
         sevenzip=args.sevenzip,
         diec=args.diec,
         force_container_probe=args.force_container_probe,
+        max_static_layers=args.max_static_layers,
+        retry_max_static_layers=args.retry_max_static_layers,
         max_file_size=args.max_file_size,
         resume=args.resume,
     )

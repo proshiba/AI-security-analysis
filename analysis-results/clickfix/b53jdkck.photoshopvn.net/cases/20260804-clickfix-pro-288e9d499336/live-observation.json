@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-pro-288e9d499336",
+  "domain": "b53jdkck.photoshopvn.net",
+  "probed_at_utc": "2026-08-04T01:49:57.076975+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://b53jdkck.photoshopvn.net/",
+        "host": "b53jdkck.photoshopvn.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://b53jdkck.photoshopvn.net/",
+            "host": "b53jdkck.photoshopvn.net",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 521,
+          "reason": "<none>",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "7036",
+          "location": null,
+          "bytes_read": 7036,
+          "body_truncated": false,
+          "body_sha256": "b2a10b1e2daaf61512fa2a1ac20f538754f006f6f806e28694dbb58fd7e72848",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.212.201",
+              "104.21.69.195"
+            ],
+            "public_addresses": [
+              "172.67.212.201",
+              "104.21.69.195"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 258.2,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "photoshopvn.net | 521: Web server is down",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 2
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260804-clickfix-pro-288e9d499336",
+    "domain": "b53jdkck.photoshopvn.net",
+    "observed_at_utc": "2026-08-04T01:54:17.564670+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "photoshopvn.net | 521: Web server is down",
+      "final_url": {
+        "sanitized": "https://b53jdkck.photoshopvn.net/",
+        "host": "b53jdkck.photoshopvn.net",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

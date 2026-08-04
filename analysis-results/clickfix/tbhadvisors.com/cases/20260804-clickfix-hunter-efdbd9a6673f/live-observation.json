@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-hunter-efdbd9a6673f",
+  "domain": "tbhadvisors.com",
+  "probed_at_utc": "2026-08-04T01:49:54.986561+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://tbhadvisors.com/",
+        "host": "tbhadvisors.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://tbhadvisors.com/",
+            "host": "tbhadvisors.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 153422,
+          "body_truncated": false,
+          "body_sha256": "c7d505a96fca039d41272297cd4f3f6b7c3783279c2f46a2a498c75b2a4d67e5",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "162.159.135.42"
+            ],
+            "public_addresses": [
+              "162.159.135.42"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 1017.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "Home - TBH Advisors",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "captcha"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [
+    {
+      "requested": {
+        "sanitized": "https://t.me/<redacted>",
+        "host": "t.me",
+        "path": "/<redacted>",
+        "path_redacted": true,
+        "path_sha256": "25650e616a5ab34d9667010fd7b428dedb48a2cb60e892bddaece8ce09be2aad",
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://t.me/<redacted>",
+            "host": "t.me",
+            "path": "/<redacted>",
+            "path_redacted": true,
+            "path_sha256": "25650e616a5ab34d9667010fd7b428dedb48a2cb60e892bddaece8ce09be2aad",
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html; charset=utf-8",
+          "content_length_header": "9522",
+          "location": null,
+          "bytes_read": 9522,
+          "body_truncated": false,
+          "body_sha256": "de471cfab1c3b9580584580182f4ee4609ec600a63917a2a62cc4fc09335cdc6",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "149.154.167.99"
+            ],
+            "public_addresses": [
+              "149.154.167.99"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 322.3,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "Telegram: Join Group Chat",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 4
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260804-clickfix-hunter-efdbd9a6673f",
+    "domain": "tbhadvisors.com",
+    "observed_at_utc": "2026-08-04T01:51:27.756965+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "Home - TBH Advisors",
+      "final_url": {
+        "sanitized": "https://tbhadvisors.com/",
+        "host": "tbhadvisors.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

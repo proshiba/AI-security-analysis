@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868026",
+  "domain": "liobet.org",
+  "probed_at_utc": "2026-08-04T01:49:56.483067+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://liobet.org/",
+        "host": "liobet.org",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://liobet.org/",
+            "host": "liobet.org",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "0",
+          "location": {
+            "sanitized": "https://www.liobet.org/",
+            "host": "www.liobet.org",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 0,
+          "body_truncated": false,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "72.249.68.244"
+            ],
+            "public_addresses": [
+              "72.249.68.244"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 735.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": null,
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://www.liobet.org/",
+            "host": "www.liobet.org",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 206,
+          "reason": "Partial Content",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "64353",
+          "location": null,
+          "bytes_read": 64353,
+          "body_truncated": false,
+          "body_sha256": "24f2ce099b2204467f8be99a88832445d2bd3b12b78998a7e9166627bc5502af",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "72.249.68.244"
+            ],
+            "public_addresses": [
+              "72.249.68.244"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 1838.9,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "Liobet.org - Free Soccer Predictions, Betting Tips, Football Predictions, Soccer Predictions",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "captcha"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260804-threatfox-1868026",
+    "domain": "liobet.org",
+    "observed_at_utc": "2026-08-04T01:51:58.713287+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "Liobet.org - Free Soccer Predictions, Betting Tips, Football Predictions, Soccer Predictions",
+      "final_url": {
+        "sanitized": "https://www.liobet.org/",
+        "host": "www.liobet.org",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

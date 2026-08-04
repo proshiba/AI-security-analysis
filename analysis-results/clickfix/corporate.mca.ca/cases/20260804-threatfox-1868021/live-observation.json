@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868021",
+  "domain": "corporate.mca.ca",
+  "probed_at_utc": "2026-08-04T01:49:57.448813+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://corporate.mca.ca/",
+        "host": "corporate.mca.ca",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://corporate.mca.ca/",
+            "host": "corporate.mca.ca",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "0",
+          "location": {
+            "sanitized": "https://corporate.mca.ca/en/",
+            "host": "corporate.mca.ca",
+            "path": "/en/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 0,
+          "body_truncated": false,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "132.148.74.46"
+            ],
+            "public_addresses": [
+              "132.148.74.46"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 1348.0,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": null,
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://corporate.mca.ca/en/",
+            "host": "corporate.mca.ca",
+            "path": "/en/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": "0",
+          "location": {
+            "sanitized": "https://mcamerchandising.com/en-ca/",
+            "host": "mcamerchandising.com",
+            "path": "/en-ca/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 0,
+          "body_truncated": false,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "132.148.74.46"
+            ],
+            "public_addresses": [
+              "132.148.74.46"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 1154.7,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": null,
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 1
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://mcamerchandising.com/en-ca/",
+            "host": "mcamerchandising.com",
+            "path": "/en-ca/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 200,
+          "reason": "OK",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 103758,
+          "body_truncated": false,
+          "body_sha256": "43e212348e632793421736c1146272f1aae5aea0619c04425162767a278b2b01",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "132.148.74.46"
+            ],
+            "public_addresses": [
+              "132.148.74.46"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 573.2,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "Retail merchandising services Canada | MCA",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "captcha",
+              "verification"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 2
+        }
+      ],
+      "redirects_followed": 2,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260804-threatfox-1868021",
+    "domain": "corporate.mca.ca",
+    "observed_at_utc": "2026-08-04T01:52:25.326374+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "Retail merchandising services Canada | MCA",
+      "final_url": {
+        "sanitized": "https://mcamerchandising.com/en-ca/",
+        "host": "mcamerchandising.com",
+        "path": "/en-ca/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

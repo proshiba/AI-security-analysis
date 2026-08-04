@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-pro-1d09e8a24831",
+  "domain": "sh6ze53a.bet90forward.win",
+  "queried_at_utc": "2026-08-04T02:05:02.866886+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 0
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 0,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

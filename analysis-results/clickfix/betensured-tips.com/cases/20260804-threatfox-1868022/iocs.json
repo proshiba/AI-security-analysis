@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868022",
+  "source": {
+    "provider": "ThreatFox",
+    "observed_at": "2026-08-04 01:15:03 UTC"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "betensured-tips.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ThreatFox"
+    },
+    {
+      "type": "ip",
+      "value": "72.249.68.244",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

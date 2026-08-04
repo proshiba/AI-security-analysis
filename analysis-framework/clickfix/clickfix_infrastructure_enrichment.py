@@ -363,7 +363,7 @@ def render_case(result: dict[str, Any]) -> str:
     for record_type in DNS_TYPES:
         records = dns.get(record_type, {}).get("records") or []
         values = ", ".join(str(row["data"]) for row in records[:20]) or "未取得"
-        dns_rows.append(f"| `{record_type}` | {values} |")
+        dns_rows.append(f"| `{record_type}` | {values}（DNS応答） |")
     internetdb = pivot.get("shodan_internetdb") or {}
     asn = pivot.get("asn") or {}
     return f"""# インフラ調査
@@ -381,33 +381,33 @@ pivot候補であり、単独では悪性またはC2の根拠にしません。
 
 ## 現行DNS
 
-| type | 解析時の応答 |
+| DNS種別 | 解析時の応答 |
 |---|---|
 {chr(10).join(dns_rows)}
 
 ## 登録・ホスティング
 
-- RDAP handle: `{rdap.get("handle") or "未取得"}`
-- registrar handle: `{", ".join(rdap.get("registrar_handles") or []) or "未取得"}`
-- nameserver: `{", ".join(rdap.get("nameservers") or []) or "未取得"}`
-- status: `{", ".join(rdap.get("status") or []) or "未取得"}`
-- IP pivot: `{pivot.get("address") or "未設定"}`
-- netblock: `{(pivot.get("rdap") or {}).get("name") or "未取得"}` / `{(pivot.get("rdap") or {}).get("start_address") or "?"} - {(pivot.get("rdap") or {}).get("end_address") or "?"}`
+- RDAP handle（登録識別子）: `{rdap.get("handle") or "未取得"}`
+- registrar handle（レジストラ識別子）: `{", ".join(rdap.get("registrar_handles") or []) or "未取得"}`
+- nameserver（権威DNS）: `{", ".join(rdap.get("nameservers") or []) or "未取得"}`
+- 登録status: `{", ".join(rdap.get("status") or []) or "未取得"}`
+- IP pivot（調査対象）: `{pivot.get("address") or "未設定"}`
+- netblock（割当範囲）: `{(pivot.get("rdap") or {}).get("name") or "未取得"}` / `{(pivot.get("rdap") or {}).get("start_address") or "?"} - {(pivot.get("rdap") or {}).get("end_address") or "?"}`
 - ASN: `AS{asn.get("asn") or "未取得"}` / `{asn.get("organization") or asn.get("isp") or "未取得"}` / 国コード `{asn.get("country_code") or "未取得"}`
 
 ## 証明書とCT
 
 - ライブleaf証明書: `{len(live.get("tls_certificates") or [])}`件
 - CT行数: `{ct.get("certificate_rows", 0)}`
-- CT names: `{", ".join((ct.get("names") or [])[:30]) or "未取得"}`
-- issuer: `{", ".join((ct.get("issuers") or [])[:10]) or "未取得"}`
+- CT names（証明書名）: `{", ".join((ct.get("names") or [])[:30]) or "未取得"}`
+- issuer（発行者）: `{", ".join((ct.get("issuers") or [])[:10]) or "未取得"}`
 
-## Shodan InternetDB
+## Shodan InternetDBの公開サービス情報
 
-- ports: `{internetdb.get("ports") or []}`
-- hostnames: `{internetdb.get("hostnames") or []}`
-- CPE: `{internetdb.get("cpes") or []}`
-- CVE: `{internetdb.get("vulns") or []}`
+- ports（公開port）: `{internetdb.get("ports") or []}`
+- hostnames（観測名）: `{internetdb.get("hostnames") or []}`
+- CPE（製品識別子）: `{internetdb.get("cpes") or []}`
+- CVE（脆弱性識別子）: `{internetdb.get("vulns") or []}`
 
 port openはサービス存在の観測にすぎません。malware protocol、URI、証明書再利用、process帰属の
 いずれかを追加確認してからC2候補へ昇格します。

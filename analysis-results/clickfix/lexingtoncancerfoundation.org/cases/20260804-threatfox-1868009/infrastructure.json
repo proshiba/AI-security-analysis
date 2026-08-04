@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868009",
+  "domain": "lexingtoncancerfoundation.org",
+  "observed_at": "2026-08-04 00:15:03 UTC",
+  "investigated_at_utc": "2026-08-04T01:58:06.258895+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1868009"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        200
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "162.241.4.116"
+      ],
+      "landing_public_addresses": [
+        "162.241.4.116"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 1,
+            "ttl": 600,
+            "data": "162.241.4.116"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 2,
+            "ttl": 21600,
+            "data": "salvador.ns.porkbun.com"
+          },
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 2,
+            "ttl": 21600,
+            "data": "curitiba.ns.porkbun.com"
+          },
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 2,
+            "ttl": 21600,
+            "data": "maceio.ns.porkbun.com"
+          },
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 2,
+            "ttl": 21600,
+            "data": "fortaleza.ns.porkbun.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": [
+          {
+            "name": "lexingtoncancerfoundation.org",
+            "type": 15,
+            "ttl": 3600,
+            "data": "0 lexingtoncancerfoundation-org.mail.protection.outlook.com"
+          }
+        ]
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "lexingtoncancerfoundation.org",
+      "unicode_name": "lexingtoncancerfoundation.org",
+      "handle": null,
+      "status": [
+        "client delete prohibited",
+        "client transfer prohibited"
+      ],
+      "events": [
+        {
+          "action": "transfer",
+          "date": "2023-09-28T17:40:01.688Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2026-11-11T22:08:44.163Z"
+        },
+        {
+          "action": "registration",
+          "date": "2015-11-11T22:08:44.163Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2025-10-12T04:05:05.968Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-08-04T01:57:50.469Z"
+        }
+      ],
+      "nameservers": [
+        "curitiba.ns.porkbun.com",
+        "fortaleza.ns.porkbun.com",
+        "maceio.ns.porkbun.com",
+        "salvador.ns.porkbun.com"
+      ],
+      "registrar_handles": [
+        "1861"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "162.241.4.116",
+      "rdap": {
+        "handle": "NET-162-240-0-0-1",
+        "name": "UNIFIEDLAYER-NETWORK-16",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "162.240.0.0",
+        "end_address": "162.241.255.255",
+        "parent_handle": "NET-162-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2026-07-28T16:18:57-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2013-08-22T14:57:53-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "162.241.4.116",
+        "country_code": "US",
+        "asn": 19871,
+        "organization": "Unified Layer",
+        "isp": "Network Solutions, LLC",
+        "domain": "unifiedlayer.com"
+      },
+      "shodan_internetdb": {
+        "ip": "162.241.4.116",
+        "ports": [
+          53,
+          80,
+          110,
+          143,
+          443,
+          993,
+          995,
+          2082,
+          2083,
+          2086,
+          2222
+        ],
+        "hostnames": [
+          "4934096.pivt.me",
+          "hrmech.com",
+          "pivt.me"
+        ],
+        "cpes": [
+          "cpe:/a:apache:http_server",
+          "cpe:/a:openbsd:openssh:7.4"
+        ],
+        "vulns": [
+          "CVE-2007-2768",
+          "CVE-2008-3844",
+          "CVE-2016-20012",
+          "CVE-2017-15906",
+          "CVE-2018-15473",
+          "CVE-2018-15919",
+          "CVE-2018-20685",
+          "CVE-2019-6109",
+          "CVE-2019-6110",
+          "CVE-2019-6111",
+          "CVE-2020-14145",
+          "CVE-2020-15778",
+          "CVE-2021-36368",
+          "CVE-2021-41617",
+          "CVE-2023-38408",
+          "CVE-2023-48795",
+          "CVE-2023-51385",
+          "CVE-2023-51767",
+          "CVE-2025-26465",
+          "CVE-2025-32728",
+          "CVE-2026-35385",
+          "CVE-2026-35387",
+          "CVE-2026-35388",
+          "CVE-2026-35414",
+          "CVE-2026-59995",
+          "CVE-2026-59996",
+          "CVE-2026-59997",
+          "CVE-2026-59998",
+          "CVE-2026-59999",
+          "CVE-2026-60000",
+          "CVE-2026-60001",
+          "CVE-2026-60002"
+        ],
+        "tags": [
+          "self-signed",
+          "starttls"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

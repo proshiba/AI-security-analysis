@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-clickfix-pro-d849de1bf3dd",
+  "domain": "sax166rh.funkboi.com",
+  "queried_at_utc": "2026-08-04T02:05:05.910145+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 0
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 0,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

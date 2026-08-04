@@ -1206,6 +1206,296 @@ def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
     assert validation_calls == [{"expected_digest": digest, "require_resumable": True}]
 
 
+def _write_complete_generic_container_fixture(
+    case_dir: Path,
+    *,
+    layer_format: str,
+    coverage_issue: str,
+    child_format: str = "pe",
+) -> tuple[str, str]:
+    """container委譲の既知制限fixtureを作成する。"""
+
+    layer_sha = "8" * 64
+    child_sha = "9" * 64
+    result: dict[str, object] = {
+        "analysis_coverage": {"status": "partial", "issues": [coverage_issue]},
+        "type": layer_format,
+    }
+    if layer_format == "rar":
+        result["format_specific_analysis"] = "delegated_to_static_layer_pipeline"
+    target._json_dump(
+        case_dir / "generic-triage.json",
+        {
+            "analysis_coverage": {
+                "status": "partial",
+                "failed_layers": 0,
+                "partial_layers": 1,
+            },
+            "recovered_layer_triage": [
+                {
+                    "status": "partial",
+                    "issues": ["root:coverage:partial"],
+                    "layer": {"sha256": layer_sha, "format": layer_format},
+                    "result": result,
+                }
+            ],
+        },
+    )
+    report: dict[str, object] = {}
+    accepted_children: list[dict[str, str]] = []
+    layers = [{"sha256": layer_sha}]
+    if layer_format == "ole":
+        report["ole"] = {
+            "status": "artifacts_recovered",
+            "inventory": [{"status": "inspected"}],
+        }
+        accepted_children = [{"sha256": child_sha, "format": child_format}]
+        layers.append({"sha256": child_sha})
+    elif layer_format == "rar":
+        report["sevenzip"] = {
+            "status": "partially_extracted",
+            "archive_unlock_attempt_count": 2,
+            "retained_members": 0,
+            "inventory": [{"status": "empty_file"}],
+        }
+    target._json_dump(
+        case_dir / "static-layers.json",
+        {
+            "layers": layers,
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "input_layer": {"sha256": layer_sha},
+                    "accepted_children": accepted_children,
+                    "report": report,
+                }
+            ],
+        },
+    )
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "coverage": {
+                "all_characteristic_functions_attempted": True,
+                "all_characteristic_functions_explained": True,
+                "all_discovered_functions_inventoried": True,
+                "all_static_analysis_content_retained": True,
+                "function_bodies_reviewed": True,
+                "ghidra_program_count": 1,
+                "ghidra_programs_with_valid_mcp_responses": 1,
+            }
+        },
+    )
+    return layer_sha, child_sha
+
+
+def test_known_generic_container_limits_accepts_recovered_ole(tmp_path: Path) -> None:
+    """OLE inventoryとPE/CAB子の再帰解析が揃う場合だけ既知制限として返す。"""
+
+    case_dir = tmp_path / ("8" * 64)
+    case_dir.mkdir()
+    layer_sha, _ = _write_complete_generic_container_fixture(
+        case_dir,
+        layer_format="ole",
+        coverage_issue="root:ole_format_analysis_not_implemented",
+    )
+
+    assert target._ghidra_documents_known_generic_container_limits(case_dir) == [
+        f"{layer_sha}:ole_inventory_and_executable_children_recovered"
+    ]
+
+
+def test_known_generic_container_limits_rejects_unrouted_ole_child(tmp_path: Path) -> None:
+    """OLE子が実行形式またはCABとしてroutingされない場合は完了へ昇格しない。"""
+
+    case_dir = tmp_path / ("7" * 64)
+    case_dir.mkdir()
+    _write_complete_generic_container_fixture(
+        case_dir,
+        layer_format="ole",
+        coverage_issue="root:ole_format_analysis_not_implemented",
+        child_format="data",
+    )
+
+    assert target._ghidra_documents_known_generic_container_limits(case_dir) == []
+
+
+def test_known_generic_container_limits_accepts_bounded_rar_delegation(tmp_path: Path) -> None:
+    """RAR inventory委譲は、有界再試行済み静的制限と組み合わさる場合だけ閉じる。"""
+
+    case_dir = tmp_path / ("6" * 64)
+    case_dir.mkdir()
+    layer_sha, _ = _write_complete_generic_container_fixture(
+        case_dir,
+        layer_format="rar",
+        coverage_issue="root:rar_inventory_only",
+    )
+    assert target._ghidra_documents_known_generic_container_limits(case_dir) == [
+        f"{layer_sha}:rar_inventory_delegated_to_bounded_static_recovery"
+    ]
+    layers_path = case_dir / "static-layers.json"
+    layers = target.load_json_object_strict(layers_path)
+    layers["steps"][0]["report"]["sevenzip"]["archive_unlock_attempt_count"] = 1
+    target._json_dump(layers_path, layers)
+    assert target._ghidra_documents_known_generic_container_limits(case_dir) == []
+
+
+def test_finalize_case_report_closes_documented_ole_generic_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """完全回収したOLE委譲だけを解析済み未分類へ遷移させる。"""
+
+    digest = "5" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    layer_sha, _ = _write_complete_generic_container_fixture(
+        case_dir,
+        layer_format="ole",
+        coverage_issue="root:ole_format_analysis_not_implemented",
+    )
+    report = {
+        "classification": {"selected_families": []},
+        "generic_triage": "partial",
+        "limitations": [],
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": ["generic_triage_partial", target.FUNCTION_ANALYSIS_BLOCKER],
+        },
+        "artifact_sha256": {
+            name: hashlib.sha256((case_dir / name).read_bytes()).hexdigest()
+            for name in ("generic-triage.json", "static-layers.json", "static-logic.json")
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *args, **kwargs: [])
+
+    assert target.finalize_case_report(case_dir) == "triaged_unknown"
+    refreshed = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed["case_state"]["blockers"] == []
+    assert refreshed["generic_triage_completion"]["basis"] == (
+        "ghidra_complete_coverage_and_bounded_container_recovery"
+    )
+    assert refreshed["generic_triage_completion"]["documented_container_limits"] == [
+        f"{layer_sha}:ole_inventory_and_executable_children_recovered"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("issue", "steps", "documented"),
+    [
+        (
+            "steps[0].report.pe.managed_il_triage.status:analyzed_partial_budget",
+            [],
+            True,
+        ),
+        (
+            "steps[4].report.sevenzip.status:partially_extracted",
+            [
+                {
+                    "report": {
+                        "sevenzip": {
+                            "status": "partially_extracted",
+                            "archive_unlock_attempt_count": 2,
+                            "retained_members": 0,
+                            "inventory": [{"name": "eee.exe", "status": "empty_file"}],
+                        }
+                    }
+                }
+            ],
+            True,
+        ),
+        ("steps[0].report.dotnet_bundle.status:parse_failed", [], False),
+    ],
+)
+def test_ghidra_documents_only_known_exhausted_static_limits(
+    tmp_path: Path,
+    issue: str,
+    steps: list[dict[str, object]],
+    documented: bool,
+) -> None:
+    """未知のparse失敗や未試行の展開失敗を完了扱いにしない。"""
+
+    case_dir = tmp_path / hashlib.sha256(issue.encode()).hexdigest()
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "coverage": {
+                "all_characteristic_functions_attempted": True,
+                "all_characteristic_functions_explained": True,
+                "all_discovered_functions_inventoried": True,
+                "all_static_analysis_content_retained": True,
+                "function_bodies_reviewed": True,
+                "ghidra_program_count": 2,
+                "ghidra_programs_with_valid_mcp_responses": 2,
+            }
+        },
+    )
+    target._json_dump(case_dir / "static-layers.json", {"steps": steps})
+    result = target._ghidra_documents_known_static_limits(
+        case_dir,
+        {"static_layer_issues": [issue]},
+    )
+    assert bool(result) is documented
+
+
+def test_finalize_case_report_promotes_documented_managed_budget_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidra完全coverageが管理コード予算上限を補完した場合だけ完了させる。"""
+
+    digest = "6" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "coverage": {
+                "all_characteristic_functions_attempted": True,
+                "all_characteristic_functions_explained": True,
+                "all_discovered_functions_inventoried": True,
+                "all_static_analysis_content_retained": True,
+                "function_bodies_reviewed": True,
+                "ghidra_program_count": 1,
+                "ghidra_programs_with_valid_mcp_responses": 1,
+            }
+        },
+    )
+    issue = "steps[0].report.pe.managed_il_triage.status:analyzed_partial_budget"
+    report = {
+        "classification": {"selected_families": []},
+        "limitations": [],
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": [target.FUNCTION_ANALYSIS_BLOCKER, "static_layer_incomplete"],
+            "detector_error_families": [],
+            "static_layer_issues": [issue],
+            "incomplete_selected_layer_attempts": [],
+        },
+        "artifact_sha256": {
+            "static-logic.json": hashlib.sha256((case_dir / "static-logic.json").read_bytes()).hexdigest()
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    assert target.finalize_case_report(case_dir) == "triaged_unknown"
+    refreshed = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed["case_state"]["blockers"] == []
+    assert refreshed["case_state"]["static_layer_issues"] == []
+    assert refreshed["documented_static_layer_issues"] == [issue]
+    assert refreshed["static_layer_analysis_completion"]["raw_evidence"] == "static-layers.json"
+    assert "Ghidra MCP" in refreshed["limitations"][-1]
+
+
 def test_finalize_case_report_preserves_unrelated_blocker(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1255,7 +1545,12 @@ def test_finalize_collection_registers_partial_case_identity(
 ) -> None:
     """解析がpartialでもidentityを登録し、完了状態はpartialのまま保持する。"""
 
-    repository = tmp_path / "repository"
+    # Windowsではpytestのテスト名付き一時パスと64桁digestの組み合わせが
+    # MAX_PATHを超えることがある。意味上は同じ一時領域内で短いrootを使う。
+    short_root = tmp_path.parents[2] / (
+        "fc-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
+    )
+    repository = short_root / "r"
     digest = "a" * 64
     case_dir = repository / "analysis-results" / "malware" / "unclassified" / "versions" / "unknown" / "cases" / digest
     case_dir.mkdir(parents=True)
@@ -1548,6 +1843,104 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
             sample_root,
             short_root / "pm",
         )
+
+
+def test_prepare_inputs_replays_adaptive_static_layer_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開側で層上限再試行が発火したcaseを同じ上限で再現する。"""
+
+    from types import SimpleNamespace
+
+    root_data = _minimal_pe(b"adaptive-root")
+    child_data = _minimal_pe(b"adaptive-child")
+    digest = hashlib.sha256(root_data).hexdigest()
+    child_digest = hashlib.sha256(child_data).hexdigest()
+    short_root = tmp_path.parents[2] / ("adaptive-replay-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
+    repository = short_root / "r"
+    case_dir = repository / "analysis-results" / "malware" / "test-family" / "versions" / "unknown" / "cases" / digest
+    case_dir.mkdir(parents=True)
+    collection = repository / "analysis-results" / "collections" / "test-collection"
+    target._json_dump(collection / "manifest.json", {"cases": [{"case_id": f"sha256:{digest}"}]})
+    sample_root = short_root / "s"
+    archive = sample_root / digest / f"{digest}.zip"
+    archive.parent.mkdir(parents=True)
+    archive.write_bytes(b"fixture archive")
+    target._json_dump(
+        sample_root / "manifest.json",
+        {"items": [{"sha256": digest, "zip_path": str(archive)}]},
+    )
+    target._json_dump(
+        case_dir / "static-layers.json",
+        {
+            "layers": [
+                {"sha256": digest, "size": len(root_data), "depth": 0, "transform": "submission"},
+                {
+                    "sha256": child_digest,
+                    "size": len(child_data),
+                    "depth": 1,
+                    "transform": "embedded-pe",
+                },
+            ]
+        },
+    )
+    report = {
+        "analysis_contract": {
+            "settings": {
+                "static_tools": {"upx": None, "sevenzip": None, "diec": None},
+                "force_container_probe": False,
+                "max_static_layers": 64,
+                "retry_max_static_layers": 256,
+            }
+        },
+        "artifact_sha256": {
+            "static-layers.json": hashlib.sha256((case_dir / "static-layers.json").read_bytes()).hexdigest()
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    unit = SimpleNamespace(data=root_data, source_name="sample.exe")
+    root_layer = SimpleNamespace(
+        data=root_data,
+        sha256=digest,
+        depth=0,
+        transform="submission",
+        parent_sha256=None,
+        name="sample.exe",
+    )
+    child_layer = SimpleNamespace(
+        data=child_data,
+        sha256=child_digest,
+        depth=1,
+        transform="embedded-pe",
+        parent_sha256=digest,
+        name="child.exe",
+    )
+    observed: list[int] = []
+    monkeypatch.setattr(target, "read_input_unit", lambda *args, **kwargs: unit)
+
+    def replay_layers(value: object, **kwargs: object):
+        assert value is unit
+        observed.append(int(kwargs["max_static_layers"]))
+        if len(observed) == 1:
+            return [root_layer], {"limit_events": [{"reason": "layer_count_limit"}]}
+        return [root_layer, child_layer], {"limit_events": []}
+
+    monkeypatch.setattr(target, "recover_static_layers", replay_layers)
+
+    objects, non_pe = target.prepare_inputs(
+        repository,
+        collection,
+        sample_root,
+        short_root / "p",
+    )
+
+    assert set(objects) == {digest, child_digest}
+    assert not non_pe
+    assert observed == [64, 256]
+    relationships = target.load_json_object_strict(short_root / "p" / "input-relationships.json")
+    assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {"adaptive_static_layer_replay"}
 
 
 @pytest.mark.parametrize(

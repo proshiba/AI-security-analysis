@@ -44,7 +44,12 @@ from analysis_contract import (  # noqa: E402
     verify_artifact_hashes,
     verify_report_semantics,
 )
-from analyze_sample import StaticLayer, read_input_unit, recover_static_layers  # noqa: E402
+from analyze_sample import (  # noqa: E402
+    StaticLayer,
+    _layer_count_limit_reached,
+    read_input_unit,
+    recover_static_layers,
+)
 from overall_logic_diagrams import (  # noqa: E402
     load_static_layers,
     render_overall_logic_markdown,
@@ -504,6 +509,11 @@ def prepare_inputs(
         if case_dir is None:
             raise FileNotFoundError(f"公開caseが見つかりません: {case_sha}")
         _validate_static_tool_contract(case_dir, static_tools)
+        analysis_report = load_json_object_strict(case_dir / "report.json")
+        contract = analysis_report.get("analysis_contract")
+        settings = contract.get("settings") if isinstance(contract, Mapping) else None
+        if not isinstance(settings, Mapping):
+            raise ValueError(f"解析契約settingsがありません: {case_sha}")
         public_layers, expected = _load_authenticated_public_layers(case_dir)
         unit = read_input_unit(
             archive,
@@ -532,13 +542,23 @@ def prepare_inputs(
             ]
             reconstruction_mode = "authenticated_root_only"
         else:
-            layers, _ = recover_static_layers(
-                unit,
-                upx=upx,
-                sevenzip=sevenzip,
-                diec=diec,
-            )
-            reconstruction_mode = "full_static_layer_replay"
+            replay_kwargs: dict[str, Any] = {
+                "upx": upx,
+                "sevenzip": sevenzip,
+                "diec": diec,
+            }
+            if "force_container_probe" in settings:
+                replay_kwargs["force_container_probe"] = bool(settings["force_container_probe"])
+            if "max_static_layers" in settings:
+                replay_kwargs["max_static_layers"] = int(settings["max_static_layers"])
+            layers, layer_report = recover_static_layers(unit, **replay_kwargs)
+            retry_limit = settings.get("retry_max_static_layers")
+            if retry_limit is not None and _layer_count_limit_reached(layer_report):
+                replay_kwargs["max_static_layers"] = int(retry_limit)
+                layers, _ = recover_static_layers(unit, **replay_kwargs)
+                reconstruction_mode = "adaptive_static_layer_replay"
+            else:
+                reconstruction_mode = "full_static_layer_replay"
         actual = {(layer.sha256, len(layer.data), layer.depth, layer.transform) for layer in layers}
         if expected != actual:
             raise ValueError(f"静的layer再現結果が公開成果物と一致しません: {case_sha}")
@@ -2556,6 +2576,186 @@ def _ghidra_supersedes_generic_string_limit(case_dir: Path) -> bool:
     return issues == ["string_scan_truncated"]
 
 
+def _ghidra_documents_known_static_limits(
+    case_dir: Path,
+    state: Mapping[str, Any],
+) -> list[str]:
+    """Ghidra証拠と再試行記録で説明済みとなる限定的な静的制限を返す。"""
+
+    static_path = case_dir / "static-logic.json"
+    if not static_path.exists():
+        return []
+    static_logic = load_json_object_strict(static_path)
+    coverage = static_logic.get("coverage")
+    if not isinstance(coverage, Mapping):
+        return []
+    required = (
+        "all_characteristic_functions_attempted",
+        "all_characteristic_functions_explained",
+        "all_discovered_functions_inventoried",
+        "all_static_analysis_content_retained",
+        "function_bodies_reviewed",
+    )
+    if not all(coverage.get(key) is True for key in required):
+        return []
+    program_count = coverage.get("ghidra_program_count")
+    if not isinstance(program_count, int) or program_count < 1:
+        return []
+    if coverage.get("ghidra_programs_with_valid_mcp_responses") != program_count:
+        return []
+
+    issues = state.get("static_layer_issues")
+    if not isinstance(issues, list) or not issues:
+        return []
+    managed_suffix = ".report.pe.managed_il_triage.status:analyzed_partial_budget"
+    sevenzip_suffix = ".report.sevenzip.status:partially_extracted"
+    if any(not isinstance(issue, str) or not issue.endswith((managed_suffix, sevenzip_suffix)) for issue in issues):
+        return []
+
+    sevenzip_issues = [issue for issue in issues if issue.endswith(sevenzip_suffix)]
+    if sevenzip_issues:
+        layers_path = case_dir / "static-layers.json"
+        if not layers_path.exists():
+            return []
+        static_layers = load_json_object_strict(layers_path)
+        exhausted = []
+        for step in static_layers.get("steps", []):
+            report = step.get("report") if isinstance(step, Mapping) else None
+            sevenzip = report.get("sevenzip") if isinstance(report, Mapping) else None
+            if not isinstance(sevenzip, Mapping) or sevenzip.get("status") != "partially_extracted":
+                continue
+            inventory = sevenzip.get("inventory")
+            exhausted.append(
+                int(sevenzip.get("archive_unlock_attempt_count") or 0) >= 2
+                and sevenzip.get("retained_members") == 0
+                and isinstance(inventory, list)
+                and bool(inventory)
+                and all(isinstance(item, Mapping) and item.get("status") == "empty_file" for item in inventory)
+            )
+        if len(exhausted) != len(sevenzip_issues) or not all(exhausted):
+            return []
+    return sorted(set(issues))
+
+
+def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str]:
+    """完全な静的coverageで補完済みの限定的なcontainer委譲だけを返す。"""
+
+    generic_path = case_dir / "generic-triage.json"
+    layers_path = case_dir / "static-layers.json"
+    static_path = case_dir / "static-logic.json"
+    if not generic_path.exists() or not layers_path.exists() or not static_path.exists():
+        return []
+    static_logic = load_json_object_strict(static_path)
+    coverage = static_logic.get("coverage")
+    if not isinstance(coverage, Mapping):
+        return []
+    required = (
+        "all_characteristic_functions_attempted",
+        "all_characteristic_functions_explained",
+        "all_discovered_functions_inventoried",
+        "all_static_analysis_content_retained",
+        "function_bodies_reviewed",
+    )
+    if not all(coverage.get(key) is True for key in required):
+        return []
+    program_count = coverage.get("ghidra_program_count")
+    if not isinstance(program_count, int) or program_count < 1:
+        return []
+    if coverage.get("ghidra_programs_with_valid_mcp_responses") != program_count:
+        return []
+
+    generic = load_json_object_strict(generic_path)
+    generic_coverage = generic.get("analysis_coverage")
+    if not isinstance(generic_coverage, Mapping):
+        return []
+    if int(generic_coverage.get("failed_layers") or 0) != 0:
+        return []
+    entries = generic.get("recovered_layer_triage")
+    if not isinstance(entries, list):
+        return []
+    partial_entries = [item for item in entries if isinstance(item, Mapping) and item.get("status") == "partial"]
+    if len(partial_entries) != int(generic_coverage.get("partial_layers") or 0) or not partial_entries:
+        return []
+
+    static_layers = load_json_object_strict(layers_path)
+    steps = static_layers.get("steps")
+    if not isinstance(steps, list):
+        return []
+    steps_by_sha: dict[str, Mapping[str, Any]] = {}
+    for step in steps:
+        if not isinstance(step, Mapping):
+            continue
+        input_layer = step.get("input_layer")
+        if isinstance(input_layer, Mapping) and input_layer.get("sha256"):
+            steps_by_sha[str(input_layer["sha256"])] = step
+    layer_hashes = {
+        str(item.get("sha256"))
+        for item in static_layers.get("layers", [])
+        if isinstance(item, Mapping) and item.get("sha256")
+    }
+    documented: list[str] = []
+    for entry in partial_entries:
+        if entry.get("issues") != ["root:coverage:partial"]:
+            return []
+        layer = entry.get("layer")
+        result = entry.get("result")
+        if not isinstance(layer, Mapping) or not isinstance(result, Mapping):
+            return []
+        layer_sha = str(layer.get("sha256") or "")
+        layer_format = str(layer.get("format") or result.get("type") or "")
+        analysis_coverage = result.get("analysis_coverage")
+        if not isinstance(analysis_coverage, Mapping):
+            return []
+        step = steps_by_sha.get(layer_sha)
+        if not isinstance(step, Mapping) or step.get("status") != "succeeded":
+            return []
+        report = step.get("report")
+        if not isinstance(report, Mapping):
+            return []
+        if layer_format == "rar":
+            sevenzip = report.get("sevenzip")
+            inventory = sevenzip.get("inventory") if isinstance(sevenzip, Mapping) else None
+            if (
+                result.get("format_specific_analysis") != "delegated_to_static_layer_pipeline"
+                or analysis_coverage.get("issues") != ["root:rar_inventory_only"]
+                or not isinstance(sevenzip, Mapping)
+                or sevenzip.get("status") != "partially_extracted"
+                or int(sevenzip.get("archive_unlock_attempt_count") or 0) < 2
+                or sevenzip.get("retained_members") != 0
+                or not isinstance(inventory, list)
+                or not inventory
+                or not all(isinstance(item, Mapping) and item.get("status") == "empty_file" for item in inventory)
+            ):
+                return []
+            documented.append(f"{layer_sha}:rar_inventory_delegated_to_bounded_static_recovery")
+            continue
+        if layer_format == "ole":
+            ole = report.get("ole")
+            inventory = ole.get("inventory") if isinstance(ole, Mapping) else None
+            children = step.get("accepted_children")
+            if (
+                analysis_coverage.get("issues") != ["root:ole_format_analysis_not_implemented"]
+                or not isinstance(ole, Mapping)
+                or ole.get("status") != "artifacts_recovered"
+                or not isinstance(inventory, list)
+                or not inventory
+                or not all(isinstance(item, Mapping) and item.get("status") == "inspected" for item in inventory)
+                or not isinstance(children, list)
+                or not children
+                or not all(
+                    isinstance(child, Mapping)
+                    and child.get("sha256") in layer_hashes
+                    and child.get("format") in {"cab", "pe"}
+                    for child in children
+                )
+            ):
+                return []
+            documented.append(f"{layer_sha}:ole_inventory_and_executable_children_recovered")
+            continue
+        return []
+    return sorted(documented)
+
+
 def finalize_case_report(case_dir: Path) -> str:
     """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
 
@@ -2568,10 +2768,28 @@ def finalize_case_report(case_dir: Path) -> str:
         raise ValueError(f"case_state.blockersが配列ではありません: {case_dir.name}")
     status = state.get("status")
     generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
+    documented_static_issues = _ghidra_documents_known_static_limits(case_dir, state)
+    documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
     if status == "partial":
         remaining = [value for value in blockers if value != FUNCTION_ANALYSIS_BLOCKER]
-        if "generic_triage_partial" in remaining and generic_limit_superseded:
+        if "generic_triage_partial" in remaining and (generic_limit_superseded or documented_generic_limits):
             remaining.remove("generic_triage_partial")
+        if "static_layer_incomplete" in remaining and documented_static_issues:
+            remaining.remove("static_layer_incomplete")
+            state["static_layer_issues"] = []
+            report["documented_static_layer_issues"] = documented_static_issues
+            report["static_layer_analysis_completion"] = {
+                "basis": "ghidra_complete_coverage_and_exhausted_bounded_static_recovery",
+                "raw_evidence": "static-layers.json",
+                "supplementary_evidence": "static-logic.json",
+            }
+            limitation = (
+                "静的復元には管理コード解析予算または暗号化RAR復元の文書化済み制限があります。"
+                "利用可能な候補を有界に再試行し、Ghidra MCPで全関数台帳と代表関数解析を補完しました。"
+            )
+            limitations = report.setdefault("limitations", [])
+            if limitation not in limitations:
+                limitations.append(limitation)
         if remaining:
             state.update(
                 {
@@ -2601,18 +2819,28 @@ def finalize_case_report(case_dir: Path) -> str:
         and blockers == []
     ):
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
-    if report.get("generic_triage") == "partial" and generic_limit_superseded:
+    if report.get("generic_triage") == "partial" and (generic_limit_superseded or documented_generic_limits):
         report["generic_triage"] = "complete"
         report["generic_triage_completion"] = {
-            "basis": "ghidra_complete_static_artifact_supersedes_string_retention_limit",
+            "basis": (
+                "ghidra_complete_static_artifact_supersedes_string_retention_limit"
+                if generic_limit_superseded
+                else "ghidra_complete_coverage_and_bounded_container_recovery"
+            ),
             "original_status": "partial",
             "raw_evidence": "generic-triage.json",
             "supplementary_evidence": "static-logic.json",
+            "documented_container_limits": documented_generic_limits,
         }
         limitation = (
             "汎用文字列走査は保持上限に達しましたが、Ghidra MCPによる全関数インベントリと"
             "代表関数解析、完全静的成果物で補完しました。"
         )
+        if documented_generic_limits:
+            limitation = (
+                "汎用containerトリアージの限定的な未実装箇所は、静的layer pipelineの完全inventory、"
+                "有界な回収試行、再帰解析、およびGhidra MCPの完全coverageで補完しました。"
+            )
         limitations = report.setdefault("limitations", [])
         if limitation not in limitations:
             limitations.append(limitation)

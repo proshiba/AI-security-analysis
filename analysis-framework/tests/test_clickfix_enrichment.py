@@ -144,3 +144,38 @@ def test_ipwhois_projection_keeps_asn_but_drops_geolocation() -> None:
         "domain": "example.test",
     }
     assert "city" not in result
+
+
+def test_infrastructure_markdown_uses_japanese_internetdb_heading() -> None:
+    """Shodan InternetDB見出しを日本語説明付きで生成する。"""
+
+    rendered = infra.render_case(
+        {
+            "domain": "example.test",
+            "observed_at": "2026-08-04T00:00:00Z",
+            "investigated_at_utc": "2026-08-04T01:00:00Z",
+            "errors": [],
+            "evidence_layers": {
+                "active_bounded_get": {
+                    "reachable": False,
+                    "http_statuses": [],
+                    "webdav_multistatus_observed": False,
+                    "tls_certificates": [],
+                },
+                "current_passive_dns": {},
+                "domain_rdap": None,
+                "certificate_transparency": None,
+                "ip_pivot": {
+                    "address": None,
+                    "rdap": None,
+                    "asn": None,
+                    "shodan_internetdb": None,
+                },
+            },
+        }
+    )
+
+    assert "## Shodan InternetDBの公開サービス情報" in rendered
+    assert "RDAP handle（登録識別子）" in rendered
+    assert "（DNS応答）" in rendered
+    assert "## Shodan InternetDB\n" not in rendered

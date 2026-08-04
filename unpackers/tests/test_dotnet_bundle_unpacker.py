@@ -75,6 +75,41 @@ def test_recovers_compressed_and_uncompressed_entries() -> None:
     ]
 
 
+def test_runtime_assemblies_are_inventoried_without_recursive_analysis() -> None:
+    """標準runtimeはhash台帳へ残し、アプリと非標準依存関係だけを再帰解析する。"""
+
+    app = b"MZapplication"
+    runtime = b"MZruntime"
+    dependency = b"MZthird-party"
+    config = b'{"runtimeOptions":{}}'
+    data = _bundle(
+        [
+            ("Acme.Tool.dll", 1, app, False),
+            ("System.Private.CoreLib.dll", 1, runtime, False),
+            ("ThirdParty.Helper.dll", 1, dependency, False),
+            ("Acme.Tool.runtimeconfig.json", 4, config, False),
+        ]
+    )
+
+    report, artifacts = recover_dotnet_bundle(data)
+
+    assert report["status"] == "recovered"
+    assert report["recovered_count"] == 4
+    assert report["analysis_artifact_count"] == 3
+    assert report["analysis_excluded_count"] == 1
+    assert report["application_stems"] == ["acme.tool"]
+    assert artifacts == [
+        ("dotnet-bundle-assembly", app),
+        ("dotnet-bundle-assembly", dependency),
+        ("dotnet-bundle-runtime_config_json", config),
+    ]
+    runtime_item = next(
+        item for item in report["inventory"] if item["name"] == "System.Private.CoreLib.dll"
+    )
+    assert runtime_item["analysis_selected"] is False
+    assert runtime_item["analysis_selection_reason"] == "dotnet_runtime_inventory_only"
+    assert runtime_item["sha256"]
+
 def test_rejects_traversal_path() -> None:
     data = _bundle([("../payload.dll", 1, b"MZfixture", False)])
 

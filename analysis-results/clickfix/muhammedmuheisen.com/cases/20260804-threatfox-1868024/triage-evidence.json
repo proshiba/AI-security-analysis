@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868024",
+  "domain": "muhammedmuheisen.com",
+  "queried_at_utc": "2026-08-04T02:05:01.704454+00:00",
+  "queries": [
+    {
+      "operator": "domain",
+      "result_count": 1
+    }
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 1,
+  "matches": [],
+  "errors": [],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

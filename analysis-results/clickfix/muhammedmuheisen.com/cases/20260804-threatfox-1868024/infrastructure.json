@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "case_id": "20260804-threatfox-1868024",
+  "domain": "muhammedmuheisen.com",
+  "observed_at": "2026-08-04 01:15:04 UTC",
+  "investigated_at_utc": "2026-08-04T01:56:28.524303+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ThreatFox",
+      "source_id": "1868024"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        200
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "192.185.224.35"
+      ],
+      "landing_public_addresses": [
+        "192.185.224.35"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 1,
+            "ttl": 14400,
+            "data": "192.185.224.35"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": [
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ns6589.hostgator.com"
+          },
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 2,
+            "ttl": 21600,
+            "data": "ns6590.hostgator.com"
+          }
+        ]
+      },
+      "MX": {
+        "status": 0,
+        "records": [
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "5 alt1.aspmx.l.google.com"
+          },
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "10 alt3.aspmx.l.google.com"
+          },
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "1 aspmx.l.google.com"
+          },
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "10 alt4.aspmx.l.google.com"
+          },
+          {
+            "name": "muhammedmuheisen.com",
+            "type": 15,
+            "ttl": 14400,
+            "data": "5 alt2.aspmx.l.google.com"
+          }
+        ]
+      }
+    },
+    "domain_rdap": {
+      "ldh_name": "MUHAMMEDMUHEISEN.COM",
+      "unicode_name": null,
+      "handle": "2125499186_DOMAIN_COM-VRSN",
+      "status": [
+        "client delete prohibited",
+        "client renew prohibited",
+        "client transfer prohibited",
+        "client update prohibited"
+      ],
+      "events": [
+        {
+          "action": "registration",
+          "date": "2017-05-18T05:52:39Z"
+        },
+        {
+          "action": "expiration",
+          "date": "2027-05-18T05:52:39Z"
+        },
+        {
+          "action": "last changed",
+          "date": "2025-05-20T11:45:42Z"
+        },
+        {
+          "action": "last update of RDAP database",
+          "date": "2026-08-04T01:55:55Z"
+        }
+      ],
+      "nameservers": [
+        "ns6589.hostgator.com",
+        "ns6590.hostgator.com"
+      ],
+      "registrar_handles": [
+        "146"
+      ],
+      "port43": null
+    },
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "192.185.224.35",
+      "rdap": {
+        "handle": "NET-192-185-0-0-1",
+        "name": "HGBLOCK-10",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "192.185.0.0",
+        "end_address": "192.185.255.255",
+        "parent_handle": "NET-192-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2026-07-28T16:41:12-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2013-07-22T14:59:27-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "192.185.224.35",
+        "country_code": "US",
+        "asn": 31898,
+        "organization": "Hostgator.com LLC",
+        "isp": "Oracle Corporation",
+        "domain": "hostgator.com"
+      },
+      "shodan_internetdb": {
+        "ip": "192.185.224.35",
+        "ports": [
+          22,
+          53,
+          80,
+          110,
+          143,
+          443,
+          465,
+          587,
+          995,
+          2086,
+          2087,
+          2222,
+          3306
+        ],
+        "hostnames": [
+          "autodiscover.themannlab.org",
+          "cpanel.themannlab.org",
+          "cpcalendars.themannlab.org",
+          "cpcontacts.themannlab.org",
+          "mail.themannlab.org",
+          "mail.wegocine.com",
+          "themannlab.org",
+          "webdisk.themannlab.org",
+          "webmail.themannlab.org",
+          "www.themannlab.org"
+        ],
+        "cpes": [
+          "cpe:/a:apache:http_server",
+          "cpe:/a:exim:exim:4.99.2",
+          "cpe:/a:openbsd:openssh:9.9",
+          "cpe:/a:oracle:mysql:5.7.44-48"
+        ],
+        "vulns": [
+          "CVE-2007-2768",
+          "CVE-2008-3844",
+          "CVE-2023-51767",
+          "CVE-2025-26465",
+          "CVE-2025-26466",
+          "CVE-2025-32728",
+          "CVE-2026-35385",
+          "CVE-2026-35387",
+          "CVE-2026-35388",
+          "CVE-2026-35414",
+          "CVE-2026-45185",
+          "CVE-2026-48840",
+          "CVE-2026-59995",
+          "CVE-2026-59996",
+          "CVE-2026-59997",
+          "CVE-2026-59998",
+          "CVE-2026-59999",
+          "CVE-2026-60000",
+          "CVE-2026-60001",
+          "CVE-2026-60002"
+        ],
+        "tags": [
+          "database",
+          "eol-product",
+          "starttls"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "certificate_transparency",
+      "error": "TimeoutError",
+      "http_status": null
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}
