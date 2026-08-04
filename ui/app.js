@@ -607,7 +607,7 @@
       '<p class="muted small">プロットは最新観測でDNS解決できたIPだけです（' + points.length + "地点 / " +
       esc((C2.plotted_ips || []).length) + "IP)。" +
       (noGeo ? "解決IPが無い、またはgeo未取得のendpointが " + noGeo + " 件あります（.onion を含む）。" : "") +
-      "位置は登録情報ベースの推定で、物理的な設置場所やC2所有者を示すものではありません。</p></div>";
+      "位置は MaxMind GeoLite2 によるIPインフラの概略で、物理的な設置場所・C2所有者・個人や住所を示すものではありません。</p></div>";
   }
 
   function c2EndpointRow(ep, index) {
@@ -857,7 +857,7 @@
       "<li>応答なしは<b>恒久停止を意味しません</b>。connection refused は比較的強い停止側観測、timeout は firewall や経路都合でも生じる弱い観測です。</li>" +
       "<li>最新OFFかつ、最後のON以後または初回OFFから7日以上、2回以上のOFF実観測が揃った場合だけ停止履歴へ移し、次回active対象から外します。未観測は停止日数へ数えません。</li>" +
       "<li>共有CDN内のedge IPローテーションは履歴へ残しますが、C2インフラ自体のIP変化には数えません。</li>" +
-      "<li>位置情報は登録情報ベースの推定です。設置場所やC2所有者の確定には使えません。</li>" +
+      "<li>位置情報は MaxMind GeoLite2 による<b>IPインフラの概略</b>です。設置場所やC2所有者の確定、個人や住所の特定には使えません。</li>" +
       "</ul>" +
       '<p class="muted small">安全境界: 完全一致host・単一portへ各1回、timeout最大 ' +
       esc(pol.maximum_timeout_seconds || "―") + " 秒、応答最大 " + esc(pol.maximum_response_bytes || "―") +

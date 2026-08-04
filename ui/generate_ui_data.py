@@ -251,28 +251,15 @@ C2_STATE_LABELS = {
 
 
 def c2_geo_table(run_dirs: list[Path]) -> dict[str, dict]:
-    """日付別Geo表とC2監視内のMaxMind詳細を新しい観測優先で統合する。"""
+    """C2監視結果に含まれるMaxMind GeoLite2の詳細を、新しい観測優先で集める。
+
+    geoの正本は監視パイプライン(`maxmind_c2_enrichment.py`)が
+    `monitoring-results.json` へ埋め込むMaxMind GeoLite2 City/ASNだけとする。
+    以前は第三者API由来の `ip-geo.json` も併用していたが、同一IPで国が
+    食い違う(例: CN Beijing と SG)ため、出所を1本に絞る。
+    """
     table: dict[str, dict] = {}
     for run_dir in run_dirs:
-        payload = read_json(run_dir / "ip-geo.json") or {}
-        for entry in payload.get("ips") or []:
-            address = entry.get("ip")
-            if not address or not entry.get("geo_resolved") or address in table:
-                continue
-            table[address] = {
-                "country": entry.get("country"),
-                "country_code": entry.get("country_code"),
-                "continent": entry.get("continent"),
-                "region": entry.get("region"),
-                "city": entry.get("city"),
-                "lat": entry.get("latitude"),
-                "lon": entry.get("longitude"),
-                "asn": entry.get("asn"),
-                "org": entry.get("organization"),
-                "isp": entry.get("isp"),
-                "observed_on": run_dir.name,
-                "source": "ip-geo.json",
-            }
         monitoring = read_json(run_dir / "monitoring-results.json") or {}
         for result in monitoring.get("results") or []:
             dns_history = (result.get("dns_tracking") or {}).get("history") or []

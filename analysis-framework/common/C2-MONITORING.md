@@ -56,17 +56,9 @@ py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
 
 ## 解決IPのgeo付与
 
-UIの世界地図プロット用に、解決IPの国・都市・緯度経度・ASNを別成果物として保存します。照会先は第三者のIP情報API(`ipwho.is`)だけで、**監視対象のC2へは接続しません**。private／loopback／reservedと`.onion`は照会しません。
+解決IPの国・都市・緯度経度・ASは、MaxMind GeoLite2 City/ASNで付与します。手順は [MAXMIND-C2-ENRICHMENT.md](MAXMIND-C2-ENRICHMENT.md) を参照してください。geoの出所はこれ1本に絞ります（第三者APIと併用すると同一IPで国が食い違うため）。
 
-```powershell
-py -3.13 .\analysis-framework\common\enrich_c2_geo.py `
-  --results .\analysis-results\research\c2-monitoring\2026-08-02\ `
-  --allow-network
-```
-
-`--allow-network`なしでは照会対象の一覧を表示するだけです。`--check`は通信せず、既存`ip-geo.json`が全ての解決IPを網羅しているかだけを検証します。
-
-geolocationは登録情報ベースの推定です。物理的な設置場所やC2所有者の確定には使わず、ASNやhosting事業者の傾向を見る材料として扱います。
+GeoLite2の位置はIPインフラの概略であり、C2稼働・攻撃者の所在地・個人や住所の特定には使いません。
 
 ## 判定の補足
 
