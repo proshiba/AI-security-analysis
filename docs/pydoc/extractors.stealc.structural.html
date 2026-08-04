@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.stealc.structural</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.stealc.html" class="white">stealc</a>.structural</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cextractors%5Cstealc%5Cstructural.py">c:\users\administrator\ai-security-analysis-daily-20260727\extractors\stealc\structural.py</a></td></tr></table>
+    <p><span class="code">StealC&nbsp;v2以降のcoreと補助moduleをオフラインで構造判定する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-classify_module_role"><strong>classify_module_role</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">collection／C2&nbsp;coreとChrome&nbsp;App-Bound&nbsp;helperを保守的に区別する。</span></dd></dl>
+ <dl><dt><a name="-protocol_guidance"><strong>protocol_guidance</strong></a>(structural_profile: 'dict[str, object]') -&gt; 'dict[str, object]'</dt><dd><span class="code">構造判定から公開可能なC2解析状態と安全方針を作る。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>APP_BOUND_MARKERS</strong> = (b'app_bound_encrypted_key', b'cryptstringtobinarya', b'cryptunprotectdata', b'cocreateinstance')<br>
+<strong>CORE_COLLECTION_MARKERS</strong> = (b'login data', b'local state', b'web data', b'cookies', b'wallet', b'steam', b'telegram')<br>
+<strong>CORE_JSON_MARKERS</strong> = (b'content-type: application/json', b'nlohmann', b'json.h')<br>
+<strong>CORE_TRANSPORT_MARKERS</strong> = (b'wininet.dll', b'httpsendrequestw', b'httpopenrequestw', b'internetconnectw')<br>
+<strong>STRUCTURAL_GATE_MARKERS</strong> = (b'content-type: application/json', b'nlohmann', b'json.h', b'wininet.dll', b'httpsendrequestw', b'httpopenrequestw', b'internetconnectw', b'login data', b'local state', b'web data', b'cookies', b'wallet', b'steam', b'telegram', b'app_bound_encrypted_key')</td></tr></table>
+</body></html>

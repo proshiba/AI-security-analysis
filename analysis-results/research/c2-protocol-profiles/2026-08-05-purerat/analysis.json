@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-08-05",
+  "family": "purehvnc",
+  "variant": "managed_purerat",
+  "conclusion": "protocol_level_detection_feasible_without_registration",
+  "reviewed_flow": [
+    "tcp_connect",
+    "send_04000000",
+    "tls_1_2_without_sni",
+    "compare_server_certificate_der_sha256"
+  ],
+  "confirmation_requirements": {
+    "protocol_prelude_accepted": true,
+    "tls_handshake": true,
+    "embedded_certificate_exact_match": true
+  },
+  "reviewed_profiles": [
+    {
+      "sample_sha256": "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0",
+      "version": "4.4.1",
+      "host": "tirakian.com",
+      "ports": [56001, 56002, 56003],
+      "certificate_sha256": "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b",
+      "protocol_prelude_hex": "04000000",
+      "tls_version": "TLSv1.2",
+      "sni": null,
+      "profile_basis": [
+        "local_exact_static_config",
+        "Check Point Research PureHVNC 4.1.9 protocol analysis"
+      ]
+    }
+  ],
+  "historical_pcap_support": {
+    "endpoint": "tea.vexexo.com:56001",
+    "observed_date": "2026-07-28",
+    "sni_observed": false,
+    "tls_version": "TLSv1.2",
+    "bidirectional_encrypted_binary": true,
+    "certificate_sha256": "9d6fa6cd95d386a4356f857711b14a39da4f4022fff8c83433137b3d3fcb71ad"
+  },
+  "current_limit": "network protobuf registration and command envelope schema unresolved",
+  "live_contact_performed": false,
+  "safety": {
+    "sample_executed": false,
+    "victim_metadata_sent": false,
+    "registration_attempted": false,
+    "task_poll_attempted": false,
+    "task_executed": false,
+    "payload_download_attempted": false,
+    "certificate_or_private_key_published": false
+  },
+  "sources": [
+    "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/",
+    "https://www.fortinet.com/uk/blog/threat-research/purehvnc-deployed-via-python-multi-stage-loader",
+    "analysis-results/malware/purehvnc/versions/v4.4.1/cases/e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0/config.json",
+    "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/network-validation.json"
+  ]
+}

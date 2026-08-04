@@ -1,0 +1,674 @@
+{
+  "schema_version": 1,
+  "family_hint": "lummastealer",
+  "pcap_sha256": "77615e51255d3a779cdfa8a32432ceab8c5cba75eaa5ade8867bcffbb7debc26",
+  "provenance": {
+    "provider": "Hatching Triage",
+    "sample_id": "260804-d6p76avvgs",
+    "sample_sha256": "4b7d75f5c35d8d326af5723fb77c44d769478c90ca2f88e2edfb3e08817fb29c",
+    "submitted": "2026-08-04T03:37:28Z",
+    "reported": "2026-08-04T03:40:12Z"
+  },
+  "request_count": 43,
+  "endpoints": [
+    {
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "resolved_domains": [
+        "c.pki.goog"
+      ],
+      "http_host": "c.pki.goog",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 3
+    },
+    {
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 4
+    },
+    {
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "resolved_domains": [],
+      "http_host": "login.live.com",
+      "host_misdirection": false,
+      "request_count": 14
+    },
+    {
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "oneocsp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 8
+    },
+    {
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "crl3.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ocsp.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "40.126.31.0",
+      "destination_port": 443,
+      "resolved_domains": [],
+      "http_host": "login.live.com",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "resolved_domains": [
+        "bizsmmit.cyou"
+      ],
+      "http_host": "bizsmmit.cyou",
+      "host_misdirection": false,
+      "request_count": 8
+    },
+    {
+      "destination_ip": "92.223.124.62",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 1
+    }
+  ],
+  "requests": [
+    {
+      "frame": 30,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/disallowedcertstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 43,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/disallowedcertstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 54,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/pinrulesstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 127,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 47,
+      "form_keys": [
+        "uid",
+        "cid"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 320,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "GET",
+      "uri_path": "/api/set_agent",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 417,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/api/set_agent",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 7988,
+      "form_keys": [
+        "timestamp",
+        "system",
+        "webgl",
+        "canvas",
+        "network",
+        "screen",
+        "hardware",
+        "language",
+        "fonts",
+        "webrtc",
+        "audio",
+        "misc"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 427,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "GET",
+      "uri_path": "/favicon.ico",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 534,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 3592,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 558,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/DeviceUpdate.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 9365,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 578,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 592,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 607,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 625,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 641,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 657,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 860,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 649,
+      "form_keys": [],
+      "multipart_names": [
+        "uid",
+        "pid",
+        "hwid",
+        "file"
+      ]
+    },
+    {
+      "frame": 895,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 15019,
+      "form_keys": [],
+      "multipart_names": [
+        "uid",
+        "pid",
+        "hwid",
+        "file"
+      ]
+    },
+    {
+      "frame": 942,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 956,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 972,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 986,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1031,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1047,
+      "destination_ip": "20.190.160.20",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1211,
+      "destination_ip": "92.223.124.62",
+      "destination_port": 80,
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/filestreamingservice/files/315ca852-f356-4361-8815-086f38f13875/siheng_25090.1002.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1436,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/authrootstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1542,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/pinrulesstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1591,
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "http_host": "crl3.digicert.com",
+      "method": "GET",
+      "uri_path": "/DigiCertGlobalRootG2.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1602,
+      "destination_ip": "40.126.31.0",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 334,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1606,
+      "destination_ip": "40.126.31.0",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 334,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1636,
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "http_host": "ocsp.digicert.com",
+      "method": "GET",
+      "uri_path": "/MFEwTzBNMEswSTAJBgUrDgMCGgUABBQ50otx%2Fh0Ztl%2Bz8SiPI7wEWVxDlQQUTiJUIBiV5uNu5g%2F6%2BrkS7QYXjzkCEAsMayxGaRewR3PGR9SvwMg%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1652,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAMSWShb0QgOyIAAAAAAAw%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1657,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/authrootstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1760,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAALE%2BVmfUqbVYAAAAAAAAs%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1774,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/authrootstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1881,
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "http_host": "c.pki.goog",
+      "method": "GET",
+      "uri_path": "/r/r1.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1932,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 14653,
+      "form_keys": [],
+      "multipart_names": [
+        "uid",
+        "pid",
+        "hwid",
+        "file"
+      ]
+    },
+    {
+      "frame": 1971,
+      "destination_ip": "64.89.161.173",
+      "destination_port": 80,
+      "http_host": "bizsmmit.cyou",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 14347,
+      "form_keys": [],
+      "multipart_names": [
+        "uid",
+        "pid",
+        "hwid",
+        "file"
+      ]
+    },
+    {
+      "frame": 1988,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAALE%2BVmfUqbVYAAAAAAAAs%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1995,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAMSWShb0QgOyIAAAAAAAw%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1999,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAOQpOPJdxRqZsAAAAAAA4%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 2005,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ3L3%2F%2Fa6ADK8NraY2GXzVaYrHG4AQUb6t%2B2v%2BXQ3LsO2d33oJhNYhHQoUCEzMAAAAGb6JMMcOVb6sAAAAAAAY%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 2010,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAPMyBlN%2B5Crk8AAAAAAA8%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 2024,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAPMyBlN%2B5Crk8AAAAAAA8%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    }
+  ],
+  "classification": {
+    "profile": "lumma_v6_compatible_uid_cid",
+    "confidence": "high",
+    "evidence": {
+      "uid_cid_registration": true,
+      "multipart_exfil": true,
+      "browser_agent_path": true
+    },
+    "active_probe_policy": "guarded_active_reviewed_profile_only",
+    "active_probe_reason": "完全一致v6 profileと二重許可時だけuid/cidと合成hwidを各1回送信します。"
+  },
+  "privacy": {
+    "body_values_retained": false,
+    "query_values_retained": false,
+    "tokens_retained": false,
+    "form_field_names_retained": true
+  },
+  "execution": {
+    "sample_executed_locally": false,
+    "network_contacted": false
+  }
+}

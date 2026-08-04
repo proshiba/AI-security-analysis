@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module extractors.stealer_protocols</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.stealer_protocols</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cextractors%5Cstealer_protocols.py">c:\users\administrator\ai-security-analysis-daily-20260727\extractors\stealer_protocols.py</a></td></tr></table>
+    <p><span class="code">スティーラー系抽出結果へ共通のC2証拠境界と安全方針を付加する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="copy.html">copy</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-attach_protocol_guidance"><strong>attach_protocol_guidance</strong></a>(result: 'dict', family: 'str') -&gt; 'dict'</dt><dd><span class="code">既存schemaを保ち、候補IOCと確定C2を混同しない状態を追加する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>PROTOCOL_GUIDANCE</strong> = {'formbook': {'active_probe_policy': 'passive_only', 'active_probe_reason': '64 domainとmain URIのdecoy構造、および404偽装があるため、復号済み設定と鍵なしのHTTP応答をC2確認に使いません。', 'minimum_confirmation': ['復元process imageの設定復号', 'main URIとreal domainの識別', 'process帰属付き通信または復号可能なPCAP'], 'profile_candidates': ['FormBook-4.1-or-XLoader-RC4-HTTP'], 'version_confirmed': False}, 'lummastealer': {'active_probe_policy': 'passive_only', 'active_probe_reason': 'v6にはLIFEがなく、uid/cid送信は設定取得や登録に進み得ます。v5以前もexact versionと復号設定がない対象へact=lifeを送りません。', 'minimum_confirmation': ['version別フォームkey集合', 'process帰属付きHTTP(S)要求', 'hardcoded C2とfallback sourceの役割分離'], 'profile_candidates': ['Lumma-v5-or-earlier-act-ver-lid-j', 'Lumma-v6-uid-cid'], 'version_confirmed': False}, 'remusstealer': {'active_probe_policy': 'passive_only', 'active_probe_reason': 'access token取得とstep送信はserver taskingを開始し得るため、PCAP照合または受動的観測だけを行います。', 'minimum_confirmation': ['復号済みC2 list', 'tag/exp/hwidからaccess_token/stepへの要求列', 'socket接続先とHTTP Hostの分離'], 'profile_candidates': ['Remus-access-token-step-multipart-HTTP'], 'version_confirmed': False}}<br>
+<strong>__annotations__</strong> = {'PROTOCOL_GUIDANCE': 'dict[str, dict[str, object]]'}</td></tr></table>
+</body></html>

@@ -212,6 +212,26 @@ def main() -> int:
         help="ライブチェック前に許容するMaxMind DB build age。既定値は24時間。",
     )
     parser.add_argument("--allow-network", action="store_true")
+    parser.add_argument(
+        "--allow-reviewed-application-probes",
+        action="store_true",
+        help="完全一致AsyncRAT／VenomRAT profileの匿名Ping 1 frameを許可します。",
+    )
+    parser.add_argument(
+        "--allow-authentication",
+        action="store_true",
+        help="完全一致AgentTesla FTP profileのUSER/PASS/QUIT限定認証を許可します。",
+    )
+    parser.add_argument(
+        "--allow-malware-registration-tasking",
+        action="store_true",
+        help="完全一致StealC／Lumma／Remus profileの合成登録とtask取得を許可します。",
+    )
+    parser.add_argument(
+        "--private-credential-vault",
+        type=Path,
+        help="リポジトリ外のAgentTesla sensitive_local_only JSON。",
+    )
     args = parser.parse_args()
 
     try:
@@ -228,7 +248,14 @@ def main() -> int:
             refresh=args.refresh_maxmind_databases,
             max_build_age_hours=(args.maxmind_max_build_age_hours if args.allow_network else None),
         )
-        result = monitor(plan, allow_network=args.allow_network)
+        result = monitor(
+            plan,
+            allow_network=args.allow_network,
+            allow_application_probes=args.allow_reviewed_application_probes,
+            allow_authentication=args.allow_authentication,
+            allow_malware_registration=args.allow_malware_registration_tasking,
+            private_credential_vault=args.private_credential_vault,
+        )
         result["monitoring_continuity"] = {
             "schema_version": 1,
             "previous_active_plan_found": previous_active is not None,

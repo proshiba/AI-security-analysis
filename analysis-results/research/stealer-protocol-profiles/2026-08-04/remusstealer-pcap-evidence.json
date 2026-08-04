@@ -1,0 +1,1760 @@
+{
+  "schema_version": 1,
+  "family_hint": "remusstealer",
+  "pcap_sha256": "3970dadcd5cf9054079f27fded23c0c38f91045e3dae3bb403cd96c1b4ac31ec",
+  "provenance": {
+    "provider": "Hatching Triage",
+    "sample_id": "260804-pt42bswzby",
+    "sample_sha256": "2b3a23db5ca7464a5c7f0975790af54097ed127a66ab0b551123831e8f40dfc6",
+    "submitted": "2026-08-04T12:38:11Z",
+    "reported": "2026-08-04T12:40:10Z"
+  },
+  "request_count": 115,
+  "endpoints": [
+    {
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "resolved_domains": [
+        "onesdto.shop"
+      ],
+      "http_host": "microsoft.com",
+      "host_misdirection": true,
+      "request_count": 90
+    },
+    {
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "resolved_domains": [],
+      "http_host": "login.live.com",
+      "host_misdirection": false,
+      "request_count": 18
+    },
+    {
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "oneocsp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "213.155.157.200",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "crl3.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    }
+  ],
+  "requests": [
+    {
+      "frame": 125,
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "http_host": "crl3.digicert.com",
+      "method": "GET",
+      "uri_path": "/DigiCertGlobalRootG2.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 138,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 3592,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 161,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/DeviceUpdate.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 9365,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 212,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/disallowedcertstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 230,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 4823,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 243,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 4759,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 265,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 89,
+      "form_keys": [
+        "tag",
+        "exp",
+        "hwid"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 270,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 85,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 275,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 1036,
+      "form_keys": [],
+      "multipart_names": [
+        "access_token",
+        "type",
+        "file"
+      ]
+    },
+    {
+      "frame": 283,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 288,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 296,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 302,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 317,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 322,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 338,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 86,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 402,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 32202,
+      "form_keys": [],
+      "multipart_names": [
+        "access_token",
+        "type",
+        "file"
+      ]
+    },
+    {
+      "frame": 410,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 415,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 477,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 82,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 486,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 491,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 89,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 496,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 502,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 85,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 508,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 513,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 68,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 518,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 525,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 62,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 530,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 86,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 547,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 16119,
+      "form_keys": [],
+      "multipart_names": [
+        "access_token",
+        "type",
+        "file"
+      ]
+    },
+    {
+      "frame": 554,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 73,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 563,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 568,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 66,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 576,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 62,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 582,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 86,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 603,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "multipart/form-data",
+      "content_length": 17932,
+      "form_keys": [],
+      "multipart_names": [
+        "access_token",
+        "type",
+        "file"
+      ]
+    },
+    {
+      "frame": 610,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 75,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 615,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 621,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 67,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 626,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 631,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 71,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 637,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 646,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 72,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 651,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 658,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 70,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 664,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 670,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 69,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 675,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 681,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 74,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 694,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 699,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 73,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 704,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 709,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 75,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 715,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 720,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 79,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 725,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 730,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 69,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 735,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 741,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 80,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 746,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 755,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 82,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 759,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ3L3%2F%2Fa6ADK8NraY2GXzVaYrHG4AQUb6t%2B2v%2BXQ3LsO2d33oJhNYhHQoUCEzMAAAAGb6JMMcOVb6sAAAAAAAY%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 771,
+      "destination_ip": "213.155.157.200",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/disallowedcertstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 775,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 785,
+      "destination_ip": "213.155.157.200",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/pinrulesstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 802,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 71,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 807,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 813,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 71,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 818,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 823,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 82,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 828,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 833,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 69,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 838,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 842,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 68,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 850,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 855,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 73,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 860,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 865,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 76,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 870,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 875,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 86,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 880,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 63,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 885,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 890,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 895,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 900,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 906,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 919,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 923,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 928,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 939,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 943,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 951,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 966,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 969,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 56,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 983,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 997,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1005,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1016,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1029,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 57,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1059,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1064,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 57,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1069,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1074,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 57,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1079,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 83,
+      "form_keys": [
+        "access_token",
+        "debug"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1084,
+      "destination_ip": "154.12.237.176",
+      "destination_port": 2535,
+      "http_host": "microsoft.com",
+      "method": "POST",
+      "uri_path": "/",
+      "content_type": "application/x-www-form-urlencoded",
+      "content_length": 57,
+      "form_keys": [
+        "access_token",
+        "step"
+      ],
+      "multipart_names": []
+    },
+    {
+      "frame": 1154,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1167,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1181,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1195,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1452,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1488,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1500,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/filestreamingservice/files/315ca852-f356-4361-8815-086f38f13875/siheng_25090.1002.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1738,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1754,
+      "destination_ip": "20.190.159.131",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7504,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1808,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/pinrulesstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    }
+  ],
+  "classification": {
+    "profile": "remus_http_token_task_file",
+    "confidence": "high",
+    "evidence": {
+      "registration": true,
+      "token_debug": true,
+      "token_step": true,
+      "file_upload": true
+    },
+    "active_probe_policy": "guarded_active_reviewed_profile_only",
+    "active_probe_reason": "完全一致profileと二重許可時だけ合成登録し、token非公開でstep=1を1回取得します。"
+  },
+  "privacy": {
+    "body_values_retained": false,
+    "query_values_retained": false,
+    "tokens_retained": false,
+    "form_field_names_retained": true
+  },
+  "execution": {
+    "sample_executed_locally": false,
+    "network_contacted": false
+  }
+}

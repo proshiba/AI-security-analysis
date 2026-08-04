@@ -1,0 +1,629 @@
+{
+  "schema_version": 1,
+  "family_hint": "formbook",
+  "pcap_sha256": "92a938f37572eb08ae6d22587df733c14d0e6d8d9c1a6a301acbf22bb4c65017",
+  "provenance": {
+    "provider": "Hatching Triage",
+    "sample_id": "260804-k5r4pa11c1",
+    "sample_sha256": "7ba2b0a420e45f02c5c13ec7732213859685586db9586122a8cb382652e49d6d",
+    "submitted": "2026-08-04T09:11:22Z",
+    "reported": "2026-08-04T09:13:56Z"
+  },
+  "request_count": 39,
+  "endpoints": [
+    {
+      "destination_ip": "142.250.129.100",
+      "destination_port": 443,
+      "resolved_domains": [
+        "drive.google.com"
+      ],
+      "http_host": "drive.google.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "resolved_domains": [
+        "c.pki.goog",
+        "o.pki.goog"
+      ],
+      "http_host": "c.pki.goog",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "resolved_domains": [
+        "c.pki.goog",
+        "o.pki.goog"
+      ],
+      "http_host": "crl.pki.goog",
+      "host_misdirection": true,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "resolved_domains": [
+        "c.pki.goog",
+        "o.pki.goog"
+      ],
+      "http_host": "o.pki.goog",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "142.251.29.132",
+      "destination_port": 443,
+      "resolved_domains": [
+        "drive.usercontent.google.com"
+      ],
+      "http_host": "drive.usercontent.google.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "162.159.142.9",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "crl3.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "162.159.142.9",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ocsp.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "172.66.2.5",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ocsp.digicert.com",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ctldl.windowsupdate.com",
+      "host_misdirection": false,
+      "request_count": 2
+    },
+    {
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 1
+    },
+    {
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "resolved_domains": [],
+      "http_host": "login.live.com",
+      "host_misdirection": false,
+      "request_count": 13
+    },
+    {
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "oneocsp.microsoft.com",
+      "host_misdirection": false,
+      "request_count": 10
+    },
+    {
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "resolved_domains": [],
+      "http_host": "ocsp.digicert.com",
+      "host_misdirection": false,
+      "request_count": 1
+    }
+  ],
+  "requests": [
+    {
+      "frame": 26,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/disallowedcertstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 125,
+      "destination_ip": "172.66.2.5",
+      "destination_port": 80,
+      "http_host": "ocsp.digicert.com",
+      "method": "GET",
+      "uri_path": "/MFEwTzBNMEswSTAJBgUrDgMCGgUABBQ50otx%2Fh0Ztl%2Bz8SiPI7wEWVxDlQQUTiJUIBiV5uNu5g%2F6%2BrkS7QYXjzkCEAsMayxGaRewR3PGR9SvwMg%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 128,
+      "destination_ip": "172.66.2.5",
+      "destination_port": 80,
+      "http_host": "ocsp.digicert.com",
+      "method": "GET",
+      "uri_path": "/MFEwTzBNMEswSTAJBgUrDgMCGgUABBQ50otx%2Fh0Ztl%2Bz8SiPI7wEWVxDlQQUTiJUIBiV5uNu5g%2F6%2BrkS7QYXjzkCEAz1vQYrVgL0erhQLCPM8GY%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 140,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAOQpOPJdxRqZsAAAAAAA4%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 147,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 3592,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 187,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/RST2.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 3592,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 207,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 225,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 238,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 254,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 268,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 284,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 299,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 314,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 7601,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 325,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 334,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 331,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 334,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 337,
+      "destination_ip": "20.190.159.4",
+      "destination_port": 443,
+      "http_host": "login.live.com",
+      "method": "POST",
+      "uri_path": "/ppsecure/deviceaddcredential.srf",
+      "content_type": "application/soap+xml",
+      "content_length": 237,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 364,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAPMyBlN%2B5Crk8AAAAAAA8%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 718,
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "http_host": "crl.pki.goog",
+      "method": "GET",
+      "uri_path": "/gsr1/gsr1.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 753,
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "http_host": "o.pki.goog",
+      "method": "GET",
+      "uri_path": "/wr2/MFEwTzBNMEswSTAJBgUrDgMCGgUABBRTQtSEi8EX%2BbYUTXd8%2ByMxD3s1zQQU3hse7XkV1D43JMMhu%2Bw0OW1CsjACEAKwwZm18v%2BWCV48hhr0K%2B4%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 922,
+      "destination_ip": "162.159.142.9",
+      "destination_port": 80,
+      "http_host": "ocsp.digicert.com",
+      "method": "GET",
+      "uri_path": "/MFEwTzBNMEswSTAJBgUrDgMCGgUABBTrjrydRyt%2BApF3GSPypfHBxR5XtQQUs9tIpPmhxdiuNkHMEWNpYim8S8YCEAjTxtAB8my1oj8MfWpz%2F7Y%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 1058,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ3L3%2F%2Fa6ADK8NraY2GXzVaYrHG4AQUb6t%2B2v%2BXQ3LsO2d33oJhNYhHQoUCEzMAAAAGb6JMMcOVb6sAAAAAAAY%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 13256,
+      "destination_ip": "142.250.129.100",
+      "destination_port": 443,
+      "http_host": "drive.google.com",
+      "method": "GET",
+      "uri_path": "/uc",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 13281,
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "http_host": "o.pki.goog",
+      "method": "GET",
+      "uri_path": "/wr2/MFIwUDBOMEwwSjAJBgUrDgMCGgUABBRTQtSEi8EX%2BbYUTXd8%2ByMxD3s1zQQU3hse7XkV1D43JMMhu%2Bw0OW1CsjACEQCP40gI9fUROgnSBEvLANBg",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 13287,
+      "destination_ip": "142.251.29.132",
+      "destination_port": 443,
+      "http_host": "drive.usercontent.google.com",
+      "method": "GET",
+      "uri_path": "/download",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 13779,
+      "destination_ip": "162.159.142.9",
+      "destination_port": 80,
+      "http_host": "crl3.digicert.com",
+      "method": "GET",
+      "uri_path": "/DigiCertGlobalRootG3.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 17637,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAPMyBlN%2B5Crk8AAAAAAA8%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 17645,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAMSWShb0QgOyIAAAAAAAw%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 17791,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "dl.delivery.mp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/filestreamingservice/files/315ca852-f356-4361-8815-086f38f13875/siheng_25090.1002.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18017,
+      "destination_ip": "199.232.210.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/authrootstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18129,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/authrootstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18232,
+      "destination_ip": "199.232.214.172",
+      "destination_port": 80,
+      "http_host": "ctldl.windowsupdate.com",
+      "method": "GET",
+      "uri_path": "/msdownload/update/v3/static/trustedr/en/pinrulesstl.cab",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18240,
+      "destination_ip": "142.250.151.94",
+      "destination_port": 80,
+      "http_host": "c.pki.goog",
+      "method": "GET",
+      "uri_path": "/r/r1.crl",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18434,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAOQpOPJdxRqZsAAAAAAA4%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18440,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ3L3%2F%2Fa6ADK8NraY2GXzVaYrHG4AQUb6t%2B2v%2BXQ3LsO2d33oJhNYhHQoUCEzMAAAAGb6JMMcOVb6sAAAAAAAY%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18444,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAALE%2BVmfUqbVYAAAAAAAAs%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18448,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ3L3%2F%2Fa6ADK8NraY2GXzVaYrHG4AQUb6t%2B2v%2BXQ3LsO2d33oJhNYhHQoUCEzMAAAAFUWohyJgUzPcAAAAAAAU%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18452,
+      "destination_ip": "204.79.197.203",
+      "destination_port": 80,
+      "http_host": "oneocsp.microsoft.com",
+      "method": "GET",
+      "uri_path": "/ocsp/MFQwUjBQME4wTDAJBgUrDgMCGgUABBR0TBEVYklX7A9yLoLD9hqmCWDxFgQU3pGGSLehMVkx8UtfB6nciHnaqHYCEzMAAAAMSWShb0QgOyIAAAAAAAw%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    },
+    {
+      "frame": 18488,
+      "destination_ip": "23.11.40.157",
+      "destination_port": 80,
+      "http_host": "ocsp.digicert.com",
+      "method": "GET",
+      "uri_path": "/MFEwTzBNMEswSTAJBgUrDgMCGgUABBQ50otx%2Fh0Ztl%2Bz8SiPI7wEWVxDlQQUTiJUIBiV5uNu5g%2F6%2BrkS7QYXjzkCEAsMayxGaRewR3PGR9SvwMg%3D",
+      "content_type": "",
+      "content_length": null,
+      "form_keys": [],
+      "multipart_names": []
+    }
+  ],
+  "classification": {
+    "profile": "formbook_xloader_terminal_protocol_not_observed",
+    "confidence": "low",
+    "evidence": {
+      "http_request_count": 39
+    },
+    "active_probe_policy": "passive_only",
+    "active_probe_reason": "decoy domainと404偽装のため、復号済みmain URIと鍵なしのHTTP応答はC2確認になりません。"
+  },
+  "privacy": {
+    "body_values_retained": false,
+    "query_values_retained": false,
+    "tokens_retained": false,
+    "form_field_names_retained": true
+  },
+  "execution": {
+    "sample_executed_locally": false,
+    "network_contacted": false
+  }
+}
