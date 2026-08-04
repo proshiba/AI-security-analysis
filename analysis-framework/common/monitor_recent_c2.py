@@ -10,6 +10,7 @@ import ipaddress
 import json
 import re
 import socket
+import ssl
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -21,11 +22,13 @@ from c2_protocol_probe_profiles import (
     ProtocolProfileError,
     resolve_profile,
 )
+from tls_messagepack_probe import probe_reviewed_tls_messagepack
+from stealer_registration_probe import probe_reviewed_stealer_registration
 
 
 HOST_RE = re.compile(r"(?=.{1,253}$)[A-Za-z0-9.-]+")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
-ALLOWED_PROTOCOLS = {"dns", "tcp", "http", "https", "tls", "winos", "vvas", "n520"}
+ALLOWED_PROTOCOLS = {"dns", "tcp", "http", "https", "tls", "winos", "vvas", "n520", "ftp", "asyncrat", "venomrat", "stealc", "lummastealer", "remusstealer"}
 ALLOWED_METHODS = {
     "dns_resolve",
     "tcp_connect",
@@ -35,8 +38,18 @@ ALLOWED_METHODS = {
     "winos_heartbeat",
     "vvas_checkin",
     "n520_server_first",
+    "ftp_authenticated",
+    "asyncrat_tls_messagepack",
+    "venomrat_tls_messagepack",
+    "stealc_v2_registration_task",
+    "lumma_v6_registration_task",
+    "remus_registration_task",
 }
-ACTIVE_PROFILE_METHODS = {"winos_heartbeat", "vvas_checkin", "n520_server_first"}
+ACTIVE_PROFILE_METHODS = {
+    "winos_heartbeat", "vvas_checkin", "n520_server_first", "ftp_authenticated",
+    "asyncrat_tls_messagepack", "venomrat_tls_messagepack",
+    "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
+}
 ALLOWED_TRANSPORTS = {"direct", "tor-socks5"}
 METHOD_CEILINGS = {
     "dns_resolve": 0.05,
@@ -47,6 +60,12 @@ METHOD_CEILINGS = {
     "winos_heartbeat": 0.95,
     "vvas_checkin": 0.95,
     "n520_server_first": 0.95,
+    "ftp_authenticated": 0.95,
+    "asyncrat_tls_messagepack": 0.95,
+    "venomrat_tls_messagepack": 0.95,
+    "stealc_v2_registration_task": 0.95,
+    "lumma_v6_registration_task": 0.95,
+    "remus_registration_task": 0.95,
 }
 METHOD_LABELS = {
     "dns_resolve": "DNS解決のみ（接続先port不明、C2 serviceへの接続なし）",
@@ -57,6 +76,12 @@ METHOD_LABELS = {
     "winos_heartbeat": "完全一致・IP pinning済みWinos heartbeat 1 frame＋64 byte限定受信",
     "vvas_checkin": "完全一致・レビュー済みvvaS check-in 3 byte＋64 byte限定header検証",
     "n520_server_first": "完全一致・N520 TLS server-first 44 byte handshake検証（check-in送信なし）",
+    "ftp_authenticated": "完全一致・private資格情報によるFTP USER/PASS/QUIT限定認証（file操作なし）",
+    "asyncrat_tls_messagepack": "完全一致・AsyncRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
+    "venomrat_tls_messagepack": "完全一致・VenomRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
+    "stealc_v2_registration_task": "完全一致・StealC v2合成端末登録＋loader task取得（最大2要求）",
+    "lumma_v6_registration_task": "完全一致・Lumma v6設定登録＋合成hwid task取得（最大2要求）",
+    "remus_registration_task": "完全一致・Remus合成端末登録＋step=1 task取得（最大2要求）",
 }
 SAFE_HTTP_HEADERS = {"server", "content-type", "content-length", "date", "connection"}
 
@@ -131,6 +156,12 @@ def validate_plan(plan: dict) -> dict:
             "winos_heartbeat": "winos",
             "vvas_checkin": "vvas",
             "n520_server_first": "n520",
+            "ftp_authenticated": "ftp",
+            "asyncrat_tls_messagepack": "asyncrat",
+            "venomrat_tls_messagepack": "venomrat",
+            "stealc_v2_registration_task": "stealc",
+            "lumma_v6_registration_task": "lummastealer",
+            "remus_registration_task": "remusstealer",
         }.get(method)
         if expected_protocol and protocol != expected_protocol:
             raise PlanError(f"{method}にはprotocol={expected_protocol}が必要です")
@@ -140,14 +171,23 @@ def validate_plan(plan: dict) -> dict:
             raise PlanError("dns_resolveにはprotocol=dns、port=0が必要です")
         if method != "dns_resolve" and port == 0:
             raise PlanError("port=0はdns_resolveだけに使用できます")
+        if profile is not None:
+            target.setdefault("timeout_seconds", float(profile["timeout_seconds"]))
+            target.setdefault("maximum_response_bytes", int(profile["maximum_response_bytes"]))
         timeout = float(target.get("timeout_seconds", 3.0))
         maximum = int(target.get("maximum_response_bytes", 256))
-        if not 0.1 <= timeout <= 5.0 or not 1 <= maximum <= 256:
-            raise PlanError("timeout<=5秒、response<=256 byteを超えています")
+        response_limit = (
+            int(profile["maximum_response_bytes"])
+            if profile is not None
+            else (1024 if method == "ftp_authenticated" else 256)
+        )
+        if not 0.1 <= timeout <= 5.0 or not 1 <= maximum <= response_limit:
+            raise PlanError(f"timeout<=5秒、response<={response_limit} byteを超えています")
         if profile and (
-            timeout > float(profile["timeout_seconds"]) or maximum > int(profile["maximum_response_bytes"])
+            timeout != float(profile["timeout_seconds"])
+            or maximum != int(profile["maximum_response_bytes"])
         ):
-            raise PlanError("active protocol probeがレビュー済みtimeout/response上限を超えています")
+            raise PlanError("active protocol probeはレビュー済みtimeout/response上限との完全一致が必要です")
         path = str(target.get("http_path", "/"))
         if "\r" in path or "\n" in path or not path.startswith("/") or len(path) > 512:
             raise PlanError("HTTP pathが不正です")
@@ -331,6 +371,219 @@ def _winos_observation(target: dict, allow_network: bool) -> dict:
     }
 
 
+def _load_agenttesla_c2_module():
+    """共通c2_detectorとの名前衝突を避け、AgentTesla固有moduleを読み込む。"""
+
+    module_path = Path(__file__).parents[1] / "malware" / "agenttesla" / "c2_detector.py"
+    spec = importlib.util.spec_from_file_location("agenttesla_c2_detector_private", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("AgentTesla C2 detectorを読み込めません")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _agenttesla_ftp_observation(
+    target: dict,
+    allow_network: bool,
+    allow_authentication: bool,
+    private_credential_vault: Path | None,
+) -> dict:
+    """完全一致private資格情報でFTP認証だけを確認し、秘密値とraw replyを破棄する。"""
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    disabled = {
+        "timestamp_utc": timestamp,
+        "alive": False,
+        "c2_confirmed": False,
+        "target_contact_attempted": False,
+        "target_connection_established": False,
+        "application_data_sent": False,
+        "authentication_attempted": False,
+        "authentication_accepted": False,
+        "credential_material_published": False,
+        "file_transfer_attempted": False,
+        "directory_operation_attempted": False,
+        "stage_requested": False,
+        "victim_metadata_sent": False,
+        "operation_command_sent": False,
+        "resolved_ips": [],
+    }
+    if not allow_network:
+        return {**disabled, "status": "network_disabled"}
+    if not allow_authentication:
+        return {**disabled, "status": "authentication_disabled"}
+    if private_credential_vault is None:
+        return {**disabled, "status": "private_credential_vault_missing"}
+    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
+    try:
+        module = _load_agenttesla_c2_module()
+        credential = module.load_private_ftp_credential(
+            private_credential_vault,
+            profile["credential_reference"],
+            profile["host"],
+            profile["port"],
+        )
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
+        return {
+            **disabled,
+            "status": "private_credential_vault_error",
+            "error_type": type(exc).__name__,
+        }
+    try:
+        raw = module.probe_ftp_authenticated(
+            profile["host"],
+            profile["port"],
+            credential,
+            timeout=float(profile["timeout_seconds"]),
+        )
+    except ConnectionRefusedError:
+        return {**disabled, "status": "closed", "target_contact_attempted": True}
+    except (socket.timeout, TimeoutError):
+        return {**disabled, "status": "timeout", "target_contact_attempted": True}
+    except (OSError, ValueError, RuntimeError) as exc:
+        return {
+            **disabled,
+            "status": "ftp_authentication_probe_error",
+            "target_contact_attempted": True,
+            "error_type": type(exc).__name__,
+        }
+    accepted = bool(raw.get("authentication_accepted"))
+    return {
+        "timestamp_utc": timestamp,
+        "status": "confirmed_ftp_credential_endpoint" if accepted else "ftp_authentication_rejected",
+        "alive": True,
+        "c2_confirmed": accepted,
+        "target_contact_attempted": True,
+        "target_connection_established": True,
+        "application_data_sent": True,
+        "protocol_response_received": True,
+        "authentication_attempted": True,
+        "authentication_accepted": accepted,
+        "credential_material_published": False,
+        "file_transfer_attempted": False,
+        "directory_operation_attempted": False,
+        "commands_sent": raw.get("commands_sent", []),
+        "banner": raw.get("banner"),
+        "user_reply_code": raw.get("user_reply_code"),
+        "pass_reply_code": raw.get("pass_reply_code"),
+        "quit_reply_code": raw.get("quit_reply_code"),
+        "resolved_ips": raw.get("resolved_addresses", []),
+        "stage_requested": False,
+        "victim_metadata_sent": False,
+        "operation_command_sent": False,
+    }
+
+
+def _tls_messagepack_observation(
+    target: dict,
+    allow_network: bool,
+    allow_application_probe: bool,
+) -> dict:
+    """AsyncRAT／VenomRATの完全一致TLS MessagePack profileを限定観測する。"""
+
+    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
+    try:
+        return probe_reviewed_tls_messagepack(
+            profile,
+            allow_network=allow_network,
+            allow_application_probe=allow_application_probe,
+        )
+    except ConnectionRefusedError:
+        status = "closed"
+    except (socket.timeout, TimeoutError):
+        status = "timeout"
+    except ssl.SSLError:
+        status = "tls_handshake_failed"
+    except (OSError, ValueError, RuntimeError) as exc:
+        return {
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "status": "tls_messagepack_probe_error",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": allow_network,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "error_type": type(exc).__name__,
+            "certificate_mismatch_excludes_c2": False,
+            "resolved_ips": [],
+            "stage_requested": False,
+            "victim_metadata_sent": False,
+            "operation_command_sent": False,
+        }
+    return {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "status": status,
+        "alive": False,
+        "c2_confirmed": False,
+        "target_contact_attempted": allow_network,
+        "target_connection_established": False,
+        "application_data_sent": False,
+        "certificate_mismatch_excludes_c2": False,
+        "resolved_ips": [],
+        "stage_requested": False,
+        "victim_metadata_sent": False,
+        "operation_command_sent": False,
+    }
+
+def _stealer_registration_observation(
+    target: dict,
+    allow_network: bool,
+    allow_registration_tasking: bool,
+) -> dict:
+    """StealC／Lumma／Remusの合成端末登録とtask取得を正規化する。"""
+
+    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
+    timestamp = datetime.now(timezone.utc).isoformat()
+    try:
+        result = probe_reviewed_stealer_registration(
+            profile,
+            allow_network=allow_network,
+            allow_registration_tasking=allow_registration_tasking,
+        )
+    except ConnectionRefusedError:
+        status = "closed"
+    except (socket.timeout, TimeoutError):
+        status = "timeout"
+    except (OSError, ValueError, RuntimeError) as exc:
+        return {
+            "timestamp_utc": timestamp,
+            "status": "stealer_registration_probe_error",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": allow_network and allow_registration_tasking,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "error_type": type(exc).__name__,
+            "registration_attempted": False,
+            "task_poll_attempted": False,
+            "task_content_published": False,
+            "task_executed": False,
+            "payload_download_attempted": False,
+            "victim_metadata_sent": False,
+            "resolved_ips": [],
+        }
+    else:
+        return {"timestamp_utc": timestamp, **result}
+    return {
+        "timestamp_utc": timestamp,
+        "status": status,
+        "alive": False,
+        "c2_confirmed": False,
+        "target_contact_attempted": True,
+        "target_connection_established": False,
+        "application_data_sent": False,
+        "registration_attempted": True,
+        "task_poll_attempted": False,
+        "task_content_published": False,
+        "task_executed": False,
+        "payload_download_attempted": False,
+        "victim_metadata_sent": False,
+        "resolved_ips": [],
+    }
+
+
 def _dns_observation(target: dict, allow_network: bool) -> dict:
     """port不明FQDNをDNS解決だけで観測し、C2到達とは扱わない。"""
     timestamp = datetime.now(timezone.utc).isoformat()
@@ -405,6 +658,23 @@ def assess_observation(target: dict, observation: dict) -> dict:
     banner = observation.get("banner") or {}
     tls = observation.get("tls") or {}
 
+    if status in {
+        "network_disabled",
+        "authentication_disabled",
+        "private_credential_vault_missing",
+        "private_credential_vault_error",
+        "tls_handshake_only_application_probe_disabled",
+        "malware_registration_tasking_disabled",
+    } and not observation.get("target_contact_attempted"):
+        return {
+            "state": "not_observed_safety_gate",
+            "reachability_confidence": 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": "安全gateが未充足のためprotocol-level観測を実施していない",
+        }
+
     if method == "dns_resolve":
         resolved = bool(observation.get("resolved_ips"))
         return {
@@ -436,7 +706,7 @@ def assess_observation(target: dict, observation: dict) -> dict:
             "c2_operational_confidence": min(0.60, ceiling),
             "method_confidence_ceiling": ceiling,
             "negative_observation_confidence": 0.0,
-            "reason": "Winos frame応答を受信したがレビュー済みcontrol commandとの一致は未確認",
+            "reason": "application protocol応答を受信したがreview済み期待応答との一致は未確認",
         }
     if http_status is not None:
         return {
@@ -464,7 +734,11 @@ def assess_observation(target: dict, observation: dict) -> dict:
             "c2_operational_confidence": min(0.40, ceiling),
             "method_confidence_ceiling": ceiling,
             "negative_observation_confidence": 0.0,
-            "reason": "TLS handshake成立のみでC2は未確認",
+            "reason": (
+                "TLS handshakeは成立した。証明書不一致は非C2の除外根拠にせず、application protocolは未確認"
+                if ((tls.get("certificate") or {}).get("state") == "mismatch_inconclusive")
+                else "TLS handshake成立のみでC2は未確認"
+            ),
         }
     if tcp_open or observation.get("alive"):
         return {
@@ -496,7 +770,15 @@ def assess_observation(target: dict, observation: dict) -> dict:
     }
 
 
-def monitor(plan: dict, *, allow_network: bool = False) -> dict:
+def monitor(
+    plan: dict,
+    *,
+    allow_network: bool = False,
+    allow_application_probes: bool = False,
+    allow_authentication: bool = False,
+    allow_malware_registration: bool = False,
+    private_credential_vault: Path | None = None,
+) -> dict:
     """レビュー済み対象を各1回だけ観測する。"""
     plan = validate_plan(plan)
     results = []
@@ -506,6 +788,25 @@ def monitor(plan: dict, *, allow_network: bool = False) -> dict:
             raw = _dns_observation(target, allow_network)
         elif method == "winos_heartbeat":
             raw = _winos_observation(target, allow_network)
+        elif method == "ftp_authenticated":
+            raw = _agenttesla_ftp_observation(
+                target,
+                allow_network,
+                allow_authentication,
+                private_credential_vault,
+            )
+        elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
+            raw = _tls_messagepack_observation(
+                target,
+                allow_network,
+                allow_application_probes,
+            )
+        elif method in {
+            "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
+        }:
+            raw = _stealer_registration_observation(
+                target, allow_network, allow_malware_registration
+            )
         else:
             raw = probe(_probe_args(target, allow_network))
         observation = _sanitize_observation(raw)
@@ -535,7 +836,10 @@ def monitor(plan: dict, *, allow_network: bool = False) -> dict:
     reviewed_message_results = [
         item
         for item in results
-        if item["method"] in {"winos_heartbeat", "vvas_checkin"} and item["observation"].get("application_data_sent")
+        if item["method"] in {
+            "winos_heartbeat", "vvas_checkin", "asyncrat_tls_messagepack", "venomrat_tls_messagepack",
+            "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
+        } and item["observation"].get("application_data_sent")
     ]
     reviewed_protocol_probe_count = sum(bool(item.get("protocol_profile_id")) for item in results)
     return {
@@ -548,19 +852,51 @@ def monitor(plan: dict, *, allow_network: bool = False) -> dict:
         "policy": {
             "exact_targets_only": True,
             "one_bounded_probe_per_target": True,
+            "maximum_application_requests_per_target": 2,
             "maximum_timeout_seconds": 5,
-            "maximum_response_bytes": 256,
+            "maximum_response_bytes": max(
+                (int(target.get("maximum_response_bytes", 256)) for target in plan["targets"]),
+                default=256,
+            ),
             "redirect_followed": False,
             "malware_checkin_sent": bool(reviewed_message_results),
             "reviewed_heartbeat_or_checkin_sent_count": len(reviewed_message_results),
             "reviewed_protocol_probe_count": reviewed_protocol_probe_count,
             "protocol_profile_registry_enforced": True,
             "stage_requested": any(bool(item["observation"].get("stage_requested")) for item in results),
-            "victim_metadata_sent": False,
-            "command_polling_performed": False,
+            "victim_metadata_sent": any(
+                bool(item["observation"].get("victim_metadata_sent")) for item in results
+            ),
+            "command_polling_performed": any(
+                bool(item["observation"].get("task_poll_attempted")) for item in results
+            ),
+            "malware_registration_tasking_enabled": allow_malware_registration,
+            "registration_attempted_count": sum(
+                bool(item["observation"].get("registration_attempted")) for item in results
+            ),
+            "task_poll_attempted_count": sum(
+                bool(item["observation"].get("task_poll_attempted")) for item in results
+            ),
+            "task_available_count": sum(
+                item["observation"].get("task_available") is True for item in results
+            ),
+            "task_content_published": False,
+            "task_executed": False,
+            "payload_download_attempted": False,
             "range_scan_performed": False,
             "tcp_open_confirms_c2": False,
             "network_enabled": allow_network,
+            "reviewed_application_probes_enabled": allow_application_probes,
+            "private_authentication_enabled": allow_authentication,
+            "reviewed_malware_registration_enabled": allow_malware_registration,
+            "private_credential_vault_used": private_credential_vault is not None,
+            "authentication_attempted_count": sum(
+                bool(item["observation"].get("authentication_attempted")) for item in results
+            ),
+            "file_transfer_attempted": any(
+                bool(item["observation"].get("file_transfer_attempted")) for item in results
+            ),
+            "certificate_mismatch_excludes_c2": False,
         },
         "target_count": len(results),
         "state_counts": dict(sorted(counts.items())),
@@ -765,15 +1101,28 @@ def render_markdown(result: dict) -> str:
     policy = result.get("policy") or {}
     if policy.get("malware_checkin_sent"):
         active_probe_policy = (
-            f"レビュー済み完全一致profileに限り、Winos heartbeatまたはvvaS check-inを"
-            f"合計{policy.get('reviewed_heartbeat_or_checkin_sent_count', 0)}回送信しました。"
-            "送信内容は固定で、victim metadataを含まず、stage要求・command pollingは行っていません。"
+            f"レビュー済み完全一致profileに限り、malware固有protocol要求を"
+            f"合計{policy.get('reviewed_heartbeat_or_checkin_sent_count', 0)}対象へ送信しました。"
+            "送信内容はprofile固定または合成IDだけで、実ホストのvictim metadataを含みません。"
         )
     else:
-        active_probe_policy = (
-            "今回、レビュー済みheartbeat／malware check-inは対象へ送信されませんでした。"
-            "victim metadata、stage要求、command pollingは行っていません。"
+        active_probe_policy = "今回、レビュー済みmalware固有protocol要求は対象へ送信されませんでした。"
+    if policy.get("task_poll_attempted_count", 0):
+        active_probe_policy += (
+            f"StealC／Lumma／Remusでは登録後のtask取得を"
+            f"{policy.get('task_poll_attempted_count', 0)}対象へ各1回試行しました。"
+            "task本文・token・合成IDは公開せず、task実行、URL追跡、payload取得は行っていません。"
         )
+    else:
+        active_probe_policy += "task取得、task実行、payload取得は行っていません。"
+    if policy.get("authentication_attempted_count", 0):
+        authentication_policy = (
+            f"AgentTesla FTPはprivate vaultの完全一致資格情報で"
+            f"{policy.get('authentication_attempted_count', 0)}回認証を試行しました。"
+            "USER／必要時のPASS／QUITだけを送信し、資格情報値とraw replyは保存していません。"
+        )
+    else:
+        authentication_policy = "認証情報は使用していません。"
     scope = str(result.get("collection_scope") or "provided_targets")
     if scope == "all_historical_c2":
         report_title = "# 全解析履歴のC2稼働状況"
@@ -809,7 +1158,7 @@ def render_markdown(result: dict) -> str:
             "",
             "- `到達`: 今回のtransport／application到達観測の確からしさです。",
             "- `C2稼働`: 観測結果が、解析済みmalwareのC2 application稼働を示す確度です。TCP接続だけなら最大0.25です。",
-            "- `手法上限`: その確認方法が、成功時でも単独で到達できるC2確度の上限です。malware固有protocolとの一致がない限り0.60以下です。",
+            "- `手法上限`: その確認方法が、成功時でも単独で到達できるC2確度の上限です。malware check-inやmalware固有protocolとの一致がない限り0.60以下です。",
             "- `negative_observation_confidence` はJSONに保持し、拒否は比較的強い停止側観測、timeoutは弱い停止側観測として区別します。",
             "",
             "## DNS/IP遷移履歴",
@@ -828,9 +1177,10 @@ def render_markdown(result: dict) -> str:
             "",
             "## 安全境界",
             "",
-            "既知portは完全一致host・単一portへ各1回、port不明hostはDNS解決だけを行い、timeout最大5秒、応答最大256 byteで確認しました。"
+            f"既知portは完全一致host・単一portへ各1回、port不明hostはDNS解決だけを行い、timeout最大5秒、応答最大{policy.get('maximum_response_bytes', 256)} byteで確認しました。"
             + active_probe_policy
-            + "認証情報、port range、redirect追跡は使用していません。`.onion`は本監視の対象外です。",
+            + authentication_policy
+            + "port range、redirect追跡は使用していません。`.onion`は本監視の対象外です。",
             "",
             "機械可読の完全な根拠、DNS解決先、証明書／banner hash、個別timeoutは [monitoring-results.json](monitoring-results.json)、今回の実効対象は [effective-targets.json](effective-targets.json)、次回active対象は [active-targets.json](active-targets.json) を参照してください。",
             "",
@@ -843,10 +1193,37 @@ def main() -> int:
     parser.add_argument("--targets", type=Path, required=True)
     parser.add_argument("--output-directory", type=Path, required=True)
     parser.add_argument("--allow-network", action="store_true")
+    parser.add_argument(
+        "--allow-reviewed-application-probes",
+        action="store_true",
+        help="完全一致profileの匿名Ping 1 frameを許可します。",
+    )
+    parser.add_argument(
+        "--allow-authentication",
+        action="store_true",
+        help="完全一致AgentTesla FTP profileのUSER/PASS/QUIT限定認証を許可します。",
+    )
+    parser.add_argument(
+        "--allow-malware-registration-tasking",
+        action="store_true",
+        help="完全一致StealC／Lumma／Remus profileの合成登録とtask取得を許可します。",
+    )
+    parser.add_argument(
+        "--private-credential-vault",
+        type=Path,
+        help="リポジトリ外のAgentTesla sensitive_local_only JSON。",
+    )
     args = parser.parse_args()
     try:
         plan = json.loads(args.targets.read_text(encoding="utf-8"))
-        result = monitor(plan, allow_network=args.allow_network)
+        result = monitor(
+            plan,
+            allow_network=args.allow_network,
+            allow_application_probes=args.allow_reviewed_application_probes,
+            allow_authentication=args.allow_authentication,
+            allow_malware_registration=args.allow_malware_registration_tasking,
+            private_credential_vault=args.private_credential_vault,
+        )
     except (OSError, json.JSONDecodeError, PlanError, ValueError) as exc:
         parser.error(str(exc))
     args.output_directory.mkdir(parents=True, exist_ok=True)

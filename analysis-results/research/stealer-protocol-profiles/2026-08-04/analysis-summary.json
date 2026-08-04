@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-04",
+  "scope": [
+    "stealc",
+    "formbook",
+    "lummastealer",
+    "remusstealer"
+  ],
+  "samples_executed_locally": false,
+  "live_c2_contacted": false,
+  "samples": [
+    {
+      "family": "stealc",
+      "submitted_sha256": "47854afb3cfeb64a85dda148e00e5ca83168f431a28e5c5fb28733e37f484b13",
+      "sandbox_observed_at": "2026-08-02T14:02:31Z",
+      "recovered_modules": [
+        {
+          "sha256": "1d3821a808db0fb46afc72cdbec2ec445f6ab80926c2595d66f4265fbd31e26f",
+          "role": "collection_and_c2_core",
+          "confidence": "high",
+          "generation_candidate": "StealC-v2-or-later",
+          "version_confirmed": false
+        },
+        {
+          "sha256": "61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb",
+          "role": "chrome_app_bound_key_helper",
+          "confidence": "high",
+          "generation_candidate": "StealC-v2-or-later-related-helper",
+          "version_confirmed": false
+        }
+      ],
+      "protocol_profile": "stealc_v2_json_transport_compatible",
+      "observed_socket_endpoints": [
+        "31.77.228.62:80"
+      ],
+      "active_probe_policy": "guarded_active_reviewed_profile_only",
+      "unresolved": [
+        "static C2 configuration",
+        "exact StealC version"
+      ],
+      "active_probe_constraints": {
+        "requires_network_flag": true,
+        "requires_registration_tasking_flag": true,
+        "synthetic_identity_only": true,
+        "maximum_requests": 2,
+        "task_content_published": false,
+        "task_executed": false,
+        "payload_download_attempted": false
+      },
+      "network_rc4_key_recovered": true
+    },
+    {
+      "family": "formbook",
+      "submitted_sha256": "7ba2b0a420e45f02c5c13ec7732213859685586db9586122a8cb382652e49d6d",
+      "sandbox_observed_at": "2026-08-04T09:11:22Z",
+      "recovered_modules": [
+        {
+          "sha256": "33b570d86c4aac8c6785944f9b2992dc3eccc99e35c20ab79d81917bbef35622",
+          "role": "x64_loader_stub",
+          "confidence": "medium"
+        },
+        {
+          "sha256": "d84176d398b15a5d9484e1e706a86f1c34df36f644dfa72f554b43e8b73dc2d9",
+          "role": "protected_x64_process_image",
+          "confidence": "high",
+          "pe_size_of_image": 303104,
+          "text_entropy": 7.986,
+          "imports": []
+        }
+      ],
+      "delivery_observation": {
+        "provider": "Google Drive",
+        "response_size": 303168,
+        "role": "second_stage_delivery",
+        "not_final_c2": true
+      },
+      "protocol_profile": "formbook_xloader_terminal_protocol_not_observed",
+      "observed_socket_endpoints": [],
+      "active_probe_policy": "passive_only",
+      "unresolved": [
+        "terminal FormBook/XLoader core",
+        "main URI and real C2 among decoys",
+        "configuration and RC4 key"
+      ]
+    },
+    {
+      "family": "lummastealer",
+      "submitted_sha256": "4b7d75f5c35d8d326af5723fb77c44d769478c90ca2f88e2edfb3e08817fb29c",
+      "sandbox_observed_at": "2026-08-04T03:37:28Z",
+      "static_shape": "x86 Go loader or protected payload",
+      "protocol_profile": "lumma_v6_compatible_uid_cid",
+      "observed_socket_endpoints": [
+        "bizsmmit.cyou:80",
+        "64.89.161.173:80"
+      ],
+      "observed_field_sequences": [
+        [
+          "uid",
+          "cid"
+        ],
+        [
+          "uid",
+          "pid",
+          "hwid",
+          "file"
+        ]
+      ],
+      "additional_component": "browser_agent_fingerprint_and_log_channel",
+      "version_confirmed": false,
+      "active_probe_policy": "guarded_active_reviewed_profile_only",
+      "unresolved": [
+        "static C2 configuration",
+        "exact Lumma version",
+        "relationship of browser-agent component to canonical Lumma core"
+      ],
+      "active_probe_constraints": {
+        "requires_network_flag": true,
+        "requires_registration_tasking_flag": true,
+        "synthetic_identity_only": true,
+        "maximum_requests": 2,
+        "task_content_published": false,
+        "task_executed": false,
+        "payload_download_attempted": false
+      }
+    },
+    {
+      "family": "remusstealer",
+      "submitted_sha256": "2b3a23db5ca7464a5c7f0975790af54097ed127a66ab0b551123831e8f40dfc6",
+      "sandbox_observed_at": "2026-08-04T12:38:11Z",
+      "static_shape": "packed x64 PE with high-entropy carrier section",
+      "memory_sha256": "e22bd9e163af9eb7bc0fbfcb753f0a913f4e1990148183b903cddc59331f0b20",
+      "protocol_profile": "remus_http_token_task_file",
+      "configured_endpoints": [
+        {
+          "endpoint": "onesdto.shop:2535",
+          "role": "observed_active_choice"
+        },
+        {
+          "endpoint": "azurhay.shop:8539",
+          "role": "configured_fallback_candidate"
+        }
+      ],
+      "observed_socket_endpoint": "154.12.237.176:2535",
+      "http_host": "microsoft.com",
+      "host_misdirection": true,
+      "observed_field_sequences": [
+        [
+          "tag",
+          "exp",
+          "hwid"
+        ],
+        [
+          "access_token",
+          "debug"
+        ],
+        [
+          "access_token",
+          "step"
+        ],
+        [
+          "access_token",
+          "type",
+          "file"
+        ]
+      ],
+      "active_probe_policy": "guarded_active_reviewed_profile_only",
+      "unresolved": [
+        "fallback endpoint liveness",
+        "exact Remus version"
+      ],
+      "active_probe_constraints": {
+        "requires_network_flag": true,
+        "requires_registration_tasking_flag": true,
+        "synthetic_identity_only": true,
+        "maximum_requests": 2,
+        "task_content_published": false,
+        "task_executed": false,
+        "payload_download_attempted": false
+      },
+      "task_response_crypto_recovered": "32-byte key + 8-byte nonce + ChaCha20 ciphertext"
+    }
+  ],
+  "artifact_policy": {
+    "pcap_committed": false,
+    "memory_dump_committed": false,
+    "sample_committed": false,
+    "body_values_retained": false,
+    "tokens_retained": false,
+    "query_values_retained": false
+  },
+  "policy_updated_at": "2026-08-05",
+  "live_c2_contacted_scope": "2026-08-04の静的・公開PCAP復元工程"
+}

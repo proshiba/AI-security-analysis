@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 
@@ -13,7 +14,11 @@ MODULE = (
 SPEC = importlib.util.spec_from_file_location("agenttesla_sensitive_config", MODULE)
 assert SPEC and SPEC.loader
 MODULE_OBJECT = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE_OBJECT)
+sys.path.insert(0, str(MODULE.parent))
+try:
+    SPEC.loader.exec_module(MODULE_OBJECT)
+finally:
+    sys.path.remove(str(MODULE.parent))
 
 
 def test_ftp_secrets_are_available_only_in_sensitive_result() -> None:
@@ -40,3 +45,15 @@ def test_sensitive_writer_does_not_echo_secret(tmp_path: Path) -> None:
     output = tmp_path / "private.json"
     MODULE_OBJECT.write_sensitive_json(output, {"password": "secret-value"})
     assert "secret-value" in output.read_text(encoding="utf-8")
+
+
+def test_sensitive_result_adds_stable_non_secret_credential_reference() -> None:
+    case_sha256 = "a" * 64
+    result = MODULE_OBJECT.extract_sensitive_from_strings(
+        ["Mozilla/5.0", "ftp://collector.example/upload", "operator", "secret"],
+        case_sha256=case_sha256,
+    )
+    assert result["schema_version"] == 2
+    assert result["case_sha256"] == case_sha256
+    assert result["records"][0]["credential_id"] == f"agenttesla:{case_sha256}:ftp:0"
+    assert "secret" not in result["records"][0]["credential_id"]

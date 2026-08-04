@@ -18,13 +18,19 @@ from c2_protocol_probe_profiles import (  # noqa: E402
 )
 
 
-def test_registry_contains_reviewed_valleyrat_protocols() -> None:
+def test_registry_contains_reviewed_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 6
+    assert len(profiles) == 12
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",
         "n520_server_first",
+        "ftp_authenticated",
+        "asyncrat_tls_messagepack",
+        "venomrat_tls_messagepack",
+        "stealc_v2_registration_task",
+        "lumma_v6_registration_task",
+        "remus_registration_task",
     }
 
 
@@ -59,3 +65,17 @@ def test_builder_adds_only_profiles_with_existing_repository_evidence(
     ]
     assert inventory["reviewed_protocol_target_count"] == 2
     assert inventory["reviewed_profile_only_target_count"] == 2
+
+
+def test_asyncrat_and_venomrat_profiles_keep_distinct_packet_fields() -> None:
+    profiles = load_profiles()
+    asyncrat = profiles["asyncrat-058-20f21565-191-96-78-221-7788"]
+    venomrat = profiles["venomrat-603-6a24ba25-localto-6377"]
+    assert asyncrat["packet_key"] == "Packet"
+    assert asyncrat["expected_response_packets"] == ["pong"]
+    assert venomrat["packet_key"] == "Pac_ket"
+    assert venomrat["expected_response_packets"] == ["Po_ng"]
+    assert len(asyncrat["expected_certificate_sha256"]) == 64
+    assert len(venomrat["expected_certificate_sha256"]) == 64
+    agenttesla = profiles["agenttesla-ftp-auth-3f091457-vilimorin"]
+    assert agenttesla["maximum_response_bytes"] == 1024

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module stealer_registration_probe</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">stealer_registration_probe</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cstealer_registration_probe.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\stealer_registration_probe.py</a></td></tr></table>
+    <p><span class="code">レビュー済みStealC・Lumma・Remus&nbsp;C2へ合成端末を限定登録する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="cryptography.hazmat.primitives.ciphers.algorithms.html">cryptography.hazmat.primitives.ciphers.algorithms</a><br>
+<a href="base64.html">base64</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="http.html">http</a><br>
+<a href="ipaddress.html">ipaddress</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="math.html">math</a><br>
+<a href="re.html">re</a><br>
+<a href="socket.html">socket</a><br>
+</td><td class="multicolumn"><a href="uuid.html">uuid</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="stealer_registration_probe.html#StealerProbeError">StealerProbeError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="stealer_registration_probe.html#BoundedHttpResponse">BoundedHttpResponse</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="BoundedHttpResponse">class <strong>BoundedHttpResponse</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#BoundedHttpResponse">BoundedHttpResponse</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;status:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;content_type:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;body:&nbsp;'bytes',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;truncated:&nbsp;'bool',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;resolved_ips:&nbsp;'tuple[str,&nbsp;...]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;connected_ip:&nbsp;'str'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+本文を上限付きで保持する内部HTTP応答。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="BoundedHttpResponse-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__init__"><strong>__init__</strong></a>(
+    self,
+    status: 'int',
+    content_type: 'str',
+    body: 'bytes',
+    truncated: 'bool',
+    resolved_ips: 'tuple[str, ...]',
+    connected_ip: 'str'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="BoundedHttpResponse-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'body': 'bytes', 'connected_ip': 'str', 'content_type': 'str', 'resolved_ips': 'tuple[str, ...]', 'status': 'int', 'truncated': 'bool'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'body': Field(name='body',type='bytes',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'connected_ip': Field(name='connected_ip',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'content_type': Field(name='content_type',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'resolved_ips': Field(name='resolved_ips',type='tuple[str, ...]'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'status': Field(name='status',type='int',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'truncated': Field(name='truncated',type='bool',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('status', 'content_type', 'body', 'truncated', 'resolved_ips', 'connected_ip')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StealerProbeError">class <strong>StealerProbeError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">能動probeのprofileまたは応答が安全境界を満たさない場合のエラー。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="stealer_registration_probe.html#StealerProbeError">StealerProbeError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="StealerProbeError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="StealerProbeError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="StealerProbeError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StealerProbeError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="StealerProbeError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StealerProbeError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="StealerProbeError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="StealerProbeError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#StealerProbeError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="StealerProbeError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#StealerProbeError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-probe_reviewed_stealer_registration"><strong>probe_reviewed_stealer_registration</strong></a>(
+    profile: 'dict[str, Any]',
+    *,
+    allow_network: 'bool' = False,
+    allow_registration_tasking: 'bool' = False,
+    post: 'PostFunction | None' = None
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">完全一致profileへ合成登録とtask取得を最大2要求で行う。<br>
+&nbsp;<br>
+task本文、access&nbsp;token、合成IDは返さず、取得したtaskを実行・追跡しない。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>LUMMA_USER_AGENT</strong> = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleW..., like Gecko) Chrome/109.0.5414.120 Safari/537.36'<br>
+<strong>PostFunction</strong> = collections.abc.Callable[[dict[str, typing.Any],..., stealer_registration_probe.BoundedHttpResponse]<br>
+<strong>REMUS_USER_AGENT</strong> = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleW...KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'<br>
+<strong>STEALC_USER_AGENT</strong> = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'<br>
+<strong>TOKEN_RE</strong> = re.compile('[0-9a-f]{64,128}', re.IGNORECASE)<br>
+<strong>UUID_RE</strong> = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)</td></tr></table>
+</body></html>

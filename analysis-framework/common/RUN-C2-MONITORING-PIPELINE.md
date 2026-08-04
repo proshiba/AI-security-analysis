@@ -21,7 +21,8 @@ py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
   --output-directory analysis-results\research\c2-monitoring\YYYY-MM-DD `
   --history-root analysis-results\research\c2-monitoring `
   --maxmind-cache-dir C:\Users\Administrator\MalwareSamples\maxmind\current `
-  --allow-network
+  --allow-network `
+  --allow-malware-registration-tasking
 ```
 
 抽出器は`network`、`configured_c2`、`configured_or_observed_c2`、`indicators`、researchの`network.c2`を走査し、C2／control／exfil等の役割だけを採用します。配布専用、kill-switch、`not_c2`、private／loopback IP、`.eth`／`.sol`／XMP `.did`／`.iid`誤endpointは理由付きで`candidate-inventory.json`へ除外記録を残します。`.onion`はユーザー指定により監視対象外です。`--history-root`を省略した場合は`output-directory`の親を使います。統合ランナーは直近の`active-targets.json`も重複排除して統合します。
@@ -60,9 +61,10 @@ CDN判定は観測IPのMaxMind ASN／organizationを使います。CDN経由で�
 ## 安全境界
 
 - 監視対象は`effective-targets.json`に列挙した完全一致host/portだけです。port不明hostは`dns_resolve`としてDNSだけを観測し、C2 serviceへ接続しません。`.onion`は対象へ含めません。
-- 1対象1回、最大5秒、応答最大256 byteの限定観測です。
+- 1対象1回の限定観測、最大5秒です。応答は原則最大256 byte、完全一致AgentTesla FTP認証は最大1024 byteです。StealC／Lumma／Remusは最大3秒・計2 HTTP要求とし、応答上限をそれぞれ16,384／65,536／8,192 byteへ固定します。raw本文は保存しません。
 - 既知のmalware固有protocolは`c2_protocol_probe_profiles.json`の完全一致profileだけを使用します。送信内容を`targets.json`へ直接指定することはできません。
-- Winos heartbeatとvvaS固定check-inはレビュー済みendpointへ各1回だけ許可します。victim metadata、stage要求、command polling、任意command、認証情報、range scanは送信しません。N520はserver-first handshakeだけを検証し、check-inを送りません。
+- Winos heartbeatとvvaS固定check-inはレビュー済みendpointへ各1回だけ許可します。N520はserver-first handshakeだけを検証し、check-inを送りません。
+- StealC／Lumma／Remusは`--allow-network`と`--allow-malware-registration-tasking`の二重ゲート、完全一致profile、単一IP pinが揃う場合だけ、合成IDの登録とtask取得を各1回行います。実victim metadata、task実行、task内URL追跡、payload取得、debug、upload、doneは行いません。FormBook／XLoaderは受動観測のみです。
 - 固有protocolを復元済みのendpointは単純なTCP接続確認へ降格させず、完全一致応答だけを`c2_protocol_confirmed`とします。
 - `MAXMIND_LICENSE_KEY`、Authorization header、署名付きdownload URL、MMDB本体は公開成果物へ保存しません。
 - MMDBはリポジトリ外のprivate cacheへ保存します。

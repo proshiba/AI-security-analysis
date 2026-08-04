@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -264,7 +265,19 @@ def reviewed_target(profile_id: str, host: str, port: int, protocol: str, method
                 "sample_sha256s": ["e" * 64],
                 "sources": ["fixture:reviewed"],
                 "timeout_seconds": 3.0,
-                "maximum_response_bytes": 64 if protocol != "n520" else 44,
+                "maximum_response_bytes": (
+                    44
+                    if protocol == "n520"
+                    else (
+                        1024
+                        if protocol == "ftp"
+                        else (
+                            16384
+                            if protocol == "stealc"
+                            else (65536 if protocol == "lummastealer" else (8192 if protocol == "remusstealer" else 64))
+                        )
+                    )
+                ),
             }
         ],
     }
@@ -395,3 +408,261 @@ def test_markdown_uses_limited_scope_title(
     assert rendered.startswith("# 対象限定のC2稼働状況")
     assert "監視scopeは `valleyrat_pdfcore8_three_cases`" in rendered
     assert "全履歴IOCから自動抽出" not in rendered
+
+
+def test_asyncrat_certificate_mismatch_does_not_exclude_c2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value = reviewed_target(
+        "asyncrat-058-20f21565-191-96-78-221-7788",
+        "191.96.78.221",
+        7788,
+        "asyncrat",
+        "asyncrat_tls_messagepack",
+    )
+
+    def fake_probe(_profile, **kwargs):
+        assert kwargs["allow_network"] is True
+        assert kwargs["allow_application_probe"] is False
+        return {
+            "timestamp_utc": "2026-08-04T00:00:00+00:00",
+            "status": "tls_handshake_only_application_probe_disabled",
+            "alive": True,
+            "c2_confirmed": False,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+            "application_data_sent": False,
+            "protocol_response_received": False,
+            "resolved_ips": ["191.96.78.221"],
+            "tls": {
+                "handshake": True,
+                "certificate": {
+                    "state": "mismatch_inconclusive",
+                    "exact_match": False,
+                    "certificate_mismatch_excludes_c2": False,
+                },
+            },
+            "certificate_mismatch_excludes_c2": False,
+        }
+
+    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_tls_messagepack", fake_probe)
+    result = monitor_recent_c2.monitor(value, allow_network=True)
+    observation = result["results"][0]["observation"]
+    assert observation["tls"]["certificate"]["state"] == "mismatch_inconclusive"
+    assert observation["certificate_mismatch_excludes_c2"] is False
+    assert result["policy"]["certificate_mismatch_excludes_c2"] is False
+    assert result["results"][0]["assessment"]["state"] == "tls_endpoint_reachable_c2_not_confirmed"
+
+
+def test_venomrat_application_probe_requires_separate_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value = reviewed_target(
+        "venomrat-603-6a24ba25-localto-6377",
+        "s2gj9tonn.localto.net",
+        6377,
+        "venomrat",
+        "venomrat_tls_messagepack",
+    )
+
+    def fake_probe(_profile, **kwargs):
+        assert kwargs["allow_application_probe"] is True
+        return {
+            "timestamp_utc": "2026-08-04T00:00:00+00:00",
+            "status": "confirmed_tls_messagepack_c2",
+            "alive": True,
+            "c2_confirmed": True,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+            "application_data_sent": True,
+            "protocol_response_received": True,
+            "victim_metadata_sent": False,
+            "stage_requested": False,
+            "operation_command_sent": False,
+            "resolved_ips": ["93.184.216.34"],
+        }
+
+    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_tls_messagepack", fake_probe)
+    result = monitor_recent_c2.monitor(
+        value,
+        allow_network=True,
+        allow_application_probes=True,
+    )
+    assert result["results"][0]["assessment"]["state"] == "c2_protocol_confirmed"
+    assert result["policy"]["malware_checkin_sent"] is True
+    assert result["policy"]["victim_metadata_sent"] is False
+
+
+def test_agenttesla_authentication_is_fail_closed_without_vault() -> None:
+    value = reviewed_target(
+        "agenttesla-ftp-auth-3f091457-vilimorin",
+        "ftp.vilimorin.com",
+        21,
+        "ftp",
+        "ftp_authenticated",
+    )
+    result = monitor_recent_c2.monitor(
+        value,
+        allow_network=True,
+        allow_authentication=True,
+    )
+    observation = result["results"][0]["observation"]
+    assert observation["status"] == "private_credential_vault_missing"
+    assert observation["target_contact_attempted"] is False
+    assert observation["authentication_attempted"] is False
+
+def test_agenttesla_accepted_credential_confirms_protocol(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    value = reviewed_target(
+        "agenttesla-ftp-auth-3f091457-vilimorin",
+        "ftp.vilimorin.com",
+        21,
+        "ftp",
+        "ftp_authenticated",
+    )
+    vault = tmp_path / "private.json"
+    vault.write_text("{}", encoding="utf-8")
+
+    class FakeAgentTeslaModule:
+        @staticmethod
+        def load_private_ftp_credential(*_args):
+            return {"username": "fixture-user", "password": "fixture-password"}
+
+        @staticmethod
+        def probe_ftp_authenticated(*_args, **_kwargs):
+            return {
+                "authentication_accepted": True,
+                "commands_sent": ["USER", "PASS", "QUIT"],
+                "banner": {"code": "220", "raw_text_published": False},
+                "user_reply_code": "331",
+                "pass_reply_code": "230",
+                "quit_reply_code": "221",
+                "resolved_addresses": ["93.184.216.34"],
+            }
+
+    monkeypatch.setattr(
+        monitor_recent_c2,
+        "_load_agenttesla_c2_module",
+        lambda: FakeAgentTeslaModule,
+    )
+    result = monitor_recent_c2.monitor(
+        value,
+        allow_network=True,
+        allow_authentication=True,
+        private_credential_vault=vault,
+    )
+    entry = result["results"][0]
+    assert entry["assessment"]["state"] == "c2_protocol_confirmed"
+    assert entry["observation"]["authentication_accepted"] is True
+    assert entry["observation"]["commands_sent"] == ["USER", "PASS", "QUIT"]
+    assert entry["observation"]["credential_material_published"] is False
+    assert entry["observation"]["file_transfer_attempted"] is False
+    assert result["policy"]["malware_checkin_sent"] is False
+    assert result["policy"]["authentication_attempted_count"] == 1
+    assert result["policy"]["maximum_response_bytes"] == 1024
+    rendered = monitor_recent_c2.render_markdown(result)
+    assert "USER／必要時のPASS／QUIT" in rendered
+    assert "認証情報は使用していません" not in rendered
+    assert "応答最大1024 byte" in rendered
+    serialized = json.dumps(result)
+    assert "fixture-user" not in serialized
+    assert "fixture-password" not in serialized
+
+
+def test_agenttesla_invalid_private_vault_is_not_a_negative_c2_observation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    value = reviewed_target(
+        "agenttesla-ftp-auth-3f091457-vilimorin",
+        "ftp.vilimorin.com",
+        21,
+        "ftp",
+        "ftp_authenticated",
+    )
+    vault = tmp_path / "invalid.json"
+    vault.write_text("{}", encoding="utf-8")
+
+    class InvalidVaultModule:
+        @staticmethod
+        def load_private_ftp_credential(*_args):
+            raise ValueError("invalid private vault")
+
+    monkeypatch.setattr(
+        monitor_recent_c2,
+        "_load_agenttesla_c2_module",
+        lambda: InvalidVaultModule,
+    )
+    result = monitor_recent_c2.monitor(
+        value,
+        allow_network=True,
+        allow_authentication=True,
+        private_credential_vault=vault,
+    )
+    entry = result["results"][0]
+    assert entry["observation"]["status"] == "private_credential_vault_error"
+    assert entry["observation"]["target_contact_attempted"] is False
+    assert entry["assessment"]["state"] == "not_observed_safety_gate"
+    assert entry["assessment"]["negative_observation_confidence"] == 0.0
+
+def test_stealc_registration_and_tasking_require_separate_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value = reviewed_target(
+        "stealc-v2-1backs-31-77-228-62-80",
+        "31.77.228.62",
+        80,
+        "stealc",
+        "stealc_v2_registration_task",
+    )
+    disabled = monitor_recent_c2.monitor(value, allow_network=True)
+    assert disabled["results"][0]["observation"]["status"] == (
+        "malware_registration_tasking_disabled"
+    )
+    assert disabled["results"][0]["assessment"]["state"] == "not_observed_safety_gate"
+
+    calls = []
+
+    def fake_probe(profile, **kwargs):
+        calls.append((profile["profile_id"], kwargs))
+        return {
+            "status": "confirmed_stealc_registration_task",
+            "alive": True,
+            "c2_confirmed": True,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+            "application_data_sent": True,
+            "protocol_response_received": True,
+            "registration_attempted": True,
+            "registration_accepted": True,
+            "task_poll_attempted": True,
+            "task_response_received": True,
+            "task_available": False,
+            "task_content_published": False,
+            "task_executed": False,
+            "payload_download_attempted": False,
+            "victim_metadata_sent": False,
+            "synthetic_identity_sent": True,
+            "resolved_ips": ["31.77.228.62"],
+            "request_count": 2,
+        }
+
+    monkeypatch.setattr(
+        monitor_recent_c2, "probe_reviewed_stealer_registration", fake_probe
+    )
+    enabled = monitor_recent_c2.monitor(
+        value, allow_network=True, allow_malware_registration=True
+    )
+    assert calls[0][1]["allow_network"] is True
+    assert calls[0][1]["allow_registration_tasking"] is True
+    assert enabled["results"][0]["assessment"]["state"] == "c2_protocol_confirmed"
+    assert enabled["policy"]["registration_attempted_count"] == 1
+    assert enabled["policy"]["maximum_response_bytes"] == 16384
+    assert enabled["policy"]["maximum_application_requests_per_target"] == 2
+    assert enabled["policy"]["task_poll_attempted_count"] == 1
+    assert enabled["policy"]["task_content_published"] is False
+    assert enabled["policy"]["task_executed"] is False
+    assert enabled["policy"]["payload_download_attempted"] is False
+    assert "task本文・token・合成IDは公開せず" in monitor_recent_c2.render_markdown(enabled)
