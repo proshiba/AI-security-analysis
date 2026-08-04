@@ -29,7 +29,15 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS = REPO_ROOT / "analysis-results"
-OUTPUT = Path(__file__).resolve().parent / "data.js"
+UI_ROOT = Path(__file__).resolve().parent
+OUTPUT = UI_ROOT / "data.js"
+
+# ケース詳細の切り出し先。全ケース分をdata.jsへ入れると、一覧も検索も参照しない
+# 本文で初回転送が埋まる(README全文と検体特徴だけで全体の約55%)。個別ケース
+# ページを開いたときだけ取りに行けるよう、SHA-256の先頭2文字で分けて置く。
+CASE_DETAIL_DIR = UI_ROOT / "cases"
+CASE_DETAIL_FIELDS = ("docs", "characteristics")
+CASE_DETAIL_SCHEMA = 1
 
 FAMILY_DOC_FILES = [
     ("readme", "README.md", "概要"),
@@ -1095,33 +1103,126 @@ def build() -> dict:
     }
 
 
+def case_detail_path(sha: str) -> Path:
+    """ケース詳細の格納先。1ディレクトリに数千ファイルを置かないよう2文字で分ける。"""
+    return CASE_DETAIL_DIR / sha[:2] / f"{sha}.json"
+
+
+def render_case_detail(sha: str, detail: dict) -> str:
+    payload = {"schema_version": CASE_DETAIL_SCHEMA, "sha256": sha}
+    payload.update(detail)
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
+
+
+def split_case_details(data: dict) -> dict[str, dict]:
+    """data から個別ページ専用の重いフィールドを抜き、SHA-256ごとに返す。
+
+    抜くのは `docs`(ケースREADME全文)と `characteristics`。一覧・検索・
+    ダッシュボードはどちらも参照しないため、全ケース分を先に配ると初回転送の
+    半分以上が使われないまま落ちてくることになる。
+    """
+    details: dict[str, dict] = {}
+    for case in data.get("cases") or []:
+        sha = case.get("sha256")
+        if not sha:
+            continue
+        details[sha] = {field: case.pop(field) for field in CASE_DETAIL_FIELDS if field in case}
+    return details
+
+
+def write_case_details(details: dict[str, dict]) -> tuple[int, int]:
+    """ケース詳細を書き出し、catalogから消えたケースの残骸を削除する。"""
+    written = 0
+    expected: set[Path] = set()
+    for sha, detail in details.items():
+        path = case_detail_path(sha)
+        expected.add(path)
+        payload = render_case_detail(sha, detail)
+        if read_text(path) != payload:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(payload, encoding="utf-8")
+            written += 1
+    removed = 0
+    if CASE_DETAIL_DIR.is_dir():
+        for path in sorted(CASE_DETAIL_DIR.rglob("*.json")):
+            if path not in expected:
+                path.unlink()
+                removed += 1
+        # 空になったシャードディレクトリを残さない
+        for directory in sorted(CASE_DETAIL_DIR.iterdir(), reverse=True):
+            if directory.is_dir() and not any(directory.iterdir()):
+                directory.rmdir()
+    return written, removed
+
+
+def case_details_out_of_date(details: dict[str, dict]) -> list[str]:
+    """ケース詳細の差分・欠落・余剰を列挙する。"""
+    problems: list[str] = []
+    expected: set[Path] = set()
+    for sha, detail in sorted(details.items()):
+        path = case_detail_path(sha)
+        expected.add(path)
+        current = read_text(path)
+        if current is None:
+            problems.append(f"欠落: {path.relative_to(UI_ROOT)}")
+        elif current != render_case_detail(sha, detail):
+            problems.append(f"内容差分: {path.relative_to(UI_ROOT)}")
+    if CASE_DETAIL_DIR.is_dir():
+        for path in sorted(CASE_DETAIL_DIR.rglob("*.json")):
+            if path not in expected:
+                problems.append(f"余剰: {path.relative_to(UI_ROOT)}")
+    return problems
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="既存data.jsとの差分を確認する")
     args = parser.parse_args()
 
     data = build()
+    details = split_case_details(data)
     payload = "window.MALDB = " + json.dumps(
         data, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     ) + ";\n"
 
     if args.check:
         current = read_text(OUTPUT)
-        if current == payload:
-            print("ui/data.js is up to date.")
-            return 0
-        if only_unresolved_added_at(current, data):
+        index_ok = current == payload
+        tolerated = not index_ok and only_unresolved_added_at(current, data)
+        if not index_ok and not tolerated:
+            print("ui/data.js is out of date. Run: python3 ui/generate_ui_data.py", file=sys.stderr)
+            return 1
+        problems = case_details_out_of_date(details)
+        if problems:
+            print(
+                f"ui/cases が最新ではありません ({len(problems)}件)。"
+                " Run: python3 ui/generate_ui_data.py",
+                file=sys.stderr,
+            )
+            for line in problems[:10]:
+                print(f"  {line}", file=sys.stderr)
+            if len(problems) > 10:
+                print(f"  ... 他 {len(problems) - 10} 件", file=sys.stderr)
+            return 1
+        if tolerated:
             print(
                 "ui/data.js is up to date. "
                 "(commit前で未確定だった added_at のみ差分。次回の再生成で解消されます)"
             )
-            return 0
-        print("ui/data.js is out of date. Run: python3 ui/generate_ui_data.py", file=sys.stderr)
-        return 1
+        else:
+            print("ui/data.js is up to date.")
+        print(f"ui/cases is up to date. ({len(details)} ケース)")
+        return 0
 
     OUTPUT.write_text(payload, encoding="utf-8")
+    written, removed = write_case_details(details)
     size_mb = OUTPUT.stat().st_size / (1024 * 1024)
+    detail_bytes = sum(p.stat().st_size for p in CASE_DETAIL_DIR.rglob("*.json"))
     print(f"wrote {OUTPUT} ({size_mb:.1f} MiB)")
+    print(
+        f"wrote {CASE_DETAIL_DIR} ({len(details)} ケース / "
+        f"{detail_bytes / (1024 * 1024):.1f} MiB、更新 {written}件、削除 {removed}件)"
+    )
     print(json.dumps(data["stats"], ensure_ascii=False, indent=2))
     return 0
 

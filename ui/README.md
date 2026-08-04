@@ -170,7 +170,7 @@ https://proshiba.github.io/research_bench/#/search/<値>
 `ui/data.js` は `generate_ui_data.py` が以下から生成します。
 
 - `analysis-results/catalog/cases.json`: 全ケースの正本一覧(ファミリ・版・格納パス)。固定レイアウトの全caseと完全一致する必要があります。不足・余剰・family／版／pathの不一致が1件でもあれば生成を停止し、暗黙補完は行いません
-- 各ケースディレクトリの `metadata.json` / `features.json` / `iocs.json` / `IOC-LIST.md` / `README.md` / `rules/`
+- 各ケースディレクトリの `metadata.json` / `features.json` / `iocs.json` / `IOC-LIST.md` / `README.md` / `rules/`（`README.md` 全文と `features.json` 由来の検体特徴は `ui/cases/` へ切り出し、ケースページで遅延取得します）
 - `analysis-results/malware/<family>/` の `README.md`・`OSINT.md`・`TECHNICAL-ANALYSIS.md`・`VERSIONS.md`・`CAMPAIGNS.md`・`BEHAVIOR-C2.md` と `rules/`(YARA/Sigma)
 - `analysis_history.yaml`: 検体SHA-256ごとの解析履歴(解析日、解析レベル、campaign type、一致パターン、主要C2)
 - `analysis-results/research/campaigns/correlated-*/campaigns.json`（最新版）: `intelligence/` 定期調査が参照するcampaign相関候補とcase別label
@@ -179,6 +179,22 @@ https://proshiba.github.io/research_bench/#/search/<値>
 - `analysis-results/catalog/code-similarity.json`: 意味トークン列SHA-256が完全一致する関数groupだけをケース間リンクへ集約（SimHash近似は含めない）。21ケース以上に広がるgroupはlibrary/compiler由来の可能性が高いため除外
 
 サイズ抑制のため、ケース単位の `STATIC-LOGIC.md` と `FEATURES.md` は全文を埋め込まず、ケースページの「成果物ファイル」からのリンク参照とします(挙動・特徴は `features.json` 由来の構造化データで表示します)。
+
+### ケース詳細の切り出し
+
+ケースREADMEの全文(`docs`)と検体特徴(`characteristics`)は、**個別ケースページでしか参照しません**。全ケース分を `data.js` へ入れると、一覧・検索・ダッシュボードが一度も読まない本文で初回転送の半分以上が埋まります。そこでこの2項目だけ `ui/cases/<SHA-256先頭2文字>/<SHA-256>.json` へ切り出し、ケースページを開いたときにだけ取得します。
+
+| | 実サイズ | gzip |
+|---|---:|---:|
+| 切り出し前の `data.js` | 12.9 MiB | 1.72 MiB |
+| 切り出し後の `data.js` | 5.8 MiB | 0.65 MiB |
+| ケース詳細1件 | 平均 4.0 KiB | ― |
+
+索引側は1ケースあたり約2KiBなので、ケースが増えても初回転送はほぼ増えません。取得済みの詳細はメモリにキャッシュし、同じケースを開き直しても再取得しません。取得に失敗した場合はケースページ自体は描画したうえで、その節にGitHub上の成果物ディレクトリへのリンクを出します。
+
+`--check` は `data.js` に加えて `ui/cases` の**内容差分・欠落・余剰**も検証します(catalogから消えたケースの残骸が配信物に残らないよう、書き込み時は余剰ファイルと空ディレクトリを削除します)。
+
+この方式は `fetch` を使うため、`ui/index.html` を `file://` で直接開くとケース詳細だけ読み込めません(CORSで拒否されます)。ローカルで確認するときは `python3 -m http.server` などHTTP経由で開いてください。他の画面と GitHub Pages 配信・ポータル埋め込みには影響しません。
 
 ## 運用上の注意
 
