@@ -124,7 +124,7 @@ UIのフッターに、解析で参照している外部サービスのクレジ
 | 解析対象検体の取得 | MalwareBazaar（abuse.ch）、VX-Underground |
 | サンドボックス・照会 | VirusTotal（file behaviours の挙動・ハッシュ照会）、Hatching Triage（process／network 証跡）、ANY.RUN、Shodan（受動的なインフラ調査） |
 | 公開情報・知識ベース | MITRE ATT&CK、JPCERT/CC、および各セキュリティベンダー・研究者の公開レポート |
-| インフラ位置・地図 | ipwho.is（C2 IPの国・都市・ASN照会。対象C2へは接続しない）、Natural Earth（世界地図の輪郭 / public domain）、Tor Project（.onion endpointの観測経路） |
+| インフラ位置・地図 | MaxMind GeoLite2 City / ASN（地図に出すC2 IPの概略位置とAS。対象C2へは接続しない）、ipwho.is（ClickFix基盤調査のIP pivot）、Natural Earth（世界地図の輪郭 / public domain）、Tor Project（.onion endpointの観測経路）<br>`This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.` |
 
 個別の出典は各ケース／ファミリの `OSINT.md` に記載しています。掲載は `ui/index.html` のフッター（`.credits`）を直接編集します。参照先を増減した場合はここも更新してください。
 
@@ -134,19 +134,11 @@ UIのフッターに、解析で参照している外部サービスのクレジ
 
 `#/c2` は `monitor_recent_c2.py` の観測結果を表示します。**到達性**と**C2 applicationが稼働している確度**は生成側でもUI側でも混ぜず、`到達` / `C2稼働` / `手法上限` の3本を別々に出します。TCP接続だけで到達しても、C2稼働確度は 0.25 を超えません。
 
-地図に必要な緯度経度は、監視結果とは別の成果物から読みます。
+地図に必要な緯度経度・国・ASは、C2監視パイプラインが `monitoring-results.json` へ埋め込む **MaxMind GeoLite2 City / ASN** だけを読みます（`analysis-framework/common/maxmind_c2_enrichment.py`、手順は `analysis-framework/common/MAXMIND-C2-ENRICHMENT.md`）。geoの出所を1本に絞っているのは、第三者APIと併用すると同一IPで国が食い違う（例: 同じIPが `CN Beijing` と `SG`）ためです。
 
-```bash
-# 解決IPのgeo照会(既定は計画表示のみ。--allow-network で初めて外部へ出る)
-python3 analysis-framework/common/enrich_c2_geo.py \
-  --results analysis-results/research/c2-monitoring/2026-08-02/ --allow-network
+GeoLite2はIPインフラの概略位置であり、C2稼働・攻撃者の所在地・個人や住所の特定には使えません。UIにもその旨を併記しています。
 
-# 網羅の検証(通信なし)
-python3 analysis-framework/common/enrich_c2_geo.py \
-  --results analysis-results/research/c2-monitoring/2026-08-02/ --check
-```
-
-照会先は第三者のIP情報API（`ipwho.is`）だけで、**監視対象のC2へは接続しません**。private／loopback／reserved と `.onion` は照会対象外です。位置は登録情報ベースの推定であり、設置場所やC2所有者の確定には使えません。UIでもその旨を併記しています。
+GeoLite2のライセンスが要求する帰属表示（`This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.`）は、UIフッターの「参照しているサービス」に常時表示しています。
 
 世界地図の輪郭は Natural Earth 110m（public domain）を等距円筒で投影して `ui/worldmap.js` に同梱しています（約120KiB、176か国）。外部CDNは読みません。地図とプロット点には同じ投影を掛けるので、点と国境は必ず一致します。再生成は次のとおりです。
 
