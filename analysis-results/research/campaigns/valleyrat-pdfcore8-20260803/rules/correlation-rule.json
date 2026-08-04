@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "rule_id": "valleyrat-pdfcore8-winos-20260803",
+  "label": "valleyrat-japanese-malspam-pdfcore8-20260803",
+  "minimum_score": 7,
+  "features": [
+    {"id": "zip_img_chain", "score": 1},
+    {"id": "convert_to_pdf_host_and_pdfcore8_proxy", "score": 2},
+    {"id": "programdata_systemappdata_relocation", "score": 1},
+    {"id": "ms_settings_computerdefaults_uac_bypass", "score": 2},
+    {"id": "tasklist_find_timeout_watchdog", "score": 1},
+    {"id": "winos_framing_and_stage_control_split", "score": 3},
+    {"id": "exact_recovered_stage_or_module_id", "score": 4}
+  ],
+  "forbidden_shortcuts": ["domain_only", "ip_only", "signed_host_only", "community_tag_only"],
+  "actor_attribution": false
+}

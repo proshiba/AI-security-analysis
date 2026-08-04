@@ -20,7 +20,7 @@ from c2_protocol_probe_profiles import (  # noqa: E402
 
 def test_registry_contains_reviewed_valleyrat_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 4
+    assert len(profiles) == 6
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",

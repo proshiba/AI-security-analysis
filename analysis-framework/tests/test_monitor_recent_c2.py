@@ -371,3 +371,27 @@ def test_active_protocol_rejects_unknown_profile_and_plan_payload() -> None:
     value["targets"][0]["send_hex"] = "00"
     with pytest.raises(monitor_recent_c2.PlanError):
         monitor_recent_c2.validate_plan(value)
+
+def test_markdown_uses_limited_scope_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        monitor_recent_c2,
+        "probe",
+        lambda _args: {
+            "timestamp_utc": "2026-08-04T00:00:00+00:00",
+            "status": "tcp_connect_only",
+            "tcp_status": "open",
+            "alive": True,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+        },
+    )
+    value = plan()
+    value["collection_scope"] = "valleyrat_pdfcore8_three_cases"
+    rendered = monitor_recent_c2.render_markdown(
+        monitor_recent_c2.monitor(value, allow_network=False),
+    )
+    assert rendered.startswith("# 対象限定のC2稼働状況")
+    assert "監視scopeは `valleyrat_pdfcore8_three_cases`" in rendered
+    assert "全履歴IOCから自動抽出" not in rendered

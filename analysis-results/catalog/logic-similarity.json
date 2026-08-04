@@ -8,13 +8,13 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 1784,
-    "profiled_cases": 923,
-    "candidate_pairs_before_limit": 188907,
-    "retained_pairs": 4188,
+    "catalog_cases": 1787,
+    "profiled_cases": 926,
+    "candidate_pairs_before_limit": 188910,
+    "retained_pairs": 4191,
     "levels": {
       "高": 3183,
-      "中": 841,
+      "中": 844,
       "参考候補": 164
     }
   },
@@ -4310,6 +4310,44 @@
         "code_fingerprints"
       ],
       "document_path": "analysis-results/malware/efimer/versions/unknown/cases/126d2fea7b1ea126a7dfa9d41a532a71ba1d41bb3473f5ba81694b2412059edc/OVERALL-LOGIC.md"
+    },
+    "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d": {
+      "case_id": "sha256:12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "sha256": "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "recovered_winos_stage:x86"
+        ],
+        "capabilities": [
+          "behavior:process_injection",
+          "behavior:remote_admin",
+          "container:zip_img",
+          "delivery:dll_sideload",
+          "persistence:uac_watchdog",
+          "protocol:winos"
+        ],
+        "function_roles": [
+          "command_dispatch",
+          "download",
+          "network_connect",
+          "network_receive",
+          "network_send",
+          "orchestration",
+          "process_injection"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/OVERALL-LOGIC.md"
     },
     "12b0e803c821a4c2b1b0e826ccb821f6bbcb421615a63ba5ce9e4c2a648c98df": {
       "case_id": "sha256:12b0e803c821a4c2b1b0e826ccb821f6bbcb421615a63ba5ce9e4c2a648c98df",
@@ -24654,6 +24692,46 @@
         "code_fingerprints"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/61858e50c96a6f37957e1d6e3249ddb49ebd5c592ddce8dacf039404897afe45/OVERALL-LOGIC.md"
+    },
+    "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5": {
+      "case_id": "sha256:61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "sha256": "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_proxy_dll:x86",
+          "recovered_winos_stage:x86"
+        ],
+        "capabilities": [
+          "behavior:process_injection",
+          "behavior:remote_admin",
+          "container:zip_img",
+          "delivery:dll_sideload",
+          "persistence:uac_watchdog",
+          "protocol:winos"
+        ],
+        "function_roles": [
+          "command_dispatch",
+          "download",
+          "network_connect",
+          "network_receive",
+          "network_send",
+          "orchestration",
+          "process_injection",
+          "proxy_dispatch"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/OVERALL-LOGIC.md"
     },
     "61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb": {
       "case_id": "sha256:61ab1d22949eac0582e989ae065ec4caee9ac99998276317edda96735cd311fb",
@@ -54101,6 +54179,46 @@
         "code_fingerprints"
       ],
       "document_path": "analysis-results/malware/efimer/versions/unknown/cases/e0968fdd46a966fd96963e0c082c826f0f4f68c6ae7c47db740e375b838a5166/OVERALL-LOGIC.md"
+    },
+    "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648": {
+      "case_id": "sha256:e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "sha256": "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_proxy_dll:x86",
+          "recovered_winos_stage:x86"
+        ],
+        "capabilities": [
+          "behavior:process_injection",
+          "behavior:remote_admin",
+          "container:zip_img",
+          "delivery:dll_sideload",
+          "persistence:uac_watchdog",
+          "protocol:winos"
+        ],
+        "function_roles": [
+          "command_dispatch",
+          "download",
+          "network_connect",
+          "network_receive",
+          "network_send",
+          "orchestration",
+          "process_injection",
+          "proxy_dispatch"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/OVERALL-LOGIC.md"
     },
     "e0e69bb3ffd353720874b03724fa6e8cf51021ba5ff2676582dbff4d44ee234e": {
       "case_id": "sha256:e0e69bb3ffd353720874b03724fa6e8cf51021ba5ff2676582dbff4d44ee234e",
@@ -271248,6 +271366,57 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
+      "left_sha256": "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "right_sha256": "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "same_family": true,
+      "score": 1.0,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "malicious_proxy_dll:x86",
+            "recovered_winos_stage:x86"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:process_injection",
+            "behavior:remote_admin",
+            "container:zip_img",
+            "delivery:dll_sideload",
+            "persistence:uac_watchdog",
+            "protocol:winos"
+          ],
+          "shared_total": 6
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 1.0,
+          "shared": [
+            "command_dispatch",
+            "download",
+            "network_connect",
+            "network_receive",
+            "network_send",
+            "orchestration",
+            "process_injection",
+            "proxy_dispatch"
+          ],
+          "shared_total": 8
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
       "left_sha256": "61eb8e47031b9c5ac19f887926f3a03604ae1dec521dad76db3136a1469be7b6",
       "right_sha256": "7243738e2b27922cd5daed7bb1e9382e87196583976c7a54372f2f149eec3596",
       "same_family": true,
@@ -271624,6 +271793,104 @@
             "unpack:status"
           ],
           "shared_total": 5
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "right_sha256": "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+      "same_family": true,
+      "score": 0.7656,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 0.5,
+          "shared": [
+            "recovered_winos_stage:x86"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:process_injection",
+            "behavior:remote_admin",
+            "container:zip_img",
+            "delivery:dll_sideload",
+            "persistence:uac_watchdog",
+            "protocol:winos"
+          ],
+          "shared_total": 6
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.875,
+          "shared": [
+            "command_dispatch",
+            "download",
+            "network_connect",
+            "network_receive",
+            "network_send",
+            "orchestration",
+            "process_injection"
+          ],
+          "shared_total": 7
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d",
+      "right_sha256": "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
+      "same_family": true,
+      "score": 0.7656,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 0.5,
+          "shared": [
+            "recovered_winos_stage:x86"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:process_injection",
+            "behavior:remote_admin",
+            "container:zip_img",
+            "delivery:dll_sideload",
+            "persistence:uac_watchdog",
+            "protocol:winos"
+          ],
+          "shared_total": 6
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.875,
+          "shared": [
+            "command_dispatch",
+            "download",
+            "network_connect",
+            "network_receive",
+            "network_send",
+            "orchestration",
+            "process_injection"
+          ],
+          "shared_total": 7
         }
       ],
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"

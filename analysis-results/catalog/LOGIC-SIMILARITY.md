@@ -5,9 +5,9 @@
 
 ## 集計
 
-- カタログcase: 1,784件
-- 比較プロファイル作成済み: 923件
-- 保持した候補pair: 4,188件
+- カタログcase: 1,787件
+- 比較プロファイル作成済み: 926件
+- 保持した候補pair: 4,191件
 
 ## 類似候補
 
@@ -3196,6 +3196,7 @@
 | 高 | 0.7240 | [unclassified / 418c564fa3d7…](../malware/unclassified/versions/unknown/cases/418c564fa3d768c01a5c392bfc9182e1506af3d99f6fe178402dec05ee97b2f2/OVERALL-LOGIC.md) | [unclassified / dcc9ab9cfdef…](../malware/unclassified/versions/unknown/cases/dcc9ab9cfdefd308235e4299af5c710f1b59920ed842a13ff3b2d43645abee7e/OVERALL-LOGIC.md) | 6 | 実行段階、感染・復元層、モジュール構成、機能・挙動 |
 | 高 | 0.7226 | [formbook / c33d466717f4…](../malware/formbook/versions/unknown/cases/c33d466717f4166ef7ef39cde196cd9b0facabba20e14140b2964a1839e59862/OVERALL-LOGIC.md) | [hijackloader / d84bc0b76b84…](../malware/hijackloader/versions/unknown/cases/d84bc0b76b8439105781d6048152cd31b2de1d26e3bb7a39787c081ec79dcc79/OVERALL-LOGIC.md) | 5 | 実行段階、モジュール構成、機能・挙動、代表関数の役割 |
 | 高 | 0.7209 | [stealc / 0c16963f4360…](../malware/stealc/versions/unknown/cases/0c16963f43604246e81f006d1f7df0a7258b36b929252c1502d92fea573d86aa/OVERALL-LOGIC.md) | [stealc / de5b161afabe…](../malware/stealc/versions/unknown/cases/de5b161afabe16c6de6a329454fb6bc2503a016431881e1a152b1ab755afc447/OVERALL-LOGIC.md) | 6 | 実行段階、感染・復元層、モジュール構成、機能・挙動 |
+| 中 | 1.0000 | [valleyrat / 61a602b23169…](../malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/OVERALL-LOGIC.md) | [valleyrat / e0e1ae775ef8…](../malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/OVERALL-LOGIC.md) | 3 | モジュール構成、機能・挙動、代表関数の役割 |
 | 中 | 1.0000 | [condi / 61eb8e47031b…](../malware/condi/versions/unknown/cases/61eb8e47031b9c5ac19f887926f3a03604ae1dec521dad76db3136a1469be7b6/README.md) | [condi / 7243738e2b27…](../malware/condi/versions/unknown/cases/7243738e2b27922cd5daed7bb1e9382e87196583976c7a54372f2f149eec3596/README.md) | 2 | モジュール構成、機能・挙動 |
 | 中 | 1.0000 | [mirai / a2e31a2548c7…](../malware/mirai/versions/unknown/cases/a2e31a2548c728b304be780d7c114738bfd1bb8fcc6f8fe7eda3b0f9cc2fc696/README.md) | [mirai / fbe6afe9bf94…](../malware/mirai/versions/unknown/cases/fbe6afe9bf94217b4bec7bf9d27bb01f68bdf6d67e5bf5500ff3541db322a2ad/README.md) | 2 | モジュール構成、機能・挙動 |
 | 中 | 0.8000 | [jackskid / 02e960e5278a…](../malware/jackskid/versions/2026-07-ens-sns/cases/02e960e5278a686f38a356e5e7842def5797e07ec0b06b8fe5f34d0b28fde0b2/README.md) | [jackskid / aa91037d9697…](../malware/jackskid/versions/2026-07-ens-sns/cases/aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3/README.md) | 2 | モジュール構成、機能・挙動 |
@@ -3206,6 +3207,8 @@
 | 中 | 0.7778 | [unclassified / 223f03fcc04e…](../malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187/OVERALL-LOGIC.md) | [unclassified / ed1d3f69fbbd…](../malware/unclassified/versions/unknown/cases/ed1d3f69fbbd5576c2ed8dba45ba22c4f6884eb311d4f6e389203846d512ec11/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |
 | 中 | 0.7778 | [unclassified / 223f03fcc04e…](../malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187/OVERALL-LOGIC.md) | [unclassified / fdab9767c681…](../malware/unclassified/versions/unknown/cases/fdab9767c681ea284a20a1d39634cc3fc14c1e8a399eec963f7f67716ede3e17/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |
 | 中 | 0.7778 | [unclassified / 223f03fcc04e…](../malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187/OVERALL-LOGIC.md) | [unclassified / fe315afcc80b…](../malware/unclassified/versions/unknown/cases/fe315afcc80b75d67aa937c4234c5a54ea15b27652f6b3607b0289ac52228051/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |
+| 中 | 0.7656 | [valleyrat / 12a22fece1fb…](../malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/OVERALL-LOGIC.md) | [valleyrat / 61a602b23169…](../malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/OVERALL-LOGIC.md) | 3 | モジュール構成、機能・挙動、代表関数の役割 |
+| 中 | 0.7656 | [valleyrat / 12a22fece1fb…](../malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/OVERALL-LOGIC.md) | [valleyrat / e0e1ae775ef8…](../malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/OVERALL-LOGIC.md) | 3 | モジュール構成、機能・挙動、代表関数の役割 |
 | 中 | 0.7407 | [unclassified / 0ba5c04325f7…](../malware/unclassified/versions/unknown/cases/0ba5c04325f7af25a2f6bf4c588dff798d481b0a799b10faac9d4daed7c09c5e/OVERALL-LOGIC.md) | [unclassified / 6dbec719cbb4…](../malware/unclassified/versions/unknown/cases/6dbec719cbb48336123cc4e6665ff69f55d6d182f3db285136cab794888b1ff2/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |
 | 中 | 0.7407 | [unclassified / 1382fbfcc769…](../malware/unclassified/versions/unknown/cases/1382fbfcc7691d404b2202838270efd4137d4a4964047b94f2ed1dfabb407741/OVERALL-LOGIC.md) | [unclassified / 223f03fcc04e…](../malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |
 | 中 | 0.7407 | [unclassified / 13f8cfe4648b…](../malware/unclassified/versions/unknown/cases/13f8cfe4648b807a0cbddd653c75254b60d1951e11e715f4e5a1a2c9ab29360b/OVERALL-LOGIC.md) | [unclassified / 6dbec719cbb4…](../malware/unclassified/versions/unknown/cases/6dbec719cbb48336123cc4e6665ff69f55d6d182f3db285136cab794888b1ff2/OVERALL-LOGIC.md) | 3 | 感染・復元層、モジュール構成、機能・挙動 |

@@ -101,6 +101,7 @@
 ) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">データ変換としてUPX展開を呼び出し、出力PEを検証する。</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。</span></dd></dl>
+ <dl><dt><a name="-safe_temporary_suffix"><strong>safe_temporary_suffix</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。</span></dd></dl>
  <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
     data: 'bytes',
     executable: 'Path',
@@ -113,6 +114,12 @@
 ) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
  <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">アーカイブ候補の識別と一覧化だけに7-Zipを使用する。</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">バイト列の小文字SHA-256ダイジェストを返す。</span></dd></dl>
+ <dl><dt><a name="-should_analyze_pe_control_flow"><strong>should_analyze_pe_control_flow</strong></a>(
+    *,
+    packing_suspected: 'bool',
+    classification: 'str',
+    executable_extent: 'int'
+) -&gt; 'bool'</dt><dd><span class="code">巨大overlayではなく実行image範囲を基準にCFG解析要否を決める。</span></dd></dl>
  <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(
     data: 'bytes',
     name: 'str' = 'sample',

@@ -118,6 +118,7 @@ Data and other attributes defined here:<br>
 ) -&gt; 'list[Indicator]'</dt><dd><span class="code">解析履歴で確認済みの検体ハッシュと&nbsp;C2&nbsp;項目を指標へ変換する。</span></dd></dl>
  <dl><dt><a name="-indicator_type"><strong>indicator_type</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">正規化済みの値を、公開可能な&nbsp;IOC&nbsp;種別へ分類する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_config"><strong>indicators_from_config</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">設定&nbsp;JSON&nbsp;出力から、正規化済み抽出結果だけを読み取る。</span></dd></dl>
+ <dl><dt><a name="-indicators_from_indicators_json"><strong>indicators_from_indicators_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">新しいcase&nbsp;`indicators.json`&nbsp;の公開対象配列だけを読み取る。</span></dd></dl>
  <dl><dt><a name="-indicators_from_ioc_json"><strong>indicators_from_ioc_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">ケース内の構造化&nbsp;IOC&nbsp;文書から、対応する指標を抽出する。</span></dd></dl>
  <dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(
     hashes: 'Iterable[str]',

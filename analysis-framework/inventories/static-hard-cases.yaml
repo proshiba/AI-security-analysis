@@ -57,29 +57,6 @@ cases:
     blockers: [aes_ctr_string_generation, static_config_not_recovered]
 
 groups:
-  - id: newest_100_size_gate_quasarrat
-    family: quasarrat
-    category: size_budget_exceeded
-    priority: P0
-    blockers: [legacy_root_size_gate_over_32_mib]
-    hashes:
-      - 439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2
-      - c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627
-      - bf93b1578a876f6bbd0368b9d91e78a5b57b499e906b7ceb8e534c1c55626153
-  - id: newest_100_size_gate_redline
-    family: redlinestealer
-    category: size_budget_exceeded
-    priority: P0
-    blockers: [legacy_root_size_gate_over_32_mib]
-    hashes:
-      - 7fc964fe47e08d13c158f808d0d68f3f2b9341dfb1ba6fb2a48690fe27e22682
-      - 7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a
-  - id: newest_100_size_gate_hijackloader
-    family: hijackloader
-    category: size_budget_exceeded
-    priority: P0
-    blockers: [legacy_root_size_gate_over_32_mib]
-    hashes: [9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a]
   - id: newest_100_redline_themida
     family: redlinestealer
     category: themida_protector

@@ -1,0 +1,140 @@
+{
+  "analysis_window": {
+    "end": "2026-08-04T23:59:59+09:00",
+    "start": "2026-08-03T00:00:00+09:00"
+  },
+  "collection_scope": "valleyrat_pdfcore8_20260803_three_cases",
+  "onion_excluded_by_policy": true,
+  "schema_version": 1,
+  "targets": [
+    {
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "maximum_response_bytes": 64,
+      "method": "tcp_connect",
+      "port": 8856,
+      "protocol": "tcp",
+      "roles": [
+        "Winos stage channel"
+      ],
+      "sample_sha256s": [
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "selection_basis": "完全一致PCAPで確認したstage endpoint。live時はconnect-only。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/iocs.json:network"
+      ],
+      "target_id": "valleyrat-ljdnxz-stage-8856",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 8868,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "selection_basis": "完全一致PCAPで復元したreview済みheartbeat。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/iocs.json:network"
+      ],
+      "target_id": "valleyrat-ljdnxz-control-8868",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "maximum_response_bytes": 64,
+      "method": "tcp_connect",
+      "port": 7811,
+      "protocol": "tcp",
+      "roles": [
+        "Winos stage channel"
+      ],
+      "sample_sha256s": [
+        "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d"
+      ],
+      "selection_basis": "完全一致PCAPで確認したstage endpoint。live時はconnect-only。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/iocs.json:network"
+      ],
+      "target_id": "valleyrat-auk218-stage-7811",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 7800,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-auk218",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d"
+      ],
+      "selection_basis": "完全一致PCAPで復元したreview済みheartbeat。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/iocs.json:network"
+      ],
+      "target_id": "valleyrat-auk218-control-7800",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_response_bytes": 64,
+      "method": "tcp_connect",
+      "port": 6698,
+      "protocol": "tcp",
+      "roles": [
+        "Winos stage channel"
+      ],
+      "sample_sha256s": [
+        "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5"
+      ],
+      "selection_basis": "完全一致PCAPで確認したstage endpoint。live時はconnect-only。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/iocs.json:network"
+      ],
+      "target_id": "valleyrat-haochisadnka-stage-6698",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6685,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260727",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5"
+      ],
+      "selection_basis": "完全一致PCAPと既存レビューで復元したheartbeat。",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/iocs.json:network"
+      ],
+      "target_id": "valleyrat-haochisadnka-control-6685",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    }
+  ]
+}

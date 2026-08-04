@@ -25,6 +25,14 @@ def identify_variant(strings: list[str]) -> str:
         return "single_pe_n520_managed"
     if "silverfox" in lower:
         return "silverfox_related"
+    winos_stage_markers = (
+        "ipdatespecial",
+        "sedebugprivilege",
+        "192.168.1.200",
+        "remark",
+    )
+    if all(item in lower for item in winos_stage_markers):
+        return "pdfcore8_winos_recovered_stage"
     return "unresolved_variant"
 
 
@@ -61,6 +69,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
     decoded = decode_vvas_reversed_config(strings)
     endpoints, urls = endpoint_candidates(strings), infrastructure_urls(strings)
     if not decoded and variant == "unresolved_variant":
+        endpoints = []
+        urls = []
+    if variant == "pdfcore8_winos_recovered_stage" and not decoded:
+        # 復元stageに残るRFC1918の既定slotは実運用C2ではない。外層または
+        # 実行時更新から注入されたglobal endpointだけを別証跡で公開する。
         endpoints = []
         urls = []
     if decoded:
@@ -115,10 +128,16 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "endpoints": endpoints,
             "ipv4": ips,
             "urls": urls,
+            "placeholder_defaults_excluded": (
+                ["192.168.1.200:6669", "192.168.1.200:9999"]
+                if variant == "pdfcore8_winos_recovered_stage"
+                else []
+            ),
         },
         findings,
         [
             "反転形式を構造どおり復号した値だけを静的設定として確認済みにします。現在の稼働状態と所有者は未確認です。",
             "一般文字列だけから得た値はC2候補に留め、未解決外層では公開しません。",
+            "Winos復元stageのRFC1918既定slotは実運用C2として公開しません。",
         ],
     )

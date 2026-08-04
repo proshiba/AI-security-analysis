@@ -472,6 +472,26 @@ def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("sample.exe", ".exe"),
+        ("sample.exe::pe-inflated-gap-removed", ".bin"),
+        ("sample.dll::stage:2", ".bin"),
+        ("sample.", ".bin"),
+        ("sample.abcdefghijklmnop", ".abcdefghijklmnop"),
+        ("sample.abcdefghijklmnopq", ".bin"),
+    ],
+)
+def test_safe_temporary_suffix_rejects_recovered_layer_delimiters(
+    name: str,
+    expected: str,
+) -> None:
+    """復元レイヤーの表示名をWindowsの一時ファイル名へ伝播させない。"""
+
+    assert unpacker.safe_temporary_suffix(name) == expected
+
+
 def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
