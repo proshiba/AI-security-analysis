@@ -476,9 +476,19 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
         # run_dirs は新しい順に読んでいるので history の先頭が最新観測
         record["latest"] = record["history"][0] if record["history"] else None
         ordered.append(record)
+    def c2_rank(item: dict) -> float:
+        """C2稼働確度の降順キー。値が無い/nullでも並べ替えを止めない。
+
+        `.get(key, 0)` はキーが存在して値がnullの場合に0を返さないため、
+        単項マイナスがTypeErrorになる。評価が埋まらない観測状態
+        (not_observed_proxy_unavailable 等)で起こり得る。
+        """
+        value = (item.get("latest") or {}).get("c2_operational")
+        return -value if isinstance(value, (int, float)) else 0.0
+
     ordered.sort(
         key=lambda item: (
-            -(item["latest"] or {}).get("c2_operational", 0) or 0,
+            c2_rank(item),
             str(item.get("family") or ""),
             str(item.get("host")),
             item.get("port") or 0,

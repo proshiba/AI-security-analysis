@@ -194,10 +194,12 @@
 
   /* ---------- ユーティリティ ---------- */
 
+  // 属性値としても安全にするため ' も必ず変換する。IOC値・ファイル名・
+  // ミューテックス名はマルウェア由来の文字列で、引用符や山括弧が入り得る。
   function esc(s) {
     if (s === null || s === undefined) return "";
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function shortSha(sha) { return sha.slice(0, 12) + "…"; }
   function fmtSize(n) {
@@ -250,7 +252,35 @@
     catch (e) { toast("コピーできませんでした"); }
     document.body.removeChild(ta);
   }
-  window.__copy = copyText; // onclick 用
+  // コピー対象はHTML属性へ値として持たせ、クリックはイベント委譲で受ける。
+  // onclick へ JSON.stringify した値を文字列連結すると、値に含まれる引用符が
+  // 属性を壊す(=マルウェア由来のIOC値からHTMLを注入できてしまう)。
+  function copyAttr(value) {
+    return ' data-copy="' + esc(value) + '"';
+  }
+  // 値そのものを押してコピーさせるリンク。href を持たせるとハッシュを
+  // 書き換えてしまうので、role/tabindex でボタンとして扱う。
+  function copyLink(value, label, extraClass) {
+    return '<a class="copyable ' + (extraClass || "") + '" role="button" tabindex="0"' +
+      copyAttr(value) + ' title="クリックでコピー">' + esc(label === undefined ? value : label) + "</a>";
+  }
+  function copyTargetOf(node) {
+    return node && node.closest ? node.closest("[data-copy]") : null;
+  }
+  document.addEventListener("click", function (ev) {
+    var target = copyTargetOf(ev.target);
+    if (!target) return;
+    ev.preventDefault();
+    copyText(target.getAttribute("data-copy"));
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var target = copyTargetOf(ev.target);
+    // button要素はEnter/Spaceで自前にclickを発火するので二重処理しない
+    if (!target || target.tagName === "BUTTON") return;
+    ev.preventDefault();
+    copyText(target.getAttribute("data-copy"));
+  });
 
   /* ---------- 最小Markdownレンダラ ---------- */
 
@@ -1335,6 +1365,16 @@
 
   /* ---------- IOC検索 ---------- */
 
+  // 同じ値が複数ケースに出るため、コピー時は重複を畳む
+  function uniqueIocValues(rows) {
+    var seen = {};
+    var values = [];
+    rows.forEach(function (r) {
+      if (!seen[r.ioc.value]) { seen[r.ioc.value] = true; values.push(r.ioc.value); }
+    });
+    return values;
+  }
+
   function viewIocs(q) {
     var types = {};
     iocRows.forEach(function (r) { types[r.ioc.type] = true; });
@@ -1356,14 +1396,17 @@
     html += '<div class="filterbar">' +
       '<input type="search" id="i-q" placeholder="IOC値 / SHA-256 / ファミリで検索" value="' + esc(q.q || "") + '">' +
       selectBox("i-type", "種別: すべて", Object.keys(types).sort().map(function (t) { return [t, t]; }), q.type) +
-      '<button class="btn small" id="i-copy">表示中の値をコピー</button>' +
+      // コピー対象は表示中の1ページではなく絞り込み結果の全件なので、
+      // 件数をラベルに出して取得範囲を取り違えないようにする
+      '<button type="button" class="btn small" id="i-copy">絞り込み結果の値をコピー（' +
+      uniqueIocValues(matched).length + "件）</button>" +
       '<span class="count">' + matched.length + " 件</span></div>";
 
     html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
       "<th>種別</th><th>値</th><th>役割</th><th>確度</th><th>ファミリ</th><th>ケース</th><th></th></tr></thead><tbody>";
     slice.forEach(function (r) {
       html += "<tr><td class='nowrap'>" + esc(r.ioc.type) + "</td>" +
-        "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(r.ioc.value) + ")' title='クリックでコピー'>" + esc(r.ioc.value) + "</a></td>" +
+        "<td class='mono' style='word-break:break-all'>" + copyLink(r.ioc.value) + "</td>" +
         "<td class='small'>" + esc(r.ioc.role) + "</td>" +
         "<td>" + confBadge(r.ioc.confidence) + "</td>" +
         "<td class='nowrap'><a href='#/family/" + esc(r.family) + "'>" + esc(familyLabel(r.family)) + "</a></td>" +
@@ -1389,12 +1432,7 @@
     var len = input.value.length;
     input.setSelectionRange(len, len);
     document.getElementById("i-copy").addEventListener("click", function () {
-      var values = [];
-      var seen = {};
-      matched.forEach(function (r) {
-        if (!seen[r.ioc.value]) { seen[r.ioc.value] = true; values.push(r.ioc.value); }
-      });
-      copyText(values.join("\n"));
+      copyText(uniqueIocValues(matched).join("\n"));
     });
     bindPager(function (p) {
       location.hash = buildHash(["iocs"], { q: q.q, type: q.type, page: String(p) });
@@ -1436,7 +1474,7 @@
         });
         var famKeys = Object.keys(fams);
         html += "<tr><td class='nowrap small'>" + esc(e.types.join("、")) + "</td>" +
-          "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(e.value) + ")' title='クリックでコピー'>" + esc(e.value) + "</a></td>" +
+          "<td class='mono' style='word-break:break-all'>" + copyLink(e.value) + "</td>" +
           "<td class='small'>" + esc(e.roles.slice(0, 2).join("、")) + "</td>" +
           "<td class='num'>" + e.cases.length + "</td>" +
           "<td class='small nowrap'>" + famKeys.slice(0, 2).map(function (k) {
@@ -1612,7 +1650,7 @@
         "<th>種別</th><th>値</th><th class='num'>case支持数</th><th></th></tr></thead><tbody>";
       g.shared_indicators.forEach(function (s) {
         html += "<tr><td class='nowrap'>" + esc(s.type) + "</td>" +
-          "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(s.value) + ")' title='クリックでコピー'>" + esc(s.value) + "</a></td>" +
+          "<td class='mono' style='word-break:break-all'>" + copyLink(s.value) + "</td>" +
           "<td class='num'>" + esc(s.support) + "</td>" +
           "<td class='nowrap'>" + portalLink(s.value, "⊕", "btn small") + "</td></tr>";
       });
@@ -1777,7 +1815,7 @@
     var html = '<div class="case-head">' +
       '<div class="muted small"><a href="#/family/' + esc(c.family) + '">' + esc(familyLabel(c.family)) + "</a> のケース</div>" +
       '<div class="hash-line"><code>' + c.sha256 + "</code>" +
-      '<button class="btn small" onclick="__copy(' + JSON.stringify(c.sha256) + ')">コピー</button>' +
+      '<button type="button" class="btn small"' + copyAttr(c.sha256) + '>コピー</button>' +
       portalLink(c.sha256, "ポータルのグラフで調査", "btn small") + "</div>" +
       '<div style="margin-top:8px">' +
       (c.campaign_type ? '<span class="badge accent mono">' + esc(c.campaign_type) + "</span> " : "") +
@@ -1801,7 +1839,7 @@
     if (c.c2 && c.c2.length) {
       html += '<div class="section"><h2>C2 / ネットワーク指標 (' + c.c2.length + ")</h2><div>" +
         c.c2.map(function (v) {
-          return '<span class="chip"><a href="javascript:void(0)" onclick="__copy(' + JSON.stringify(v) + ')" title="クリックでコピー">' + esc(v) + "</a>" +
+          return '<span class="chip">' + copyLink(v) +
             " " + portalLink(v, "⊕") + "</span>";
         }).join("") +
         '<div class="muted small" style="margin-top:6px">値はケースのIOC一覧・解析履歴からの集約です。役割・確度は下のIOC表と履歴を参照してください。</div></div></div>';
@@ -1903,7 +1941,7 @@
         "<th>種別</th><th>値</th><th>役割</th><th>確度</th><th>根拠</th></tr></thead><tbody>";
       c.iocs.forEach(function (e) {
         html += "<tr><td class='nowrap'>" + esc(e.type) + "</td>" +
-          "<td class='mono' style='word-break:break-all'><a href='javascript:void(0)' onclick='__copy(" + JSON.stringify(e.value) + ")' title='クリックでコピー'>" + esc(e.value) + "</a></td>" +
+          "<td class='mono' style='word-break:break-all'>" + copyLink(e.value) + "</td>" +
           "<td class='small'>" + esc(e.role) + "</td>" +
           "<td>" + confBadge(e.confidence) + "</td>" +
           "<td class='small'>" + esc(e.source) + "</td></tr>";
