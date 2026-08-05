@@ -11,3 +11,5 @@ dnfile>=0.18.0
 dncil>=1.0.2
 pydantic>=2.8
 pyinstaller>=6.21.0
+binary-refinery==0.11.2
+pycryptodomex>=3.23.0

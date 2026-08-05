@@ -10,7 +10,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-
 CAPABILITY_APIS = {
     "network_client": {"connect", "socket", "wsastartup", "wsaeventselect", "winhttpopen", "internetopen", "curl_easy_init"},
     "host_discovery": {"getusernamea", "getusernamew", "getcomputernamea", "getcomputernamew", "getcomputernameexw", "getadaptersaddresses", "gettimezoneinformation"},
@@ -246,8 +245,10 @@ def render_markdown(summary: dict[str, Any]) -> str:
         f"- 形式別: {format_text}",
         f"- 関数本体レビュー済み: {counts['function_analysis_complete']}件",
         f"- 関数解析が必要: {counts['function_analysis_required']}件", "",
-        "検体は実行せず、汎用トリアージ、既存ファミリ抽出器、Ghidra等の静的解析結果を要約した。"
-        "関数本体レビューが未完了の検体では、importや文字列だけから挙動成立を断定しない。", "",
+        (
+            "検体は実行せず、汎用トリアージ、既存ファミリ抽出器、Ghidra等の静的解析結果を要約した。"
+            "関数本体レビューが未完了の検体では、importや文字列だけから挙動成立を断定しない。"
+        ), "",
         "## 検体一覧", "",
         "| SHA-256 | OSINTラベル | 形式 | アーキテクチャ | サイズ | entropy | 静的ロジック状態 |",
         "|---|---|---|---|---:|---:|---|",
@@ -263,6 +264,26 @@ def render_markdown(summary: dict[str, Any]) -> str:
     for cluster in summary["clusters"]:
         labels = "、".join(f"{name}: {count}" for name, count in cluster["reported_malware"].items())
         lines.append(f"| `{cluster['cluster_key']}` | {cluster['member_count']} | {labels} | {cluster['assessment']} |")
+    reviewed_samples = [item for item in summary["samples"] if item.get("reviewed_functions")]
+    if reviewed_samples:
+        lines.extend(["", "## 特徴関数レビュー", ""])
+        for item in reviewed_samples:
+            source = str(item.get("function_review_source") or "不明").replace("|", "\\|")
+            lines.extend([
+                f"### `{item['sha256']}`",
+                "",
+                f"- 解析元: `{source}`",
+                f"- レビュー関数: {len(item['reviewed_functions'])}件",
+                "",
+                "| アドレス | 関数 | 役割 | 静的根拠 |",
+                "|---|---|---|---|",
+            ])
+            for function in item["reviewed_functions"]:
+                address = str(function.get("address") or "-").replace("|", "\\|")
+                name = str(function.get("name") or "-").replace("|", "\\|")
+                role = str(function.get("role") or "-").replace("|", "\\|")
+                evidence = str(function.get("evidence") or "-").replace("|", "\\|")
+                lines.append(f"| `{address}` | `{name}` | {role} | {evidence} |")
     lines.extend([
         "", "## 制約", "",
         "- 関数本体レビュー未完了のバイナリは、追加の逆コンパイルとコールグラフ整理が必要。",

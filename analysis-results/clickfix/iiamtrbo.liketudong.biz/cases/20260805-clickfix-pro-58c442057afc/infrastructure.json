@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "case_id": "20260805-clickfix-pro-58c442057afc",
+  "domain": "iiamtrbo.liketudong.biz",
+  "observed_at": "2026-07-23T14:43:46.145Z",
+  "investigated_at_utc": "2026-08-05T00:51:58.884214+00:00",
+  "evidence_layers": {
+    "provider_observation": {
+      "source": "ClickFix Campaign Monitor",
+      "source_id": "58c442057afc"
+    },
+    "active_bounded_get": {
+      "reachable": true,
+      "http_statuses": [
+        521
+      ],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": [
+        "104.21.44.218",
+        "172.67.203.240"
+      ],
+      "landing_public_addresses": [
+        "104.21.44.218",
+        "172.67.203.240"
+      ],
+      "stage_public_addresses": [],
+      "tls_certificates": []
+    },
+    "current_passive_dns": {
+      "A": {
+        "status": 0,
+        "records": [
+          {
+            "name": "iiamtrbo.liketudong.biz",
+            "type": 1,
+            "ttl": 300,
+            "data": "172.67.203.240"
+          },
+          {
+            "name": "iiamtrbo.liketudong.biz",
+            "type": 1,
+            "ttl": 300,
+            "data": "104.21.44.218"
+          }
+        ]
+      },
+      "AAAA": {
+        "status": 0,
+        "records": []
+      },
+      "CNAME": {
+        "status": 0,
+        "records": []
+      },
+      "NS": {
+        "status": 0,
+        "records": []
+      },
+      "MX": {
+        "status": 0,
+        "records": []
+      }
+    },
+    "domain_rdap": null,
+    "certificate_transparency": null,
+    "ip_pivot": {
+      "address": "104.21.44.218",
+      "rdap": {
+        "handle": "NET-104-16-0-0-1",
+        "name": "CLOUDFLARENET",
+        "type": "DIRECT ALLOCATION",
+        "country": null,
+        "start_address": "104.16.0.0",
+        "end_address": "104.31.255.255",
+        "parent_handle": "NET-104-0-0-0-0",
+        "status": [
+          "active"
+        ],
+        "events": [
+          {
+            "action": "last changed",
+            "date": "2024-09-04T06:51:26-04:00"
+          },
+          {
+            "action": "registration",
+            "date": "2014-03-28T11:30:55-04:00"
+          }
+        ]
+      },
+      "asn": {
+        "ip": "104.21.44.218",
+        "country_code": "US",
+        "asn": 13335,
+        "organization": "Cloudflare, Inc.",
+        "isp": "Cloudflare, Inc.",
+        "domain": "cloudflare.com"
+      },
+      "shodan_internetdb": {
+        "ip": "104.21.44.218",
+        "ports": [
+          80,
+          443,
+          2052,
+          2053,
+          2082,
+          2083,
+          2086,
+          2087,
+          2095,
+          2096,
+          8080,
+          8443,
+          8880
+        ],
+        "hostnames": [
+          "dlp3.com",
+          "www.nnrmv.lwwa.com.cn"
+        ],
+        "cpes": [
+          "cpe:/a:cloudflare:cloudflare"
+        ],
+        "vulns": [],
+        "tags": [
+          "cdn"
+        ]
+      }
+    },
+    "historical_passive_dns": {
+      "status": "not_collected",
+      "reason": "履歴DNS provider未設定。CT・source観測日時・現行DNSで時間軸を分離"
+    }
+  },
+  "errors": [
+    {
+      "source": "rdap:domain",
+      "error": "HTTPError",
+      "http_status": 404
+    },
+    {
+      "source": "certificate_transparency",
+      "error": "HTTPError",
+      "http_status": 429
+    }
+  ],
+  "interpretation": {
+    "shared_hosting_and_cdn_possible": true,
+    "dns_or_open_port_alone_is_c2": false,
+    "campaign_attribution_requires_multi_axis_evidence": true
+  }
+}

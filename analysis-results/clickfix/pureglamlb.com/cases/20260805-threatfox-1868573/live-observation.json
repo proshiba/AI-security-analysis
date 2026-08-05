@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "case_id": "20260805-threatfox-1868573",
+  "domain": "pureglamlb.com",
+  "probed_at_utc": "2026-08-05T00:41:30.183868+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://pureglamlb.com/",
+        "host": "pureglamlb.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://pureglamlb.com/",
+            "host": "pureglamlb.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://creationsitewebkingersheim.com/",
+            "host": "creationsitewebkingersheim.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 167,
+          "body_truncated": false,
+          "body_sha256": "446a6087825fa73eadb045e5a2e9e2adf7df241b571228187728191d961dda1f",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.218.156",
+              "104.21.78.82"
+            ],
+            "public_addresses": [
+              "172.67.218.156",
+              "104.21.78.82"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 259.1,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        },
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://creationsitewebkingersheim.com/",
+            "host": "creationsitewebkingersheim.com",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 206,
+          "reason": "Partial Content",
+          "content_type": "text/html",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 106400,
+          "body_truncated": false,
+          "body_sha256": "d98e22713c94881a2ab4642ac9a1a4b801202fb5dbe698fd47d254a64ce7c42b",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.11.245",
+              "172.67.193.52"
+            ],
+            "public_addresses": [
+              "104.21.11.245",
+              "172.67.193.52"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 372.1,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "RAJASLOT88 > Mahkota Tautan Game Online Paling Royal Meluncurkan Fitur Scatter Hitam",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 50
+          },
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260805-threatfox-1868573",
+    "domain": "pureglamlb.com",
+    "observed_at_utc": "2026-08-05T00:44:45.291638+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "RAJASLOT88 > Mahkota Tautan Game Online Paling Royal Meluncurkan Fitur Scatter Hitam",
+      "final_url": {
+        "sanitized": "https://creationsitewebkingersheim.com/",
+        "host": "creationsitewebkingersheim.com",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [
+        "copy"
+      ],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

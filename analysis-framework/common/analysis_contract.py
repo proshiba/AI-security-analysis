@@ -612,6 +612,107 @@ def _required_artifact_paths(report: Mapping[str, Any]) -> tuple[set[str], list[
     return required, errors
 
 
+def _documented_handler_no_evidence_families(
+    report: Mapping[str, Any], executions: Any
+) -> tuple[set[str], list[str]]:
+    """抽出器の正常なno-evidence完了記録を厳密に検証する。"""
+
+    documented = report.get("documented_handler_no_evidence")
+    if documented is None:
+        return set(), []
+    if not isinstance(documented, Mapping):
+        return set(), ["documented_handler_no_evidence_invalid"]
+    family = documented.get("family")
+    if not isinstance(family, str) or not family or family != family.casefold():
+        return set(), ["documented_handler_no_evidence_family_invalid"]
+    expected_blockers = sorted(
+        {
+            "handler_no_evidence",
+            f"selected_family_has_no_valid_handler_evidence:{family}",
+            "selected_family_layer_incomplete",
+        }
+    )
+    if documented.get("basis") != "all_routed_handler_attempts_completed_without_family_specific_evidence":
+        return set(), ["documented_handler_no_evidence_basis_invalid"]
+    if (
+        documented.get("attribution_effect")
+        != "provider_label_retained_but_not_upgraded_to_static_confirmation"
+    ):
+        return set(), ["documented_handler_no_evidence_attribution_invalid"]
+    if documented.get("resolved_blockers") != expected_blockers:
+        return set(), ["documented_handler_no_evidence_blockers_invalid"]
+
+    handler_ids = documented.get("handler_ids")
+    attempted_layers = documented.get("attempted_layer_sha256")
+    if (
+        not isinstance(handler_ids, list)
+        or not handler_ids
+        or any(not isinstance(value, str) or not value for value in handler_ids)
+        or handler_ids != sorted(set(handler_ids))
+    ):
+        return set(), ["documented_handler_no_evidence_handlers_invalid"]
+    if (
+        not isinstance(attempted_layers, list)
+        or not attempted_layers
+        or any(
+            not isinstance(value, str) or SHA256_RE.fullmatch(value) is None
+            for value in attempted_layers
+        )
+        or attempted_layers != sorted(set(attempted_layers))
+    ):
+        return set(), ["documented_handler_no_evidence_layers_invalid"]
+    if not isinstance(executions, list):
+        return set(), ["documented_handler_no_evidence_executions_invalid"]
+
+    relevant = {
+        item.get("handler_id"): item
+        for item in executions
+        if isinstance(item, Mapping)
+        and isinstance(item.get("handler_id"), str)
+        and item.get("handler_id").partition(":")[0].casefold() == family
+    }
+    if set(handler_ids) != set(relevant):
+        return set(), ["documented_handler_no_evidence_handler_set_mismatch"]
+    routed_layers: set[str] = set()
+    for handler_id in handler_ids:
+        execution = relevant[handler_id]
+        evidence = execution.get("selected_evidence")
+        attempts = execution.get("attempts")
+        if (
+            execution.get("status") != "no_evidence"
+            or not isinstance(evidence, Mapping)
+            or evidence.get("sufficient") is not False
+            or not isinstance(attempts, list)
+            or not attempts
+        ):
+            return set(), ["documented_handler_no_evidence_execution_invalid"]
+        routed = [
+            item
+            for item in attempts
+            if isinstance(item, Mapping)
+            and item.get("routing_role") in {"selected_family_layer", "ancestor_fallback"}
+        ]
+        if not routed or not any(item.get("routing_role") == "selected_family_layer" for item in routed):
+            return set(), ["documented_handler_no_evidence_routing_invalid"]
+        for attempt in routed:
+            attempt_evidence = attempt.get("evidence")
+            layer = attempt.get("layer")
+            layer_sha = layer.get("sha256") if isinstance(layer, Mapping) else None
+            if (
+                attempt.get("status") != "succeeded"
+                or attempt.get("evidence_status") != "insufficient"
+                or not isinstance(attempt_evidence, Mapping)
+                or attempt_evidence.get("sufficient") is not False
+                or not isinstance(layer_sha, str)
+                or SHA256_RE.fullmatch(layer_sha) is None
+            ):
+                return set(), ["documented_handler_no_evidence_attempt_invalid"]
+            routed_layers.add(layer_sha)
+    if routed_layers != set(attempted_layers):
+        return set(), ["documented_handler_no_evidence_layer_set_mismatch"]
+    return {family}, []
+
+
 def _case_state_errors(report: Mapping[str, Any], *, require_resumable: bool) -> list[str]:
     errors: list[str] = []
     assessment_only = report.get("assessment_only")
@@ -729,9 +830,13 @@ def _case_state_errors(report: Mapping[str, Any], *, require_resumable: bool) ->
                     successful_families.add(family)
             elif execution.get("result") is not None:
                 errors.append(f"failed_handler_has_result:{index}")
+    documented_no_evidence_families, documented_errors = _documented_handler_no_evidence_families(
+        report, executions
+    )
+    errors.extend(documented_errors)
     if status_value == "complete":
         for family in selected_families:
-            if family not in successful_families:
+            if family not in successful_families and family not in documented_no_evidence_families:
                 errors.append(f"selected_family_without_successful_handler:{family}")
     if status_value == "triaged_unknown" and executions:
         errors.append("triaged_unknown_has_handler_executions")

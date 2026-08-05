@@ -913,6 +913,93 @@ def test_source_case_requires_success_for_each_selected_family(tmp_path: Path) -
         publisher.validate_source_case(source, report_value, digest)
 
 
+def test_source_case_accepts_strictly_documented_handler_no_evidence(tmp_path: Path) -> None:
+    """全経路を正常試行したno-evidenceは、帰属限界付きで完了を許可する。"""
+
+    digest = "4" * 64
+    layer_sha = "5" * 64
+    family = "stealc"
+    handler_id = f"{family}:handler.py:extract_config"
+    source, report_value = valid_source_case(tmp_path, digest)
+    result_path = "handlers/stealc.json"
+    publisher.write_json(source / result_path, {"schema_version": 1, "evidence": "insufficient"})
+    report_value["classification"].update(
+        {
+            "family": family,
+            "selected_family": family,
+            "selected_families": [family],
+            "selection_basis": "provider_label",
+        }
+    )
+    report_value["handler_executions"] = [
+        {
+            "handler_id": handler_id,
+            "status": "no_evidence",
+            "result": result_path,
+            "selected_evidence": {"sufficient": False},
+            "attempts": [
+                {
+                    "status": "succeeded",
+                    "routing_role": "selected_family_layer",
+                    "evidence_status": "insufficient",
+                    "evidence": {"sufficient": False},
+                    "layer": {"sha256": layer_sha},
+                }
+            ],
+        }
+    ]
+    report_value["documented_handler_no_evidence"] = {
+        "family": family,
+        "basis": "all_routed_handler_attempts_completed_without_family_specific_evidence",
+        "handler_ids": [handler_id],
+        "attempted_layer_sha256": [layer_sha],
+        "resolved_blockers": [
+            "handler_no_evidence",
+            "selected_family_has_no_valid_handler_evidence:stealc",
+            "selected_family_layer_incomplete",
+        ],
+        "attribution_effect": "provider_label_retained_but_not_upgraded_to_static_confirmation",
+    }
+    report_value["case_state"]["status"] = "complete"
+    classification = publisher.load_json(source / "classification.json")
+    classification["selected_families"] = [family]
+    classification["malware_type"] = family
+    classification["root"]["malware_type"] = family
+    classification["root"]["one_shot_selection"] = {
+        "family": family,
+        "basis": "provider_label",
+    }
+    publisher.write_json(source / "classification.json", classification)
+    applicability = publisher.load_json(source / "applicability.json")
+    applicability.update(
+        {
+            "selected_family": family,
+            "selected_families": [family],
+            "selection_basis": "provider_label",
+            "handlers": [
+                {
+                    "id": handler_id,
+                    "family": family,
+                    "status": "applicable",
+                }
+            ],
+        }
+    )
+    publisher.write_json(source / "applicability.json", applicability)
+    report_value["artifact_sha256"] = analysis_contract.artifact_hashes(
+        source, {*report_value["artifact_sha256"], result_path}
+    )
+    analysis_contract.seal_report(report_value)
+    publisher.write_json(source / "report.json", report_value)
+
+    publisher.validate_source_case(source, report_value, digest)
+    report_value["documented_handler_no_evidence"]["attempted_layer_sha256"] = ["6" * 64]
+    analysis_contract.seal_report(report_value)
+    publisher.write_json(source / "report.json", report_value)
+    with pytest.raises(ValueError, match="documented_handler_no_evidence_layer_set_mismatch"):
+        publisher.validate_source_case(source, report_value, digest)
+
+
 def test_source_case_rejects_noncanonical_manifest_digest(tmp_path: Path) -> None:
     """artifact manifestのdigestも小文字16進64文字だけを受理する。"""
 
