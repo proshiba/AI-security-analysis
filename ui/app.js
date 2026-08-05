@@ -282,6 +282,78 @@
     copyText(target.getAttribute("data-copy"));
   });
 
+  /* ---------- ケース詳細の遅延読み込み ---------- */
+
+  // README全文と検体特徴は個別ケースページでしか使わないため data.js から外し、
+  // ケースごとのJSONへ切り出してある(初回転送の半分以上を占めていた)。
+  // ページを開いたときだけ取りに行く。
+  function caseDetailUrl(sha) {
+    return "cases/" + sha.slice(0, 2) + "/" + sha + ".json";
+  }
+
+  var caseDetailCache = {};
+  function loadCaseDetail(sha) {
+    if (!caseDetailCache[sha]) {
+      caseDetailCache[sha] = fetch(caseDetailUrl(sha)).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      });
+      // 失敗を握り潰さず、再訪時に取り直せるようキャッシュから外す
+      caseDetailCache[sha].catch(function () { delete caseDetailCache[sha]; });
+    }
+    return caseDetailCache[sha];
+  }
+
+  function caseDetailPending(title) {
+    return '<div class="section"><h2>' + esc(title) + "</h2>" +
+      '<div class="detail-loading">読み込み中…</div></div>';
+  }
+
+  function caseDetailFailed(title, casePath, message) {
+    return '<div class="section"><h2>' + esc(title) + "</h2>" +
+      '<div class="empty">この項目の読み込みに失敗しました（' + esc(message) + "）。" +
+      (casePath
+        ? '成果物は <a target="_blank" rel="noopener noreferrer" href="' +
+          esc(fileUrl(casePath, true)) + '">' + esc(casePath) + "</a> にあります。"
+        : "") +
+      "<br>ローカルで <code>file://</code> のまま開いている場合は、" +
+      "<code>python3 -m http.server</code> などHTTP経由で開いてください。</div></div>";
+  }
+
+  function characteristicsHtml(list) {
+    if (!list || !list.length) return "";
+    var html = '<div class="section"><h2>検体特徴 (' + list.length + ')</h2>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      "<th>分類</th><th>特徴</th><th>値</th><th>確度</th><th>根拠</th></tr></thead><tbody>";
+    list.forEach(function (ch) {
+      html += "<tr><td class='nowrap'>" + esc(ch.category || "") + "</td>" +
+        "<td>" + esc(ch.label || ch.id) + "</td>" +
+        "<td class='mono small' style='word-break:break-all'>" + esc(ch.value === "observed" ? "" : (ch.value || "")) + "</td>" +
+        "<td>" + confBadge(ch.confidence) + "</td>" +
+        "<td class='small'>" + mdInline(ch.evidence || "") + "</td></tr>";
+    });
+    return html + "</tbody></table></div></div>";
+  }
+
+  function fillCaseDetail(c, token) {
+    var chBox = document.getElementById("case-characteristics");
+    var rmBox = document.getElementById("case-readme");
+    if (!chBox || !rmBox) return;
+    loadCaseDetail(c.sha256).then(function (detail) {
+      // 取得中に別ページへ移っていたら書き込まない
+      if (token !== viewToken) return;
+      chBox.innerHTML = characteristicsHtml(detail.characteristics);
+      var readme = (detail.docs || {}).readme;
+      rmBox.innerHTML = readme
+        ? '<div class="section"><h2>ケースレポート (README.md)</h2>' + renderMarkdown(readme) + "</div>"
+        : "";
+    }, function (err) {
+      if (token !== viewToken) return;
+      chBox.innerHTML = caseDetailFailed("検体特徴", c.path, err.message || String(err));
+      rmBox.innerHTML = caseDetailFailed("ケースレポート (README.md)", c.path, err.message || String(err));
+    });
+  }
+
   /* ---------- 最小Markdownレンダラ ---------- */
 
   function mdInline(s) {
@@ -408,7 +480,11 @@
     return qs ? h + "?" + qs : h;
   }
 
+  // 非同期に取得した内容を、その後に開いた別ページへ書き込まないための世代番号
+  var viewToken = 0;
+
   function route() {
+    viewToken++;
     if (typeof hideSuggest === "function") hideSuggest();
     var r = parseHash();
     var page = r.parts[0] || "dashboard";
@@ -1919,19 +1995,8 @@
       html += "</div>";
     }
 
-    // 検体特徴
-    if (c.characteristics.length) {
-      html += '<div class="section"><h2>検体特徴 (' + c.characteristics.length + ')</h2><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-        "<th>分類</th><th>特徴</th><th>値</th><th>確度</th><th>根拠</th></tr></thead><tbody>";
-      c.characteristics.forEach(function (ch) {
-        html += "<tr><td class='nowrap'>" + esc(ch.category || "") + "</td>" +
-          "<td>" + esc(ch.label || ch.id) + "</td>" +
-          "<td class='mono small' style='word-break:break-all'>" + esc(ch.value === "observed" ? "" : (ch.value || "")) + "</td>" +
-          "<td>" + confBadge(ch.confidence) + "</td>" +
-          "<td class='small'>" + mdInline(ch.evidence || "") + "</td></tr>";
-      });
-      html += "</tbody></table></div></div>";
-    }
+    // 検体特徴（ケース詳細を取得してから差し込む）
+    html += '<div id="case-characteristics">' + caseDetailPending("検体特徴") + "</div>";
 
     // IOC
     html += '<div class="section"><h2>IOC一覧 (' + c.iocs.length + ")</h2>";
@@ -1987,10 +2052,8 @@
     }
     html += "</div>";
 
-    // README
-    if (c.docs.readme) {
-      html += '<div class="section"><h2>ケースレポート (README.md)</h2>' + renderMarkdown(c.docs.readme) + "</div>";
-    }
+    // ケースレポート（ケース詳細を取得してから差し込む）
+    html += '<div id="case-readme">' + caseDetailPending("ケースレポート (README.md)") + "</div>";
 
     // 成果物
     if (c.artifacts && c.artifacts.length) {
@@ -2008,6 +2071,7 @@
       });
     }
     bindRuleCopy(app);
+    fillCaseDetail(c, viewToken);
   }
 
   function kvRow(label, valueHtml) {
