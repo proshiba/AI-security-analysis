@@ -4,7 +4,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "common"
@@ -125,3 +124,5 @@ def test_sha1_provider_alias_labels_elf_case(tmp_path: Path) -> None:
     markdown = target.render_markdown(summary)
     assert "Dysphoria" in markdown
     assert "NukeSped" not in markdown
+    assert "特徴関数レビュー" in markdown
+    assert "`main`" in markdown

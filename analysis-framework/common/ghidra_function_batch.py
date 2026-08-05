@@ -2756,6 +2756,114 @@ def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str
     return sorted(documented)
 
 
+def _ghidra_documents_exhaustive_handler_no_evidence(
+    case_dir: Path,
+    report: Mapping[str, Any],
+    state: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """全対象層の抽出器試行が正常なno-evidenceで終わったことを記録する。"""
+
+    static_path = case_dir / "static-logic.json"
+    if not static_path.exists():
+        return None
+    static_logic = load_json_object_strict(static_path)
+    coverage = static_logic.get("coverage")
+    if not isinstance(coverage, Mapping):
+        return None
+    required = (
+        "all_characteristic_functions_attempted",
+        "all_characteristic_functions_explained",
+        "all_discovered_functions_inventoried",
+        "all_static_analysis_content_retained",
+        "function_bodies_reviewed",
+    )
+    if not all(coverage.get(key) is True for key in required):
+        return None
+    program_count = coverage.get("ghidra_program_count")
+    if not isinstance(program_count, int) or program_count < 1:
+        return None
+    if coverage.get("ghidra_programs_with_valid_mcp_responses") != program_count:
+        return None
+    if state.get("detector_error_families") or state.get("static_layer_issues"):
+        return None
+
+    classification = report.get("classification")
+    selected = classification.get("selected_families") if isinstance(classification, Mapping) else None
+    if not isinstance(selected, list) or len(selected) != 1 or not isinstance(selected[0], str):
+        return None
+    family = selected[0].casefold()
+    resolved_blockers = {
+        "handler_no_evidence",
+        f"selected_family_has_no_valid_handler_evidence:{family}",
+        "selected_family_layer_incomplete",
+    }
+    blockers = {str(value) for value in state.get("blockers") or []}
+    if not resolved_blockers <= blockers:
+        return None
+
+    executions = report.get("handler_executions")
+    if not isinstance(executions, list):
+        return None
+    relevant = [
+        item
+        for item in executions
+        if isinstance(item, Mapping)
+        and str(item.get("handler_id") or "").partition(":")[0].casefold() == family
+    ]
+    if not relevant:
+        return None
+    attempted_layers: set[str] = set()
+    handler_ids: set[str] = set()
+    for execution in relevant:
+        if execution.get("status") != "no_evidence":
+            return None
+        selected_evidence = execution.get("selected_evidence")
+        if not isinstance(selected_evidence, Mapping) or selected_evidence.get("sufficient") is not False:
+            return None
+        attempts = execution.get("attempts")
+        if not isinstance(attempts, list) or not attempts:
+            return None
+        routed = [
+            attempt
+            for attempt in attempts
+            if isinstance(attempt, Mapping)
+            and attempt.get("routing_role") in {"selected_family_layer", "ancestor_fallback"}
+        ]
+        if not routed or not any(item.get("routing_role") == "selected_family_layer" for item in routed):
+            return None
+        for attempt in routed:
+            evidence = attempt.get("evidence")
+            layer = attempt.get("layer")
+            if (
+                attempt.get("status") != "succeeded"
+                or attempt.get("evidence_status") != "insufficient"
+                or not isinstance(evidence, Mapping)
+                or evidence.get("sufficient") is not False
+                or not isinstance(layer, Mapping)
+                or not layer.get("sha256")
+            ):
+                return None
+            attempted_layers.add(str(layer["sha256"]))
+        handler_ids.add(str(execution.get("handler_id") or ""))
+
+    incomplete = state.get("incomplete_selected_layer_attempts")
+    if not isinstance(incomplete, list) or any(
+        not isinstance(item, Mapping)
+        or item.get("status") != "succeeded"
+        or str(item.get("layer_sha256") or "") not in attempted_layers
+        for item in incomplete
+    ):
+        return None
+    return {
+        "family": family,
+        "basis": "all_routed_handler_attempts_completed_without_family_specific_evidence",
+        "handler_ids": sorted(handler_ids),
+        "attempted_layer_sha256": sorted(attempted_layers),
+        "resolved_blockers": sorted(resolved_blockers),
+        "attribution_effect": "provider_label_retained_but_not_upgraded_to_static_confirmation",
+    }
+
+
 def finalize_case_report(case_dir: Path) -> str:
     """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
 
@@ -2770,6 +2878,9 @@ def finalize_case_report(case_dir: Path) -> str:
     generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
     documented_static_issues = _ghidra_documents_known_static_limits(case_dir, state)
     documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
+    documented_handler_no_evidence = _ghidra_documents_exhaustive_handler_no_evidence(
+        case_dir, report, state
+    )
     if status == "partial":
         remaining = [value for value in blockers if value != FUNCTION_ANALYSIS_BLOCKER]
         if "generic_triage_partial" in remaining and (generic_limit_superseded or documented_generic_limits):
@@ -2786,6 +2897,20 @@ def finalize_case_report(case_dir: Path) -> str:
             limitation = (
                 "静的復元には管理コード解析予算または暗号化RAR復元の文書化済み制限があります。"
                 "利用可能な候補を有界に再試行し、Ghidra MCPで全関数台帳と代表関数解析を補完しました。"
+            )
+            limitations = report.setdefault("limitations", [])
+            if limitation not in limitations:
+                limitations.append(limitation)
+        if documented_handler_no_evidence:
+            for blocker in documented_handler_no_evidence["resolved_blockers"]:
+                if blocker in remaining:
+                    remaining.remove(blocker)
+            report["documented_handler_no_evidence"] = documented_handler_no_evidence
+            state["incomplete_selected_layer_attempts"] = []
+            limitation = (
+                "選択ファミリの抽出器は対象となる全復元層で正常終了しましたが、"
+                "ファミリ固有の設定またはC2証拠は確認できませんでした。"
+                "プロバイダのラベルは出典情報として保持し、静的確認済み属性へは昇格させません。"
             )
             limitations = report.setdefault("limitations", [])
             if limitation not in limitations:

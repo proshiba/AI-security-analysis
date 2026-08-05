@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260805-clickfix-pro-f3634936efe2",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-07-22T20:15:52.976Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "q486u4hr.kaltourusa.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    }
+  ]
+}

@@ -62,6 +62,7 @@ ENTROPY_SAMPLE_WINDOW = 1 * 1024 * 1024
 MAX_EXTRACTED_TOTAL = 768 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 512
 MAX_RETAINED_MEMBERS = 128
+MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS = 8192
 MAX_COMPRESSION_RATIO = 200.0
 ARCHIVE_READ_CHUNK_SIZE = 1024 * 1024
 MACHO_MAGICS = {
@@ -108,6 +109,7 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
     ".7z",
     ".cab",
 }
+SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {'.jsc', '.node', '.py'}
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -1395,6 +1397,76 @@ def run_die(
         }
 
 
+def select_high_value_archive_members(
+    records: list[dict[str, object]],
+    *,
+    max_members: int = MAX_RETAINED_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> list[dict[str, object]]:
+    '''大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。'''
+
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value <= 0
+        for value in (max_members, max_member_size, max_total_size)
+    ):
+        raise ValueError('selective archive limits must be positive integers')
+    ranked: list[tuple[int, str, dict[str, object]]] = []
+    for record in records[:MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS]:
+        raw_name = str(record.get('name') or '')
+        try:
+            normalized = safe_member_name(raw_name)
+        except ValueError:
+            continue
+        attributes = str(record.get('attributes') or '')
+        try:
+            size = int(record.get('size') or 0)
+        except (TypeError, ValueError):
+            continue
+        if 'D' in attributes.upper() or not 0 < size <= max_member_size:
+            continue
+        lowered = normalized.lower()
+        suffix = PurePosixPath(lowered).suffix
+        basename = PurePosixPath(lowered).name
+        in_node_modules = '/node_modules/' in f'/{lowered}'
+        if basename.startswith(('license', 'notice', 'credits')):
+            continue
+        if suffix not in SELECTIVE_ARCHIVE_SUFFIXES:
+            continue
+        if not in_node_modules and (
+            suffix in SCRIPT_SUFFIXES | {'.jsc', '.py', '.asar'}
+            or basename in {'package.json', 'package-lock.json'}
+        ):
+            priority = 0
+        elif not in_node_modules and suffix in {'.json', '.ini', '.cfg', '.conf'}:
+            priority = 1
+        elif not in_node_modules:
+            priority = 2
+        elif suffix == '.node':
+            priority = 3
+        else:
+            # node_modules配下の一般ライブラリは依存関係名だけで十分であり、
+            # アプリ本体より先に保持枠を消費させない。
+            continue
+        ranked.append((priority, lowered, {'name': raw_name, 'size': size}))
+
+    selected: list[dict[str, object]] = []
+    selected_total = 0
+    seen: set[str] = set()
+    for priority, lowered, record in sorted(ranked, key=lambda item: (item[0], item[1])):
+        if lowered in seen:
+            continue
+        size = int(record['size'])
+        if selected_total + size > max_total_size:
+            continue
+        selected.append({**record, 'priority': priority})
+        selected_total += size
+        seen.add(lowered)
+        if len(selected) >= max_members:
+            break
+    return selected
+
+
 def safe_temporary_suffix(name: str) -> str:
     """復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。"""
 
@@ -1423,15 +1495,27 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             check=False,
         )
         paths, types, declared_sizes = [], [], []
+        member_records: list[dict[str, object]] = []
+        current: dict[str, object] | None = None
         for line in completed.stdout.splitlines():
             if line.startswith("Path = "):
                 value = line[7:]
+                if current is not None:
+                    member_records.append(current)
+                current = {'name': value} if value != str(source) else None
                 if value != str(source):
                     paths.append(value)
             elif line.startswith("Type = "):
                 types.append(line[7:])
             elif line.startswith("Size = ") and line[7:].strip().isdigit():
-                declared_sizes.append(int(line[7:].strip()))
+                value = int(line[7:].strip())
+                declared_sizes.append(value)
+                if current is not None:
+                    current['size'] = value
+            if line.startswith('Attributes = ') and current is not None:
+                current['attributes'] = line[13:]
+        if current is not None:
+            member_records.append(current)
         return {
             "status": "listed"
             if completed.returncode == 0
@@ -1442,6 +1526,8 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             "total_members": len(paths),
             "declared_total_size": sum(declared_sizes),
             "password_attempted": bool(password),
+            # sevenzip_extract内の選択抽出にだけ使い、公開レポートへは残さない。
+            '_member_records': member_records,
             # Safe public alias retained by report sanitizers that intentionally
             # remove every field whose name contains "password".
             "archive_unlock_attempted": bool(password),
@@ -1583,6 +1669,7 @@ def sevenzip_extract(
         if not effective_password
         else sevenzip_inventory(data, executable, effective_password)
     )
+    member_records = listing.pop("_member_records", [])
     if listing["status"] == "unavailable":
         return listing, []
     extractable_types = {
@@ -1602,9 +1689,17 @@ def sevenzip_extract(
     )
     if not supported_archive:
         return {**listing, "status": "not_archive_container"}, []
+    selective_members: list[dict[str, object]] = []
     if listing.get("total_members", 0) > max_members:
-        return {**listing, "status": "member_limit_blocked"}, []
-    if listing.get("declared_total_size", 0) > max_total_size:
+        selective_members = select_high_value_archive_members(
+            member_records,
+            max_members=min(MAX_RETAINED_MEMBERS, max_members),
+            max_member_size=max_member_size,
+            max_total_size=max_total_size,
+        )
+        if not selective_members:
+            return {**listing, "status": "member_limit_blocked"}, []
+    if listing.get("declared_total_size", 0) > max_total_size and not selective_members:
         return {**listing, "status": "declared_size_blocked"}, []
     password_candidates = [effective_password]
     if any(value.startswith("rar") for value in archive_types):
@@ -1625,6 +1720,8 @@ def sevenzip_extract(
             if candidate_password:
                 command.append(f"-p{candidate_password}")
             command.extend([f"-o{output}", "--", str(source)])
+            if selective_members:
+                command.extend(str(item["name"]) for item in selective_members)
             try:
                 completed = subprocess.run(
                     command,
@@ -1715,7 +1812,7 @@ def sevenzip_extract(
             }
             inventory.append(item)
             suffix = entry.suffix.lower()
-            keep = kind != "data" or suffix in RECOVERY_SUFFIXES
+            keep = kind != "data" or suffix in SELECTIVE_ARCHIVE_SUFFIXES
             keep = keep or ".part-" in entry.name.lower()
             keep = keep or (not suffix and len(blob) <= 16 * 1024 * 1024)
             if keep:
@@ -1736,7 +1833,10 @@ def sevenzip_extract(
         artifacts = [(f"7z-{kind}", blob) for _, _, blob, kind in selected]
         artifacts.extend(split_artifacts)
         artifacts.extend(nsis_artifacts)
-        status = "extracted" if completed.returncode == 0 else "partially_extracted"
+        if selective_members and completed.returncode == 0:
+            status = "selectively_extracted"
+        else:
+            status = "extracted" if completed.returncode == 0 else "partially_extracted"
         return (
             {
                 **listing,
@@ -1747,6 +1847,17 @@ def sevenzip_extract(
                 "inventory": inventory[:max_members],
                 "extracted_total_size": extracted_total,
                 "retained_members": len(selected),
+                "selective_extraction": {
+                    "enabled": bool(selective_members),
+                    "reason": "archive_member_limit"
+                    if selective_members
+                    else "not_required",
+                    "selected_members": selective_members,
+                    "selected_total_size": sum(
+                        int(item["size"]) for item in selective_members
+                    ),
+                    "full_inventory_count": int(listing.get("total_members", 0)),
+                },
                 "split_reassembly": split_reports,
                 "nsis_script_recovery": nsis_report,
             },

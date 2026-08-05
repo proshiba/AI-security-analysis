@@ -1539,6 +1539,85 @@ def test_finalize_case_report_preserves_unrelated_blocker(
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
 
 
+def test_finalize_case_report_documents_exhaustive_handler_no_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """全対象層の正常なno-evidenceは解析完了とし、帰属の限界を残す。"""
+
+    digest = "4" * 64
+    layer_sha = "5" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "coverage": {
+                "all_characteristic_functions_attempted": True,
+                "all_characteristic_functions_explained": True,
+                "all_discovered_functions_inventoried": True,
+                "all_static_analysis_content_retained": True,
+                "function_bodies_reviewed": True,
+                "ghidra_program_count": 1,
+                "ghidra_programs_with_valid_mcp_responses": 1,
+            }
+        },
+    )
+    handler_id = "stealc:extractors.stealc.extractor.py:extract"
+    report = {
+        "classification": {"selected_families": ["stealc"]},
+        "handler_executions": [
+            {
+                "handler_id": handler_id,
+                "status": "no_evidence",
+                "selected_evidence": {"sufficient": False},
+                "attempts": [
+                    {
+                        "status": "succeeded",
+                        "routing_role": "selected_family_layer",
+                        "evidence_status": "insufficient",
+                        "evidence": {"sufficient": False},
+                        "layer": {"sha256": layer_sha},
+                    }
+                ],
+            }
+        ],
+        "limitations": [],
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": [
+                "handler_no_evidence",
+                target.FUNCTION_ANALYSIS_BLOCKER,
+                "selected_family_has_no_valid_handler_evidence:stealc",
+                "selected_family_layer_incomplete",
+            ],
+            "detector_error_families": [],
+            "static_layer_issues": [],
+            "incomplete_selected_layer_attempts": [
+                {"handler_id": handler_id, "layer_sha256": layer_sha, "status": "succeeded"}
+            ],
+        },
+        "artifact_sha256": {
+            "static-logic.json": hashlib.sha256((case_dir / "static-logic.json").read_bytes()).hexdigest()
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    assert target.finalize_case_report(case_dir) == "complete"
+    refreshed = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed["case_state"]["blockers"] == []
+    assert refreshed["case_state"]["incomplete_selected_layer_attempts"] == []
+    documented = refreshed["documented_handler_no_evidence"]
+    assert documented["family"] == "stealc"
+    assert documented["attempted_layer_sha256"] == [layer_sha]
+    assert documented["attribution_effect"].startswith("provider_label_retained")
+    assert "静的確認済み属性へは昇格させません" in refreshed["limitations"][-1]
+
+
 def test_finalize_collection_registers_partial_case_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

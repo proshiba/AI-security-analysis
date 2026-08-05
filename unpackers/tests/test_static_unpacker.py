@@ -518,6 +518,89 @@ def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
     assert report["members"] == ["member-�.bin"]
 
 
+def test_select_high_value_archive_members_prioritizes_application_code() -> None:
+    '''大規模Electronアーカイブでは依存ライブラリよりアプリ本体を優先する。'''
+
+    records = [
+        {'name': 'resources/app/node_modules/a/index.js', 'size': 10},
+        {'name': 'resources/app/main.js', 'size': 20},
+        {'name': 'resources/app/app.jsc', 'size': 30},
+        {'name': 'resources/app/package.json', 'size': 40},
+        {'name': 'resources/app/node_modules/dpapi.node', 'size': 50},
+        {'name': 'LICENSES.chromium.html', 'size': 60},
+        {'name': 'oversized.exe', 'size': 5000},
+        {'name': '../escape.js', 'size': 1},
+    ]
+
+    selected = unpacker.select_high_value_archive_members(
+        records,
+        max_members=4,
+        max_member_size=100,
+        max_total_size=140,
+    )
+
+    assert [item['name'] for item in selected] == [
+        'resources/app/app.jsc',
+        'resources/app/main.js',
+        'resources/app/package.json',
+        'resources/app/node_modules/dpapi.node',
+    ]
+    assert sum(int(item['size']) for item in selected) == 140
+
+
+def test_sevenzip_over_member_limit_uses_bounded_selective_extraction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    '''全展開を拒否する件数でも高価値ファイルだけを明示選択して回収する。'''
+
+    records = [
+        {'name': 'resources/app/main.js', 'size': 18, 'attributes': 'A'},
+        {'name': 'resources/app/package.json', 'size': 2, 'attributes': 'A'},
+        {'name': 'resources/app/node_modules/a/index.js', 'size': 10, 'attributes': 'A'},
+    ]
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ''):
+        return {
+            'status': 'listed',
+            'archive_types': ['7z'],
+            'members': [item['name'] for item in records],
+            'total_members': 1823,
+            'declared_total_size': 9999,
+            'archive_unlock_attempted': False,
+            '_member_records': records,
+        }
+
+    commands: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        output_arg = next(item for item in command if item.startswith('-o'))
+        output = Path(output_arg[2:]) / 'resources' / 'app'
+        output.mkdir(parents=True)
+        (output / 'main.js').write_bytes(b'require-app-jsc')
+        (output / 'package.json').write_bytes(b'{}')
+        return SimpleNamespace(returncode=0, stdout='', stderr='')
+
+    monkeypatch.setattr(unpacker, 'sevenzip_inventory', fake_inventory)
+    monkeypatch.setattr(unpacker.subprocess, 'run', fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b'7zfixture',
+        tmp_path / '7z.exe',
+        max_members=2,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report['status'] == 'selectively_extracted'
+    assert report['selective_extraction']['full_inventory_count'] == 1823
+    assert report['selective_extraction']['selected_total_size'] == 20
+    assert 'resources/app/main.js' in commands[0]
+    assert 'resources/app/package.json' in commands[0]
+    assert all('node_modules' not in item for item in commands[0])
+    assert {kind for kind, _blob in artifacts} == {'7z-script', '7z-data'}
+
+
 def test_reviewed_container_hint_forces_bounded_archive_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

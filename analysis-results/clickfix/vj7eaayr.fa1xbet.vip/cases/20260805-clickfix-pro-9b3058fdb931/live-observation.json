@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "case_id": "20260805-clickfix-pro-9b3058fdb931",
+  "domain": "vj7eaayr.fa1xbet.vip",
+  "probed_at_utc": "2026-08-05T00:41:31.271428+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://vj7eaayr.fa1xbet.vip/",
+        "host": "vj7eaayr.fa1xbet.vip",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://vj7eaayr.fa1xbet.vip/",
+            "host": "vj7eaayr.fa1xbet.vip",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "SSLEOFError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "72.251.7.22",
+              "72.251.7.23"
+            ],
+            "public_addresses": [
+              "72.251.7.22",
+              "72.251.7.23"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 205.0,
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    },
+    {
+      "requested": {
+        "sanitized": "http://vj7eaayr.fa1xbet.vip/",
+        "host": "vj7eaayr.fa1xbet.vip",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://vj7eaayr.fa1xbet.vip/",
+            "host": "vj7eaayr.fa1xbet.vip",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 206,
+          "reason": "Partial Content",
+          "content_type": "text/html",
+          "content_length_header": "4730",
+          "location": null,
+          "bytes_read": 4730,
+          "body_truncated": false,
+          "body_sha256": "2a3a28951d5ad48ee8c6bf8ae5bf9667f11e452837ed6c6de3c9d889d05622d7",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "72.251.7.22",
+              "72.251.7.23"
+            ],
+            "public_addresses": [
+              "72.251.7.22",
+              "72.251.7.23"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 63.4,
+          "tls_certificate_validation": "not_applicable",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "",
+            "clipboard_api_observed": false,
+            "lure_markers": [],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 9
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260805-clickfix-pro-9b3058fdb931",
+    "domain": "vj7eaayr.fa1xbet.vip",
+    "observed_at_utc": "2026-08-05T00:45:50.678093+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "vj7eaayr.fa1xbet.vip",
+      "final_url": {
+        "sanitized": "chrome-error://chromewebdata/",
+        "host": "chromewebdata",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

@@ -1,0 +1,40 @@
+title: ClickFix疑いのRunMRU登録 (20260805-threatfox-1868573)
+id: b9d7b36a-e705-59e7-a3ff-868cb473ef7c
+status: experimental
+description: Run dialogへ貼り付けられたLOLBINとdownload/execute表現の組合せを検知する。ドメイン単独ではなくユーザー実行証跡を対象とする。
+author: AI-security-analysis
+date: '2026-08-05'
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_key:
+    TargetObject|contains: \Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU\
+  selection_lolbin:
+    Details|contains:
+    - powershell
+    - pwsh
+    - mshta
+    - rundll32
+    - conhost
+    - net use
+  selection_suspicious:
+    Details|contains:
+    - iex
+    - Invoke-Expression
+    - 'irm '
+    - 'iwr '
+    - Invoke-RestMethod
+    - Invoke-WebRequest
+    - -w h
+    - --headless
+    - '@SSL'
+    - /webdav
+  condition: selection_key and selection_lolbin and selection_suspicious
+falsepositives:
+- 管理者がRun dialogから正規の保守scriptを実行した場合
+level: high
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1204.004
