@@ -88,6 +88,13 @@ def test_command_profiles_distinguish_major_chains() -> None:
     assert mapped["pattern"] == "mapped_webdav_command"
 
 
+def test_command_profile_rejects_reverse_tme_substring_without_reverse_syntax() -> None:
+    profile = target.command_profile(
+        "powershell $name='em.t'; Invoke-Expression $payload"
+    )
+    assert profile["pattern"] == "shell_execution"
+
+
 def test_selection_prioritizes_explicit_and_today_then_backfills() -> None:
     carson = _case(
         "tbhadvisors.com",

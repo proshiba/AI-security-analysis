@@ -269,7 +269,10 @@ def command_profile(command: str) -> dict[str, Any]:
     elif "net use" in lowered and "webdav" in lowered:
         pattern = "mapped_webdav_command"
         summary = "net useでWebDAVをドライブへ割り当て、共有上のcommand scriptを実行してマッピングを解除する。"
-    elif "t.me" in command[::-1].lower() or ("[-1.." in lowered and "_description" in lowered and "/l.dat" in lowered):
+    elif (
+        "t.me/" in command[::-1].lower()
+        and any(marker in lowered for marker in ("[-1..", "[array]::reverse", "::reverse("))
+    ) or ("[-1.." in lowered and "_description" in lowered and "/l.dat" in lowered):
         pattern = "telegram_dead_drop_powershell"
         summary = (
             "PowerShellが逆順文字列からTelegram URLを復元し、ページdescriptionの"

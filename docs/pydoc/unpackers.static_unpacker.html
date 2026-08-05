@@ -81,6 +81,11 @@
     max_total_size: 'int' = 805306368
 ) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">MSI/OLE&nbsp;streamを有界に列挙し、実行可能層とCAB等だけを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_png_concealed_data"><strong>recover_png_concealed_data</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">PNGのIDAT内で画像zlib終端後に連結されたデータを上限付きで復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_whole_file_base64"><strong>recover_whole_file_base64</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">ファイル全体が単一のBase64ストリームである場合に静的復号する。<br>
+&nbsp;<br>
+GuLoaderで確認されるような、先頭がシェルコードで末尾がスクリプトの<br>
+キャリアは既知形式を持たない。このため、ファイル全体との完全一致、<br>
+厳密なBase64検証、再エンコード一致を満たす場合だけ&nbsp;data&nbsp;も返す。</span></dd></dl>
  <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(
     data: 'bytes',
     *,
@@ -102,6 +107,13 @@
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">データ変換としてUPX展開を呼び出し、出力PEを検証する。</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。</span></dd></dl>
  <dl><dt><a name="-safe_temporary_suffix"><strong>safe_temporary_suffix</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。</span></dd></dl>
+ <dl><dt><a name="-select_high_value_archive_members"><strong>select_high_value_archive_members</strong></a>(
+    records: 'list[dict[str, object]]',
+    *,
+    max_members: 'int' = 128,
+    max_member_size: 'int' = 268435456,
+    max_total_size: 'int' = 805306368
+) -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。</span></dd></dl>
  <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
     data: 'bytes',
     executable: 'Path',
@@ -159,7 +171,9 @@ forceフラグは、汎用コンテナ判定に合致しない既知NSISキャ�
 <strong>MAX_EXTRACTED_TOTAL</strong> = 805306368<br>
 <strong>MAX_PNG_CHUNKS</strong> = 4096<br>
 <strong>MAX_RETAINED_MEMBERS</strong> = 128<br>
+<strong>MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS</strong> = 8192<br>
 <strong>PNG_MAGIC</strong> = b'\x89PNG\r\n\x1a\n'<br>
 <strong>RECOVERY_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.au3', '.bat', ...}<br>
-<strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.au3', '.bat', '.cmd', '.hta', '.htm', ...}</td></tr></table>
+<strong>SCRIPT_SUFFIXES</strong> = {'.applescript', '.au3', '.bat', '.cmd', '.hta', '.htm', ...}<br>
+<strong>SELECTIVE_ARCHIVE_SUFFIXES</strong> = {'.7z', '.a3x', '.applescript', '.asar', '.au3', '.bat', ...}</td></tr></table>
 </body></html>

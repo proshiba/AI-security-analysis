@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "collection_id": "targeted-guloader-20260806-jp-malspam",
+  "selection_mode": "targeted_user_request",
+  "selected_at": "2026-08-06T00:00:00+09:00",
+  "observed_date": "2026-08-05",
+  "source": "Triage公開解析、X観測情報、ローカル提供検体",
+  "requested": 1,
+  "downloaded": 1,
+  "acquisition_complete": true,
+  "analysis_complete": true,
+  "complete": true,
+  "publication_stage": "complete_with_terminal_payload_gap",
+  "pending": 0,
+  "samples_executed": false,
+  "network_contacted": true,
+  "network_scope": "Triage公式APIによる公開解析成果物の取得",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "family": "guloader",
+      "status": "partial",
+      "terminal_payload_recovered": false,
+      "sha256": "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e"
+    }
+  ],
+  "source_references": [
+    "https://x.com/bomccss/status/2084815944866816356",
+    "https://tria.ge/260805-axczpavamc/behavioral1"
+  ],
+  "family_sources": [
+    {
+      "family": "guloader",
+      "path": "sources/guloader"
+    }
+  ]
+}

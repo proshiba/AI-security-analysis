@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む1,890件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む1,891件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -223,6 +223,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | Efimer | 4 | 2026-07-19 | PyInstaller/PyArmor、検体別XOR鍵、JavaScript配列回転、Tor v3 C2 |
 | PUTA v3（Putita） | 8 | 2026-07-19 | x86/ARMv5/ARMv6/MIPS LE、UPX系譜、認証付き設定復号、暗号化C2、13攻撃ID |
 | Formbook | 22 | 2026-07-27 | 情報窃取設定、.NET ResourceSet、JavaScript→PowerShell→Drive memory loader、C2候補分離 |
+| GuLoader | 12 | 2026-08-06 | 日本語マルスパム、Katheco復号、Google Driveキャリア、CallWindowProcAメモリ実行、Triageメモリ比較 |
 | PureLogs | 1 | 2026-07-29 | 日本語マルスパム、AppV DLLサイドローディング、Python/CLR多段ローダー、PCAP・メモリ復元 |
 | GendDDoS（Ohshitクラスタ） | 9 | 2026-07-20 | x86/x86-64/ARMv6/ARMv7/ARC/MIPS BE/M68K/SH4、XORテーブル、DNS fallback、14攻撃ハンドラ |
 | Eclipse DDoS Bot（暫定） | 11 | 2026-07-19 | x86-64/i586/i686/ARM/M68K/MIPS LE、平文命令、永続化、競合排除 |

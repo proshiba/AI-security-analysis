@@ -7498,3 +7498,17 @@ analyses:
       - "haochisadnka.cc:6685"
     notes: "配布URLから完全一致ZIPを取得し、PCAPからケース1と同一の後段PEを復元しました。control heartbeat応答を限定確認しました。"
     result_path: analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/
+
+  - malware_type: "guloader"
+    analyzed_at: 2026-08-06
+    sample_sha256: 8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e
+    analysis_level: characteristic_function_static_analysis_and_triage_memory
+    campaign_type: jp_malspam_katheco_google_drive
+    matched_patterns:
+      - "ZIP→BAT→Google Drive→Base64キャリア"
+      - "Katheco Base64・反復XOR復号"
+      - "Reflection.EmitとCallWindowProcAによるx86シェルコード起動"
+      - "Triageメモリ3領域を比較し後段PE未復元"
+    c2: []
+    notes: "GuLoader本体まで復元し、Ghidra MCPで難読化入口を解析しました。次段の完全PEは公開Triageメモリに残存せず、partialとして記録しました。"
+    result_path: analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/

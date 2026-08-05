@@ -916,6 +916,32 @@ def _encoded_blob_kind(blob: bytes) -> str | None:
     return kind if kind != "data" else None
 
 
+def recover_whole_file_base64(data: bytes) -> list[tuple[str, bytes]]:
+    """ファイル全体が単一のBase64ストリームである場合に静的復号する。
+
+    GuLoaderで確認されるような、先頭がシェルコードで末尾がスクリプトの
+    キャリアは既知形式を持たない。このため、ファイル全体との完全一致、
+    厳密なBase64検証、再エンコード一致を満たす場合だけ data も返す。
+    """
+    if not 128 <= len(data) <= (MAX_ARTIFACT * 4 // 3) + 4:
+        return []
+    compact = b"".join(data.split())
+    if len(compact) < 128 or len(compact) % 4:
+        return []
+    if re.fullmatch(rb"[A-Za-z0-9+/]+={0,2}", compact) is None:
+        return []
+    try:
+        blob = base64.b64decode(compact, validate=True)
+    except (ValueError, binascii.Error):
+        return []
+    if not 64 <= len(blob) <= MAX_ARTIFACT:
+        return []
+    if base64.b64encode(blob) != compact:
+        return []
+    kind = _encoded_blob_kind(blob) or "data"
+    return [(f"whole-file-base64-{kind}", blob)]
+
+
 def recover_encoded_blobs(data: bytes) -> list[tuple[str, bytes]]:
     """スクリプトから構造上有意なBase64ブロブを上限付きで復元する。
 
@@ -2047,7 +2073,7 @@ def unpack_bytes(
         "executed": False,
         "network_contacted": False,
     }
-    artifacts: list[tuple[str, bytes]] = []
+    artifacts: list[tuple[str, bytes]] = recover_whole_file_base64(data)
     static_data = data
     if kind == "pe":
         report["inflated_pe"], recovered_blob = recover_inflated_pe(data)

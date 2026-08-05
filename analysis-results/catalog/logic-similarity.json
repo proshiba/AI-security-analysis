@@ -8,8 +8,8 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 1890,
-    "profiled_cases": 1029,
+    "catalog_cases": 1891,
+    "profiled_cases": 1030,
     "candidate_pairs_before_limit": 230909,
     "retained_pairs": 4684,
     "levels": {
@@ -40784,6 +40784,59 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/8d95c6056dd4d5da0276b9c8a8cbe0e0d0f34a719e1077c4ed810511ed81dc3f/OVERALL-LOGIC.md"
+    },
+    "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e": {
+      "case_id": "sha256:8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "sha256": "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "family": "guloader",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "dimensions": {
+        "execution_stages": [
+          "delivery",
+          "loader_execution",
+          "payload_decoding",
+          "process_memory"
+        ],
+        "layer_chain": [
+          "root:base64_text",
+          "root:bat",
+          "root:powershell",
+          "root:raw_x86",
+          "root:shellcode_plus_script",
+          "root:zip"
+        ],
+        "module_stack": [
+          "statically_recovered_guloader_shellcode:x86:le:32:default"
+        ],
+        "capabilities": [],
+        "function_roles": [
+          "base64_xor_dispatch",
+          "dynamic_api_resolver",
+          "dynamic_delegate_builder",
+          "obfuscated_shellcode_entry",
+          "payload_downloader",
+          "powershell_architecture_selection",
+          "shellcode_memory_loader",
+          "string_decoder"
+        ],
+        "code_fingerprints": [
+          "semantic:02e836ebc7014056d9a53c27dfdd6283608d65d2afb561edbbf12218e136d0df",
+          "semantic:226affe8c3a1703f227eeabc88cbedc6c173021bd84375cea3e34133f035195d",
+          "semantic:2514fcddf21262cb62a3dee3cc4de8ec4eef69c0de6710ded11af17c31ba7bfa",
+          "semantic:7f3e1c7bb22137e5ed48a90bc6cb0ff97a97b9cb8bcd5c87e3de090607f92ebe",
+          "semantic:9948495275e410ffda5fdf246090b63d0efe04f70700355a14fc036f9bba81f4",
+          "semantic:e83cd4e64c0aef098cd04dd0e4180d384bebb10e322ee2b2505c67c9b96f68fe"
+        ]
+      },
+      "available_dimensions": [
+        "execution_stages",
+        "layer_chain",
+        "module_stack",
+        "function_roles",
+        "code_fingerprints"
+      ],
+      "document_path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/OVERALL-LOGIC.md"
     },
     "8de2d51797f113896007d6ed8c634d99f5cee4c34c2bf55b1e4c19432afcbab3": {
       "case_id": "sha256:8de2d51797f113896007d6ed8c634d99f5cee4c34c2bf55b1e4c19432afcbab3",

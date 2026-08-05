@@ -935,3 +935,16 @@ def test_recover_cab_members_filters_paths_and_respects_size(
     assert statuses["../escape.dll"] == "path_blocked"
     assert statuses["large.bin"] == "size_blocked"
     assert report["executed"] is False and report["network_contacted"] is False
+
+
+def test_whole_file_base64_unknown_carrier_recovery() -> None:
+    """既知形式でないシェルコードとスクリプトのBase64キャリアを全体一致で復号する。"""
+    carrier = b"\x90" * 256 + b"function Stage { return 1 }"
+    encoded = __import__("base64").b64encode(carrier)
+    expected = [("whole-file-base64-data", carrier)]
+    assert unpacker.recover_whole_file_base64(encoded) == expected
+    report, artifacts = unpacker.unpack_bytes(encoded, "carrier.xtp")
+    assert report["executed"] is False
+    assert expected[0] in artifacts
+    assert unpacker.recover_whole_file_base64(b"prefix" + encoded) == []
+    assert unpacker.recover_whole_file_base64(encoded[:-1]) == []
