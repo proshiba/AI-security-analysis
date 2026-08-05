@@ -7763,6 +7763,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e": {
+      "canonical_path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "case_id": "sha256:8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
+      "case_kind": "malware",
+      "family": "guloader",
+      "version_key": "unknown"
+    },
     "8de2d51797f113896007d6ed8c634d99f5cee4c34c2bf55b1e4c19432afcbab3": {
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/8de2d51797f113896007d6ed8c634d99f5cee4c34c2bf55b1e4c19432afcbab3",
       "case_id": "sha256:8de2d51797f113896007d6ed8c634d99f5cee4c34c2bf55b1e4c19432afcbab3",
