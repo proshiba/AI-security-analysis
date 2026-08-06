@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from io import BytesIO
-from pathlib import Path
+import json
 import sys
 import urllib.error
+from io import BytesIO
+from pathlib import Path
 
-import pyzipper
 import pytest
-
+import pyzipper
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMON = ROOT / "common"
@@ -15,7 +15,6 @@ if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
 import triage_artifact_retrieval as retrieval  # noqa: E402
-
 
 SHA256 = "a" * 64
 
@@ -75,6 +74,56 @@ def test_encrypted_zip_never_requires_plaintext_disk() -> None:
     with pyzipper.AESZipFile(BytesIO(archive_data)) as archive:
         archive.setpassword(b"infected")
         assert archive.read("next-stage.exe") == payload
+
+
+def test_load_reviewed_candidates_builds_memory_endpoint(tmp_path: Path) -> None:
+    manifest = tmp_path / "reviewed.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "candidates": [
+                    {
+                        "parent_sha256": SHA256,
+                        "sample_id": "260802-abcdefghij",
+                        "task_id": "behavioral2",
+                        "name": "memory/proc-memory.dmp",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    candidates = retrieval.load_reviewed_candidates(manifest)
+    assert candidates[0]["kind"] == "memory_image"
+    assert candidates[0]["selection"] == "reviewed_report_memory"
+    assert candidates[0]["endpoint_path"].endswith(
+        "/behavioral2/memory/proc-memory.dmp"
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../memory.dmp", "memory/../memory.dmp", "files/proc-memory.dmp", "memory/not-a-dump"],
+)
+def test_load_reviewed_candidates_rejects_unsafe_scope(
+    tmp_path: Path, name: str
+) -> None:
+    manifest = tmp_path / "reviewed.json"
+    manifest.write_text(
+        json.dumps(
+            [
+                {
+                    "parent_sha256": SHA256,
+                    "sample_id": "260802-abcdefghij",
+                    "task_id": "behavioral1",
+                    "name": name,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError):
+        retrieval.load_reviewed_candidates(manifest)
 
 class RecordingOpener:
     def __init__(self) -> None:

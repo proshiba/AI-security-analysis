@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "tested_nmap_version": "7.99",
+  "canonical_families": [
+    {
+      "family": "valleyrat",
+      "aliases": ["winos", "winos4"],
+      "script": "scripts/valleyrat-c2.nse",
+      "modes": ["winos", "vvas", "n520"],
+      "maximum_confidence": 0.98,
+      "confirmation": "Winos制御応答、vvaS固定stage header、またはN520 server-first frameの完全一致"
+    },
+    {
+      "family": "agenttesla",
+      "aliases": ["agent-tesla"],
+      "script": "scripts/agenttesla-ftp-c2.nse",
+      "modes": ["ftp"],
+      "maximum_confidence": 0.95,
+      "confirmation": "検体から復元した資格情報によるFTP認証成功"
+    },
+    {
+      "family": "asyncrat",
+      "aliases": [],
+      "script": "scripts/dotnet-rat-c2.nse",
+      "modes": ["asyncrat"],
+      "maximum_confidence": 0.98,
+      "confirmation": "TLS上の圧縮MessagePack Pingに対するpong応答"
+    },
+    {
+      "family": "venomrat",
+      "aliases": [],
+      "script": "scripts/dotnet-rat-c2.nse",
+      "modes": ["venomrat"],
+      "maximum_confidence": 0.98,
+      "confirmation": "TLS上の圧縮MessagePack Pingに対するPo_ng応答"
+    },
+    {
+      "family": "purehvnc",
+      "aliases": ["purerat"],
+      "script": "scripts/purerat-c2.nse",
+      "modes": ["managed-purerat"],
+      "maximum_confidence": 0.98,
+      "confirmation": "04000000 prelude後のTLS昇格と、検体内蔵証明書SHA-256の一致"
+    },
+    {
+      "family": "stealc",
+      "aliases": ["stealc-v2"],
+      "script": "scripts/stealer-http-c2.nse",
+      "modes": ["stealc"],
+      "maximum_confidence": 0.9,
+      "confirmation": "検体固有RC4 keyで復号できる登録応答とaccess_token形式の一致"
+    },
+    {
+      "family": "lummastealer",
+      "aliases": ["lumma"],
+      "script": "scripts/stealer-http-c2.nse",
+      "modes": ["lumma"],
+      "maximum_confidence": 0.78,
+      "confirmation": "uid登録に対するHTTP status・content-type・非HTML本文形状の一致（推定）"
+    },
+    {
+      "family": "remusstealer",
+      "aliases": ["remus"],
+      "script": "scripts/stealer-http-c2.nse",
+      "modes": ["remus"],
+      "maximum_confidence": 0.78,
+      "confirmation": "tag/exp登録に対するHTTP 201と暗号化envelope長の一致（推定）"
+    }
+  ],
+  "excluded_until_wire_signature_is_reviewed": [
+    "gh0strat",
+    "remcosrat",
+    "prometei",
+    "spyglace",
+    "purelogs"
+  ]
+}

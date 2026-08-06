@@ -4,20 +4,19 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import hashlib
-from io import BytesIO
 import json
 import os
-from pathlib import Path
 import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
+from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 import pyzipper
-
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 TRIAGE_API = "https://tria.ge/api/v0"
@@ -288,6 +287,80 @@ def _manifest_hashes(path: Path) -> list[str]:
     return [normalize_sha256(value) for value in values]
 
 
+def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
+    """人手で確認した公開解析のmemory名を、安全なAPI候補へ変換する。"""
+
+    document = json.loads(path.read_text(encoding="utf-8-sig"))
+    rows = document.get("candidates") if isinstance(document, dict) else document
+    if not isinstance(rows, list):
+        raise TypeError("reviewed candidatesは配列である必要があります")
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise TypeError("reviewed candidateの各要素はobjectが必要です")
+        digest = normalize_sha256(row.get("parent_sha256"))
+        sample_id = str(row.get("sample_id") or "")
+        task_id = str(row.get("task_id") or "")
+        resource = str(row.get("name") or "").replace("\\", "/")
+        if not SAMPLE_ID_RE.fullmatch(sample_id):
+            raise ValueError("reviewed candidateのsample ID形式が不正です")
+        if not TASK_ID_RE.fullmatch(task_id):
+            raise ValueError("reviewed candidateのtask ID形式が不正です")
+        if not resource.startswith("memory/") or resource.count("/") != 1:
+            raise ValueError("reviewed candidateはmemory直下の成果物に限定されます")
+        safe_name = safe_basename(resource)
+        if not safe_name.lower().endswith("memory.dmp"):
+            raise ValueError("reviewed candidateはmemory.dmpに限定されます")
+        endpoint = (
+            f"/samples/{sample_id}/{task_id}/memory/"
+            f"{urllib.parse.quote(safe_name, safe='')}"
+        )
+        if endpoint in seen:
+            continue
+        seen.add(endpoint)
+        candidates.append(
+            {
+                "parent_sha256": digest,
+                "sample_id": sample_id,
+                "task_id": task_id,
+                "kind": "memory_image",
+                "name": safe_name,
+                "endpoint_path": endpoint,
+                "reference_sha256": hashlib.sha256(resource.encode()).hexdigest(),
+                "selection": "reviewed_report_memory",
+            }
+        )
+    return candidates
+
+
+def verify_reviewed_candidates(
+    candidates: list[dict[str, Any]],
+    api_key: str,
+    *,
+    opener: Any,
+    timeout: float,
+) -> None:
+    """review済み候補も、完全hash一致かつ公開解析であることを再検証する。"""
+
+    scopes = {
+        (item["parent_sha256"], item["sample_id"])
+        for item in candidates
+    }
+    for digest, sample_id in sorted(scopes):
+        metadata = api_json(
+            f"/samples/{sample_id}", api_key, opener=opener, timeout=timeout
+        )
+        if normalize_sha256(metadata.get("sha256")) != digest:
+            raise ValueError("reviewed candidateのTriage SHA-256が一致しません")
+        if metadata.get("private") is True or metadata.get("owner"):
+            raise ValueError("公開解析ではないためreviewed candidateを拒否しました")
+        if metadata.get("private") is not False and not verify_public_page(
+            sample_id, opener=opener, timeout=timeout
+        ):
+            raise ValueError("公開解析ではないためreviewed candidateを拒否しました")
+
+
 def _atomic_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -375,6 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hash", action="append", default=[])
     parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--reviewed-candidates", type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--download", action="store_true")
@@ -403,6 +477,10 @@ def main(argv: list[str] | None = None) -> int:
     hashes = list(args.hash)
     if args.manifest:
         hashes.extend(_manifest_hashes(args.manifest.resolve()))
+    reviewed_candidates: list[dict[str, Any]] = []
+    if args.reviewed_candidates:
+        reviewed_candidates = load_reviewed_candidates(args.reviewed_candidates.resolve())
+        hashes.extend(item["parent_sha256"] for item in reviewed_candidates)
     if not hashes:
         raise ValueError("--hashまたは--manifestでSHA-256を指定してください")
 
@@ -416,6 +494,18 @@ def main(argv: list[str] | None = None) -> int:
         timeout=args.timeout,
         include_memory=args.include_memory,
     )
+    if reviewed_candidates:
+        verify_reviewed_candidates(
+            reviewed_candidates,
+            api_key,
+            opener=opener,
+            timeout=args.timeout,
+        )
+        merged = {
+            item["endpoint_path"]: item
+            for item in [*candidates, *reviewed_candidates]
+        }
+        candidates = list(merged.values())
     downloads: list[dict[str, Any]] = []
     total_bytes = 0
     if args.download:
