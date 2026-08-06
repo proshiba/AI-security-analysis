@@ -15,6 +15,7 @@ COMMON_DIRECTORY = Path(__file__).resolve().parent
 if str(COMMON_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(COMMON_DIRECTORY))
 from validate_text_integrity import validate_text_integrity
+from c2_analysis_contract import validate_case as validate_case_c2_analysis
 
 EXPECTED_CASES = 50
 NEWS_FILES = {
@@ -124,6 +125,33 @@ def _pending_count(value: Any) -> int:
     return value if isinstance(value, int) else 0
 
 
+def _repository_case_root(repository: Path, relative: object) -> Path | None:
+    """repository外へのcase path escapeを拒否する。"""
+
+    if not isinstance(relative, str) or not relative.strip():
+        return None
+    candidate = (repository / relative).resolve()
+    try:
+        candidate.relative_to(repository.resolve())
+    except ValueError:
+        return None
+    return candidate
+
+
+def _case_digest(item: object) -> str | None:
+    """manifestまたはpublication caseからSHA-256を取得する。"""
+
+    if not isinstance(item, dict):
+        return None
+    value = item.get("sha256") or item.get("case_id")
+    if not isinstance(value, str):
+        return None
+    value = value.removeprefix("sha256:").strip().lower()
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        return None
+    return value
+
+
 def validate_malwarebazaar(
     repository: Path,
     analysis_date: str,
@@ -177,11 +205,68 @@ def validate_malwarebazaar(
             publication_path,
             "publication-summaryのanalysis_completeがtrueではありません。",
         )
+
+    publication_cases = publication.get("cases")
+    if not isinstance(publication_cases, list) or len(publication_cases) != expected_cases:
+        _finding(
+            findings,
+            "malwarebazaar_c2_case_count",
+            publication_path,
+            f"C2解析を検証するpublication caseは{expected_cases}件必要です。",
+        )
+        publication_cases = []
+    manifest_hashes = {_case_digest(item) for item in cases if _case_digest(item)}
+    publication_hashes = {
+        _case_digest(item) for item in publication_cases if _case_digest(item)
+    }
+    if manifest_hashes != publication_hashes:
+        _finding(
+            findings,
+            "malwarebazaar_c2_case_hash_mismatch",
+            publication_path,
+            "manifestとpublication-summaryのC2解析対象SHA-256が一致しません。",
+        )
+
+    c2_results: list[dict[str, Any]] = []
+    for item in publication_cases:
+        digest = _case_digest(item)
+        if digest is None:
+            _finding(
+                findings,
+                "malwarebazaar_c2_case_sha256_invalid",
+                publication_path,
+                "C2解析対象caseのSHA-256が不正です。",
+            )
+            continue
+        case_root = _repository_case_root(repository, item.get("case_path"))
+        if case_root is None:
+            _finding(
+                findings,
+                "malwarebazaar_c2_case_path_invalid",
+                publication_path,
+                f"C2解析対象case pathが不正です: {digest}",
+            )
+            continue
+        result = validate_case_c2_analysis(case_root, digest, repository=repository)
+        c2_results.append(result)
+        for issue in result["findings"]:
+            _finding(
+                findings,
+                str(issue["code"]),
+                case_root / "c2-analysis.json",
+                f"{digest}: {issue['message']}",
+            )
+    c2_outcomes: dict[str, int] = {}
+    for result in c2_results:
+        outcome = str(result.get("outcome") or "invalid")
+        c2_outcomes[outcome] = c2_outcomes.get(outcome, 0) + 1
     return {
         "name": f"malwarebazaar_{expected_cases}",
         "root": root.as_posix(),
         "expected_cases": expected_cases,
         "actual_cases": len(cases) if isinstance(cases, list) else 0,
+        "c2_analysis_complete_cases": sum(bool(item.get("complete")) for item in c2_results),
+        "c2_analysis_outcomes": c2_outcomes,
         "complete": not findings,
         "findings": findings,
     }

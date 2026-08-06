@@ -5303,36 +5303,6 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
-      "canonical_path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
-      "evidence": [
-        {
-          "locator": "line:15",
-          "path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/OVERALL-LOGIC.md",
-          "source": "human_readable_case_document",
-          "summary": "exec_loader -.-> unknown_terminal[\"後段ペイロード / 未復元\"]"
-        },
-        {
-          "locator": "line:43",
-          "path": "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/README.md",
-          "source": "human_readable_case_document",
-          "summary": "K --> L[\"次段ペイロード未復元\"]"
-        }
-      ],
-      "family": "guloader",
-      "gap_types": [
-        "static_recovery_incomplete"
-      ],
-      "observation_date": "2026-08-06",
-      "priority": "P1",
-      "requires_latest_sample": true,
-      "sha256": "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
-      "state": "explicit_unrecovered",
-      "version_key": "unknown"
-    },
-    {
-      "blockers": [
-        "human_documented_terminal_gap"
-      ],
       "canonical_path": "analysis-results/malware/hijackloader/versions/unknown/cases/3db527a58b83f8422fc10029f337d5663005d2ca1a1667fb221e6672ed5ba360",
       "evidence": [
         {
@@ -14822,26 +14792,6 @@
     {
       "case_count": 1,
       "explicit_unrecovered_count": 1,
-      "family": "guloader",
-      "latest_local_observation": "2026-08-06",
-      "latest_local_sha256": "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e",
-      "malwarebazaar_signature_candidates": [],
-      "priority": "P1",
-      "selection_policy": {
-        "exclude_existing_sha256": true,
-        "leaf_only_sample_is_fallback": true,
-        "order": "first_seen_desc",
-        "prefer_full_delivery_chain": true,
-        "prefer_sandbox_with_memory_or_dumped_artifacts": true
-      },
-      "source_material_absent_count": 0,
-      "top_blockers": [
-        "human_documented_terminal_gap"
-      ]
-    },
-    {
-      "case_count": 1,
-      "explicit_unrecovered_count": 1,
       "family": "linux-downloader",
       "latest_local_observation": "2026-07-20",
       "latest_local_sha256": "8be4b164cca3f97f85398cc7f0cdd140bcd013b865b28546618f162cf474e0f0",
@@ -15011,12 +14961,12 @@
     "catalog_case_count": 1941,
     "curated_active_count": 74,
     "curated_source_absent_count": 5,
-    "family_count": 40,
-    "gap_case_count": 568,
-    "human_document_match_count": 507,
+    "family_count": 39,
+    "gap_case_count": 567,
+    "human_document_match_count": 506,
     "state_counts": {
       "curated_recovery_backlog": 59,
-      "explicit_unrecovered": 504,
+      "explicit_unrecovered": 503,
       "source_material_absent": 5
     },
     "structured_report_match_count": 4,

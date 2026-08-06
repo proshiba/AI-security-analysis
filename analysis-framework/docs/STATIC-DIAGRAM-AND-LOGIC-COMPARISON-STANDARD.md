@@ -65,7 +65,7 @@ Mermaid内部のノードIDは、検体固有名ではなく次のprefixを使�
 | `persistence` | Run key、service、scheduled task等 |
 | `process_memory` | process生成、injection、memory確保・保護変更 |
 | `credential_collection` | browser、mail、password等の収集 |
-| `input_capture` | keylogging、clipboard、screenshot |
+| `input_capture` | キー入力記録、clipboard、screenshot |
 | `host_discovery` | host識別、OS、hardware、user情報 |
 | `staging` | report生成、圧縮、一時保存 |
 | `command_control` | C2初期化、送受信、command処理 |

@@ -57,6 +57,11 @@
 - 新規解析で得たC2／control／exfil候補は、解析回だけの一部targetsではなく`build_all_c2_monitoring_targets.py`で全履歴を再生成してから監視すること。現在のtaskでライブ通信が明示許可されている場合は、MaxMind DB鮮度確認後に`run_c2_monitoring_pipeline.py --allow-network`を実行すること。許可がない場合はライブ確認を実施せず、未実施理由をblockerとして残すこと。
 - 後段が得られなかった場合も「なし」と断定せず、候補なし、公開解析なし、404、size上限、復号未解決、時限配布停止などを区別し、次に必要な最小手順を記録すること。
 - 取得、正規化、親子関係、IOC統合、C2監視対象生成は再利用可能なscriptへ実装し、成功、拒否、hash不一致、private除外、上限超過、冪等再実行のunit testを追加すること。
+- dailyのMalwareBazaar対象は、全検体に`c2-analysis.json`を置くこと。root静的解析、埋め込みlayer、外部payload、公開sandbox、memory、終端payload、family設定、C2 endpoint、C2 protocol、automationの10 phaseをすべて記録し、未実施を空欄にしないこと。
+- daily完了と認めるC2結果は、終端payloadまで到達してprotocolレベルでC2を確認した`confirmed`、または終端codeの全通信・設定処理を確認してC2機能なしを立証した`no_c2_capability_verified`だけとすること。`unresolved`、終端未到達、後段未取得、設定未復元、TCP openだけの結果は完了扱いにしないこと。
+- C2が取得できない検体を件数合わせの`triaged_unknown`や`complete`へ移さないこと。blocker、試行済み手法、次に必要な最小証拠を残して深掘りqueueへ戻し、`validate_daily_analysis.py`が非0の間はdaily全体を完了と報告しないこと。
+- 新しい復号、設定形式、protocol、blocker識別を人手のメモだけで終えず、repository内のhandlerとunit testへ反映し、`c2-analysis.json`の`automation.handlers`と`automation.tests`から参照すること。
+- 詳細な完了基準は`analysis-framework/docs/C2-ANALYSIS-COMPLETION-STANDARD.md`に従うこと。
 
 ## 関数ロジックとコード類似性の記録ルール
 
@@ -210,6 +215,8 @@
 - ハッシュ、サイズ、関係、指標、証拠、明示的な制約だけを公開すること。復元した生バイナリや、開始時・終了時のホスト安全確認出力を公開してはならない。
 
 ## C2監視とMaxMindエンリッチのルール
+
+- malware固有のactive protocol C2検出器またはレビュー済みprofileを追加・更新した場合は、Nmapで再現可能な範囲を`analysis-framework/nmap/scripts/`のNSEにも反映し、`analysis-framework/nmap/profiles.json`の対応表と`verify_nse.py`のloopback模擬C2試験を同時に更新すること。Nmapでは固有応答を確認できずtransport確認に留まるfamilyはC2確定用NSEを作らず、除外理由を対応表へ記録すること。完了前に`python analysis-framework/nmap/verify_nse.py`と`python -m pytest analysis-framework/tests/test_nmap_c2_scripts.py -q`を実行すること。
 ## 終端ペイロード未取得ケースの優先取得ルール
 
 - 新規検体を外部sourceから選定する前に、`analysis-framework/common/build_terminal_payload_gap_inventory.py --repository . --check`を実行し、`intelligence/terminal-payload-recovery/README.md`のP0から順にfamilyを選ぶこと。台帳が不一致なら`--write`で更新してから選定すること。

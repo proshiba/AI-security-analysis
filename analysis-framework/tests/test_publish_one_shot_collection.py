@@ -1443,6 +1443,11 @@ def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
     assert analysis["case"]["confirmed_static_c2_observations"] == 1
     assert summary["static_config_recovered"] is True
     assert summary["confirmed_static_c2_observations"] == 1
+    assert summary["c2_analysis_complete"] is False
+    c2_analysis = publisher.load_json(destination / "c2-analysis.json")
+    assert c2_analysis["sha256"] == digest
+    assert c2_analysis["c2"]["outcome"] == "unresolved"
+    assert analysis["artifacts"]["c2_analysis"] == "c2-analysis.json"
 
     published_report = publisher.load_json(destination / "report.json")
     assert (

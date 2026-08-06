@@ -27,6 +27,10 @@ from analysis_contract import (  # noqa: E402
     seal_report,
 )
 from case_features import build_case_profile, render_features_markdown  # noqa: E402
+from c2_analysis_contract import (  # noqa: E402
+    build_unresolved_contract,
+    validate_contract as validate_c2_contract,
+)
 from ioc_markdown import normalize_confirmed_network_iocs, render_submitted_iocs  # noqa: E402
 from result_layout import canonical_malware_case_path  # noqa: E402
 from result_publication import (  # noqa: E402
@@ -737,6 +741,19 @@ def publish_case(
         "safety": {"sample_executed": False, "network_contacted": False},
     }
     write_json(destination / "metadata.json", metadata_document)
+    handler_ids = [
+        str(execution.get("handler_id"))
+        for execution in (report.get("handler_executions") or [])
+        if isinstance(execution, dict) and isinstance(execution.get("handler_id"), str)
+    ]
+    source_c2_path = source / "c2-analysis.json"
+    source_c2 = load_json(source_c2_path) if source_c2_path.is_file() else {}
+    if source_c2.get("sha256") == digest:
+        c2_analysis = source_c2
+    else:
+        c2_analysis = build_unresolved_contract(digest, family, handlers=handler_ids)
+    c2_validation = validate_c2_contract(c2_analysis, digest, repository=repository)
+    write_json(destination / "c2-analysis.json", c2_analysis)
     analysis = {
         "schema_version": 1,
         "case": {
@@ -769,6 +786,7 @@ def publish_case(
             "static_layers": "static-layers.json",
             "handler_results": "handler-results.json",
             "static_logic": "static-logic.json",
+            "c2_analysis": "c2-analysis.json",
             "iocs": "iocs.json",
         },
         "limitations": [
@@ -828,6 +846,9 @@ def publish_case(
         ),
         "static_config_recovered": analysis["case"]["static_config_recovered"],
         "confirmed_static_c2_observations": len(network_iocs),
+        "c2_analysis_outcome": str(c2_validation.get("outcome") or "unresolved"),
+        "c2_analysis_complete": bool(c2_validation.get("complete")),
+        "c2_analysis_finding_count": int(c2_validation.get("finding_count") or 0),
         "case_path": canonical_path,
         "publication_stage": publication_stage,
     }

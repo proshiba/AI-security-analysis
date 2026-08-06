@@ -25,6 +25,56 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
+def _complete_c2_contract(digest: str) -> dict:
+    return {
+        "schema_version": 1,
+        "sha256": digest,
+        "family": "fixture",
+        "analysis_attempted": True,
+        "phase_evidence": [
+            {
+                "phase": phase,
+                "status": "completed",
+                "evidence": [f"{phase}を確認した。"],
+            }
+            for phase in target.validate_case_c2_analysis.__globals__["REQUIRED_PHASES"]
+        ],
+        "terminal_payload": {
+            "reached": True,
+            "status": "recovered",
+            "family": "fixture",
+            "blockers": [],
+            "next_actions": [],
+        },
+        "c2": {
+            "outcome": "confirmed",
+            "extraction_attempted": True,
+            "endpoints": [
+                {"value": "c2.example:443", "role": "c2", "source": "static_config"}
+            ],
+            "evidence": ["設定decoderと合成protocol応答を確認した。"],
+            "protocol": {
+                "status": "confirmed",
+                "method": "合成check-inと応答frameの一致",
+                "confidence": "high",
+                "tcp_open_only": False,
+            },
+            "live_check": {"status": "observed", "target_registered": True},
+        },
+        "automation": {
+            "status": "reused_existing_handler",
+            "handlers": ["analysis-framework/common/fixture_c2_handler.py"],
+            "tests": ["analysis-framework/tests/test_fixture_c2_handler.py"],
+            "reusable_logic_recorded": True,
+        },
+        "safety": {
+            "sample_executed_locally": False,
+            "credentials_published": False,
+            "raw_payload_published": False,
+        },
+    }
+
+
 def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     news = root / "analysis-results" / "research" / "daily-news-malware" / ANALYSIS_DATE
     news.mkdir(parents=True)
@@ -69,6 +119,20 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         "# MalwareBazaar解析\n",
         encoding="utf-8",
     )
+    fixture_handler = root / "analysis-framework/common/fixture_c2_handler.py"
+    fixture_test = root / "analysis-framework/tests/test_fixture_c2_handler.py"
+    fixture_handler.parent.mkdir(parents=True, exist_ok=True)
+    fixture_test.parent.mkdir(parents=True, exist_ok=True)
+    fixture_handler.write_text("# C2解析fixture\n", encoding="utf-8")
+    fixture_test.write_text("# C2解析fixture test\n", encoding="utf-8")
+    publication_cases = []
+    for index in range(malwarebazaar_count):
+        digest = f"{index:064x}"
+        relative = f"analysis-results/malware/fixture/versions/unknown/cases/{digest}"
+        case_root = root / relative
+        case_root.mkdir(parents=True)
+        _write_json(case_root / "c2-analysis.json", _complete_c2_contract(digest))
+        publication_cases.append({"sha256": digest, "case_path": relative})
     _write_json(
         malwarebazaar / "manifest.json",
         {
@@ -87,7 +151,7 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     )
     _write_json(
         malwarebazaar / "publication-summary.json",
-        {"analysis_complete": True},
+        {"analysis_complete": True, "cases": publication_cases},
     )
 
     clickfix = root / "analysis-results" / "clickfix"
@@ -319,6 +383,59 @@ def test_complete_daily_analysis_supports_100_malwarebazaar_cases(tmp_path: Path
     ]
     assert result["lanes"][1]["expected_cases"] == 100
     assert result["lanes"][1]["actual_cases"] == 100
+
+
+def _first_c2_analysis(repository: Path) -> Path:
+    publication = json.loads(
+        (
+            repository
+            / "analysis-results/collections/malwarebazaar-windows-20260730-0050/publication-summary.json"
+        ).read_text(encoding="utf-8")
+    )
+    return repository / publication["cases"][0]["case_path"] / "c2-analysis.json"
+
+
+def test_missing_case_c2_analysis_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    _first_c2_analysis(repository).unlink()
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert result["complete"] is False
+    assert any(
+        item["code"] == "c2_analysis_file_missing"
+        for item in result["lanes"][1]["findings"]
+    )
+
+
+def test_unresolved_c2_analysis_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    contract_path = _first_c2_analysis(repository)
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract["terminal_payload"]["reached"] = False
+    contract["terminal_payload"]["status"] = "unresolved"
+    contract["c2"]["outcome"] = "unresolved"
+    _write_json(contract_path, contract)
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    codes = {item["code"] for item in result["lanes"][1]["findings"]}
+    assert result["complete"] is False
+    assert "terminal_payload_not_reached" in codes
+    assert "c2_outcome_unresolved" in codes
+
+
+def test_tcp_open_only_c2_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    contract_path = _first_c2_analysis(repository)
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract["c2"]["protocol"]["tcp_open_only"] = True
+    _write_json(contract_path, contract)
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert result["complete"] is False
+    assert any(item["code"] == "c2_tcp_open_only" for item in result["lanes"][1]["findings"])
 
 
 def test_partial_malwarebazaar_fails_daily_completion(tmp_path: Path) -> None:
