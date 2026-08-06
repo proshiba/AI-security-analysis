@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "case_id": "20260806-clickfix-pro-2b2ac8175378",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-08-04T05:33:29.870Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "glokchapigui.co",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    },
+    {
+      "type": "ip",
+      "value": "104.21.55.70",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "ip",
+      "value": "172.67.170.159",
+      "role": "context_only_live_dns_resolution",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    },
+    {
+      "type": "url",
+      "value": "https://glokchapigui.co/",
+      "role": "context_only_live_redirect",
+      "confidence": "observed_at_analysis_time",
+      "source": "限定ライブ観測"
+    }
+  ]
+}

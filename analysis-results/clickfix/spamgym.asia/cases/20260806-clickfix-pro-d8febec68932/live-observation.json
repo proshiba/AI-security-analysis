@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "case_id": "20260806-clickfix-pro-d8febec68932",
+  "domain": "spamgym.asia",
+  "probed_at_utc": "2026-08-05T23:07:30.606211+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://spamgym.asia/",
+        "host": "spamgym.asia",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://spamgym.asia/",
+            "host": "spamgym.asia",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "public_addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8154.2,
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    },
+    {
+      "requested": {
+        "sanitized": "http://spamgym.asia/",
+        "host": "spamgym.asia",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://spamgym.asia/",
+            "host": "spamgym.asia",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://spamgym.asia/",
+            "host": "spamgym.asia",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 167,
+          "body_truncated": false,
+          "body_sha256": "446a6087825fa73eadb045e5a2e9e2adf7df241b571228187728191d961dda1f",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "public_addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 68.2,
+          "tls_certificate_validation": "not_applicable",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 0
+          },
+          "hop": 0
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://spamgym.asia/",
+            "host": "spamgym.asia",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "public_addresses": [
+              "104.21.52.93",
+              "172.67.197.145"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8117.9,
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260806-clickfix-pro-d8febec68932",
+    "domain": "spamgym.asia",
+    "observed_at_utc": "2026-08-05T23:04:15.325116+00:00",
+    "status": "blocked",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "spamgym.asia | 522: Connection timed out",
+      "final_url": {
+        "sanitized": "https://spamgym.asia/",
+        "host": "spamgym.asia",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}
