@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -29,22 +30,37 @@ def _json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
+def _io_path(path: Path) -> Path:
+    """Windowsの従来のパス長上限を回避できる絶対パスへ変換する。"""
+
+    if os.name != "nt":
+        return path
+    absolute = str(path.resolve(strict=False))
+    if absolute.startswith("\\\\?\\"):
+        return Path(absolute)
+    if absolute.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + absolute[2:])
+    return Path("\\\\?\\" + absolute)
+
+
 def _write_json(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    destination = _io_path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _io_path(path.with_suffix(path.suffix + ".tmp"))
     temporary.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
         newline="\n",
     )
-    temporary.replace(path)
+    temporary.replace(destination)
 
 
 def _write_text(path: Path, value: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    destination = _io_path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _io_path(path.with_suffix(path.suffix + ".tmp"))
     temporary.write_text(value.rstrip() + "\n", encoding="utf-8", newline="\n")
-    temporary.replace(path)
+    temporary.replace(destination)
 
 
 def _sha256(value: Any) -> str:

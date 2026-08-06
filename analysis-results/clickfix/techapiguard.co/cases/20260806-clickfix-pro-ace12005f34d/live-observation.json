@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "case_id": "20260806-clickfix-pro-ace12005f34d",
+  "domain": "techapiguard.co",
+  "probed_at_utc": "2026-08-05T23:07:30.613251+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://techapiguard.co/",
+        "host": "techapiguard.co",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://techapiguard.co/",
+            "host": "techapiguard.co",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "public_addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8216.0,
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    },
+    {
+      "requested": {
+        "sanitized": "http://techapiguard.co/",
+        "host": "techapiguard.co",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "http://techapiguard.co/",
+            "host": "techapiguard.co",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 301,
+          "reason": "Moved Permanently",
+          "content_type": "text/html; charset=UTF-8",
+          "content_length_header": null,
+          "location": {
+            "sanitized": "https://techapiguard.co/",
+            "host": "techapiguard.co",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "bytes_read": 526,
+          "body_truncated": false,
+          "body_sha256": "e58edb006504de236d63360b7b442c47d8406304eb8f86bcf640591047f0bb37",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "public_addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 67.1,
+          "tls_certificate_validation": "not_applicable",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "301 Moved Permanently",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 1
+          },
+          "hop": 0
+        },
+        {
+          "status": "error",
+          "url": {
+            "sanitized": "https://techapiguard.co/",
+            "host": "techapiguard.co",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "error": "TimeoutError",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "public_addresses": [
+              "104.21.62.227",
+              "172.67.139.232"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 8125.0,
+          "hop": 1
+        }
+      ],
+      "redirects_followed": 1,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260806-clickfix-pro-ace12005f34d",
+    "domain": "techapiguard.co",
+    "observed_at_utc": "2026-08-05T23:02:48.373046+00:00",
+    "status": "blocked",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "techapiguard.co | 522: Connection timed out",
+      "final_url": {
+        "sanitized": "https://techapiguard.co/",
+        "host": "techapiguard.co",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

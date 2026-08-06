@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "case_id": "20260806-clickfix-pro-bbb6c9ba97dd",
+  "domain": "509ukk9c.enf90.vip",
+  "probed_at_utc": "2026-08-05T23:07:14.429631+00:00",
+  "policy": {
+    "method": "GET",
+    "redirect_limit": 2,
+    "landing_body_limit": 262144,
+    "stage_body_limit": 1048576,
+    "javascript_executed": false,
+    "malware_executed": false,
+    "credentials_sent": false,
+    "malware_protocol_sent": false,
+    "non_text_binary_retained": false
+  },
+  "landing": [
+    {
+      "requested": {
+        "sanitized": "https://509ukk9c.enf90.vip/",
+        "host": "509ukk9c.enf90.vip",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "hops": [
+        {
+          "status": "ok",
+          "url": {
+            "sanitized": "https://509ukk9c.enf90.vip/",
+            "host": "509ukk9c.enf90.vip",
+            "path": "/",
+            "path_redacted": false,
+            "path_sha256": null,
+            "query_present": false,
+            "query_names": [],
+            "query_sha256": null,
+            "fragment_present": false,
+            "userinfo_present": false
+          },
+          "http_status": 403,
+          "reason": "Forbidden",
+          "content_type": "text/html; charset=utf-8",
+          "content_length_header": null,
+          "location": null,
+          "bytes_read": 5068,
+          "body_truncated": false,
+          "body_sha256": "d962088dc82ebcdc194bf6f2e11de562c746d2d4286c9ab03112c9070969de84",
+          "body_type": "html",
+          "dns": {
+            "status": "ok",
+            "addresses": [
+              "172.67.169.69",
+              "104.21.27.120"
+            ],
+            "public_addresses": [
+              "172.67.169.69",
+              "104.21.27.120"
+            ],
+            "all_addresses_public": true
+          },
+          "latency_ms": 231.1,
+          "tls_certificate_validation": "disabled_for_malicious_site_observation",
+          "tls_certificate": null,
+          "text_analysis": {
+            "title": "Suspected Phishing | Cloudflare",
+            "clipboard_api_observed": false,
+            "lure_markers": [
+              "cloudflare"
+            ],
+            "candidate_commands": [],
+            "telegram_next_stage": null,
+            "referenced_url_count": 3
+          },
+          "hop": 0
+        }
+      ],
+      "redirects_followed": 0,
+      "javascript_executed": false,
+      "credentials_sent": false,
+      "malware_protocol_sent": false
+    }
+  ],
+  "stages": [],
+  "browser_observation": {
+    "schema_version": 1,
+    "case_id": "20260806-clickfix-pro-bbb6c9ba97dd",
+    "domain": "509ukk9c.enf90.vip",
+    "observed_at_utc": "2026-08-05T23:02:43.934318+00:00",
+    "status": "ok",
+    "policy": {
+      "javascript_executed": true,
+      "clipboard_intercepted": true,
+      "native_clipboard_write_suppressed": true,
+      "command_executed": false,
+      "command_pasted": false,
+      "credentials_sent": false,
+      "form_submitted": false,
+      "payload_opened": false
+    },
+    "page": {
+      "title": "Suspected Phishing | Cloudflare",
+      "final_url": {
+        "sanitized": "https://509ukk9c.enf90.vip/",
+        "host": "509ukk9c.enf90.vip",
+        "path": "/",
+        "path_redacted": false,
+        "path_sha256": null,
+        "query_present": false,
+        "query_names": [],
+        "query_sha256": null,
+        "fragment_present": false,
+        "userinfo_present": false
+      },
+      "lure_markers": [],
+      "dom_sha256": null
+    },
+    "clipboard_events": [],
+    "failure_reason": null
+  }
+}

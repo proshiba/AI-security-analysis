@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "20260806-clickfix-pro-b9ae066b2849",
+  "source": {
+    "provider": "ClickFix Campaign Monitor",
+    "observed_at": "2026-07-27T10:21:36.670Z"
+  },
+  "command_pattern": null,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "rct52dop.shop-lipogummy.com",
+      "role": "clickfix_landing_or_payload_delivery",
+      "confidence": "confirmed_provider_report",
+      "source": "ClickFix Campaign Monitor"
+    }
+  ]
+}

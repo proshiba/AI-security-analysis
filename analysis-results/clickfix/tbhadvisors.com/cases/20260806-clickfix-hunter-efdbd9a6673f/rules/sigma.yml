@@ -1,0 +1,74 @@
+title: ClickFix疑いのRunMRU登録 (20260806-clickfix-hunter-efdbd9a6673f)
+id: 9d83f26a-19c3-5d0f-b565-935bb9098161
+status: experimental
+description: Run dialogへ貼り付けられたLOLBINとdownload/execute表現の組合せを検知する。ドメイン単独ではなくユーザー実行証跡を対象とする。
+author: AI-security-analysis
+date: '2026-08-06'
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_key:
+    TargetObject|contains: \Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU\
+  selection_lolbin:
+    Details|contains:
+    - powershell
+    - pwsh
+    - mshta
+    - rundll32
+    - conhost
+    - net use
+  selection_suspicious:
+    Details|contains:
+    - iex
+    - Invoke-Expression
+    - 'irm '
+    - 'iwr '
+    - Invoke-RestMethod
+    - Invoke-WebRequest
+    - -w h
+    - --headless
+    - '@SSL'
+    - /webdav
+  condition: selection_key and selection_lolbin and selection_suspicious
+falsepositives:
+- 管理者がRun dialogから正規の保守scriptを実行した場合
+level: high
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1204.004
+---
+title: Telegram dead-drop resolver経由のClickFix PowerShell (20260806-clickfix-hunter-efdbd9a6673f)
+id: 42814188-5543-53aa-aed3-f4c4a1a21aa0
+status: experimental
+description: Telegram HTMLのdescriptionからhostを抽出し、/l.datを取得して実行するClickFix系列を検知する。
+author: AI-security-analysis
+date: '2026-08-06'
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith:
+    - \powershell.exe
+    - \pwsh.exe
+  selection_all:
+    CommandLine|contains|all:
+    - _description
+    - /l.dat
+    - irm
+  selection_execute:
+    CommandLine|contains:
+    - iex
+    - Invoke-Expression
+    - voke-E
+    - ke-Ex
+  condition: selection_image and selection_all and selection_execute
+falsepositives:
+- Telegram HTMLを同じ抽出式で処理する管理script
+level: high
+tags:
+- attack.execution
+- attack.t1059.001
+- attack.t1105
