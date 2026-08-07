@@ -636,6 +636,172 @@
     return best;
   }
 
+  // endpointが最新観測で解決したIPごとの、AS・所在・基盤タグ。
+  // geo表(MaxMind)とDNS観測のip_detailsは同じMaxMind由来だが、
+  // 片方にしか無いIPがあるので両方を見る。
+  function endpointIpFacts(ep) {
+    var facts = [];
+    var history = (ep.dns_tracking && ep.dns_tracking.history) || [];
+    var details = ipDetailsByAddress(history.length ? history[history.length - 1].ip_details : []);
+    ((ep.latest && ep.latest.resolved_ips) || []).forEach(function (ip) {
+      var detail = details[ip] || {};
+      var as = detail.as || {};
+      var localGeo = detail.geo || {};
+      var globalGeo = c2GeoOf(ip) || {};
+      var infra = detail.infrastructure || {};
+      var tags = (infra.tags || []).map(function (t) { return t.label; });
+      if (infra.bulletproof_hosting && infra.bulletproof_hosting.label) {
+        tags.push(infra.bulletproof_hosting.label);
+      }
+      facts.push({
+        ip: ip,
+        asn: as.asn || globalGeo.asn || null,
+        org: as.organization || globalGeo.org || null,
+        country: localGeo.country_name || globalGeo.country || null,
+        country_code: localGeo.country_iso_code || globalGeo.country_code || null,
+        tags: tags
+      });
+    });
+    return facts;
+  }
+
+  function endpointIpAddresses(ep) {
+    return endpointIpFacts(ep).map(function (f) { return f.ip; });
+  }
+
+  // 集計の共通形。同じendpointが同一AS内の複数IPを持っても二重に数えない。
+  function tally(endpoints, keyOf) {
+    var rows = {};
+    endpoints.forEach(function (ep) {
+      var alive = !!(ep.latest && ep.latest.alive);
+      var seen = {};
+      keyOf(ep).forEach(function (entry) {
+        if (seen[entry.key]) return;
+        seen[entry.key] = true;
+        var row = rows[entry.key];
+        if (!row) {
+          row = rows[entry.key] = {
+            key: entry.key, label: entry.label, sub: entry.sub,
+            endpoints: 0, alive: 0, ips: {}, hosts: {}, families: {}, tags: {}
+          };
+        }
+        row.endpoints++;
+        if (alive) row.alive++;
+        (entry.ips || []).forEach(function (ip) { if (ip) row.ips[ip] = true; });
+        row.hosts[ep.host] = true;
+        if (ep.family) row.families[ep.family] = true;
+        (entry.tags || []).forEach(function (t) { row.tags[t] = true; });
+      });
+    });
+    return Object.keys(rows).map(function (k) {
+      var r = rows[k];
+      r.ip_count = Object.keys(r.ips).length;
+      r.host_count = Object.keys(r.hosts).length;
+      r.family_count = Object.keys(r.families).length;
+      r.tag_list = Object.keys(r.tags).sort();
+      return r;
+    }).sort(function (a, b) {
+      return b.endpoints - a.endpoints || b.alive - a.alive || String(a.label).localeCompare(String(b.label));
+    });
+  }
+
+  function c2Stats(endpoints) {
+    var byAsn = tally(endpoints, function (ep) {
+      return endpointIpFacts(ep).map(function (f) {
+        return {
+          key: f.asn ? "AS" + f.asn : "(AS不明)",
+          label: f.asn ? "AS" + f.asn : "AS不明",
+          sub: [f.org, f.country_code].filter(Boolean).join(" / "),
+          ips: [f.ip], tags: f.tags
+        };
+      });
+    });
+    var byCountry = tally(endpoints, function (ep) {
+      return endpointIpFacts(ep).map(function (f) {
+        return {
+          key: f.country_code || "(不明)",
+          label: f.country || f.country_code || "不明",
+          sub: f.country_code || "",
+          ips: [f.ip]
+        };
+      });
+    });
+    var byFamily = tally(endpoints, function (ep) {
+      return [{
+        key: ep.family || "(不明)",
+        label: ep.family ? familyLabel(ep.family) : "不明",
+        sub: "",
+        ips: endpointIpAddresses(ep)
+      }];
+    });
+    var byState = tally(endpoints, function (ep) {
+      var l = ep.latest || {};
+      return [{
+        key: l.state || "(不明)",
+        label: l.state_label || l.state || "不明",
+        sub: l.tone || "",
+        ips: endpointIpAddresses(ep)
+      }];
+    });
+    // geo・AS未取得のendpointがどれだけあるかは、集計の読み方に効くので出す
+    var noAsn = endpoints.filter(function (ep) {
+      return !endpointIpFacts(ep).some(function (f) { return f.asn; });
+    }).length;
+    return { asn: byAsn, country: byCountry, family: byFamily, state: byState, noAsn: noAsn };
+  }
+
+  function statBar(value, max) {
+    var pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return '<span class="sbar"><span class="sbar-fill" style="width:' + pct + '%"></span></span>';
+  }
+
+  function statTableHtml(rows, opts) {
+    if (!rows.length) return '<div class="empty">集計対象がありません。</div>';
+    var max = rows[0].endpoints;
+    var head = "<tr><th>" + esc(opts.label) + "</th>" +
+      (opts.sub ? "<th>" + esc(opts.sub) + "</th>" : "") +
+      "<th class='num'>endpoint</th><th class='num'>応答あり</th>" +
+      "<th class='num'>IP</th><th class='num'>ホスト</th><th class='num'>ファミリー</th>" +
+      (opts.tags ? "<th>基盤タグ</th>" : "") + "</tr>";
+    var body = rows.map(function (r) {
+      var name = opts.tone
+        ? '<span class="badge ' + toneClass(r.sub) + '">' + esc(r.label) + "</span>"
+        : esc(r.label);
+      return "<tr class='statrow'" + (opts.pivot ? ' data-pivot="' + esc(r.key) + '"' : "") + ">" +
+        "<td class='nowrap'>" + name + "</td>" +
+        (opts.sub ? "<td class='small'>" + esc(r.sub || "") + "</td>" : "") +
+        "<td class='num'>" + statBar(r.endpoints, max) + r.endpoints + "</td>" +
+        "<td class='num'>" + r.alive + "</td>" +
+        "<td class='num'>" + r.ip_count + "</td>" +
+        "<td class='num'>" + r.host_count + "</td>" +
+        "<td class='num'>" + r.family_count + "</td>" +
+        (opts.tags
+          ? "<td class='small'>" + r.tag_list.map(function (t) {
+              return '<span class="tag">' + esc(t) + "</span>";
+            }).join(" ") + "</td>"
+          : "") + "</tr>";
+    }).join("");
+    return '<div class="tbl-wrap"><table class="tbl stattbl"><thead>' + head +
+      "</thead><tbody>" + body + "</tbody></table></div>";
+  }
+
+  function c2StatsHtml(endpoints) {
+    var s = c2Stats(endpoints);
+    return '<div class="stats-note muted small">対象 ' + endpoints.length +
+      " endpoint（下の絞り込みに連動します）。" +
+      (s.noAsn ? "うち " + s.noAsn + " 件はAS未取得（解決IPが無い、.onion など）で AS不明 に集計しています。" : "") +
+      "AS・所在は MaxMind GeoLite2 によるIPインフラの概略で、運用者の所在や所有関係を示すものではありません。</div>" +
+      '<div class="section"><h2>AS別（' + s.asn.length + "）</h2>" +
+      '<p class="muted small">行をクリックすると、そのASのendpointだけに絞り込みます。</p>' +
+      statTableHtml(s.asn, { label: "AS", sub: "組織 / 国", tags: true, pivot: true }) + "</div>" +
+      '<div class="section"><h2>国・地域別（' + s.country.length + "）</h2>" +
+      statTableHtml(s.country, { label: "国・地域", sub: "コード" }) + "</div>" +
+      '<div class="section"><h2>ファミリー別（' + s.family.length + "）</h2>" +
+      statTableHtml(s.family, { label: "ファミリー" }) + "</div>" +
+      '<div class="section"><h2>観測結果別（' + s.state.length + "）</h2>" +
+      statTableHtml(s.state, { label: "観測結果", tone: true }) + "</div>";
+  }
+
   function c2MapHtml() {
     var map = window.WORLD_MAP;
     if (!map) return '<div class="empty">地図データ(worldmap.js)が読み込まれていません。</div>';
@@ -898,7 +1064,13 @@
       '</div><div class="lbl">最新観測日</div></div>' +
       "</div>";
 
-    html += c2MapHtml();
+    // 地図と統計は同じ観測を別の切り口で見るものなので、タブで切り替える
+    html += '<div class="c2-tabs" role="tablist">' +
+      '<button type="button" class="c2-tab active" role="tab" aria-selected="true" data-c2view="map">地図</button>' +
+      '<button type="button" class="c2-tab" role="tab" aria-selected="false" data-c2view="stats">統計</button>' +
+      "</div>" +
+      '<div id="c2-view-map" role="tabpanel">' + c2MapHtml() + "</div>" +
+      '<div id="c2-view-stats" role="tabpanel" hidden></div>';
 
     var downCount = eps.length - reachable;
     html += '<div class="section"><h2 class="head-row">監視endpoint一覧' +
@@ -1051,12 +1223,21 @@
     var rows = Array.prototype.slice.call(document.querySelectorAll("#c2-rows .c2row"));
     var toggle = document.getElementById("c2-show-down");
     var haystacks = eps.map(c2Haystack);
-    var filter = { place: null, query: "", hideDown: false };
+    var filter = { place: null, query: "", hideDown: false, asn: null };
 
     function matchesAlive(index) {
       if (!filter.hideDown) return true;
       var ep = eps[Number(rows[index].getAttribute("data-idx"))];
       return !!(ep.latest && ep.latest.alive);
+    }
+
+    // 統計タブのAS行からの絞り込み。AS未取得のendpointは "(AS不明)" に集約する。
+    function matchesAsn(index) {
+      if (!filter.asn) return true;
+      var ep = eps[Number(rows[index].getAttribute("data-idx"))];
+      var keys = endpointIpFacts(ep).map(function (f) { return f.asn ? "AS" + f.asn : "(AS不明)"; });
+      if (!keys.length) keys = ["(AS不明)"];
+      return keys.indexOf(filter.asn) >= 0;
     }
 
     function matchesQuery(index) {
@@ -1083,11 +1264,13 @@
 
     function render() {
       var shown = 0;
+      var visible = [];
       rows.forEach(function (tr, i) {
-        var hit = matchesPlace(i) && matchesQuery(i) && matchesAlive(i);
+        var hit = matchesPlace(i) && matchesQuery(i) && matchesAlive(i) && matchesAsn(i);
         tr.hidden = !hit;
-        if (hit) shown++;
+        if (hit) { shown++; visible.push(eps[Number(tr.getAttribute("data-idx"))]); }
       });
+      renderStats(visible);
 
       svg.querySelectorAll(".mark.selected").forEach(function (m) { m.classList.remove("selected"); });
       if (filter.place !== null) {
@@ -1104,6 +1287,7 @@
       }
       if (filter.query) html += chipHtml("query", "⌕", input.value.trim(), "検索の絞り込みを解除");
       if (filter.hideDown) html += chipHtml("down", "◐", "応答なしを非表示", "応答なしを再表示");
+      if (filter.asn) html += chipHtml("asn", "▦", filter.asn, "ASの絞り込みを解除");
       if (chips) chips.innerHTML = html;
       if (bar) bar.hidden = !html;
       if (barCount) barCount.textContent = shown + " / " + rows.length + " 件を表示中";
@@ -1120,12 +1304,47 @@
     function setPlace(index) { filter.place = index; render(); }
     function setQuery(value) { filter.query = normalizeQuery(value); render(); }
 
+    // 統計は一覧と同じ絞り込み結果を集計する。「valleyratだけのAS分布」
+    // のような読み方ができるよう、地図クリック・検索・トグルに追従させる。
+    var statsBox = document.getElementById("c2-view-stats");
+    function renderStats(visible) {
+      if (!statsBox || statsBox.hidden) return;
+      statsBox.innerHTML = c2StatsHtml(visible);
+    }
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".c2-tab"));
+    var mapBox = document.getElementById("c2-view-map");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var wantStats = tab.getAttribute("data-c2view") === "stats";
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.classList.toggle("active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        if (mapBox) mapBox.hidden = wantStats;
+        statsBox.hidden = !wantStats;
+        // 統計は開いたときに初めて組み立てる(閉じている間は再集計しない)
+        if (wantStats) render();
+      });
+    });
+
+    if (statsBox) statsBox.addEventListener("click", function (ev) {
+      var row = ev.target.closest ? ev.target.closest("[data-pivot]") : null;
+      if (!row) return;
+      var key = row.getAttribute("data-pivot");
+      filter.asn = filter.asn === key ? null : key;
+      render();
+      document.getElementById("c2-filter-bar").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
     if (chips) chips.addEventListener("click", function (ev) {
       var btn = ev.target.closest ? ev.target.closest("[data-clear]") : null;
       if (!btn) return;
       var kind = btn.getAttribute("data-clear");
       if (kind === "place") filter.place = null;
       else if (kind === "down") { filter.hideDown = false; if (toggle) toggle.checked = true; }
+      else if (kind === "asn") filter.asn = null;
       else { filter.query = ""; input.value = ""; }
       render();
     });
@@ -1162,6 +1381,7 @@
       filter.place = null;
       filter.query = "";
       filter.hideDown = false;
+      filter.asn = null;
       if (input) input.value = "";
       if (toggle) toggle.checked = true;
       render();
