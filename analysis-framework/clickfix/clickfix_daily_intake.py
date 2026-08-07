@@ -2002,7 +2002,7 @@ def render_collection_readme(
         f"[case](../../{item['relative_path']}/README.md) |"
         for item in rendered
     )
-    return f"""# ClickFix日次調査: {analysis_date}
+    return f"""# ClickFix独立一括調査: {analysis_date}
 
 ## 結論
 

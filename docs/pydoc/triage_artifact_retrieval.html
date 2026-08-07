@@ -113,36 +113,18 @@ Data and other attributes inherited from <a href="urllib.request.html#BaseHandle
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-api_json"><strong>api_json</strong></a>(path: 'str', api_key: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'Any'</dt><dd><span class="code">許可済みTriage&nbsp;API&nbsp;pathから上限付きJSONを取得する。</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">限定取得CLIの引数parserを構築する。</span></dd></dl>
- <dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(
-    hashes: 'list[str]',
-    api_key: 'str',
-    *,
-    opener: 'Any',
-    timeout: 'float',
-    include_memory: 'bool'
-) -&gt; 'tuple[list[dict[str, Any]], list[dict[str, str]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
+ <dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(hashes: 'list[str]', api_key: 'str', *, opener: 'Any', timeout: 'float', include_memory: 'bool') -&gt; 'tuple[list[dict[str, Any]], list[dict[str, str]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
  <dl><dt><a name="-encrypted_zip_bytes"><strong>encrypted_zip_bytes</strong></a>(data: 'bytes', member_name: 'str', password: 'str') -&gt; 'bytes'</dt><dd><span class="code">平文をdiskへ書かず、AES-256&nbsp;ZIPをmemory上で作る。</span></dd></dl>
- <dl><dt><a name="-extract_artifact_candidates"><strong>extract_artifact_candidates</strong></a>(
-    overview: 'dict[str, Any]',
-    *,
-    expected_sha256: 'str',
-    sample_id: 'str',
-    include_memory: 'bool'
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから、task境界を検証できる成果物API&nbsp;pathだけを作る。</span></dd></dl>
- <dl><dt><a name="-fetch_bounded"><strong>fetch_bounded</strong></a>(
-    endpoint_path: 'str',
-    api_key: 'str',
-    *,
-    opener: 'Any',
-    timeout: 'float',
-    max_bytes: 'int'
-) -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">成果物を指定byte上限内で取得し、HTTP証跡を返す。</span></dd></dl>
+ <dl><dt><a name="-extract_artifact_candidates"><strong>extract_artifact_candidates</strong></a>(overview: 'dict[str, Any]', *, expected_sha256: 'str', sample_id: 'str', include_memory: 'bool') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから、task境界を検証できる成果物API&nbsp;pathだけを作る。</span></dd></dl>
+ <dl><dt><a name="-fetch_bounded"><strong>fetch_bounded</strong></a>(endpoint_path: 'str', api_key: 'str', *, opener: 'Any', timeout: 'float', max_bytes: 'int') -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">成果物を指定byte上限内で取得し、HTTP証跡を返す。</span></dd></dl>
+ <dl><dt><a name="-load_reviewed_candidates"><strong>load_reviewed_candidates</strong></a>(path: 'Path') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">人手で確認した公開解析のmemory名を、安全なAPI候補へ変換する。</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">候補列挙と任意の暗号化取得を実行する。</span></dd></dl>
  <dl><dt><a name="-normalize_sha256"><strong>normalize_sha256</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">SHA-256を小文字へ正規化し、不正値を拒否する。</span></dd></dl>
  <dl><dt><a name="-safe_basename"><strong>safe_basename</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">成果物名をbasenameへ限定し、危険な名前を拒否する。</span></dd></dl>
  <dl><dt><a name="-safe_error_record"><strong>safe_error_record</strong></a>(error: 'Exception') -&gt; 'dict[str, Any]'</dt><dd><span class="code">秘密情報を含めず、再試行判断に必要な失敗分類だけを残す。</span></dd></dl>
  <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">現在時刻をUTCのISO&nbsp;8601形式で返す。</span></dd></dl>
  <dl><dt><a name="-verify_public_page"><strong>verify_public_page</strong></a>(sample_id: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'bool'</dt><dd><span class="code">認証情報なしでTriage解析ページが公開されていることを確認する。</span></dd></dl>
+ <dl><dt><a name="-verify_reviewed_candidates"><strong>verify_reviewed_candidates</strong></a>(candidates: 'list[dict[str, Any]]', api_key: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'None'</dt><dd><span class="code">review済み候補も、完全hash一致かつ公開解析であることを再検証する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">

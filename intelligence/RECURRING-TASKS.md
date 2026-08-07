@@ -13,7 +13,7 @@
 | `INT-D01` | 毎日 | P0 | 新規・更新caseの差分triage |
 | `INT-D02` | 毎日 | P0 | IOC差分、再観測、役割変更の突合 |
 | `INT-D03` | 毎日 | P0 | 強い既知fingerprint一致の速報判定 |
-| `INT-D04` | 依頼時 | P0 | tech-memo最新記事・IOC、MalwareBazaar最新Windows 50検体、ClickFix／ClearFake 50件のdaily解析 |
+| `INT-D04` | 依頼時 | P0 | tech-memo最新記事・IOC、MalwareBazaar最新Windows 50検体、全履歴C2ライブチェックのdaily解析 |
 | `INT-D05` | daily解析・検体取得前 | P0 | 終端payload未取得familyの最新版取得・終端再解析 |
 | `INT-W01` | 毎週 | P1 | family、config、protocol、配布chainの変化検出 |
 | `INT-W02` | 毎週 | P1 | 関数コード類似性と共有componentの整理 |
@@ -31,7 +31,7 @@
 
 `INT-D04`は時刻指定で自動起動しません。ユーザーが「daily解析」を依頼した時だけ実行し、
 [dailyマルウェア解析タスク](DAILY-NEWS-MALWARE.md)に定義した記事・IOC解析と
-MalwareBazaar 50検体解析、ClickFix／ClearFake 50件解析を同じ実行単位で行います。
+MalwareBazaar 50検体解析、全履歴C2ライブチェックを同じ実行単位で行います。ClickFix／ClearFakeは明示依頼時の独立調査です。
 
 MalwareBazaar 50検体を選定する前に`INT-D05`を実行し、P0 familyで取得可能な最新版を50件の内数として優先します。取得できない場合は理由を残し、件数を古い検体で黙って代替しません。
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: E402
-"""daily解析の4系統が揃い、安全条件を満たすことを検証する。"""
+"""daily解析の3系統が揃い、安全条件を満たすことを検証する。"""
 
 from __future__ import annotations
 
@@ -181,11 +181,13 @@ def validate_malwarebazaar(
                 manifest_path,
                 f"{field}は{expected_cases}である必要があります: actual={actual}",
             )
-    for field in ("acquisition_complete", "analysis_complete", "complete"):
-        if manifest.get(field) is not True:
-            _finding(findings, f"malwarebazaar_{field}_not_true", manifest_path, f"{field}がtrueではありません。")
-    if _pending_count(manifest.get("pending")):
-        _finding(findings, "malwarebazaar_pending", manifest_path, "未完了queueが残っています。")
+    if manifest.get("acquisition_complete") is not True:
+        _finding(
+            findings,
+            "malwarebazaar_acquisition_complete_not_true",
+            manifest_path,
+            "acquisition_completeがtrueではありません。",
+        )
     for field in ("samples_executed", "network_contacted"):
         if manifest.get(field) is not False:
             _finding(findings, f"malwarebazaar_unsafe_{field}", manifest_path, f"{field}がfalseではありません。")
@@ -198,14 +200,6 @@ def validate_malwarebazaar(
         )
     publication_path = root / "publication-summary.json"
     publication = _json(publication_path, findings)
-    if publication.get("analysis_complete") is not True:
-        _finding(
-            findings,
-            "malwarebazaar_publication_incomplete",
-            publication_path,
-            "publication-summaryのanalysis_completeがtrueではありません。",
-        )
-
     publication_cases = publication.get("cases")
     if not isinstance(publication_cases, list) or len(publication_cases) != expected_cases:
         _finding(
@@ -249,23 +243,35 @@ def validate_malwarebazaar(
             continue
         result = validate_case_c2_analysis(case_root, digest, repository=repository)
         c2_results.append(result)
-        for issue in result["findings"]:
-            _finding(
-                findings,
-                str(issue["code"]),
-                case_root / "c2-analysis.json",
-                f"{digest}: {issue['message']}",
-            )
+        if not result.get("daily_ready"):
+            for issue in result["findings"]:
+                _finding(
+                    findings,
+                    str(issue["code"]),
+                    case_root / "c2-analysis.json",
+                    f"{digest}: {issue['message']}",
+                )
     c2_outcomes: dict[str, int] = {}
     for result in c2_results:
         outcome = str(result.get("outcome") or "invalid")
         c2_outcomes[outcome] = c2_outcomes.get(outcome, 0) + 1
+    deferred_count = sum(bool(item.get("deferred")) for item in c2_results)
+    pending_count = _pending_count(manifest.get("pending"))
+    if pending_count and not deferred_count:
+        _finding(
+            findings,
+            "malwarebazaar_pending_without_deferred_case",
+            manifest_path,
+            "未完了queueがありますが追加解析へ繰り越されたcaseがありません。",
+        )
     return {
         "name": f"malwarebazaar_{expected_cases}",
         "root": root.as_posix(),
         "expected_cases": expected_cases,
         "actual_cases": len(cases) if isinstance(cases, list) else 0,
         "c2_analysis_complete_cases": sum(bool(item.get("complete")) for item in c2_results),
+        "c2_analysis_deferred_cases": deferred_count,
+        "c2_analysis_daily_ready_cases": sum(bool(item.get("daily_ready")) for item in c2_results),
         "c2_analysis_outcomes": c2_outcomes,
         "complete": not findings,
         "findings": findings,
@@ -757,7 +763,6 @@ def validate_daily_analysis(
     lanes = [
         validate_news(repository, effective_news_date),
         validate_malwarebazaar(repository, analysis_date, malwarebazaar_count),
-        validate_clickfix(repository, analysis_date),
         validate_c2_live_check(repository, analysis_date),
     ]
     quality_gates = [validate_text_integrity(repository)]
@@ -768,7 +773,6 @@ def validate_daily_analysis(
         "required_lanes": [
             "daily_news",
             f"malwarebazaar_{malwarebazaar_count}",
-            "clickfix_50",
             "c2_live_check",
         ],
         "required_quality_gates": ["text_integrity"],

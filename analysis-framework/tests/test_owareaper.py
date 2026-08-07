@@ -3,16 +3,26 @@
 from __future__ import annotations
 
 import base64
+import importlib.util
 from pathlib import Path
-import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FAMILY = ROOT / "malware" / "owareaper"
-sys.path.insert(0, str(FAMILY))
 
-import detect  # noqa: E402
-import extract_config  # noqa: E402
+
+def load_module(name: str, filename: str):
+    """family間で一般名moduleが衝突しない一意名として読み込む。"""
+
+    spec = importlib.util.spec_from_file_location(name, FAMILY / filename)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+detect = load_module("owareaper_test_detect", "detect.py")
+extract_config = load_module("owareaper_test_extract_config", "extract_config.py")
 
 
 def fixture_html() -> bytes:

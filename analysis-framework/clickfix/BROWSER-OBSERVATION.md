@@ -74,7 +74,7 @@ PowerShell／cmd／WebDAV commandを安全に観測します。取得したcomma
 
 ## 完了判定
 
-日次ClickFix解析は、選定した全caseについてブラウザ観測を試行し、次のいずれかを記録します。
+ClickFix一括調査は、選定した全caseについてブラウザ観測を試行し、次のいずれかを記録します。
 
 - `ok`: ページを表示してJavaScript実行後の状態を確認した。
 - `blocked`: challenge、geo-fence、認証、browser制御上の制約で先へ進めなかった。

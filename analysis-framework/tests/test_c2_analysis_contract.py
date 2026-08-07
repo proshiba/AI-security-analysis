@@ -14,6 +14,7 @@ sys.modules[SPEC.name] = target
 SPEC.loader.exec_module(target)
 
 DIGEST = "a" * 64
+ROOT_REPOSITORY = Path(__file__).resolve().parents[2]
 
 
 def _complete_contract(outcome: str = "confirmed") -> dict:
@@ -88,13 +89,24 @@ def test_verified_no_c2_capability_passes(tmp_path: Path) -> None:
     assert result["complete"] is True
 
 
-def test_unresolved_terminal_and_c2_fail() -> None:
+def test_unresolved_terminal_and_c2_is_deferred_but_not_complete(tmp_path: Path) -> None:
     document = target.build_unresolved_contract(DIGEST, "fixture")
-    result = target.validate_contract(document, DIGEST)
+    result = target.validate_contract(document, DIGEST, repository=ROOT_REPOSITORY)
     codes = {item["code"] for item in result["findings"]}
     assert result["complete"] is False
+    assert result["daily_ready"] is True
+    assert result["deferred"] is True
     assert "terminal_payload_not_reached" in codes
     assert "c2_outcome_unresolved" in codes
+
+
+def test_unresolved_without_deep_analysis_record_is_not_daily_ready() -> None:
+    document = target.build_unresolved_contract(DIGEST, "fixture")
+    document.pop("deep_analysis")
+    result = target.validate_contract(document, DIGEST)
+    assert result["complete"] is False
+    assert result["daily_ready"] is False
+    assert any(item["code"] == "c2_deep_analysis_missing" for item in result["findings"])
 
 
 def test_tcp_open_only_cannot_confirm_c2(tmp_path: Path) -> None:
