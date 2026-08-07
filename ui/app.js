@@ -681,7 +681,7 @@
         var row = rows[entry.key];
         if (!row) {
           row = rows[entry.key] = {
-            key: entry.key, label: entry.label, sub: entry.sub,
+            key: entry.key, label: entry.label, sub: entry.sub, tone: entry.tone,
             endpoints: 0, alive: 0, ips: {}, hosts: {}, families: {}, tags: {}
           };
         }
@@ -706,22 +706,28 @@
   }
 
   function c2Stats(endpoints) {
+    // 解決IPが1件も無いendpoint(.onion、未観測など)も必ずどこかへ入れる。
+    // 落とすと円グラフの合計が対象件数と合わなくなり、注記とも食い違う。
     var byAsn = tally(endpoints, function (ep) {
-      return endpointIpFacts(ep).map(function (f) {
+      var facts = endpointIpFacts(ep);
+      if (!facts.length) return [{ key: "(AS不明)", label: "AS不明", sub: "解決IPなし" }];
+      return facts.map(function (f) {
         return {
           key: f.asn ? "AS" + f.asn : "(AS不明)",
           label: f.asn ? "AS" + f.asn : "AS不明",
-          sub: [f.org, f.country_code].filter(Boolean).join(" / "),
+          sub: f.asn ? [f.org, f.country_code].filter(Boolean).join(" / ") : "geo未取得",
           ips: [f.ip], tags: f.tags
         };
       });
     });
     var byCountry = tally(endpoints, function (ep) {
-      return endpointIpFacts(ep).map(function (f) {
+      var facts = endpointIpFacts(ep);
+      if (!facts.length) return [{ key: "(不明)", label: "不明", sub: "解決IPなし" }];
+      return facts.map(function (f) {
         return {
           key: f.country_code || "(不明)",
           label: f.country || f.country_code || "不明",
-          sub: f.country_code || "",
+          sub: f.country_code || "geo未取得",
           ips: [f.ip]
         };
       });
@@ -739,7 +745,8 @@
       return [{
         key: l.state || "(不明)",
         label: l.state_label || l.state || "不明",
-        sub: l.tone || "",
+        sub: "",
+        tone: l.tone || "unknown",
         ips: endpointIpAddresses(ep)
       }];
     });
@@ -750,14 +757,88 @@
     return { asn: byAsn, country: byCountry, family: byFamily, state: byState, noAsn: noAsn };
   }
 
-  function statBar(value, max) {
-    var pct = max > 0 ? Math.round((value / max) * 100) : 0;
-    return '<span class="sbar"><span class="sbar-fill" style="width:' + pct + '%"></span></span>';
+  // 円グラフの系列色。dataviz検証スクリプトで、この暗色面(#0d1117 / #1a2230)に対し
+  // 明度帯・彩度下限・CVD分離(最悪 ΔE 8.4)・通常視分離(19.3)・コントラストの
+  // 全項目PASSを確認済み。順序固定で回さない。「その他」は系列ではないため
+  // カテゴリ色を与えず、de-emphasisのグレーにする。
+  var SERIES_COLORS = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300"];
+  // 「不明」と「その他」は系列ではないのでカテゴリ色を与えない。中立のグレーに
+  // 寄せると両者が見分けにくいため、「その他」だけ45度のハッチで区別する
+  // (色の明度差に頼らないので、色覚特性や印刷でも読み分けられる)。
+  var NEUTRAL_COLOR = "#6b7a8b";   // パネル面 #1a2230 に対しコントラスト 3.64:1
+  var UNKNOWN_KEYS = { "(AS不明)": true, "(不明)": true };
+  var SLICE_CAP = 6;   // 部分-全体を一目で読ませる上限。超過分は「その他」へ畳む
+
+  // 上位SLICE_CAP件＋その他。色は順位ではなく実体に固定で割り当てる。
+  function donutSlices(rows) {
+    var total = rows.reduce(function (n, r) { return n + r.endpoints; }, 0);
+    // カテゴリ色は「不明」を飛ばして実体だけに割り当てる
+    var slot = 0;
+    var head = rows.slice(0, SLICE_CAP).map(function (r) {
+      var unknown = !!UNKNOWN_KEYS[r.key];
+      return {
+        key: r.key, label: r.label, sub: r.sub, value: r.endpoints, alive: r.alive,
+        color: unknown ? NEUTRAL_COLOR : SERIES_COLORS[slot++ % SERIES_COLORS.length],
+        hatch: false, row: r
+      };
+    });
+    var tail = rows.slice(SLICE_CAP);
+    if (tail.length) {
+      head.push({
+        key: null,
+        label: "その他",
+        sub: tail.length + " 種",
+        value: tail.reduce(function (n, r) { return n + r.endpoints; }, 0),
+        alive: tail.reduce(function (n, r) { return n + r.alive; }, 0),
+        color: NEUTRAL_COLOR, hatch: true, row: null
+      });
+    }
+    return { slices: head, total: total };
+  }
+
+  function donutHtml(slices, total) {
+    if (!total) return '<div class="empty">集計対象がありません。</div>';
+    var R = 36, W = 16, C = 2 * Math.PI * R;
+    var GAP = 1.6;   // 隣接セグメントの境目に面の色を通す
+    var offset = 0;
+    var defs = '<defs><pattern id="dhatch" width="5" height="5" patternUnits="userSpaceOnUse"' +
+      ' patternTransform="rotate(45)"><rect width="5" height="5" fill="' + NEUTRAL_COLOR + '"></rect>' +
+      '<line x1="0" y1="0" x2="0" y2="5" stroke="var(--panel)" stroke-width="2"></line></pattern></defs>';
+    var arcs = slices.map(function (sl, i) {
+      var len = (sl.value / total) * C;
+      var draw = Math.max(0.6, len - GAP);
+      var seg = '<circle class="dseg" data-slice="' + i + '" r="' + R + '" cx="50" cy="50"' +
+        ' fill="none" stroke="' + (sl.hatch ? "url(#dhatch)" : sl.color) + '" stroke-width="' + W + '"' +
+        ' stroke-dasharray="' + draw.toFixed(3) + " " + (C - draw).toFixed(3) + '"' +
+        ' stroke-dashoffset="' + (-offset).toFixed(3) + '">' +
+        "<title>" + esc(sl.label + "  " + sl.value + " endpoint (" +
+          Math.round((sl.value / total) * 100) + "%)") + "</title></circle>";
+      offset += len;
+      return seg;
+    }).join("");
+    return '<svg class="donut" viewBox="0 0 100 100" role="img" aria-label="構成比の円グラフ">' +
+      defs + '<g transform="rotate(-90 50 50)">' + arcs + "</g>" +
+      '<text class="donut-num" x="50" y="49" text-anchor="middle">' + total + "</text>" +
+      '<text class="donut-lbl" x="50" y="60" text-anchor="middle">endpoint</text></svg>';
+  }
+
+  function donutLegendHtml(slices, total, pivot) {
+    return '<ul class="donut-legend">' + slices.map(function (sl, i) {
+      var pct = Math.round((sl.value / total) * 100);
+      return "<li" + (pivot && sl.key ? ' data-pivot="' + esc(sl.key) + '"' : "") +
+        ' data-slice="' + i + '">' +
+        // backgroundショートハンドはbackground-imageを消すため、色だけを指定する
+        '<i class="' + (sl.hatch ? "lg-hatch" : "") + '" style="background-color:' + sl.color + '"></i>' +
+        '<span class="lg-name">' + esc(sl.label) +
+        (sl.sub ? ' <span class="muted">' + esc(sl.sub) + "</span>" : "") + "</span>" +
+        '<span class="lg-num mono">' + sl.value + "</span>" +
+        '<span class="lg-pct mono muted">' + pct + "%</span>" +
+        '<span class="lg-alive mono muted" title="応答あり">↑' + sl.alive + "</span></li>";
+    }).join("") + "</ul>";
   }
 
   function statTableHtml(rows, opts) {
     if (!rows.length) return '<div class="empty">集計対象がありません。</div>';
-    var max = rows[0].endpoints;
     var head = "<tr><th>" + esc(opts.label) + "</th>" +
       (opts.sub ? "<th>" + esc(opts.sub) + "</th>" : "") +
       "<th class='num'>endpoint</th><th class='num'>応答あり</th>" +
@@ -765,12 +846,12 @@
       (opts.tags ? "<th>基盤タグ</th>" : "") + "</tr>";
     var body = rows.map(function (r) {
       var name = opts.tone
-        ? '<span class="badge ' + toneClass(r.sub) + '">' + esc(r.label) + "</span>"
+        ? '<span class="badge ' + toneClass(r.tone) + '">' + esc(r.label) + "</span>"
         : esc(r.label);
       return "<tr class='statrow'" + (opts.pivot ? ' data-pivot="' + esc(r.key) + '"' : "") + ">" +
         "<td class='nowrap'>" + name + "</td>" +
         (opts.sub ? "<td class='small'>" + esc(r.sub || "") + "</td>" : "") +
-        "<td class='num'>" + statBar(r.endpoints, max) + r.endpoints + "</td>" +
+        "<td class='num'>" + r.endpoints + "</td>" +
         "<td class='num'>" + r.alive + "</td>" +
         "<td class='num'>" + r.ip_count + "</td>" +
         "<td class='num'>" + r.host_count + "</td>" +
@@ -785,21 +866,47 @@
       "</thead><tbody>" + body + "</tbody></table></div>";
   }
 
-  function c2StatsHtml(endpoints) {
+  var STAT_DIMS = [
+    { key: "asn", label: "AS別", col: "AS", sub: "組織 / 国", tags: true, pivot: true },
+    { key: "country", label: "国・地域別", col: "国・地域", sub: "コード" },
+    { key: "family", label: "ファミリー別", col: "ファミリー" },
+    { key: "state", label: "観測結果別", col: "観測結果", tone: true }
+  ];
+
+  function c2StatsHtml(endpoints, dimKey, tableOpen) {
     var s = c2Stats(endpoints);
-    return '<div class="stats-note muted small">対象 ' + endpoints.length +
-      " endpoint（下の絞り込みに連動します）。" +
-      (s.noAsn ? "うち " + s.noAsn + " 件はAS未取得（解決IPが無い、.onion など）で AS不明 に集計しています。" : "") +
-      "AS・所在は MaxMind GeoLite2 によるIPインフラの概略で、運用者の所在や所有関係を示すものではありません。</div>" +
-      '<div class="section"><h2>AS別（' + s.asn.length + "）</h2>" +
-      '<p class="muted small">行をクリックすると、そのASのendpointだけに絞り込みます。</p>' +
-      statTableHtml(s.asn, { label: "AS", sub: "組織 / 国", tags: true, pivot: true }) + "</div>" +
-      '<div class="section"><h2>国・地域別（' + s.country.length + "）</h2>" +
-      statTableHtml(s.country, { label: "国・地域", sub: "コード" }) + "</div>" +
-      '<div class="section"><h2>ファミリー別（' + s.family.length + "）</h2>" +
-      statTableHtml(s.family, { label: "ファミリー" }) + "</div>" +
-      '<div class="section"><h2>観測結果別（' + s.state.length + "）</h2>" +
-      statTableHtml(s.state, { label: "観測結果", tone: true }) + "</div>";
+    var dim = STAT_DIMS.filter(function (d) { return d.key === dimKey; })[0] || STAT_DIMS[0];
+    var rows = s[dim.key];
+    var d = donutSlices(rows);
+
+    var head = '<div class="stats-head">' +
+      '<label class="stats-dim"><span class="muted small">集計軸</span>' +
+      '<select id="c2-stat-dim">' + STAT_DIMS.map(function (o) {
+        return '<option value="' + o.key + '"' + (o.key === dim.key ? " selected" : "") +
+          ">" + esc(o.label) + "（" + s[o.key].length + "）</option>";
+      }).join("") + "</select></label>" +
+      '<span class="muted small">対象 ' + endpoints.length + " endpoint ／ 下の絞り込みに連動</span>" +
+      '<button type="button" class="btn-mini" id="c2-stat-table">' +
+      (tableOpen ? "表を隠す" : "全 " + rows.length + " 件を表で見る") + "</button></div>";
+
+    var chart = '<div class="donut-wrap">' + donutHtml(d.slices, d.total) +
+      donutLegendHtml(d.slices, d.total, dim.pivot) + "</div>";
+
+    var note = '<p class="stats-note muted small">' +
+      (rows.length > SLICE_CAP ? "上位 " + SLICE_CAP + " 種を色分けし、残り " +
+        (rows.length - SLICE_CAP) + " 種は「その他」へまとめています。" : "") +
+      "↑は応答ありの件数です。" +
+      (dim.pivot ? "凡例の行をクリックすると、そのASのendpointだけに絞り込みます。" : "") +
+      (s.noAsn && (dim.key === "asn" || dim.key === "country")
+        ? "解決IPが無い、またはgeo未取得の " + s.noAsn + " 件は「不明」に含めています。"
+        : "") +
+      "AS・所在は MaxMind GeoLite2 によるIPインフラの概略で、運用者の所在や所有関係を示すものではありません。</p>";
+
+    return head + chart + note +
+      '<div id="c2-stat-table-box"' + (tableOpen ? "" : " hidden") + ">" +
+      (tableOpen ? statTableHtml(rows, {
+        label: dim.col, sub: dim.sub, tags: dim.tags, tone: dim.tone, pivot: dim.pivot
+      }) : "") + "</div>";
   }
 
   function c2MapHtml() {
@@ -1223,7 +1330,7 @@
     var rows = Array.prototype.slice.call(document.querySelectorAll("#c2-rows .c2row"));
     var toggle = document.getElementById("c2-show-down");
     var haystacks = eps.map(c2Haystack);
-    var filter = { place: null, query: "", hideDown: false, asn: null };
+    var filter = { place: null, query: "", hideDown: false, asn: null, asnLabel: "" };
 
     function matchesAlive(index) {
       if (!filter.hideDown) return true;
@@ -1287,7 +1394,7 @@
       }
       if (filter.query) html += chipHtml("query", "⌕", input.value.trim(), "検索の絞り込みを解除");
       if (filter.hideDown) html += chipHtml("down", "◐", "応答なしを非表示", "応答なしを再表示");
-      if (filter.asn) html += chipHtml("asn", "▦", filter.asn, "ASの絞り込みを解除");
+      if (filter.asn) html += chipHtml("asn", "▦", filter.asnLabel || filter.asn, "ASの絞り込みを解除");
       if (chips) chips.innerHTML = html;
       if (bar) bar.hidden = !html;
       if (barCount) barCount.textContent = shown + " / " + rows.length + " 件を表示中";
@@ -1307,9 +1414,37 @@
     // 統計は一覧と同じ絞り込み結果を集計する。「valleyratだけのAS分布」
     // のような読み方ができるよう、地図クリック・検索・トグルに追従させる。
     var statsBox = document.getElementById("c2-view-stats");
+    var statDim = "asn";
+    var statTableOpen = false;
     function renderStats(visible) {
       if (!statsBox || statsBox.hidden) return;
-      statsBox.innerHTML = c2StatsHtml(visible);
+      statsBox.innerHTML = c2StatsHtml(visible, statDim, statTableOpen);
+      var sel = document.getElementById("c2-stat-dim");
+      if (sel) sel.addEventListener("change", function () {
+        statDim = sel.value;
+        statTableOpen = false;   // 軸を変えたら表は畳み直す
+        render();
+      });
+      var tableBtn = document.getElementById("c2-stat-table");
+      if (tableBtn) tableBtn.addEventListener("click", function () {
+        statTableOpen = !statTableOpen;
+        render();
+      });
+      linkDonutHover();
+    }
+
+    // 凡例とセグメントを相互にハイライトする。色だけに頼らず対応が取れるようにする。
+    function linkDonutHover() {
+      var segs = Array.prototype.slice.call(statsBox.querySelectorAll(".dseg"));
+      var items = Array.prototype.slice.call(statsBox.querySelectorAll(".donut-legend li"));
+      function highlight(index) {
+        segs.forEach(function (el) { el.classList.toggle("on", el.getAttribute("data-slice") === index); });
+        items.forEach(function (el) { el.classList.toggle("on", el.getAttribute("data-slice") === index); });
+      }
+      segs.concat(items).forEach(function (el) {
+        el.addEventListener("mouseenter", function () { highlight(el.getAttribute("data-slice")); });
+        el.addEventListener("mouseleave", function () { highlight(null); });
+      });
     }
 
     var tabs = Array.prototype.slice.call(document.querySelectorAll(".c2-tab"));
@@ -1333,7 +1468,14 @@
       var row = ev.target.closest ? ev.target.closest("[data-pivot]") : null;
       if (!row) return;
       var key = row.getAttribute("data-pivot");
-      filter.asn = filter.asn === key ? null : key;
+      if (filter.asn === key) {
+        filter.asn = null;
+      } else {
+        filter.asn = key;
+        // チップには内部キーではなく表示名を出す
+        var name = row.querySelector(".lg-name") || row.querySelector("td");
+        filter.asnLabel = name ? name.textContent.trim() : key;
+      }
       render();
       document.getElementById("c2-filter-bar").scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -1344,7 +1486,7 @@
       var kind = btn.getAttribute("data-clear");
       if (kind === "place") filter.place = null;
       else if (kind === "down") { filter.hideDown = false; if (toggle) toggle.checked = true; }
-      else if (kind === "asn") filter.asn = null;
+      else if (kind === "asn") { filter.asn = null; filter.asnLabel = ""; }
       else { filter.query = ""; input.value = ""; }
       render();
     });
@@ -1382,6 +1524,7 @@
       filter.query = "";
       filter.hideDown = false;
       filter.asn = null;
+      filter.asnLabel = "";
       if (input) input.value = "";
       if (toggle) toggle.checked = true;
       render();
