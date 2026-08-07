@@ -158,7 +158,7 @@ def test_publish_links_public_exact_hash_and_artifact_static_result(tmp_path: Pa
             "source": "hatching_triage_public_exact_sha256_config",
         }
     ]
-    assert "公開sandbox・二段目解析" in (case / "README.md").read_text(encoding="utf-8")
+    assert "公開sandbox・後段解析" in (case / "README.md").read_text(encoding="utf-8")
 
 
 def test_non_public_match_is_omitted(tmp_path: Path) -> None:
@@ -186,3 +186,30 @@ def test_non_public_match_is_omitted(tmp_path: Path) -> None:
     evidence = json.loads((case / "triage-evidence.json").read_text(encoding="utf-8"))
     assert evidence["public_matches"] == []
     assert evidence["omitted_matches"] == 1
+
+
+def test_retrieval_manifest_is_accepted_as_public_exact_hash_source(tmp_path: Path) -> None:
+    repo, case = repository(tmp_path)
+    source = tmp_path / "retrieval-manifest.json"
+    write_json(
+        source,
+        {
+            "query_type": "exact_sha256_public_triage_analysis",
+            "candidates": [
+                {
+                    "parent_sha256": SHA256,
+                    "sample_id": "260807-abcdefghij",
+                    "kind": "memory_image",
+                    "name": "memory.dmp",
+                }
+            ],
+            "errors": [],
+        },
+    )
+
+    result = publisher.publish(repo, "test-collection", source, None, None, write=True)
+
+    assert result["cases_with_public_matches"] == 1
+    evidence = json.loads((case / "triage-evidence.json").read_text(encoding="utf-8"))
+    assert evidence["public_matches"][0]["sample_id"] == "260807-abcdefghij"
+    assert evidence["public_matches"][0]["config_endpoints"] == []

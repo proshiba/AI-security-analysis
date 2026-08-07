@@ -58,8 +58,8 @@
 - 後段が得られなかった場合も「なし」と断定せず、候補なし、公開解析なし、404、size上限、復号未解決、時限配布停止などを区別し、次に必要な最小手順を記録すること。
 - 取得、正規化、親子関係、IOC統合、C2監視対象生成は再利用可能なscriptへ実装し、成功、拒否、hash不一致、private除外、上限超過、冪等再実行のunit testを追加すること。
 - dailyのMalwareBazaar対象は、全検体に`c2-analysis.json`を置くこと。root静的解析、埋め込みlayer、外部payload、公開sandbox、memory、終端payload、family設定、C2 endpoint、C2 protocol、automationの10 phaseをすべて記録し、未実施を空欄にしないこと。
-- daily完了と認めるC2結果は、終端payloadまで到達してprotocolレベルでC2を確認した`confirmed`、または終端codeの全通信・設定処理を確認してC2機能なしを立証した`no_c2_capability_verified`だけとすること。`unresolved`、終端未到達、後段未取得、設定未復元、TCP openだけの結果は完了扱いにしないこと。
-- C2が取得できない検体を件数合わせの`triaged_unknown`や`complete`へ移さないこと。blocker、試行済み手法、次に必要な最小証拠を残して深掘りqueueへ戻し、`validate_daily_analysis.py`が非0の間はdaily全体を完了と報告しないこと。
+- 検体単位で完了と認めるC2結果は、終端payloadまで到達してprotocolレベルでC2を確認した`confirmed`、または終端codeの全通信・設定処理を確認してC2機能なしを立証した`no_c2_capability_verified`だけとすること。`unresolved`、終端未到達、後段未取得、設定未復元、TCP openだけの結果は検体単位の完了扱いにしないこと。
+- C2が取得できない検体を件数合わせの`triaged_unknown`や`complete`へ移さないこと。全必須phaseの証跡、blocker、試行済み手法、次に必要な最小手順、優先度、深掘りqueueを残すこと。これらが揃った`unresolved`は日次バッチでは「処理済み・追加解析待ち」として繰り越せるが、検体自体を完了と報告しないこと。
 - 新しい復号、設定形式、protocol、blocker識別を人手のメモだけで終えず、repository内のhandlerとunit testへ反映し、`c2-analysis.json`の`automation.handlers`と`automation.tests`から参照すること。
 - 詳細な完了基準は`analysis-framework/docs/C2-ANALYSIS-COMPLETION-STANDARD.md`に従うこと。
 
@@ -139,13 +139,13 @@
 - ドキュメント変更でも、解析安全ルールや履歴サマリの整合性に影響がある場合はその点を明記すること。
 - 作業報告も日本語で記述し、英語のログやerror messageを示す場合は日本語で意味と影響を説明すること。
 
-## ClickFix日次調査のルール
+## ClickFix独立調査のルール
 
 - ClickFix／ClearFake調査は`analysis-framework/clickfix/clickfix_daily_intake.py`を使い、1回あたり最大50件、domain重複なしで選定すること。明示指定case、当日のThreatFox `clickfix`／`clearfake` tag、ClickFix Campaign Monitorの最新記録の順に扱い、情報源の観測日と解析日を区別すること。
 - 公開成果物は`analysis-results/clickfix/<domain>/cases/<case-id>/`、実行単位の一覧は`analysis-results/clickfix/collections/clickfix-daily-<YYYYMMDD>/`へ保存すること。各caseに`README.md`、`FEATURES.md`、`OVERALL-LOGIC.md`、`INFECTION-CHAIN.md`、`INFRASTRUCTURE.md`、`TRIAGE.md`、`analysis.json`、`infrastructure.json`、`triage-evidence.json`、`iocs.json`、`IOC-LIST.md`、`live-observation.json`、`rules/sigma.yml`を置くこと。
 - 実サイト確認は、上限付きGETと静的本文解析に加え、実ブラウザでJavaScript実行後のDOM、redirect、network request、fake CAPTCHA／verification表示、clipboard書き込みを観測すること。ブラウザ観測前に対象hostがprivate／loopback／link-localへ解決しないことを確認し、該当する場合は接続しないこと。
 - clipboardは`navigator.clipboard.writeText`、`ClipboardItem`、legacy copy event等をページ初期化時からinterceptし、書き込み値をGit管理外へ記録すること。可能な限りOS clipboardへの実書き込みを抑止し、取得commandをRun dialog、terminal、PowerShell、cmd、LOLBINへ貼り付けたり実行したりしないこと。copy／verify等の表示操作は再現してよいが、認証情報送信、form送信、POST、WebDAV変更系method、malware protocol、取得script／binaryの実行は行わないこと。
-- ブラウザ観測は成功時だけでなく、到達不能、challenge停止、geo-fence、copy操作なし、clipboard interception未対応もcase別の`browser-observation.json`へ記録すること。日次ClickFix解析では50件すべてについてブラウザ観測を試行し、`--require-browser-observations`で欠落を検出すること。
+- ブラウザ観測は成功時だけでなく、到達不能、challenge停止、geo-fence、copy操作なし、clipboard interception未対応もcase別の`browser-observation.json`へ記録すること。ClickFix一括調査では対象すべてについてブラウザ観測を試行し、`--require-browser-observations`で欠落を検出すること。
 - 感染チェーンはlanding／inject、lure表示、clipboard設定、利用者による貼り付け・実行、shell／LOLBIN、resolver／次段取得、終端payloadの共通phaseへ分解すること。各phaseに`observed`、`provider_reported`、`recovered`、`inferred`、`not_observed`、`not_retrieved`相当の状態、根拠、観測日時を付け、caseの停止位置と未解決edgeを`INFECTION-CHAIN.md`と`analysis.json`へ残すこと。利用者がcommandを実行した事実はsandbox等の根拠がない限り観測済みとしないこと。
 - provider生応答、取得本文、生command、token、invite pathは`.work/clickfix/`等の追跡対象外領域へ保存すること。公開側はhash、無害化URL、HTTP status、本文種別、根拠、確度へ正規化すること。ライブDNSの共有基盤IP、Telegram等のdual-use resolver、通常サイト資産は`context_only`としてIOCから除外すること。
 - ClickFix／ClearFake tagは手法またはWeb配布clusterであり、終端malware、campaign、actorの確定根拠にしないこと。配布binaryまたは完全hashを取得した場合はClickFix caseだけで完了扱いにせず、`analysis-results/malware/<family>/versions/<version-key>/cases/<sha256>/`へ別caseとして静的解析すること。
@@ -157,8 +157,8 @@
 
 ## daily解析の完了条件
 
-- daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、ClickFix／ClearFake 50件、当日解析で得たC2候補のライブチェックとMaxMindエンリッチの4系統を同じ日付の実行単位で扱うこと。4系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
-- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が4系統と文字化け品質ゲートのすべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、`partial`、未完了queue、C2ライブチェック未実施、UTF-8不正、日本語文字化けは完了として扱わないこと。
+- daily解析は、当日記事・IOCの調査、MalwareBazaarの最新Windows検体50件、当日解析で得たC2候補を含む全履歴C2のライブチェックとMaxMindエンリッチの3系統を同じ日付の実行単位で扱うこと。ClickFix／ClearFakeはdaily解析に含めず、明示依頼時の独立調査とする。3系統の成果物検証、終了時安全ゲート、ローカルcommit、GitHubへのpush、PR作成までを完了条件とすること。
+- `analysis-framework/common/validate_daily_analysis.py --repository . --analysis-date <YYYY-MM-DD>`が3系統と文字化け品質ゲートのすべてを`complete`と判定するまでdaily解析完了と報告しないこと。候補不足、取得失敗、C2解析契約の欠落、追加解析queue情報のない`unresolved`、C2ライブチェック未実施、UTF-8不正、日本語文字化けは完了として扱わないこと。
 - ユーザーが当該実行で明示的にpush／PRを省略するよう指定しない限り、解析成果を専用branchへpushし、検証内容と未完了項目を記載したdraft PRを作成すること。
 - pushまたはPR作成が認証・権限・競合・外部サービス障害で失敗した場合は、解析自体を完了と偽装せず、失敗した段階と再開に必要な操作を報告すること。
 

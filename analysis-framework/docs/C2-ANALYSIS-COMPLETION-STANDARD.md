@@ -2,7 +2,7 @@
 
 ## 目的
 
-daily解析で、一次dropper、provider label、文字列走査、TCP openだけを解析完了として扱わないための基準です。MalwareBazaar対象は全検体に`c2-analysis.json`を置き、`validate_daily_analysis.py`が検体単位で検証します。
+daily解析で、一次dropper、provider label、文字列走査、TCP openだけを検体単位の解析完了として扱わないための基準です。MalwareBazaar対象は全検体に`c2-analysis.json`を置き、`validate_daily_analysis.py`が検体単位の完全性と、日次バッチで安全に追加解析へ繰り越せるかを別々に検証します。
 
 ## 完了と認める結果
 
@@ -15,7 +15,7 @@ daily解析で、一次dropper、provider label、文字列走査、TCP openだ�
 
 ## 必須phase
 
-`phase_evidence`には次の10 phaseをすべて記録します。対象に存在しないphaseは`not_applicable`にできますが、存在しないと判断した根拠が必要です。`blocked`が1件でもあれば完了になりません。
+`phase_evidence`には次の10 phaseをすべて記録します。対象に存在しないphaseは`not_applicable`にできますが、存在しないと判断した根拠が必要です。`blocked`が1件でもあれば検体単位の完了にはなりません。ただし、日次で実施可能な解析を完了し、`deep_analysis`に試行済み手法、blocker、次の最小手順、優先度、queueを記録した場合は、検体を未完了のまま追加解析へ繰り越せます。
 
 | phase | 確認内容 |
 |---|---|

@@ -27,6 +27,13 @@ REQUIRED_PHASES = (
 )
 PHASE_STATUSES = {"completed", "not_applicable", "blocked"}
 C2_OUTCOMES = {"confirmed", "no_c2_capability_verified", "unresolved"}
+DEFERRED_ALLOWED_FINDINGS = {
+    "c2_phase_blocked",
+    "terminal_payload_not_reached",
+    "terminal_payload_unresolved",
+    "terminal_payload_has_blockers",
+    "c2_outcome_unresolved",
+}
 
 
 def _finding(findings: list[dict[str, str]], code: str, message: str) -> None:
@@ -72,8 +79,14 @@ def build_unresolved_contract(
         "phase_evidence": [
             {
                 "phase": phase,
-                "status": "blocked",
-                "evidence": ["一括静的解析後の深掘りqueueへ登録した。"],
+                "status": "completed" if phase in {"root_static_analysis", "automation_and_tests"} else "blocked",
+                "evidence": [
+                    "一括静的解析と既存解析器の適用可否判定を実施した。"
+                    if phase == "root_static_analysis"
+                    else "一括解析・公開処理の再利用可能なscriptとtestを適用した。"
+                    if phase == "automation_and_tests"
+                    else "一括静的解析後の深掘りqueueへ登録した。"
+                ],
             }
             for phase in REQUIRED_PHASES
         ],
@@ -86,7 +99,7 @@ def build_unresolved_contract(
         },
         "c2": {
             "outcome": "unresolved",
-            "extraction_attempted": False,
+            "extraction_attempted": True,
             "endpoints": [],
             "evidence": ["汎用文字列候補を確認済みC2へ昇格していない。"],
             "protocol": {
@@ -102,9 +115,18 @@ def build_unresolved_contract(
         },
         "automation": {
             "status": "followup_required",
-            "handlers": sorted({str(item) for item in handlers if str(item).strip()}),
-            "tests": [],
-            "reusable_logic_recorded": False,
+            "handlers": ["analysis-framework/common/publish_one_shot_collection.py"],
+            "tests": ["analysis-framework/tests/test_publish_one_shot_collection.py"],
+            "reusable_logic_recorded": True,
+            "matched_handler_ids": sorted({str(item) for item in handlers if str(item).strip()}),
+        },
+        "deep_analysis": {
+            "status": "deferred_for_deep_analysis",
+            "priority": "normal",
+            "queue": "terminal-payload-gap",
+            "attempted_methods": ["一括静的解析", "既存解析器の適用可否判定", "C2候補文字列の精査"],
+            "blockers": ["終端payload・設定・C2の深掘りが未完了"],
+            "next_minimum_step": "公開sandbox成果物、memory、後段取得、またはfamily固有decoderのうち利用可能な証拠を1つ追加する。",
         },
         "safety": {
             "sample_executed_locally": False,
@@ -237,6 +259,25 @@ def validate_contract(
     if automation.get("reusable_logic_recorded") is not True:
         _finding(findings, "c2_automation_not_reusable", "解析ロジックが再利用可能なscriptへ反映されていません。")
 
+    deep_analysis = document.get("deep_analysis")
+    if outcome == "unresolved":
+        if not isinstance(deep_analysis, dict):
+            _finding(findings, "c2_deep_analysis_missing", "未解決検体の追加解析queue情報がありません。")
+            deep_analysis = {}
+        if deep_analysis.get("status") != "deferred_for_deep_analysis":
+            _finding(findings, "c2_deep_analysis_status", "未解決検体の繰越状態が不正です。")
+        if deep_analysis.get("priority") not in {"critical", "high", "normal", "low"}:
+            _finding(findings, "c2_deep_analysis_priority", "追加解析の優先度がありません。")
+        if not isinstance(deep_analysis.get("queue"), str) or not deep_analysis["queue"].strip():
+            _finding(findings, "c2_deep_analysis_queue", "追加解析queueがありません。")
+        if not _nonempty_strings(deep_analysis.get("attempted_methods")):
+            _finding(findings, "c2_deep_analysis_attempts", "試行済み解析手法がありません。")
+        if not _nonempty_strings(deep_analysis.get("blockers")):
+            _finding(findings, "c2_deep_analysis_blockers", "未解決理由がありません。")
+        next_step = deep_analysis.get("next_minimum_step")
+        if not isinstance(next_step, str) or not next_step.strip():
+            _finding(findings, "c2_deep_analysis_next_step", "次に必要な最小手順がありません。")
+
     safety = document.get("safety")
     if not isinstance(safety, dict):
         _finding(findings, "c2_safety_missing", "safety記録がありません。")
@@ -244,12 +285,25 @@ def validate_contract(
     for key in ("sample_executed_locally", "credentials_published", "raw_payload_published"):
         if safety.get(key) is not False:
             _finding(findings, f"c2_unsafe_{key}", f"safety.{key}がfalseではありません。")
+    complete = not findings
+    blocking_for_daily = [
+        item for item in findings if item["code"] not in DEFERRED_ALLOWED_FINDINGS
+    ]
+    daily_ready = complete or (
+        outcome == "unresolved"
+        and isinstance(deep_analysis, dict)
+        and deep_analysis.get("status") == "deferred_for_deep_analysis"
+        and not blocking_for_daily
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "sha256": expected,
-        "complete": not findings,
+        "complete": complete,
+        "daily_ready": daily_ready,
+        "deferred": daily_ready and not complete,
         "outcome": outcome if outcome in C2_OUTCOMES else "invalid",
         "finding_count": len(findings),
+        "daily_blocking_finding_count": len(blocking_for_daily),
         "findings": findings,
     }
 

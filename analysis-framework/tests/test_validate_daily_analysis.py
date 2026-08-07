@@ -334,7 +334,7 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     return root
 
 
-def test_complete_four_lane_daily_analysis_passes(tmp_path: Path) -> None:
+def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
 
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
@@ -344,12 +344,11 @@ def test_complete_four_lane_daily_analysis_passes(tmp_path: Path) -> None:
     assert [lane["name"] for lane in result["lanes"]] == [
         "daily_news",
         "malwarebazaar_50",
-        "clickfix_50",
         "c2_live_check",
     ]
 
 
-def test_missing_clickfix_case_fails_daily_completion(tmp_path: Path) -> None:
+def test_clickfix_is_independent_and_does_not_block_daily_completion(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
     manifest_path = (
         repository / "analysis-results" / "clickfix" / "collections" / "clickfix-daily-20260730" / "manifest.json"
@@ -359,10 +358,12 @@ def test_missing_clickfix_case_fails_daily_completion(tmp_path: Path) -> None:
     manifest["case_count"] = 49
     _write_json(manifest_path, manifest)
 
-    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+    daily = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+    clickfix = target.validate_clickfix(repository, ANALYSIS_DATE)
 
-    assert result["complete"] is False
-    assert any(finding["code"] == "clickfix_case_count" for finding in result["lanes"][2]["findings"])
+    assert daily["complete"] is True
+    assert clickfix["complete"] is False
+    assert any(finding["code"] == "clickfix_case_count" for finding in clickfix["findings"])
 
 
 def test_complete_daily_analysis_supports_100_malwarebazaar_cases(tmp_path: Path) -> None:
@@ -378,7 +379,6 @@ def test_complete_daily_analysis_supports_100_malwarebazaar_cases(tmp_path: Path
     assert result["required_lanes"] == [
         "daily_news",
         "malwarebazaar_100",
-        "clickfix_50",
         "c2_live_check",
     ]
     assert result["lanes"][1]["expected_cases"] == 100
@@ -408,7 +408,42 @@ def test_missing_case_c2_analysis_fails_daily_completion(tmp_path: Path) -> None
     )
 
 
-def test_unresolved_c2_analysis_fails_daily_completion(tmp_path: Path) -> None:
+def test_unresolved_c2_with_bounded_followup_does_not_block_daily_batch(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    contract_path = _first_c2_analysis(repository)
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract["phase_evidence"][1]["status"] = "blocked"
+    contract["terminal_payload"]["reached"] = False
+    contract["terminal_payload"]["status"] = "unresolved"
+    contract["terminal_payload"]["blockers"] = ["追加layerを復元できない"]
+    contract["c2"]["outcome"] = "unresolved"
+    contract["c2"]["endpoints"] = []
+    contract["c2"]["protocol"] = {
+        "status": "unresolved",
+        "method": None,
+        "confidence": "none",
+        "tcp_open_only": False,
+    }
+    contract["c2"]["live_check"] = {"status": "pending", "target_registered": False}
+    contract["deep_analysis"] = {
+        "status": "deferred_for_deep_analysis",
+        "priority": "high",
+        "queue": "terminal-payload-gap",
+        "attempted_methods": ["静的復号", "公開sandbox照合"],
+        "blockers": ["追加layerを復元できない"],
+        "next_minimum_step": "memory artifactを1件取得して復号鍵を確認する。",
+    }
+    _write_json(contract_path, contract)
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert result["complete"] is True
+    assert result["lanes"][1]["c2_analysis_complete_cases"] == 49
+    assert result["lanes"][1]["c2_analysis_deferred_cases"] == 1
+    assert result["lanes"][1]["c2_analysis_daily_ready_cases"] == 50
+
+
+def test_unresolved_c2_without_followup_record_blocks_daily_batch(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
     contract_path = _first_c2_analysis(repository)
     contract = json.loads(contract_path.read_text(encoding="utf-8"))
@@ -419,10 +454,9 @@ def test_unresolved_c2_analysis_fails_daily_completion(tmp_path: Path) -> None:
 
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
 
-    codes = {item["code"] for item in result["lanes"][1]["findings"]}
     assert result["complete"] is False
-    assert "terminal_payload_not_reached" in codes
-    assert "c2_outcome_unresolved" in codes
+    codes = {item["code"] for item in result["lanes"][1]["findings"]}
+    assert "c2_deep_analysis_missing" in codes
 
 
 def test_tcp_open_only_c2_fails_daily_completion(tmp_path: Path) -> None:
@@ -453,8 +487,7 @@ def test_partial_malwarebazaar_fails_daily_completion(tmp_path: Path) -> None:
 
     assert result["complete"] is False
     codes = {item["code"] for item in result["lanes"][1]["findings"]}
-    assert "malwarebazaar_analysis_complete_not_true" in codes
-    assert "malwarebazaar_pending" in codes
+    assert "malwarebazaar_pending_without_deferred_case" in codes
 
 
 def test_unsafe_triage_artifact_download_fails(tmp_path: Path) -> None:
@@ -464,10 +497,10 @@ def test_unsafe_triage_artifact_download_fails(tmp_path: Path) -> None:
     evidence["safety"]["artifact_downloaded"] = True
     _write_json(evidence_path, evidence)
 
-    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+    result = target.validate_clickfix(repository, ANALYSIS_DATE)
 
     assert result["complete"] is False
-    assert any(finding["code"] == "clickfix_unsafe_artifact_downloaded" for finding in result["lanes"][2]["findings"])
+    assert any(finding["code"] == "clickfix_unsafe_artifact_downloaded" for finding in result["findings"])
 
 
 def test_news_source_date_can_differ_from_execution_date(tmp_path: Path) -> None:
@@ -504,7 +537,7 @@ def test_stale_maxmind_database_without_refresh_fails_daily_completion(tmp_path:
     validated = target.validate_daily_analysis(repository, ANALYSIS_DATE)
 
     assert validated["complete"] is False
-    codes = {item["code"] for item in validated["lanes"][3]["findings"]}
+    codes = {item["code"] for item in validated["lanes"][2]["findings"]}
     assert "maxmind_stale_database_not_refreshed" in codes
 
 

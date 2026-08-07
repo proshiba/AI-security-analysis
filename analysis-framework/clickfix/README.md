@@ -1,4 +1,4 @@
-# ClickFix日次取り込み
+# ClickFix独立一括取り込み
 
 ClickFix Hunter、ClickFix Campaign Monitor、ThreatFoxの`clickfix`／`clearfake` tagから
 重複のない50件を固定し、domain単位のHTTP／実ブラウザ観測、インフラ調査、Triage既存解析照合、

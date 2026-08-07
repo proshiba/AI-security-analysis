@@ -31,7 +31,7 @@ def _json(path: Path) -> Any:
 
 
 def _io_path(path: Path) -> Path:
-    """Windowsの従来のパス長上限を回避できる絶対パスへ変換する。"""
+    """Windowsの従来パス長制限を回避できる絶対パスへ変換する。"""
 
     if os.name != "nt":
         return path
@@ -230,7 +230,7 @@ def _artifact_index(path: Path | None, membership: set[str]) -> dict[str, list[d
 
 
 def _artifact_analysis_index(path: Path | None) -> dict[str, dict[str, Any]]:
-    """後段成果物へ適用したローカル静的解析の公開可能な状態だけを抽出する。"""
+    """後段取得物へ適用したローカル静的解析の公開可能な状態だけを抽出する。"""
 
     indexed: dict[str, dict[str, Any]] = {}
     if path is None:
@@ -252,6 +252,49 @@ def _artifact_analysis_index(path: Path | None) -> dict[str, dict[str, Any]]:
             "network_contacted": False,
         }
     return indexed
+
+
+def _source_results(source: dict[str, Any]) -> list[dict[str, Any]]:
+    """旧検索結果または新しい取得manifestを公開証跡の共通形式へ正規化する。"""
+
+    existing = source.get("results")
+    if isinstance(existing, list):
+        return existing
+    if source.get("query_type") != "exact_sha256_public_triage_analysis":
+        return []
+
+    grouped: dict[str, dict[str, Any]] = {}
+    seen: set[tuple[str, str]] = set()
+    for candidate in source.get("candidates") or []:
+        parent = _sha256(candidate.get("parent_sha256"))
+        sample_id = _sample_id(candidate.get("sample_id"))
+        key = (parent, sample_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        row = grouped.setdefault(parent, {"sha256": parent, "matches": [], "errors": []})
+        row["matches"].append(
+            {
+                "sample_id": sample_id,
+                "sha256": parent,
+                "visibility": "public_searchable_api",
+                "triage_url": f"https://tria.ge/{sample_id}",
+                "target": candidate.get("name"),
+                "size": 0,
+                "score": None,
+                "families": [],
+                "config_endpoints": [],
+                "reports": [],
+            }
+        )
+    for error in source.get("errors") or []:
+        parent_value = error.get("parent_sha256")
+        if not parent_value:
+            continue
+        parent = _sha256(parent_value)
+        row = grouped.setdefault(parent, {"sha256": parent, "matches": [], "errors": []})
+        row["errors"].append({"error": str(error.get("error") or "unknown")[:80]})
+    return list(grouped.values())
 
 def _render_case(evidence: dict[str, Any]) -> str:
     matches = evidence["public_matches"]
@@ -286,28 +329,27 @@ def _render_case(evidence: dict[str, Any]) -> str:
 ## プロセス・通信
 
 - 観測process: `{', '.join(processes) or '取得できず'}`
-- raw commandは保存せず、command SHA-256と処理patternだけをJSONへ保持しています。
+- raw commandは保存せず、command SHA-256と処理patternだけをJSONへ保持します。
 - sandbox background trafficは`context_only`であり、C2へ自動昇格しません。
 
 {chr(10).join(endpoint_rows)}
 
-## 二段目成果物
+## 後段取得物
 
 {chr(10).join(artifact_rows)}
 
 ```mermaid
 flowchart LR
-    A["親検体 SHA-256固定"] --> B["公開Triage解析との完全一致"]
+    A["親検体・SHA-256固定"] --> B["公開Triage解析との完全一致"]
     B --> C["process・config・通信contextを正規化"]
-    C --> D["dump／memory候補を限定取得"]
+    C --> D["dump・memory候補を限定取得"]
     D --> E["暗号化保存・ハッシュ検証"]
     E --> F["ローカル静的解析（実行なし）"]
 ```
 
 ## 判定境界
 
-Triage由来のfamily、process、config、通信は外部sandbox証跡です。config extractorが返したendpointはC2候補として扱えますが、
-静的設定復元またはprocess帰属とprotocol応答が揃うまでは確認済みC2とはしません。取得成果物と検体は実行していません。
+Triage由来のfamily、process、config、通信は外部sandbox証跡です。Config extractorが返したendpointはC2候補として扱いますが、静的設定復元またはprocess帰属とprotocol応答が揃うまでは確認済みC2とはしません。取得成果物と検体は実行していません。
 """
 
 
@@ -315,9 +357,9 @@ def _readme_section(case_root: Path, evidence: dict[str, Any]) -> None:
     readme_path = case_root / "README.md"
     text = readme_path.read_text(encoding="utf-8-sig")
     section = (
-        f"{START_MARKER}\n## 公開sandbox・二段目解析\n\n"
+        f"{START_MARKER}\n## 公開sandbox・後段解析\n\n"
         f"完全ハッシュ一致の公開Triage解析は`{len(evidence['public_matches'])}`件、"
-        f"取得して静的解析へ渡した後段成果物は`{len(evidence['recovered_artifacts'])}`件です。"
+        f"取得して静的解析へ渡した後段成果物は`{len(evidence['recovered_artifacts'])}`件です。\n"
         "詳細は[TRIAGE.md](TRIAGE.md)を参照してください。\n"
         f"{END_MARKER}"
     )
@@ -371,7 +413,7 @@ def publish(
     *,
     write: bool,
 ) -> dict[str, Any]:
-    """公開Triage証拠と後段解析状態を正規caseへ反映する。"""
+    """公開Triage証跡と後段解析状態を正規ケースへ反映する。"""
 
     repository = repository.resolve()
     cases = _collection_cases(repository, collection_id)
@@ -382,7 +424,7 @@ def publish(
         for item in rows:
             item["static_analysis"] = artifact_analysis.get(item["sha256"])
     results = []
-    source_by_hash = {_sha256(item.get("sha256")): item for item in source.get("results") or []}
+    source_by_hash = {_sha256(item.get("sha256")): item for item in _source_results(source)}
     for digest, case_root in sorted(cases.items()):
         row = source_by_hash.get(digest, {"matches": [], "errors": [{"error": "not_queried"}]})
         matches = []
@@ -462,14 +504,14 @@ def publish(
 |---|---:|---:|---:|
 {chr(10).join(rows) or '| なし | 0 | 0 | 0 |'}
 
-通信contextは正規OSのbackground trafficを含み得るため、config endpointと分離し、C2へ自動昇格していません。
+通信contextには正規OSのbackground trafficを含み得るため、config endpointと分離し、C2へ自動昇格していません。
 """,
         )
     return summary
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """公開証拠反映CLIの引数parserを構築する。"""
+    """公開証跡反映CLIの引数parserを構築する。"""
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -482,7 +524,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Triage証拠の検証・公開処理を実行する。"""
+    """Triage証跡の検証と公開処理を実行する。"""
 
     args = build_parser().parse_args(argv)
     summary = publish(

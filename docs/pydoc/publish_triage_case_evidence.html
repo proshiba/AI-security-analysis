@@ -17,26 +17,19 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="re.html">re</a><br>
 </td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
-</td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">公開証拠反映CLIの引数parserを構築する。</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Triage証拠の検証・公開処理を実行する。</span></dd></dl>
- <dl><dt><a name="-publish"><strong>publish</strong></a>(
-    repository: 'Path',
-    collection_id: 'str',
-    triage_result: 'Path',
-    artifact_manifest: 'Path | None',
-    artifact_analysis_summary: 'Path | None',
-    *,
-    write: 'bool'
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">公開Triage証拠と後段解析状態を正規caseへ反映する。</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">公開証跡反映CLIの引数parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Triage証跡の検証と公開処理を実行する。</span></dd></dl>
+ <dl><dt><a name="-publish"><strong>publish</strong></a>(repository: 'Path', collection_id: 'str', triage_result: 'Path', artifact_manifest: 'Path | None', artifact_analysis_summary: 'Path | None', *, write: 'bool') -&gt; 'dict[str, Any]'</dt><dd><span class="code">公開Triage証跡と後段解析状態を正規ケースへ反映する。</span></dd></dl>
  <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">現在時刻をUTCのISO&nbsp;8601形式で返す。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
