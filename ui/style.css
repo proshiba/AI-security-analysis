@@ -614,19 +614,57 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 #c2-view-map[hidden], #c2-view-stats[hidden] { display: none; }
 #c2-view-map .section:first-child, #c2-view-stats .section:first-child { margin-top: 16px; }
 
-.stats-note { margin: 14px 0 0; }
-.stattbl .num { white-space: nowrap; }
-/* 件数の横に伸びる棒。数値を読みつつ分布も掴めるようにする */
-.sbar {
-  display: inline-block;
-  width: 56px;
-  height: 6px;
-  margin-right: 8px;
-  vertical-align: middle;
-  background: var(--panel-2);
-  border-radius: 3px;
-  overflow: hidden;
+/* 集計軸の選択と表の開閉 */
+.stats-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 16px 0 12px;
 }
-.sbar-fill { display: block; height: 100%; background: var(--accent); }
+.stats-dim { display: inline-flex; align-items: center; gap: 6px; }
+.stats-head select {
+  padding: 5px 10px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-family: inherit; font-size: 13px;
+}
+.stats-head select:focus { outline: none; border-color: var(--accent); }
+.stats-head .btn-mini { margin-left: auto; }
+.stats-note { margin: 10px 0 0; }
+
+/* 円グラフと凡例。横に並べてコンパクトに収める */
+.donut-wrap {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+}
+.donut { width: 168px; height: 168px; flex: none; }
+.donut .dseg { transition: opacity .12s ease; cursor: default; }
+.donut .dseg.on { opacity: 1; }
+.donut-wrap:has(.dseg.on) .dseg:not(.on) { opacity: .35; }
+.donut-num { fill: var(--text); font-size: 15px; font-weight: 700; font-family: var(--mono); }
+.donut-lbl { fill: var(--text-dim); font-size: 5.5px; }
+
+.donut-legend { list-style: none; margin: 0; padding: 0; flex: 1 1 320px; min-width: 0; max-width: 560px; }
+.donut-legend li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 6px; border-radius: 6px; font-size: 12.5px;
+}
+.donut-legend li.on { background: var(--panel-2); }
+.donut-legend li[data-pivot] { cursor: pointer; }
+.donut-legend i { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.lg-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-num { flex: none; width: 34px; text-align: right; }
+.lg-pct { flex: none; width: 36px; text-align: right; }
+.lg-alive { flex: none; width: 38px; text-align: right; }
+
+.stattbl .num { white-space: nowrap; }
 .stattbl tr[data-pivot] { cursor: pointer; }
 .stattbl tr[data-pivot]:hover { background: rgba(79, 168, 255, .1); }
+#c2-stat-table-box[hidden] { display: none; }
+#c2-stat-table-box { margin-top: 12px; }
+/* 中央の合計はラベルであって的ではない。セグメントのホバーを奪わせない */
+.donut-num, .donut-lbl { pointer-events: none; }
+/* 「その他」の凡例スウォッチは円グラフのハッチと同じ見え方にする */
+.donut-legend i.lg-hatch {
+  background-image: repeating-linear-gradient(45deg,
+    transparent 0 2.5px, var(--panel) 2.5px 4.5px);
+}

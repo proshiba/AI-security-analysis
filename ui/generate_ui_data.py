@@ -253,6 +253,7 @@ C2_STATE_LABELS = {
     "transport_reachable_c2_not_confirmed": ("TCP到達(C2未確認)", "tcp"),
     "not_reachable_at_observation": ("観測時点で応答なし", "down"),
     "not_observed_proxy_unavailable": ("観測経路なし(未観測)", "unknown"),
+    "not_observed_safety_gate": ("安全境界により未実施", "unknown"),
     "dns_resolved_c2_service_not_confirmed": ("DNS解決あり(C2 service未確認)", "dns"),
     "dns_not_resolved": ("DNS解決なし(C2 service未観測)", "unknown"),
 }
