@@ -7,9 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_DIR = ROOT / "analysis-framework" / "malware" / "formbook_loader"
 sys.path.insert(0, str(MODULE_DIR))
-SPEC = importlib.util.spec_from_file_location(
-    "xloader_unresolved_evidence", MODULE_DIR / "unresolved_evidence.py"
-)
+SPEC = importlib.util.spec_from_file_location("xloader_unresolved_evidence", MODULE_DIR / "unresolved_evidence.py")
 assert SPEC is not None and SPEC.loader is not None
 EVIDENCE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = EVIDENCE
@@ -33,16 +31,12 @@ def test_find_alignment_for_mapped_image() -> None:
 
 def test_count_absolute_references_supports_raw_and_default_image_base() -> None:
     address = 0x267E0
-    data = (
-        address.to_bytes(4, "little")
-        + (0x400000 + address).to_bytes(4, "little")
-        + address.to_bytes(4, "little")
-    )
+    data = address.to_bytes(4, "little") + (0x400000 + address).to_bytes(4, "little") + address.to_bytes(4, "little")
 
     assert count_absolute_references(data, address) == 3
 
 
-def test_classify_statically_unreferenced_wrapper() -> None:
+def test_classify_not_observed_in_static_reference_set() -> None:
     result = classify_unresolved(
         direct_call_count=0,
         absolute_reference_count=0,
@@ -51,7 +45,7 @@ def test_classify_statically_unreferenced_wrapper() -> None:
         target_mutation_observed=False,
     )
 
-    assert result == ("statically_unreferenced_wrapper", "none", False)
+    assert result == ("not_observed_in_static_reference_set", "none", False)
 
 
 def test_classify_resolved_mix_without_marker() -> None:
@@ -63,7 +57,11 @@ def test_classify_resolved_mix_without_marker() -> None:
         target_mutation_observed=False,
     )
 
-    assert result == ("resolved_mix_marker_absent_all_images", "low", False)
+    assert result == (
+        "resolved_mix_marker_not_observed_in_evidence_set",
+        "low",
+        False,
+    )
 
 
 def test_runtime_mutation_has_high_capture_priority() -> None:

@@ -7508,7 +7508,9 @@ analyses:
       - "ZIP→BAT→Google Drive→Base64キャリア"
       - "Katheco Base64・反復XOR復号"
       - "Reflection.EmitとCallWindowProcAによるx86シェルコード起動"
-      - "Triageメモリ3領域を比較し後段PE未復元"
+      - "Triageメモリ成果物3取得元・合計21領域を比較"
+      - "XLoader／FormBook系ペイロード本体とJIT保護関数91件中80件を静的復元"
+      - "module複製、注入descriptor構築、explorer.exeへのimage配置・thread再開を静的確認"
     c2: []
-    notes: "GuLoader本体まで復元し、Ghidra MCPで難読化入口を解析しました。次段の完全PEは公開Triageメモリに残存せず、partialとして記録しました。"
+    notes: "GuLoader後段PEとXLoader／FormBook系terminal coreを静的復元しました。残る11保護関数と最終C2 record設定元は未解決のため、partialとして記録しています。"
     result_path: analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/

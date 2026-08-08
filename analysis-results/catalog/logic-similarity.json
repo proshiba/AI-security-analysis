@@ -45469,6 +45469,8 @@
           "encrypted_blob--skip_64_then_repeating_xor_1309_and_mapped_pe_rebuild-->pe32_x86_protected",
           "pe32_x86_protected--two_stage_rc4_exact_static_recovery-->raw_x86_xloader_protected",
           "raw_x86--guloader_google_drive_download-->encrypted_blob",
+          "raw_x86_xloader_partially_unprotected--validated_multistage_static_recovery_91_of_91-->raw_x86_xloader_all_protected_wrappers_recovered",
+          "raw_x86_xloader_partially_unprotected--validated_nested_static_overlay_and_wrapper_rescan_80_of_91-->raw_x86_xloader_partially_unprotected",
           "raw_x86_xloader_protected--static_jit_function_recovery_77_of_91-->raw_x86_xloader_partially_unprotected",
           "root:zip",
           "shellcode_plus_script--length_split-->powershell",
