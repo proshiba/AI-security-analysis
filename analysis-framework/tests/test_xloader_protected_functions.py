@@ -127,3 +127,24 @@ def test_profile_requires_key_and_decrypt_targets() -> None:
         PROTECTED.profile_from_mapping(
             {"base_key_dwords": [], "decrypt_call_targets": []}
         )
+
+
+def test_unresolved_report_distinguishes_runtime_context_marker_mismatch() -> None:
+    image, profile, _, _, _ = _synthetic_image()
+    mutable = bytearray(image)
+    mutable[0x500 : 0x506] = b"BROKEN"
+
+    _, report = PROTECTED.recover_protected_functions(
+        bytes(mutable),
+        profile,
+        allow_constant_fallback=False,
+        allow_target_marker_fallback=False,
+    )
+
+    assert report["recovered_count"] == 0
+    assert report["unresolved_count"] == 1
+    unresolved = report["unresolved"][0]
+    assert unresolved["reason_code"] == "static_context_marker_mismatch"
+    assert unresolved["resolved_mix_candidate_count"] == 1
+    assert unresolved["runtime_context_required"] is True
+    assert unresolved["mix_values_published"] is False
