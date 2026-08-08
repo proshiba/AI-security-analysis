@@ -265,3 +265,13 @@ py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --
 - collectionに属するcaseは、公開処理の時点でcollection `manifest.json`の`cases`と`family_sources`、case `metadata.json`の`collections`を同時に更新すること。一括反映スクリプトは、欠落した収集文脈を推測して補わない。
 - `analysis_history.yaml`、新規ファミリのOSINT文書、検知ルール、campaign相関は解析内容に応じて別途更新すること。campaign相関を更新した場合は`refresh_derived_artifacts.py`も実行してから全体反映を再検証すること。
 - `refresh_case_inventory.py --check`が1件でも不一致を報告した状態でcommit、push、PR作成、daily解析完了を行わないこと。詳細な対象ファイルと確認順は`analysis-framework/docs/CASE-PUBLICATION-CHECKLIST.md`に従うこと。
+
+## リポジトリ外解析データの保管ルール
+
+- 検体本体、復号済みpayload、memory dump、PCAP、Ghidra project、非公開の復元profileなど、リポジトリへ格納しない解析データは `malware-analysis-datastore-720232834682` へ保管すること。
+- `analysis-framework/common/archive_analysis_datastore.py`を使い、解析対象ごとに別々のWinZip AES-256 ZIPへまとめること。ZIP passwordは`infected`とし、異なる解析対象を1つのZIPへ混在させないこと。
+- S3 object keyは`analysis-targets/<target>/<YYYY>/<MM>/...zip`とし、AWS CLIとホストのIAM roleを使うこと。access keyをcommand、文書、script、archiveへ記録しないこと。
+- ZIP内manifestには相対path、size、SHA-256、target、作成日時を記録し、ホストの絶対pathを残さないこと。GitHub token、API key、AWS credential、`.env`、`creds.txt`、SSH秘密鍵はarchiveにも入れないこと。
+- upload時はSSE-S3を指定し、`HeadObject`でsize、SSE、archive SHA-256、manifest SHA-256、targetを照合すること。検証が完了するまでlocal stagingを削除せず、失敗時は再試行用の暗号化ZIPを保持すること。
+- source本体は保管scriptから自動削除しないこと。容量整理で削除する場合は、S3検証済みreportと対象pathを確認し、ユーザーの削除指示および安全ルールに従うこと。
+- 詳細は`analysis-framework/docs/ANALYSIS-DATASTORE.md`に従うこと。

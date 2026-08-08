@@ -106,6 +106,48 @@ def test_stack_builder_decode_and_sanitized_inventory() -> None:
     assert "QUJD" not in str(inventory)
 
 
+def test_candidate_layout_uses_nearest_previous_offset() -> None:
+    builders = [
+        NATIVE.DecodedBuilder(offset, 0x5A, b"QUJDREVGR0hJ")
+        for offset in (0x100, 0x160, 0x1C0, 0x220, 0x1000)
+    ]
+
+    inventory = NATIVE.inventory_encoded_network_candidates(builders)
+    candidates = inventory["candidates"]
+
+    assert inventory["layout_gap_method"] == "nearest_predecessor"
+    assert inventory["layout_median_gap"] == 0x60
+    assert inventory["layout_separation_threshold"] == 0x400
+    assert inventory["separated_layout_candidate_count"] == 1
+    assert [
+        candidate["separated_layout_candidate"]
+        for candidate in candidates
+    ] == [False, False, False, False, True]
+
+
+def test_candidate_layout_separates_large_cluster_from_base64_false_positives() -> None:
+    builders = [
+        NATIVE.DecodedBuilder(0x100 + index * 0x60, 0x5A, b"QUJDREVGR0hJ")
+        for index in range(8)
+    ]
+    builders.extend(
+        [
+            NATIVE.DecodedBuilder(0x2000, 0x5A, b"USERNAME"),
+            NATIVE.DecodedBuilder(0x2060, 0x5A, b"ProgramFiles"),
+        ]
+    )
+
+    inventory = NATIVE.inventory_encoded_network_candidates(builders)
+
+    assert inventory["base64_like_candidate_count"] == 10
+    assert inventory["primary_layout_cluster_candidate_count"] == 8
+    assert inventory["non_primary_base64_like_candidate_count"] == 2
+    assert [
+        candidate["primary_layout_cluster_candidate"]
+        for candidate in inventory["candidates"]
+    ] == [True] * 8 + [False, False]
+
+
 def test_missing_protected_function_marker_is_an_error() -> None:
     descriptor = NATIVE.ProtectedFunctionDescriptor(
         name="missing",
