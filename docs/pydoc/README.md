@@ -11,6 +11,7 @@
 - `analyze_stealer_set.html`：認証済みmanifest SHA-256、封じ込めたarchive受付、family batchの静的解析
 - `extractors.config_extractor.html`：統一family extractor API
 - family固有の `extractors.*.extractor.html`
+- `external_api_helpers.html`：検体取得とIOC補強用の外部API client
 
 再生成は次のように行います。
 
