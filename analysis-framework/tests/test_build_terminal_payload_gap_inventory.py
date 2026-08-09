@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
-
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import build_terminal_payload_gap_inventory as gaps  # noqa: E402
+import build_terminal_payload_gap_inventory as gaps
 
 
 def _sha(character: str) -> str:
@@ -148,6 +147,69 @@ def test_build_inventory_merges_reviewed_report_and_document_sources(
     assert cases[hashes["e"]]["observation_date"] == "2026-08-01"
     assert inventory["scope"]["gap_case_count"] == 5
     assert inventory["scope"]["structured_terminal_completion_count"] == 1
+
+
+def test_terminal_completion_is_independent_from_c2_case_completion(
+    tmp_path: Path,
+) -> None:
+    """partial caseでも明示的terminal復元を認め、family未確認はfail closedにする。"""
+
+    _fixture_repository(tmp_path)
+    catalog_path = tmp_path / "analysis-results" / "catalog" / "cases.json"
+    catalog_document = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog = catalog_document["cases"]
+    scenarios = {
+        "a": {"terminal": True, "manual": True, "c2": False},
+        "b": {"terminal": True, "manual": False, "c2": True},
+        "c": {"terminal": None, "manual": True, "c2": True},
+        "d": {"terminal": False, "manual": True, "c2": True},
+    }
+    scenario_hashes: dict[str, str] = {}
+    for marker, scenario in scenarios.items():
+        digest = _sha(marker)
+        scenario_hashes[marker] = digest
+        family = f"scenario-{marker}"
+        case_dir = _case_path(tmp_path, family, digest)
+        case_dir.mkdir(parents=True)
+        canonical = case_dir.relative_to(tmp_path).as_posix()
+        catalog[digest] = {
+            "case_id": f"sha256:{digest}",
+            "canonical_path": canonical,
+            "case_kind": "malware",
+            "family": family,
+            "version_key": "unknown",
+        }
+        classification = {}
+        if scenario["terminal"] is not None:
+            classification["terminal_family_confirmed"] = scenario["terminal"]
+        report = {
+            "classification": classification,
+            "case_state": {
+                "status": "partial",
+                "complete": False,
+                "blockers": ["c2_protocol_confirmation_pending"],
+            },
+        }
+        if scenario["manual"]:
+            report["manual_deep_analysis"] = {"terminal_payload_gap": "closed"}
+        _write_json(case_dir / "report.json", report)
+        if scenario["c2"]:
+            _write_json(
+                case_dir / "c2-analysis.json",
+                {
+                    "terminal_payload": {
+                        "reached": True,
+                        "status": "recovered",
+                    }
+                },
+            )
+
+    resolved = gaps._structured_terminal_completions(tmp_path, catalog)
+
+    assert scenario_hashes["a"] in resolved
+    assert scenario_hashes["b"] in resolved
+    assert scenario_hashes["c"] not in resolved
+    assert scenario_hashes["d"] not in resolved
 
 
 def test_document_match_requires_same_sentence_payload_gap() -> None:

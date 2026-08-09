@@ -208,6 +208,9 @@ py -3.13 .\common\build_terminal_payload_gap_inventory.py --repository .. --chec
 ```
 
 最新版は取得時点で再照会し、P0 family、既存hash除外、完全配布chain、公開sandboxのexact artifact／memoryの順で選びます。構造化reportが終端family確認済みかつcase完了を示すまで、古い未取得根拠を自動的に閉じません。
+
+RemusStealerのfull process dumpからmapped PE、暗号化設定、静的C2 endpoint、fail-closedのC2判定profileを一括復元する場合は、[RemusStealer process dump静的一括解析](docs/REMUS-PROCESS-DUMP-STATIC-RECOVERY.md)を参照してください。
+
 ## 新規caseの全体反映
 
 

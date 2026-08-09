@@ -2,31 +2,6 @@
   "cases": [
     {
       "blockers": [
-        "terminal_layer_not_recovered",
-        "upx_marker"
-      ],
-      "canonical_path": "analysis-results/malware/darkcomet/versions/unknown/cases/a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a",
-      "evidence": [
-        {
-          "locator": "newest_100_darkcomet_upx",
-          "path": "analysis-framework/inventories/static-hard-cases.yaml",
-          "source": "curated_static_hard_inventory",
-          "summary": "upx_marker, terminal_layer_not_recovered"
-        }
-      ],
-      "family": "darkcomet",
-      "gap_types": [
-        "terminal_payload_unrecovered"
-      ],
-      "observation_date": "2026-05-26",
-      "priority": "P0",
-      "requires_latest_sample": true,
-      "sha256": "a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a",
-      "state": "curated_recovery_backlog",
-      "version_key": "unknown"
-    },
-    {
-      "blockers": [
         "human_documented_terminal_gap",
         "terminal_family_config_and_c2_not_recovered"
       ],
@@ -68,58 +43,6 @@
       "requires_latest_sample": true,
       "sha256": "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
       "state": "explicit_unrecovered",
-      "version_key": "unknown"
-    },
-    {
-      "blockers": [
-        "terminal_layer_not_recovered",
-        "themida"
-      ],
-      "canonical_path": "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02",
-      "evidence": [
-        {
-          "locator": "newest_100_redline_themida",
-          "path": "analysis-framework/inventories/static-hard-cases.yaml",
-          "source": "curated_static_hard_inventory",
-          "summary": "themida, terminal_layer_not_recovered"
-        }
-      ],
-      "family": "redlinestealer",
-      "gap_types": [
-        "protector_or_virtualization_boundary",
-        "terminal_payload_unrecovered"
-      ],
-      "observation_date": "2026-07-07",
-      "priority": "P0",
-      "requires_latest_sample": true,
-      "sha256": "3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02",
-      "state": "curated_recovery_backlog",
-      "version_key": "unknown"
-    },
-    {
-      "blockers": [
-        "terminal_config_not_recovered",
-        "themida_winlicense_2x"
-      ],
-      "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
-      "evidence": [
-        {
-          "locator": "stealc_themida",
-          "path": "analysis-framework/inventories/static-hard-cases.yaml",
-          "source": "curated_static_hard_inventory",
-          "summary": "themida_winlicense_2x, terminal_config_not_recovered"
-        }
-      ],
-      "family": "stealc",
-      "gap_types": [
-        "protector_or_virtualization_boundary",
-        "terminal_config_unrecovered"
-      ],
-      "observation_date": null,
-      "priority": "P0",
-      "requires_latest_sample": true,
-      "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
-      "state": "curated_recovery_backlog",
       "version_key": "unknown"
     },
     {
@@ -6951,30 +6874,6 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
-      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93",
-      "evidence": [
-        {
-          "locator": "line:36",
-          "path": "analysis-results/malware/remusstealer/versions/unknown/cases/843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93/FEATURES.md",
-          "source": "human_readable_case_document",
-          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
-        }
-      ],
-      "family": "remusstealer",
-      "gap_types": [
-        "terminal_payload_unrecovered"
-      ],
-      "observation_date": "2026-08-05",
-      "priority": "P1",
-      "requires_latest_sample": true,
-      "sha256": "843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93",
-      "state": "explicit_unrecovered",
-      "version_key": "unknown"
-    },
-    {
-      "blockers": [
-        "human_documented_terminal_gap"
-      ],
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/bb71186aa5e8ce286c5e8698adf22aac802615856dbab846a88e740cb5ce4316",
       "evidence": [
         {
@@ -7238,6 +7137,44 @@
       "requires_latest_sample": true,
       "sha256": "0523d96352c2028dd22fe5591db75e08c6d8ad76afd0baf2c0b5ce04ae850439",
       "state": "curated_recovery_backlog",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "function_analysis_pending",
+        "human_documented_terminal_gap",
+        "terminal_binary_public_artifact_unavailable"
+      ],
+      "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "evidence": [
+        {
+          "locator": "stealc_themida_terminal_binary_pending",
+          "path": "analysis-framework/inventories/static-hard-cases.yaml",
+          "source": "curated_static_hard_inventory",
+          "summary": "terminal_binary_public_artifact_unavailable, function_analysis_pending"
+        },
+        {
+          "locator": "line:23",
+          "path": "analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/OVERALL-LOGIC.md",
+          "source": "human_readable_case_document",
+          "summary": "f1[\"終端PE関数境界・call graph未取得\"] -.-> p3"
+        },
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/report.json",
+          "source": "structured_case_report",
+          "summary": "terminal_binary_public_artifact_unavailable"
+        }
+      ],
+      "family": "stealc",
+      "gap_types": [
+        "static_recovery_incomplete"
+      ],
+      "observation_date": "2024-10-15",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
     {
@@ -14694,10 +14631,10 @@
     },
     {
       "case_count": 36,
-      "explicit_unrecovered_count": 0,
+      "explicit_unrecovered_count": 1,
       "family": "stealc",
-      "latest_local_observation": null,
-      "latest_local_sha256": null,
+      "latest_local_observation": "2024-10-15",
+      "latest_local_sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
       "malwarebazaar_signature_candidates": [
         "Stealc"
       ],
@@ -14716,54 +14653,6 @@
         "terminal_config_not_recovered",
         "themida_winlicense_2x",
         "high_entropy_native_wrapper"
-      ]
-    },
-    {
-      "case_count": 3,
-      "explicit_unrecovered_count": 0,
-      "family": "redlinestealer",
-      "latest_local_observation": "2026-07-11",
-      "latest_local_sha256": "72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a",
-      "malwarebazaar_signature_candidates": [
-        "RedLineStealer"
-      ],
-      "priority": "P0",
-      "selection_policy": {
-        "exclude_existing_sha256": true,
-        "leaf_only_sample_is_fallback": true,
-        "order": "first_seen_desc",
-        "prefer_full_delivery_chain": true,
-        "prefer_sandbox_with_memory_or_dumped_artifacts": true
-      },
-      "source_material_absent_count": 0,
-      "top_blockers": [
-        "family_config_not_recovered",
-        "managed_loader_or_obfuscated",
-        "terminal_layer_not_recovered",
-        "themida"
-      ]
-    },
-    {
-      "case_count": 1,
-      "explicit_unrecovered_count": 0,
-      "family": "darkcomet",
-      "latest_local_observation": "2026-05-26",
-      "latest_local_sha256": "a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a",
-      "malwarebazaar_signature_candidates": [
-        "DarkComet"
-      ],
-      "priority": "P0",
-      "selection_policy": {
-        "exclude_existing_sha256": true,
-        "leaf_only_sample_is_fallback": true,
-        "order": "first_seen_desc",
-        "prefer_full_delivery_chain": true,
-        "prefer_sandbox_with_memory_or_dumped_artifacts": true
-      },
-      "source_material_absent_count": 0,
-      "top_blockers": [
-        "terminal_layer_not_recovered",
-        "upx_marker"
       ]
     },
     {
@@ -14812,11 +14701,11 @@
       ]
     },
     {
-      "case_count": 15,
-      "explicit_unrecovered_count": 15,
+      "case_count": 14,
+      "explicit_unrecovered_count": 14,
       "family": "remusstealer",
-      "latest_local_observation": "2026-08-05",
-      "latest_local_sha256": "843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93",
+      "latest_local_observation": "2026-08-04",
+      "latest_local_sha256": "c375cb55dafefcb4ad4fdad99e58159943b9e1c51c7756c2e7880656881fc0f0",
       "malwarebazaar_signature_candidates": [
         "RemusStealer"
       ],
@@ -15070,6 +14959,29 @@
       "latest_local_sha256": "da590d16a8738a6c5f055fffcdcb49870e088d37e040bf1fc1880cbf9b3faa51",
       "malwarebazaar_signature_candidates": [
         "njRAT"
+      ],
+      "priority": "P1",
+      "selection_policy": {
+        "exclude_existing_sha256": true,
+        "leaf_only_sample_is_fallback": true,
+        "order": "first_seen_desc",
+        "prefer_full_delivery_chain": true,
+        "prefer_sandbox_with_memory_or_dumped_artifacts": true
+      },
+      "source_material_absent_count": 0,
+      "top_blockers": [
+        "family_config_not_recovered",
+        "managed_loader_or_obfuscated"
+      ]
+    },
+    {
+      "case_count": 2,
+      "explicit_unrecovered_count": 0,
+      "family": "redlinestealer",
+      "latest_local_observation": "2026-07-11",
+      "latest_local_sha256": "72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a",
+      "malwarebazaar_signature_candidates": [
+        "RedLineStealer"
       ],
       "priority": "P1",
       "selection_policy": {
@@ -15463,18 +15375,18 @@
   "schema_version": 1,
   "scope": {
     "catalog_case_count": 2041,
-    "curated_active_count": 74,
+    "curated_active_count": 72,
     "curated_source_absent_count": 5,
-    "family_count": 39,
-    "gap_case_count": 588,
-    "human_document_match_count": 527,
+    "family_count": 38,
+    "gap_case_count": 585,
+    "human_document_match_count": 528,
     "state_counts": {
-      "curated_recovery_backlog": 59,
+      "curated_recovery_backlog": 56,
       "explicit_unrecovered": 524,
       "source_material_absent": 5
     },
-    "structured_report_match_count": 4,
-    "structured_terminal_completion_count": 6
+    "structured_report_match_count": 5,
+    "structured_terminal_completion_count": 8
   },
   "source_paths": [
     "analysis-framework/inventories/static-hard-cases.yaml",

@@ -15,10 +15,10 @@ import pytest
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(FRAMEWORK_ROOT), str(FRAMEWORK_ROOT / "common")]
 
-import import_ghidra_project  # noqa: E402
+import import_ghidra_project
 
-import invoke_analysis  # noqa: E402
-import invoke_family_batch  # noqa: E402
+import invoke_analysis
+import invoke_family_batch
 
 
 def test_resolve_python_uses_each_os_venv_then_falls_back(short_tmp: Path) -> None:
@@ -67,7 +67,13 @@ def test_one_shot_builds_an_argument_list(short_tmp: Path) -> None:
     ]
 
 
-def test_legacy_msi_flow_writes_compatible_summary(short_tmp: Path) -> None:
+def test_legacy_msi_flow_writes_compatible_summary(
+    short_tmp: Path,
+    monkeypatch,
+) -> None:
+    """旧MSIフローが分類、2解析stage、run-summaryを生成する。"""
+
+    monkeypatch.delenv("VT_API_KEY", raising=False)
     output = short_tmp / "out"
     output.mkdir()
     args = invoke_analysis.build_parser().parse_args(

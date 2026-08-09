@@ -14,11 +14,19 @@ import socket
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
+from c2_protocol_probe_profiles import (
+    ProtocolProfileError,
+    profile_registry_metadata,
+)
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
-
+from remus_profile_evidence import (
+    RemusEvidenceError,
+    validate_remus_profile_evidence,
+)
 
 TOKEN_RE = re.compile(r"[0-9a-f]{64,128}", re.IGNORECASE)
 UUID_RE = re.compile(
@@ -31,8 +39,7 @@ LUMMA_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.5414.120 Safari/537.36"
 )
 REMUS_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
 )
 
 
@@ -254,11 +261,7 @@ def _probe_stealc(profile: dict[str, Any], post: PostFunction) -> dict[str, Any]
     responses = [first]
     decoded = _stealc_decode(first.body, key) if not first.truncated else None
     token = decoded.get("access_token") if decoded else None
-    registration_accepted = bool(
-        first.status in {200, 201}
-        and isinstance(token, str)
-        and TOKEN_RE.fullmatch(token)
-    )
+    registration_accepted = bool(first.status in {200, 201} and isinstance(token, str) and TOKEN_RE.fullmatch(token))
     if not registration_accepted:
         return {
             **_base_result(responses),
@@ -276,10 +279,7 @@ def _probe_stealc(profile: dict[str, Any], post: PostFunction) -> dict[str, Any]
     task = _stealc_decode(second.body, key) if not second.truncated else None
     loader = task.get("loader") if task else None
     task_valid = bool(
-        second.status in {200, 201}
-        and task
-        and task.get("opcode") == "success"
-        and isinstance(loader, list)
+        second.status in {200, 201} and task and task.get("opcode") == "success" and isinstance(loader, list)
     )
     return {
         **_base_result(responses),
@@ -436,23 +436,30 @@ def _probe_remus(profile: dict[str, Any], post: PostFunction) -> dict[str, Any]:
     second = post(profile, second_body, headers)
     responses.append(second)
     task = _decode_remus_response(second.body) if not second.truncated else None
-    task_type = task.get("type") if task else None
-    task_valid = bool(
-        second.status == 201
-        and isinstance(task, dict)
-        and {"type", "name", "data"}.issubset(task)
-        and isinstance(task_type, int)
+    task_type = task.get("type") if type(task) is dict else None
+    task_type_valid = type(task_type) is int and 0 <= task_type <= 5
+    task_envelope_candidate = bool(
+        second.status == 201 and type(task) is dict and set(task) == {"type", "name", "data"} and task_type_valid
+    )
+    task_schema_status = (
+        "name_data_protocol_types_not_static_verified"
+        if task_envelope_candidate
+        else "invalid_or_unparseable_task_envelope"
     )
     return {
         **_base_result(responses),
-        "status": "confirmed_remus_registration_task" if task_valid else "remus_task_response_mismatch",
-        "c2_confirmed": task_valid,
+        "status": ("remus_task_schema_unverified" if task_envelope_candidate else "remus_task_response_mismatch"),
+        "c2_confirmed": False,
         "registration_accepted": True,
         "task_poll_attempted": True,
         "task_response_received": second.status == 201 and bool(second.body),
-        "task_available": task_type != 5 if task_valid else None,
-        "task_type": task_type if task_valid and 0 <= task_type <= 255 else None,
-        "task_terminal_signal": task_type == 5 if task_valid else None,
+        "task_available": None,
+        "task_type": task_type if task_type_valid else None,
+        "task_terminal_signal": None,
+        "task_schema_confirmed": False,
+        "task_schema_status": task_schema_status,
+        "task_name_protocol_type": "unresolved",
+        "task_data_protocol_type": "unresolved",
         "access_token_published": False,
     }
 
@@ -463,6 +470,16 @@ def probe_reviewed_stealer_registration(
     allow_network: bool = False,
     allow_registration_tasking: bool = False,
     post: PostFunction | None = None,
+    repository_root: Path | None = None,
+    expected_evidence_sha256: str | None = None,
+    expected_evidence_source: str | None = None,
+    expected_profile_registry_source: str | None = None,
+    expected_profile_registry_sha256: str | None = None,
+    expected_registry_source: str | None = None,
+    expected_registry_sha256: str | None = None,
+    expected_flow_artifact_source: str | None = None,
+    expected_flow_artifact_sha256: str | None = None,
+    expected_review_id: str | None = None,
 ) -> dict[str, Any]:
     """完全一致profileへ合成登録とtask取得を最大2要求で行う。
 
@@ -480,5 +497,43 @@ def probe_reviewed_stealer_registration(
     if handler == "lumma_v6_registration_task":
         return _probe_lumma(profile, sender)
     if handler == "remus_registration_task":
+        try:
+            current_profile_registry = profile_registry_metadata()
+        except ProtocolProfileError as exc:
+            raise StealerProbeError(f"Remus profile registry pre-probe validation failed: {exc}") from exc
+        if (
+            expected_profile_registry_source is None
+            or expected_profile_registry_sha256 is None
+            or current_profile_registry
+            != {
+                "source": expected_profile_registry_source,
+                "sha256": expected_profile_registry_sha256,
+            }
+        ):
+            raise StealerProbeError("Remus profile registry pin mismatch")
+        if (
+            expected_evidence_source is None
+            or expected_evidence_sha256 is None
+            or expected_registry_source is None
+            or expected_registry_sha256 is None
+            or expected_flow_artifact_source is None
+            or expected_flow_artifact_sha256 is None
+            or expected_review_id is None
+            or expected_evidence_source != profile.get("evidence_source")
+            or expected_registry_source != profile.get("review_registry_source")
+            or expected_flow_artifact_source != profile.get("flow_artifact_source")
+            or expected_review_id != profile.get("review_id")
+        ):
+            raise StealerProbeError("Remus evidence/review/flow source pin mismatch")
+        try:
+            validate_remus_profile_evidence(
+                profile,
+                repository_root=repository_root,
+                expected_sha256=expected_evidence_sha256,
+                expected_registry_sha256=expected_registry_sha256,
+                expected_flow_artifact_sha256=expected_flow_artifact_sha256,
+            )
+        except RemusEvidenceError as exc:
+            raise StealerProbeError(f"Remus profile evidence pre-probe validation failed: {exc}") from exc
         return _probe_remus(profile, sender)
     raise StealerProbeError(f"未対応のstealer registration handlerです: {handler}")

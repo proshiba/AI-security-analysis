@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import monitor_recent_c2  # noqa: E402
+import c2_protocol_probe_profiles
+import monitor_recent_c2
 
 
 def plan() -> dict:
@@ -246,38 +246,37 @@ def test_dns_resolve_does_not_connect_to_c2_service(
 
 
 def reviewed_target(profile_id: str, host: str, port: int, protocol: str, method: str) -> dict:
+    registry_pin = c2_protocol_probe_profiles.profile_registry_metadata()
+    profile = c2_protocol_probe_profiles.resolve_profile(
+        profile_id,
+        host,
+        port,
+        expected_registry_sha256=registry_pin["sha256"],
+    )
     return {
         "schema_version": 1,
         "analysis_window": {
             "start": "リポジトリ収録開始",
             "end": "2026-08-02T23:59:59+09:00",
         },
+        "protocol_profile_registry": registry_pin,
         "targets": [
             {
                 "target_id": profile_id,
-                "family": "valleyrat",
+                "family": profile["family"],
                 "host": host,
                 "port": port,
                 "protocol": protocol,
                 "method": method,
                 "protocol_profile_id": profile_id,
+                "protocol_profile_registry_source": registry_pin["source"],
+                "protocol_profile_registry_sha256": registry_pin["sha256"],
                 "transport": "direct",
-                "sample_sha256s": ["e" * 64],
+                "sample_sha256s": profile["sample_sha256s"],
                 "sources": ["fixture:reviewed"],
-                "timeout_seconds": 3.0,
-                "maximum_response_bytes": (
-                    44
-                    if protocol == "n520"
-                    else (
-                        1024
-                        if protocol == "ftp"
-                        else (
-                            16384
-                            if protocol == "stealc"
-                            else (65536 if protocol == "lummastealer" else (8192 if protocol == "remusstealer" else 64))
-                        )
-                    )
-                ),
+                "timeout_seconds": profile["timeout_seconds"],
+                "maximum_request_bytes": profile.get("maximum_request_bytes"),
+                "maximum_response_bytes": profile["maximum_response_bytes"],
             }
         ],
     }
@@ -384,6 +383,7 @@ def test_active_protocol_rejects_unknown_profile_and_plan_payload() -> None:
     value["targets"][0]["send_hex"] = "00"
     with pytest.raises(monitor_recent_c2.PlanError):
         monitor_recent_c2.validate_plan(value)
+
 
 def test_markdown_uses_limited_scope_title(
     monkeypatch: pytest.MonkeyPatch,
@@ -511,6 +511,7 @@ def test_agenttesla_authentication_is_fail_closed_without_vault() -> None:
     assert observation["target_contact_attempted"] is False
     assert observation["authentication_attempted"] is False
 
+
 def test_agenttesla_accepted_credential_confirms_protocol(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -607,6 +608,7 @@ def test_agenttesla_invalid_private_vault_is_not_a_negative_c2_observation(
     assert entry["assessment"]["state"] == "not_observed_safety_gate"
     assert entry["assessment"]["negative_observation_confidence"] == 0.0
 
+
 def test_stealc_registration_and_tasking_require_separate_gate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -618,9 +620,7 @@ def test_stealc_registration_and_tasking_require_separate_gate(
         "stealc_v2_registration_task",
     )
     disabled = monitor_recent_c2.monitor(value, allow_network=True)
-    assert disabled["results"][0]["observation"]["status"] == (
-        "malware_registration_tasking_disabled"
-    )
+    assert disabled["results"][0]["observation"]["status"] == ("malware_registration_tasking_disabled")
     assert disabled["results"][0]["assessment"]["state"] == "not_observed_safety_gate"
 
     calls = []
@@ -649,12 +649,8 @@ def test_stealc_registration_and_tasking_require_separate_gate(
             "request_count": 2,
         }
 
-    monkeypatch.setattr(
-        monitor_recent_c2, "probe_reviewed_stealer_registration", fake_probe
-    )
-    enabled = monitor_recent_c2.monitor(
-        value, allow_network=True, allow_malware_registration=True
-    )
+    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_stealer_registration", fake_probe)
+    enabled = monitor_recent_c2.monitor(value, allow_network=True, allow_malware_registration=True)
     assert calls[0][1]["allow_network"] is True
     assert calls[0][1]["allow_registration_tasking"] is True
     assert enabled["results"][0]["assessment"]["state"] == "c2_protocol_confirmed"
@@ -666,3 +662,91 @@ def test_stealc_registration_and_tasking_require_separate_gate(
     assert enabled["policy"]["task_executed"] is False
     assert enabled["policy"]["payload_download_attempted"] is False
     assert "task本文・token・合成IDは公開せず" in monitor_recent_c2.render_markdown(enabled)
+
+
+def test_profile_required_performs_dns_only_and_keeps_c2_unverified(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    value = plan()
+    value["targets"][0].update(
+        {
+            "host": "fallback.example",
+            "port": 5776,
+            "protocol": "tcp",
+            "method": "protocol_profile_required",
+            "protocol_hints": ["remusstealer"],
+            "protocol_profile_required": True,
+            "protocol_profile_status": "reviewed_exact_profile_missing",
+        }
+    )
+    monkeypatch.setattr(
+        monitor_recent_c2.socket,
+        "getaddrinfo",
+        lambda *_args, **_kwargs: [(2, 1, 6, "", ("203.0.113.20", 0))],
+    )
+    monkeypatch.setattr(
+        monitor_recent_c2,
+        "probe",
+        lambda _args: pytest.fail("profile未登録endpointへTCP接続してはいけない"),
+    )
+
+    result = monitor_recent_c2.monitor(value, allow_network=True)
+    entry = result["results"][0]
+    assert entry["observation"]["resolved_ips"] == ["203.0.113.20"]
+    assert entry["observation"]["target_contact_attempted"] is False
+    assert entry["assessment"]["state"] == "protocol_profile_required_c2_unverified"
+    assert entry["assessment"]["c2_operational_confidence"] == 0.0
+    assert entry["assessment"]["method_confidence_ceiling"] == 0.05
+    assert entry["protocol_hints"] == ["remusstealer"]
+
+
+def test_profile_required_rejects_missing_or_conflicting_fail_closed_metadata() -> None:
+    value = plan()
+    value["targets"][0].update(
+        {
+            "port": 5776,
+            "protocol": "tcp",
+            "method": "protocol_profile_required",
+            "protocol_profile_required": True,
+            "protocol_profile_status": "reviewed_exact_profile_missing",
+        }
+    )
+    with pytest.raises(monitor_recent_c2.PlanError):
+        monitor_recent_c2.validate_plan(value)
+    value["targets"][0]["protocol_hints"] = ["remusstealer", "asyncrat"]
+    with pytest.raises(monitor_recent_c2.PlanError):
+        monitor_recent_c2.validate_plan(value)
+
+
+def test_active_plan_rejects_cross_sample_overlay() -> None:
+    value = reviewed_target(
+        "valleyrat-winos-heartbeat-20260727",
+        "haochisadnka.cc",
+        6685,
+        "winos",
+        "winos_heartbeat",
+    )
+    value["targets"][0]["sample_sha256s"] = ["f" * 64]
+
+    with pytest.raises(
+        monitor_recent_c2.PlanError,
+        match="sample",
+    ):
+        monitor_recent_c2.validate_plan(value)
+
+
+def test_remus_unverified_task_schema_has_zero_c2_confidence() -> None:
+    assessment = monitor_recent_c2.assess_observation(
+        {"method": "remus_registration_task"},
+        {
+            "status": "remus_task_schema_unverified",
+            "tcp_status": "open",
+            "target_connection_established": True,
+            "c2_confirmed": False,
+        },
+    )
+
+    assert assessment["state"] == "remus_task_schema_unverified_c2_not_confirmed"
+    assert assessment["reachability_confidence"] == 0.98
+    assert assessment["c2_operational_confidence"] == 0.0
+    assert assessment["negative_observation_confidence"] == 0.0

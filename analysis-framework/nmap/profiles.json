@@ -65,6 +65,30 @@
       "modes": ["remus"],
       "maximum_confidence": 0.78,
       "confirmation": "tag/exp登録に対するHTTP 201と暗号化envelope長の一致（推定）"
+    },
+    {
+      "family": "darkcomet",
+      "aliases": [],
+      "script": "scripts/darkcomet-c2.nse",
+      "modes": ["rc4-server-first-idtype"],
+      "maximum_confidence": 0.98,
+      "confirmation": "検体から静的復元したRC4 network keyによるserver-first challengeのIDTYPE完全一致（送信なし）"
+    },
+    {
+      "family": "redlinestealer",
+      "aliases": ["redline"],
+      "script": "scripts/redline-c2.nse",
+      "modes": ["wcf-soap11-checkconnect"],
+      "maximum_confidence": 0.98,
+      "confirmation": "review済み完全一致endpointへ固定CheckConnectを1要求だけ送り、SOAP 1.1 namespace・親子構造・boolean結果を厳密確認"
+    },
+    {
+      "family": "xloader",
+      "aliases": ["formbook-loader", "guloader-xloader-payload"],
+      "script": "scripts/xloader-c2.nse",
+      "modes": ["transport-only"],
+      "maximum_confidence": 0.15,
+      "confirmation": "TCP到達性だけを記録し、c2_confirmedは常にfalse。検体固有private profileによるPython protocol検証へ引き継ぐ"
     }
   ],
   "excluded_until_wire_signature_is_reviewed": [

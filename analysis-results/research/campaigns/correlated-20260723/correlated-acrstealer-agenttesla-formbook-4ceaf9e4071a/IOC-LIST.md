@@ -196,7 +196,6 @@
 | ドメイン | system.threading | shared_campaign_evidence | 高 | iocs.json |
 | ドメイン | system.threading.tasks | shared_campaign_evidence | 高 | iocs.json |
 | ドメイン | system.windows.forms | shared_campaign_evidence | 高 | iocs.json |
-| ドメイン | tempuri.org | shared_campaign_evidence | 高 | iocs.json |
 | ドメイン | ti.com | shared_campaign_evidence | 高 | iocs.json |
 | ドメイン | timepedia.org | shared_campaign_evidence | 高 | iocs.json |
 | ドメイン | tukaani.org | shared_campaign_evidence | 高 | iocs.json |
@@ -366,7 +365,6 @@
 | url | http://sourceware.org/ml/newlib/ | shared_campaign_evidence | 高 | iocs.json |
 | url | http://sourceware.org/newlib/docs.html | shared_campaign_evidence | 高 | iocs.json |
 | url | http://src.chromium.org/viewvc/chrome/trunk/deps/third_party/xz/copying | shared_campaign_evidence | 高 | iocs.json |
-| url | http://tempuri.org/dsrootbeer.xsd | shared_campaign_evidence | 高 | iocs.json |
 | url | http://tukaani.org/xz/ | shared_campaign_evidence | 高 | iocs.json |
 | url | http://unlicense.org/&gt | shared_campaign_evidence | 高 | iocs.json |
 | url | http://valgrind.org/ | shared_campaign_evidence | 高 | iocs.json |

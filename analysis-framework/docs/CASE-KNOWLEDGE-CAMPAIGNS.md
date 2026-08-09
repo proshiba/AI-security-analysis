@@ -29,6 +29,24 @@ python .\analysis-framework\common\generate_case_features.py --repository . --ch
 python .\analysis-framework\common\audit_case_knowledge.py --repository . --write
 ```
 
+### 指定したcaseだけの再生成と監査
+
+全caseを更新せず、追加解析したcaseだけを正規生成するときは、repository相対の
+caseディレクトリを `--case-dir` で指定します。
+
+```powershell
+python .\analysis-framework\common\generate_case_features.py --repository . `
+  --case-dir analysis-results/malware/<family>/versions/<version>/cases/<sha256> --write
+python .\analysis-framework\common\generate_case_features.py --repository . `
+  --case-dir analysis-results/malware/<family>/versions/<version>/cases/<sha256> --check
+```
+
+`--case-dir` は複数回指定できます。省略時は従来どおり全caseを処理します。
+指定先はrepository内の `analysis-results` 配下にあるSHA-256名のcaseディレクトリに
+限定されます。repository外のパス、`..`、symbolic link／junction等のreparse point、
+重複指定は安全のため拒否します。サブセット処理でも `analysis_history.yaml` との相関は
+維持されます。
+
 監査結果は `analysis-results/research/audits/case-knowledge-<date>/` に保存します。
 全件の不足理由と次の作業は `audit.json`、人向け集計は `README.md` にあります。
 

@@ -13,13 +13,14 @@ COMMON = REPOSITORY / "analysis-framework" / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from generate_ioc_lists import (  # noqa: E402
+from generate_ioc_lists import (
     Indicator,
     generate,
     indicator_type,
     indicators_from_config,
     indicators_from_indicators_json,
     indicators_from_ioc_json,
+    normalize_value,
     read_relevant_markdown,
     render_ioc_list,
     sanitize_url,
@@ -33,6 +34,12 @@ def test_sanitize_url_removes_secrets_and_tracking_data() -> None:
         sanitize_url("https://user:pass@[2001:db8::7]:8443/a?token=secret#x")
         == "https://[2001:db8::7]:8443/a"
     )
+
+
+def test_protocol_reference_namespace_is_not_an_ioc() -> None:
+    """WCF既定namespaceをC2 URLへ誤昇格しない。"""
+
+    assert normalize_value("http://tempuri.org/Endpoint/CheckConnect") is None
 
 
 @pytest.mark.parametrize(

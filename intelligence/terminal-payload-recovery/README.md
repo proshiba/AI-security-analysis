@@ -2,14 +2,14 @@
 
 ## 結論
 
-過去の2,041ケースを対象に、精査済み難解析台帳、構造化レポート、人が読めるケース文書を統合し、終端ペイロードまたは終端ファミリーの確認まで到達していない588ケース／39ファミリーを抽出しました。
+過去の2,041ケースを対象に、精査済み難解析台帳、構造化レポート、人が読めるケース文書を統合し、終端ペイロードまたは終端ファミリーの確認まで到達していない585ケース／38ファミリーを抽出しました。
 
 単なる解析状態の`partial`は対象にしていません。精査済み難解析台帳に登録済みであるか、終端payload・本体・family・assemblyなどの未取得が現在の成果物に明記されている場合だけを収録します。最終C2だけが未回収で、終端本体を確認済みのケースはこの台帳へ自動追加しません。
 
 | 状態 | 件数 | 意味 |
 |---|---:|---|
 | 明示的未取得 | 524 | 現在のreportまたはケース文書が終端未取得を明記 |
-| 継続復元backlog | 59 | 精査済み難解析台帳に残る復元課題。最新成果物で再確認が必要 |
+| 継続復元backlog | 56 | 精査済み難解析台帳に残る復元課題。最新成果物で再確認が必要 |
 | 必要byte不在 | 5 | 提出物に終端byteがなく、同じ検体の静的処理だけでは復元不能 |
 
 全ケースは[ケース一覧](CASES.md)、表計算向けには[inventory.csv](inventory.csv)、根拠を含む機械可読正本は[inventory.json](inventory.json)を参照してください。
@@ -24,12 +24,10 @@ P0から順に、MalwareBazaar等でfirst seenが新しい検体を実行時に�
 | P0 | `venomrat` | 8 | 6 | 2 | 不明 | `VenomRAT` |
 | P0 | `valleyrat` | 33 | 29 | 1 | 2026-08-07 | `ValleyRAT` |
 | P0 | `purehvnc` | 2 | 2 | 0 | 2026-08-07 | `PureHVNC`, `PureRAT` |
-| P0 | `stealc` | 36 | 0 | 0 | 不明 | `Stealc` |
-| P0 | `redlinestealer` | 3 | 0 | 0 | 2026-07-11 | `RedLineStealer` |
-| P0 | `darkcomet` | 1 | 0 | 0 | 2026-05-26 | `DarkComet` |
+| P0 | `stealc` | 36 | 1 | 0 | 2024-10-15 | `Stealc` |
 | P1 | `efimer` | 144 | 144 | 0 | 2026-08-08 | `Efimer` |
 | P1 | `lummastealer` | 16 | 16 | 0 | 不明 | `LummaStealer`, `LummaC2` |
-| P1 | `remusstealer` | 15 | 15 | 0 | 2026-08-05 | `RemusStealer` |
+| P1 | `remusstealer` | 14 | 14 | 0 | 2026-08-04 | `RemusStealer` |
 | P1 | `amadey` | 13 | 13 | 0 | 2026-08-01 | `Amadey` |
 | P1 | `acrstealer` | 9 | 9 | 0 | 2026-07-22 | `ACRStealer` |
 | P1 | `prometei` | 7 | 7 | 0 | 2026-08-07 | `Prometei` |
@@ -41,6 +39,7 @@ P0から順に、MalwareBazaar等でfirst seenが新しい検体を実行時に�
 | P1 | `latrodectus` | 1 | 1 | 0 | 不明 | `Latrodectus` |
 | P1 | `purelogs` | 1 | 1 | 0 | 2026-07-28 | `PureLogs` |
 | P1 | `njrat` | 3 | 0 | 0 | 2026-07-15 | `njRAT` |
+| P1 | `redlinestealer` | 2 | 0 | 0 | 2026-07-11 | `RedLineStealer` |
 | P1 | `snakekeylogger` | 2 | 0 | 0 | 2026-07-14 | `SnakeKeylogger` |
 | P1 | `shadowpad` | 1 | 0 | 0 | 不明 | `ShadowPad` |
 | P1 | `unclassified` | 221 | 221 | 0 | 2026-08-08 | 要OSINT確認 |

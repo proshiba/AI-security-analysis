@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "analysis_id": "2026-08-09-redline-xloader-active-c2-validation",
+  "generated_date": "2026-08-09",
+  "language": "ja",
+  "observations": {
+    "redline": {
+      "family": "redlinestealer",
+      "sample_sha256": "3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02",
+      "profile_id": "redline-3f3ac0a3-checkconnect-v1",
+      "protocol": "wcf_soap11_checkconnect",
+      "observed_at": "2026-08-09T05:01:23.3078138Z",
+      "endpoint": {
+        "scheme": "http",
+        "host": "192.144.32.84",
+        "port": 16383,
+        "path": "/",
+        "defanged": "hxxp://192[.]144[.]32[.]84:16383/"
+      },
+      "status": "timeout_before_tcp_connection",
+      "request_count": 0,
+      "network_contacted": true,
+      "network_contacted_semantics": "対象IPへのTCP接続を試行した",
+      "tcp_connected": false,
+      "application_data_sent": false,
+      "http_exchange_completed": false,
+      "protocol_confirmed": false,
+      "operational_status_confirmed": false,
+      "timeout_seconds": 3.0,
+      "interpretation": "接続試行はタイムアウトした。サーバ停止または非C2を意味しない。",
+      "loopback_validation": {
+        "verified": true,
+        "request_contract": "parameterless_CheckConnect",
+        "response_variants_verified": [
+          "CheckConnectResult_true",
+          "CheckConnectResult_false"
+        ]
+      }
+    },
+    "xloader": {
+      "family": "xloader",
+      "delivery_context": "guloader_final_payload",
+      "assessed_version": "8.9",
+      "version_confidence": "medium",
+      "external_network_contacted": false,
+      "protocol_confirmed_against_external_endpoint": false,
+      "loopback_protocol_verified": true,
+      "candidate_inventory": {
+        "total_record_count": 65,
+        "initial_selection_count": 16,
+        "real_decoy_resolution": "unresolved",
+        "bulk_or_fallback_probe_allowed": false
+      },
+      "effective_bootstrap_candidate": {
+        "publication_class": "public_ioc_unconfirmed_role",
+        "host": "www.plantaonewsms.com.br",
+        "path": "/ximu/",
+        "defanged": "www[.]plantaonewsms[.]com[.]br/ximu/",
+        "role_confirmed": false,
+        "contacted": false,
+        "note": "静的に確認した置換先。real C2または現在の悪性状態を示すものではない。"
+      },
+      "request_contract": {
+        "evidence_basis": "current_sample_static_analysis",
+        "wire_family": "http_get_pkt2",
+        "inner_magic": "XLNG",
+        "outer_magic": "PKT2",
+        "cryptographic_primitives": [
+          "RC4",
+          "SHA-1",
+          "Base64"
+        ],
+        "ghidra_function_offsets": {
+          "candidate_initialization_and_bootstrap_replacement": "0x6b50",
+          "pkt2_construction": "0xe5e0",
+          "send_receive": "0x61d0"
+        }
+      },
+      "response_contract": {
+        "evidence_basis": "cross_version_xloader_v8_7_primary_research_and_reference_binary",
+        "current_sample_consumer_xref_confirmed": false,
+        "expected_inner_magic": "XLNG",
+        "expected_command_id_range": [1, 9],
+        "external_live_validation_completed": false,
+        "primary_source": "https://www.zscaler.com/blogs/security-research/latest-xloader-obfuscation-methods-and-network-protocol"
+      },
+      "external_probe_decision": {
+        "decision": "withheld_fail_closed",
+        "reasons": [
+          "real_c2_decoy_unresolved",
+          "third_party_candidate_spray_prohibited",
+          "single_reviewed_endpoint_not_available"
+        ]
+      }
+    }
+  },
+  "sensitive_material_policy": {
+    "private_keys_included": false,
+    "raw_request_included": false,
+    "raw_response_included": false,
+    "victim_specific_values_included": false
+  }
+}

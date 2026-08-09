@@ -7,12 +7,12 @@ case単位でまとめ、解析の不足理由も同じ判定基準で評価す�
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import re
-from typing import Any, Iterable, Mapping
-
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -355,6 +355,7 @@ def _assessment(
     case_dir: Path,
     metadata: Mapping[str, Any],
     analysis: Mapping[str, Any],
+    report: Mapping[str, Any],
     markdown: str,
     characteristics: list[dict[str, Any]],
     behaviors: list[dict[str, Any]],
@@ -395,11 +396,22 @@ def _assessment(
     missing = [key for key, passed in checks.items() if not passed]
     unresolved = []
     case = analysis.get("case") if isinstance(analysis.get("case"), Mapping) else {}
+    report_case_state = (
+        report.get("case_state")
+        if isinstance(report.get("case_state"), Mapping)
+        else {}
+    )
+    report_static_recovery = (
+        report.get("static_recovery")
+        if isinstance(report.get("static_recovery"), Mapping)
+        else {}
+    )
     if case.get("static_config_recovered") is False:
         unresolved.append("static_config_not_recovered")
     if case.get("packing_suspected") is True and not case.get("recovered_artifacts"):
         unresolved.append("packed_or_protected_inner_payload_not_recovered")
-    if str(case.get("declarative_status", "")).casefold() == "needs_review":
+    declarative_status = str(case.get("declarative_status", "")).casefold()
+    if declarative_status == "needs_review" or declarative_status.endswith("_pending"):
         unresolved.append("declarative_analysis_needs_review")
     if not behaviors:
         unresolved.append("behavior_not_documented")
@@ -407,7 +419,34 @@ def _assessment(
         unresolved.append("sample_characteristics_insufficient")
     if parse_errors:
         unresolved.append("public_artifact_parse_error")
-    if score >= 9 and checks["behaviors"] and checks["sample_characteristics"]:
+    declared_status = str(report_case_state.get("status") or "").casefold()
+    declared_incomplete = bool(report_case_state) and (
+        report_case_state.get("complete") is False
+        or report_case_state.get("resumable") is True
+        or declared_status in {"partial", "insufficient", "blocked"}
+    )
+    declared_blockers = {
+        str(value) for value in report_case_state.get("blockers", [])
+    }
+    live_only_declared_partial = declared_incomplete and declared_blockers == {
+        "live_c2_unverified"
+    }
+    if declared_incomplete and not live_only_declared_partial:
+        unresolved.append("declared_case_state_incomplete")
+    c2_recovered = bool(
+        report_static_recovery.get("c2_endpoints_recovered")
+        or report_static_recovery.get("protocol_profile_recovered")
+    )
+    if c2_recovered and report_static_recovery.get("live_c2_verified") is False:
+        unresolved.append("live_c2_unverified")
+    if (
+        score >= 9
+        and checks["behaviors"]
+        and checks["sample_characteristics"]
+        and "declarative_analysis_needs_review" not in unresolved
+        and "declared_case_state_incomplete" not in unresolved
+        and "live_c2_unverified" not in unresolved
+    ):
         status = "complete"
     elif score >= 6:
         status = "partial"
@@ -422,6 +461,24 @@ def _assessment(
         next_actions.append("静的なcontrol flowまたはスクリプト処理順を根拠付きで記録する。")
     if "sample_characteristics_insufficient" in unresolved:
         next_actions.append("形式、サイズ、保護、import／resource／script構造の特徴を追加する。")
+    if "declarative_analysis_needs_review" in unresolved:
+        if "c2_protocol" in declarative_status:
+            next_actions.append(
+                "検体固有のC2 protocol・live確認に必要な根拠を追加し、能動判定状態を更新する。"
+            )
+        else:
+            next_actions.append("宣言型解析で未確認の項目を解消し、状態を更新する。")
+    if "live_c2_unverified" in unresolved:
+        next_actions.append(
+            "review済みの完全一致protocol profileで限定観測し、静的C2候補とlive稼働判定を分離して更新する。"
+        )
+    if (
+        "declared_case_state_incomplete" in unresolved
+        and "live_c2_unverified" not in unresolved
+    ):
+        next_actions.append(
+            "report.case_stateに記録された残作業を解消し、complete/resumable宣言を再評価する。"
+        )
     if parse_errors:
         next_actions.append("解析不能な公開JSONを修復し、schemaを明示する。")
     return {
@@ -447,6 +504,7 @@ def build_case_profile(
     report_value, report_error = _read_json(case_dir / "report.json")
     metadata = metadata_value if isinstance(metadata_value, Mapping) else {}
     analysis = analysis_value if isinstance(analysis_value, Mapping) else {}
+    report = report_value if isinstance(report_value, Mapping) else {}
     if not analysis and isinstance(report_value, Mapping):
         analysis = report_value
     readme = case_dir / "README.md"
@@ -489,6 +547,7 @@ def build_case_profile(
         case_dir=case_dir,
         metadata=metadata,
         analysis=analysis,
+        report=report,
         markdown=markdown,
         characteristics=characteristics,
         behaviors=behaviors,
