@@ -12,6 +12,7 @@ from extractors.agenttesla import extract as extract_agenttesla
 from extractors.amadey import extract as extract_amadey
 from extractors.amosstealer import extract as extract_amosstealer
 from extractors.atlascross import extract as extract_atlascross
+from extractors.darkcomet import extract as extract_darkcomet
 from extractors.donutloader import extract as extract_donutloader
 from extractors.formbook import extract as extract_formbook
 from extractors.latrodectus import extract as extract_latrodectus
@@ -59,6 +60,7 @@ EXTRACTORS: dict[str, Extractor] = {
     "vidar": extract_vidar,
     "mx-go": extract_mx_go,
     **PROFILED_EXTRACTORS,
+    "darkcomet": extract_darkcomet,
     "quasarrat": extract_quasarrat,
 }
 ALIASES = {

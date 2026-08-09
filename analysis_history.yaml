@@ -877,7 +877,21 @@ analyses:
     matched_patterns:
       - 'themida_protected'
     c2: []
-    notes: 'Reviewed corpus hash; plaintext config was not recovered from the protected outer layer and no C2 is asserted.'
+    notes: '初回確認ではThemida保護外層から平文設定を復元できず、C2を断定しなかった。後続の2026-08-09 entryでexact-root公開証拠による追加復元を記録する。'
+    result_path: analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/
+
+  - malware_type: StealC
+    analyzed_at: 2026-08-09
+    sample_sha256: 09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889
+    analysis_level: static_terminal_config_recovery_historical_protocol
+    campaign_type: themida_protected_stealc_v1
+    matched_patterns:
+      - 'themida_protected'
+      - 'exact_root_public_unpack_binding'
+      - 'stealc_v1_multipart_hwid_build'
+    c2:
+      - 'http://185.215.113.37/e2b1563c6670f193.php'
+    notes: '親SHA-256、公開unpack result ID、raw JSON SHA-256、静的config SHA-256、終端payload SHA-256、Triage sample/task、PCAP SHA-256を相互に固定し、終端設定と2024年の履歴protocolを復元した。履歴high-confidence判定は固定review ID stealc-v1-09034743-241015-hj7k5szgrf-behavioral1とLF正規化後のreview registry SHA-256 b791acae6d172636b47320e650741d5a3e33ce1a2bbb01ad052376df7f26a79bにbindingし、呼び出し側の自己申告では成立しない。公開成果物からsandbox端末側のnetwork識別子とOS依存snapshot識別子を除外している。終端PE bytesと現在のC2生存は未取得・未検証のためpartialを維持する。'
     result_path: analysis-results/malware/stealc/versions/unknown/cases/09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889/
 
   - malware_type: StealC

@@ -57,18 +57,6 @@ cases:
     blockers: [aes_ctr_string_generation, static_config_not_recovered]
 
 groups:
-  - id: newest_100_redline_themida
-    family: redlinestealer
-    category: themida_protector
-    priority: P0
-    blockers: [themida, terminal_layer_not_recovered]
-    hashes: [3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02]
-  - id: newest_100_darkcomet_upx
-    family: darkcomet
-    category: upx_packer
-    priority: P0
-    blockers: [upx_marker, terminal_layer_not_recovered]
-    hashes: [a3fa75fe9b9c0ca9ccdc85ae6733024cbc64c545031aad9150f03fed9335850a]
   - id: newest_100_managed_njrat
     family: njrat
     category: managed_loader_or_obfuscated
@@ -110,13 +98,18 @@ groups:
       - 87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6
       - 99e733391ac499e78e535a98551c4d27408abfad4e56fe4c46956636655df29c
       - b67bc78347918209973d633287c4e1f514a0917b8678c2cf2066ba80b2004f78
+  - id: stealc_themida_terminal_binary_pending
+    family: stealc
+    category: themida_winlicense_terminal_binary_unavailable
+    priority: P1
+    blockers: [terminal_binary_public_artifact_unavailable, function_analysis_pending]
+    hashes: [09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889]
   - id: stealc_themida
     family: stealc
     category: themida_winlicense
     priority: P0
     blockers: [themida_winlicense_2x, terminal_config_not_recovered]
     hashes:
-      - 09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889
       - 125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1
       - 299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b
       - 99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af
@@ -206,3 +199,13 @@ excluded_cases:
     - 6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1
     - 3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b
     - 6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8
+
+resolved_cases:
+  - sha256: 3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02
+    family: redlinestealer
+    resolved_at: 2026-08-09
+    previous_blockers: [themida, terminal_layer_not_recovered]
+    resolution: terminal_payload_recovered
+    evidence:
+      - analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/report.json
+      - analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/recovery.json

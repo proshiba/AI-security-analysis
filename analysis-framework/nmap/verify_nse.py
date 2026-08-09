@@ -5,11 +5,9 @@ from __future__ import annotations
 
 import argparse
 import base64
-from datetime import datetime, timedelta, timezone
 import gzip
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import socket
 import ssl
@@ -18,14 +16,15 @@ import subprocess
 import tempfile
 import threading
 import time
-from typing import Callable
 import zlib
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-
 
 ROOT = Path(__file__).resolve().parent
 SCRIPTS = ROOT / "scripts"
@@ -94,7 +93,7 @@ class OneShotServer:
                     last_scan_error = exc
                     continue
             self.error = last_scan_error or TimeoutError("NSE接続を受信できませんでした")
-        except BaseException as exc:  # 試験threadの失敗をmain threadへ転送する
+        except Exception as exc:  # noqa: BLE001 - 試験threadの失敗をmain threadへ転送する
             self.error = exc
         finally:
             self._listener.close()
@@ -214,6 +213,39 @@ def _rc4(data: bytes, key: bytes) -> bytes:
     return bytes(output)
 
 
+def _darkcomet_wire_handler(
+    wire: bytes,
+    *,
+    split_at: int | None = None,
+    split_delay_seconds: float = 0.0,
+) -> Handler:
+    """指定challengeを送り、NSEからapplication dataが来ないことを確認する。"""
+
+    def handler(connection: socket.socket) -> None:
+        offset = split_at if split_at is not None else len(wire)
+        connection.sendall(wire[:offset])
+        if offset < len(wire):
+            time.sleep(split_delay_seconds)
+            connection.sendall(wire[offset:])
+        connection.shutdown(socket.SHUT_WR)
+        connection.settimeout(1)
+        try:
+            unexpected = connection.recv(1)
+        except TimeoutError:
+            return
+        if unexpected:
+            raise ValueError("DarkComet server-first probeがapplication dataを送信しました")
+
+    return handler
+
+
+def _darkcomet_handler(key: bytes, *, ascii_hex: bool = True) -> Handler:
+    challenge = _rc4(b"IDTYPE", key)
+    if key == b"#KCMDDC5#-" and challenge.hex() != "9a4ea882adfd":
+        raise ValueError("DarkComet review済みIDTYPE vectorが一致しません")
+    return _darkcomet_wire_handler(challenge.hex().encode("ascii") if ascii_hex else challenge)
+
+
 def _http_request(connection: socket.socket) -> tuple[dict[str, str], bytes]:
     data = _recv_until(connection, b"\r\n\r\n")
     header, initial = data.split(b"\r\n\r\n", 1)
@@ -263,10 +295,70 @@ def _remus_handler(connection: socket.socket) -> None:
     _http_response(connection, 201, "application/octet-stream", b"R" * 41)
 
 
+_REDLINE_REQUEST_BODY = (
+    b'<?xml version="1.0" encoding="utf-8"?>'
+    b'<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+    b'<s:Body><CheckConnect xmlns="http://tempuri.org/" /></s:Body></s:Envelope>'
+)
+
+
+def _redline_handler(result: str, *, extra_element: bool = False) -> Handler:
+    """固定CheckConnectを1要求だけ受け、試験用SOAP booleanを返す。"""
+
+    def handler(connection: socket.socket) -> None:
+        headers, body = _http_request(connection)
+        if (
+            headers.get("content-type") != "text/xml; charset=utf-8"
+            or headers.get("soapaction")
+            != '"http://tempuri.org/Endpoint/CheckConnect"'
+            or headers.get("connection") != "close"
+            or body != _REDLINE_REQUEST_BODY
+        ):
+            raise ValueError("RedLine CheckConnect requestが固定形状と一致しません")
+        extra = b"<Unexpected />" if extra_element else b""
+        response = (
+            b'<?xml version="1.0" encoding="utf-8"?>'
+            b'<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+            b"<s:Body>"
+            b'<CheckConnectResponse xmlns="http://tempuri.org/">'
+            b"<CheckConnectResult>"
+            + result.encode("ascii")
+            + b"</CheckConnectResult>"
+            + extra
+            + b"</CheckConnectResponse></s:Body></s:Envelope>"
+        )
+        _http_response(connection, 200, "text/xml; charset=utf-8", response)
+
+    return handler
+
+
+def _redline_redirect_handler(connection: socket.socket) -> None:
+    """固定requestを受け、追跡してはならないredirectを1件だけ返す。"""
+
+    _http_request(connection)
+    connection.sendall(
+        b"HTTP/1.1 302 Found\r\n"
+        b"Location: http://127.0.0.1/should-not-follow\r\n"
+        b"Content-Length: 0\r\nConnection: close\r\n\r\n"
+    )
+
+
+def _no_application_data_handler(connection: socket.socket) -> None:
+    """Nmap port scan接続からapplication dataが送られないことを確認する。"""
+
+    connection.settimeout(2)
+    try:
+        unexpected = connection.recv(1)
+    except (TimeoutError, ConnectionResetError, ConnectionAbortedError):
+        return
+    if unexpected:
+        raise ValueError("transport-only NSEがapplication dataを送信しました")
+
+
 def _make_tls_context(directory: Path) -> tuple[ssl.SSLContext, str]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     certificate = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -332,10 +424,10 @@ def _exercise(
     server = OneShotServer(handler)
     try:
         result = _run_nmap(nmap_exe, script, server.port, script_args, expected)
-    except BaseException as primary:
+    except Exception as primary:
         try:
             server.finish()
-        except BaseException as fixture_error:
+        except Exception as fixture_error:  # noqa: BLE001 - primary失敗へfixture失敗を付記する
             primary.add_note(f"fixture={script}: {fixture_error}")
         raise
     server.finish()
@@ -343,11 +435,14 @@ def _exercise(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """全10 modeを外部networkなしで検証する。"""
+    """25 caseでRedLine/XLoaderを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
     encoded_key = base64.b64encode(key).decode("ascii")
+    darkcomet_key = b"#KCMDDC5#-"
+    darkcomet_encoded_key = base64.b64encode(darkcomet_key).decode("ascii")
+    darkcomet_wrong_key = base64.b64encode(b"wrong-key").decode("ascii")
     records: list[dict[str, object]] = []
     with tempfile.TemporaryDirectory(prefix="nmap-c2-validation-") as temporary:
         context, certificate_sha256 = _make_tls_context(Path(temporary))
@@ -362,6 +457,21 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_stealc_handler(key), "stealer-http-c2.nse", f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'", "stealc_registration_token_match"),
             (_lumma_handler, "stealer-http-c2.nse", "stealer.family=lumma,stealer.uid=0123456789abcdef0123456789abcdef", "lumma_registration_shape_match"),
             (_remus_handler, "stealer-http-c2.nse", "stealer.family=remus,stealer.tag=0123456789abcdef0123456789abcdef,stealer.exp=1785860014", "remus_registration_envelope_match"),
+            (_darkcomet_handler(darkcomet_key), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
+            (_darkcomet_handler(darkcomet_key, ascii_hex=False), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
+            (_darkcomet_wire_handler(_rc4(b"IDTYPE", darkcomet_key).hex().encode("ascii"), split_at=6, split_delay_seconds=0.15), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
+            (_darkcomet_handler(darkcomet_key), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_wrong_key}'", "darkcomet_idtype_mismatch"),
+            (_darkcomet_wire_handler(b"00112233445Z"), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_malformed"),
+            (_darkcomet_wire_handler(b"00112"), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_partial"),
+            (_darkcomet_wire_handler(b"A" * 13), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_overlong"),
+            (_darkcomet_wire_handler(b"A" * 13, split_at=12, split_delay_seconds=0.15), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_overlong"),
+            (_redline_handler("true"), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_true_match"),
+            (_redline_handler("false"), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_false_match"),
+            (_redline_handler("true", extra_element=True), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_soap_mismatch"),
+            (_redline_redirect_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_http_non_success_status"),
+            (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1", "STATE SERVICE"),
+            (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1", "STATE SERVICE"),
+            (_no_application_data_handler, "xloader-c2.nse", "xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "xloader_tcp_open_only"),
         ]
         for handler, script, script_args, expected in cases:
             records.append(_exercise(nmap_exe, handler, script, script_args, expected))

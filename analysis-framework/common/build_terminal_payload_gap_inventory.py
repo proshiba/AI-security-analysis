@@ -7,13 +7,12 @@ import argparse
 import csv
 import io
 import json
+import re
 from collections import Counter
 from pathlib import Path
-import re
 from typing import Any
 
 import yaml
-
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _PRIORITY_RANK = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
@@ -369,8 +368,36 @@ def _structured_terminal_completions(
             continue
         terminal = report.get("classification", {}).get("terminal_family_confirmed")
         case_state = report.get("case_state", {})
-        complete = case_state.get("complete") is True or case_state.get("status") == "complete"
-        if terminal is True and complete:
+        case_complete = (
+            case_state.get("complete") is True
+            or case_state.get("status") == "complete"
+        )
+        manual = report.get("manual_deep_analysis")
+        manual_terminal_closed = (
+            isinstance(manual, dict)
+            and manual.get("terminal_payload_gap") == "closed"
+        )
+        c2_terminal_recovered = False
+        c2_path = report_path.parent / "c2-analysis.json"
+        if c2_path.is_file():
+            try:
+                c2_document = _load_json(c2_path)
+            except (OSError, ValueError, json.JSONDecodeError):
+                c2_document = None
+            c2_terminal = (
+                c2_document.get("terminal_payload")
+                if isinstance(c2_document, dict)
+                else None
+            )
+            c2_terminal_recovered = (
+                isinstance(c2_terminal, dict)
+                and c2_terminal.get("reached") is True
+                and c2_terminal.get("status")
+                in {"recovered", "no_additional_payload_verified"}
+            )
+        if terminal is True and (
+            case_complete or manual_terminal_closed or c2_terminal_recovered
+        ):
             resolved.add(_normalize_sha256(sha256, locator=canonical))
     return resolved
 
@@ -512,10 +539,10 @@ def build_inventory(repository: Path) -> dict[str, Any]:
     catalog_path = root / "analysis-results" / "catalog" / "cases.json"
     catalog_document = _load_json(catalog_path)
     if not isinstance(catalog_document, dict):
-        raise ValueError("analysis-results/catalog/cases.jsonはobjectである必要があります")
+        raise TypeError("analysis-results/catalog/cases.jsonはobjectである必要があります")
     catalog = catalog_document.get("cases", catalog_document)
     if not isinstance(catalog, dict):
-        raise ValueError("analysis-results/catalog/cases.jsonのcasesはobjectである必要があります")
+        raise TypeError("analysis-results/catalog/cases.jsonのcasesはobjectである必要があります")
     cases: dict[str, dict[str, Any]] = {}
     curated = _merge_curated_inventory(root, catalog, cases)
     report_count = _merge_report_evidence(root, catalog, cases)

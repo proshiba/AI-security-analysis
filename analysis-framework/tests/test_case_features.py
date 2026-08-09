@@ -3,28 +3,29 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
+import pytest
 
 COMMON = Path(__file__).parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-from case_features import build_case_profile, render_features_markdown  # noqa: E402
-from generate_case_features import generate  # noqa: E402
-
+import generate_case_features as feature_generator
+from case_features import build_case_profile, render_features_markdown
+from generate_case_features import build_parser, generate
 
 SHA256 = "a" * 64
 
 
-def _case(repository: Path) -> Path:
-    case = repository / "analysis-results" / "malware" / "fixture" / "versions" / "unknown" / "cases" / SHA256
+def _case(repository: Path, digest: str = SHA256) -> Path:
+    case = repository / "analysis-results" / "malware" / "fixture" / "versions" / "unknown" / "cases" / digest
     case.mkdir(parents=True)
     (case / "metadata.json").write_text(
         json.dumps(
             {
                 "schema_version": 1,
-                "case_id": f"sha256:{SHA256}",
+                "case_id": f"sha256:{digest}",
                 "family": "fixture",
                 "malware_version": {"status": "unknown", "normalized_key": "unknown"},
             }
@@ -113,6 +114,209 @@ def test_generator_is_reproducible_and_checkable(tmp_path: Path) -> None:
     )
     second = generate(tmp_path, check=True)
     assert second["mismatches"] == []
+
+
+def test_generator_can_write_and_check_only_selected_cases(tmp_path: Path) -> None:
+    """明示したcaseだけを更新し、history相関とcheck範囲を維持する。"""
+
+    selected = _case(tmp_path)
+    untouched = _case(tmp_path, "b" * 64)
+    analysis = json.loads((selected / "analysis.json").read_text(encoding="utf-8"))
+    del analysis["case"]["campaign"]
+    (selected / "analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+    (tmp_path / "analysis_history.yaml").write_text(
+        f"analyses:\n  - sample_sha256: {SHA256}\n    campaign_type: history_campaign\n",
+        encoding="utf-8",
+    )
+    selector = selected.relative_to(tmp_path)
+
+    written = generate(tmp_path, write=True, case_dirs=[selector])
+
+    assert written["case_count"] == 1
+    assert (selected / "FEATURES.md").is_file()
+    assert (selected / "features.json").is_file()
+    assert not (untouched / "FEATURES.md").exists()
+    assert not (untouched / "features.json").exists()
+    profile = json.loads((selected / "features.json").read_text(encoding="utf-8"))
+    assert profile["campaign_type"] == "history_campaign"
+    assert profile["campaign_type_source"] == "analysis_history.yaml"
+
+    (untouched / "features.json").write_text("not generated\n", encoding="utf-8")
+    assert generate(tmp_path, check=True, case_dirs=[selector])["mismatches"] == []
+    (selected / "FEATURES.md").write_text("stale\n", encoding="utf-8")
+    checked = generate(tmp_path, check=True, case_dirs=[selector])
+    assert checked["check_failed"] is True
+    assert checked["mismatches"] == [
+        selected.relative_to(tmp_path).joinpath("FEATURES.md").as_posix()
+    ]
+
+
+def test_case_dir_option_is_repeatable() -> None:
+    """CLIでは複数caseを明示でき、省略時は従来の全件指定になる。"""
+
+    first = Path("analysis-results/malware/a/versions/unknown/cases") / ("a" * 64)
+    second = Path("analysis-results/malware/b/versions/unknown/cases") / ("b" * 64)
+    selected = build_parser().parse_args(
+        ["--case-dir", str(first), "--case-dir", str(second), "--check"]
+    )
+    assert selected.case_dir == [first, second]
+    assert build_parser().parse_args([]).case_dir is None
+
+
+@pytest.mark.parametrize(
+    "selector_kind",
+    ["absolute", "traversal", "outside_results", "non_sha", "duplicate"],
+)
+def test_selected_case_rejects_unsafe_paths(
+    tmp_path: Path, selector_kind: str
+) -> None:
+    """repository外・非SHA・重複の明示指定をfail closedにする。"""
+
+    case = _case(tmp_path)
+    relative = case.relative_to(tmp_path)
+    if selector_kind == "absolute":
+        selectors = [case]
+    elif selector_kind == "traversal":
+        selectors = [Path("analysis-results") / ".." / relative]
+    elif selector_kind == "outside_results":
+        outside = tmp_path / "other" / SHA256
+        outside.mkdir(parents=True)
+        (outside / "README.md").write_text("# outside\n", encoding="utf-8")
+        selectors = [outside.relative_to(tmp_path)]
+    elif selector_kind == "non_sha":
+        invalid = case.parent / "not-a-sha256"
+        invalid.mkdir()
+        (invalid / "README.md").write_text("# invalid\n", encoding="utf-8")
+        selectors = [invalid.relative_to(tmp_path)]
+    else:
+        selectors = [relative, relative]
+
+    with pytest.raises(ValueError):
+        generate(tmp_path, check=True, case_dirs=selectors)
+
+
+def test_selected_case_rejects_reparse_path_component(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """case自身だけでなく祖先のjunction／symlinkも拒否する。"""
+
+    case = _case(tmp_path)
+    relative = case.relative_to(tmp_path)
+    marked = (tmp_path / "analysis-results" / "malware").resolve()
+    original = feature_generator._is_reparse_point
+    monkeypatch.setattr(
+        feature_generator,
+        "_is_reparse_point",
+        lambda path: path.resolve() == marked or original(path),
+    )
+
+    with pytest.raises(ValueError, match="reparse point"):
+        generate(tmp_path, check=True, case_dirs=[relative])
+
+
+def test_c2_protocol_pending_forces_partial_assessment(tmp_path: Path) -> None:
+    """終端復元済みでもC2 protocol待ちならcase全体をcompleteにしない。"""
+
+    case = _case(tmp_path)
+    analysis_path = case / "analysis.json"
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    analysis["case"]["declarative_status"] = "c2_protocol_confirmation_pending"
+    analysis_path.write_text(json.dumps(analysis), encoding="utf-8")
+
+    assessment = build_case_profile(case)["analysis_assessment"]
+    assert assessment["status"] == "partial"
+    assert "declarative_analysis_needs_review" in assessment["unresolved"]
+    assert any("C2 protocol・live確認" in item for item in assessment["next_actions"])
+
+
+def test_report_case_state_and_live_c2_gate_force_partial_assessment(
+    tmp_path: Path,
+) -> None:
+    """詳細文書が揃ってもreportの未完了宣言とlive未検証を上書きしない。"""
+
+    case = _case(tmp_path)
+    (case / "report.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "case_state": {
+                    "status": "partial",
+                    "complete": False,
+                    "resumable": True,
+                },
+                "static_recovery": {
+                    "terminal_payload_recovered": True,
+                    "c2_endpoints_recovered": 3,
+                    "protocol_profile_recovered": True,
+                    "live_c2_verified": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assessment = build_case_profile(case)["analysis_assessment"]
+    assert assessment["status"] == "partial"
+    assert "declared_case_state_incomplete" in assessment["unresolved"]
+    assert "live_c2_unverified" in assessment["unresolved"]
+    assert any("完全一致protocol profile" in item for item in assessment["next_actions"])
+
+
+def test_live_only_partial_reports_only_live_c2_unverified(tmp_path: Path) -> None:
+    """終端解析が完了し、live確認だけが残るcaseへ重複理由を追加しない。"""
+
+    case = _case(tmp_path)
+    (case / "report.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "case_state": {
+                    "status": "partial",
+                    "complete": False,
+                    "resumable": True,
+                    "blockers": ["live_c2_unverified"],
+                },
+                "static_recovery": {
+                    "terminal_payload_recovered": True,
+                    "c2_endpoints_recovered": 1,
+                    "protocol_profile_recovered": True,
+                    "live_c2_verified": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assessment = build_case_profile(case)["analysis_assessment"]
+    assert assessment["status"] == "partial"
+    assert assessment["unresolved"] == ["live_c2_unverified"]
+    assert not any(
+        "report.case_state" in item for item in assessment["next_actions"]
+    )
+
+
+def test_complete_report_does_not_reduce_complete_assessment(tmp_path: Path) -> None:
+    """reportが明示的に完了なら従来の内容ベース完了判定を維持する。"""
+
+    case = _case(tmp_path)
+    (case / "report.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "case_state": {
+                    "status": "complete",
+                    "complete": True,
+                    "resumable": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assessment = build_case_profile(case)["analysis_assessment"]
+    assert assessment["status"] == "complete"
+    assert "declared_case_state_incomplete" not in assessment["unresolved"]
+
 
 def test_false_runtime_line_is_not_positive_evidence(tmp_path: Path) -> None:
     """READMEの`.NET: false`を.NET観測済みへ誤変換しない。"""

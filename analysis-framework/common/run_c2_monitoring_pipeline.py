@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime, timedelta
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -228,9 +228,31 @@ def main() -> int:
         help="完全一致StealC／Lumma／Remus profileの合成登録とtask取得を許可します。",
     )
     parser.add_argument(
+        "--allow-reviewed-checkconnect",
+        action="store_true",
+        help="完全一致RedLine profileの引数なしSOAP CheckConnect 1要求を許可します。",
+    )
+    parser.add_argument(
+        "--acknowledge-redline-profile",
+        action="append",
+        default=[],
+        metavar="PROFILE_ID",
+        help="送信を承認するRedLine profile ID。完全一致で、profileごとに指定します。",
+    )
+    parser.add_argument(
+        "--allow-xloader-registration",
+        action="store_true",
+        help="review済みreal-C2 XLoader profileの合成PKT2登録GET 1要求を許可します。",
+    )
+    parser.add_argument(
         "--private-credential-vault",
         type=Path,
         help="リポジトリ外のAgentTesla sensitive_local_only JSON。",
+    )
+    parser.add_argument(
+        "--xloader-private-material",
+        type=Path,
+        help="リポジトリ外のXLoader検体固有鍵・合成PKT2 JSON。",
     )
     args = parser.parse_args()
 
@@ -254,7 +276,13 @@ def main() -> int:
             allow_application_probes=args.allow_reviewed_application_probes,
             allow_authentication=args.allow_authentication,
             allow_malware_registration=args.allow_malware_registration_tasking,
+            allow_reviewed_checkconnect=args.allow_reviewed_checkconnect,
+            acknowledged_redline_profiles=set(
+                args.acknowledge_redline_profile
+            ),
+            allow_xloader_registration=args.allow_xloader_registration,
             private_credential_vault=args.private_credential_vault,
+            xloader_private_material=args.xloader_private_material,
         )
         result["monitoring_continuity"] = {
             "schema_version": 1,

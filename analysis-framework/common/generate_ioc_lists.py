@@ -8,12 +8,11 @@ import ipaddress
 import json
 import re
 import urllib.parse
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import yaml
-
 from analysis_contract import (
     load_json_object_strict,
     seal_report,
@@ -28,7 +27,6 @@ from ioc_markdown import (
     render_canonical_ioc_document,
 )
 from result_layout import resolve_catalog_case_path
-
 
 HASH_RE = re.compile(r"(?i)(?<![0-9a-f])([0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{32})(?![0-9a-f])")
 URL_RE = re.compile(r"(?i)https?://[^\s<>\"'`|]+")
@@ -49,6 +47,7 @@ REFERENCE_HOSTS = {
     "www.virustotal.com",
     "any.run",
     "app.any.run",
+    "tempuri.org",
 }
 PUBLIC_RESOLVER_IPS = {"1.1.1.1", "8.8.4.4", "8.8.8.8", "9.9.9.9", "119.29.29.29"}
 EXCLUSION_MARKERS = (
@@ -333,8 +332,7 @@ def indicators_from_ioc_json(path: Path) -> list[Indicator]:
             for child in node:
                 visit(child, role, confidence)
         elif isinstance(node, str):
-            for indicator in indicators_from_text(node, role, confidence, "iocs.json"):
-                output.append(indicator)
+            output.extend(indicators_from_text(node, role, confidence, "iocs.json"))
 
     visit(value)
     return output

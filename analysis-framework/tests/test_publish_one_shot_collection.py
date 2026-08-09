@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 
 COMMON = Path(__file__).parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import analysis_contract  # noqa: E402
-import publish_one_shot_collection as publisher  # noqa: E402
-import static_logic  # noqa: E402
+import analysis_contract
+import publish_one_shot_collection as publisher
+import static_logic
 
 
 def report(selected_family: str | None = None) -> dict:
@@ -665,6 +665,31 @@ def test_validate_case_state_requires_complete_resumable_shape() -> None:
         },
         "a" * 64,
     )
+
+
+def test_analysis_contract_accepts_resumable_partial_with_followup_blocker() -> None:
+    """追加解析queueを持つpartial caseはcompleteでなくても再開可能にできる。"""
+
+    value = {
+        "assessment_only": False,
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": True,
+            "blockers": ["c2_protocol_confirmation_pending"],
+            "detector_error_families": [],
+            "static_layer_issues": [],
+            "incomplete_selected_layer_attempts": [],
+        },
+        "classification": {
+            "selected_family": "fixture",
+            "selected_families": ["fixture"],
+        },
+        "handler_executions": [],
+        "generic_triage": "complete",
+    }
+
+    assert analysis_contract._case_state_errors(value, require_resumable=True) == []
 
 
 def test_validate_case_state_rejects_assessment_only_completion() -> None:

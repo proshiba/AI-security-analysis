@@ -14,9 +14,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from c2_protocol_probe_profiles import apply_profiles
+from c2_protocol_probe_profiles import (
+    PROFILE_METHODS,
+    apply_profiles,
+    profile_registry_metadata,
+    remus_review_registry_metadata,
+)
+from immutable_snapshot import decode_strict_json, read_bounded_snapshot
 
-
+MAX_IOC_JSON_BYTES = 16 * 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 FQDN_RE = re.compile(
     r"(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
@@ -50,11 +56,15 @@ NEGATIVE_ROLE_MARKERS = (
 NON_DNS_SUFFIXES = (".onion", ".eth", ".sol", ".did", ".iid")
 DEFAULT_PORTS = {"http": 80, "https": 443, "ftp": 21}
 IOC_LIST_KEYS = ("network", "configured_c2", "configured_or_observed_c2", "indicators")
+MALWARE_PROTOCOL_HINTS = frozenset(protocol for protocol, _method in PROFILE_METHODS.values())
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    return value if isinstance(value, dict) else {}
+    snapshot = read_bounded_snapshot(path, MAX_IOC_JSON_BYTES)
+    value = decode_strict_json(snapshot.data)
+    if not isinstance(value, dict):
+        raise TypeError("IOC JSON rootはobjectである必要があります")
+    return value
 
 
 def _defang_restore(value: str) -> str:
@@ -213,14 +223,24 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
     exclusions: list[dict[str, Any]] = []
     scanned = 0
     parse_errors: list[dict[str, str]] = []
-    for path in sorted(results_root.glob("**/iocs.json")):
+    scanned_by_name: Counter[str] = Counter()
+    duplicate_evidence: list[dict[str, str]] = []
+    seen_evidence: dict[tuple[object, ...], str] = {}
+    input_paths = sorted(
+        set(results_root.glob("**/iocs.json"))
+        | set(results_root.glob("**/indicators.json")),
+        key=lambda value: value.as_posix(),
+    )
+    for path in input_paths:
         scanned += 1
+        scanned_by_name[path.name] += 1
         try:
             payload = _read_json(path)
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
             parse_errors.append({"source": str(path), "error": str(exc)})
             continue
         family, sample = _family_and_sample(path, results_root, payload)
+        case_key = path.parent.relative_to(results_root).as_posix()
         source = path.as_posix()
         entries = list(_iter_ioc_entries(payload))
         companion_ports = _companion_c2_ports(entries)
@@ -258,6 +278,27 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
             if port is not None and not 1 <= port <= 65535:
                 exclusions.append({**evidence, "host": host, "port": port, "reason": "invalid_port"})
                 continue
+            confidence_key = json.dumps(
+                entry.get("confidence"),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            evidence_key = (
+                case_key,
+                host,
+                port,
+                protocol_hint or "",
+                normalized_role,
+                reason,
+                confidence_key,
+            )
+            if evidence_key in seen_evidence:
+                duplicate_evidence.append(
+                    {"kept_source": seen_evidence[evidence_key], "duplicate_source": evidence["source"]}
+                )
+                continue
+            seen_evidence[evidence_key] = evidence["source"]
             records.append(
                 {
                     **evidence,
@@ -292,6 +333,13 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
         samples = sorted({record["sample_sha256"] for record in evidence_records if record["sample_sha256"]})
         sources = sorted({record["source"] for record in evidence_records})
         roles = sorted({record["role"] for record in evidence_records})
+        protocol_hints = sorted(
+            {
+                str(record.get("protocol_hint") or "").casefold()
+                for record in evidence_records
+                if str(record.get("protocol_hint") or "").casefold() in MALWARE_PROTOCOL_HINTS
+            }
+        )
         target = {
             "target_id": _target_id(host, port, protocol),
             "family": "/".join(families),
@@ -308,21 +356,50 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
             "roles": roles,
             "selection_basis": "全解析履歴のC2/control/exfil候補",
             "timeout_seconds": 3.0,
+            "protocol_hints": protocol_hints,
             "maximum_response_bytes": 256,
         }
         targets.append(target)
+    profile_registry = profile_registry_metadata()
+    evidence_repository_root = results_root.parent
+    registry_repository_root = Path(__file__).resolve().parents[2]
+    remus_review_registry = remus_review_registry_metadata(repository_root=registry_repository_root)
+    profile_rejections: list[dict[str, str]] = []
 
     targets, profile_only_target_count = apply_profiles(
         targets,
-        repository_root=results_root.parent,
+        repository_root=evidence_repository_root,
+        rejections=profile_rejections,
+        expected_profile_registry_sha256=profile_registry["sha256"],
+        expected_remus_review_registry_sha256=remus_review_registry["sha256"],
     )
     reviewed_profile_hosts = {target["host"] for target in targets if target.get("protocol_profile_id")}
+    if profile_registry_metadata() != profile_registry:
+        raise ValueError("C2 protocol profile registry changed during plan generation")
+    if remus_review_registry_metadata(repository_root=registry_repository_root) != remus_review_registry:
+        raise ValueError("Remus review registry changed during plan generation")
+    profile_rejections.sort(key=lambda value: (value["profile_id"], value["reason_code"]))
     ordinary_hosts = sorted({record["host"] for record in records} | reviewed_profile_hosts)
+    for target in targets:
+        protocol_hints = target.get("protocol_hints") or []
+        if target.get("protocol_profile_id") or not protocol_hints or int(target.get("port") or 0) == 0:
+            continue
+        target.update(
+            {
+                "method": "protocol_profile_required",
+                "protocol_profile_required": True,
+                "protocol_profile_status": (
+                    "reviewed_exact_profile_missing"
+                    if len(protocol_hints) == 1
+                    else "conflicting_explicit_protocol_hints"
+                ),
+            }
+        )
     reason_counts = Counter(item["reason"] for item in exclusions)
     inventory = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "scope": "analysis-results配下の全IOC履歴（malware／clickfix／research）",
+        "scope": "analysis-results配下のiocs.json／indicators.json全履歴（malware／clickfix／research）",
         "policy": {
             "onion_excluded": True,
             "ordinary_global_ip_and_fqdn_included": True,
@@ -331,6 +408,10 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
             "distribution_only_and_explicit_non_c2_excluded": True,
         },
         "scanned_ioc_file_count": scanned,
+        "scanned_iocs_json_file_count": scanned_by_name["iocs.json"],
+        "scanned_indicators_json_file_count": scanned_by_name["indicators.json"],
+        "duplicate_evidence_record_count": len(duplicate_evidence),
+        "duplicate_evidence": duplicate_evidence,
         "parse_error_count": len(parse_errors),
         "candidate_evidence_record_count": len(records),
         "ordinary_candidate_host_count": len(ordinary_hosts),
@@ -340,6 +421,8 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
         "reviewed_profile_only_target_count": profile_only_target_count,
         "network_service_endpoint_count": sum(target["port"] != 0 for target in targets),
         "dns_only_target_count": sum(target["port"] == 0 for target in targets),
+        "rejected_protocol_profile_count": len(profile_rejections),
+        "rejected_protocol_profiles": profile_rejections,
         "ordinary_host_coverage_percent": round(
             100 * len({target["host"] for target in targets}) / len(ordinary_hosts), 2
         )
@@ -357,16 +440,23 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
         },
         "collection_scope": "all_historical_c2",
         "onion_excluded_by_policy": True,
+        "protocol_profile_registry": profile_registry,
+        "remus_review_registry": remus_review_registry,
         "inventory_summary": {
             key: inventory[key]
             for key in (
                 "scanned_ioc_file_count",
+                "scanned_iocs_json_file_count",
+                "scanned_indicators_json_file_count",
+                "duplicate_evidence_record_count",
+                "parse_error_count",
                 "candidate_evidence_record_count",
                 "ordinary_candidate_host_count",
                 "planned_ordinary_host_count",
                 "planned_endpoint_count",
                 "reviewed_protocol_target_count",
                 "reviewed_profile_only_target_count",
+                "rejected_protocol_profile_count",
                 "network_service_endpoint_count",
                 "dns_only_target_count",
                 "ordinary_host_coverage_percent",

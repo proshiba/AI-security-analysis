@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
 import hashlib
-from importlib import metadata as importlib_metadata
 import json
 import os
-from pathlib import Path
-from pathlib import PurePosixPath
 import platform
 import re
 import stat
+from collections.abc import Iterable, Mapping, Sequence
+from importlib import metadata as importlib_metadata
+from pathlib import Path, PurePosixPath
 from typing import Any
-
 
 PIPELINE_CONTRACT_VERSION = 2
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -195,9 +193,13 @@ def _collect_evidence(value: Any, state: dict[str, Any], *, depth: int = 0) -> N
             elif key in STRUCTURAL_EVIDENCE_KEYS and _meaningful_collection(item):
                 state["structural_groups"].add(key)
                 state["structural_count"] += min(len(item), 100)
-            elif key in {"variant", "version", "artifact_role"} and isinstance(item, str):
-                if item.casefold() not in NEGATIVE_VALUES and not item.casefold().startswith("unresolved"):
-                    state["structural_groups"].add(key)
+            elif (
+                key in {"variant", "version", "artifact_role"}
+                and isinstance(item, str)
+                and item.casefold() not in NEGATIVE_VALUES
+                and not item.casefold().startswith("unresolved")
+            ):
+                state["structural_groups"].add(key)
             _collect_evidence(item, state, depth=depth + 1)
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         for item in value[:10_000]:
@@ -467,7 +469,7 @@ def load_json_object_strict(path: Path) -> dict[str, Any]:
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"JSON成果物を解釈できません: {path}") from exc
     if not isinstance(value, dict):
-        raise ValueError(f"JSON objectが必要です: {path}")
+        raise TypeError(f"JSON objectが必要です: {path}")
     return value
 
 
@@ -743,9 +745,10 @@ def _case_state_errors(report: Mapping[str, Any], *, require_resumable: bool) ->
     expected_complete = status_value in RESUMABLE_CASE_STATES
     if state.get("complete") is not expected_complete:
         errors.append("case_state_complete_inconsistent")
-    if state.get("resumable") is not expected_complete:
+    resumable = state.get("resumable")
+    if type(resumable) is not bool or expected_complete and resumable is not True or status_value == "failed" and resumable is not False:
         errors.append("case_state_resumable_inconsistent")
-    if require_resumable and not expected_complete:
+    if require_resumable and resumable is not True:
         errors.append("case_state_not_resumable")
 
     blockers = state.get("blockers")

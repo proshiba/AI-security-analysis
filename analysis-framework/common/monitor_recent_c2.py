@@ -13,25 +13,58 @@ import socket
 import ssl
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 from c2_detector import probe
 from c2_protocol_probe_profiles import (
+    PROFILE_METHODS,
     ProtocolProfileError,
+    canonical_profile_object_sha256,
+    profile_registry_metadata,
+    remus_review_registry_metadata,
     resolve_profile,
+    validate_redline_profile_binding,
+    validate_xloader_profile_evidence,
 )
-from tls_messagepack_probe import probe_reviewed_tls_messagepack
+from darkcomet_profile_evidence import (
+    DarkCometEvidenceError,
+    validate_darkcomet_profile_evidence,
+)
+from darkcomet_server_first_probe import probe_reviewed_darkcomet_server_first
+from remus_profile_evidence import (
+    RemusEvidenceError,
+    validate_remus_profile_evidence,
+)
 from stealer_registration_probe import probe_reviewed_stealer_registration
-
+from tls_messagepack_probe import probe_reviewed_tls_messagepack
 
 HOST_RE = re.compile(r"(?=.{1,253}$)[A-Za-z0-9.-]+")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
-ALLOWED_PROTOCOLS = {"dns", "tcp", "http", "https", "tls", "winos", "vvas", "n520", "ftp", "asyncrat", "venomrat", "stealc", "lummastealer", "remusstealer"}
+ALLOWED_PROTOCOLS = {
+    "dns",
+    "tcp",
+    "http",
+    "https",
+    "tls",
+    "winos",
+    "vvas",
+    "n520",
+    "ftp",
+    "asyncrat",
+    "venomrat",
+    "stealc",
+    "lummastealer",
+    "remusstealer",
+    "darkcomet",
+    "redlinestealer",
+    "xloader_http_get_pkt2",
+}
 ALLOWED_METHODS = {
     "dns_resolve",
     "tcp_connect",
+    "protocol_profile_required",
     "passive_banner",
     "tls_handshake",
     "http_get",
@@ -44,16 +77,30 @@ ALLOWED_METHODS = {
     "stealc_v2_registration_task",
     "lumma_v6_registration_task",
     "remus_registration_task",
+    "darkcomet_server_first_idtype",
+    "redline_checkconnect_soap11",
+    "xloader_v8_get_registration",
 }
 ACTIVE_PROFILE_METHODS = {
-    "winos_heartbeat", "vvas_checkin", "n520_server_first", "ftp_authenticated",
-    "asyncrat_tls_messagepack", "venomrat_tls_messagepack",
-    "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
+    "winos_heartbeat",
+    "vvas_checkin",
+    "n520_server_first",
+    "ftp_authenticated",
+    "asyncrat_tls_messagepack",
+    "venomrat_tls_messagepack",
+    "stealc_v2_registration_task",
+    "lumma_v6_registration_task",
+    "remus_registration_task",
+    "darkcomet_server_first_idtype",
+    "redline_checkconnect_soap11",
+    "xloader_v8_get_registration",
 }
+PROFILE_REQUIRED_PROTOCOLS = frozenset(protocol for protocol, _method in PROFILE_METHODS.values())
 ALLOWED_TRANSPORTS = {"direct", "tor-socks5"}
 METHOD_CEILINGS = {
     "dns_resolve": 0.05,
     "tcp_connect": 0.25,
+    "protocol_profile_required": 0.05,
     "passive_banner": 0.55,
     "tls_handshake": 0.45,
     "http_get": 0.60,
@@ -66,10 +113,14 @@ METHOD_CEILINGS = {
     "stealc_v2_registration_task": 0.95,
     "lumma_v6_registration_task": 0.95,
     "remus_registration_task": 0.95,
+    "darkcomet_server_first_idtype": 0.98,
+    "redline_checkconnect_soap11": 0.98,
+    "xloader_v8_get_registration": 0.98,
 }
 METHOD_LABELS = {
     "dns_resolve": "DNS解決のみ（接続先port不明、C2 serviceへの接続なし）",
     "tcp_connect": "DNS解決＋単一TCP接続（送受信なし）",
+    "protocol_profile_required": "malware固有protocol hintあり・review済み完全一致profile未登録（DNS観測のみ）",
     "passive_banner": "DNS解決＋単一TCP接続＋server-first banner限定受信",
     "tls_handshake": "DNS解決＋単一TLS handshake（application dataなし）",
     "http_get": "DNS解決＋TLS/HTTP GET 1回（redirectなし）",
@@ -82,6 +133,9 @@ METHOD_LABELS = {
     "stealc_v2_registration_task": "完全一致・StealC v2合成端末登録＋loader task取得（最大2要求）",
     "lumma_v6_registration_task": "完全一致・Lumma v6設定登録＋合成hwid task取得（最大2要求）",
     "remus_registration_task": "完全一致・Remus合成端末登録＋step=1 task取得（最大2要求）",
+    "darkcomet_server_first_idtype": "完全一致・DarkComet RC4 server-first IDTYPE復号（application data送信なし）",
+    "redline_checkconnect_soap11": "完全一致・RedLine SOAP 1.1 CheckConnect 1要求＋4 KiB限定応答",
+    "xloader_v8_get_registration": "完全一致・XLoader v8合成PKT2登録GET 1要求＋暗号応答検証（command非公開・非実行）",
 }
 SAFE_HTTP_HEADERS = {"server", "content-type", "content-length", "date", "connection"}
 
@@ -98,7 +152,7 @@ def _is_ip(value: str) -> bool:
     return True
 
 
-def validate_plan(plan: dict) -> dict:
+def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
     """完全一致ターゲット、上限、根拠、probe種別を検証する。"""
     if not isinstance(plan, dict) or plan.get("schema_version") != 1:
         raise PlanError("schema_version=1 のobjectが必要です")
@@ -110,6 +164,27 @@ def validate_plan(plan: dict) -> dict:
         raise PlanError("targets は1件以上のlistである必要があります")
     if len(targets) > 256:
         raise PlanError("1回の監視対象は256 endpoint以下です")
+    active_targets = [
+        target for target in targets if isinstance(target, dict) and target.get("method") in ACTIVE_PROFILE_METHODS
+    ]
+    protocol_registry_pin: dict[str, str] | None = None
+    remus_registry_pin: dict[str, str] | None = None
+    if active_targets:
+        protocol_registry_pin = plan.get("protocol_profile_registry")
+        try:
+            current_profile_registry = profile_registry_metadata()
+        except ProtocolProfileError as exc:
+            raise PlanError(f"C2 protocol profile registryを検証できません: {exc}") from exc
+        if protocol_registry_pin != current_profile_registry:
+            raise PlanError("計画のC2 protocol profile registry source/SHA-256 pinが一致しません")
+    if any(target.get("method") == "remus_registration_task" for target in active_targets):
+        remus_registry_pin = plan.get("remus_review_registry")
+        try:
+            current_remus_registry = remus_review_registry_metadata(repository_root=repository_root)
+        except ProtocolProfileError as exc:
+            raise PlanError(f"Remus review registryを検証できません: {exc}") from exc
+        if remus_registry_pin != current_remus_registry:
+            raise PlanError("計画のRemus review registry source/SHA-256 pinが一致しません")
 
     seen: set[tuple] = set()
     for target in targets:
@@ -138,13 +213,194 @@ def validate_plan(plan: dict) -> dict:
             if not isinstance(profile_id, str) or not profile_id:
                 raise PlanError(f"{method}にはprotocol_profile_idが必要です")
             try:
-                profile = resolve_profile(profile_id, host, port)
+                profile = resolve_profile(
+                    profile_id,
+                    host,
+                    port,
+                    expected_registry_sha256=protocol_registry_pin["sha256"],
+                )
             except ProtocolProfileError as exc:
                 raise PlanError(str(exc)) from exc
             if (profile["protocol"], profile["method"]) != (protocol, method):
                 raise PlanError("protocol profileとtargetのprotocol/methodが一致しません")
+            if (
+                target.get("protocol_profile_registry_source") != protocol_registry_pin["source"]
+                or target.get("protocol_profile_registry_sha256") != protocol_registry_pin["sha256"]
+            ):
+                raise PlanError("targetのC2 protocol profile registry pinが計画と一致しません")
+            profile_samples = profile.get("sample_sha256s")
+            if not isinstance(profile_samples, list) or target.get("sample_sha256s") != profile_samples:
+                raise PlanError("active targetのsample集合がprofileと完全一致しません")
+            if method == "darkcomet_server_first_idtype":
+                evidence_sha256 = target.get("protocol_profile_evidence_sha256")
+                evidence_source = target.get("protocol_profile_evidence_source")
+                if evidence_source != profile.get("source") or not isinstance(evidence_sha256, str):
+                    raise PlanError("DarkComet profileには計画生成時の証拠source/SHA-256固定が必要です")
+                try:
+                    validate_darkcomet_profile_evidence(
+                        profile,
+                        repository_root=repository_root,
+                        expected_sha256=evidence_sha256,
+                    )
+                except DarkCometEvidenceError as exc:
+                    raise PlanError(f"DarkComet profile証拠を再検証できません: {exc}") from exc
+            if method == "remus_registration_task":
+                evidence_sha256 = target.get("protocol_profile_evidence_sha256")
+                evidence_source = target.get("protocol_profile_evidence_source")
+                if evidence_source != profile.get("evidence_source") or not isinstance(evidence_sha256, str):
+                    raise PlanError("Remus profileには計画生成時の証拠source/SHA-256固定が必要です")
+                if (
+                    remus_registry_pin is None
+                    or target.get("protocol_profile_review_id") != profile.get("review_id")
+                    or target.get("protocol_profile_review_registry_source") != remus_registry_pin["source"]
+                    or target.get("protocol_profile_review_registry_sha256") != remus_registry_pin["sha256"]
+                    or profile.get("review_registry_source") != remus_registry_pin["source"]
+                    or profile.get("review_registry_sha256") != remus_registry_pin["sha256"]
+                    or target.get("protocol_profile_flow_artifact_source") != profile.get("flow_artifact_source")
+                    or target.get("protocol_profile_flow_artifact_sha256") != profile.get("flow_artifact_sha256")
+                ):
+                    raise PlanError("Remus review registry/flow artifact pinが完全一致しません")
+                if (
+                    type(target.get("timeout_seconds")) is not float
+                    or target.get("timeout_seconds") != 3.0
+                    or type(target.get("maximum_request_bytes")) is not int
+                    or target.get("maximum_request_bytes") != 4096
+                    or type(target.get("maximum_response_bytes")) is not int
+                    or target.get("maximum_response_bytes") != 8192
+                ):
+                    raise PlanError("Remus targetのtimeout/request/response上限が固定値と一致しません")
+                try:
+                    validate_remus_profile_evidence(
+                        profile,
+                        repository_root=repository_root,
+                        expected_sha256=evidence_sha256,
+                        expected_registry_sha256=remus_registry_pin["sha256"],
+                        expected_flow_artifact_sha256=target["protocol_profile_flow_artifact_sha256"],
+                    )
+                except RemusEvidenceError as exc:
+                    raise PlanError(f"Remus profile証拠を再検証できません: {exc}") from exc
+            if method == "redline_checkconnect_soap11":
+                try:
+                    redline = validate_redline_profile_binding(
+                        profile,
+                        repository_root=repository_root,
+                    )
+                except ProtocolProfileError as exc:
+                    raise PlanError(
+                        f"RedLine profile証拠を再検証できません: {exc}"
+                    ) from exc
+                binding = redline["binding"]
+                registry = redline["registry"]
+                if (
+                    target.get("protocol_profile_evidence_source")
+                    != profile.get("config_source")
+                    or target.get("protocol_profile_evidence_sha256")
+                    != profile.get("config_artifact_review_sha256")
+                    or target.get("protocol_profile_review_id")
+                    != profile.get("config_review_id")
+                    or target.get("protocol_profile_endpoint_json_pointer")
+                    != profile.get("endpoint_json_pointer")
+                    or target.get("protocol_profile_terminal_mvid")
+                    != profile.get("terminal_mvid")
+                    or target.get(
+                        "protocol_profile_terminal_cil_semantic_sha256"
+                    )
+                    != profile.get("terminal_cil_semantic_sha256")
+                    or target.get("protocol_profile_request_sha256")
+                    != profile.get("request_sha256")
+                    or target.get("protocol_profile_family_registry_source")
+                    != registry["source"]
+                    or target.get("protocol_profile_family_registry_sha256")
+                    != registry["sha256"]
+                    or binding.get("endpoint") != profile.get("endpoint")
+                ):
+                    raise PlanError(
+                        "RedLine config/MVID/CIL/request/family registry pinが完全一致しません"
+                    )
+                if (
+                    type(target.get("timeout_seconds")) is not float
+                    or target.get("timeout_seconds") != 3.0
+                    or type(target.get("maximum_request_bytes")) is not int
+                    or target.get("maximum_request_bytes") != 357
+                    or type(target.get("maximum_response_bytes")) is not int
+                    or target.get("maximum_response_bytes") != 4096
+                ):
+                    raise PlanError(
+                        "RedLine targetのtimeout/request/response上限が固定値と一致しません"
+                    )
+            if method == "xloader_v8_get_registration":
+                evidence_sha256 = target.get("protocol_profile_evidence_sha256")
+                if (
+                    target.get("protocol_profile_evidence_source")
+                    != profile.get("review_evidence_source")
+                    or evidence_sha256 != profile.get("review_evidence_sha256")
+                    or target.get("protocol_profile_review_id")
+                    != profile.get("review_id")
+                    or target.get("protocol_profile_payload_sha256")
+                    != canonical_profile_object_sha256(profile)
+                    or target.get(
+                        "protocol_profile_private_material_reference"
+                    )
+                    != profile.get("private_material_reference")
+                    or target.get("protocol_profile_private_material_sha256")
+                    != profile.get("private_material_sha256")
+                    or target.get(
+                        "protocol_profile_selector_path_table_sha256"
+                    )
+                    != profile.get("selector_path_table_sha256")
+                    or target.get(
+                        "protocol_profile_synthetic_template_id"
+                    )
+                    != profile.get("synthetic_template_id")
+                    or target.get(
+                        "protocol_profile_pkt2_inner_plaintext_sha256"
+                    )
+                    != profile.get("pkt2_inner_plaintext_sha256")
+                    or target.get("protocol_profile_request_sha256")
+                    != profile.get("request_sha256")
+                ):
+                    raise PlanError(
+                        "XLoader profile/private material/selector/synthetic/request/review pinが完全一致しません"
+                    )
+                try:
+                    validate_xloader_profile_evidence(
+                        profile,
+                        repository_root=repository_root,
+                        expected_sha256=evidence_sha256,
+                    )
+                except ProtocolProfileError as exc:
+                    raise PlanError(
+                        f"XLoader review証拠を再検証できません: {exc}"
+                    ) from exc
+                if (
+                    type(target.get("timeout_seconds")) is not float
+                    or target.get("timeout_seconds") != 3.0
+                    or type(target.get("maximum_request_bytes")) is not int
+                    or target.get("maximum_request_bytes") != 4096
+                    or type(target.get("maximum_response_bytes")) is not int
+                    or target.get("maximum_response_bytes") != 8192
+                ):
+                    raise PlanError(
+                        "XLoader targetのtimeout/request/response上限が固定値と一致しません"
+                    )
         elif profile_id is not None:
             raise PlanError("protocol_profile_idはレビュー済みactive methodだけに使用できます")
+        if method == "protocol_profile_required":
+            hints = target.get("protocol_hints")
+            if not isinstance(hints, list) or not hints or len(hints) != len(set(hints)):
+                raise PlanError("protocol_profile_requiredには重複のない明示protocol_hintsが必要です")
+            if any(hint not in PROFILE_REQUIRED_PROTOCOLS for hint in hints):
+                raise PlanError("protocol_hintsはレビュー対象のmalware protocolに限定します")
+            expected_status = (
+                "reviewed_exact_profile_missing" if len(hints) == 1 else "conflicting_explicit_protocol_hints"
+            )
+            if (
+                target.get("protocol_profile_required") is not True
+                or target.get("protocol_profile_status") != expected_status
+            ):
+                raise PlanError("protocol_profile_requiredにはIOC由来の明示protocol_hintsとfail-closed印が必要です")
+            if protocol != "tcp":
+                raise PlanError("protocol_profile_requiredは非接続transport表現のprotocol=tcpに限定します")
         if host.endswith(".onion") and transport != "tor-socks5":
             raise PlanError(".onionはloopback SOCKS5経由に限定します")
         if not host.endswith(".onion") and transport != "direct":
@@ -162,6 +418,9 @@ def validate_plan(plan: dict) -> dict:
             "stealc_v2_registration_task": "stealc",
             "lumma_v6_registration_task": "lummastealer",
             "remus_registration_task": "remusstealer",
+            "darkcomet_server_first_idtype": "darkcomet",
+            "redline_checkconnect_soap11": "redlinestealer",
+            "xloader_v8_get_registration": "xloader_http_get_pkt2",
         }.get(method)
         if expected_protocol and protocol != expected_protocol:
             raise PlanError(f"{method}にはprotocol={expected_protocol}が必要です")
@@ -184,8 +443,7 @@ def validate_plan(plan: dict) -> dict:
         if not 0.1 <= timeout <= 5.0 or not 1 <= maximum <= response_limit:
             raise PlanError(f"timeout<=5秒、response<={response_limit} byteを超えています")
         if profile and (
-            timeout != float(profile["timeout_seconds"])
-            or maximum != int(profile["maximum_response_bytes"])
+            timeout != float(profile["timeout_seconds"]) or maximum != int(profile["maximum_response_bytes"])
         ):
             raise PlanError("active protocol probeはレビュー済みtimeout/response上限との完全一致が必要です")
         path = str(target.get("http_path", "/"))
@@ -194,7 +452,12 @@ def validate_plan(plan: dict) -> dict:
         if any(key in target for key in ("send_hex", "payload", "cidr", "ports", "checkin")):
             raise PlanError("payload、check-in、range scanは監視計画へ指定できません")
         samples = target.get("sample_sha256s", [])
-        if not isinstance(samples, list) or any(not SHA256_RE.fullmatch(str(x)) for x in samples):
+        if (
+            not isinstance(samples, list)
+            or any(type(value) is not str or not SHA256_RE.fullmatch(value) for value in samples)
+            or len(samples) != len(set(samples))
+            or samples != sorted(samples)
+        ):
             raise PlanError("sample_sha256sが不正です")
         sources = target.get("sources")
         if not isinstance(sources, list) or not sources or any(not str(x).strip() for x in sources):
@@ -285,7 +548,7 @@ def _probe_winos_reviewed(profile: dict, allow_network: bool) -> dict:
 
 def _winos_observation(target: dict, allow_network: bool) -> dict:
     """Winos heartbeatを共通observatonへ正規化し、operation commandは保持しない。"""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
     try:
         raw = _probe_winos_reviewed(profile, allow_network)
@@ -303,7 +566,7 @@ def _winos_observation(target: dict, allow_network: bool) -> dict:
             "victim_metadata_sent": False,
             "operation_command_sent": False,
         }
-    except (socket.timeout, TimeoutError):
+    except TimeoutError:
         return {
             "timestamp_utc": timestamp,
             "status": "timeout",
@@ -392,7 +655,7 @@ def _agenttesla_ftp_observation(
 ) -> dict:
     """完全一致private資格情報でFTP認証だけを確認し、秘密値とraw replyを破棄する。"""
 
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     disabled = {
         "timestamp_utc": timestamp,
         "alive": False,
@@ -440,7 +703,7 @@ def _agenttesla_ftp_observation(
         )
     except ConnectionRefusedError:
         return {**disabled, "status": "closed", "target_contact_attempted": True}
-    except (socket.timeout, TimeoutError):
+    except TimeoutError:
         return {**disabled, "status": "timeout", "target_contact_attempted": True}
     except (OSError, ValueError, RuntimeError) as exc:
         return {
@@ -492,13 +755,13 @@ def _tls_messagepack_observation(
         )
     except ConnectionRefusedError:
         status = "closed"
-    except (socket.timeout, TimeoutError):
+    except TimeoutError:
         status = "timeout"
     except ssl.SSLError:
         status = "tls_handshake_failed"
     except (OSError, ValueError, RuntimeError) as exc:
         return {
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
             "status": "tls_messagepack_probe_error",
             "alive": False,
             "c2_confirmed": False,
@@ -513,7 +776,7 @@ def _tls_messagepack_observation(
             "operation_command_sent": False,
         }
     return {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": datetime.now(UTC).isoformat(),
         "status": status,
         "alive": False,
         "c2_confirmed": False,
@@ -527,24 +790,103 @@ def _tls_messagepack_observation(
         "operation_command_sent": False,
     }
 
+
+def _darkcomet_server_first_observation(
+    target: dict,
+    allow_network: bool,
+    repository_root: Path | None,
+) -> dict:
+    """DarkCometの受信専用RC4 challenge probeを共通観測へ正規化する。"""
+
+    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
+    profile["evidence_sha256"] = target["protocol_profile_evidence_sha256"]
+    profile["evidence_source"] = target["protocol_profile_evidence_source"]
+    try:
+        return probe_reviewed_darkcomet_server_first(
+            profile,
+            allow_network=allow_network,
+            repository_root=repository_root,
+        )
+    except ConnectionRefusedError:
+        status = "closed"
+    except TimeoutError:
+        status = "timeout"
+    except (OSError, ValueError, RuntimeError) as exc:
+        return {
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "status": "darkcomet_server_first_probe_error",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": allow_network,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "sent_bytes": 0,
+            "protocol_response_received": False,
+            "server_first_response_received": False,
+            "server_first_bytes_received": 0,
+            "error_type": type(exc).__name__,
+            "decrypted_plaintext_published": False,
+            "rc4_key_published": False,
+            "resolved_ips": [],
+            "stage_requested": False,
+            "victim_metadata_sent": False,
+            "operation_command_sent": False,
+        }
+    return {
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "status": status,
+        "alive": False,
+        "c2_confirmed": False,
+        "target_contact_attempted": allow_network,
+        "target_connection_established": False,
+        "application_data_sent": False,
+        "sent_bytes": 0,
+        "protocol_response_received": False,
+        "server_first_response_received": False,
+        "server_first_bytes_received": 0,
+        "decrypted_plaintext_published": False,
+        "rc4_key_published": False,
+        "resolved_ips": [],
+        "stage_requested": False,
+        "victim_metadata_sent": False,
+        "operation_command_sent": False,
+    }
+
+
 def _stealer_registration_observation(
     target: dict,
     allow_network: bool,
     allow_registration_tasking: bool,
+    repository_root: Path | None,
 ) -> dict:
     """StealC／Lumma／Remusの合成端末登録とtask取得を正規化する。"""
 
-    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
-    timestamp = datetime.now(timezone.utc).isoformat()
+    profile = resolve_profile(
+        target["protocol_profile_id"],
+        target["host"],
+        target["port"],
+        expected_registry_sha256=target.get("protocol_profile_registry_sha256"),
+    )
+    timestamp = datetime.now(UTC).isoformat()
     try:
         result = probe_reviewed_stealer_registration(
             profile,
             allow_network=allow_network,
             allow_registration_tasking=allow_registration_tasking,
+            repository_root=repository_root,
+            expected_evidence_sha256=target.get("protocol_profile_evidence_sha256"),
+            expected_evidence_source=target.get("protocol_profile_evidence_source"),
+            expected_profile_registry_source=target.get("protocol_profile_registry_source"),
+            expected_profile_registry_sha256=target.get("protocol_profile_registry_sha256"),
+            expected_registry_source=target.get("protocol_profile_review_registry_source"),
+            expected_registry_sha256=target.get("protocol_profile_review_registry_sha256"),
+            expected_flow_artifact_source=target.get("protocol_profile_flow_artifact_source"),
+            expected_flow_artifact_sha256=target.get("protocol_profile_flow_artifact_sha256"),
+            expected_review_id=target.get("protocol_profile_review_id"),
         )
     except ConnectionRefusedError:
         status = "closed"
-    except (socket.timeout, TimeoutError):
+    except TimeoutError:
         status = "timeout"
     except (OSError, ValueError, RuntimeError) as exc:
         return {
@@ -584,9 +926,311 @@ def _stealer_registration_observation(
     }
 
 
+def _load_redline_active_probe_module():
+    """RedLine固有active probeを明示pathから読み込む。"""
+
+    module_path = (
+        Path(__file__).parents[1]
+        / "malware"
+        / "redlinestealer"
+        / "active_probe.py"
+    )
+    module_name = "_monitor_redline_active_probe"
+    existing = sys.modules.get(module_name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("RedLine active probe moduleを読み込めません")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_xloader_active_probe_module():
+    """XLoader固有active probeをpackage相対import付きで読み込む。"""
+
+    family_root = (
+        Path(__file__).parents[1]
+        / "malware"
+        / "formbook_loader"
+    )
+    package_name = "_monitor_formbook_loader"
+    module_name = f"{package_name}.xloader_active_probe"
+    existing = sys.modules.get(module_name)
+    if existing is not None:
+        return existing
+    package = sys.modules.get(package_name)
+    if package is None:
+        package = ModuleType(package_name)
+        package.__path__ = [str(family_root)]  # type: ignore[attr-defined]
+        package.__package__ = package_name
+        sys.modules[package_name] = package
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        family_root / "xloader_active_probe.py",
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("XLoader active probe moduleを読み込めません")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _normalize_bounded_active_result(result: dict) -> dict:
+    """family結果へ共通のrequest budget・送受信量・非公開flagを補う。"""
+
+    value = dict(result)
+    request_count = int(value.get("request_count") or 0)
+    request_size = int(
+        value.get("request_size")
+        or (value.get("request_evidence") or {}).get("request_bytes")
+        or 0
+    )
+    response_size = int(
+        value.get("response_size")
+        or (value.get("http") or {}).get("response_body_length")
+        or 0
+    )
+    value.setdefault("request_budget_used", request_count)
+    value.setdefault(
+        "sent_bytes",
+        request_size if value.get("application_data_sent") else 0,
+    )
+    value.setdefault("received_bytes", response_size)
+    value.setdefault(
+        "protocol_response_received",
+        bool(
+            value.get("c2_confirmed")
+            or value.get("task_response_received")
+            or (
+                isinstance(value.get("http"), dict)
+                and value["http"].get("status") is not None
+            )
+        ),
+    )
+    value.setdefault("synthetic_identity_sent", False)
+    value.setdefault("victim_metadata_sent", False)
+    value.setdefault("task_poll_attempted", False)
+    value.setdefault("task_content_published", False)
+    value.setdefault("task_executed", False)
+    value.setdefault("payload_download_attempted", False)
+    value.setdefault("raw_request_published", False)
+    value.setdefault("raw_response_published", False)
+    return value
+
+
+def _redline_checkconnect_observation(
+    target: dict,
+    allow_network: bool,
+    allow_reviewed_checkconnect: bool,
+    acknowledged_profiles: frozenset[str],
+) -> dict:
+    """RedLine CheckConnectを専用gateとprofile ID確認付きで1回だけ呼ぶ。"""
+
+    profile_id = str(target["protocol_profile_id"])
+    acknowledgement = profile_id if profile_id in acknowledged_profiles else None
+    try:
+        current_common_registry = profile_registry_metadata()
+        if (
+            target.get("protocol_profile_registry_source")
+            != current_common_registry["source"]
+            or target.get("protocol_profile_registry_sha256")
+            != current_common_registry["sha256"]
+        ):
+            raise PlanError(
+                "RedLine common registryのdispatch直前pinが一致しません"
+            )
+        profile = resolve_profile(
+            profile_id,
+            target["host"],
+            target["port"],
+            expected_registry_sha256=target[
+                "protocol_profile_registry_sha256"
+            ],
+        )
+        exact_target_fields = (
+            target.get("family") == profile.get("family"),
+            target.get("protocol") == profile.get("protocol"),
+            target.get("method") == profile.get("method"),
+            target.get("sample_sha256s") == profile.get("sample_sha256s"),
+            target.get("timeout_seconds") == profile.get("timeout_seconds"),
+            target.get("maximum_request_bytes")
+            == profile.get("maximum_request_bytes"),
+            target.get("maximum_response_bytes")
+            == profile.get("maximum_response_bytes"),
+            target.get("protocol_profile_evidence_source")
+            == profile.get("config_source"),
+            target.get("protocol_profile_evidence_sha256")
+            == profile.get("config_artifact_review_sha256"),
+            target.get("protocol_profile_review_id")
+            == profile.get("config_review_id"),
+            target.get("protocol_profile_endpoint_json_pointer")
+            == profile.get("endpoint_json_pointer"),
+            target.get("protocol_profile_terminal_mvid")
+            == profile.get("terminal_mvid"),
+            target.get("protocol_profile_terminal_cil_semantic_sha256")
+            == profile.get("terminal_cil_semantic_sha256"),
+            target.get("protocol_profile_request_sha256")
+            == profile.get("request_sha256"),
+            target.get("protocol_profile_family_registry_source")
+            == profile.get("family_profile_registry_source"),
+            target.get("protocol_profile_family_registry_sha256")
+            == profile.get("family_profile_registry_sha256"),
+        )
+        if not all(exact_target_fields):
+            raise PlanError(
+                "RedLine target/profileのdispatch直前pinが一致しません"
+            )
+        module = _load_redline_active_probe_module()
+        result = module.probe_reviewed_redline_checkconnect(
+            profile_id,
+            allow_network=allow_network,
+            allow_reviewed_checkconnect=allow_reviewed_checkconnect,
+            acknowledge_profile=acknowledgement,
+            expected_profile_registry_sha256=target[
+                "protocol_profile_family_registry_sha256"
+            ],
+        )
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
+        return _normalize_bounded_active_result(
+            {
+                "timestamp_utc": datetime.now(UTC).isoformat(),
+                "status": "redline_checkconnect_probe_error",
+                "alive": False,
+                "c2_confirmed": False,
+                "target_contact_attempted": False,
+                "target_connection_established": False,
+                "application_data_sent": False,
+                "protocol_response_received": False,
+                "error_type": type(exc).__name__,
+                "request_count": 0,
+            }
+        )
+    return _normalize_bounded_active_result(result)
+
+
+def _xloader_registration_observation(
+    target: dict,
+    allow_network: bool,
+    allow_xloader_registration: bool,
+    private_material_path: Path | None,
+    repository_root: Path | None,
+) -> dict:
+    """XLoader v8のreview済みreal C2へ合成PKT2を1 GETだけ送る。"""
+
+    disabled = {
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "alive": False,
+        "c2_confirmed": False,
+        "target_contact_attempted": False,
+        "target_connection_established": False,
+        "application_data_sent": False,
+        "protocol_response_received": False,
+        "registration_attempted": False,
+        "task_poll_attempted": False,
+        "request_count": 0,
+    }
+    if not allow_network:
+        return _normalize_bounded_active_result(
+            {**disabled, "status": "network_disabled"}
+        )
+    if not allow_xloader_registration:
+        return _normalize_bounded_active_result(
+            {**disabled, "status": "xloader_registration_disabled"}
+        )
+    if private_material_path is None:
+        return _normalize_bounded_active_result(
+            {**disabled, "status": "xloader_private_material_missing"}
+        )
+    profile = resolve_profile(
+        target["protocol_profile_id"],
+        target["host"],
+        target["port"],
+        expected_registry_sha256=target.get(
+            "protocol_profile_registry_sha256"
+        ),
+    )
+    try:
+        module = _load_xloader_active_probe_module()
+        private_material = module.load_private_material(
+            private_material_path,
+            repository_root=repository_root,
+        )
+        result = module.probe_reviewed_xloader_registration(
+            profile,
+            private_material=private_material,
+            allow_network=True,
+            allow_xloader_registration=True,
+            allow_xloader_candidate_check=False,
+            expected_profile_sha256=target[
+                "protocol_profile_payload_sha256"
+            ],
+            expected_profile_registry_sha256=target[
+                "protocol_profile_registry_sha256"
+            ],
+            expected_private_material_sha256=target[
+                "protocol_profile_private_material_sha256"
+            ],
+            expected_selector_path_table_sha256=target[
+                "protocol_profile_selector_path_table_sha256"
+            ],
+            expected_synthetic_template_id=target[
+                "protocol_profile_synthetic_template_id"
+            ],
+            expected_pkt2_inner_plaintext_sha256=target[
+                "protocol_profile_pkt2_inner_plaintext_sha256"
+            ],
+            expected_request_sha256=target[
+                "protocol_profile_request_sha256"
+            ],
+            expected_review_id=target["protocol_profile_review_id"],
+            expected_profile_id=target["protocol_profile_id"],
+        )
+    except ConnectionRefusedError:
+        return _normalize_bounded_active_result(
+            {
+                **disabled,
+                "status": "closed",
+                "target_contact_attempted": True,
+                "registration_attempted": True,
+            }
+        )
+    except TimeoutError:
+        return _normalize_bounded_active_result(
+            {
+                **disabled,
+                "status": "timeout",
+                "target_contact_attempted": True,
+                "registration_attempted": True,
+            }
+        )
+    except OSError as exc:
+        return _normalize_bounded_active_result(
+            {
+                **disabled,
+                "status": "xloader_network_error",
+                "target_contact_attempted": True,
+                "registration_attempted": True,
+                "error_type": type(exc).__name__,
+            }
+        )
+    except (ValueError, RuntimeError, json.JSONDecodeError) as exc:
+        return _normalize_bounded_active_result(
+            {
+                **disabled,
+                "status": "xloader_profile_or_material_error",
+                "error_type": type(exc).__name__,
+            }
+        )
+    return _normalize_bounded_active_result(result)
+
+
 def _dns_observation(target: dict, allow_network: bool) -> dict:
     """port不明FQDNをDNS解決だけで観測し、C2到達とは扱わない。"""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     if not allow_network:
         return {
             "timestamp_utc": timestamp,
@@ -624,6 +1268,23 @@ def _dns_observation(target: dict, allow_network: bool) -> dict:
 def _sanitize_observation(observation: dict) -> dict:
     """banner本文やcookie等を公開結果へ残さずfingerprintだけ保持する。"""
     value = dict(observation)
+    for key in (
+        "request",
+        "raw_request",
+        "request_body",
+        "response",
+        "raw_response",
+        "response_body",
+        "command_content",
+        "task_content",
+        "credential",
+        "cookie",
+        "token",
+        "private_material",
+        "network_rc4_key",
+        "url_seed",
+    ):
+        value.pop(key, None)
     banner = value.get("banner")
     if isinstance(banner, dict):
         banner = dict(banner)
@@ -638,12 +1299,42 @@ def _sanitize_observation(observation: dict) -> dict:
     http = value.get("http")
     if isinstance(http, dict):
         http = dict(http)
+        for key in (
+            "body",
+            "raw",
+            "raw_request",
+            "raw_response",
+            "request_headers",
+            "set_cookie",
+            "location",
+        ):
+            http.pop(key, None)
         headers = http.get("headers")
         if isinstance(headers, dict):
             http["headers"] = {
                 str(key).lower(): val for key, val in headers.items() if str(key).lower() in SAFE_HTTP_HEADERS
             }
         value["http"] = http
+    for field in ("request_evidence", "protocol_evidence", "exact_binding"):
+        nested = value.get(field)
+        if not isinstance(nested, dict):
+            continue
+        nested = dict(nested)
+        for key in (
+            "raw",
+            "body",
+            "plaintext",
+            "ciphertext",
+            "command_content",
+            "task_content",
+            "token",
+            "cookie",
+            "key",
+            "url_seed",
+            "private_material",
+        ):
+            nested.pop(key, None)
+        value[field] = nested
     value.pop("sent_hex", None)
     return value
 
@@ -665,6 +1356,12 @@ def assess_observation(target: dict, observation: dict) -> dict:
         "private_credential_vault_error",
         "tls_handshake_only_application_probe_disabled",
         "malware_registration_tasking_disabled",
+        "reviewed_checkconnect_not_authorized",
+        "profile_acknowledgement_missing_or_mismatch",
+        "redline_checkconnect_probe_error",
+        "xloader_registration_disabled",
+        "xloader_private_material_missing",
+        "xloader_profile_or_material_error",
     } and not observation.get("target_contact_attempted"):
         return {
             "state": "not_observed_safety_gate",
@@ -688,6 +1385,224 @@ def assess_observation(target: dict, observation: dict) -> dict:
                 if resolved
                 else "DNS解決結果なし。port不明のためC2 serviceへ未接続"
             ),
+        }
+
+    if method == "protocol_profile_required":
+        resolved = bool(observation.get("resolved_ips"))
+        return {
+            "state": "protocol_profile_required_c2_unverified",
+            "reachability_confidence": 0.15 if resolved else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": (
+                "DNSは解決したが、review済み完全一致profile未登録のためTCP接続・malware application data送信を行わずC2稼働は未検証"
+                if resolved
+                else "review済み完全一致profile未登録のためTCP接続せず、DNS解決結果も得られずC2稼働は未検証"
+            ),
+        }
+
+    if method == "redline_checkconnect_soap11":
+        forbidden_side_effect = any(
+            bool(observation.get(field))
+            for field in (
+                "synthetic_identity_sent",
+                "victim_metadata_sent",
+                "registration_attempted",
+                "task_poll_attempted",
+                "task_content_published",
+                "task_executed",
+                "payload_download_attempted",
+                "redirect_followed",
+                "raw_request_published",
+                "raw_response_published",
+            )
+        )
+        exact_status = status in {
+            "confirmed_redline_checkconnect",
+            "redline_checkconnect_protocol_match_result_false",
+        }
+        exact_flags = (
+            observation.get("c2_confirmed") is True
+            and observation.get("protocol_response_received") is True
+            and observation.get("target_connection_established") is True
+            and observation.get("application_data_sent") is True
+            and observation.get("request_count") == 1
+            and observation.get("request_budget_used") == 1
+            and int(observation.get("sent_bytes") or 0) > 0
+            and int(observation.get("received_bytes") or 0) > 0
+            and not forbidden_side_effect
+        )
+        if exact_status and exact_flags:
+            accepted = status == "confirmed_redline_checkconnect"
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                "c2_operational_confidence": 0.98 if accepted else 0.95,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": (
+                    "完全一致profileのSOAP 1.1 CheckConnectへ厳密なboolean true応答が一致"
+                    if accepted
+                    else "完全一致profileのSOAP 1.1 CheckConnectへ厳密なboolean false応答が一致。protocolは確認したが後続受入状態は未確認"
+                ),
+            }
+        if exact_status or observation.get("c2_confirmed"):
+            return {
+                "state": "redline_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": 0.98 if tcp_open else 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "RedLine確認status、応答flag、request budgetまたは副作用flagが矛盾するためC2確定を禁止",
+            }
+        if tcp_open:
+            return {
+                "state": "redline_endpoint_reachable_protocol_not_confirmed",
+                "reachability_confidence": 0.98,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "endpointへ到達したが厳密なCheckConnectResponse構造が一致しない",
+            }
+
+    if method == "xloader_v8_get_registration":
+        protocol_evidence = (
+            observation.get("protocol_evidence")
+            if isinstance(observation.get("protocol_evidence"), dict)
+            else {}
+        )
+        forbidden_side_effect = any(
+            bool(observation.get(field))
+            for field in (
+                "victim_metadata_sent",
+                "real_victim_metadata_sent",
+                "task_content_published",
+                "task_executed",
+                "payload_download_attempted",
+                "stage_requested",
+                "operation_command_sent",
+                "redirect_followed",
+                "raw_request_published",
+                "raw_response_published",
+            )
+        )
+        exact_status = status == "confirmed_xloader_v8_get_registration_command"
+        exact_flags = (
+            observation.get("c2_confirmed") is True
+            and observation.get("target_connection_established") is True
+            and observation.get("application_data_sent") is True
+            and observation.get("protocol_response_received") is True
+            and observation.get("registration_attempted") is True
+            and observation.get("registration_accepted") is True
+            and observation.get("synthetic_identity_sent") is True
+            and observation.get("task_poll_attempted") is True
+            and observation.get("task_response_received") is True
+            and observation.get("request_count") == 1
+            and observation.get("request_budget_used") == 1
+            and int(observation.get("sent_bytes") or 0) > 0
+            and int(observation.get("received_bytes") or 0) > 0
+            and protocol_evidence.get("magic") == "XLNG"
+            and protocol_evidence.get("command_id_valid") is True
+            and not forbidden_side_effect
+        )
+        if exact_status and exact_flags:
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                "c2_operational_confidence": 0.98,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "完全一致real-C2 profileの合成PKT2を1 GETだけ送り、review済み鍵でXLNG command envelopeを復号・検証",
+            }
+        if exact_status or observation.get("c2_confirmed"):
+            return {
+                "state": "xloader_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": 0.98 if tcp_open else 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "XLoader確認status、暗号応答、合成ID、request budgetまたは副作用flagが矛盾するためC2確定を禁止",
+            }
+        if status == "xloader_v8_response_mismatch" or tcp_open:
+            return {
+                "state": "xloader_endpoint_reachable_protocol_not_confirmed",
+                "reachability_confidence": 0.98,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "HTTP到達または応答は得たが、404やdecoyを含み得てXLNG暗号応答が一致しないためC2未確認",
+            }
+
+    if method == "darkcomet_server_first_idtype":
+        if (
+            status == "confirmed_darkcomet_idtype"
+            and observation.get("idtype_exact_match") is True
+            and observation.get("c2_confirmed") is True
+        ):
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                "c2_operational_confidence": 0.98,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "静的解析鍵でserver-first IDTYPEが完全一致し、送信なしでDarkComet protocolを確認",
+            }
+        states = {
+            "darkcomet_idtype_mismatch": (
+                "darkcomet_challenge_mismatch_c2_not_confirmed",
+                "受信challengeを復号したがIDTYPEへ一致しないためDarkComet C2とは判定しない",
+            ),
+            "darkcomet_ciphertext_partial": (
+                "darkcomet_partial_challenge_c2_not_confirmed",
+                "server-first応答が途中で終了し、DarkComet challengeを判定できない",
+            ),
+            "darkcomet_ciphertext_malformed": (
+                "darkcomet_malformed_challenge_c2_not_confirmed",
+                "server-first応答が許可したraw/ASCII-hex形状ではない",
+            ),
+            "darkcomet_ciphertext_overlong": (
+                "darkcomet_overlong_challenge_c2_not_confirmed",
+                "server-first応答が12 byte判定上限を超えたためDarkComet C2とは判定しない",
+            ),
+            "connected_no_response": (
+                "darkcomet_server_first_no_response_c2_not_confirmed",
+                "TCP接続は成立したがserver-first応答を受信していない",
+            ),
+            "receive_skipped_deadline_exhausted": (
+                "darkcomet_receive_skipped_deadline_exhausted_c2_not_confirmed",
+                "TCP接続後に全体期限を消費したためserver-first受信を開始せず、C2とは判定しない",
+            ),
+        }
+        if status in states:
+            state, reason = states[status]
+            received = int(observation.get("server_first_bytes_received") or 0)
+            return {
+                "state": state,
+                "reachability_confidence": 0.98 if received else 0.90,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": reason,
+            }
+        if observation.get("c2_confirmed") or status == "confirmed_darkcomet_idtype":
+            return {
+                "state": "darkcomet_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": 0.98 if observation.get("target_connection_established") else 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "IDTYPE完全一致status・flagの組が整合しないためDarkComet C2とは判定しない",
+            }
+
+    if method == "remus_registration_task" and status == "remus_task_schema_unverified":
+        return {
+            "state": "remus_task_schema_unverified_c2_not_confirmed",
+            "reachability_confidence": 0.98 if tcp_open else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": "typeは静的範囲内だがname/dataの実protocol型が未復元のためC2 confirmedを禁止",
         }
 
     if observation.get("c2_confirmed"):
@@ -777,14 +1692,20 @@ def monitor(
     allow_application_probes: bool = False,
     allow_authentication: bool = False,
     allow_malware_registration: bool = False,
+    allow_reviewed_checkconnect: bool = False,
+    acknowledged_redline_profiles: set[str] | frozenset[str] | None = None,
+    allow_xloader_registration: bool = False,
     private_credential_vault: Path | None = None,
+    xloader_private_material: Path | None = None,
+    repository_root: Path | None = None,
 ) -> dict:
     """レビュー済み対象を各1回だけ観測する。"""
-    plan = validate_plan(plan)
+    plan = validate_plan(plan, repository_root=repository_root)
+    redline_acknowledgements = frozenset(acknowledged_redline_profiles or ())
     results = []
     for target in plan["targets"]:
         method = target.get("method", "tcp_connect")
-        if method == "dns_resolve":
+        if method == "dns_resolve" or method == "protocol_profile_required":
             raw = _dns_observation(target, allow_network)
         elif method == "winos_heartbeat":
             raw = _winos_observation(target, allow_network)
@@ -801,12 +1722,29 @@ def monitor(
                 allow_network,
                 allow_application_probes,
             )
-        elif method in {
-            "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
-        }:
-            raw = _stealer_registration_observation(
-                target, allow_network, allow_malware_registration
+        elif method == "darkcomet_server_first_idtype":
+            raw = _darkcomet_server_first_observation(target, allow_network, repository_root)
+        elif method == "redline_checkconnect_soap11":
+            raw = _redline_checkconnect_observation(
+                target,
+                allow_network,
+                allow_reviewed_checkconnect,
+                redline_acknowledgements,
             )
+        elif method == "xloader_v8_get_registration":
+            raw = _xloader_registration_observation(
+                target,
+                allow_network,
+                allow_xloader_registration,
+                xloader_private_material,
+                repository_root,
+            )
+        elif method in {
+            "stealc_v2_registration_task",
+            "lumma_v6_registration_task",
+            "remus_registration_task",
+        }:
+            raw = _stealer_registration_observation(target, allow_network, allow_malware_registration, repository_root)
         else:
             raw = probe(_probe_args(target, allow_network))
         observation = _sanitize_observation(raw)
@@ -820,6 +1758,8 @@ def monitor(
                 "transport": target.get("transport", "direct"),
                 "method": target.get("method", "tcp_connect"),
                 "protocol_profile_id": target.get("protocol_profile_id"),
+                "protocol_profile_evidence_sha256": target.get("protocol_profile_evidence_sha256"),
+                "protocol_profile_evidence_source": target.get("protocol_profile_evidence_source"),
                 "method_description": METHOD_LABELS[target.get("method", "tcp_connect")],
                 "http_path": target.get("http_path") if target.get("method") == "http_get" else None,
                 "sample_sha256s": target.get("sample_sha256s", []),
@@ -827,6 +1767,7 @@ def monitor(
                     target.get("associated_case_count", len(target.get("sample_sha256s", [])))
                 ),
                 "analyzed_dates": target.get("analyzed_dates", []),
+                "protocol_hints": target.get("protocol_hints", []),
                 "sources": target["sources"],
                 "observation": observation,
                 "assessment": assess_observation(target, observation),
@@ -836,15 +1777,24 @@ def monitor(
     reviewed_message_results = [
         item
         for item in results
-        if item["method"] in {
-            "winos_heartbeat", "vvas_checkin", "asyncrat_tls_messagepack", "venomrat_tls_messagepack",
-            "stealc_v2_registration_task", "lumma_v6_registration_task", "remus_registration_task",
-        } and item["observation"].get("application_data_sent")
+        if item["method"]
+        in {
+            "winos_heartbeat",
+            "vvas_checkin",
+            "asyncrat_tls_messagepack",
+            "venomrat_tls_messagepack",
+            "stealc_v2_registration_task",
+            "lumma_v6_registration_task",
+            "remus_registration_task",
+            "redline_checkconnect_soap11",
+            "xloader_v8_get_registration",
+        }
+        and item["observation"].get("application_data_sent")
     ]
     reviewed_protocol_probe_count = sum(bool(item.get("protocol_profile_id")) for item in results)
     return {
         "schema_version": 1,
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "analysis_window": plan["analysis_window"],
         "collection_scope": plan.get("collection_scope", "provided_targets"),
         "onion_excluded_by_policy": bool(plan.get("onion_excluded_by_policy", False)),
@@ -864,39 +1814,72 @@ def monitor(
             "reviewed_protocol_probe_count": reviewed_protocol_probe_count,
             "protocol_profile_registry_enforced": True,
             "stage_requested": any(bool(item["observation"].get("stage_requested")) for item in results),
-            "victim_metadata_sent": any(
-                bool(item["observation"].get("victim_metadata_sent")) for item in results
-            ),
-            "command_polling_performed": any(
-                bool(item["observation"].get("task_poll_attempted")) for item in results
-            ),
+            "victim_metadata_sent": any(bool(item["observation"].get("victim_metadata_sent")) for item in results),
+            "command_polling_performed": any(bool(item["observation"].get("task_poll_attempted")) for item in results),
             "malware_registration_tasking_enabled": allow_malware_registration,
             "registration_attempted_count": sum(
                 bool(item["observation"].get("registration_attempted")) for item in results
             ),
-            "task_poll_attempted_count": sum(
-                bool(item["observation"].get("task_poll_attempted")) for item in results
+            "task_poll_attempted_count": sum(bool(item["observation"].get("task_poll_attempted")) for item in results),
+            "task_available_count": sum(item["observation"].get("task_available") is True for item in results),
+            "task_content_published": any(
+                bool(item["observation"].get("task_content_published"))
+                for item in results
             ),
-            "task_available_count": sum(
-                item["observation"].get("task_available") is True for item in results
+            "task_executed": any(
+                bool(item["observation"].get("task_executed"))
+                for item in results
             ),
-            "task_content_published": False,
-            "task_executed": False,
-            "payload_download_attempted": False,
+            "payload_download_attempted": any(
+                bool(item["observation"].get("payload_download_attempted"))
+                for item in results
+            ),
             "range_scan_performed": False,
             "tcp_open_confirms_c2": False,
             "network_enabled": allow_network,
             "reviewed_application_probes_enabled": allow_application_probes,
+            "reviewed_redline_checkconnect_enabled": allow_reviewed_checkconnect,
+            "acknowledged_redline_profile_count": len(
+                redline_acknowledgements
+            ),
             "private_authentication_enabled": allow_authentication,
             "reviewed_malware_registration_enabled": allow_malware_registration,
+            "reviewed_xloader_registration_enabled": allow_xloader_registration,
             "private_credential_vault_used": private_credential_vault is not None,
+            "xloader_private_material_used": xloader_private_material is not None,
             "authentication_attempted_count": sum(
                 bool(item["observation"].get("authentication_attempted")) for item in results
             ),
             "file_transfer_attempted": any(
                 bool(item["observation"].get("file_transfer_attempted")) for item in results
             ),
+            "redline_checkconnect_attempted_count": sum(
+                item["method"] == "redline_checkconnect_soap11"
+                and bool(item["observation"].get("application_data_sent"))
+                for item in results
+            ),
+            "redline_checkconnect_confirmed_count": sum(
+                item["method"] == "redline_checkconnect_soap11"
+                and item["assessment"]["state"] == "c2_protocol_confirmed"
+                for item in results
+            ),
+            "xloader_registration_attempted_count": sum(
+                item["method"] == "xloader_v8_get_registration"
+                and bool(item["observation"].get("registration_attempted"))
+                for item in results
+            ),
+            "xloader_protocol_confirmed_count": sum(
+                item["method"] == "xloader_v8_get_registration"
+                and item["assessment"]["state"] == "c2_protocol_confirmed"
+                for item in results
+            ),
+            "application_request_count": sum(
+                int(item["observation"].get("request_count") or 0)
+                for item in results
+            ),
             "certificate_mismatch_excludes_c2": False,
+            "darkcomet_dns_timeout_bounded": False,
+            "darkcomet_deadline_scope": "post_dns_connect_receive",
         },
         "target_count": len(results),
         "state_counts": dict(sorted(counts.items())),
@@ -1107,9 +2090,21 @@ def render_markdown(result: dict) -> str:
         )
     else:
         active_probe_policy = "今回、レビュー済みmalware固有protocol要求は対象へ送信されませんでした。"
+    if policy.get("redline_checkconnect_attempted_count", 0):
+        active_probe_policy += (
+            f"RedLine CheckConnectは"
+            f"{policy.get('redline_checkconnect_attempted_count', 0)}対象へ引数なしSOAP要求を各1回送り、"
+            f"{policy.get('redline_checkconnect_confirmed_count', 0)}対象で厳密なboolean応答を確認しました。"
+        )
+    if policy.get("xloader_registration_attempted_count", 0):
+        active_probe_policy += (
+            f"XLoaderはreview済みreal-C2 profile "
+            f"{policy.get('xloader_registration_attempted_count', 0)}対象へ合成PKT2を各1 GETだけ送り、"
+            f"{policy.get('xloader_protocol_confirmed_count', 0)}対象で暗号応答を確認しました。"
+        )
     if policy.get("task_poll_attempted_count", 0):
         active_probe_policy += (
-            f"StealC／Lumma／Remusでは登録後のtask取得を"
+            f"StealC／Lumma／Remusの登録後task取得またはXLoader単一登録応答のcommand有無確認を"
             f"{policy.get('task_poll_attempted_count', 0)}対象へ各1回試行しました。"
             "task本文・token・合成IDは公開せず、task実行、URL追跡、payload取得は行っていません。"
         )
@@ -1133,8 +2128,7 @@ def render_markdown(result: dict) -> str:
     else:
         report_title = "# 対象限定のC2稼働状況"
         scope_description = (
-            f"監視scopeは `{scope}` です。`.onion`は対象外で、"
-            "入力planへ明示した根拠付きendpointだけを確認しています。"
+            f"監視scopeは `{scope}` です。`.onion`は対象外で、入力planへ明示した根拠付きendpointだけを確認しています。"
         )
     return "\n".join(
         [
@@ -1209,9 +2203,31 @@ def main() -> int:
         help="完全一致StealC／Lumma／Remus profileの合成登録とtask取得を許可します。",
     )
     parser.add_argument(
+        "--allow-reviewed-checkconnect",
+        action="store_true",
+        help="完全一致RedLine profileの引数なしSOAP CheckConnect 1要求を許可します。",
+    )
+    parser.add_argument(
+        "--acknowledge-redline-profile",
+        action="append",
+        default=[],
+        metavar="PROFILE_ID",
+        help="送信を承認するRedLine profile ID。完全一致で、profileごとに指定します。",
+    )
+    parser.add_argument(
+        "--allow-xloader-registration",
+        action="store_true",
+        help="review済みreal-C2 XLoader profileの合成PKT2登録GET 1要求を許可します。",
+    )
+    parser.add_argument(
         "--private-credential-vault",
         type=Path,
         help="リポジトリ外のAgentTesla sensitive_local_only JSON。",
+    )
+    parser.add_argument(
+        "--xloader-private-material",
+        type=Path,
+        help="リポジトリ外のXLoader検体固有鍵・合成PKT2 JSON。",
     )
     args = parser.parse_args()
     try:
@@ -1222,7 +2238,13 @@ def main() -> int:
             allow_application_probes=args.allow_reviewed_application_probes,
             allow_authentication=args.allow_authentication,
             allow_malware_registration=args.allow_malware_registration_tasking,
+            allow_reviewed_checkconnect=args.allow_reviewed_checkconnect,
+            acknowledged_redline_profiles=set(
+                args.acknowledge_redline_profile
+            ),
+            allow_xloader_registration=args.allow_xloader_registration,
             private_credential_vault=args.private_credential_vault,
+            xloader_private_material=args.xloader_private_material,
         )
     except (OSError, json.JSONDecodeError, PlanError, ValueError) as exc:
         parser.error(str(exc))
