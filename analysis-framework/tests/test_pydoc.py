@@ -20,6 +20,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "asa.runner",
         "asa.runtime_cli",
         "malwarebazaar_batch",
+        "external_api_helpers",
         "malwarebazaar_unknown_batch",
         "malware_io",
         "network_target",
