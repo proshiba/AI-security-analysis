@@ -4,6 +4,10 @@
 
 `analysis-results`全体のIOC履歴から`.onion`以外の通常IP／FQDNを抽出し、限定したC2候補へのライブチェック、MaxMind GeoLite2 City/ASN照合、DNS/IP遷移の分類、継続監視対象の更新、機械可読JSONと日本語Markdownの生成を一連の手順で実行します。今後のC2監視では、対象漏れ、Geo/AS、DNS履歴、停止履歴の付与漏れを防ぐため、この抽出器と統合ランナーを標準経路として使います。
 
+統合runnerが通常実行するのは、endpointごとに1回だけのbounded probeです。対話型RATの登録後にcommandを待つhost emulatorは、このdaily runner内で起動せず、[`run_defensive_rat_emulator.py`](run_defensive_rat_emulator.py)による独立した短時間sessionとして実行します。通常probeとhost emulatorの安全境界は[C2定期モニタリング手順](C2-MONITORING.md)、エミュレーターの詳細は[防御的RATホストエミュレーター](../docs/RAT-C2-HOST-EMULATOR.md)を参照してください。
+
+AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`、active window titleを空文字へsanitizeした固定Ping requestの順に送信し、C2の`pong`／`Po_ng`またはtaskを最大1 frameだけ受信します。受信frameへ返信せず、任意操作結果のfake replyも生成しません。このsessionの公開sidecarだけを、通常監視の到達性・DNS履歴と分離した`protocol_activity_tracking`へ統合します。
+
 ## 実行
 
 ```powershell
@@ -30,6 +34,43 @@ py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
 daily解析では`--allow-network`を必須とします。C2へ接続する前にCity/ASN両DBのbuild時刻を確認し、いずれかが24時間以上前なら公式checksumを検証した最新版へ更新します。閾値は`--maxmind-max-build-age-hours`で厳しくできますが、dailyでは24時間を超える値へ変更しません。
 
 MaxMindが公開している最新版自体のbuild時刻が24時間以上前の場合も取得成功として扱いますが、`latest_available_still_stale`とedition別の`stale_after_refresh`を結果へ明記します。operatorが無条件更新を要求するときだけ`--refresh-maxmind-databases`を追加します。
+
+## 任意のRAT host emulator sidecar
+
+独立して完了したhost emulatorの公開要約がある場合だけ、`build_rat_emulation_evidence.py`で監視planへ完全bindingしたsidecarを作成します。builderは監視planと各public summaryをexpected SHA-256付きで読み、endpoint、family、emulator／protocol profile、registry、sample hash、session期限、重複を検証します。raw private transcriptを入力したり、リポジトリへコピーしたりしません。
+
+```powershell
+$targets = "analysis-results\research\c2-monitoring\YYYY-MM-DD\targets.json"
+$summary = "C:\private\session-public.json"
+$targetsSha256 = (Get-FileHash $targets -Algorithm SHA256).Hash.ToLowerInvariant()
+$summarySha256 = (Get-FileHash $summary -Algorithm SHA256).Hash.ToLowerInvariant()
+
+py -3.13 analysis-framework\common\build_rat_emulation_evidence.py `
+  --targets $targets `
+  --targets-sha256 $targetsSha256 `
+  --public-summary $summary `
+  --public-summary-sha256 $summarySha256 `
+  --output C:\private\rat-emulation-evidence.json
+```
+
+生成したsidecarのSHA-256を計算し、通常の統合commandへ次の2引数を追加します。
+
+```powershell
+$sidecar = "C:\private\rat-emulation-evidence.json"
+$sidecarSha256 = (Get-FileHash $sidecar -Algorithm SHA256).Hash.ToLowerInvariant()
+
+py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
+  --targets $targets `
+  --output-directory analysis-results\research\c2-monitoring\YYYY-MM-DD `
+  --history-root analysis-results\research\c2-monitoring `
+  --maxmind-cache-dir C:\Users\Administrator\MalwareSamples\maxmind\current `
+  --rat-emulation-evidence $sidecar `
+  --rat-emulation-evidence-sha256 $sidecarSha256
+```
+
+`--rat-emulation-evidence`と`--rat-emulation-evidence-sha256`は同時指定が必須です。expected SHA-256不一致、profile／registry不一致、監視plan外endpointは拒否されます。2引数を省略した通常実行では新規session sidecarを取り込みません。過去runにprotocol activityがある場合、その履歴表示は維持します。
+
+private transcriptはevent hash chainと最終root SHA-256を検証した後、`analysis-framework/common/archive_analysis_datastore.py`を使い、解析対象別のpassword `infected`のWinZip AES-256 archiveとしてS3 bucket `malware-analysis-datastore-720232834682`へ保管します。S3側のsize、SSE、SHA-256 metadata検証前にlocal stagingを削除しません。公開sidecarへはroot hashとarchive／manifest SHA-256等の参照だけを残し、生command、raw frame、token、鍵、合成ID、ローカルpathを含めません。
 
 ## DNS/IP遷移の扱い
 
@@ -58,12 +99,16 @@ CDN判定は観測IPのMaxMind ASN／organizationを使います。CDN経由で�
 
 単発timeout、DNS解決失敗、proxy利用不可等の未観測だけでは停止しません。停止済みendpointが新しい観測でONになった場合は`monitoring_reactivated_after_new_evidence`を記録してactiveへ戻します。
 
+host emulatorのcommand受信は`protocol_activity_tracking`へ肯定証拠として記録します。command未受信は「その短時間sessionで配信がなかった」という事実に限られ、OFF、停止、7日retirementの観測回数へ数えません。通常の到達性／DNS履歴とprotocol activity履歴を混在させません。
+
 ## 安全境界
 
 - 監視対象は`effective-targets.json`に列挙した完全一致host/portだけです。port不明hostは`dns_resolve`としてDNSだけを観測し、C2 serviceへ接続しません。`.onion`は対象へ含めません。
 - 1対象1回の限定観測、最大5秒です。応答は原則最大256 byte、完全一致AgentTesla FTP認証は最大1024 byteです。StealC／Lumma／Remusは最大3秒・計2 HTTP要求とし、応答上限をそれぞれ16,384／65,536／8,192 byteへ固定します。raw本文は保存しません。
 - 既知のmalware固有protocolは`c2_protocol_probe_profiles.json`の完全一致profileだけを使用します。送信内容を`targets.json`へ直接指定することはできません。
 - Winos heartbeatとvvaS固定check-inはレビュー済みendpointへ各1回だけ許可します。N520はserver-first handshakeだけを検証し、check-inを送りません。
+- AsyncRAT／VenomRATのhost emulatorは完全一致profileと独立したlive許可が揃う場合だけ、合成`ClientInfo`と空`Message`の固定Pingを送ります。実検体の`KeepAlivePacket`が使う`GetActiveWindowTitle`は呼ばず、受信した`pong`／`Po_ng`またはtask 1 frameへ返信しません。
+- 任意操作結果のfake replyは未実装です。result serializerが未解決のframeを受けた場合はfingerprintだけを記録し、無応答で終了します。
 - StealC／Lumma／Remusは`--allow-network`と`--allow-malware-registration-tasking`の二重ゲート、完全一致profile、単一IP pinが揃う場合だけ、合成IDの登録とtask取得を各1回行います。実victim metadata、task実行、task内URL追跡、payload取得、debug、upload、doneは行いません。FormBook／XLoaderは受動観測のみです。
 - 固有protocolを復元済みのendpointは単純なTCP接続確認へ降格させず、完全一致応答だけを`c2_protocol_confirmed`とします。
 - `MAXMIND_LICENSE_KEY`、Authorization header、署名付きdownload URL、MMDB本体は公開成果物へ保存しません。
@@ -78,9 +123,14 @@ CDN判定は観測IPのMaxMind ASN／organizationを使います。CDN経由で�
 - `effective-targets.json`: 全履歴候補と前回active対象を統合した、今回実際に観測した対象。
 - `monitoring-results.json`: 観測事実、稼働確度、DNS履歴、ライフサイクル、Geo/AS、DB provenance。
 - `monitoring-history.json`: 停止済みを含むendpointごとの全DNS・稼働履歴と状態遷移。
+- `rat-emulation-evidence.json`: sidecarを指定した場合だけ生成する、allowlist再構築済みの公開session証跡。入力sidecarのSHA-256とprivate transcript root hashを保持する。
 - `active-targets.json`: 次回へ引き継ぐ継続監視対象。`retired_stopped`は含めない。
 - `README.md`: C2一覧、confidence、DNS/IP遷移、継続監視／停止履歴、MaxMind Geo/AS、安全境界。
 
 公開結果には次のattributionを保持します。
 
-> This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.
+> MaxMind帰属表記: This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.
+
+## 常時稼働について
+
+現在のhost emulatorは短時間・単一接続の手動起動runnerであり、常時稼働service、無限再接続、長時間command待受、任意操作結果のfake replyは実装していません。将来の常時監視では専用VM／service account、OSレベルegress allowlist、期限付きlive lease、cooldown、log rotation、S3 upload完了確認、強制停止機構を別途実装・レビューし、明示承認を得ます。現行runnerをloopで包んで代用しません。

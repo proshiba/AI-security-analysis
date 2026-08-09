@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "family": "venomrat",
+  "sample_sha256": "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073",
+  "analysis_status": "complete",
+  "registration": {
+    "packet_key": "Pac_ket",
+    "packet_value": "ClientInfo",
+    "method": "Client.Helper.IdSender.SendInfo",
+    "method_token": "0x0600007d",
+    "cil_semantic_sha256": "5f8ad741586361d7375b8f33c0c8e70326218aba804502f7ef626b4e9c643fc9",
+    "observed_required_fields": [
+      "Pac_ket",
+      "ClientType",
+      "HWID",
+      "DesktopName",
+      "User",
+      "OS",
+      "Camera",
+      "Path",
+      "Version",
+      "Admin",
+      "Perfor_mance",
+      "Paste_bin",
+      "Anti_virus",
+      "Install_ed",
+      "Po_ng",
+      "Group",
+      "CPU",
+      "GPU",
+      "RAM",
+      "apps",
+      "running",
+      "keylogsetting"
+    ],
+    "observed_optional_fields": [],
+    "missing_required_fields": [],
+    "synthetic_values_required": true,
+    "real_host_metadata_allowed": false
+  },
+  "dispatcher": {
+    "method": "Client.Connection.ClientSocket.Read",
+    "method_token": "0x06000058",
+    "cil_semantic_sha256": "55ad75334ced3c569574f2e2d53c5c60b2a487933e2b8ef66beba1159a59f7e0",
+    "observed_command_markers": [
+      "init_reg",
+      "loadofflinelog",
+      "Po_ng",
+      "plu_gin",
+      "save_Plugin",
+      "HVNCStop",
+      "keylogsetting",
+      "runningapp",
+      "filterinfo"
+    ],
+    "missing_command_markers": [],
+    "heartbeat_request": {
+      "method": "Client.Connection.ClientSocket.KeepAlivePacket",
+      "method_token": "0x06000056",
+      "cil_semantic_sha256": "8f598b167f1729f89266b9cb53bc218c0a24df4c2d037cf6179eeab985fdc2de",
+      "packet_key": "Pac_ket",
+      "packet_value": "Ping",
+      "message_key": "Message",
+      "message_source": "active_window_title",
+      "emulator_message_value": "",
+      "sanitized_for_privacy": true,
+      "schema_confirmed": true
+    },
+    "heartbeat_response_markers": [
+      "Po_ng"
+    ],
+    "file_or_plugin_transfer_markers": [
+      "plu_gin",
+      "save_Plugin",
+      "loadofflinelog"
+    ]
+  },
+  "emulator_readiness": {
+    "registration_schema_confirmed": true,
+    "command_dispatcher_confirmed": true,
+    "heartbeat_request_response_confirmed": true,
+    "operation_result_serializer_confirmed": false,
+    "live_operation_fake_result_allowed": false,
+    "unknown_command_reply_allowed": false
+  },
+  "safety": {
+    "sample_executed": false,
+    "network_contacted": false,
+    "raw_cil_published": false,
+    "unreviewed_literals_published": false
+  }
+}

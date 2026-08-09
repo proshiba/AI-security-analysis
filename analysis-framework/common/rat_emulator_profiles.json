@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "protocol_profile_registry": {
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+    "sha256": "6d0ffb3c9a96c7cb3d9cffc6b46ec5e637f9670676fbbdfd4945f8f64253081e"
+  },
+  "profiles": [
+    {
+      "profile_id": "valleyrat-n520-host-d11e793-9999",
+      "protocol_profile_id": "valleyrat-n520-d11e793-9999",
+      "protocol_profile_object_sha256": "31f8615bdc76624d3db6138bd14b443390fd5b55f2f90a1871431d2c8e03752b",
+      "family": "valleyrat",
+      "adapter_id": "valleyrat_n520_v1",
+      "host": "118.107.21.88",
+      "port": 9999,
+      "pinned_ips": [
+        "118.107.21.88"
+      ],
+      "transport": "tls",
+      "tls_version": "TLSv1.2",
+      "sni": "update.microsoft.com",
+      "expected_certificate_sha256": "263540c848347505671f444a551c087d94483d10a95672317b5bad99c5a4e184",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
+      ],
+      "evidence_source": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/n520-live-summary.json",
+      "evidence_sha256": "530e1c4e96d6a61a237408182bc8a6e3a1ab5466d8489f513368639bdceef3e3",
+      "registration_mode": "empty_command_1",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "limits": {
+        "duration_seconds": 60.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 4096,
+        "maximum_inbound_frames": 16,
+        "maximum_inbound_read_calls": 16,
+        "maximum_inbound_bytes": 262144,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 16,
+        "minimum_send_interval_seconds": 1.0
+      }
+    },
+    {
+      "profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "protocol_profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "protocol_profile_object_sha256": "b405159f6bbc446541f75517eb561555531b9b30572c5826ff60ff9bb06992a3",
+      "family": "asyncrat",
+      "adapter_id": "tls_messagepack_rat_host",
+      "host": "191.96.78.221",
+      "port": 7788,
+      "pinned_ips": [
+        "191.96.78.221"
+      ],
+      "transport": "tls",
+      "tls_version": "TLSv1.2",
+      "sni": "191.96.78.221",
+      "expected_certificate_sha256": "86b87d08f7c6f01acf68204715cc33d160b69561b15bceaee50fb6cf95466e02",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3"
+      ],
+      "evidence_source": "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/asyncrat-protocol-evidence.json",
+      "evidence_sha256": "4c4f598aa861c1da660f513d419184b7b195994d322ed236684c7042ede31f81",
+      "registration_mode": "synthetic_client_info",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "reviewed_heartbeat_request_only",
+      "allow_live_fake_results": false,
+      "limits": {
+        "duration_seconds": 30.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 2,
+        "maximum_outbound_bytes": 65536,
+        "maximum_inbound_frames": 1,
+        "maximum_inbound_read_calls": 256,
+        "maximum_inbound_bytes": 65536,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 1,
+        "minimum_send_interval_seconds": 0.0
+      }
+    },
+    {
+      "profile_id": "venomrat-603-6a24ba25-localto-6377",
+      "protocol_profile_id": "venomrat-603-6a24ba25-localto-6377",
+      "protocol_profile_object_sha256": "d73c9bd57ed96071fbc398cc1252e1f5e34faab7fbd4cb3dd97071d6faed2d54",
+      "family": "venomrat",
+      "adapter_id": "tls_messagepack_rat_host",
+      "host": "s2gj9tonn.localto.net",
+      "port": 6377,
+      "pinned_ips": [
+        "45.140.42.50"
+      ],
+      "transport": "tls",
+      "tls_version": "TLSv1.2",
+      "sni": "s2gj9tonn.localto.net",
+      "expected_certificate_sha256": "4370b606ee51b67ab75611600406eb74762f5c134309358d042d696d789c5e22",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073"
+      ],
+      "evidence_source": "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/venomrat-protocol-evidence.json",
+      "evidence_sha256": "2db755d8ed49d1488d558da77171be8a7ff95a175f1322e65b359a368a8219b9",
+      "registration_mode": "synthetic_client_info",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "reviewed_heartbeat_request_only",
+      "allow_live_fake_results": false,
+      "limits": {
+        "duration_seconds": 30.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 2,
+        "maximum_outbound_bytes": 65536,
+        "maximum_inbound_frames": 1,
+        "maximum_inbound_read_calls": 256,
+        "maximum_inbound_bytes": 65536,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 1,
+        "minimum_send_interval_seconds": 0.0
+      }
+    }
+  ]
+}

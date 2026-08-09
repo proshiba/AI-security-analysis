@@ -236,3 +236,123 @@ def test_onion_is_not_carried_forward_when_policy_excludes_it() -> None:
 
     assert carried == 0
     assert [item["host"] for item in merged["targets"]] == ["new.example"]
+
+
+def rat_activity(*, command_count: int, confirmed: bool) -> dict:
+    commands = (
+        [
+            {
+                "session_id": "session-001",
+                "message_kind": "system_info_request",
+                "wire_sha256": "b" * 64,
+            }
+        ]
+        if command_count
+        else []
+    )
+    return {
+        "schema_version": 1,
+        "session_count": 1,
+        "latest_session_at_utc": "2026-08-09T00:00:02+00:00",
+        "connection_established_count": 1,
+        "handshake_confirmed_count": int(confirmed),
+        "c2_confirmed_session_count": int(confirmed),
+        "command_count": command_count,
+        "command_fingerprints": commands,
+        "synthetic_reply_count": command_count,
+        "synthetic_reply_sent": bool(command_count),
+        "status_counts": {"completed": 1},
+        "task_executed": False,
+        "real_effect_performed": False,
+        "payload_download_attempted": False,
+        "followup_network_attempted": False,
+        "raw_transcript_published": False,
+    }
+
+
+def test_protocol_activity_is_tracked_separately_and_positive_evidence_marks_on(
+    tmp_path: Path,
+) -> None:
+    current_entry = entry(
+        "2026-08-09T00:00:00+00:00",
+        ips=["192.0.2.1"],
+        reachable=False,
+    )
+    current_entry["rat_emulation"] = rat_activity(command_count=1, confirmed=True)
+    current = result(current_entry)
+    current["policy"]["network_enabled"] = False
+
+    enriched, monitoring, active = history.apply_monitoring_history(
+        current,
+        {"schema_version": 1, "targets": [target()]},
+        history_root=tmp_path,
+        current_run_name="2026-08-09",
+    )
+
+    observed = enriched["results"][0]
+    tracking = observed["protocol_activity_tracking"]
+    assert observed["availability_status"] == "on"
+    assert observed["monitoring_lifecycle"]["status"] == "active_on"
+    assert tracking["history"][0]["activity_state"] == "command_observed"
+    assert tracking["unique_command_fingerprint_count"] == 1
+    assert tracking["synthetic_reply_sent"] is True
+    assert tracking["task_executed"] is False
+    assert tracking["real_effect_performed"] is False
+    assert monitoring["endpoints"][0]["protocol_activity_tracking"] == tracking
+    assert enriched["monitoring_history_summary"]["protocol_activity_endpoint_count"] == 1
+    assert enriched["monitoring_history_summary"]["protocol_command_observation_count"] == 1
+    assert len(active["targets"]) == 1
+
+
+def test_command_absence_never_becomes_off_evidence(tmp_path: Path) -> None:
+    current_entry = entry(
+        "2026-08-09T00:00:00+00:00",
+        ips=[],
+        reachable=False,
+    )
+    current_entry["rat_emulation"] = rat_activity(command_count=0, confirmed=False)
+    current = result(current_entry)
+    current["policy"]["network_enabled"] = False
+
+    enriched, _monitoring, active = history.apply_monitoring_history(
+        current,
+        {"schema_version": 1, "targets": [target()]},
+        history_root=tmp_path,
+        current_run_name="2026-08-09",
+    )
+
+    observed = enriched["results"][0]
+    tracking = observed["protocol_activity_tracking"]
+    assert observed["availability_status"] == "not_observed"
+    assert observed["monitoring_lifecycle"]["status"] == "active_unobserved"
+    assert tracking["history"][0]["activity_state"] == "session_without_confirmed_command"
+    assert tracking["command_absence_is_off_evidence"] is False
+    assert enriched["monitoring_history_summary"]["command_absence_is_off_evidence"] is False
+    assert len(active["targets"]) == 1
+
+
+def test_unsafe_protocol_activity_is_not_used_as_positive_evidence(
+    tmp_path: Path,
+) -> None:
+    current_entry = entry(
+        "2026-08-09T00:00:00+00:00",
+        ips=[],
+        reachable=False,
+    )
+    activity = rat_activity(command_count=1, confirmed=True)
+    activity["task_executed"] = True
+    current_entry["rat_emulation"] = activity
+    current = result(current_entry)
+    current["policy"]["network_enabled"] = False
+
+    enriched, _monitoring, active = history.apply_monitoring_history(
+        current,
+        {"schema_version": 1, "targets": [target()]},
+        history_root=tmp_path,
+        current_run_name="2026-08-09",
+    )
+
+    observed = enriched["results"][0]
+    assert observed["availability_status"] == "not_observed"
+    assert "protocol_activity_tracking" not in observed
+    assert len(active["targets"]) == 1

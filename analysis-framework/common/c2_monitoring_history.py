@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from c2_infrastructure_tags import build_ip_detail, load_registry, missing_ip_detail
@@ -40,6 +41,35 @@ REACHABLE_STATES = {
     "tls_endpoint_reachable_c2_not_confirmed",
     "transport_reachable_c2_not_confirmed",
 }
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+SAFE_ACTIVITY_TOKEN_RE = re.compile(r"^[a-z0-9][a-z0-9_.:-]{0,63}$")
+REQUIRED_PROTOCOL_ACTIVITY_FALSE_FIELDS = (
+    "task_executed",
+    "real_effect_performed",
+    "payload_download_attempted",
+    "followup_network_attempted",
+    "raw_transcript_published",
+)
+
+
+def _public_count(value: object, *, maximum: int = 1_000_000) -> int:
+    if type(value) is int and 0 <= value <= maximum:
+        return value
+    return 0
+
+
+def _safe_protocol_activity(entry: dict[str, Any]) -> dict[str, Any]:
+    activity = (
+        entry.get("rat_emulation")
+        if isinstance(entry.get("rat_emulation"), dict)
+        else {}
+    )
+    if any(
+        activity.get(field) is not False
+        for field in REQUIRED_PROTOCOL_ACTIVITY_FALSE_FIELDS
+    ):
+        return {}
+    return activity
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -83,6 +113,12 @@ def _parse_timestamp(value: object, run_date: str) -> datetime:
 
 def _availability(entry: dict[str, Any], policy: dict[str, Any]) -> str:
     """観測をON、OFF、未観測へ正規化する。"""
+    rat_emulation = _safe_protocol_activity(entry)
+    if (
+        _public_count(rat_emulation.get("c2_confirmed_session_count")) > 0
+        or _public_count(rat_emulation.get("command_count")) > 0
+    ):
+        return "on"
     if policy.get("network_enabled") is not True:
         return "not_observed"
     assessment = entry.get("assessment") if isinstance(entry.get("assessment"), dict) else {}
@@ -180,6 +216,155 @@ def _dns_point(
         "raw_ip_changed": False,
         "infrastructure_ip_change": False,
         "change_classification": "initial_observation",
+    }
+
+
+def _protocol_activity_point(
+    entry: dict[str, Any],
+    *,
+    run_date: str,
+) -> dict[str, Any] | None:
+    """公開済みRAT session要約を、到達性と独立した活動点へ正規化する。"""
+
+    activity = _safe_protocol_activity(entry)
+    session_count = _public_count(activity.get("session_count"), maximum=256)
+    if session_count <= 0:
+        return None
+    commands = [
+        command
+        for command in activity.get("command_fingerprints", [])
+        if isinstance(command, dict)
+    ]
+    command_fingerprints = sorted(
+        {
+            str(command.get("wire_sha256"))
+            for command in commands
+            if type(command.get("wire_sha256")) is str
+            and SHA256_RE.fullmatch(command["wire_sha256"]) is not None
+        }
+    )
+    message_kinds = sorted(
+        {
+            str(command.get("message_kind"))
+            for command in commands
+            if type(command.get("message_kind")) is str
+            and SAFE_ACTIVITY_TOKEN_RE.fullmatch(command["message_kind"])
+            is not None
+        }
+    )
+    command_count = _public_count(activity.get("command_count"), maximum=64)
+    if command_count != len(commands) or len(command_fingerprints) > command_count:
+        return None
+    connection_count = _public_count(
+        activity.get("connection_established_count"),
+        maximum=session_count,
+    )
+    handshake_count = _public_count(
+        activity.get("handshake_confirmed_count"),
+        maximum=session_count,
+    )
+    confirmed_count = _public_count(
+        activity.get("c2_confirmed_session_count"),
+        maximum=session_count,
+    )
+    reply_count = _public_count(
+        activity.get("synthetic_reply_count"),
+        maximum=64,
+    )
+    raw_status_counts = (
+        activity.get("status_counts")
+        if isinstance(activity.get("status_counts"), dict)
+        else {}
+    )
+    status_counts = {
+        key: count
+        for key, value in raw_status_counts.items()
+        if type(key) is str
+        and SAFE_ACTIVITY_TOKEN_RE.fullmatch(key) is not None
+        and (count := _public_count(value, maximum=session_count)) > 0
+    }
+    observed_at = _parse_timestamp(
+        activity.get("latest_session_at_utc"),
+        run_date,
+    )
+    return {
+        "date": run_date,
+        "observed_at_utc": observed_at.isoformat(),
+        "session_count": session_count,
+        "connection_established_count": connection_count,
+        "handshake_confirmed_count": handshake_count,
+        "c2_confirmed_session_count": confirmed_count,
+        "command_count": command_count,
+        "command_fingerprints": command_fingerprints,
+        "message_kinds": message_kinds,
+        "synthetic_reply_count": reply_count,
+        "synthetic_reply_sent": reply_count > 0,
+        "status_counts": dict(sorted(status_counts.items())),
+        "task_executed": False,
+        "real_effect_performed": False,
+        "payload_download_attempted": False,
+        "followup_network_attempted": False,
+        "raw_transcript_published": False,
+        "command_absence_is_off_evidence": False,
+    }
+
+
+def build_protocol_activity_tracking(
+    points: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """RAT sessionとcommand fingerprintの時系列を構築する。"""
+
+    ordered = sorted(points, key=lambda point: point["observed_at_utc"])
+    seen_fingerprints: set[str] = set()
+    transitions: list[dict[str, Any]] = []
+    for point in ordered:
+        current = set(point["command_fingerprints"])
+        new_fingerprints = sorted(current - seen_fingerprints)
+        point["new_command_fingerprints"] = new_fingerprints
+        point["activity_state"] = (
+            "command_observed"
+            if point["command_count"] > 0
+            else (
+                "protocol_confirmed_without_command"
+                if point["c2_confirmed_session_count"] > 0
+                else "session_without_confirmed_command"
+            )
+        )
+        if new_fingerprints:
+            transitions.append(
+                {
+                    "observed_at_utc": point["observed_at_utc"],
+                    "event": "new_command_fingerprint_observed",
+                    "fingerprints": new_fingerprints,
+                    "message_kinds": point["message_kinds"],
+                }
+            )
+        seen_fingerprints.update(current)
+    command_points = [point for point in ordered if point["command_count"] > 0]
+    return {
+        "schema_version": 1,
+        "history": ordered,
+        "session_count": sum(point["session_count"] for point in ordered),
+        "command_observation_count": sum(
+            point["command_count"] for point in ordered
+        ),
+        "unique_command_fingerprint_count": len(seen_fingerprints),
+        "synthetic_reply_count": sum(
+            point["synthetic_reply_count"] for point in ordered
+        ),
+        "synthetic_reply_sent": any(
+            point["synthetic_reply_sent"] for point in ordered
+        ),
+        "first_command_at_utc": (
+            command_points[0]["observed_at_utc"] if command_points else None
+        ),
+        "last_command_at_utc": (
+            command_points[-1]["observed_at_utc"] if command_points else None
+        ),
+        "transitions": transitions,
+        "command_absence_is_off_evidence": False,
+        "task_executed": False,
+        "real_effect_performed": False,
     }
 
 
@@ -403,6 +588,7 @@ def apply_monitoring_history(
     runs = _previous_runs(history_root, current_run_name=current_run_name)
     runs.append((current_run_name, current))
     points_by_endpoint: dict[str, list[dict[str, Any]]] = {}
+    activity_points_by_endpoint: dict[str, list[dict[str, Any]]] = {}
     metadata_by_endpoint: dict[str, dict[str, Any]] = {}
     current_entries: dict[str, dict[str, Any]] = {}
     for run_date, payload in runs:
@@ -422,6 +608,9 @@ def apply_monitoring_history(
                 point["prior_lifecycle_status"] = lifecycle.get("status")
                 point["prior_transition"] = lifecycle.get("transition")
             points_by_endpoint.setdefault(key, []).append(point)
+            activity_point = _protocol_activity_point(entry, run_date=run_date)
+            if activity_point is not None:
+                activity_points_by_endpoint.setdefault(key, []).append(activity_point)
             metadata_by_endpoint[key] = {
                 "endpoint_key": key,
                 "target_id": entry.get("target_id"),
@@ -437,6 +626,7 @@ def apply_monitoring_history(
 
     history_endpoints: list[dict[str, Any]] = []
     lifecycle_by_endpoint: dict[str, dict[str, Any]] = {}
+    activity_tracking_by_endpoint: dict[str, dict[str, Any]] = {}
     for key, raw_points in points_by_endpoint.items():
         deduplicated = {
             (point["observed_at_utc"], tuple(point["ips"])): point for point in raw_points
@@ -485,19 +675,39 @@ def apply_monitoring_history(
                 point["transition"] for point in points if point.get("transition")
             ],
         }
+        raw_activity_points = activity_points_by_endpoint.get(key, [])
+        activity_tracking = None
+        if raw_activity_points:
+            deduplicated_activity = {
+                (
+                    point["observed_at_utc"],
+                    point["session_count"],
+                    point["command_count"],
+                    tuple(point["command_fingerprints"]),
+                    point["synthetic_reply_count"],
+                ): point
+                for point in raw_activity_points
+            }
+            activity_tracking = build_protocol_activity_tracking(
+                list(deduplicated_activity.values())
+            )
+            activity_tracking_by_endpoint[key] = activity_tracking
         current_entry = current_entries.get(key)
         if current_entry is not None:
             current_entry["availability_status"] = points[-1]["availability"]
             current_entry["dns_tracking"] = dns_tracking
             current_entry["monitoring_lifecycle"] = lifecycle
-        history_endpoints.append(
-            {
-                **metadata_by_endpoint[key],
-                "dns_tracking": dns_tracking,
-                "monitoring_lifecycle": lifecycle,
-                "events": sorted(events, key=lambda event: event["observed_at_utc"]),
-            }
-        )
+            if activity_tracking is not None:
+                current_entry["protocol_activity_tracking"] = activity_tracking
+        history_endpoint = {
+            **metadata_by_endpoint[key],
+            "dns_tracking": dns_tracking,
+            "monitoring_lifecycle": lifecycle,
+            "events": sorted(events, key=lambda event: event["observed_at_utc"]),
+        }
+        if activity_tracking is not None:
+            history_endpoint["protocol_activity_tracking"] = activity_tracking
+        history_endpoints.append(history_endpoint)
 
     targets = plan.get("targets") if isinstance(plan.get("targets"), list) else []
     active_targets = [
@@ -517,7 +727,7 @@ def apply_monitoring_history(
         lifecycle.get("status") == "retired_stopped"
         for lifecycle in lifecycle_by_endpoint.values()
     )
-    current["monitoring_history_summary"] = {
+    monitoring_history_summary = {
         "schema_version": 1,
         "endpoint_count": len(history_endpoints),
         "active_target_count": len(active_targets),
@@ -526,6 +736,32 @@ def apply_monitoring_history(
         "minimum_off_observations": minimum_off_observations,
         "shared_cdn_rotation_counts_as_infrastructure_change": False,
     }
+    if activity_tracking_by_endpoint:
+        monitoring_history_summary.update(
+            {
+                "protocol_activity_endpoint_count": len(
+                    activity_tracking_by_endpoint
+                ),
+                "protocol_activity_session_count": sum(
+                    item["session_count"]
+                    for item in activity_tracking_by_endpoint.values()
+                ),
+                "protocol_command_observation_count": sum(
+                    item["command_observation_count"]
+                    for item in activity_tracking_by_endpoint.values()
+                ),
+                "protocol_synthetic_reply_count": sum(
+                    item["synthetic_reply_count"]
+                    for item in activity_tracking_by_endpoint.values()
+                ),
+                "protocol_synthetic_reply_sent": any(
+                    item["synthetic_reply_sent"]
+                    for item in activity_tracking_by_endpoint.values()
+                ),
+                "command_absence_is_off_evidence": False,
+            }
+        )
+    current["monitoring_history_summary"] = monitoring_history_summary
     history = {
         "schema_version": 1,
         "generated_at_utc": datetime.now(UTC).isoformat(),
