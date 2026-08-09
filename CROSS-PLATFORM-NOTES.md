@@ -1,48 +1,33 @@
 # クロスプラットフォーム実行メモ
 
-## 追加したファイル
-
-既存のPowerShell、Python、設定、解析結果は変更・削除していません。今回追加したファイルは次のとおりです。
+## 対応する入口
 
 | ファイル | 用途 |
 |---|---|
-| `analysis-framework/invoke_analysis.py` | `Invoke-Analysis.ps1` と同じ標準one-shot／旧ValleyRATフローをWindowsとLinuxから起動する入口 |
-| `analysis-framework/invoke_family_batch.py` | `Invoke-FamilyBatch.ps1` のAgentTesla／RemcosRAT一括静的解析 |
-| `analysis-framework/common/import_ghidra_project.py` | `Import-GhidraProject.ps1` のGhidra headless import |
-| `analysis-framework/tests/verify_known_families.py` | `Test-KnownFamilies.ps1` の既知AgentTesla／RemcosRAT回帰確認 |
-| `analysis-framework/malware/valleyrat/tests/verify_known_samples.py` | `Test-KnownSamples.ps1` の既知ValleyRAT回帰確認 |
-| `analysis-framework/tests/test_cross_platform_orchestration.py` | OS別Python検出、引数list、routing、summary、Ghidra境界の単体テスト |
-| `CROSS-PLATFORM-NOTES.md` | この実行手順とOS固有境界 |
+| `analysis-framework/invoke_analysis.py` | 標準one-shotおよび旧ValleyRATフロー |
+| `analysis-framework/invoke_family_batch.py` | AgentTesla／RemcosRATの一括静的解析 |
+| `analysis-framework/common/import_ghidra_project.py` | Ghidra headless import |
+| `analysis-framework/tests/verify_known_families.py` | 既知AgentTesla／RemcosRAT回帰確認 |
+| `analysis-framework/malware/valleyrat/tests/verify_known_samples.py` | 既知ValleyRAT回帰確認 |
 
-`invoke-analysis.sh` のようなshell固有wrapperは不要です。Python entrypoint自体がWindowsとLinuxで同じCLIを提供します。作業開始時点では置換対象となる既存の`invoke-analysis.sh`はありませんでした。
+Python entrypointがWindows、Linux、REMnuxで同じCLIを提供します。Windowsの`analyzeHeadless.bat`／`.cmd`だけは`cmd.exe`境界です。POSIX版と通常の実行fileは`shell=False`の引数listで起動します。
 
 ## Pythonの選択
 
-`--python`を指定した場合はその値を子stageに使います。省略時は実行中のOSに応じて次の順で選択します。
+`--python`には実Python interpreterを指定し、`.bat`／`.cmd`は拒否します。省略時は次の順で選択します。
 
 1. Windows: `analysis-framework/.venv/Scripts/python.exe`
-2. Linux: `analysis-framework/.venv/bin/python`
-3. 上記が存在しない場合: entrypointを起動した`sys.executable`
+2. Linux／REMnux: 実行権限を持つ`analysis-framework/.venv/bin/python`
+3. entrypointを起動した`sys.executable`
 
-venvのactivateはshellのPATHを変更する便宜的な操作です。entrypointはvenv内のPythonを直接起動するため、activateしなくても同じ環境を使用できます。
+Python 3.11以上が必要です。各子stageには親process側timeoutを適用し、既定は1,800秒、VT取得とC2 probeは120秒です。
 
 ## Windowsでの実行
-
-Python 3.11以上を使い、隔離した解析環境でvenvを作成します。
 
 ```powershell
 cd <repo-root>\analysis-framework
 py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python .\invoke_analysis.py `
-  --sample C:\malware-lab\samples\sample.zip `
-  --output-directory C:\malware-lab\out
-```
-
-activateせずに直接起動する場合は次の形式です。
-
-```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe .\invoke_analysis.py `
   --sample C:\malware-lab\samples\sample.zip `
   --output-directory C:\malware-lab\out
@@ -53,22 +38,29 @@ activateせずに直接起動する場合は次の形式です。
 ```bash
 cd <repo-root>/analysis-framework
 python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python invoke_analysis.py \
-  --sample /srv/malware-lab/samples/sample.zip \
-  --output-directory /srv/malware-lab/out
-```
-
-activateせずに直接起動する場合は次の形式です。
-
-```bash
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python invoke_analysis.py \
   --sample /srv/malware-lab/samples/sample.zip \
   --output-directory /srv/malware-lab/out
 ```
 
-すべてのpathは`pathlib.Path`で構築し、子processはshell文字列ではなく引数listで起動します。空白を含むpathを手動で連結またはescapeする必要はありません。
+## REMnuxでの実行
+
+REMnuxでもsystem Pythonへ直接packageを追加せず、専用venvを使います。
+
+```bash
+cd <repo-root>/analysis-framework
+python3.11 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+GHIDRA_HOME=/opt/ghidra \
+  .venv/bin/python common/import_ghidra_project.py \
+  --payload-directory /srv/malware-lab/payload \
+  --project-directory /srv/malware-lab/ghidra-projects \
+  --project-name sample-static \
+  --target loader.dll
+```
+
+`support/analyzeHeadless`には実行権限が必要です。processor moduleとGhidra versionもWindows側と揃えます。
 
 ## `Invoke-Analysis.ps1`との引数対応
 
@@ -79,21 +71,46 @@ activateせずに直接起動する場合は次の形式です。
 | `-ProfilePath` | `--profile-path` |
 | `-NetworkEvidence` | `--network-evidence` |
 | `-MalwareType` | `--malware-type` |
-| `-VirusTotalApiKey` | `--virus-total-api-key`。省略時は`VT_API_KEY` |
+| `-VirusTotalApiKey` | `VT_API_KEY`を設定し、`--fetch-virus-total-evidence`を指定する。key値はCLI引数へ置かない |
 | `-AllowLiveC2Check` | `--allow-live-c2-check` |
-| `-CollectJarm` | `--collect-jarm` |
+| `-CollectJarm` | `--collect-jarm --jarm-script <path>`。`--allow-live-c2-check`との併用必須 |
 | `-ArchiveMode` | `--archive-mode {auto,raw,malwarebazaar}` |
 | `-AssessmentOnly` | `--assessment-only` |
 | `-LegacyValleyWorkflow` | `--legacy-valley-workflow` |
 | `-Python` | `--python` |
 
-既定では`common/analyze_sample.py`へ`--input`、`--output`、`--archive-mode`を渡します。profile、network evidence、live C2、JARM、または`--legacy-valley-workflow`を指定した場合は、PowerShell版と同じ旧ValleyRAT分岐を使います。旧フローは`classification.json`を読み、対応するvvaSまたはMSI/CAB handlerを実行し、最後に`run-summary.json`を出力します。
+通常は`common/analyze_sample.py`へ委譲します。profile、network evidence、live C2、旧フロー、または明示VT取得がある場合だけ旧ValleyRAT分岐を使います。標準one-shotと旧フローの両方で、出力の親componentを含むlexical pathにあるsymlink／junction／reparse pointを子stage開始前後に拒否します。標準one-shotの既存treeは100,000 entry上限で再帰走査し、内部のsymlink／reparse point、hardlink、特殊fileも子stage前に拒否します。旧フローの既存出力は完全に空であることも必須です。
 
-live C2確認とVirusTotal取得は外部通信です。既定では実行されません。現在の調査で明示的な許可があり、review済みprofileと隔離環境を確認できた場合に限って使用してください。
+## 外部通信と秘密情報
 
-## ほかの移植済み入口
+既定では外部通信を行いません。`VT_API_KEY`が環境にあるだけでは接続しません。`--fetch-virus-total-evidence`を明示した場合だけ、先頭末尾に空白のないkeyを使います。key値を受け取るCLI optionは公開しません。
 
-AgentTeslaまたはRemcosRATの従来batchは次のように実行します。
+通常stageから`VT_API_KEY`、`TRIAGE_API_KEY`、`MAXMIND_LICENSE_KEY`、`GITHUB_TOKEN`、`GH_TOKEN`、`AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`、`AWS_SESSION_TOKEN`を既定除去し、専用stageへ明示overlayした値だけを渡します。
+
+live C2は`--allow-live-c2-check`とreview済みprofileの両方が必要です。target件数、port、protocol、送信hex、期待stage sizeを制限します。JARM収集には`--collect-jarm`に加えて、公式Salesforce JARMの`jarm.py`を`--jarm-script`で明示します。scriptは16 MiB以下の通常単一link fileに限定し、親pathを含むsymlink／reparse pointを拒否します。Windows固定pathへのfallbackは行わず、REMnux／Linux／別userのWindowsでも未指定ならfail-closedにします。
+
+## Family batchの入力とidentity認証
+
+case名はlowercase 64桁SHA-256、外装名は`<case-sha256>.zip`です。sample root、case、archiveはlink先へ`exists()`で接触する前に`lstat`し、symlink／junction／reparse pointを拒否します。
+
+外装はMalwareBazaar互換の固定password `infected`だけを受け付けます。detectorも同じ固定password契約のため、custom passwordはstage開始前に拒否します。
+
+classifierは`--malware-type`なしの全registry独立分類として実行します。固有handlerへ進むには次の全条件が必要です。
+
+- family一致、`high`／`medium` confidence、解決済みcampaign。
+- 根拠が`known_outer_sha256`、`known_inner_sha256`、`type_detector_structure`のいずれか。
+- 対象familyのevaluationが正確に1件で、`error`が`null`、`automatic_route_eligible`が`true`。
+- triage memberが正確に1件で、そのSHA-256がcase名と一致。
+- 親が外装ZIPを専用permissionのtemp directoryへO_EXCLで1回だけstream copyし、同時にouter SHA-256を計算。open前後のdevice／inode／size／mtimeを比較し、全子stageへ同じimmutable snapshotだけを渡す。`triage.outer_sha256`と`classification.observations.sha256`もこのSHA-256へ一致。
+- top-level `type_detector.inner_sha256`と対象evaluationの`detection.observations.inner_sha256`がcase／member SHA-256と一致。
+
+outer archive全体を処理するため、複数member archiveは自動処理しません。各caseはatomicな`.analysis-lock` directoryで排他し、同時実行または未確認のstale lockがあれば自動削除せず停止します。snapshotは全stage終了後に再hashし、成功・失敗・割り込みのいずれでも単一fileと専用temp directoryだけをcleanupします。既存output treeの走査には100,000 entry上限を設け、symlink／reparse point、hardlink、特殊file、過大treeを拒否します。
+
+## Family成果transaction
+
+既存`analysis-output`はstrictなschema 2 `batch-run-summary.json`を認証し、`sample_sha256`、現在入力の`outer_sha256`、`member_sha256`、`family`、`member_type`、解決済み`campaign_type`、重複のない`completed_stages`、`executed=false`、`network_contacted=false`がすべて一致するときだけ、`.analysis-output-previous-<UUID>`へ原子的に退避します。2 fieldだけの旧summaryや別outer成果は自動移行せず、明示移行または再解析が必要です。fresh outputで全stageとsummary生成を行います。
+
+途中失敗や割り込みではfresh成果を`.analysis-output-failed-<UUID>`へ隔離し、旧成果があれば`analysis-output`へ原子的に復元します。旧成果がなければoutputを残さずretry可能にします。rollback失敗時は元の例外とrollback失敗を両方報告します。previous／failed成果は自動削除しません。
 
 ```bash
 python analysis-framework/invoke_family_batch.py \
@@ -101,33 +118,16 @@ python analysis-framework/invoke_family_batch.py \
   --sample-root /srv/malware-lab/AgentTesla
 ```
 
-Ghidraは`GHIDRA_HOME`を指定すると、Windowsでは`support/analyzeHeadless.bat`、Linuxでは`support/analyzeHeadless`を自動検出します。`--analyze-headless`で明示指定することもできます。
+## Ghidra headless import
 
-```bash
-python analysis-framework/common/import_ghidra_project.py \
-  --payload-directory /srv/malware-lab/payload \
-  --project-directory /srv/malware-lab/ghidra-projects \
-  --project-name sample-static \
-  --target loader.dll \
-  --target host.exe
-```
+project名は安全な単一識別子、targetはpayload root内の通常file、project directoryはpayload tree外に限定します。既存の`.gpr`／`.rep`があれば拒否し、fresh project名を必須とします。成功後は新規`.gpr`が通常file、任意`.rep`が通常directoryで、いずれもsymlink／reparse pointでないことを確認します。
 
-既知検体の回帰確認にもPython版を利用できます。
+Windows batch境界ではexecutable path、project directory、project名、全target pathに`&|<>^()%!`、CR/LF、NUL、double quoteがあれば拒否します。空白は許可します。Ghidra childからも8種類のsecretを除去し、親process timeoutを適用します。
 
-```bash
-python analysis-framework/tests/verify_known_families.py \
-  --agenttesla-root /srv/malware-lab/AgentTesla \
-  --remcos-root /srv/malware-lab/RemcosRAT
+## JSONと終了code
 
-python analysis-framework/malware/valleyrat/tests/verify_known_samples.py \
-  --old-sample /srv/malware-lab/valleyrat/old.zip \
-  --new-sample /srv/malware-lab/valleyrat/new.zip
-```
+分類、profile、probe結果は上限付きUTF-8として読み、duplicate key、`NaN`／`Infinity`、過剰nestを拒否します。正常完了は`0`、契約違反・stage失敗は`1`、CLI引数誤りは`2`です。C2 detectorの`1`だけは到達不能として限定許可し、結果JSONを別途検証します。
 
 ## Windows VMに残す処理
 
-`analysis-framework/common/analysis_safety_check.ps1`は、WindowsのCIM process／service、Task Scheduler、Registry Run／RunOnce、TCP connection、Microsoft Defenderの有効な脅威を読み取り専用で確認します。これらはWindows固有のsecurity sourceであり、Linux上の不完全な代替結果と同一視できないため、Windows静的・動的解析VMで引き続き既存スクリプトを使用します。
-
-PEの起動、DLL登録、Registry変更、`rundll32`／`regsvr32`、PowerShell reflection、debuggerによる実行は今回のPython entrypointには含めていません。このリポジトリの静的解析では検体を実行しません。Windows固有の挙動を動的に確認する必要がある場合は、別途承認された隔離Windows VMのdynamic-analysis手順として扱います。
-
-Ghidra headless importは静的処理なので移植済みです。ただしGhidra本体と対象architectureに必要なprocessor moduleは各OSへ別途用意する必要があります。Windows専用の既存PowerShell regression wrapperも互換性のため残し、cross-platform利用時は上記Python版を使います。
+`analysis-framework/common/analysis_safety_check.ps1`はCIM process／service、Task Scheduler、Registry Run／RunOnce、TCP connection、Microsoft Defenderを読み取り専用で確認します。PE起動、DLL登録、Registry変更、`rundll32`／`regsvr32`、PowerShell reflection、debugger実行はPython entrypointへ含めません。
