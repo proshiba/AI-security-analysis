@@ -14,7 +14,7 @@ python .\common\analyze_sample.py `
 
 標準ZIPとAES ZIPを含む復元層は、残り層数・個別サイズ・総復元量・圧縮率の上限を引き継いで最大4層まで処理します。必要に応じて `--sevenzip`、`--upx`、`--diec` で外部実行ファイルを明示し、PEコンテナー候補の追加検査に限って `--force-container-probe` を使います。`--password` は受け入れ用外装と内側アーカイブの両方へ適用します。
 
-検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。`--resume` は解析コード・設定の契約指紋、ケース完了状態、入力由来情報、全必須成果物のSHA-256を検証できたケースだけを再利用します。出力、入力契約、証拠階層、完了状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
+検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。`--resume` は解析コード・設定の契約指紋、ケース完了状態、入力由来情報、全必須成果物のSHA-256を検証できたケースだけを再利用します。出力、入力契約、証拠階層、完了状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、WebUI／ローカルAPIからAIなしで起動・監視する境界は[ローカル静的解析ジョブ契約](docs/LOCAL-ANALYSIS-JOB-CONTRACT.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
 ## 従来のファミリー別実行順
 
