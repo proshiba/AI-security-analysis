@@ -547,7 +547,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "本表はdetectorと静的handlerの実装状況から自動生成しています。検体実行、外部通信、生成AIは使用しません。",
         "",
         f"- 対象family: {counts['families']}件",
-        f"- detector＋安全handler＋品質policyで解析完結可能: {counts['fully_routable']}件（{counts['fully_routable_percent']}%）",
+        f"- detector＋安全handler＋品質policyで自動完結経路を構成可能: {counts['fully_routable']}件（{counts['fully_routable_percent']}%）",
         f"- detector＋安全handlerでfamily自動選択可能: {counts['automatic_family_selection_possible']}件",
         f"- automatic宣言済みfamily: {counts['declared_script_only_handler_available']}件（{counts['declared_script_only_handler_percent']}%）",
         f"- 安全preflight済みscript-only handler利用可能: {counts['script_only_handler_available']}件（{counts['script_only_handler_percent']}%）",
@@ -586,7 +586,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- `manual_handler_only`: handlerは存在しますが共通の安全契約へ未適合です。",
             "",
             "blocked handlerのID、format別阻害理由、sourceとlocal dependencyから算出したSHA-256指紋はJSON正本に記録します。",
-            "安全handlerがあることだけでは解析完結とは判定しません。family別品質policyの宣言と全品質gateの充足が別途必要です。",
+            "この表は経路と品質gateを構成できるかを示し、実検体での完了を保証しません。",
+            "安全handlerがあることだけでは解析完結とは判定せず、caseごとにfamily別品質policyと全品質gateの充足を検証します。",
             "",
         ]
     )
@@ -615,7 +616,30 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--requirements", type=Path, default=DEFAULT_REQUIREMENTS)
     parser.add_argument("--json-output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="再生成せず、指定した既存成果物が現在の計算結果と完全一致するか確認します。",
+    )
     return parser
+
+
+def _rendered_outputs(report: dict[str, Any]) -> dict[str, str]:
+    """正本JSONとMarkdownの決定的なbytes表現を返す。"""
+
+    return {
+        "json": json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        "markdown": render_markdown(report),
+    }
+
+
+def _check_output(path: Path, expected: str) -> bool:
+    """既存の通常UTF-8 fileが期待値と完全一致する場合だけtrueを返す。"""
+
+    try:
+        return path.is_file() and path.read_text(encoding="utf-8") == expected
+    except (OSError, UnicodeError):
+        return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -627,13 +651,38 @@ def main(argv: list[str] | None = None) -> int:
         specs=discover_handlers(),
         quality_policies=_load_quality_policies(args.requirements),
     )
+    rendered = _rendered_outputs(report)
+    if args.check:
+        mismatches = []
+        if args.json_output is not None and not _check_output(args.json_output, rendered["json"]):
+            mismatches.append(str(args.json_output))
+        if args.markdown_output is not None and not _check_output(
+            args.markdown_output,
+            rendered["markdown"],
+        ):
+            mismatches.append(str(args.markdown_output))
+        if mismatches:
+            print(
+                json.dumps(
+                    {
+                        "status": "stale",
+                        "mismatches": mismatches,
+                        "counts": report["counts"],
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return 1
+        print(json.dumps(report["counts"], ensure_ascii=False, sort_keys=True))
+        return 0
     if args.json_output is not None:
         _atomic_write_text(
             args.json_output,
-            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            rendered["json"],
         )
     if args.markdown_output is not None:
-        _atomic_write_text(args.markdown_output, render_markdown(report))
+        _atomic_write_text(args.markdown_output, rendered["markdown"])
     print(json.dumps(report["counts"], ensure_ascii=False, sort_keys=True))
     return 0
 

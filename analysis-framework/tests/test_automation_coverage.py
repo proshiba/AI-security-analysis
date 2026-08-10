@@ -12,7 +12,7 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from automation_coverage import build_coverage, render_markdown
+from automation_coverage import _check_output, _rendered_outputs, build_coverage, render_markdown
 from handler_catalog import HandlerSpec
 
 
@@ -375,4 +375,28 @@ def test_markdown_is_japanese_and_deterministic() -> None:
     assert "既知マルウェア自動解析カバレッジ" in rendered
     assert "生成AIは使用しません" in rendered
     assert "安全preflight済み" in rendered
+    assert "自動完結経路を構成可能" in rendered
+    assert "実検体での完了を保証しません" in rendered
     assert "| full | fully_routable | あり | あり | 1 | 1 | なし |" in rendered
+
+
+def test_rendered_outputs_can_detect_stale_artifacts(tmp_path: Path) -> None:
+    """正本の完全一致と1文字でも古い成果物を区別する。"""
+
+    report = build_coverage(
+        registered_families={"full"},
+        specs=[_spec("full")],
+        quality_policies=_policies("full"),
+        preflight=_preflight(),
+    )
+    rendered = _rendered_outputs(report)
+    json_path = tmp_path / "coverage.json"
+    markdown_path = tmp_path / "coverage.md"
+    json_path.write_text(rendered["json"], encoding="utf-8", newline="\n")
+    markdown_path.write_text(rendered["markdown"], encoding="utf-8", newline="\n")
+
+    assert _check_output(json_path, rendered["json"])
+    assert _check_output(markdown_path, rendered["markdown"])
+    json_path.write_text(rendered["json"] + " ", encoding="utf-8", newline="\n")
+    assert not _check_output(json_path, rendered["json"])
+    assert not _check_output(tmp_path / "missing.json", rendered["json"])

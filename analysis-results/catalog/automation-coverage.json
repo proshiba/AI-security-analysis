@@ -1,34 +1,34 @@
 {
   "ai_used": false,
   "counts": {
-    "automated_analysis_completion_possible": 24,
-    "automatic_family_selection_possible": 53,
+    "automated_analysis_completion_possible": 60,
+    "automatic_family_selection_possible": 60,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
-      "candidate_verification_only": 9,
+      "candidate_verification_only": 24,
       "classification_only": 0,
-      "fully_routable": 24,
+      "fully_routable": 60,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
-      "quality_policy_missing": 51,
+      "quality_policy_missing": 0,
       "unsupported": 0
     },
-    "candidate_verification_only": 9,
+    "candidate_verification_only": 24,
     "declared_automatic_handlers": 95,
     "declared_script_only_handler_available": 84,
     "declared_script_only_handler_percent": 97.67,
-    "detector_registered": 53,
+    "detector_registered": 60,
     "executed_preflight_count": 1059,
     "families": 86,
-    "fully_routable": 24,
-    "fully_routable_percent": 27.91,
+    "fully_routable": 60,
+    "fully_routable_percent": 69.77,
     "planned_preflight_count": 1059,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 33,
-    "quality_policy_declared": 33,
-    "quality_policy_missing": 51,
+    "quality_gated_script_only_handler_available": 84,
+    "quality_policy_declared": 84,
+    "quality_policy_missing": 0,
     "safe_automatic_handlers": 95,
     "script_only_handler_available": 84,
     "script_only_handler_percent": 97.67
@@ -267,7 +267,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -319,7 +319,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -346,14 +346,19 @@
       "detector_registered": true,
       "family": "amadey",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "downloader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "amadey:extractors.amadey.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -374,7 +379,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -424,9 +429,9 @@
       "automatic_handlers": [
         "amosstealer:extractors.amosstealer.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -450,10 +455,10 @@
         "amosstealer:extractors.amosstealer.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "amosstealer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -465,7 +470,7 @@
         "amosstealer:extractors.amosstealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -546,7 +551,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -598,7 +603,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -625,14 +630,19 @@
       "detector_registered": true,
       "family": "atlascross",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "rat",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "atlascross:extractors.atlascross.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -653,7 +663,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -705,7 +715,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -732,14 +742,19 @@
       "detector_registered": true,
       "family": "blackhorse_miner_agent",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "miner",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -760,7 +775,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -812,7 +827,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -839,20 +854,25 @@
       "detector_registered": true,
       "family": "blazetrack",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
         "elf"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -874,7 +894,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "elf"
@@ -886,14 +906,19 @@
       "detector_registered": true,
       "family": "catddos",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -966,7 +991,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -993,14 +1018,19 @@
       "detector_registered": false,
       "family": "chud_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -1073,7 +1103,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1100,14 +1130,19 @@
       "detector_registered": false,
       "family": "clickfix_booking",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -1180,7 +1215,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1207,14 +1242,19 @@
       "detector_registered": false,
       "family": "condi",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -1287,7 +1327,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1314,14 +1354,19 @@
       "detector_registered": false,
       "family": "credential_phishing_html",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "stealer",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -1342,7 +1387,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1394,7 +1439,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1421,14 +1466,19 @@
       "detector_registered": true,
       "family": "darkcomet",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "rat",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "darkcomet:extractors.darkcomet.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -1509,7 +1559,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1559,9 +1609,9 @@
       "automatic_handlers": [
         "donutloader:extractors.donutloader.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1585,10 +1635,10 @@
         "donutloader:extractors.donutloader.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "donutloader",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "loader",
         "config_required": false,
@@ -1600,7 +1650,7 @@
         "donutloader:extractors.donutloader.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -1615,7 +1665,7 @@
             "pe"
           ],
           "dependency_file_count": 23,
-          "dependency_fingerprint_sha256": "085418c44382441c1ee52f23b19bce90d06c28bb15f45cce99d0eb33822cc686",
+          "dependency_fingerprint_sha256": "5d0be3b5b1456eefc86f9ba4429085e01af6e31f87348adb0961a8e7735afa8d",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -1663,7 +1713,7 @@
       "accepted_formats": [
         "elf"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1672,7 +1722,7 @@
             "elf"
           ],
           "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "e36f587e0ff3376190287ec63604821e1cc83a08d3d7f6b49eb0e3036de7a09a",
+          "dependency_fingerprint_sha256": "38a7e80a11f7f493573b5788b6e4035acaa75fe57a286868db6cfee21f5aee71",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -1685,7 +1735,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "elf"
@@ -1697,14 +1747,19 @@
       "detector_registered": true,
       "family": "dysphoria",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -1777,7 +1832,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1804,20 +1859,25 @@
       "detector_registered": false,
       "family": "eclipse_ddos_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
         "pe"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1826,7 +1886,7 @@
             "pe"
           ],
           "dependency_file_count": 22,
-          "dependency_fingerprint_sha256": "72994994a236f36d4c862b6e3cc06e6073d33c6c8c790ed58f57351f3d25a5c7",
+          "dependency_fingerprint_sha256": "77587323e02ed9b3263ac5a6cbd55cd73ce8cdc3a1e50600f2463f0c241a8dcf",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -1839,7 +1899,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "pe"
@@ -1853,14 +1913,19 @@
       "manual_or_unsupported_handlers": [
         "efimer:analysis.framework.malware.efimer.extract.config.py:extract_directory"
       ],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "stealer",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -1881,7 +1946,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1931,9 +1996,9 @@
       "automatic_handlers": [
         "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -1957,10 +2022,10 @@
         "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "electron_payload_loader",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "loader",
         "config_required": false,
@@ -1972,7 +2037,7 @@
         "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -1993,7 +2058,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2043,9 +2108,9 @@
       "automatic_handlers": [
         "formbook:extractors.formbook.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2069,10 +2134,10 @@
         "formbook:extractors.formbook.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "formbook",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -2084,7 +2149,7 @@
         "formbook:extractors.formbook.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -2129,7 +2194,7 @@
             "zip"
           ],
           "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "4d4a8bc12785e9eaca1292ae2149c8bda1bd82c394d96ea761635aaf68a81bbd",
+          "dependency_fingerprint_sha256": "d489d3dcc4dbe2ab30a5f0f1e2520d8767aacd7bac3891d2247d765437f43655",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2204,7 +2269,7 @@
       "accepted_formats": [
         "script"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2226,7 +2291,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "script"
@@ -2238,14 +2303,19 @@
       "detector_registered": true,
       "family": "freepbx_k_php",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -2318,7 +2388,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2345,14 +2415,19 @@
       "detector_registered": false,
       "family": "genddos_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -2485,7 +2560,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2512,14 +2587,19 @@
       "detector_registered": false,
       "family": "go_synthetic_workload",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "other",
+        "config_required": false,
+        "network_required": false,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -2712,7 +2792,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2739,14 +2819,19 @@
       "detector_registered": false,
       "family": "infrastructure_decoy_hta",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "other",
+        "config_required": false,
+        "network_required": false,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -2767,7 +2852,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2819,7 +2904,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2846,14 +2931,19 @@
       "detector_registered": true,
       "family": "jackskid",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -2926,7 +3016,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -2955,14 +3045,19 @@
       "manual_or_unsupported_handlers": [
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.tcp.variant.py:extract_config"
       ],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -3035,7 +3130,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3062,14 +3157,19 @@
       "detector_registered": false,
       "family": "jomangy",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -3090,7 +3190,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3142,7 +3242,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3169,14 +3269,19 @@
       "detector_registered": true,
       "family": "latrodectus",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "latrodectus:extractors.latrodectus.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -3191,7 +3296,7 @@
             "script"
           ],
           "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "7746237afa03492c05f378f95d49869ace941c4d29336d58a273af7291dbab99",
+          "dependency_fingerprint_sha256": "3dc98528df05e4b7ea4a006d68c5373b532d0d0f42e89f30d1a91b9b4f8229d0",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -3301,7 +3406,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3328,14 +3433,19 @@
       "detector_registered": false,
       "family": "linux_ens_sns_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -3356,7 +3466,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3408,7 +3518,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3435,14 +3545,19 @@
       "detector_registered": true,
       "family": "linux_reverse_shell",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -3463,7 +3578,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3513,9 +3628,9 @@
       "automatic_handlers": [
         "lummastealer:extractors.lummastealer.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3539,10 +3654,10 @@
         "lummastealer:extractors.lummastealer.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "lummastealer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -3554,7 +3669,7 @@
         "lummastealer:extractors.lummastealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -3674,7 +3789,7 @@
         "script",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3700,7 +3815,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "data",
@@ -3714,14 +3829,19 @@
       "detector_registered": true,
       "family": "manageengine_endpoint_central_abuse",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -3953,7 +4073,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -3980,20 +4100,25 @@
       "detector_registered": false,
       "family": "mig_logcleaner",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "other",
+        "config_required": false,
+        "network_required": false,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
         "elf"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4015,7 +4140,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "elf"
@@ -4029,14 +4154,19 @@
       "manual_or_unsupported_handlers": [
         "mirai:analysis.framework.malware.mirai.nullnet.ppc.py:extract_config"
       ],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "worm",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -4057,7 +4187,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4109,7 +4239,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4138,14 +4268,19 @@
       "manual_or_unsupported_handlers": [
         "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.structure.analyzer.py:analyze"
       ],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -4218,7 +4353,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4245,14 +4380,19 @@
       "detector_registered": false,
       "family": "mx-go",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -4273,7 +4413,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4323,9 +4463,9 @@
       "automatic_handlers": [
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4349,10 +4489,10 @@
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "nanocore",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "rat",
         "config_required": true,
@@ -4364,7 +4504,7 @@
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -4445,7 +4585,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4497,7 +4637,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4524,14 +4664,19 @@
       "detector_registered": true,
       "family": "npm_supply_chain",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "downloader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -4666,7 +4811,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4718,7 +4863,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4745,14 +4890,19 @@
       "detector_registered": true,
       "family": "owareaper",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -4773,7 +4923,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4825,7 +4975,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -4852,14 +5002,19 @@
       "detector_registered": true,
       "family": "panchan",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "worm",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -5044,7 +5199,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -5073,14 +5228,19 @@
       "manual_or_unsupported_handlers": [
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.v2.py:extract_config"
       ],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -5205,7 +5365,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -5232,14 +5392,19 @@
       "detector_registered": false,
       "family": "pony",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "stealer",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -5260,7 +5425,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5312,7 +5477,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -5339,14 +5504,19 @@
       "detector_registered": true,
       "family": "prometei",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -5645,7 +5815,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -5672,14 +5842,19 @@
       "detector_registered": false,
       "family": "proxyrack_pop_deployer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -5941,7 +6116,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5993,7 +6168,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6020,14 +6195,19 @@
       "detector_registered": true,
       "family": "putita_v3",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -6282,7 +6462,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6332,9 +6512,9 @@
       "automatic_handlers": [
         "remusstealer:extractors.remusstealer.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6358,10 +6538,10 @@
         "remusstealer:extractors.remusstealer.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "remusstealer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -6373,13 +6553,13 @@
         "remusstealer:extractors.remusstealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
         "pe"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6401,7 +6581,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "pe"
@@ -6413,14 +6593,19 @@
       "detector_registered": true,
       "family": "screenconnect_rmm",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -6441,7 +6626,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6493,7 +6678,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6520,20 +6705,25 @@
       "detector_registered": true,
       "family": "shadowpad",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "shadowpad:extractors.shadowpad.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
         "elf"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6555,7 +6745,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "elf"
@@ -6567,14 +6757,19 @@
       "detector_registered": true,
       "family": "signed_dht_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -6582,7 +6777,7 @@
         "pe",
         "script"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6608,7 +6803,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "data",
@@ -6622,14 +6817,19 @@
       "detector_registered": true,
       "family": "snakekeylogger",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "keylogger",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "snakekeylogger:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -6702,7 +6902,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6729,14 +6929,19 @@
       "detector_registered": false,
       "family": "sobfox_launcher",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "loader",
+        "config_required": false,
+        "network_required": false,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -6809,7 +7014,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6836,14 +7041,19 @@
       "detector_registered": false,
       "family": "softbot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -6864,7 +7074,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6916,7 +7126,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -6943,14 +7153,19 @@
       "detector_registered": true,
       "family": "spyglace",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "spyglace:extractors.spyglace.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -7068,7 +7283,7 @@
       "accepted_formats": [
         "pe"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7090,7 +7305,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "pe"
@@ -7102,14 +7317,19 @@
       "detector_registered": true,
       "family": "suomi_agent",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -7130,7 +7350,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7182,7 +7402,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -7209,14 +7429,19 @@
       "detector_registered": true,
       "family": "tbot_iot_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "bot",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [],
@@ -7313,7 +7538,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -7340,14 +7565,19 @@
       "detector_registered": false,
       "family": "traffmonetizer_deployer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [],
@@ -7818,7 +8048,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -7845,14 +8075,19 @@
       "detector_registered": false,
       "family": "vidar",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "stealer",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "vidar:extractors.vidar.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -7925,7 +8160,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -7952,14 +8187,19 @@
       "detector_registered": false,
       "family": "wannacry",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "ransomware",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -7980,7 +8220,7 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8032,7 +8272,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -8066,14 +8306,19 @@
         "windows_script_stager:analysis.framework.malware.windows.script.stager.javascript.unicode.separator.stager.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.unicode.separator.stager.py:extract_config"
       ],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     },
     {
       "accepted_formats": [
@@ -8146,7 +8391,7 @@
       ],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_and_quality_policy_missing",
+      "blocker": "detector_missing",
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "7z",
@@ -8173,14 +8418,19 @@
       "detector_registered": false,
       "family": "xmrig",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorと必須成果物policyを追加する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "quality_policy": {
+        "category": "miner",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "candidate_verification_only"
     },
     {
       "accepted_formats": [
@@ -8188,7 +8438,7 @@
         "pe",
         "script"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8214,7 +8464,7 @@
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "quality_policy_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
       "declared_accepted_formats": [
         "data",
@@ -8228,14 +8478,19 @@
       "detector_registered": true,
       "family": "xworm",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "config・network・最終payloadの必須条件policyを宣言する。",
-      "quality_policy": null,
-      "quality_policy_declared": false,
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "rat",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
       "safe_automatic_handlers": [
         "xworm:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "quality_policy_missing"
+      "status": "fully_routable"
     }
   ],
   "network_contacted": false,

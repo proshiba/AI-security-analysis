@@ -403,7 +403,7 @@ def test_requirements_policy_blocks_missing_valleyrat_outputs_and_unknown_family
     one_shot._apply_requirements_policy_gate(complete, policy)
     assert complete["status"] == "complete"
 
-    undeclared = _known_hash_candidate("freepbx_k_php", policy)
+    undeclared = _known_hash_candidate("unclassified", policy)
     unknown = one_shot.orchestration_outcome.build_outcome(
         sample_sha256="1" * 64,
         generic_status="complete",
