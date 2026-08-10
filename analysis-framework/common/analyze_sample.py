@@ -40,6 +40,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_family_sample  # noqa: E402
 import classify_sample  # noqa: E402
+import orchestration_outcome  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
@@ -63,9 +64,15 @@ from campaign_correlation import (  # noqa: E402
 from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from extractors.profiled_family import clear_profile_cache  # noqa: E402
 from handler_catalog import (  # noqa: E402
+    DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+    DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE,
+    MAX_ASSESSMENT_ATTEMPTS,
+    MAX_ASSESSMENT_LAYERS,
     HandlerSpec,
+    assess_candidate_handlers,
     catalog_summary,
     clear_handler_caches,
+    collect_detector_evaluations,
     discover_handlers,
     execute_handler,
     load_handler,
@@ -96,6 +103,7 @@ MAX_STATIC_COMPRESSION_RATIO = static_layers.MAX_STATIC_COMPRESSION_RATIO
 MAX_ARCHIVE_MEMBERS = static_layers.MAX_ARCHIVE_MEMBERS
 recover_layer_pipeline = static_layers.recover_static_layers
 DEFAULT_STRING_SCAN_LIMIT = analyze_family_sample.DEFAULT_STRING_SCAN_LIMIT
+BINARY_FORMATS = frozenset({'pe', 'elf', 'macho'})
 
 
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
@@ -367,6 +375,148 @@ def summarize_family_coverage(specs: list[HandlerSpec], registered_families: set
             }
         )
     return results
+
+
+def _load_family_hint_manifest(
+    supplied: Path | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    '''外部ヒントを厳格に読み、内容識別子とともに返す。'''
+
+    if supplied is None:
+        return None, None
+    path = supplied.expanduser()
+    manifest = classify_sample.load_family_hint_manifest(path)
+    canonical = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(',', ':'),
+        allow_nan=False,
+    ).encode('utf-8')
+    identity = {
+        'name': path.name,
+        'canonical_size': len(canonical),
+        'canonical_sha256': hashlib.sha256(canonical).hexdigest(),
+    }
+    return manifest, identity
+
+
+def _verification_candidates(routing: dict[str, Any]) -> list[dict[str, Any]]:
+    '''通常の確定経路を除き、handlerで再検証できる候補だけを返す。'''
+
+    values = routing.get('candidates')
+    if not isinstance(values, list):
+        return []
+    return [
+        item
+        for item in values
+        if isinstance(item, dict)
+        and item.get('routing_eligible') is True
+        and item.get('routing_mode') == 'candidate_verification'
+        and isinstance(item.get('routing_eligibility'), dict)
+        and item['routing_eligibility'].get('candidate_verification') is True
+    ]
+
+
+def _candidate_handler_assessment(
+    *,
+    routing: dict[str, Any],
+    layers: list[StaticLayer],
+    layer_classifications: list[dict[str, Any]],
+    specs: list[HandlerSpec],
+    assessment_only: bool,
+) -> dict[str, Any]:
+    '''互換layerを容量・試行数の上限内で静的に候補検証する。'''
+
+    candidates = _verification_candidates(routing)
+    base = {
+        'schema_version': 1,
+        'candidate_count': len(candidates),
+        'executed_sample': False,
+        'network_contacted': False,
+        'filesystem_written_by_handlers': False,
+    }
+    if assessment_only:
+        return {**base, 'status': 'not_run_assessment_only', 'planned_attempt_count': 0, 'families': []}
+    if not candidates:
+        return {**base, 'status': 'no_candidates', 'planned_attempt_count': 0, 'families': []}
+    candidate_families = {str(item['family']) for item in candidates}
+    candidate_specs = [
+        spec for spec in specs if spec.automatic and spec.family in candidate_families
+    ]
+    attempts_per_layer = sum(
+        sum(spec.family == family for spec in candidate_specs)
+        for family in candidate_families
+    )
+    if attempts_per_layer <= 0:
+        return {**base, 'status': 'no_automatic_handler', 'planned_attempt_count': 0, 'families': []}
+
+    supported_hashes = {
+        digest
+        for item in candidates
+        for digest in item.get('layer_sha256', [])
+        if isinstance(digest, str)
+    }
+    eligible: list[tuple[int, StaticLayer, str]] = []
+    excluded: list[dict[str, Any]] = []
+    for index, layer in enumerate(layers):
+        actual_format = detect_format(layer.data, layer.name)
+        if not any(format_compatible(spec.input_formats, actual_format) for spec in candidate_specs):
+            excluded.append({'layer': layer.public(), 'reason': 'no_candidate_handler_accepts_format'})
+        elif len(layer.data) > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE:
+            excluded.append({'layer': layer.public(), 'reason': 'candidate_layer_size_limit'})
+        else:
+            eligible.append((index, layer, actual_format))
+
+    layer_limit = min(MAX_ASSESSMENT_LAYERS, MAX_ASSESSMENT_ATTEMPTS // attempts_per_layer)
+    ordered = sorted(
+        eligible,
+        key=lambda item: (0 if item[1].sha256 in supported_hashes else 1, item[1].depth, item[0]),
+    )
+    selected: list[tuple[int, StaticLayer, str]] = []
+    total_size = 0
+    for item in ordered:
+        if len(selected) >= layer_limit:
+            excluded.append({'layer': item[1].public(), 'reason': 'candidate_attempt_limit'})
+            continue
+        if total_size + len(item[1].data) > DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE:
+            excluded.append({'layer': item[1].public(), 'reason': 'candidate_total_size_limit'})
+            continue
+        selected.append(item)
+        total_size += len(item[1].data)
+    if not selected:
+        return {
+            **base,
+            'status': 'no_eligible_layer_within_limits',
+            'planned_attempt_count': 0,
+            'families': [],
+            'excluded_layers': excluded,
+        }
+
+    selected_hashes = {item[1].sha256 for item in selected}
+    assessment_layers = [
+        {
+            'name': layer.name,
+            'data': layer.data,
+            'sha256': layer.sha256,
+            'parent_sha256': layer.parent_sha256 if layer.parent_sha256 in selected_hashes else None,
+            'depth': layer.depth,
+            'transform': layer.transform,
+            'format': actual_format,
+        }
+        for _index, layer, actual_format in selected
+    ]
+    result = assess_candidate_handlers(
+        candidates,
+        assessment_layers,
+        detector_evaluations=collect_detector_evaluations(layer_classifications),
+        specs=candidate_specs,
+        maximum_attempts=MAX_ASSESSMENT_ATTEMPTS,
+    )
+    result['selected_layer_count'] = len(selected)
+    result['selected_total_size'] = total_size
+    result['excluded_layers'] = excluded
+    return sanitize_public_value(result)
 
 
 def _preflight_applicable(specs: list[HandlerSpec], applicability: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -668,6 +818,121 @@ def _handler_static_logic_records(
     return records[:512]
 
 
+def _legacy_outcome_handler_records(
+    case_dir: Path,
+    executions: list[dict[str, Any]],
+    specs: list[HandlerSpec],
+) -> list[dict[str, Any]]:
+    '''既存handler結果をfamily付きのoutcome証拠へ正規化する。'''
+
+    by_id = {spec.id: spec for spec in specs}
+    records = []
+    for execution in executions:
+        handler_id = execution.get('handler_id')
+        spec = by_id.get(handler_id)
+        if spec is None:
+            continue
+        record = {
+            'source': 'selected_family_analysis',
+            'family': spec.family,
+            'handler_id': handler_id,
+            'status': execution.get('status'),
+            'selected_evidence': execution.get('selected_evidence'),
+            'selected_layer_sha256': execution.get('selected_layer_sha256'),
+        }
+        relative = execution.get('result')
+        if isinstance(relative, str):
+            record['result'] = load_json_object_strict(resolve_case_artifact(case_dir, relative))
+        records.append(record)
+    return records
+
+
+def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[str, Any]]:
+    '''候補handlerの全試行をfamily付きのoutcome証拠へ正規化する。'''
+
+    records = []
+    for family_result in assessment.get('families') or []:
+        if not isinstance(family_result, dict):
+            continue
+        family = family_result.get('family')
+        for attempt in family_result.get('attempts') or []:
+            if not isinstance(attempt, dict):
+                continue
+            status = attempt.get('status')
+            normalized_status = {
+                'corroborated': 'corroborated',
+                'handler_evidence_without_detector': 'candidate_evidence',
+                'no_evidence': 'no_evidence',
+            }.get(status, status)
+            records.append(
+                {
+                    'source': 'candidate_verification',
+                    'family': family,
+                    'handler_id': attempt.get('handler_id'),
+                    'status': normalized_status,
+                    'selected_evidence': attempt.get('handler_evidence'),
+                    'selected_layer_sha256': (attempt.get('layer') or {}).get('sha256'),
+                    'result': attempt.get('result'),
+                }
+            )
+    return records
+
+
+def _outcome_candidates(
+    routing: dict[str, Any],
+    layers: list[StaticLayer],
+    logic_report: dict[str, Any],
+) -> list[dict[str, Any]]:
+    '''binaryの未完了関数解析を候補familyの必須gateへ反映する。'''
+
+    function_required = logic_report.get('status') == 'function_analysis_required' and any(
+        detect_format(layer.data, layer.name) in BINARY_FORMATS for layer in layers
+    )
+    candidates = []
+    for supplied in routing.get('candidates') or []:
+        if not isinstance(supplied, dict):
+            continue
+        candidate = dict(supplied)
+        requirements = dict(candidate.get('requirements') or {})
+        if function_required:
+            requirements['function_analysis_required'] = True
+        candidate['requirements'] = requirements
+        candidates.append(candidate)
+    return candidates
+
+
+def _public_outcome_handler_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    '''秘密値やhandler本文を除いた証拠索引を返す。'''
+
+    return [
+        {
+            key: record.get(key)
+            for key in (
+                'source',
+                'family',
+                'handler_id',
+                'status',
+                'selected_evidence',
+                'selected_layer_sha256',
+            )
+        }
+        for record in records
+    ]
+
+
+def _automation_summary_state(outcome: dict[str, Any]) -> str:
+    '''自動処理の結果をresolved・partial・unknownの排他的状態へ変換する。'''
+
+    resolution = outcome.get('family_resolution')
+    resolution_status = resolution.get('status') if isinstance(resolution, dict) else None
+    blockers = set(outcome.get('blockers') or [])
+    if outcome.get('status') == 'complete' and resolution_status == 'resolved':
+        return 'resolved'
+    if resolution_status in {'unresolved', 'ambiguous'} and blockers.issubset({'family_resolution'}):
+        return 'unknown'
+    return 'partial'
+
+
 def _completion_state(
     *,
     assessment_only: bool,
@@ -818,6 +1083,7 @@ def analyze_unit(
     minimum_confidence: str,
     assessment_only: bool,
     analysis_contract: dict[str, Any],
+    family_hint_manifest: dict[str, Any] | None = None,
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
@@ -929,6 +1195,23 @@ def analyze_unit(
         "layer_classifications": public_classifications,
         "selected_families": selected_families,
     }
+    family_coverage = summarize_family_coverage(specs, registered)
+    routing_family_coverage = [
+        item
+        for item in family_coverage
+        if classify_sample.FAMILY_ID_RE.fullmatch(str(item.get('family', ''))) is not None
+    ]
+    metadata_hints = (
+        classify_sample.family_hints_for_sha256(family_hint_manifest, digest)
+        if family_hint_manifest is not None
+        else []
+    )
+    routing = classify_sample.build_family_routing_candidates(
+        public_classifications,
+        metadata_hints=metadata_hints,
+        family_coverage=routing_family_coverage,
+    )
+    write_json(case_dir / 'family-routing.json', routing)
     applicability = assess_handlers(
         specs,
         layer_selections,
@@ -1095,6 +1378,15 @@ def analyze_unit(
                 }
             )
 
+    candidate_assessment = _candidate_handler_assessment(
+        routing=routing,
+        layers=layers,
+        layer_classifications=public_classifications,
+        specs=specs,
+        assessment_only=assessment_only,
+    )
+    write_json(case_dir / 'candidate-handler-assessment.json', candidate_assessment)
+
     report = {
         "schema_version": 1,
         "sample": {
@@ -1119,6 +1411,7 @@ def analyze_unit(
         "analysis_contract": analysis_contract,
         "handler_executions": executions,
         "assessment_only": assessment_only,
+        "ai_used": False,
         "executed_sample": False,
         "network_contacted": False,
         "limitations": [
@@ -1169,6 +1462,34 @@ def analyze_unit(
             },
         },
     )
+    legacy_outcome_records = _legacy_outcome_handler_records(case_dir, executions, specs)
+    candidate_outcome_records = _candidate_outcome_handler_records(candidate_assessment)
+    outcome_handler_records = legacy_outcome_records + candidate_outcome_records
+    outcome_candidates = _outcome_candidates(routing, layers, logic_report)
+    family_resolution = orchestration_outcome.resolve_family(
+        outcome_candidates,
+        outcome_handler_records,
+    )
+    outcome = orchestration_outcome.build_outcome(
+        sample_sha256=digest,
+        generic_status=generic_status,
+        layer_status=(
+            'not_run_assessment_only'
+            if assessment_only
+            else ('complete' if not _static_layer_issues(layer_report) else 'partial')
+        ),
+        candidates=outcome_candidates,
+        handler_records=outcome_handler_records,
+        function_analysis_available=logic_report.get('status') != 'function_analysis_required',
+    )
+    outcome['family_resolution'] = family_resolution
+    outcome['handler_evidence'] = _public_outcome_handler_records(outcome_handler_records)
+    outcome['artifacts'] = {
+        'routing': 'family-routing.json',
+        'candidate_handler_assessment': 'candidate-handler-assessment.json',
+    }
+    write_json(case_dir / 'orchestration.json', outcome)
+
     completion = _completion_state(
         assessment_only=assessment_only,
         generic_status=generic_status,
@@ -1179,6 +1500,17 @@ def analyze_unit(
         executions=executions,
         logic_report=logic_report,
     )
+    if (
+        completion['status'] == 'triaged_unknown'
+        and outcome.get('status') == 'complete'
+        and family_resolution.get('status') == 'resolved'
+        and not outcome.get('blockers')
+    ):
+        completion['status'] = 'complete'
+        completion['complete'] = True
+        completion['resumable'] = True
+        completion['automation_family'] = family_resolution.get('family')
+        completion['automation_promotion'] = 'strong_evidence_without_legacy_blockers'
     report["knowledge_artifacts"] = {
         "features": "features.json",
         "features_markdown": "FEATURES.md",
@@ -1187,6 +1519,20 @@ def analyze_unit(
         "static_logic_markdown": "STATIC-LOGIC.md",
     }
     report["case_state"] = completion
+    report['classification']['automation_family'] = family_resolution.get('family')
+    report['classification']['automation_status'] = family_resolution.get('status')
+    report['candidate_handler_assessment'] = {
+        'status': candidate_assessment.get('status'),
+        'planned_attempt_count': candidate_assessment.get('planned_attempt_count', 0),
+    }
+    report['orchestration'] = 'orchestration.json'
+    report['knowledge_artifacts'].update(
+        {
+            'family_routing': 'family-routing.json',
+            'candidate_handler_assessment': 'candidate-handler-assessment.json',
+            'orchestration': 'orchestration.json',
+        }
+    )
     artifact_paths = [
         "static-layers.json",
         "classification.json",
@@ -1201,6 +1547,10 @@ def analyze_unit(
         artifact_paths.append("generic-triage.json")
     artifact_paths.extend(item["result"] for item in executions if isinstance(item.get("result"), str))
     report["artifact_sha256"] = artifact_hashes(case_dir, artifact_paths)
+    artifact_paths.extend(
+        ['family-routing.json', 'candidate-handler-assessment.json', 'orchestration.json']
+    )
+    report['artifact_sha256'] = artifact_hashes(case_dir, artifact_paths)
     seal_report(report)
     write_json(case_dir / "report.json", report)
     return {
@@ -1209,6 +1559,10 @@ def analyze_unit(
         "family": root_classification.get("malware_type"),
         "selected_family": root_selection["selected_family"],
         "selected_families": selected_families,
+        "automation_family": family_resolution.get("family"),
+        "automation_state": _automation_summary_state(outcome),
+        "candidate_handler_attempts": int(candidate_assessment.get("planned_attempt_count", 0)),
+        "ai_used": False,
         "campaign": root_classification.get("campaign_type"),
         "handler_succeeded": sum(item["status"] == "succeeded" for item in executions),
         "handler_failed": sum(item["status"] in {"failed", "preflight_failed"} for item in executions),
@@ -1333,6 +1687,7 @@ def _build_analysis_contract(
     assessment_only: bool,
     max_file_size: int,
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
+    family_hint_manifest_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """再開判定に必要なコード・レジストリ・設定指紋を構築する。"""
 
@@ -1349,6 +1704,7 @@ def _build_analysis_contract(
         "assessment_only": assessment_only,
         "max_file_size": max_file_size,
         "string_scan_limit": string_scan_limit,
+        "family_hint_manifest": family_hint_manifest_identity,
         "static_tools": _static_tool_settings(upx, sevenzip, diec),
         "force_container_probe": force_container_probe,
         "max_static_layers": max_static_layers,
@@ -1404,6 +1760,15 @@ def load_resumable_case(
     sample = report.get("sample")
     classification = report.get("classification")
     executions = report.get("handler_executions")
+    try:
+        orchestration = load_json_object_strict(
+            resolve_case_artifact(case_dir, "orchestration.json")
+        )
+        candidate_assessment = load_json_object_strict(
+            resolve_case_artifact(case_dir, "candidate-handler-assessment.json")
+        )
+    except (TypeError, ValueError):
+        return None
     provenance = {
         "source_name": unit.source_name,
         "input_kind": unit.input_kind,
@@ -1425,6 +1790,10 @@ def load_resumable_case(
         "family": classification.get("family"),
         "selected_family": classification.get("selected_family"),
         "selected_families": selected_families,
+        "automation_family": (orchestration.get("family_resolution") or {}).get("family"),
+        "automation_state": _automation_summary_state(orchestration),
+        "candidate_handler_attempts": int(candidate_assessment.get("planned_attempt_count", 0)),
+        "ai_used": False,
         "campaign": classification.get("campaign"),
         "handler_succeeded": sum(status == "succeeded" for status in statuses),
         "handler_failed": sum(status in {"failed", "preflight_failed"} for status in statuses),
@@ -1459,6 +1828,7 @@ def run_batch(
     max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     resume: bool = False,
+    family_hint_manifest: Path | None = None,
 ) -> dict[str, Any]:
     """複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。"""
 
@@ -1484,6 +1854,9 @@ def run_batch(
     upx = _normalize_tool_path(upx, "UPX")
     sevenzip = _normalize_tool_path(sevenzip, "7-Zip")
     diec = _normalize_tool_path(diec, "Detect It Easy CLI")
+    family_hint_document, family_hint_identity = _load_family_hint_manifest(
+        family_hint_manifest
+    )
 
     clear_handler_caches()
     classify_sample.clear_classifier_caches()
@@ -1510,6 +1883,7 @@ def run_batch(
         archive_password=password,
         max_file_size=max_file_size,
         string_scan_limit=string_scan_limit,
+        family_hint_manifest_identity=family_hint_identity,
     )
     cases = []
     errors = []
@@ -1558,6 +1932,7 @@ def run_batch(
                     string_scan_limit=string_scan_limit,
                     assessment_only=assessment_only,
                     analysis_contract=analysis_contract,
+                    family_hint_manifest=family_hint_document,
                 )
             )
         except Exception as exc:
@@ -1576,6 +1951,10 @@ def run_batch(
             "errors": len(errors),
             "identified": sum(bool(item["selected_families"]) for item in cases),
             "unknown_or_ambiguous": sum(not item["selected_families"] for item in cases),
+            "automation_resolved": sum(item.get("automation_state") == "resolved" for item in cases),
+            "automation_partial": sum(item.get("automation_state") == "partial" for item in cases),
+            "automation_unknown": sum(item.get("automation_state") == "unknown" for item in cases),
+            "candidate_handler_attempts": sum(item.get("candidate_handler_attempts", 0) for item in cases),
             "handler_successes": sum(item["handler_succeeded"] for item in cases),
             "handler_failures": sum(item["handler_failed"] for item in cases),
             "handler_no_evidence": sum(item["handler_no_evidence"] for item in cases),
@@ -1602,6 +1981,7 @@ def run_batch(
             "max_files": max_files,
             "max_file_size": max_file_size,
             "string_scan_limit": string_scan_limit,
+            "family_hint_manifest": family_hint_identity,
             "static_tools": {
                 "upx": upx.name if upx else None,
                 "sevenzip": sevenzip.name if sevenzip else None,
@@ -1614,6 +1994,7 @@ def run_batch(
         },
         "executed_sample": False,
         "network_contacted": False,
+        "ai_used": False,
     }
     write_json(output / "summary.json", summary)
     return summary
@@ -1640,6 +2021,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="autoは暗号化単一メンバーZIPだけをメモリ内展開します。",
     )
     parser.add_argument("--family", help="ファミリーを明示選択します。構造一致の代替証拠にはしません。")
+    parser.add_argument(
+        "--family-hint-manifest",
+        type=Path,
+        help="root SHA-256へ完全一致する外部familyヒントのstrict JSON。ヒント単独では確定しません。",
+    )
     parser.add_argument(
         "--minimum-confidence",
         choices=("low", "medium", "high"),
@@ -1726,6 +2112,7 @@ def main(argv: list[str] | None = None) -> int:
         max_file_size=args.max_file_size,
         string_scan_limit=args.string_scan_limit,
         resume=args.resume,
+        family_hint_manifest=args.family_hint_manifest,
     )
     print(json.dumps(summary["counts"], ensure_ascii=False, indent=2))
     incomplete = summary["counts"]["errors"] + summary["counts"]["partial"] + summary["counts"]["failed"]
