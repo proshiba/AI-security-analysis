@@ -4,16 +4,16 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
 import json
 import os
-from pathlib import Path
 import tempfile
-from typing import Any, Sequence
+from collections import defaultdict
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
 from analysis_contract import load_json_object_strict
 from handler_catalog import HandlerSpec, discover_handlers
-
 
 SCHEMA_VERSION = 1
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +24,7 @@ def _registered_families(path: Path) -> set[str]:
     document = load_json_object_strict(path)
     values = document.get("malware_types")
     if not isinstance(values, dict):
-        raise ValueError("registry.malware_typesはobjectで指定してください")
+        raise TypeError("registry.malware_typesはobjectで指定してください")
     if any(not isinstance(key, str) or not key for key in values):
         raise ValueError("registryのfamily名が不正です")
     return set(values)
@@ -172,7 +172,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-    except BaseException:
+    except (OSError, UnicodeError):
         try:
             Path(temporary).unlink(missing_ok=True)
         finally:

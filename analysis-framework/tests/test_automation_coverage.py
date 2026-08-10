@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from automation_coverage import build_coverage, render_markdown  # noqa: E402
-from handler_catalog import HandlerSpec  # noqa: E402
+from automation_coverage import build_coverage, render_markdown
+from handler_catalog import HandlerSpec
 
 
 def _spec(family: str, *, automatic: bool = True, supported: bool = True) -> HandlerSpec:

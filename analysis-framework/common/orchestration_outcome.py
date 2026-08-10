@@ -7,14 +7,13 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from ipaddress import ip_address
-import re
 from typing import Any
 from urllib.parse import urlsplit
 
 from analysis_contract import handler_result_quality
-
 
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -310,9 +309,16 @@ def summarize_handler_outputs(
             key = path[-1] if path else ""
             if key in CONFIG_FLAGS and value is True:
                 config_recovered = True
-            if key == "sha256" and isinstance(value, str) and SHA256_RE.fullmatch(value):
-                if any(part in {"final_payload", "terminal_payload", "payload_sha256"} for part in path):
-                    terminal_hashes.add(value)
+            if (
+                key == "sha256"
+                and isinstance(value, str)
+                and SHA256_RE.fullmatch(value)
+                and any(
+                    part in {"final_payload", "terminal_payload", "payload_sha256"}
+                    for part in path
+                )
+            ):
+                terminal_hashes.add(value)
             if not any(part in NETWORK_KEYS for part in path):
                 continue
             values = [value] if isinstance(value, str) else []
