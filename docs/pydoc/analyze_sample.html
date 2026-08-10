@@ -19,13 +19,23 @@
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="analyze_family_sample.html">analyze_family_sample</a><br>
 <a href="argparse.html">argparse</a><br>
 <a href="classify_sample.html">classify_sample</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="copy.html">copy</a><br>
+<a href="hashlib.html">hashlib</a><br>
 <a href="io.html">io</a><br>
-<a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="pyzipper.html">pyzipper</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="math.html">math</a><br>
+<a href="orchestration_outcome.html">orchestration_outcome</a><br>
+<a href="os.html">os</a><br>
+<a href="pyzipper.html">pyzipper</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="runtime_contract.html">runtime_contract</a><br>
 <a href="shutil.html">shutil</a><br>
+<a href="stat.html">stat</a><br>
 <a href="static_layer_pipeline.html">static_layer_pipeline</a><br>
-</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="subprocess.html">subprocess</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
+<a href="time.html">time</a><br>
 <a href="zipfile.html">zipfile</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
@@ -167,11 +177,17 @@ Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._Actio
     minimum_confidence: 'str',
     assessment_only: 'bool',
     analysis_contract: 'dict[str, Any]',
+    family_hint_manifest: 'dict[str, Any] | None' = None,
+    family_requirements_policy: 'dict[str, dict[str, Any]] | None' = None,
     upx: 'Path | None' = None,
     sevenzip: 'Path | None' = None,
     diec: 'Path | None' = None,
     force_container_probe: 'bool' = False,
-    archive_password: 'str' = 'infected'
+    max_static_layers: 'int' = 64,
+    retry_max_static_layers: 'int | None' = None,
+    archive_password: 'str' = 'infected',
+    string_scan_limit: 'int' = 1000000,
+    follow_on_lineage: 'dict[str, Any] | None' = None
 ) -&gt; 'dict[str, Any]'</dt><dd><span class="code">1検体を分類し、適用可能な既存静的解析器を一括実行する。</span></dd></dl>
  <dl><dt><a name="-assess_handlers"><strong>assess_handlers</strong></a>(
     specs: 'list[HandlerSpec]',
@@ -210,6 +226,7 @@ Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._Actio
     sevenzip: 'Path | None' = None,
     diec: 'Path | None' = None,
     force_container_probe: 'bool' = False,
+    max_static_layers: 'int' = 64,
     archive_password: 'str' = 'infected'
 ) -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。</span></dd></dl>
  <dl><dt><a name="-run_batch"><strong>run_batch</strong></a>(
@@ -227,8 +244,12 @@ Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._Actio
     sevenzip: 'Path | None' = None,
     diec: 'Path | None' = None,
     force_container_probe: 'bool' = False,
+    max_static_layers: 'int' = 64,
+    retry_max_static_layers: 'int | None' = None,
     max_file_size: 'int' = 536870912,
-    resume: 'bool' = False
+    string_scan_limit: 'int' = 1000000,
+    resume: 'bool' = False,
+    family_hint_manifest: 'Path | None' = None
 ) -&gt; 'dict[str, Any]'</dt><dd><span class="code">複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。</span></dd></dl>
  <dl><dt><a name="-summarize_family_coverage"><strong>summarize_family_coverage</strong></a>(
     specs: 'list[HandlerSpec]',
@@ -240,24 +261,51 @@ Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._Actio
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>CAMPAIGN_CORRELATION_RULES</strong> = WindowsPath('C:/Users/Administrator/AI-security-...mework/registry/campaign_correlation_rules.json')<br>
+<td class="singlecolumn"><strong>BINARY_FORMATS</strong> = frozenset({'elf', 'macho', 'pe'})<br>
+<strong>CAMPAIGN_CORRELATION_RULES</strong> = WindowsPath('C:/Users/Administrator/AI-security-...mework/registry/campaign_correlation_rules.json')<br>
 <strong>CAMPAIGN_FINGERPRINTS</strong> = WindowsPath('C:/Users/Administrator/AI-security-...s-framework/registry/campaign_fingerprints.json')<br>
 <strong>CLASSIFIERS_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-...s-daily-20260727/analysis-framework/classifiers')<br>
 <strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/common')<br>
 <strong>CONFIDENCE</strong> = {'high': 3, 'low': 1, 'medium': 2}<br>
+<strong>DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE</strong> = 134217728<br>
+<strong>DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE</strong> = 268435456<br>
 <strong>DEFAULT_MAX_FILES</strong> = 1000<br>
 <strong>DEFAULT_MAX_FILE_SIZE</strong> = 536870912<br>
 <strong>DEFAULT_REGISTRY</strong> = WindowsPath('C:/Users/Administrator/AI-security-.../analysis-framework/registry/malware_types.json')<br>
+<strong>DEFAULT_STRING_SCAN_LIMIT</strong> = 1000000<br>
 <strong>FAMILY_ALIASES</strong> = {'amos': 'amosstealer', 'atlas': 'atlascross', 'atomicstealer': 'amosstealer', 'lumma': 'lummastealer', 'mx_go': 'mx-go', 'remcos': 'remcosrat', 'remus': 'remusstealer'}<br>
+<strong>FAMILY_ANALYSIS_REQUIREMENTS</strong> = WindowsPath('C:/Users/Administrator/AI-security-...work/registry/family_analysis_requirements.json')<br>
+<strong>FAMILY_POLICY_CATEGORIES</strong> = frozenset({'backdoor', 'bot', 'downloader', 'keylogger', 'loader', 'miner', ...})<br>
 <strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework')<br>
 <strong>INCOMPLETE_STATIC_STATUSES</strong> = frozenset({'bounded_limit', 'corrupt_or_truncated', 'failed', 'malformed_metadata', 'member_limit_applied', 'parse_failed', ...})<br>
 <strong>INCOMPLETE_STATIC_STATUS_TOKENS</strong> = ('blocked', 'corrupt', 'encrypted', 'error', 'failed', 'incomplete', 'invalid', 'limit', 'malformed', 'mismatch', 'partial', 'timeout', 'truncated', 'unavailable')<br>
 <strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>
-<strong>MAX_RECOVERED_LAYER_SIZE</strong> = 67108864<br>
+<strong>MAX_ASSESSMENT_ATTEMPTS</strong> = 64<br>
+<strong>MAX_ASSESSMENT_LAYERS</strong> = 128<br>
+<strong>MAX_DIRECT_CLI_ACTIVE_PROCESSES</strong> = 32<br>
+<strong>MAX_DIRECT_CLI_MEMORY_BYTES</strong> = 4294967296<br>
+<strong>MAX_DIRECT_CLI_SECONDS</strong> = 86400<br>
+<strong>MAX_FOLLOW_ON_ARTIFACTS</strong> = 64<br>
+<strong>MAX_FOLLOW_ON_CHILD_SECONDS</strong> = 120.0<br>
+<strong>MAX_FOLLOW_ON_DEPTH</strong> = 4<br>
+<strong>MAX_FOLLOW_ON_EDGES</strong> = 128<br>
+<strong>MAX_FOLLOW_ON_OMITTED_METADATA</strong> = 4096<br>
+<strong>MAX_FOLLOW_ON_PAYLOAD_SIZE</strong> = 134217728<br>
+<strong>MAX_FOLLOW_ON_TOTAL_BYTES</strong> = 268435456<br>
+<strong>MAX_FOLLOW_ON_WALL_SECONDS</strong> = 300.0<br>
+<strong>MAX_FOLLOW_ON_WORKER_ACTIVE_PROCESSES</strong> = 8<br>
+<strong>MAX_FOLLOW_ON_WORKER_MEMORY_BYTES</strong> = 2147483648<br>
+<strong>MAX_FOLLOW_ON_WORKER_REQUEST</strong> = 65536<br>
+<strong>MAX_FOLLOW_ON_WORKER_RESPONSE</strong> = 4194304<br>
+<strong>MAX_HANDLER_ATTEMPTS_PER_CASE</strong> = 64<br>
+<strong>MAX_HANDLER_RESULT_BYTES_PER_CASE</strong> = 16777216<br>
+<strong>MAX_HANDLER_WALL_SECONDS_PER_CASE</strong> = 300.0<br>
+<strong>MAX_RECOVERED_LAYER_SIZE</strong> = 134217728<br>
 <strong>MAX_RECOVERED_TOTAL_SIZE</strong> = 268435456<br>
 <strong>MAX_STATIC_COMPRESSION_RATIO</strong> = 100.0<br>
 <strong>MAX_STATIC_DEPTH</strong> = 6<br>
 <strong>MAX_STATIC_LAYERS</strong> = 64<br>
+<strong>MAX_STATIC_TOOL_BINARY_BYTES</strong> = 134217728<br>
 <strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727')<br>
 <strong>trusted</strong> = WindowsPath('C:/Users/Administrator/AI-security-...s-daily-20260727/analysis-framework/classifiers')<br>
 <strong>value</strong> = r'C:\Users\Administrator\AI-security-analysis-daily-20260727\analysis-framework\classifiers'</td></tr></table>

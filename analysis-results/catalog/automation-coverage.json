@@ -1,29 +1,30 @@
 {
   "ai_used": false,
   "counts": {
-    "automated_analysis_completion_possible": 60,
-    "automatic_family_selection_possible": 60,
+    "automated_analysis_completion_possible": 76,
+    "automated_analysis_completion_verified": 0,
+    "automatic_family_selection_possible": 76,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
-      "candidate_verification_only": 24,
+      "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 60,
+      "fully_routable": 76,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
-    "candidate_verification_only": 24,
+    "candidate_verification_only": 8,
     "declared_automatic_handlers": 95,
     "declared_script_only_handler_available": 84,
     "declared_script_only_handler_percent": 97.67,
-    "detector_registered": 60,
+    "detector_registered": 76,
     "executed_preflight_count": 1059,
     "families": 86,
-    "fully_routable": 60,
-    "fully_routable_percent": 69.77,
+    "fully_routable": 76,
+    "fully_routable_percent": 88.37,
     "planned_preflight_count": 1059,
     "preflight_limit": 2048,
     "quality_gated_script_only_handler_available": 84,
@@ -31,7 +32,8 @@
     "quality_policy_missing": 0,
     "safe_automatic_handlers": 95,
     "script_only_handler_available": 84,
-    "script_only_handler_percent": 97.67
+    "script_only_handler_percent": 97.67,
+    "structurally_routable": 76
   },
   "executed_sample": false,
   "families": [
@@ -46,6 +48,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -59,8 +62,8 @@
             "script",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "714444900e29b74002f4f3bb6c845231337fcb676da4ed3218deccb38a0db979",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "700c997bdf7b04375701338dc6fd54f58050737e08c9d5b44316496164fad509",
           "eligible": true,
           "eligible_formats": [
             "autoit-a3x",
@@ -81,6 +84,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "autoit-a3x",
         "cab",
@@ -109,7 +124,8 @@
         "acrstealer:extractors.acrstealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -131,6 +147,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -140,8 +157,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 24,
-          "dependency_fingerprint_sha256": "ce8ee69614429ba26f1f448bca57b6b56c170439b607477c8cdc780e2e8def9e",
+          "dependency_file_count": 26,
+          "dependency_fingerprint_sha256": "addd8ec96cc3c9bde0a4089c3ffca866bf2a7c385c405e34c6f690adcaf871ef",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -171,8 +188,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "988ebfe4152ebf9c18be1a8bf9f2e7554b02b6ee5b6d37d0a7cbe0aced9ecd38",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "eaec30d6a9677782f60c4cb2e629392435a67da5c2a437f939c7c5114d45438c",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -203,6 +220,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -246,7 +275,8 @@
         "agenttesla:extractors.agenttesla.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -268,6 +298,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -290,8 +321,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "faf98c9edf3e2fcea2869f103b5606c7e8b83d1aa3a90aa72c9a419f57aa95a4",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "60adb52dfef061b440eee60fb541fd85e135d6f8c7177b8ef9dc26be922e5a1b",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -321,6 +352,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -358,7 +401,8 @@
         "amadey:extractors.amadey.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -380,6 +424,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -402,8 +447,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "b5054c0e4ef78a852fb07a8e8e01a52396dedc07a0f8c7a3f28be970987dd1a6",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "79a5eb42ab18a9e11fdfcfeb5a4e389542eb4b7fda9cdbf14d397a89c0fd520a",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -433,6 +478,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -470,7 +527,8 @@
         "amosstealer:extractors.amosstealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -479,6 +537,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -488,8 +547,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -506,6 +565,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -530,7 +601,8 @@
         "asyncrat:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -552,6 +624,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -574,8 +647,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "00304e4deae4247197de1bfba3a71a972b0a92613be204329f5bfba8d9d74e02",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "3169055b4fda383084ebba28f735b48d4abf4a9f8c33c8a0f13b2c4e68ce86da",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -605,6 +678,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -642,7 +727,8 @@
         "atlascross:extractors.atlascross.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -664,6 +750,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -717,6 +804,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -754,7 +853,8 @@
         "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -776,6 +876,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -829,6 +930,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -866,13 +979,15 @@
         "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "elf"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -896,6 +1011,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "elf"
       ],
@@ -918,7 +1045,8 @@
         "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -939,7 +1067,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -989,10 +1118,22 @@
       "automatic_handlers": [
         "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1015,10 +1156,10 @@
         "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "chud_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -1030,7 +1171,8 @@
         "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1052,6 +1194,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1105,6 +1248,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1142,7 +1296,8 @@
         "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -1163,7 +1318,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1213,10 +1369,22 @@
       "automatic_handlers": [
         "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1239,10 +1407,10 @@
         "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "condi",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -1254,7 +1422,8 @@
         "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1275,7 +1444,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1325,10 +1495,22 @@
       "automatic_handlers": [
         "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1351,10 +1533,10 @@
         "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "credential_phishing_html",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -1366,7 +1548,8 @@
         "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1388,6 +1571,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1410,8 +1594,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "c7a50f20dc3e75bf54b79d4c82f011cd0583351bcbfe21e8494dd44eceebcd9d",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "2f0ba4aa80618291b90c673ff308556ff5e10ba7bec1fd10d88ed01f36dd0b16",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -1441,6 +1625,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1478,7 +1674,8 @@
         "darkcomet:extractors.darkcomet.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1487,6 +1684,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1496,8 +1694,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -1514,6 +1712,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -1538,7 +1748,8 @@
         "dcrat:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1560,6 +1771,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1582,8 +1794,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "9f059576431e507d72bb0f8d4c335ebbae161c57c9fad79a0439c45953a77d34",
+          "dependency_file_count": 26,
+          "dependency_fingerprint_sha256": "1b2234daa97b941b2ead91a1eda54c798f06812971018b33c9a7d0fdceb5e3d8",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -1613,6 +1825,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1650,13 +1874,15 @@
         "donutloader:extractors.donutloader.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "pe"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1664,8 +1890,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 23,
-          "dependency_fingerprint_sha256": "5d0be3b5b1456eefc86f9ba4429085e01af6e31f87348adb0961a8e7735afa8d",
+          "dependency_file_count": 24,
+          "dependency_fingerprint_sha256": "6097662f0f61a9d68c10b1a513f98041564a253df6ed5fa17067db4bc509fafb",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -1680,6 +1906,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "pe"
       ],
@@ -1707,13 +1945,15 @@
         "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "elf"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1721,8 +1961,8 @@
           "declared_formats": [
             "elf"
           ],
-          "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "38a7e80a11f7f493573b5788b6e4035acaa75fe57a286868db6cfee21f5aee71",
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "5c046d344a0054722a4015d16f19a8468fd0f3c87bb2460708f59558d08599a1",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -1737,6 +1977,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "elf"
       ],
@@ -1759,7 +2011,8 @@
         "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1780,7 +2033,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1830,10 +2084,22 @@
       "automatic_handlers": [
         "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -1856,10 +2122,10 @@
         "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "eclipse_ddos_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -1871,13 +2137,15 @@
         "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "pe"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -1885,8 +2153,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 22,
-          "dependency_fingerprint_sha256": "77587323e02ed9b3263ac5a6cbd55cd73ce8cdc3a1e50600f2463f0c241a8dcf",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "efdab78c77926f8320e7aa7dcbdc615c5d9e08c2b66e7ae97ea1f9c687b8c5f4",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -1901,6 +2169,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "pe"
       ],
@@ -1925,7 +2205,8 @@
         "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -1947,6 +2228,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2000,6 +2282,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2037,7 +2331,8 @@
         "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2059,6 +2354,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2081,8 +2377,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "9b14944e94118de630e8fa4a5ee6c540310c5b120676974627bc86577ada8b91",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "c6cfc5b9482daeb5f965e17a7d7b00453da44fc4dede21437c451327b2671f7a",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2112,6 +2408,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2149,7 +2457,8 @@
         "formbook:extractors.formbook.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2171,6 +2480,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2193,8 +2503,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "d489d3dcc4dbe2ab30a5f0f1e2520d8767aacd7bac3891d2247d765437f43655",
+          "dependency_file_count": 22,
+          "dependency_fingerprint_sha256": "295f9812453424c58322becff723c27f1854ff227283d88cfa3115ae1b7eb206",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2224,6 +2534,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2263,13 +2585,15 @@
         "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2293,6 +2617,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "script"
       ],
@@ -2315,7 +2651,8 @@
         "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2336,7 +2673,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2386,10 +2724,22 @@
       "automatic_handlers": [
         "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2412,10 +2762,10 @@
         "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "genddos_bot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -2427,7 +2777,8 @@
         "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2436,6 +2787,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2445,8 +2797,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -2463,6 +2815,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -2487,7 +2851,8 @@
         "gh0strat:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2509,6 +2874,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2562,6 +2928,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2599,7 +2976,8 @@
         "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -2608,6 +2986,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2635,6 +3014,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -2659,7 +3050,8 @@
         "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2668,6 +3060,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2677,8 +3070,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -2695,6 +3088,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -2719,7 +3124,8 @@
         "hijackloader:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2741,6 +3147,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2794,6 +3201,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2831,7 +3249,8 @@
         "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -2853,6 +3272,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -2906,6 +3326,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -2943,7 +3375,8 @@
         "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -2964,7 +3397,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3014,10 +3448,22 @@
       "automatic_handlers": [
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3040,12 +3486,12 @@
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "jiproxy_relay",
       "manual_or_unsupported_handlers": [
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.tcp.variant.py:extract_config"
       ],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "other",
         "config_required": true,
@@ -3057,7 +3503,8 @@
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3078,7 +3525,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3128,10 +3576,22 @@
       "automatic_handlers": [
         "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3154,10 +3614,10 @@
         "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "jomangy",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "backdoor",
         "config_required": true,
@@ -3169,7 +3629,8 @@
         "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3191,6 +3652,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3213,8 +3675,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "16c0cbbcf5dd3694fd89ef68a6e069cd7ef682f6f625e8ce554b88c0e46a1bd3",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "dd41493fbd21f83da3e72782007e1c61e655ddb97117fbf359bf421c7d777012",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3244,6 +3706,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3281,13 +3755,15 @@
         "latrodectus:extractors.latrodectus.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3295,8 +3771,8 @@
           "declared_formats": [
             "script"
           ],
-          "dependency_file_count": 21,
-          "dependency_fingerprint_sha256": "3dc98528df05e4b7ea4a006d68c5373b532d0d0f42e89f30d1a91b9b4f8229d0",
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "3e0613b9c68095503a5ca38d74bfa89fa0e6326510fab696e58c54ec361bdf10",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -3311,6 +3787,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "script"
       ],
@@ -3333,7 +3821,8 @@
         "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3355,6 +3844,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3408,6 +3898,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3445,7 +3946,8 @@
         "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -3467,6 +3969,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3520,6 +4023,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3557,7 +4072,8 @@
         "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3579,6 +4095,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3601,8 +4118,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "eeadc95f0ca80c5b5ef9fcedd51b9acb51f7b4d29564350b77d88f9f0824f93d",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "a59f204ef326ba3f956bdd0e6c621fd932536bbedbe999bc750041818e51c349",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3632,6 +4149,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3669,7 +4198,8 @@
         "lummastealer:extractors.lummastealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3691,6 +4221,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3744,6 +4275,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -3781,7 +4324,8 @@
         "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3790,6 +4334,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3817,6 +4362,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "script",
@@ -3841,7 +4398,8 @@
         "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -3863,6 +4421,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -3961,6 +4520,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4000,7 +4571,8 @@
         "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4022,6 +4594,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4075,6 +4648,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4112,13 +4696,15 @@
         "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
         "elf"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4142,6 +4728,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "elf"
       ],
@@ -4166,7 +4764,8 @@
         "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4188,6 +4787,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4241,6 +4841,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4280,7 +4892,8 @@
         "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4301,7 +4914,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4324,8 +4938,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "abfa7d21a51f8c871feba782b28bd4aa6489ff241db2d6d976caed70c4f2f751",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "d28917c3525f70efa537a16e9f21612cc5d548be7ef9ba754e335ad7e267488f",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4351,10 +4965,22 @@
       "automatic_handlers": [
         "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4377,10 +5003,10 @@
         "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "mx-go",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -4392,7 +5018,8 @@
         "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4414,6 +5041,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4467,6 +5095,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4504,7 +5144,8 @@
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4513,6 +5154,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4522,8 +5164,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -4540,6 +5182,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -4564,7 +5218,8 @@
         "njrat:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4586,6 +5241,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4608,8 +5264,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "45e364d9eda5c1e1395d784597ec5bb8898aeb24e8810e512e84758d5ce90bab",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "8ed48648a1223de5d25d28d5adbd2fe07a8a8254c1a9d7bce34845ae21d9f055",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4639,6 +5295,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4676,7 +5344,8 @@
         "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4698,6 +5367,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4751,6 +5421,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4790,7 +5472,8 @@
         "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4812,6 +5495,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4865,6 +5549,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -4902,7 +5598,8 @@
         "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -4924,6 +5621,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -4977,6 +5675,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5014,7 +5724,8 @@
         "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5036,6 +5747,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5089,6 +5801,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5126,7 +5850,8 @@
         "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5147,7 +5872,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5197,10 +5923,22 @@
       "automatic_handlers": [
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5223,12 +5961,12 @@
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "phorpiex_spam",
       "manual_or_unsupported_handlers": [
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.v2.py:extract_config"
       ],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -5240,13 +5978,15 @@
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "pe"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5270,6 +6010,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "pe"
       ],
@@ -5292,7 +6044,8 @@
         "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5313,7 +6066,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5363,10 +6117,22 @@
       "automatic_handlers": [
         "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5389,10 +6155,10 @@
         "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "pony",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -5404,7 +6170,8 @@
         "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5426,6 +6193,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5479,6 +6247,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5516,7 +6296,8 @@
         "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5538,6 +6319,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5591,6 +6373,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5630,7 +6423,8 @@
         "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -5652,6 +6446,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5705,6 +6500,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5742,7 +6548,8 @@
         "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -5763,7 +6570,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5813,10 +6621,22 @@
       "automatic_handlers": [
         "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5839,10 +6659,10 @@
         "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "proxyrack_pop_deployer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "loader",
         "config_required": true,
@@ -5854,7 +6674,8 @@
         "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -5876,6 +6697,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -5912,8 +6734,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "13704e8f58e204739c9465db064be7e0c16fe734f565d7a6e176f1d5ef4238d0",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "e7da824ab8e7ce6702e7a68812780f8af274ff3686d2fd2b6eb755dc8e78e7bf",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -5944,6 +6766,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -5983,7 +6817,8 @@
         "purehvnc:extractors.purehvnc.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6005,6 +6840,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6027,8 +6863,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "396c3ffbfa5c8ef0d5dc89236a4e1c1bf54fe9f0e81da93e2175cd907af9b0ee",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "dd61c15d042b713746cc01cda9966b956d941f4c9baf51b25edc1fd2f007f9c3",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6058,6 +6894,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6095,7 +6943,8 @@
         "purelogs:extractors.purelogs.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6117,6 +6966,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6170,6 +7020,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6207,7 +7069,8 @@
         "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6216,6 +7079,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6225,8 +7089,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -6243,6 +7107,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -6267,7 +7143,8 @@
         "quasarrat:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6276,6 +7153,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6285,8 +7163,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -6303,6 +7181,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -6327,7 +7217,8 @@
         "redlinestealer:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6349,6 +7240,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6371,8 +7263,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "a6c9e5784058de0cf0bb3bd7c494563aa1ce74638cdedf5f20022f7028b46e6e",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "051381dc61f87e9782c060424498148b682ddc04657030b3310e2fa4d8586938",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6402,6 +7294,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6441,7 +7345,8 @@
         "remcosrat:extractors.remcosrat.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6463,6 +7368,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6485,8 +7391,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 8,
-          "dependency_fingerprint_sha256": "497e0ca06df1a6eaf1e16ea09d3e534ba6b154120821a2acfc71b5ce12e74a32",
+          "dependency_file_count": 9,
+          "dependency_fingerprint_sha256": "46c46e9507f3f9ef1458616e7f2b6cc1d74b0126cc455f1ace57e7037c98073c",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6516,6 +7422,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6553,13 +7471,15 @@
         "remusstealer:extractors.remusstealer.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "pe"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6583,6 +7503,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "pe"
       ],
@@ -6605,7 +7537,8 @@
         "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6627,6 +7560,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6649,8 +7583,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "4df23064783016bb2c694bf3b5c5af6727dded20a6e5ae968c258dd4ff076745",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "94d7fb5fe1292f5b17fda40f9a4596365e2fd7d13b65a14a049e6dbcc43017da",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6680,6 +7614,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6717,13 +7663,15 @@
         "shadowpad:extractors.shadowpad.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "elf"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6747,6 +7695,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "elf"
       ],
@@ -6769,7 +7729,8 @@
         "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6778,6 +7739,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6787,8 +7749,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -6805,6 +7767,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -6829,7 +7803,8 @@
         "snakekeylogger:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -6851,6 +7826,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -6904,6 +7880,17 @@
       "blocked_automatic_handlers": [],
       "blocker": "detector_missing",
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "detector_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -6941,7 +7928,8 @@
         "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "candidate_verification_only",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -6962,7 +7950,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7012,10 +8001,22 @@
       "automatic_handlers": [
         "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7038,10 +8039,10 @@
         "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "softbot",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -7053,7 +8054,8 @@
         "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -7075,6 +8077,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7097,8 +8100,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "56f28181437c5811c04315edb6dbaf3179a6efdcb8749eca22bc94c72d3fc286",
+          "dependency_file_count": 24,
+          "dependency_fingerprint_sha256": "746f160ca88a487c42e4362a032cfa9ed1eb96effce250541f65e2858c388785",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -7128,6 +8131,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7165,7 +8180,8 @@
         "spyglace:extractors.spyglace.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -7187,6 +8203,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7209,8 +8226,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "8470fddc445858bbf985198bf0b3ec7df31410706d895cbf0c5cf86fe445d881",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "8bd9f48417b2e122e64516b11c71342d6146b430474ef00a45b6aa465ca95d2e",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -7240,6 +8257,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7277,13 +8306,15 @@
         "stealc:extractors.stealc.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
         "pe"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7307,6 +8338,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "pe"
       ],
@@ -7329,7 +8372,8 @@
         "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -7351,6 +8395,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7404,6 +8449,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7441,17 +8498,30 @@
         "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [],
       "automatic_handlers": [],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
       "blocker": "detector_and_automatic_handler_missing",
       "candidate_verification_possible": false,
+      "completion_verification": {
+        "blockers": [
+          "detector_and_automatic_handler_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [],
       "declared_automatic_handlers": [],
       "declared_script_only_handler_available": false,
@@ -7465,7 +8535,8 @@
       "quality_policy_declared": false,
       "safe_automatic_handlers": [],
       "script_only_handler_available": false,
-      "status": "manual_only_without_detector"
+      "status": "manual_only_without_detector",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -7486,7 +8557,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7536,10 +8608,22 @@
       "automatic_handlers": [
         "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7562,10 +8646,10 @@
         "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "traffmonetizer_deployer",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "loader",
         "config_required": true,
@@ -7577,17 +8661,30 @@
         "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [],
       "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [],
       "automatic_handlers": [],
       "automatic_selection_possible": false,
       "blocked_automatic_handlers": [],
       "blocker": "detector_and_automatic_handler_missing",
       "candidate_verification_possible": false,
+      "completion_verification": {
+        "blockers": [
+          "detector_and_automatic_handler_missing"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [],
       "declared_automatic_handlers": [],
       "declared_script_only_handler_available": false,
@@ -7601,7 +8698,8 @@
       "quality_policy_declared": false,
       "safe_automatic_handlers": [],
       "script_only_handler_available": false,
-      "status": "manual_only_without_detector"
+      "status": "manual_only_without_detector",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -7623,6 +8721,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7703,7 +8802,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "9df2ab3d887e97f7d19d8887e0135582f1801bdba8bc3977480a8e854a275fd0",
+          "dependency_fingerprint_sha256": "1c5327acf89fc668697b2143943c958c6184d0ee9b9170b8b927371f9c7f7490",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -7716,8 +8815,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "04669c1fd547d41ace26ce7ab184406e732d148a55e941f75f26a42467ea0c4e",
+          "dependency_file_count": 6,
+          "dependency_fingerprint_sha256": "c86e8e49dfe3fb5d3ad00f4c57ce4c9c862868fcc9bbc53eca2614cce01dccd1",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -7765,8 +8864,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "e9a5de7894baa1e6ea8fcb22a4f87b400adc4c58989230a53b92a959af4f2390",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "abc3835d80f401a8171f3e1a9cbb3055017a72497c37775f80730534b6e70f0e",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -7804,6 +8903,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7861,7 +8972,8 @@
         "valleyrat:extractors.valleyrat.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -7883,6 +8995,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -7905,8 +9018,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "e0d5fe6ee72683a1f486b6fb3c5f91632dbebec19905bd3040fd94dd460d0a79",
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "3ac7c14ebaa0b99b0a8eda4f88d556eb20a55c8f71d0e93e283f24e24e4fcabd",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -7936,6 +9049,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -7975,7 +9100,8 @@
         "venomrat:extractors.venomrat.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -7996,7 +9122,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8019,8 +9146,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "5004ccbb5b5f66dedd41e1977792ede4f111de4ef8442c6a2a17945456b34b3a",
+          "dependency_file_count": 24,
+          "dependency_fingerprint_sha256": "850fc5350a4286b32d79bccb56a98d3c46afd85be9e202d3dd4aec24c7aa1ee9",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8046,10 +9173,22 @@
       "automatic_handlers": [
         "vidar:extractors.vidar.extractor.py:extract"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -8072,10 +9211,10 @@
         "vidar:extractors.vidar.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "vidar",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -8087,7 +9226,8 @@
         "vidar:extractors.vidar.extractor.py:extract"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -8108,7 +9248,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8158,10 +9299,22 @@
       "automatic_handlers": [
         "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -8184,10 +9337,10 @@
         "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "wannacry",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "ransomware",
         "config_required": true,
@@ -8199,7 +9352,8 @@
         "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -8221,6 +9375,7 @@
         "zip"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8274,6 +9429,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -8318,7 +9485,8 @@
         "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -8339,7 +9507,8 @@
         "xz",
         "zip"
       ],
-      "automated_analysis_completion_possible": false,
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8389,10 +9558,22 @@
       "automatic_handlers": [
         "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
       ],
-      "automatic_selection_possible": false,
+      "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
-      "blocker": "detector_missing",
+      "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "7z",
         "apple-disk-image",
@@ -8415,10 +9596,10 @@
         "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
-      "detector_registered": false,
+      "detector_registered": true,
       "family": "xmrig",
       "manual_or_unsupported_handlers": [],
-      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "next_action_ja": null,
       "quality_policy": {
         "category": "miner",
         "config_required": true,
@@ -8430,7 +9611,8 @@
         "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
-      "status": "candidate_verification_only"
+      "status": "fully_routable",
+      "structurally_routable": true
     },
     {
       "accepted_formats": [
@@ -8439,6 +9621,7 @@
         "script"
       ],
       "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "blocked_formats": [],
@@ -8448,8 +9631,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "e06a655070f9e76e054c742aeb2be20e98119d3a001774954ec3c59c1f86a0ea",
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -8466,6 +9649,18 @@
       "blocked_automatic_handlers": [],
       "blocker": null,
       "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
       "declared_accepted_formats": [
         "data",
         "pe",
@@ -8490,9 +9685,15 @@
         "xworm:extractors.profiled_family:extractor_for"
       ],
       "script_only_handler_available": true,
-      "status": "fully_routable"
+      "status": "fully_routable",
+      "structurally_routable": true
     }
   ],
+  "metric_semantics": {
+    "automated_analysis_completion_possible": "後方互換用のdeprecated alias。structurally_routableと同値で、実検体の完了実績を表さない",
+    "automated_analysis_completion_verified": "代表fixtureで必須出力と全品質gateを検証したfamily数",
+    "structurally_routable": "detector、安全preflight済みhandler、family別品質policyが揃う構造上の経路"
+  },
   "network_contacted": false,
   "preflight_policy": {
     "filesystem_write_allowed": false,

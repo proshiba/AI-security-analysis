@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import platform
 import re
@@ -18,7 +19,9 @@ SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 REPORT_SEMANTIC_HASH_FIELD = "report_semantic_sha256"
 MAX_ARTIFACT_COUNT = 4_096
 MAX_ARTIFACT_PATH_LENGTH = 1_024
+MAX_CASE_ARTIFACT_SIZE = 1024 * 1024 * 1024
 MAX_JSON_OBJECT_SIZE = 64 * 1024 * 1024
+SNAPSHOT_READ_CHUNK_SIZE = 1024 * 1024
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
 REQUIRED_KNOWLEDGE_ARTIFACTS = {
     "features": "features.json",
@@ -36,7 +39,7 @@ BASE_REQUIRED_ARTIFACTS = frozenset(
     }
 )
 RESUMABLE_CASE_STATES = frozenset(
-    {"complete", "triaged_unknown", "assessment_only_complete"}
+    {"complete", "assessment_only_complete"}
 )
 NETWORK_EVIDENCE_KEYS = frozenset(
     {
@@ -282,7 +285,13 @@ def build_pipeline_fingerprint(
         "settings": dict(sorted(settings.items())),
         "components": records,
     }
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
     return {
         "schema_version": 1,
         "pipeline_contract_version": PIPELINE_CONTRACT_VERSION,
@@ -345,6 +354,188 @@ def _is_reparse_point(path: Path) -> bool:
     except OSError as exc:
         raise ValueError(f"path属性を安全に確認できません: {path}") from exc
     return bool(attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+class _SnapshotReadError(ValueError):
+    """検証済みfile snapshotを取得できない理由を保持する。"""
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def _stat_has_reparse_attribute(information: os.stat_result) -> bool:
+    """stat結果にWindows reparse属性が含まれるか返す。"""
+
+    return bool(
+        int(getattr(information, "st_file_attributes", 0))
+        & FILE_ATTRIBUTE_REPARSE_POINT
+    )
+
+
+def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
+    """deviceとfile IDを使い、同一fileを指すstat結果か確認する。"""
+
+    if first.st_ino == 0 or second.st_ino == 0:
+        return False
+    try:
+        return os.path.samestat(first, second)
+    except (AttributeError, OSError):
+        return first.st_dev == second.st_dev and first.st_ino == second.st_ino
+
+
+def _same_file_binding(first: os.stat_result, second: os.stat_result) -> bool:
+    """異なるstat API間でも安定するidentity、size、mtimeを比較する。"""
+
+    return (
+        _same_file_identity(first, second)
+        and first.st_size == second.st_size
+        and first.st_mtime_ns == second.st_mtime_ns
+        and first.st_nlink == second.st_nlink == 1
+    )
+
+
+def _stable_file_metadata(first: os.stat_result, second: os.stat_result) -> bool:
+    """同種stat APIの前後でidentity、size、mtime、ctimeを比較する。"""
+
+    return _same_file_binding(first, second) and first.st_ctime_ns == second.st_ctime_ns
+
+
+def _validate_snapshot_file(
+    path: Path,
+    information: os.stat_result,
+    *,
+    max_bytes: int,
+) -> None:
+    """snapshot候補が上限内の単一link通常fileであることを確認する。"""
+
+    if _stat_has_reparse_attribute(information):
+        raise _SnapshotReadError(
+            "reparse_point",
+            f"reparse pointの成果物は使用できません: {path}",
+        )
+    if not stat.S_ISREG(information.st_mode):
+        raise _SnapshotReadError(
+            "not_regular_file",
+            f"通常fileではない成果物です: {path}",
+        )
+    if information.st_nlink != 1:
+        raise _SnapshotReadError(
+            "hardlink_forbidden",
+            f"hardlinkされた成果物は使用できません: {path}",
+        )
+    if information.st_size < 0 or information.st_size > max_bytes:
+        raise _SnapshotReadError(
+            "size_out_of_bounds",
+            f"成果物が{max_bytes} bytes上限を超えています: {path}",
+        )
+
+
+def _read_bounded_descriptor(descriptor: int, *, max_bytes: int) -> bytes:
+    """descriptorから上限+1 byteだけを読み、それ以上は取得しない。"""
+
+    remaining = max_bytes + 1
+    chunks: list[bytes] = []
+    while remaining > 0:
+        try:
+            chunk = os.read(descriptor, min(SNAPSHOT_READ_CHUNK_SIZE, remaining))
+        except InterruptedError:
+            continue
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+def _read_regular_file_snapshot(path: Path, *, max_bytes: int) -> bytes:
+    """単一handleから不変な通常file snapshotを上限付きで取得する。"""
+
+    path = Path(os.path.abspath(os.fspath(path)))
+    if type(max_bytes) is not int or max_bytes < 0:
+        raise ValueError(f"不正なsnapshot読取上限です: {max_bytes!r}")
+    try:
+        ensure_no_reparse_components(path)
+    except ValueError as exc:
+        raise _SnapshotReadError(
+            "reparse_point",
+            f"reparse pointを含む成果物pathは使用できません: {path}",
+        ) from exc
+    try:
+        before = path.lstat()
+    except OSError as exc:
+        raise _SnapshotReadError(
+            "unreadable",
+            f"成果物を安全に確認できません: {path}",
+        ) from exc
+    _validate_snapshot_file(path, before, max_bytes=max_bytes)
+
+    flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0))
+    flags |= int(getattr(os, "O_CLOEXEC", 0))
+    flags |= int(getattr(os, "O_NOINHERIT", 0))
+    flags |= int(getattr(os, "O_NOFOLLOW", 0))
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise _SnapshotReadError(
+            "unreadable",
+            f"成果物を安全に開けません: {path}",
+        ) from exc
+
+    try:
+        opened = os.fstat(descriptor)
+        _validate_snapshot_file(path, opened, max_bytes=max_bytes)
+        if not _same_file_binding(before, opened):
+            raise _SnapshotReadError(
+                "changed_during_read",
+                f"成果物がlstatとopenの間に差し替えられました: {path}",
+            )
+        data = _read_bounded_descriptor(descriptor, max_bytes=max_bytes)
+        after_handle = os.fstat(descriptor)
+        _validate_snapshot_file(path, after_handle, max_bytes=max_bytes)
+    except _SnapshotReadError:
+        raise
+    except OSError as exc:
+        raise _SnapshotReadError(
+            "unreadable",
+            f"成果物を安全に読み取れません: {path}",
+        ) from exc
+    finally:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+
+    if len(data) > max_bytes:
+        raise _SnapshotReadError(
+            "size_out_of_bounds",
+            f"成果物が{max_bytes} bytes上限を超えています: {path}",
+        )
+    try:
+        ensure_no_reparse_components(path)
+        after_path = path.lstat()
+    except ValueError as exc:
+        raise _SnapshotReadError(
+            "reparse_point",
+            f"読取中に成果物pathがreparse pointへ変更されました: {path}",
+        ) from exc
+    except OSError as exc:
+        raise _SnapshotReadError(
+            "changed_during_read",
+            f"読取中に成果物pathが変更されました: {path}",
+        ) from exc
+    _validate_snapshot_file(path, after_path, max_bytes=max_bytes)
+    if not (
+        len(data) == opened.st_size
+        and _stable_file_metadata(opened, after_handle)
+        and _stable_file_metadata(before, after_path)
+        and _same_file_binding(opened, after_path)
+    ):
+        raise _SnapshotReadError(
+            "changed_during_read",
+            f"読取中に成果物のidentity、size、mtime、ctimeが変更されました: {path}",
+        )
+    return data
 
 
 def ensure_no_reparse_components(path: Path) -> None:
@@ -455,22 +646,68 @@ def _strict_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def load_json_object_strict(path: Path) -> dict[str, Any]:
-    """容量上限と重複key拒否を適用してJSON objectを読み込む。"""
+def _reject_non_finite(value: str) -> None:
+    """JSON拡張のNaNとInfinityを拒否する。"""
 
-    size = path.stat().st_size
-    if size > MAX_JSON_OBJECT_SIZE:
-        raise ValueError(f"JSON成果物が上限を超えています: {path} ({size} bytes)")
+    raise ValueError(f"JSONに非有限数は使用できません: {value}")
+
+
+def _strict_json_float(value: str) -> float:
+    """有限なJSON浮動小数点数だけをPython floatへ変換する。"""
+
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError(f"JSONに非有限数は使用できません: {value}")
+    return result
+
+
+def _strict_json_int(value: str) -> int:
+    """128桁以下のJSON整数だけをPython intへ変換する。"""
+
+    digits = value[1:] if value.startswith("-") else value
+    if len(digits) > 128:
+        raise ValueError("JSON整数の桁数が上限を超えています")
+    return int(value)
+
+
+def _ensure_json_depth(value: Any, *, maximum_depth: int = 128) -> None:
+    """再帰を使わず、成果物JSONのcontainer深度を制限する。"""
+
+    pending: list[tuple[Any, int]] = [(value, 0)]
+    while pending:
+        current, depth = pending.pop()
+        if depth > maximum_depth:
+            raise ValueError("JSONの入れ子が深すぎます")
+        if isinstance(current, dict):
+            pending.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            pending.extend((item, depth + 1) for item in current)
+
+
+def _decode_json_object_strict(data: bytes, *, path: Path) -> dict[str, Any]:
+    """検証済みbytesをBOMなしUTF-8の厳密なJSON objectとして解釈する。"""
+
     try:
         value = json.loads(
-            path.read_text(encoding="utf-8-sig"),
+            data.decode("utf-8", errors="strict"),
             object_pairs_hook=_strict_object_pairs,
+            parse_constant=_reject_non_finite,
+            parse_int=_strict_json_int,
+            parse_float=_strict_json_float,
         )
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise ValueError(f"JSON成果物を解釈できません: {path}") from exc
     if not isinstance(value, dict):
         raise TypeError(f"JSON objectが必要です: {path}")
+    _ensure_json_depth(value)
     return value
+
+
+def load_json_object_strict(path: Path) -> dict[str, Any]:
+    """単一handle、容量上限、厳密UTF-8でJSON objectを読み込む。"""
+
+    data = _read_regular_file_snapshot(path, max_bytes=MAX_JSON_OBJECT_SIZE)
+    return _decode_json_object_strict(data, path=path)
 
 
 def report_semantic_sha256(report: Mapping[str, Any]) -> str:
@@ -525,20 +762,34 @@ def artifact_hashes(case_dir: Path, relative_paths: Iterable[str]) -> dict[str, 
         raise ValueError("成果物pathが重複しています")
     for relative in sorted(normalized):
         path = resolve_case_artifact(case_dir, relative)
-        result[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+        data = _read_regular_file_snapshot(path, max_bytes=MAX_CASE_ARTIFACT_SIZE)
+        result[relative] = hashlib.sha256(data).hexdigest()
     return result
 
 
 def verify_artifact_hashes(case_dir: Path, expected: Mapping[str, Any]) -> list[str]:
     """記録済み成果物の存在・path境界・内容hashを検証し、不一致理由を返す。"""
 
+    errors, _snapshots = _verify_artifact_hashes_with_snapshots(case_dir, expected)
+    return errors
+
+
+def _verify_artifact_hashes_with_snapshots(
+    case_dir: Path,
+    expected: Mapping[str, Any],
+    *,
+    capture_paths: frozenset[str] = frozenset(),
+) -> tuple[list[str], dict[str, bytes]]:
+    """hash検証と、指定成果物の同一snapshot bytes取得を一度に行う。"""
+
     if not isinstance(expected, Mapping) or not expected:
-        return ["artifact_hash_manifest_missing"]
+        return ["artifact_hash_manifest_missing"], {}
     if len(expected) > MAX_ARTIFACT_COUNT:
-        return ["artifact_hash_manifest_too_large"]
-    errors = []
+        return ["artifact_hash_manifest_too_large"], {}
+    errors: list[str] = []
+    snapshots: dict[str, bytes] = {}
     if any(not isinstance(relative, str) for relative in expected):
-        return ["artifact_hash_manifest_non_string_path"]
+        return ["artifact_hash_manifest_non_string_path"], {}
     for relative in sorted(expected):
         digest = expected[relative]
         try:
@@ -559,10 +810,25 @@ def verify_artifact_hashes(case_dir: Path, expected: Mapping[str, Any]) -> list[
             else:
                 errors.append(f"missing_or_outside:{relative}")
             continue
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        try:
+            data = _read_regular_file_snapshot(path, max_bytes=MAX_CASE_ARTIFACT_SIZE)
+        except _SnapshotReadError as exc:
+            prefix = {
+                "reparse_point": "reparse_point",
+                "hardlink_forbidden": "artifact_hardlink_forbidden",
+                "not_regular_file": "artifact_not_regular_file",
+                "size_out_of_bounds": "artifact_size_out_of_bounds",
+                "changed_during_read": "artifact_changed_during_read",
+                "unreadable": "artifact_unreadable",
+            }.get(exc.reason, "artifact_snapshot_invalid")
+            errors.append(f"{prefix}:{relative}")
+            continue
+        actual = hashlib.sha256(data).hexdigest()
         if actual != digest:
             errors.append(f"sha256_mismatch:{relative}")
-    return errors
+        elif relative in capture_paths:
+            snapshots[relative] = data
+    return errors, snapshots
 
 
 def _required_artifact_paths(report: Mapping[str, Any]) -> tuple[set[str], list[str]]:
@@ -746,7 +1012,7 @@ def _case_state_errors(report: Mapping[str, Any], *, require_resumable: bool) ->
     if state.get("complete") is not expected_complete:
         errors.append("case_state_complete_inconsistent")
     resumable = state.get("resumable")
-    if type(resumable) is not bool or expected_complete and resumable is not True or status_value == "failed" and resumable is not False:
+    if type(resumable) is not bool or resumable is not expected_complete:
         errors.append("case_state_resumable_inconsistent")
     if require_resumable and resumable is not True:
         errors.append("case_state_not_resumable")
@@ -916,6 +1182,7 @@ def case_integrity_errors(
 
     required, path_errors = _required_artifact_paths(report)
     errors.extend(path_errors)
+    verified_semantic_artifacts: dict[str, bytes] = {}
     manifest = report.get("artifact_sha256")
     if not isinstance(manifest, Mapping):
         errors.append("artifact_hash_manifest_missing")
@@ -925,20 +1192,27 @@ def case_integrity_errors(
         unexpected = sorted(manifest_paths - required)
         errors.extend(f"artifact_manifest_missing:{path}" for path in missing)
         errors.extend(f"artifact_manifest_unexpected:{path}" for path in unexpected)
-        errors.extend(verify_artifact_hashes(case_dir, manifest))
+        artifact_errors, verified_semantic_artifacts = _verify_artifact_hashes_with_snapshots(
+            case_dir,
+            manifest,
+            capture_paths=frozenset({"classification.json", "applicability.json"}),
+        )
+        errors.extend(artifact_errors)
 
     if not any(
         error.startswith(("artifact_", "unsafe_", "missing_or_outside", "reparse_point"))
         for error in errors
     ):
         try:
-            classification_document = load_json_object_strict(
-                resolve_case_artifact(case_dir, "classification.json")
+            classification_document = _decode_json_object_strict(
+                verified_semantic_artifacts["classification.json"],
+                path=case_dir / "classification.json",
             )
-            applicability_document = load_json_object_strict(
-                resolve_case_artifact(case_dir, "applicability.json")
+            applicability_document = _decode_json_object_strict(
+                verified_semantic_artifacts["applicability.json"],
+                path=case_dir / "applicability.json",
             )
-        except ValueError:
+        except (KeyError, TypeError, ValueError):
             errors.append("semantic_artifact_load_failed")
         else:
             report_classification = report.get("classification")

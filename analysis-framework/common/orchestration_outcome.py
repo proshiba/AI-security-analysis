@@ -34,13 +34,119 @@ NETWORK_KEYS = frozenset(
         "c2_candidates",
         "config_endpoints",
         "endpoints",
+        "findings",
         "network_candidates",
         "network_endpoints",
         "static_confirmed_c2",
         "urls",
     }
 )
-CONFIG_FLAGS = frozenset({"decoded_config_recovered", "static_config_recovered", "configuration_recovered"})
+CONFIG_FLAGS = frozenset({"decoded_config_recovered", "static_config_recovered"})
+CONFIG_NON_VALUE_KEYS = frozenset(
+    {
+        *CONFIG_FLAGS,
+        "capabilities",
+        "classification_confidence",
+        "confidence",
+        "configuration_recovered",
+        "content_exported",
+        "error",
+        "executed",
+        "executed_sample",
+        "family",
+        "kind",
+        "label",
+        "limitations",
+        "logic",
+        "marker_hits",
+        "markers",
+        "matched",
+        "message",
+        "name",
+        "network_contacted",
+        "note",
+        "provenance",
+        "reason",
+        "reviewed",
+        "safety",
+        "schema_version",
+        "sha256",
+        "size",
+        "source",
+        "source_name",
+        "status",
+        "type",
+        "validated",
+        "verification",
+    }
+)
+CONFIG_NEGATIVE_VALUES = frozenset(
+    {
+        "",
+        "false",
+        "n/a",
+        "none",
+        "not_applicable",
+        "not_found",
+        "not_present",
+        "not_recovered",
+        "unknown",
+        "unresolved",
+        "unresolved_variant",
+    }
+)
+NETWORK_ENDPOINT_VALUE_KEYS = frozenset({"address", "endpoint", "uri", "url", "value"})
+NETWORK_PROTOCOL_KEYS = frozenset({"protocol", "scheme", "transport"})
+CONTROL_NETWORK_ROLES = frozenset(
+    {
+        "c2",
+        "command_and_control",
+        "control",
+        "control_endpoint",
+        "exfil",
+        "exfiltration",
+        "exfiltration_endpoint",
+    }
+)
+NON_CONTROL_ROLE_TOKENS = frozenset(
+    {
+        "candidate",
+        "dead_drop",
+        "decoy",
+        "delivery",
+        "download",
+        "landing",
+        "legitimate",
+        "mirror",
+        "osint",
+        "payload",
+        "redirect",
+        "stage",
+        "update",
+    }
+)
+REVIEWED_PROTOCOL_FLAGS = frozenset(
+    {"protocol_reviewed", "protocol_verified", "reviewed_protocol"}
+)
+REVIEWED_PROTOCOL_CONFIDENCE = frozenset(
+    {
+        "confirmed",
+        "confirmed_static",
+        "confirmed_static_config",
+        "high",
+        "high_confidence",
+        "reviewed",
+        "reviewed_static",
+    }
+)
+REVIEWED_PROTOCOL_SOURCE_MARKERS = (
+    "decoded",
+    "decompiler",
+    "dotnet_user_string",
+    "recovered",
+    "reviewed",
+    "static",
+)
 MINIMUM_HANDLER_TIER = {4: 0, 3: 1, 2: 2, 1: 4, 0: 4}
 KNOWN_HASH_EVIDENCE = frozenset({"known_outer_sha256", "known_inner_sha256"})
 DETECTOR_EVIDENCE = "type_detector_structure"
@@ -520,6 +626,232 @@ def _walk_evidence(
             )
 
 
+def _walk_mappings(value: Any) -> Iterator[tuple[tuple[str, ...], Mapping[str, Any]]]:
+    """sequence直下も含め、mappingを循環・深度・総数上限付きで返す。"""
+
+    state: dict[str, Any] = {"remaining": MAX_EVIDENCE_NODES, "seen": set()}
+
+    def visit(
+        item: Any,
+        *,
+        path: tuple[str, ...],
+        depth: int,
+    ) -> Iterator[tuple[tuple[str, ...], Mapping[str, Any]]]:
+        if depth > MAX_EVIDENCE_DEPTH or state["remaining"] <= 0:
+            return
+        is_container = isinstance(item, Mapping) or (
+            isinstance(item, Sequence) and not isinstance(item, (str, bytes, bytearray))
+        )
+        if is_container:
+            identity = id(item)
+            if identity in state["seen"]:
+                return
+            state["seen"].add(identity)
+        if isinstance(item, Mapping):
+            yield path, item
+            for raw_key, child in islice(item.items(), MAX_CONTAINER_ITEMS):
+                if state["remaining"] <= 0:
+                    return
+                state["remaining"] -= 1
+                yield from visit(
+                    child,
+                    path=(*path, str(raw_key).casefold()),
+                    depth=depth + 1,
+                )
+        elif isinstance(item, Sequence) and not isinstance(item, (str, bytes, bytearray)):
+            for index, child in enumerate(islice(item, MAX_CONTAINER_ITEMS)):
+                if state["remaining"] <= 0:
+                    return
+                state["remaining"] -= 1
+                yield from visit(
+                    child,
+                    path=(*path, str(index)),
+                    depth=depth + 1,
+                )
+
+    yield from visit(value, path=(), depth=0)
+
+
+def _meaningful_config_value(value: Any, *, depth: int = 0) -> bool:
+    """自己申告flagやmetadataを除き、復元した設定の実値があるか判定する。"""
+
+    if depth > 16 or value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = "_".join(value.strip().casefold().replace("-", " ").split())
+        return bool(normalized) and normalized not in CONFIG_NEGATIVE_VALUES and not normalized.startswith(
+            ("not_found", "not_recovered", "unknown", "unresolved")
+        )
+    if isinstance(value, (bytes, bytearray)):
+        return bool(value)
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, Mapping):
+        return any(
+            str(key).casefold() not in CONFIG_NON_VALUE_KEYS
+            and _meaningful_config_value(item, depth=depth + 1)
+            for key, item in islice(value.items(), MAX_CONTAINER_ITEMS)
+        )
+    if isinstance(value, Sequence):
+        return any(
+            _meaningful_config_value(item, depth=depth + 1)
+            for item in islice(value, MAX_CONTAINER_ITEMS)
+        )
+    return False
+
+
+def _correlated_config_keys(value: Mapping[str, Any]) -> list[str]:
+    """config復元flagと同じobjectにある実値keyだけを返す。"""
+
+    return sorted(
+        {
+            str(raw_key).casefold()
+            for raw_key, item in islice(value.items(), MAX_CONTAINER_ITEMS)
+            if str(raw_key).casefold() not in CONFIG_NON_VALUE_KEYS
+            and _meaningful_config_value(item)
+        }
+    )[:128]
+
+
+def _config_evidence_for_record(
+    record: Mapping[str, Any],
+    payload: Any,
+) -> list[dict[str, Any]]:
+    """family handlerに相関したconfig実値と、その由来だけを公開用に抽出する。"""
+
+    evidence: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for mapping_path, mapping in _walk_mappings(payload):
+        correlated_keys = _correlated_config_keys(mapping)
+        if not correlated_keys:
+            continue
+        normalized = {str(key).casefold(): item for key, item in mapping.items()}
+        for flag in sorted(CONFIG_FLAGS):
+            if normalized.get(flag) is not True:
+                continue
+            provenance = _provenance(record, (*mapping_path, flag))
+            identity = (
+                flag,
+                tuple(correlated_keys),
+                *provenance.values(),
+            )
+            evidence[identity] = {
+                "recovery_type": flag,
+                "correlated_keys": correlated_keys,
+                "provenance": provenance,
+            }
+    return [evidence[key] for key in sorted(evidence, key=lambda item: tuple(map(str, item)))]
+
+
+def _normalized_role(value: object) -> str | None:
+    text = _text(value, maximum=128)
+    if text is None:
+        return None
+    normalized = re.sub(r"[^a-z0-9]+", "_", text.casefold()).strip("_")
+    if not normalized or any(token in normalized for token in NON_CONTROL_ROLE_TOKENS):
+        return None
+    parts = set(normalized.split("_"))
+    if normalized in CONTROL_NETWORK_ROLES or "c2" in parts:
+        return "c2" if "c2" in parts else normalized
+    if "exfil" in normalized:
+        return "exfiltration"
+    if normalized in {"command_control", "commandandcontrol"} or "control" in parts:
+        return "control"
+    return None
+
+
+def _role_from_path(path: tuple[str, ...]) -> str | None:
+    for item in reversed(path):
+        if item.isdigit():
+            continue
+        role = _normalized_role(item)
+        if role is not None:
+            return role
+    return None
+
+
+def _normalized_protocol(value: object) -> str | None:
+    text = _text(value, maximum=64)
+    if text is None or re.fullmatch(r"[A-Za-z0-9+._()/ -]+", text) is None:
+        return None
+    return re.sub(r"[- /]+", "_", text.casefold()).strip("_") or None
+
+
+def _mapping_protocol(value: Mapping[str, Any], endpoint: Mapping[str, Any]) -> str | None:
+    normalized = {str(key).casefold(): item for key, item in value.items()}
+    for key in sorted(NETWORK_PROTOCOL_KEYS):
+        protocol = _normalized_protocol(normalized.get(key))
+        if protocol is not None:
+            return protocol
+    return _normalized_protocol(endpoint.get("scheme"))
+
+
+def _reviewed_protocol_evidence(value: Mapping[str, Any], protocol: str | None) -> bool:
+    """明示的なreview由来または高確度の静的protocol証拠だけを受理する。"""
+
+    if protocol is None:
+        return False
+    normalized = {str(key).casefold(): item for key, item in value.items()}
+    source = _text(normalized.get("source"), maximum=256)
+    if source is None:
+        source = _text(normalized.get("provenance"), maximum=256)
+    if any(normalized.get(flag) is True for flag in REVIEWED_PROTOCOL_FLAGS):
+        return source is not None
+    confidence = _normalized_protocol(normalized.get("confidence"))
+    return bool(
+        confidence in REVIEWED_PROTOCOL_CONFIDENCE
+        and source is not None
+        and any(marker in source.casefold() for marker in REVIEWED_PROTOCOL_SOURCE_MARKERS)
+    )
+
+
+def _mapping_endpoints(
+    path: tuple[str, ...],
+    value: Mapping[str, Any],
+) -> list[tuple[tuple[str, ...], dict[str, Any]]]:
+    """構造化network recordから秘密値を除いたendpoint候補を返す。"""
+
+    normalized = {str(key).casefold(): item for key, item in value.items()}
+    output: list[tuple[tuple[str, ...], dict[str, Any]]] = []
+    for key in sorted(NETWORK_ENDPOINT_VALUE_KEYS):
+        supplied = normalized.get(key)
+        if not isinstance(supplied, str):
+            continue
+        endpoint = _endpoint_from_text(supplied)
+        if endpoint is not None:
+            output.append(((*path, key), endpoint))
+    host_value = normalized.get("host", normalized.get("domain"))
+    if isinstance(host_value, str):
+        host = _valid_host(host_value)
+        raw_port = normalized.get("port")
+        if isinstance(raw_port, str) and raw_port.isdigit():
+            raw_port = int(raw_port)
+        port = raw_port if isinstance(raw_port, int) and not isinstance(raw_port, bool) else None
+        if host is not None and (port is None or 1 <= port <= 65_535):
+            output.append(
+                (
+                    (*path, "host"),
+                    {
+                        "host": host,
+                        "port": port,
+                        "scheme": None,
+                        "path": None,
+                    },
+                )
+            )
+    unique: dict[tuple[Any, ...], tuple[tuple[str, ...], dict[str, Any]]] = {}
+    for endpoint_path, endpoint in output:
+        identity = (
+            endpoint["host"],
+            endpoint["port"],
+            endpoint["scheme"],
+            endpoint["path"],
+        )
+        unique.setdefault(identity, (endpoint_path, endpoint))
+    return [unique[key] for key in sorted(unique, key=lambda item: tuple(map(str, item)))]
+
+
 def _verified_binary_output(value: object) -> dict[str, Any] | None:
     """wrapperが実bytesで検証したbinary outputだけを厳格schemaで受理する。"""
 
@@ -645,9 +977,10 @@ def summarize_handler_outputs(
 ) -> dict[str, Any]:
     """再検証済みhandler出力からconfig・通信先・後段payloadを正規化する。"""
 
-    config_recovered = False
-    config_candidate_recovered = False
+    config_evidence: dict[tuple[Any, ...], dict[str, Any]] = {}
+    config_candidate_evidence: dict[tuple[Any, ...], dict[str, Any]] = {}
     endpoints: dict[tuple[Any, ...], dict[str, Any]] = {}
+    qualified_endpoints: dict[tuple[Any, ...], dict[str, Any]] = {}
     claimed_hashes: set[str] = set()
     output_candidates: dict[tuple[Any, ...], dict[str, Any]] = {}
     retained_outputs: dict[tuple[Any, ...], dict[str, Any]] = {}
@@ -663,13 +996,51 @@ def summarize_handler_outputs(
         if not accepted and assessment["quality"].get("sufficient") is not True:
             continue
         payload = _handler_payload(record)
+        record_config_evidence = _config_evidence_for_record(record, payload)
+        config_destination = config_evidence if accepted else config_candidate_evidence
+        for item in record_config_evidence:
+            provenance = item["provenance"]
+            identity = (
+                item["recovery_type"],
+                tuple(item["correlated_keys"]),
+                *provenance.values(),
+            )
+            config_destination[identity] = item
+
+        def retain_qualified_endpoint(
+            endpoint: Mapping[str, Any],
+            *,
+            evidence_path: tuple[str, ...],
+            role: str,
+            protocol: str | None,
+            evidence_basis: Sequence[str],
+            _record: Mapping[str, Any] = record,
+        ) -> None:
+            identity = (
+                endpoint["host"],
+                endpoint["port"],
+                endpoint["scheme"],
+                endpoint["path"],
+                role,
+                protocol,
+            )
+            entry = qualified_endpoints.setdefault(
+                identity,
+                {
+                    **endpoint,
+                    "role": role,
+                    "protocol": protocol,
+                    "contacted": False,
+                    "_evidence_basis": set(),
+                    "_provenance": set(),
+                },
+            )
+            entry["_evidence_basis"].update(evidence_basis)
+            provenance = _provenance(_record, evidence_path)
+            entry["_provenance"].add(tuple(provenance.values()))
+
         for evidence_path, value in _walk_evidence(payload):
             key = evidence_path[-1] if evidence_path else ""
-            if key in CONFIG_FLAGS and value is True:
-                if accepted:
-                    config_recovered = True
-                else:
-                    config_candidate_recovered = True
             if (
                 key == "sha256"
                 and isinstance(value, str)
@@ -698,6 +1069,35 @@ def summarize_handler_outputs(
                 )
                 provenance = _provenance(record, evidence_path)
                 entry["_provenance"].add(tuple(provenance.values()))
+                role = _role_from_path(evidence_path)
+                if accepted and role is not None and record_config_evidence:
+                    retain_qualified_endpoint(
+                        endpoint,
+                        evidence_path=evidence_path,
+                        role=role,
+                        protocol=_normalized_protocol(endpoint.get("scheme")),
+                        evidence_basis=("static_config_correlation",),
+                    )
+
+        for mapping_path, mapping in _walk_mappings(payload):
+            role = _normalized_role(mapping.get("role")) or _role_from_path(mapping_path)
+            if role is None:
+                continue
+            for endpoint_path, endpoint in _mapping_endpoints(mapping_path, mapping):
+                protocol = _mapping_protocol(mapping, endpoint)
+                evidence_basis = []
+                if record_config_evidence:
+                    evidence_basis.append("static_config_correlation")
+                if _reviewed_protocol_evidence(mapping, protocol):
+                    evidence_basis.append("reviewed_protocol_evidence")
+                if accepted and evidence_basis:
+                    retain_qualified_endpoint(
+                        endpoint,
+                        evidence_path=endpoint_path,
+                        role=role,
+                        protocol=protocol,
+                        evidence_basis=evidence_basis,
+                    )
 
         supplied_outputs = record.get("verified_binary_outputs")
         if isinstance(supplied_outputs, Sequence) and not isinstance(supplied_outputs, (str, bytes, bytearray)):
@@ -750,9 +1150,19 @@ def summarize_handler_outputs(
         if claimed_hashes
         else "unresolved"
     )
+    public_config_evidence = [
+        config_evidence[key]
+        for key in sorted(config_evidence, key=lambda item: tuple(map(str, item)))
+    ]
+    public_config_candidate_evidence = [
+        config_candidate_evidence[key]
+        for key in sorted(config_candidate_evidence, key=lambda item: tuple(map(str, item)))
+    ]
     return {
-        "config_recovered": config_recovered,
-        "config_candidate_recovered": config_candidate_recovered,
+        "config_recovered": bool(public_config_evidence),
+        "config_candidate_recovered": bool(public_config_candidate_evidence),
+        "config_evidence": public_config_evidence,
+        "config_candidate_evidence": public_config_candidate_evidence,
         "network_endpoints": [
             {
                 **{key: value for key, value in endpoints[identity].items() if key != "_provenance"},
@@ -760,6 +1170,23 @@ def summarize_handler_outputs(
             }
             for identity in sorted(
                 endpoints,
+                key=lambda item: tuple("" if value is None else str(value) for value in item),
+            )
+        ],
+        "qualified_network_endpoints": [
+            {
+                **{
+                    key: value
+                    for key, value in qualified_endpoints[identity].items()
+                    if key not in {"_evidence_basis", "_provenance"}
+                },
+                "evidence_basis": sorted(qualified_endpoints[identity]["_evidence_basis"]),
+                "provenance": _sorted_provenance(
+                    qualified_endpoints[identity]["_provenance"]
+                ),
+            }
+            for identity in sorted(
+                qualified_endpoints,
                 key=lambda item: tuple("" if value is None else str(value) for value in item),
             )
         ],
@@ -831,7 +1258,11 @@ def build_outcome(
             handler_succeeded,
         ),
         "config": _gate(requirements.get("config_required"), outputs["config_recovered"]),
-        "network": _gate(requirements.get("network_required"), bool(outputs["network_endpoints"])),
+        "network": _gate(
+            requirements.get("network_required"),
+            bool(outputs["qualified_network_endpoints"]),
+            observed=bool(outputs["network_endpoints"]),
+        ),
         "terminal_payload": _gate(
             requirements.get("terminal_payload_required"), bool(outputs["terminal_payload_sha256"])
         ),

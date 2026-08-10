@@ -4,7 +4,9 @@
 
 ## 推奨する一括静的解析
 
-現在の標準入口は `common/analyze_sample.py` です。ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、入力形式契約付きの既存解析関数棚卸し、全復元層の汎用トリアージ、選択層とその外装祖先だけを対象にした設定抽出、証拠階層による結果選択、特徴的な関数／スクリプトのロジック記録、全体フロー文書、指紋生成、挙動・検体特徴プロファイル、キャンペーン自動ラベル、SHA-256単位の統合レポート作成までを一括で行います。無関係な兄弟層や形式不一致層へファミリー固有解析器を総当たりしません。
+解析engineの正本は`common/analyze_sample.py`です。WebUI、ローカルAPI、batch serviceから検体を受け付けるproduction入口は`common/analysis_job_runner.py`とし、family別scriptやengineを直接起動しません。runnerは固定request schema、job専用入力snapshot、runtime preflight、process封じ込め、成果物の独立再検証、atomicなstatus／resultを追加します。信頼済みの解析者がengineだけを直接試す場合を除き、runner経路を使用してください。
+
+engineは、ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、入力形式契約付きの既存解析関数棚卸し、全復元層の汎用トリアージ、選択層とその外装祖先だけを対象にした設定抽出、証拠階層による結果選択、特徴的な関数／スクリプトのロジック記録、全体フロー文書、指紋生成、挙動・検体特徴プロファイル、キャンペーン自動ラベル、SHA-256単位の統合レポート作成までを一括で行います。無関係な兄弟層や形式不一致層へファミリー固有解析器を総当たりしません。
 
 ```powershell
 python .\common\analyze_sample.py `
@@ -12,9 +14,21 @@ python .\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output
 ```
 
+WebUI adapterからは、`analysis_job_runner.py schema`をrequest formの正本として使い、request JSONを有界stdinへ渡します。pollと結果表示では`schema --artifact status|progress|result|snapshot`を正本とし、状態別field、件数上限、安全field、成果物pathをUI側へ複製しません。`status`コマンドは`status.json`、`progress.json`、存在する場合は`result.json`を1つのsnapshotとして返し、返却前に同じ契約を依存なしvalidatorで適用して、cross-job混入とstate／phase／result不一致を`job_state_invalid`で拒否します。引数なしの`schema`は後方互換のrequest schemaです。本リポジトリが提供するのはこのscript-only CLI／Python API契約までであり、HTTPを待ち受けるWebUI backendは別途実装します。
+
+```powershell
+Get-Content -Raw -Encoding UTF8 .\job.json | python `
+  .\common\analysis_job_runner.py run --request - `
+  --input-root C:\malware-job-input --jobs-root C:\malware-job-state
+```
+
 標準ZIPとAES ZIPを含む復元層は、残り層数・個別サイズ・総復元量・圧縮率の上限を引き継いで最大4層まで処理します。必要に応じて `--sevenzip`、`--upx`、`--diec` で外部実行ファイルを明示し、PEコンテナー候補の追加検査に限って `--force-container-probe` を使います。`--password` は受け入れ用外装と内側アーカイブの両方へ適用します。
 
-検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。`--resume` は解析コード・設定の契約指紋、ケース完了状態、入力由来情報、全必須成果物のSHA-256を検証できたケースだけを再利用します。出力、入力契約、証拠階層、完了状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、WebUI／ローカルAPIからAIなしで起動・監視する境界は[ローカル静的解析ジョブ契約](docs/LOCAL-ANALYSIS-JOB-CONTRACT.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
+上記の外部実行file引数は、信頼済み解析者が`analyze_sample.py`を直接検証する場合のinterfaceです。WebUI／ローカルAPIのproduction runnerではrequest JSONから`upx`、`sevenzip`、`diec`を指定できません。UPXまたはself-containedな7zzを有効にする場合は、service operatorが管理するstrict manifestとraw SHA-256 pinをrunner CLIへ固定し、job-private snapshotだけを実行します。DIECはこのproduction契約では無効です。tool processは有界出力・時間・process・memory・一時tree quotaの内側で動作し、provenanceを解析契約と`result.json`へ残します。設定例は[ローカル静的解析ジョブ契約](docs/LOCAL-ANALYSIS-JOB-CONTRACT.md)を参照してください。
+
+検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。`--resume` は解析コード・設定の契約指紋、ケース完了状態、入力由来情報、全必須成果物のSHA-256を検証できたケースだけを再利用します。AIを使わない正本フローと品質ゲートは[AI非依存の一括静的解析オーケストレーション](docs/AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)、出力、入力契約、証拠階層、完了状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、WebUI／ローカルAPIからAIなしで起動・監視する境界は[ローカル静的解析ジョブ契約](docs/LOCAL-ANALYSIS-JOB-CONTRACT.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
+
+production jobの一時fileは`analysis/.private-temp/`へ隔離し、子processの`TEMP`、`TMP`、`TMPDIR`を同じjob内へ固定します。終了時に内容が空であることとdirectory identityを検証して削除し、残存file、hardlink、reparse、quota超過があれば成功として公開しません。
 
 ## 従来のファミリー別実行順
 

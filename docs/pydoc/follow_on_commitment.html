@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module follow_on_commitment</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">follow_on_commitment</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cfollow_on_commitment.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\follow_on_commitment.py</a></td></tr></table>
+    <p><span class="code">follow-on保持metadata多重集合のcanonical&nbsp;commitmentを構築する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-canonical_multiset_commitment"><strong>canonical_multiset_commitment</strong></a>(counts: 'Mapping[MetadataIdentity, int]') -&gt; 'dict[str, int | str] | None'</dt><dd><span class="code">正の多重度をstreaming&nbsp;hashし、空集合以外の件数とSHA-256を返す。<br>
+&nbsp;<br>
+各unique&nbsp;identityを辞書順に並べ、UTF-8&nbsp;canonical&nbsp;JSONとbyte長をdomain<br>
+separated&nbsp;SHA-256へ逐次投入する。多重度分のlistは生成しない。</span></dd></dl>
+ <dl><dt><a name="-metadata_identity"><strong>metadata_identity</strong></a>(value: 'Mapping[str, object]') -&gt; 'MetadataIdentity'</dt><dd><span class="code">検証済み保持metadataからcommitment用の不変identityを返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MetadataIdentity</strong> = tuple[str, str, str, str, int]<br>
+<strong>TypeAlias</strong> = typing.TypeAlias<br>
+<strong>__annotations__</strong> = {'MetadataIdentity': 'TypeAlias'}</td></tr></table>
+</body></html>

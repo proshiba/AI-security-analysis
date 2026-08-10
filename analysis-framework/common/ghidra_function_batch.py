@@ -2932,15 +2932,15 @@ def finalize_case_report(case_dir: Path) -> str:
             state.update(
                 {
                     "status": "complete" if selected else "triaged_unknown",
-                    "complete": True,
-                    "resumable": True,
+                    "complete": bool(selected),
+                    "resumable": bool(selected),
                     "blockers": [],
                 }
             )
     elif not (
         status in {"complete", "triaged_unknown"}
-        and state.get("complete") is True
-        and state.get("resumable") is True
+        and state.get("complete") is (status == "complete")
+        and state.get("resumable") is (status == "complete")
         and blockers == []
     ):
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
@@ -2975,7 +2975,7 @@ def finalize_case_report(case_dir: Path) -> str:
     report["artifact_sha256"] = artifact_hashes(case_dir, manifest)
     seal_report(report)
     _json_dump(case_dir / "report.json", report)
-    resumable = state.get("status") in {"complete", "triaged_unknown"}
+    resumable = state.get("status") == "complete"
     errors = case_integrity_errors(
         case_dir,
         report,
@@ -3020,7 +3020,7 @@ def finalize_collection_publication(
         if isinstance(blockers, list):
             blocker_counts.update(str(blocker) for blocker in blockers if isinstance(blocker, str) and blocker.strip())
         by_family[family].append(case_dir)
-    complete_statuses = {"complete", "triaged_unknown"}
+    complete_statuses = {"complete"}
     all_complete = bool(requested) and set(state_counts) <= complete_statuses
     publication_stage = "complete" if all_complete else "partial_followup_required"
     registrations = {}
@@ -3802,7 +3802,7 @@ def publish_cases(
             item["case_state"] = per_case[sha]["case_state"]
             item["publication_stage"] = (
                 "complete"
-                if per_case[sha]["case_state"] in {"complete", "triaged_unknown"}
+                if per_case[sha]["case_state"] == "complete"
                 else "partial_followup_required"
             )
     _json_dump(summary_path, summary)

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module bounded_process</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">bounded_process</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cbounded_process.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\bounded_process.py</a></td></tr></table>
+    <p><span class="code">子孫processを残さず、有界時間で外部commandを実行する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="math.html">math</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="signal.html">signal</a><br>
+<a href="stat.html">stat</a><br>
+</td><td class="multicolumn"><a href="subprocess.html">subprocess</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="bounded_process.html#ProcessContainment">ProcessContainment</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ProcessContainment">class <strong>ProcessContainment</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ProcessContainment">ProcessContainment</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;os_name:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maximum_active_processes:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maximum_memory_bytes:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None<br>
+)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+custom&nbsp;``Popen``&nbsp;呼出しにも適用できるprocess&nbsp;tree所有境界。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ProcessContainment-__init__"><strong>__init__</strong></a>(
+    self,
+    *,
+    os_name: 'str | None' = None,
+    maximum_active_processes: 'int | None' = None,
+    maximum_memory_bytes: 'int | None' = None
+) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ProcessContainment-abort"><strong>abort</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">例外・timeout時に境界と直接processの双方をbest-effortで終了する。</span></dd></dl>
+
+<dl><dt><a name="ProcessContainment-attach"><strong>attach</strong></a>(self, process: 'subprocess.Popen[Any]') -&gt; 'None'</dt><dd><span class="code">起動直後のprocessを境界へ割り当て、失敗時はtreeを終了する。</span></dd></dl>
+
+<dl><dt><a name="ProcessContainment-close"><strong>close</strong></a>(self, *, strict: 'bool') -&gt; 'None'</dt><dd><span class="code">正常終了後も境界を閉じ、残存する子孫processを終了する。</span></dd></dl>
+
+<dl><dt><a name="ProcessContainment-popen_options"><strong>popen_options</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">process&nbsp;groupとPOSIX&nbsp;resource&nbsp;limitを起動時に固定する。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-run_bounded"><strong>run_bounded</strong></a>(
+    command: 'Command',
+    *,
+    timeout: 'float',
+    check: 'bool' = False,
+    shell: 'bool' = False,
+    env: 'Mapping[str, str] | None' = None,
+    cwd: 'str | bytes | os.PathLike[str] | os.PathLike[bytes] | None' = None,
+    input: 'str | bytes | None' = None,
+    stdin: 'int | Any | None' = None,
+    stdout: 'int | Any | None' = None,
+    stderr: 'int | Any | None' = None,
+    capture_output: 'bool' = False,
+    text: 'bool | None' = None,
+    encoding: 'str | None' = None,
+    errors: 'str | None' = None,
+    os_name: 'str | None' = None,
+    require_containment: 'bool' = False,
+    maximum_active_processes: 'int | None' = None,
+    maximum_memory_bytes: 'int | None' = None
+) -&gt; 'subprocess.CompletedProcess[Any]'</dt><dd><span class="code">subprocess.run相当の結果を返し、timeout時は子孫treeも終了する。<br>
+&nbsp;<br>
+``os_name``はplatform分岐のunit&nbsp;test専用であり、通常は省略する。<br>
+``creationflags``と``start_new_session``は呼出側へ公開せず、この関数が<br>
+process&nbsp;treeの所有権を持つ。</span></dd></dl>
+ <dl><dt><a name="-terminate_process_tree"><strong>terminate_process_tree</strong></a>(
+    process: 'subprocess.Popen[Any]',
+    *,
+    os_name: 'str | None' = None
+) -&gt; 'None'</dt><dd><span class="code">起動時に分離したprocess&nbsp;treeをOS別の方法で終了する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>DEFAULT_CONTAINED_MEMORY_BYTES</strong> = 536870912<br>
+<strong>MAX_CONTAINED_ACTIVE_PROCESSES</strong> = 65535<br>
+<strong>MAX_CONTAINED_MEMORY_BYTES</strong> = 9223372036854775807<br>
+<strong>TASKKILL_TIMEOUT_SECONDS</strong> = 5.0<br>
+<strong>TERMINATION_WAIT_SECONDS</strong> = 5.0<br>
+<strong>__all__</strong> = ['DEFAULT_CONTAINED_MEMORY_BYTES', 'MAX_CONTAINED_ACTIVE_PROCESSES', 'MAX_CONTAINED_MEMORY_BYTES', 'ProcessContainment', 'TASKKILL_TIMEOUT_SECONDS', 'TERMINATION_WAIT_SECONDS', 'run_bounded', 'terminate_process_tree']</td></tr></table>
+</body></html>

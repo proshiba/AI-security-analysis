@@ -19,7 +19,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
     if value not in sys.path:
         sys.path.insert(0, value)
 
-import analyze_sample as one_shot
+import analyze_sample as one_shot  # noqa: E402
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
 
@@ -188,9 +188,29 @@ def test_candidate_status_and_binary_requirement_are_preserved() -> None:
     )
     assert candidates[0]["requirements"]["function_analysis_required"] is True
 
+    review_pending = one_shot._outcome_candidates(
+        {"candidates": [{"family": "valleyrat", "routing_eligible": True}]},
+        [layer],
+        {
+            "status": "function_logic_review_required",
+            "functions": [
+                {
+                    "evidence": {
+                        "tool": "unknown",
+                        "program_selector": "not_recorded",
+                    }
+                }
+            ],
+        },
+        one_shot._load_family_analysis_requirements(),
+    )
+    assert review_pending[0]["requirements"]["function_analysis_required"] is True
 
-def test_manifest_routes_only_exact_root_and_seals_new_artifacts(tmp_path: Path) -> None:
-    """root SHA完全一致hintだけを使い、新成果物をresume契約へ封印する。"""
+
+def test_manifest_routes_only_exact_root_and_does_not_resume_unresolved_case(
+    tmp_path: Path,
+) -> None:
+    """root SHA完全一致hintだけを使い、未解決caseは再開済みに数えない。"""
 
     sample = tmp_path / "sample.sh"
     sample.write_bytes(b"#!/bin/sh\necho one-shot exact root metadata fixture\n")
@@ -277,7 +297,9 @@ def test_manifest_routes_only_exact_root_and_seals_new_artifacts(tmp_path: Path)
         family_hint_manifest=manifest,
         resume=True,
     )
-    assert resumed["counts"]["resumed"] == 1
+    assert resumed["counts"]["resumed"] == 0
+    assert resumed["counts"]["analyzed"] == 1
+    assert resumed["counts"]["triaged_unknown"] == 1
     assert resumed["counts"]["candidate_handler_attempts"] >= 1
     assert resumed["cases"][0]["ai_used"] is False
 
@@ -389,8 +411,15 @@ def test_requirements_policy_blocks_missing_valleyrat_outputs_and_unknown_family
     assert {"config", "network"}.issubset(missing["blockers"])
 
     payload = {
-        "configuration_recovered": True,
-        "c2": ["valley.example.org:443"],
+        "static_config_recovered": True,
+        "config": {"campaign": "fixture"},
+        "findings": [
+            {
+                "role": "primary_c2",
+                "endpoint": "valley.example.org:443",
+                "transport": "tcp",
+            }
+        ],
     }
     complete = one_shot.orchestration_outcome.build_outcome(
         sample_sha256="1" * 64,
@@ -471,8 +500,15 @@ def test_loader_requires_wrapper_verified_terminal_payload() -> None:
             _accepted_record(
                 "guloader",
                 {
-                    "static_config_recovered": True,
-                    "config": {"campaign": "fixture"},
+                    "findings": [
+                        {
+                            "role": "c2",
+                            "endpoint": "xloader.example.org:443",
+                            "transport": "https",
+                            "protocol_reviewed": True,
+                            "source": "reviewed_static_protocol",
+                        }
+                    ],
                     "urls": ["https://stage.example.org/payload.bin"],
                 },
                 verified_binary_outputs=[output],

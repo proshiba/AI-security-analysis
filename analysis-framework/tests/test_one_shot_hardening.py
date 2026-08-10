@@ -237,6 +237,136 @@ def test_each_selected_family_uses_only_its_own_layer(tmp_path: Path, monkeypatc
     assert all(item["status"] == "succeeded" for item in report["handler_executions"])
 
 
+def test_case_handler_attempt_budget_is_partial_and_bounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """layer数がcase budgetを超えても1回だけ実行し、成功へ昇格しない。"""
+
+    root_data = b"bounded wrapper"
+    children = [b"family-a payload one", b"family-a payload two"]
+    root_hash = hashlib.sha256(root_data).hexdigest()
+    root = one_shot.StaticLayer(
+        name="wrapper.bin",
+        data=root_data,
+        sha256=root_hash,
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    child_layers = [
+        one_shot.StaticLayer(
+            name=f"wrapper.bin::child-{index}",
+            data=data,
+            sha256=hashlib.sha256(data).hexdigest(),
+            parent_sha256=root_hash,
+            depth=1,
+            transform="fixture",
+        )
+        for index, data in enumerate(children)
+    ]
+    layers = [root, *child_layers]
+    layer_report = {
+        "schema_version": 1,
+        "counts": {
+            "layers": len(layers),
+            "recovered_layers": len(child_layers),
+            "recovered_bytes": sum(len(value) for value in children),
+            "limit_events": 0,
+        },
+        "steps": [],
+        "limit_events": [],
+        "layers": [layer.public() for layer in layers],
+        "executed_sample": False,
+        "network_contacted": False,
+        "recovered_content_exported": False,
+    }
+    monkeypatch.setattr(one_shot, "MAX_HANDLER_ATTEMPTS_PER_CASE", 1)
+    monkeypatch.setattr(
+        one_shot,
+        "recover_static_layers",
+        lambda _unit, **_kwargs: (layers, layer_report),
+    )
+    monkeypatch.setattr(
+        one_shot.classify_sample,
+        "classify_bytes",
+        lambda data, *_args, **_kwargs: (
+            _classification("family_a") if data in children else _classification(None)
+        ),
+    )
+    monkeypatch.setattr(
+        one_shot,
+        "_preflight_applicable",
+        lambda _specs, applicability: [
+            {"handler_id": item["id"], "available": True, "error": None}
+            for item in applicability
+            if item["status"] == "applicable"
+        ],
+    )
+    monkeypatch.setattr(
+        one_shot,
+        "_run_generic_triage",
+        lambda _layers, _case_dir, **_kwargs: (
+            {
+                "analysis_coverage": {"status": "complete"},
+                "executed_sample": False,
+                "network_contacted": False,
+            },
+            "complete",
+        ),
+    )
+    calls: list[bytes] = []
+
+    def execute(spec: HandlerSpec, data: bytes, _source_name: str, **_kwargs) -> dict:
+        calls.append(data)
+        return {
+            "status": "completed",
+            "preflight": {"eligible": True, "blockers": []},
+            "execution": {
+                "handler": spec.public(),
+                "result": {
+                    "decoded_config_recovered": True,
+                    "config": {
+                        "family": spec.family,
+                        "endpoint": "family-a.example.org:443",
+                    },
+                },
+                "executed_sample": False,
+                "network_contacted": False,
+            },
+        }
+
+    monkeypatch.setattr(one_shot, "execute_handler_bounded_for_assessment", execute)
+    unit = one_shot.InputUnit(
+        source_name="wrapper.bin",
+        data=root_data,
+        input_kind="raw",
+        outer_sha256=root_hash,
+        outer_size=len(root_data),
+    )
+    one_shot.analyze_unit(
+        unit,
+        output=tmp_path / "out",
+        registry=REGISTRY,
+        specs=[_handler_spec("family_a")],
+        registered={"family_a"},
+        forced_family=None,
+        minimum_confidence="medium",
+        assessment_only=False,
+        analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
+    )
+
+    report = json.loads(
+        (tmp_path / "out" / "cases" / root_hash / "report.json").read_text(encoding="utf-8")
+    )
+    execution = report["handler_executions"][0]
+    assert len(calls) == 1
+    assert execution["status"] == "ambiguous_evidence"
+    assert execution["resource_budget_truncated"] is True
+    assert execution["resource_budget_reason"] == "handler_attempt_limit"
+    assert report["case_state"]["status"] == "partial"
+
+
 @pytest.mark.parametrize(
     ("label", "layer_report"),
     [
@@ -313,7 +443,8 @@ def test_profile_validation_miss_is_not_a_static_layer_failure() -> None:
         logic_report={"status": "complete"},
     )
     assert completion["status"] == "triaged_unknown"
-    assert completion["complete"] is True
+    assert completion["complete"] is False
+    assert completion["resumable"] is False
 
 
 def test_successful_sevenzip_cab_fallback_is_complete() -> None:
@@ -889,17 +1020,56 @@ def test_public_sanitizer_renders_ipv6_with_brackets() -> None:
 def test_main_returns_twenty_when_any_case_is_partial(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """部分解析を含むbatchのCLI終了codeを成功の0にしない。"""
 
+    monkeypatch.setattr(one_shot, "_interpreter_is_isolated", lambda: True)
+    monkeypatch.setattr(one_shot, "_runtime_preflight_main", lambda: 0)
     monkeypatch.setattr(
         one_shot,
         "run_batch",
         lambda *_args, **_kwargs: {
             "counts": {
                 "errors": 0,
+                "triaged_unknown": 0,
                 "partial": 1,
                 "failed": 0,
-            }
+            },
+            "derived_counts": {"triaged_unknown": 0},
+            "follow_on_analysis": {"status": "no_retained_payloads"},
         },
     )
+    status = one_shot.main(
+        [
+            "--input",
+            str(tmp_path / "sample.bin"),
+            "--output",
+            str(tmp_path / "out"),
+        ]
+    )
+    assert status == 20
+
+
+def test_main_returns_twenty_when_any_case_is_triaged_unknown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """実行成功でも未分類caseを解析完了の終了code 0へ昇格しない。"""
+
+    monkeypatch.setattr(one_shot, "_interpreter_is_isolated", lambda: True)
+    monkeypatch.setattr(one_shot, "_runtime_preflight_main", lambda: 0)
+    monkeypatch.setattr(
+        one_shot,
+        "run_batch",
+        lambda *_args, **_kwargs: {
+            "counts": {
+                "errors": 0,
+                "triaged_unknown": 1,
+                "partial": 0,
+                "failed": 0,
+            },
+            "derived_counts": {"triaged_unknown": 0},
+            "follow_on_analysis": {"status": "no_retained_payloads"},
+        },
+    )
+
     status = one_shot.main(
         [
             "--input",

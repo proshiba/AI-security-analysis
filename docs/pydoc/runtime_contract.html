@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module runtime_contract</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">runtime_contract</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cruntime_contract.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\runtime_contract.py</a></td></tr></table>
+    <p><span class="code">一括静的解析で常に必要なPython&nbsp;runtime依存を一元管理する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="importlib.html">importlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"></td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-import_required_runtime_modules"><strong>import_required_runtime_modules</strong></a>(
+    *,
+    importer: 'Callable[[str], ModuleType]' = &lt;function import_module at 0x0000020406F81760&gt;
+) -&gt; 'tuple[str, ...]'</dt><dd><span class="code">固定依存をすべてimportし、成功したmodule名を決定的順序で返す。</span></dd></dl>
+ <dl><dt><a name="-isolated_import_probe_source"><strong>isolated_import_probe_source</strong></a>() -&gt; 'str'</dt><dd><span class="code">`python&nbsp;-I&nbsp;-c`へ渡せる固定依存import&nbsp;probeを返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>REQUIRED_RUNTIME_MODULES</strong> = ('cabarchive', 'capstone', 'Cryptodome', 'cryptography', 'dncil', 'dnfile', 'olefile', 'pefile', 'pydantic', 'pyzipper', 'yaml', 'yara')</td></tr></table>
+</body></html>

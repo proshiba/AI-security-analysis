@@ -358,6 +358,176 @@ def test_other_family_success_cannot_satisfy_handler_or_network_gate() -> None:
     assert result["candidate_outputs"]["network_endpoints"]
 
 
+def test_config_gate_rejects_boolean_self_report_without_correlated_value() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate("valleyrat", "known_hash", requirements={"config_required": True})
+        ],
+        handler_records=[
+            _record(
+                "valleyrat",
+                {
+                    "configuration_recovered": True,
+                    "static_config_recovered": True,
+                    "validated": True,
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert result["outputs"]["config_recovered"] is False
+    assert result["outputs"]["config_evidence"] == []
+    assert result["quality_gates"]["config"]["status"] == "required_missing"
+    assert result["status"] == "partial"
+
+
+def test_generic_url_and_candidate_endpoint_do_not_satisfy_network_gate() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate("valleyrat", "known_hash", requirements={"network_required": True})
+        ],
+        handler_records=[
+            _record(
+                "valleyrat",
+                {
+                    "static_config_recovered": True,
+                    "config": {"campaign": "fixture"},
+                    "urls": ["https://download.example/payload.bin"],
+                    "c2_candidates": ["candidate.example:443"],
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert len(result["outputs"]["network_endpoints"]) == 2
+    assert result["outputs"]["qualified_network_endpoints"] == []
+    assert result["quality_gates"]["network"] == {
+        "required": True,
+        "satisfied": False,
+        "observed": True,
+        "status": "required_missing",
+    }
+    assert result["status"] == "partial"
+
+
+def test_static_config_correlated_c2_satisfies_network_and_config_gates() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "valleyrat",
+                "known_hash",
+                requirements={"config_required": True, "network_required": True},
+            )
+        ],
+        handler_records=[
+            _record(
+                "valleyrat",
+                {
+                    "static_config_recovered": True,
+                    "config": {"campaign": "fixture"},
+                    "findings": [
+                        {
+                            "role": "primary_c2",
+                            "endpoint": "rat.example:443",
+                            "transport": "tcp",
+                        }
+                    ],
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    endpoint = result["outputs"]["qualified_network_endpoints"][0]
+    assert endpoint["role"] == "c2"
+    assert endpoint["protocol"] == "tcp"
+    assert endpoint["evidence_basis"] == ["static_config_correlation"]
+    assert endpoint["provenance"][0]["handler_id"] == "valleyrat:extract"
+    assert result["outputs"]["config_evidence"][0]["correlated_keys"] == ["config", "findings"]
+    assert result["status"] == "complete"
+
+
+def test_reviewed_protocol_control_endpoint_satisfies_network_without_config() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate("rat", "known_hash", requirements={"network_required": True})
+        ],
+        handler_records=[
+            _record(
+                "rat",
+                {
+                    "findings": [
+                        {
+                            "role": "control_endpoint",
+                            "endpoint": "control.example:8443",
+                            "transport": "tls",
+                            "protocol_reviewed": True,
+                            "source": "reviewed_static_protocol",
+                        }
+                    ]
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert result["outputs"]["config_recovered"] is False
+    assert result["outputs"]["qualified_network_endpoints"][0]["evidence_basis"] == [
+        "reviewed_protocol_evidence"
+    ]
+    assert result["status"] == "complete"
+
+
+def test_delivery_role_or_unreviewed_protocol_does_not_satisfy_network_gate() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate("rat", "known_hash", requirements={"network_required": True})
+        ],
+        handler_records=[
+            _record(
+                "rat",
+                {
+                    "findings": [
+                        {
+                            "role": "delivery",
+                            "endpoint": "download.example:443",
+                            "transport": "https",
+                            "protocol_reviewed": True,
+                            "source": "reviewed_static_protocol",
+                        },
+                        {
+                            "role": "c2",
+                            "endpoint": "unreviewed.example:443",
+                            "transport": "tcp",
+                        },
+                    ]
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert result["outputs"]["qualified_network_endpoints"] == []
+    assert result["status"] == "partial"
+
+
 def test_required_capability_has_only_its_missing_blocker() -> None:
     result = build_outcome(
         sample_sha256=SHA256,

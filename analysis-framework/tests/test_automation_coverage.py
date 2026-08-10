@@ -12,8 +12,8 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from automation_coverage import _check_output, _rendered_outputs, build_coverage, render_markdown
-from handler_catalog import HandlerSpec
+from automation_coverage import _check_output, _rendered_outputs, build_coverage, render_markdown  # noqa: E402
+from handler_catalog import HandlerSpec  # noqa: E402
 
 
 def _spec(
@@ -111,6 +111,27 @@ def test_coverage_separates_safe_automation_states() -> None:
     assert report["counts"]["quality_gated_script_only_handler_available"] == 2
     assert report["counts"]["automatic_family_selection_possible"] == 1
     assert report["counts"]["automated_analysis_completion_possible"] == 1
+    assert report["counts"]["structurally_routable"] == 1
+    assert report["counts"]["automated_analysis_completion_verified"] == 0
+    full = next(item for item in report["families"] if item["family"] == "full")
+    assert full["structurally_routable"] is True
+    assert full["automated_analysis_completion_possible"] is True
+    assert full["automated_analysis_completion_verified"] is False
+    assert full["completion_verification"] == {
+        "status": "not_verified",
+        "blockers": [
+            "representative_fixture_completion_not_verified",
+            "required_output_contract_not_exercised",
+        ],
+        "required_evidence": [
+            "representative_fixture",
+            "required_output_contract",
+            "orchestration_quality_gates",
+        ],
+    }
+    assert report["metric_semantics"]["automated_analysis_completion_possible"].startswith(
+        "後方互換用"
+    )
     assert report["counts"]["executed_preflight_count"] == 2
     assert report["preflight_policy"] == {
         "scope": "each_declared_format",
@@ -155,6 +176,9 @@ def test_safe_handler_without_quality_policy_cannot_be_fully_routable() -> None:
     assert item["status"] == "quality_policy_missing"
     assert item["automatic_selection_possible"] is True
     assert item["automated_analysis_completion_possible"] is False
+    assert item["structurally_routable"] is False
+    assert item["automated_analysis_completion_verified"] is False
+    assert item["completion_verification"]["blockers"] == ["quality_policy_missing"]
     assert item["quality_policy_declared"] is False
     assert report["counts"]["fully_routable"] == 0
     assert report["counts"]["quality_policy_missing"] == 1
@@ -375,7 +399,11 @@ def test_markdown_is_japanese_and_deterministic() -> None:
     assert "既知マルウェア自動解析カバレッジ" in rendered
     assert "生成AIは使用しません" in rendered
     assert "安全preflight済み" in rendered
-    assert "自動完結経路を構成可能" in rendered
+    assert "構造上ルーティング可能" in rendered
+    assert "代表fixtureで自動解析完了を実証済み: 0件" in rendered
+    assert "後方互換用のdeprecated alias" in rendered
+    assert "実検体を解析して測定した成功率ではなく" in rendered
+    assert "構造・preflight上で" in rendered
     assert "実検体での完了を保証しません" in rendered
     assert "| full | fully_routable | あり | あり | 1 | 1 | なし |" in rendered
 

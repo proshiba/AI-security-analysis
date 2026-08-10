@@ -408,6 +408,17 @@ def build_coverage(
             status = "unsupported"
             blocker = "detector_and_handler_missing"
             next_action = "detectorと静的handlerを追加する。"
+        structurally_routable = bool(
+            detector and safe_automatic and quality_policy_declared
+        )
+        completion_verification_blockers = (
+            [
+                "representative_fixture_completion_not_verified",
+                "required_output_contract_not_exercised",
+            ]
+            if structurally_routable
+            else [blocker or "structural_routing_requirements_not_met"]
+        )
         rows.append(
             {
                 "family": family,
@@ -417,9 +428,18 @@ def build_coverage(
                 "candidate_verification_possible": bool(safe_automatic),
                 "quality_policy_declared": quality_policy_declared,
                 "quality_policy": quality_policy,
-                "automated_analysis_completion_possible": bool(
-                    detector and safe_automatic and quality_policy_declared
-                ),
+                "structurally_routable": structurally_routable,
+                "automated_analysis_completion_possible": structurally_routable,
+                "automated_analysis_completion_verified": False,
+                "completion_verification": {
+                    "status": "not_verified",
+                    "blockers": completion_verification_blockers,
+                    "required_evidence": [
+                        "representative_fixture",
+                        "required_output_contract",
+                        "orchestration_quality_gates",
+                    ],
+                },
                 "declared_script_only_handler_available": bool(declared_automatic),
                 "script_only_handler_available": bool(safe_automatic),
                 "declared_automatic_handlers": [
@@ -504,6 +524,12 @@ def build_coverage(
             "automated_analysis_completion_possible": sum(
                 item["automated_analysis_completion_possible"] for item in rows
             ),
+            "structurally_routable": sum(
+                item["structurally_routable"] for item in rows
+            ),
+            "automated_analysis_completion_verified": sum(
+                item["automated_analysis_completion_verified"] for item in rows
+            ),
             "fully_routable": fully,
             "candidate_verification_only": status_counts["candidate_verification_only"],
             "quality_policy_missing": status_counts["quality_policy_missing"],
@@ -521,6 +547,17 @@ def build_coverage(
             "by_status": status_counts,
         },
         "families": rows,
+        "metric_semantics": {
+            "structurally_routable": (
+                "detector、安全preflight済みhandler、family別品質policyが揃う構造上の経路"
+            ),
+            "automated_analysis_completion_possible": (
+                "後方互換用のdeprecated alias。structurally_routableと同値で、実検体の完了実績を表さない"
+            ),
+            "automated_analysis_completion_verified": (
+                "代表fixtureで必須出力と全品質gateを検証したfamily数"
+            ),
+        },
         "preflight_policy": {
             "scope": "each_declared_format",
             "probe_input_size": PREFLIGHT_PROBE_INPUT_SIZE,
@@ -544,10 +581,12 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# 既知マルウェア自動解析カバレッジ",
         "",
-        "本表はdetectorと静的handlerの実装状況から自動生成しています。検体実行、外部通信、生成AIは使用しません。",
+        "本表はdetector、静的handler、品質policyの実装構造と、無害なprobe入力によるformat別preflightから自動生成しています。検体実行、外部通信、生成AIは使用しません。",
+        "この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。",
         "",
         f"- 対象family: {counts['families']}件",
-        f"- detector＋安全handler＋品質policyで自動完結経路を構成可能: {counts['fully_routable']}件（{counts['fully_routable_percent']}%）",
+        f"- detector＋安全handler＋品質policyで構造上ルーティング可能: {counts['structurally_routable']}件（{counts['fully_routable_percent']}%）",
+        f"- 代表fixtureで自動解析完了を実証済み: {counts['automated_analysis_completion_verified']}件",
         f"- detector＋安全handlerでfamily自動選択可能: {counts['automatic_family_selection_possible']}件",
         f"- automatic宣言済みfamily: {counts['declared_script_only_handler_available']}件（{counts['declared_script_only_handler_percent']}%）",
         f"- 安全preflight済みscript-only handler利用可能: {counts['script_only_handler_available']}件（{counts['script_only_handler_percent']}%）",
@@ -578,7 +617,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "## 判定の意味",
             "",
-            "- `fully_routable`: detectorで候補を選び、安全な静的handlerを実行でき、family別品質policyも宣言済みです。",
+            "- `fully_routable`: detectorで候補を選び、安全な静的handlerを実行でき、family別品質policyも宣言済みです。構造上の到達可能性であり、自動完了の実測値ではありません。",
             "- `candidate_verification_only`: 外部metadataなどから候補化できますが、family確定には強いhandler証拠が必要です。",
             "- `quality_policy_missing`: 安全handlerはありますが、解析完結に必要な成果物条件が未宣言です。",
             "- `automatic_handler_blocked`: automatic宣言はありますが、安全preflightを通過するformatがありません。",
@@ -586,7 +625,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- `manual_handler_only`: handlerは存在しますが共通の安全契約へ未適合です。",
             "",
             "blocked handlerのID、format別阻害理由、sourceとlocal dependencyから算出したSHA-256指紋はJSON正本に記録します。",
-            "この表は経路と品質gateを構成できるかを示し、実検体での完了を保証しません。",
+            "`automated_analysis_completion_possible`は後方互換用のdeprecated aliasで、`structurally_routable`と同値です。名前に反して実検体の完了実績を表しません。",
+            "この表は構造・preflight上で経路と品質gateを構成できるかを示し、実検体での完了を保証しません。",
             "安全handlerがあることだけでは解析完結とは判定せず、caseごとにfamily別品質policyと全品質gateの充足を検証します。",
             "",
         ]
