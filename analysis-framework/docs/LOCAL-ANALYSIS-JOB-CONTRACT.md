@@ -5,14 +5,19 @@
 `analysis_job_runner.py`は、WebUIまたはローカルAPIから`analyze_sample.py`を呼び出すための、AIを必要としないmachine-readableな境界です。検体の分類・復元・既知handler適用は既存の`analyze_sample.py`へ委譲し、runnerは次を担当します。
 
 - JSON要求の厳格検証
+- JSONを単一handleから`上限+1 byte`だけ読み、hardlink、reparse、読取中の置換・変更を拒否
 - 入力rootとjob出力rootの分離
 - path traversal、symbolic link、junction、reparse pointの拒否
 - 入力件数・個別size・合計size・静的layer数の上限
 - 固定allowlistからのsubprocess引数配列生成
 - `shell=False`での単一process起動
+- stdout／stderrをEOFまで並行drainし、各先頭1 MiBだけを保持
+- timeout、quota超過、例外時の子孫process tree終了
+- 解析出力treeの実行中監視と完了後の件数・合計size再検証
 - API keyとPython注入環境変数を除いた子process環境
 - `status.json`、`progress.json`、`result.json`のatomic更新
 - `analyze_sample.py`の終了codeと安全summaryの検証
+- `executed_sample=false`、`network_contacted=false`、`ai_used=false`の明示確認
 
 このrunnerは検体を実行せず、外部hostへ接続しません。要求JSONからnetwork、live C2、認証、JARM、任意実行file、任意registry、任意Python、任意outputを有効にすることもできません。
 
@@ -26,6 +31,7 @@ C:\malware-job-input\          # 検体専用。Git管理しない
   hints\analysis-20260810-0001.json # family hint専用。通常inputsと分離
 C:\malware-job-state\          # status、log、静的解析出力。Git管理しない
   analysis-20260810-0001\
+    contract-inputs\family-hint-manifest.json # 検証時bytesの固定copy
 ```
 
 要求内の`inputs`は`input-root`からのPOSIX形式相対pathです。drive letter、先頭`/`、backslash、`.`、`..`、空component、Windows予約device名を使用できません。
@@ -140,7 +146,7 @@ read_job_snapshot(
 | `family_hint_manifest` | 任意 | `input-root`相対のstrict JSON。4 MiB以下。通常`inputs`と重複禁止 |
 | `options` | 任意 | 次表のkeyだけを許可 |
 
-未知key、重複JSON key、`NaN`／`Infinity`、UTF-8以外、64 KiBを超える要求fileは拒否されます。
+未知key、重複JSON key、`NaN`／`Infinity`、UTF-8以外、64 KiBを超える要求fileは拒否されます。要求、registry、manifest、summary、状態JSONは、単一file handleの`fstat`と`上限+1 byte`読取で検証します。hardlink、reparse point、読取中にidentity・size・更新時刻が変わったfileはfail-closedです。
 
 ### 許可option
 
@@ -157,7 +163,9 @@ read_job_snapshot(
 | `max_static_layers` | `64` | 1～64 |
 | `retry_max_static_layers` | `null` | 初回上限より大きく、最大256 |
 
-入力全体の合計は2 GiB、tree entryは10,000件までです。要求上限を大きくしてもrunnerのhard limitを超えることはできません。`family_hint_manifest`は解析対象file数へ含めず、UTF-8、重複keyなし、非有限数なし、JSON object root、通常file、4 MiB以下をrunnerで検証します。manifest内のexact root SHA-256とfamily候補のschemaは`analyze_sample.py`側でも再検証し、metadata hint単独でfamilyを確定しません。
+入力全体の合計は2 GiB、tree entryは10,000件までです。要求上限を大きくしてもrunnerのhard limitを超えることはできません。`family_hint_manifest`は解析対象file数へ含めず、UTF-8、重複keyなし、非有限数なし、JSON object root、通常file、4 MiB以下をrunnerで検証します。検証した同じbytesをjob-localの`contract-inputs/family-hint-manifest.json`へatomicに固定し、子processには元fileではなくこのcopyだけを渡します。manifest内のexact root SHA-256とfamily候補のschemaは`analyze_sample.py`側でも再検証し、metadata hint単独でfamilyを確定しません。
+
+解析出力は100,000 entry、合計1 GiBまでです。既定runnerは0.5秒間隔で出力treeとjob filesystemの空きを監視し、上限超過または空きが256 MiB以下になった時点でprocess treeを終了します。process終了後も同じquotaを再検証します。
 
 ### 明示的に禁止するoption
 
@@ -173,6 +181,7 @@ read_job_snapshot(
   result.json        # terminal結果
   stdout.log         # 最大1 MiB
   stderr.log         # 最大1 MiB
+  contract-inputs/   # runnerが検証時bytesから作った変更不能扱いの入力copy
   analysis/          # analyze_sample.pyの成果物
 ```
 
@@ -241,10 +250,18 @@ read_job_snapshot(
   },
   "artifacts": {
     "analysis_summary": "analysis/summary.json",
+    "family_hint_manifest": "contract-inputs/family-hint-manifest.json",
+    "family_hint_manifest_sha256": "64文字のSHA-256",
     "stdout": "stdout.log",
     "stderr": "stderr.log",
     "stdout_truncated": false,
-    "stderr_truncated": false
+    "stderr_truncated": false,
+    "analysis_output": {
+      "entries": 100,
+      "files": 80,
+      "directories": 20,
+      "total_bytes": 12345678
+    }
   },
   "process": {
     "exit_code": 0,
@@ -257,13 +274,14 @@ read_job_snapshot(
     "sample_execution_allowed": false,
     "summary_safety_contract_verified": true,
     "executed_sample": false,
-    "network_contacted": false
+    "network_contacted": false,
+    "ai_used": false
   },
   "finished_at_utc": "2026-08-10T01:03:00Z"
 }
 ```
 
-失敗時も`result.json`を生成し、`accepted=false`、安定した`error.code`、日本語の`error.message`を記録します。subprocessのraw stderrをJSONへ埋め込まず、privateなjob rootの`stderr.log`だけへ保存します。
+失敗時も`result.json`を生成し、`accepted=false`、安定した`error.code`、日本語の`error.message`、`safety.ai_used=false`を記録します。subprocessのraw stderrをJSONへ埋め込まず、privateなjob rootの`stderr.log`だけへ保存します。stdout／stderrは専用threadでEOFまで消費し続けるため、子processをpipe詰まりさせず、memoryには各1 MiBを超えて保持しません。
 
 ## WebUI／API統合
 
@@ -272,11 +290,11 @@ read_job_snapshot(
 1. `POST /api/analysis-jobs`でrequest JSONを受け取る。
 2. service側の固定`input-root`と`jobs-root`を使用し、clientからroot pathを受け取らない。
 3. `validate`または`load_job_request`で受理前検証する。
-4. `run`を引数配列、`shell=False`、低権限service accountで起動する。
+4. `run`を引数配列、`shell=False`、低権限service accountで起動する。runnerはOS別に分離したprocess groupを所有し、timeout・例外・quota超過時はWindowsでは`taskkill /T /F`、POSIXではprocess groupへ`SIGKILL`を行う。
 5. `GET /api/analysis-jobs/<job-id>`は`status`のJSONだけを返す。
 6. terminal後、公開可能な解析成果物だけを既存のpublication pipelineへ渡す。
 
-Web serviceには同時実行数、disk quota、rate limit、認証、CSRF対策を別途実装します。runnerの時間・件数・size上限は、それらが破られた場合の第2境界です。
+Web serviceには同時実行数、filesystem quota、rate limit、認証、CSRF対策を別途実装します。runnerの0.5秒監視にはsampling間隔があり、瞬間的な大量書込みをOS filesystem quotaのように事前阻止できるわけではありません。runnerの時間・件数・size上限は、それらが破られた場合の第2境界です。
 
 ## `analyze_sample.py`との配線
 
@@ -286,12 +304,13 @@ Web serviceには同時実行数、disk quota、rate limit、認証、CSRF対策
 request JSON
   -> analysis_job_runner.py
      -> input／option検証
-     -> family hint manifestの分離検証（指定時だけ）
+     -> family hint manifestの分離検証とjob-local固定copy（指定時だけ）
      -> [sys.executable, analyze_sample.py, --input, ..., --output, ...,
          --family-hint-manifest, ...]
         shell=False
      -> analysis/summary.json
-     -> safety contract検証
+     -> output quotaとsummary件数整合性を検証
+     -> executed_sample／network_contacted／ai_used=falseを検証
      -> status／progress／result JSON
 ```
 
@@ -305,8 +324,8 @@ py -3.13 -m ruff check .\analysis-framework\common\analysis_job_runner.py `
   .\analysis-framework\tests\test_analysis_job_runner.py
 ```
 
-テストはstrict JSON、network／live option拒否、path traversal、重複入力、root重複、reparse、件数上限、sanitized環境、`shell=False`、完全成功、部分成功、安全summary違反、異常終了、timeout、atomic JSON、job ID再利用拒否を確認します。
+テストはstrict JSON、hardlink、network／live option拒否、path traversal、重複入力、root重複、reparse、件数上限、canonical manifest copy、sanitized環境、`shell=False`、有界stdout／stderr drain、process tree終了、実行中・完了後output quota、summary件数整合性、`ai_used=false`、完全成功、部分成功、安全summary違反、異常終了、timeout、atomic JSON、job ID再利用拒否を確認します。
 
 ## 防御上の補足
 
-runnerはnetwork optionを公開せず、信頼済みのオフライン静的解析scriptだけを起動します。ただしPython process自体へOSレベルの通信遮断を付与するものではありません。本番serviceでは専用低権限accountとoutbound denyを併用してください。`summary.network_contacted=false`は解析契約の事後確認であり、OSのegress policyを置き換えません。
+runnerはnetwork optionを公開せず、信頼済みのオフライン静的解析scriptだけを起動します。ただしPython process自体へOSレベルの通信遮断を付与するものではありません。本番serviceでは専用低権限accountとoutbound denyを併用してください。`summary.network_contacted=false`は解析契約の事後確認であり、OSのegress policyを置き換えません。同様に、runnerが固定する`ai_used=false`はこのscript-only経路の契約値であり、serviceが別processや別APIでAIを呼び出さないことはservice側の監査対象です。

@@ -8,16 +8,20 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from analysis_contract import ensure_no_reparse_components, ensure_tree_without_reparse
+from bounded_process import TERMINATION_WAIT_SECONDS, terminate_process_tree
 
 
 COMMON_ROOT = Path(__file__).resolve().parent
@@ -32,6 +36,9 @@ MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REGISTRY_BYTES = 8 * 1024 * 1024
 MAX_SUMMARY_BYTES = 64 * 1024 * 1024
 MAX_LOG_BYTES = 1024 * 1024
+MAX_ANALYSIS_OUTPUT_ENTRIES = 100_000
+MAX_ANALYSIS_OUTPUT_BYTES = 1024 * 1024 * 1024
+MIN_FREE_DISK_RESERVE_BYTES = 256 * 1024 * 1024
 MAX_REQUEST_INPUTS = 64
 MAX_DISCOVERED_FILES = 1_000
 MAX_TREE_ENTRIES = 10_000
@@ -42,6 +49,8 @@ MAX_STATIC_LAYERS = 64
 MAX_RETRY_STATIC_LAYERS = 256
 DEFAULT_TIMEOUT_SECONDS = 6 * 60 * 60
 MAX_TIMEOUT_SECONDS = 24 * 60 * 60
+PIPE_DRAIN_CHUNK_BYTES = 64 * 1024
+OUTPUT_MONITOR_INTERVAL_SECONDS = 0.5
 
 JOB_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$")
 FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
@@ -227,18 +236,73 @@ def _reject_non_finite(value: str) -> None:
     raise JobContractError("non_finite_json_number", f"非有限数は使用できません: {value}")
 
 
-def load_json_object_strict(path: Path, *, max_bytes: int) -> dict[str, Any]:
-    """UTF-8、重複key禁止、size上限付きでJSON objectを読む。"""
+def _stat_has_reparse_attribute(information: os.stat_result) -> bool:
+    return bool(int(getattr(information, "st_file_attributes", 0)) & int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)))
+
+
+def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
+    try:
+        return os.path.samestat(first, second)
+    except (AttributeError, OSError):
+        return first.st_dev == second.st_dev and first.st_ino != 0 and first.st_ino == second.st_ino
+
+
+def _read_regular_file_once(path: Path, *, max_bytes: int) -> bytes:
+    """単一handleから上限+1 byteだけ読み、置換・hardlink・reparseを拒否する。"""
 
     _ensure_no_reparse(path, code="json_reparse_forbidden", message="reparse pointを含むJSON pathは禁止です")
     try:
-        size = path.stat().st_size
+        before = path.lstat()
     except OSError as exc:
         raise JobContractError("json_unreadable", "JSON fileを安全に確認できません") from exc
-    if size <= 0 or size > max_bytes:
+    if not stat.S_ISREG(before.st_mode) or _stat_has_reparse_attribute(before):
+        raise JobContractError("json_not_regular_file", "JSONはreparseではない通常fileで指定してください")
+    if before.st_nlink != 1:
+        raise JobContractError("json_hardlink_forbidden", "hardlinkされたJSONは使用できません")
+    if before.st_size <= 0 or before.st_size > max_bytes:
+        raise JobContractError("json_size_out_of_bounds", f"JSON sizeは1..{max_bytes} bytesで指定してください")
+
+    flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0)) | int(getattr(os, "O_CLOEXEC", 0))
+    flags |= int(getattr(os, "O_NOINHERIT", 0)) | int(getattr(os, "O_NOFOLLOW", 0))
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise JobContractError("json_unreadable", "JSON fileを安全に開けません") from exc
+    try:
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            opened = os.fstat(handle.fileno())
+            if not stat.S_ISREG(opened.st_mode) or _stat_has_reparse_attribute(opened):
+                raise JobContractError("json_not_regular_file", "JSONはreparseではない通常fileで指定してください")
+            if opened.st_nlink != 1:
+                raise JobContractError("json_hardlink_forbidden", "hardlinkされたJSONは使用できません")
+            if not _same_file_identity(before, opened):
+                raise JobContractError("json_changed_during_read", "JSON pathが検証中に置換されました")
+            data = handle.read(max_bytes + 1)
+            after_handle = os.fstat(handle.fileno())
+    except JobContractError:
+        raise
+    except OSError as exc:
+        raise JobContractError("json_unreadable", "JSON fileを安全に読み取れません") from exc
+
+    if len(data) == 0 or len(data) > max_bytes:
         raise JobContractError("json_size_out_of_bounds", f"JSON sizeは1..{max_bytes} bytesで指定してください")
     try:
-        text = path.read_bytes().decode("utf-8", errors="strict")
+        after_path = path.lstat()
+    except OSError as exc:
+        raise JobContractError("json_changed_during_read", "JSON pathが検証中に変更されました") from exc
+    stable_metadata = (
+        opened.st_size == len(data) == after_handle.st_size
+        and opened.st_mtime_ns == after_handle.st_mtime_ns
+        and opened.st_ctime_ns == after_handle.st_ctime_ns
+    )
+    if not stable_metadata or not _same_file_identity(opened, after_path) or after_path.st_nlink != 1:
+        raise JobContractError("json_changed_during_read", "JSON fileが検証中に変更されました")
+    return data
+
+
+def _decode_json_object_strict(data: bytes) -> dict[str, Any]:
+    try:
+        text = data.decode("utf-8", errors="strict")
         value = json.loads(
             text,
             object_pairs_hook=_reject_duplicate_pairs,
@@ -251,6 +315,12 @@ def load_json_object_strict(path: Path, *, max_bytes: int) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise JobContractError("json_root_not_object", "JSON rootはobjectである必要があります")
     return value
+
+
+def load_json_object_strict(path: Path, *, max_bytes: int) -> dict[str, Any]:
+    """UTF-8、重複key禁止、size上限付きでJSON objectを単一handleから読む。"""
+
+    return _decode_json_object_strict(_read_regular_file_once(path, max_bytes=max_bytes))
 
 
 def _bounded_integer(value: Any, *, name: str, maximum: int) -> int:
@@ -532,12 +602,12 @@ def validate_inputs(request: JobRequest, input_root: Path) -> tuple[list[Path], 
     return resolved_inputs, records
 
 
-def validate_family_hint_manifest(
+def _validated_family_hint_manifest_payload(
     request: JobRequest,
     input_root: Path,
     inputs: Sequence[Path],
-) -> Path | None:
-    """family hint manifestを通常入力から分離してstrict JSONとして検証する。"""
+) -> tuple[Path, bytes] | None:
+    """family hint manifestの固定pathと単一handleで読んだbytesを返す。"""
 
     if request.family_hint_manifest is None:
         return None
@@ -554,15 +624,51 @@ def validate_family_hint_manifest(
         raise JobContractError("manifest_missing", "family_hint_manifestが見つかりません") from exc
     if not _is_within(resolved, input_root):
         raise JobContractError("manifest_boundary_escape", "family_hint_manifestがinput-root外へ解決されます")
-    if not resolved.is_file() or not stat.S_ISREG(resolved.stat().st_mode):
-        raise JobContractError("manifest_not_regular_file", "family_hint_manifestは通常fileで指定してください")
     if any(_paths_overlap(resolved, input_path) for input_path in inputs):
         raise JobContractError(
             "manifest_overlaps_inputs",
             "family_hint_manifestは通常inputsと重複しないpathへ分離してください",
         )
-    load_json_object_strict(resolved, max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES)
-    return resolved
+    try:
+        payload = _read_regular_file_once(resolved, max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES)
+    except JobContractError as exc:
+        if exc.code == "json_not_regular_file":
+            raise JobContractError(
+                "manifest_not_regular_file",
+                "family_hint_manifestは通常fileで指定してください",
+            ) from exc
+        raise
+    _decode_json_object_strict(payload)
+    return resolved, payload
+
+
+def validate_family_hint_manifest(
+    request: JobRequest,
+    input_root: Path,
+    inputs: Sequence[Path],
+) -> Path | None:
+    """family hint manifestを通常入力から分離してstrict JSONとして検証する。"""
+
+    validated = _validated_family_hint_manifest_payload(request, input_root, inputs)
+    return validated[0] if validated is not None else None
+
+
+def stage_family_hint_manifest(
+    request: JobRequest,
+    input_root: Path,
+    inputs: Sequence[Path],
+    job_dir: Path,
+) -> tuple[Path | None, str | None]:
+    """検証時bytesをjob-localへatomicに固定し、そのcopyだけを子processへ渡す。"""
+
+    validated = _validated_family_hint_manifest_payload(request, input_root, inputs)
+    if validated is None:
+        return None, None
+    _, payload = validated
+    staged = job_dir / "contract-inputs" / "family-hint-manifest.json"
+    _atomic_bytes(staged, payload)
+    load_json_object_strict(staged, max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES)
+    return staged, hashlib.sha256(payload).hexdigest()
 
 
 def build_analyzer_argv(
@@ -730,12 +836,228 @@ def _bounded_log(value: bytes | str | None) -> tuple[bytes, bool]:
     return encoded[:MAX_LOG_BYTES], len(encoded) > MAX_LOG_BYTES
 
 
-def _validated_summary(path: Path) -> tuple[dict[str, Any], dict[str, int]]:
+@dataclass
+class _PipeCapture:
+    retained: bytearray
+    truncated: bool = False
+    error: BaseException | None = None
+
+
+@dataclass(frozen=True)
+class _BoundedProcessResult:
+    args: Sequence[str]
+    returncode: int
+    stdout: bytes
+    stderr: bytes
+    stdout_truncated: bool
+    stderr_truncated: bool
+
+    def check_returncode(self) -> None:
+        if self.returncode:
+            raise subprocess.CalledProcessError(
+                self.returncode,
+                self.args,
+                output=self.stdout,
+                stderr=self.stderr,
+            )
+
+
+def _drain_pipe(stream: Any, capture: _PipeCapture) -> None:
+    """pipeをEOFまで消費し、先頭1 MiBだけをmemoryへ保持する。"""
+
+    try:
+        while True:
+            chunk = stream.read(PIPE_DRAIN_CHUNK_BYTES)
+            if not chunk:
+                break
+            remaining = MAX_LOG_BYTES - len(capture.retained)
+            if remaining > 0:
+                capture.retained.extend(chunk[:remaining])
+            if len(chunk) > max(remaining, 0):
+                capture.truncated = True
+    except BaseException as exc:  # pragma: no cover - OS pipe故障時の最終境界
+        capture.error = exc
+    finally:
+        try:
+            stream.close()
+        except OSError:
+            pass
+
+
+def _run_process_with_bounded_output(
+    command: Sequence[str],
+    *,
+    cwd: Path,
+    env: Mapping[str, str],
+    shell: bool,
+    check: bool,
+    stdout: int,
+    stderr: int,
+    timeout: int,
+    monitored_output: Path | None = None,
+) -> _BoundedProcessResult:
+    """子孫treeを所有し、logと解析出力を有界に保ってprocessを実行する。"""
+
+    if shell is not False or stdout is not subprocess.PIPE or stderr is not subprocess.PIPE:
+        raise ValueError("bounded runnerはshell=Falseとstdout/stderr=PIPEだけを許可します")
+    if monitored_output is not None:
+        validate_analysis_output_tree(monitored_output)
+        if shutil.disk_usage(monitored_output).free <= MIN_FREE_DISK_RESERVE_BYTES:
+            raise JobContractError(
+                "analysis_output_disk_reserve_exceeded",
+                f"job filesystemの空き容量が{MIN_FREE_DISK_RESERVE_BYTES} bytes以下です",
+            )
+    platform_options: dict[str, Any]
+    if os.name == "nt":
+        platform_options = {"creationflags": int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200))}
+    else:
+        platform_options = {"start_new_session": True}
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=env,
+        shell=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        **platform_options,
+    )
+    if process.stdout is None or process.stderr is None:  # pragma: no cover - Popen契約の最終確認
+        terminate_process_tree(process)
+        raise RuntimeError("stdout/stderr pipeを確立できません")
+    stdout_capture = _PipeCapture(bytearray())
+    stderr_capture = _PipeCapture(bytearray())
+    drains = (
+        threading.Thread(target=_drain_pipe, args=(process.stdout, stdout_capture), daemon=True),
+        threading.Thread(target=_drain_pipe, args=(process.stderr, stderr_capture), daemon=True),
+    )
+    for thread in drains:
+        thread.start()
+
+    try:
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(command, timeout)
+            try:
+                return_code = process.wait(timeout=min(OUTPUT_MONITOR_INTERVAL_SECONDS, remaining))
+                break
+            except subprocess.TimeoutExpired:
+                if time.monotonic() >= deadline:
+                    raise
+                if monitored_output is not None:
+                    validate_analysis_output_tree(monitored_output)
+                    if shutil.disk_usage(monitored_output).free <= MIN_FREE_DISK_RESERVE_BYTES:
+                        raise JobContractError(
+                            "analysis_output_disk_reserve_exceeded",
+                            f"job filesystemの空き容量が{MIN_FREE_DISK_RESERVE_BYTES} bytes以下になりました",
+                        )
+    except subprocess.TimeoutExpired as original_timeout:
+        terminate_process_tree(process)
+        for thread in drains:
+            thread.join(timeout=TERMINATION_WAIT_SECONDS)
+        raise subprocess.TimeoutExpired(
+            command,
+            timeout,
+            output=bytes(stdout_capture.retained),
+            stderr=bytes(stderr_capture.retained),
+        ) from original_timeout
+    except BaseException:
+        try:
+            terminate_process_tree(process)
+        except BaseException:
+            pass
+        for thread in drains:
+            thread.join(timeout=TERMINATION_WAIT_SECONDS)
+        raise
+
+    for thread in drains:
+        thread.join(timeout=TERMINATION_WAIT_SECONDS)
+    if any(thread.is_alive() for thread in drains):
+        terminate_process_tree(process)
+        raise RuntimeError("stdout/stderr drainが時間内に終了しませんでした")
+    for capture in (stdout_capture, stderr_capture):
+        if capture.error is not None:
+            raise RuntimeError("stdout/stderr drainに失敗しました") from capture.error
+    completed = _BoundedProcessResult(
+        args=command,
+        returncode=return_code,
+        stdout=bytes(stdout_capture.retained),
+        stderr=bytes(stderr_capture.retained),
+        stdout_truncated=stdout_capture.truncated,
+        stderr_truncated=stderr_capture.truncated,
+    )
+    if check:
+        completed.check_returncode()
+    return completed
+
+
+def validate_analysis_output_tree(path: Path) -> dict[str, int]:
+    """解析出力treeの種類・件数・合計sizeをhard quotaで検証する。"""
+
+    _ensure_tree_no_reparse(
+        path,
+        max_entries=MAX_ANALYSIS_OUTPUT_ENTRIES,
+        code="analysis_output_reparse_forbidden",
+        message="解析出力にreparse pointが含まれています",
+    )
+    pending = [path]
+    entries = 0
+    files = 0
+    directories = 0
+    total_bytes = 0
+    while pending:
+        directory = pending.pop()
+        try:
+            with os.scandir(directory) as iterator:
+                children = sorted(iterator, key=lambda item: item.name.casefold())
+        except OSError as exc:
+            raise JobContractError("analysis_output_unreadable", "解析出力treeを安全に列挙できません") from exc
+        for entry in children:
+            entries += 1
+            if entries > MAX_ANALYSIS_OUTPUT_ENTRIES:
+                raise JobContractError(
+                    "analysis_output_entry_quota_exceeded",
+                    f"解析出力が{MAX_ANALYSIS_OUTPUT_ENTRIES} entry上限を超えています",
+                )
+            try:
+                entry_path = Path(entry.path)
+                information = entry_path.lstat()
+            except OSError as exc:
+                raise JobContractError("analysis_output_unreadable", "解析出力entryを安全に確認できません") from exc
+            if _stat_has_reparse_attribute(information):
+                raise JobContractError("analysis_output_reparse_forbidden", "解析出力にreparse pointが含まれています")
+            if entry.is_dir(follow_symlinks=False):
+                directories += 1
+                pending.append(entry_path)
+                continue
+            if not entry.is_file(follow_symlinks=False) or not stat.S_ISREG(information.st_mode):
+                raise JobContractError("analysis_output_entry_forbidden", "解析出力には通常file／directoryだけを許可します")
+            if information.st_nlink != 1:
+                raise JobContractError("analysis_output_hardlink_forbidden", "解析出力にhardlinkを使用できません")
+            files += 1
+            total_bytes += information.st_size
+            if total_bytes > MAX_ANALYSIS_OUTPUT_BYTES:
+                raise JobContractError(
+                    "analysis_output_size_quota_exceeded",
+                    f"解析出力が{MAX_ANALYSIS_OUTPUT_BYTES} bytes上限を超えています",
+                )
+    return {"entries": entries, "files": files, "directories": directories, "total_bytes": total_bytes}
+
+
+def _validated_summary(path: Path, *, expected_input_files: int) -> tuple[dict[str, Any], dict[str, int]]:
     summary = load_json_object_strict(path, max_bytes=MAX_SUMMARY_BYTES)
-    if summary.get("executed_sample") is not False or summary.get("network_contacted") is not False:
+    if summary.get("schema_version") != SCHEMA_VERSION:
+        raise JobContractError("summary_invalid", "summary.jsonのschema_versionが一致しません")
+    if (
+        summary.get("executed_sample") is not False
+        or summary.get("network_contacted") is not False
+        or summary.get("ai_used") is not False
+    ):
         raise JobContractError(
             "analyzer_safety_contract_failed",
-            "summaryのexecuted_sample／network_contactedが明示的なfalseではありません",
+            "summaryのexecuted_sample／network_contacted／ai_usedが明示的なfalseではありません",
         )
     raw_counts = summary.get("counts")
     if not isinstance(raw_counts, dict):
@@ -746,6 +1068,29 @@ def _validated_summary(path: Path) -> tuple[dict[str, Any], dict[str, int]]:
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
             raise JobContractError("summary_invalid", f"summary counts.{key}が非負整数ではありません")
         counts[key] = value
+    for key, expected_type in (("cases", list), ("duplicates", list), ("errors", list)):
+        if not isinstance(summary.get(key), expected_type):
+            raise JobContractError("summary_invalid", f"summary.{key}はarrayである必要があります")
+    if counts["input_files"] != expected_input_files:
+        raise JobContractError("summary_count_mismatch", "summary input_filesが検証済み入力file数と一致しません")
+    if counts["input_files"] != counts["analyzed"] + counts["duplicates"] + counts["errors"]:
+        raise JobContractError("summary_count_mismatch", "analyzed、duplicates、errorsの合計がinput_filesと一致しません")
+    if counts["identified"] + counts["unknown_or_ambiguous"] != counts["analyzed"]:
+        raise JobContractError("summary_count_mismatch", "family分類件数の合計がanalyzedと一致しません")
+    terminal_state_total = counts["complete"] + counts["triaged_unknown"] + counts["partial"] + counts["failed"]
+    assessment_only_count = sum(
+        isinstance(case, dict) and case.get("case_state") == "assessment_only_complete" for case in summary["cases"]
+    )
+    settings = summary.get("settings")
+    assessment_only = isinstance(settings, dict) and settings.get("assessment_only") is True
+    if terminal_state_total + (assessment_only_count if assessment_only else 0) != counts["analyzed"]:
+        raise JobContractError("summary_count_mismatch", "case状態件数の合計がanalyzedと一致しません")
+    if counts["resumed"] > counts["analyzed"]:
+        raise JobContractError("summary_count_mismatch", "resumedがanalyzedを超えています")
+    if len(summary["cases"]) != counts["analyzed"]:
+        raise JobContractError("summary_count_mismatch", "cases件数がanalyzedと一致しません")
+    if len(summary["duplicates"]) != counts["duplicates"] or len(summary["errors"]) != counts["errors"]:
+        raise JobContractError("summary_count_mismatch", "duplicates／errors配列件数がcountsと一致しません")
     return summary, counts
 
 
@@ -776,6 +1121,7 @@ def _write_failure(
             "safety": {
                 "network_or_live_options_allowed": False,
                 "sample_execution_allowed": False,
+                "ai_used": False,
                 "summary_safety_contract_verified": False,
             },
             "error": {"code": code, "message": message},
@@ -800,7 +1146,7 @@ def run_job(
     input_root: Path,
     jobs_root: Path,
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
-    run_process: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
+    run_process: Callable[..., subprocess.CompletedProcess[bytes]] | None = None,
 ) -> int:
     """検証済み要求を1回だけ実行し、状態・進捗・結果をatomicに保存する。"""
 
@@ -833,7 +1179,12 @@ def run_job(
         _write_status(job_dir, state="validating", terminal=False, created_at_utc=created)
         _write_progress(job_dir, phase="validating_inputs", percent=10, message="入力境界と上限を検証しています")
         inputs, records = validate_inputs(request, input_root)
-        family_hint_manifest = validate_family_hint_manifest(request, input_root, inputs)
+        family_hint_manifest, family_hint_manifest_sha256 = stage_family_hint_manifest(
+            request,
+            input_root,
+            inputs,
+            job_dir,
+        )
         total_files = sum(item.file_count for item in records)
         total_bytes = sum(item.total_bytes for item in records)
         argv = build_analyzer_argv(
@@ -858,27 +1209,31 @@ def run_job(
             total_files=total_files,
             total_bytes=total_bytes,
         )
-        completed = run_process(
-            argv,
-            cwd=REPOSITORY_ROOT,
-            env=build_sanitized_environment(),
-            shell=False,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout_seconds,
-        )
-        stdout, stdout_truncated = _bounded_log(completed.stdout)
-        stderr, stderr_truncated = _bounded_log(completed.stderr)
+        process_kwargs = {
+            "cwd": REPOSITORY_ROOT,
+            "env": build_sanitized_environment(),
+            "shell": False,
+            "check": False,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "timeout": timeout_seconds,
+        }
+        if run_process is None:
+            completed = _run_process_with_bounded_output(
+                argv,
+                monitored_output=analysis_output,
+                **process_kwargs,
+            )
+        else:
+            completed = run_process(argv, **process_kwargs)
+        stdout, bounded_stdout_truncated = _bounded_log(completed.stdout)
+        stderr, bounded_stderr_truncated = _bounded_log(completed.stderr)
+        stdout_truncated = bool(getattr(completed, "stdout_truncated", False)) or bounded_stdout_truncated
+        stderr_truncated = bool(getattr(completed, "stderr_truncated", False)) or bounded_stderr_truncated
         _atomic_bytes(job_dir / "stdout.log", stdout)
         _atomic_bytes(job_dir / "stderr.log", stderr)
         _write_progress(job_dir, phase="validating_results", percent=90, message="解析結果の安全契約を検証しています")
-        _ensure_tree_no_reparse(
-            analysis_output,
-            max_entries=100_000,
-            code="analysis_output_reparse_forbidden",
-            message="解析出力にreparse pointが含まれています",
-        )
+        output_tree = validate_analysis_output_tree(analysis_output)
         if completed.returncode not in {0, 20}:
             _write_failure(
                 job_dir,
@@ -891,7 +1246,10 @@ def run_job(
                 inputs=records,
             )
             return 1
-        _, counts = _validated_summary(analysis_output / "summary.json")
+        _, counts = _validated_summary(
+            analysis_output / "summary.json",
+            expected_input_files=total_files,
+        )
         partial = completed.returncode == 20
         state = "completed_partial" if partial else "completed"
         finished = utc_now()
@@ -908,10 +1266,15 @@ def run_job(
                 "counts": counts,
                 "artifacts": {
                     "analysis_summary": "analysis/summary.json",
+                    "family_hint_manifest": (
+                        "contract-inputs/family-hint-manifest.json" if family_hint_manifest is not None else None
+                    ),
+                    "family_hint_manifest_sha256": family_hint_manifest_sha256,
                     "stdout": "stdout.log",
                     "stderr": "stderr.log",
                     "stdout_truncated": stdout_truncated,
                     "stderr_truncated": stderr_truncated,
+                    "analysis_output": output_tree,
                 },
                 "process": {
                     "exit_code": completed.returncode,
@@ -925,6 +1288,7 @@ def run_job(
                     "summary_safety_contract_verified": True,
                     "executed_sample": False,
                     "network_contacted": False,
+                    "ai_used": False,
                 },
                 "finished_at_utc": finished,
             },
@@ -1004,6 +1368,7 @@ def validate_job(request: JobRequest, *, input_root: Path, jobs_root: Path) -> d
         "jobs_root_exists": jobs_root.exists(),
         "network_or_live_options_allowed": False,
         "sample_execution_allowed": False,
+        "ai_used": False,
     }
 
 

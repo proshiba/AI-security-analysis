@@ -43,17 +43,41 @@ def make_roots(tmp_path: Path, *, data: bytes = b"MZ synthetic static bytes") ->
     return input_root, jobs_root
 
 
-def write_summary(output: Path, *, network_contacted: bool = False) -> None:
+def write_summary(
+    output: Path,
+    *,
+    network_contacted: bool = False,
+    ai_used: bool = False,
+    count_overrides: dict[str, int] | None = None,
+) -> None:
     """analyze_sample.pyの最小安全summaryを作る。"""
 
     output.mkdir(parents=True, exist_ok=True)
+    counts = {
+        "input_files": 1,
+        "analyzed": 1,
+        "duplicates": 0,
+        "errors": 0,
+        "identified": 0,
+        "unknown_or_ambiguous": 1,
+        "complete": 1,
+        "triaged_unknown": 0,
+        "partial": 0,
+        "failed": 0,
+        "resumed": 0,
+    }
+    counts.update(count_overrides or {})
     (output / "summary.json").write_text(
         json.dumps(
             {
                 "schema_version": 1,
-                "counts": {"input_files": 1, "analyzed": 1, "complete": 1},
+                "counts": counts,
+                "cases": [{}] * counts["analyzed"],
+                "duplicates": [{}] * counts["duplicates"],
+                "errors": [{}] * counts["errors"],
                 "executed_sample": False,
                 "network_contacted": network_contacted,
+                "ai_used": ai_used,
             }
         ),
         encoding="utf-8",
@@ -140,6 +164,21 @@ def test_duplicate_json_keys_and_non_finite_numbers_are_rejected(tmp_path: Path)
     with pytest.raises(runner.JobContractError) as caught:
         runner.load_json_object_strict(non_finite, max_bytes=1024)
     assert caught.value.code == "non_finite_json_number"
+
+
+def test_strict_json_rejects_hardlinks(tmp_path: Path) -> None:
+    original = tmp_path / "original.json"
+    linked = tmp_path / "linked.json"
+    original.write_text('{"schema_version":1}', encoding="utf-8")
+    try:
+        os.link(original, linked)
+    except (OSError, NotImplementedError):
+        pytest.skip("この環境ではhardlinkを作成できません")
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.load_json_object_strict(linked, max_bytes=1024)
+
+    assert caught.value.code == "json_hardlink_forbidden"
 
 
 def test_input_tree_count_size_and_overlap_are_fail_closed(tmp_path: Path) -> None:
@@ -300,6 +339,41 @@ def test_family_hint_manifest_size_and_direct_input_reuse_are_rejected(
     assert caught.value.code == "json_size_out_of_bounds"
 
 
+def test_run_job_passes_only_an_immutable_job_local_manifest_copy(tmp_path: Path) -> None:
+    input_root, jobs_root = make_roots(tmp_path)
+    manifest = input_root / "hints.json"
+    manifest.write_text(json.dumps({"schema_version": 1, "samples": {"0" * 64: "valleyrat"}}), encoding="utf-8")
+    value = request_value("job-canonical-manifest")
+    value["family_hint_manifest"] = "hints.json"
+    request = runner.validate_request_object(value)
+    observed: dict[str, Any] = {}
+
+    def fake_run(argv: list[str], **_: Any) -> SimpleNamespace:
+        staged = Path(argv[argv.index("--family-hint-manifest") + 1])
+        observed["staged"] = staged
+        observed["before"] = staged.read_bytes()
+        manifest.write_text('{"changed":true}', encoding="utf-8")
+        observed["after"] = staged.read_bytes()
+        write_summary(Path(argv[argv.index("--output") + 1]))
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    exit_code = runner.run_job(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    )
+
+    assert exit_code == 0
+    assert observed["staged"] != manifest.resolve()
+    assert observed["staged"] == jobs_root / "job-canonical-manifest" / "contract-inputs" / "family-hint-manifest.json"
+    assert observed["before"] == observed["after"]
+    result = load_json(jobs_root / "job-canonical-manifest" / "result.json")
+    assert result["artifacts"]["family_hint_manifest"] == "contract-inputs/family-hint-manifest.json"
+    assert len(result["artifacts"]["family_hint_manifest_sha256"]) == 64
+
+
 def test_child_environment_does_not_inherit_api_keys_or_python_injection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -354,6 +428,7 @@ def test_complete_job_writes_atomic_machine_readable_artifacts(
     assert result["accepted"] is True
     assert result["analysis_state"] == "complete"
     assert result["safety"]["network_contacted"] is False
+    assert result["safety"]["ai_used"] is False
     assert result["process"]["shell"] is False
     assert load_json(job_dir / "progress.json")["percent"] == 100
     assert not list(job_dir.rglob("*.tmp"))
@@ -404,6 +479,160 @@ def test_summary_claiming_network_contact_is_rejected(tmp_path: Path) -> None:
     assert exit_code == 2
     assert result["accepted"] is False
     assert result["error"]["code"] == "analyzer_safety_contract_failed"
+
+
+def test_summary_claiming_ai_use_is_rejected(tmp_path: Path) -> None:
+    input_root, jobs_root = make_roots(tmp_path)
+    request = runner.validate_request_object(request_value("job-ai-claim"))
+
+    def fake_run(argv: list[str], **_: Any) -> SimpleNamespace:
+        write_summary(Path(argv[argv.index("--output") + 1]), ai_used=True)
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    exit_code = runner.run_job(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    )
+
+    result = load_json(jobs_root / "job-ai-claim" / "result.json")
+    assert exit_code == 2
+    assert result["safety"]["ai_used"] is False
+    assert result["error"]["code"] == "analyzer_safety_contract_failed"
+
+
+def test_inconsistent_summary_counts_are_rejected(tmp_path: Path) -> None:
+    input_root, jobs_root = make_roots(tmp_path)
+    request = runner.validate_request_object(request_value("job-count-mismatch"))
+
+    def fake_run(argv: list[str], **_: Any) -> SimpleNamespace:
+        write_summary(
+            Path(argv[argv.index("--output") + 1]),
+            count_overrides={"input_files": 2},
+        )
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    exit_code = runner.run_job(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    )
+
+    result = load_json(jobs_root / "job-count-mismatch" / "result.json")
+    assert exit_code == 2
+    assert result["error"]["code"] == "summary_count_mismatch"
+
+
+def test_analysis_output_size_quota_is_enforced(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    input_root, jobs_root = make_roots(tmp_path)
+    request = runner.validate_request_object(request_value("job-output-quota"))
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", 8)
+
+    def fake_run(argv: list[str], **_: Any) -> SimpleNamespace:
+        output = Path(argv[argv.index("--output") + 1])
+        write_summary(output)
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    exit_code = runner.run_job(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    )
+
+    result = load_json(jobs_root / "job-output-quota" / "result.json")
+    assert exit_code == 2
+    assert result["error"]["code"] == "analysis_output_size_quota_exceeded"
+
+
+def test_default_process_runner_drains_and_truncates_both_streams() -> None:
+    size = runner.MAX_LOG_BYTES + 4096
+    script = (
+        "import sys;"
+        f"sys.stdout.buffer.write(b'A'*{size});sys.stdout.buffer.flush();"
+        f"sys.stderr.buffer.write(b'B'*{size});sys.stderr.buffer.flush()"
+    )
+
+    completed = runner._run_process_with_bounded_output(
+        [sys.executable, "-c", script],
+        cwd=runner.REPOSITORY_ROOT,
+        env=runner.build_sanitized_environment(),
+        shell=False,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0
+    assert completed.stdout == b"A" * runner.MAX_LOG_BYTES
+    assert completed.stderr == b"B" * runner.MAX_LOG_BYTES
+    assert completed.stdout_truncated is True
+    assert completed.stderr_truncated is True
+
+
+def test_default_process_runner_terminates_owned_tree_on_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    terminated: list[int] = []
+    terminate = runner.terminate_process_tree
+
+    def recording_terminate(process: subprocess.Popen[Any]) -> None:
+        terminated.append(process.pid)
+        terminate(process)
+
+    monkeypatch.setattr(runner, "terminate_process_tree", recording_terminate)
+    with pytest.raises(subprocess.TimeoutExpired):
+        runner._run_process_with_bounded_output(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            cwd=runner.REPOSITORY_ROOT,
+            env=runner.build_sanitized_environment(),
+            shell=False,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=0.1,
+        )
+
+    assert len(terminated) == 1
+
+
+def test_default_process_runner_stops_during_output_quota_excess(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "analysis"
+    output.mkdir()
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", 1024)
+    monkeypatch.setattr(runner, "MIN_FREE_DISK_RESERVE_BYTES", 1)
+    monkeypatch.setattr(runner, "OUTPUT_MONITOR_INTERVAL_SECONDS", 0.05)
+    script = (
+        "from pathlib import Path;import sys,time;"
+        "Path(sys.argv[1]).joinpath('large.bin').write_bytes(b'X'*8192);time.sleep(30)"
+    )
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._run_process_with_bounded_output(
+            [sys.executable, "-c", script, str(output)],
+            cwd=runner.REPOSITORY_ROOT,
+            env=runner.build_sanitized_environment(),
+            shell=False,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+            monitored_output=output,
+        )
+
+    assert caught.value.code == "analysis_output_size_quota_exceeded"
 
 
 def test_nonaccepted_exit_code_is_a_terminal_failure(tmp_path: Path) -> None:
@@ -470,6 +699,7 @@ def test_validate_job_performs_no_subprocess_or_job_write(tmp_path: Path) -> Non
 
     assert result["valid"] is True
     assert result["network_or_live_options_allowed"] is False
+    assert result["ai_used"] is False
     assert not (jobs_root / "job-validate").exists()
 
 
@@ -498,4 +728,5 @@ def test_real_analyzer_runs_with_sanitized_environment(tmp_path: Path) -> None:
     result = load_json(jobs_root / "job-real-smoke" / "result.json")
     assert result["accepted"] is True
     assert result["safety"]["summary_safety_contract_verified"] is True
+    assert result["safety"]["ai_used"] is False
     assert (jobs_root / "job-real-smoke" / "analysis" / "summary.json").is_file()
