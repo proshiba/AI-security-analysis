@@ -1,0 +1,427 @@
+{
+  "schema_version": 1,
+  "audit_id": "family-analysis-requirements-expansion-20260810",
+  "baseline": {
+    "coverage_artifact": "analysis-results/catalog/automation-coverage.json",
+    "safe_automatic_policy_gap_count": 51,
+    "detector_registered_count": 29,
+    "detector_missing_count": 22
+  },
+  "basis_definitions_ja": {
+    "networked_config_nonterminal": "静的設定の回収と通信先の回収を必須とし、対象自体が終端機能を持つため別の終端ペイロードは要求しません。",
+    "networked_config_terminal": "静的設定と通信先に加え、loader、downloader、deployer、stager、または多段外層として終端ペイロードの回収を必須とします。",
+    "offline_nonterminal": "資料とハンドラ契約が通信経路も後続段も持たない単体のデコイ、合成ワークロード、またはローカル専用ツールであることを明示しています。",
+    "offline_loader_terminal": "ハンドラ契約では設定と通信機能を確認できませんが、launcher外層であるため終端ペイロードの回収だけを必須とします。"
+  },
+  "reviewed": [
+    {
+      "family": "amadey",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "downloader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "設定抽出器がC2 URLとplugin download機能を返し、資料が保護wrapperから内部PEを別途回収する必要を明示しています。",
+      "evidence_paths": ["extractors/amadey/extractor.py", "analysis-framework/malware/amadey/README.md"]
+    },
+    {
+      "family": "atlascross",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "資料と抽出器がAtlas RATのdomain、port、group設定を復号します。",
+      "evidence_paths": ["extractors/atlascross/extractor.py", "analysis-framework/malware/atlascross/README.md"]
+    },
+    {
+      "family": "blackhorse_miner_agent",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "miner", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラはXMRig poolとfleet command経路を返し、registryもminer/fleet agentと記録しています。",
+      "evidence_paths": ["analysis-framework/malware/blackhorse_miner_agent/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "blazetrack",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "other", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "正式family未確定の多段クラスタであるためotherとし、IExpress、AutoIt、終端PEの連鎖とcommand channelをすべて要求します。",
+      "evidence_paths": ["analysis-framework/malware/blazetrack/extract_config.py", "analysis-framework/malware/blazetrack/c2_profile.json"]
+    },
+    {
+      "family": "catddos",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "資料とハンドラがLinux DDoS bot、登録frame、C2、SOCKS5機能を明示しています。",
+      "evidence_paths": ["analysis-framework/malware/catddos/extract_config.py", "analysis-framework/malware/catddos/README.md"]
+    },
+    {
+      "family": "chud_bot",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラが複数architectureのLinux bot、controller、認証、command frameを構造確認します。",
+      "evidence_paths": ["analysis-framework/malware/chud_bot/extract_config.py"]
+    },
+    {
+      "family": "clickfix_booking",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "ハンドラがClickFix HTML、PowerShell stager、NativeAOT次段を同じ配布連鎖として分類します。",
+      "evidence_paths": ["analysis-framework/malware/clickfix_booking/extract_config.py"]
+    },
+    {
+      "family": "condi",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラがCondi Linux botのXOR設定、C2、配布URLを分離して返します。",
+      "evidence_paths": ["analysis-framework/malware/condi/extract_config.py"]
+    },
+    {
+      "family": "credential_phishing_html",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "HTMLフォームから認証情報送信先を回収する契約のためstealerとして扱い、外部送信先を必須とします。",
+      "evidence_paths": ["analysis-framework/malware/credential_phishing_html/extract_config.py"]
+    },
+    {
+      "family": "darkcomet",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "抽出器がDarkComet RATのRCDATA設定、NETDATA endpoint、通信暗号を復号します。",
+      "evidence_paths": ["extractors/darkcomet/extractor.py", "analysis-framework/malware/darkcomet/README.md"]
+    },
+    {
+      "family": "dysphoria",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラとregistryがDDoS、中継、UPnP、暗号化C2を持つLinux botnetと明示しています。",
+      "evidence_paths": ["analysis-framework/malware/dysphoria/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "eclipse_ddos_bot",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラが複数architectureのLinux DDoS bot、登録値、C2 port、command dispatcherを返します。",
+      "evidence_paths": ["analysis-framework/malware/eclipse_ddos_bot/extract_config.py"]
+    },
+    {
+      "family": "efimer",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryは暗号資産情報窃取を記録し、ハンドラは復号設定とonion C2、exfiltration先を回収します。",
+      "evidence_paths": ["analysis-framework/malware/efimer/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "freepbx_k_php",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryとハンドラが侵害後のwebshell、永続化、収集、配布・窃取先を明示しています。",
+      "evidence_paths": ["analysis-framework/malware/freepbx_k_php/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "genddos_bot",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラがMirai派生DDoS botのXOR table、C2、scanner、self-update handlerを回収します。",
+      "evidence_paths": ["analysis-framework/malware/genddos_bot/extract_config.py"]
+    },
+    {
+      "family": "go_synthetic_workload",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "other", "config_required": false, "network_required": false, "terminal_payload_required": false},
+      "basis": "offline_nonterminal",
+      "classification_evidence_ja": "ハンドラが合成・デコイ計算ワークロードであり、network path、os/exec、攻撃者URLが未観測と明示します。",
+      "evidence_paths": ["analysis-framework/malware/go_synthetic_workload/extract_config.py"]
+    },
+    {
+      "family": "infrastructure_decoy_hta",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "other", "config_required": false, "network_required": false, "terminal_payload_required": false},
+      "basis": "offline_nonterminal",
+      "classification_evidence_ja": "ハンドラがactive content、form、URLを持たないdecoyまたはbenign landing pageだけを受理します。",
+      "evidence_paths": ["analysis-framework/malware/infrastructure_decoy_hta/extract_config.py"]
+    },
+    {
+      "family": "jackskid",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryとハンドラがENS/SNSでcontrollerを解決するLinux bot、scanner、command protocolを明示します。",
+      "evidence_paths": ["analysis-framework/malware/jackskid/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "jiproxy_relay",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "other", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "正式family未確定のUDP relayであるためotherとし、tracker、上流、port tableの回収を必須とします。",
+      "evidence_paths": ["analysis-framework/malware/jiproxy_relay/extract_config.py", "analysis-framework/malware/jiproxy_relay/README.md"]
+    },
+    {
+      "family": "jomangy",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラがPHP backdoorのwebshell、永続化、設定窃取、配布・exfiltration先を復元します。",
+      "evidence_paths": ["analysis-framework/malware/jomangy/extract_config.py"]
+    },
+    {
+      "family": "latrodectus",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "registryと抽出器がloader世代、C2設定、payload downloadを明示します。",
+      "evidence_paths": ["extractors/latrodectus/extractor.py", "analysis-framework/malware/latrodectus/README.md"]
+    },
+    {
+      "family": "linux_ens_sns_bot",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "旧暫定profileはENS/SNS名前解決型Linux botとして設定を回収し、資料はJackSkidへの再帰属を記録しています。",
+      "evidence_paths": ["analysis-framework/malware/linux_ens_sns_bot/extract_config.py", "analysis-framework/malware/linux_ens_sns_bot/README.md"]
+    },
+    {
+      "family": "linux_reverse_shell",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "handlerとregistryがsocket/dup2/interactive shellと固定host/portを相関します。",
+      "evidence_paths": ["analysis-framework/malware/linux_reverse_shell/extract_config.py", "analysis-framework/malware/linux_reverse_shell/README.md"]
+    },
+    {
+      "family": "manageengine_endpoint_central_abuse",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "other", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "正規RMM自体をmalware分類しないためotherとし、無断登録のVBS、download、deployment bundle、server設定を多段連鎖として要求します。",
+      "evidence_paths": ["analysis-framework/malware/manageengine_endpoint_central_abuse/extract_config.py", "analysis-framework/malware/manageengine_endpoint_central_abuse/README.md"]
+    },
+    {
+      "family": "mig_logcleaner",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "other", "config_required": false, "network_required": false, "terminal_payload_required": false},
+      "basis": "offline_nonterminal",
+      "classification_evidence_ja": "ハンドラはローカルlog record操作専用でnetwork capability false、C2空、後続段なしを明示します。",
+      "evidence_paths": ["analysis-framework/malware/mig_logcleaner/extract_config.py"]
+    },
+    {
+      "family": "mirai",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "worm", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryと資料がTelnet探索、BusyBox自己複製、複数architecture配布を持つMirai派生wormと明示します。",
+      "evidence_paths": ["analysis-framework/malware/mirai/extract_config.py", "analysis-framework/malware/mirai/README.md"]
+    },
+    {
+      "family": "mirai_ens_doh_bot",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラとregistryがChaCha20設定、C2、ENS/DoH resolverを持つMirai由来botと記録します。",
+      "evidence_paths": ["analysis-framework/malware/mirai_ens_doh_bot/extract_config.py", "analysis-framework/malware/mirai_ens_doh_bot/README.md"]
+    },
+    {
+      "family": "mx-go",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ローカル資料は遠隔制御型大量メール送信botとし、抽出器はcontrol_server設定を復元します。",
+      "evidence_paths": ["extractors/unclassified/mx_go/extractor.py", "analysis-framework/common/_ja_unclassified_patterns.py"]
+    },
+    {
+      "family": "npm_supply_chain",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "downloader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "postinstall抽出器がpayload dispatch URLを復号し、資料はcross-platform終端payloadが埋め込まれていないと明示します。",
+      "evidence_paths": ["extractors/npm_supply_chain/extractor.py", "analysis-framework/malware/npm_supply_chain/README.md"]
+    },
+    {
+      "family": "owareaper",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryとハンドラがHTML fragmentからJavaScript backdoor、HTTP/DNS C2、OWA永続化markerを復元します。",
+      "evidence_paths": ["analysis-framework/malware/owareaper/extract_config.py", "analysis-framework/malware/owareaper/README.md"]
+    },
+    {
+      "family": "panchan",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "worm", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "資料とhandlerがSSH credentialによる横展開、P2P、miner共有を行うworm/cryptojackerと明示します。",
+      "evidence_paths": ["analysis-framework/malware/panchan/extract_config.py", "analysis-framework/malware/panchan/README.md"]
+    },
+    {
+      "family": "phorpiex_spam",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラがPhorpiex spam moduleの暗号化controller、SMTP worker、mutex設定を回収します。",
+      "evidence_paths": ["analysis-framework/malware/phorpiex_spam/extract_config.py"]
+    },
+    {
+      "family": "pony",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "ハンドラがcredential receiverと任意EXE loader URLを持つcommodity stealer/downloaderと明示します。",
+      "evidence_paths": ["analysis-framework/malware/pony/extract_config.py"]
+    },
+    {
+      "family": "prometei",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "資料とregistryが複数moduleのbotnetとして記録し、ハンドラは末尾JSONとcontrollerを回収します。",
+      "evidence_paths": ["analysis-framework/malware/prometei/extract_config.py", "analysis-framework/malware/prometei/README.md"]
+    },
+    {
+      "family": "proxyrack_pop_deployer",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "資料とハンドラが正規proxy clientを不正配布する.NET loader、埋込payload、controller設定を明示します。",
+      "evidence_paths": ["analysis-framework/malware/proxyrack_pop_deployer/extract_config.py", "analysis-framework/malware/proxyrack_pop_deployer/README.md"]
+    },
+    {
+      "family": "putita_v3",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryとハンドラがMirai派生の複数architecture DDoS bot、暗号化controller、command protocolを記録します。",
+      "evidence_paths": ["analysis-framework/malware/putita_v3/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "screenconnect_rmm",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "other", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "正規dual-use RMM自体をmalwareとしないためotherとし、埋込relay設定の回収を必須とします。",
+      "evidence_paths": ["analysis-framework/malware/screenconnect_rmm/extract_config.py", "analysis-framework/malware/screenconnect_rmm/README.md"]
+    },
+    {
+      "family": "shadowpad",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "資料と抽出器がShadowPad loader世代、ScatterBee payload、複数config layoutを復号します。",
+      "evidence_paths": ["extractors/shadowpad/extractor.py", "analysis-framework/malware/shadowpad/README.md"]
+    },
+    {
+      "family": "signed_dht_bot",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラとregistryが署名付きBEP44 DHTでC2を解決するLinux botと記録します。",
+      "evidence_paths": ["analysis-framework/malware/signed_dht_bot/extract_config.py", "analysis-framework/malware/signed_dht_bot/README.md"]
+    },
+    {
+      "family": "snakekeylogger",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "keylogger", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "family名とprofile markerがkeylogger機能を明示し、SMTP、FTP、Telegram、HTTP送信設定を要求します。",
+      "evidence_paths": ["extractors/profiled_family.py", "extractors/profiles/windows_family_profiles.json"]
+    },
+    {
+      "family": "sobfox_launcher",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "loader", "config_required": false, "network_required": false, "terminal_payload_required": true},
+      "basis": "offline_loader_terminal",
+      "classification_evidence_ja": "ハンドラはNRV2E保護launcherを展開しますが、設定とnetwork capabilityを観測していないため、その二要件だけをfalseとします。",
+      "evidence_paths": ["analysis-framework/malware/sobfox_launcher/extract_config.py"]
+    },
+    {
+      "family": "softbot",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "資料とハンドラがMirai派生SoftBotのUDP controller、registration、scanner、watchdogを回収します。",
+      "evidence_paths": ["analysis-framework/malware/softbot/extract_config.py", "analysis-framework/malware/softbot/README.md"]
+    },
+    {
+      "family": "spyglace",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "抽出器と資料がC2、command、download暗号、永続化を持つSpyGlace payloadを記録します。",
+      "evidence_paths": ["extractors/spyglace/extractor.py", "analysis-framework/malware/spyglace/README.md"]
+    },
+    {
+      "family": "suomi_agent",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "other", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "正式機能分類が未確定のDGA agentであるためotherとし、時刻依存host/port設定と通信経路を必須とします。",
+      "evidence_paths": ["analysis-framework/malware/suomi_agent/extract_config.py", "analysis-framework/malware/suomi_agent/README.md"]
+    },
+    {
+      "family": "tbot_iot_bot",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "registryとハンドラがIoT bot、固定C2 table、registration、download methodを明示します。",
+      "evidence_paths": ["analysis-framework/malware/tbot_iot_bot/extract_config.py", "analysis-framework/registry/malware_types.json"]
+    },
+    {
+      "family": "traffmonetizer_deployer",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "資料とハンドラが正規TraffMonetizerを無人配布するloader、埋込payload、settings、load balancerを記録します。",
+      "evidence_paths": ["analysis-framework/malware/traffmonetizer_deployer/extract_config.py", "analysis-framework/malware/traffmonetizer_deployer/README.md"]
+    },
+    {
+      "family": "vidar",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "抽出器がVidarのXOR設定、C2、wallet/browser収集、dead-drop経路を復元します。",
+      "evidence_paths": ["extractors/vidar/extractor.py"]
+    },
+    {
+      "family": "wannacry",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "ransomware", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "ハンドラがWannaCry外層DLLから埋込worm、task binary、暗号化package、kill switch、Tor設定を復元します。",
+      "evidence_paths": ["analysis-framework/malware/wannacry/extract_config.py"]
+    },
+    {
+      "family": "windows_script_stager",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "loader", "config_required": true, "network_required": true, "terminal_payload_required": true},
+      "basis": "networked_config_terminal",
+      "classification_evidence_ja": "handlerとregistryがPowerShell次段を配送するWindows Script stagerであり、final payload未回収を明示します。",
+      "evidence_paths": ["analysis-framework/malware/windows_script_stager/extract_config.py", "analysis-framework/malware/windows_script_stager/README.md"]
+    },
+    {
+      "family": "xmrig",
+      "baseline_cohort": "detector_missing",
+      "policy": {"category": "miner", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "ハンドラがXMRig固有marker、wallet、operator pool候補を回収し、poolを通常C2と区別します。",
+      "evidence_paths": ["analysis-framework/malware/xmrig/extract_config.py"]
+    },
+    {
+      "family": "xworm",
+      "baseline_cohort": "detector_registered",
+      "policy": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
+      "basis": "networked_config_nonterminal",
+      "classification_evidence_ja": "共有profileがXWormをRATと定義し、host、port、key、delimiter設定を要求します。",
+      "evidence_paths": ["extractors/profiled_family.py", "extractors/profiles/windows_family_profiles.json"]
+    }
+  ],
+  "left_missing": []
+}
