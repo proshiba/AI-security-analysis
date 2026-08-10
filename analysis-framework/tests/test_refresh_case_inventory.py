@@ -93,3 +93,79 @@ def test_sync_checksum_manifests_is_portable_across_text_line_endings(
 
     report.write_bytes(b'{\n  "status": "ok"\n}\n')
     assert inventory.sync_checksum_manifests(tmp_path)["mismatches"] == []
+
+
+def _stub_plan() -> dict:
+    return {
+        "errors": [],
+        "cases": [],
+        "counts": _counts(),
+        "catalog": {"path": "analysis-results/catalog/cases.json", "document": {}},
+    }
+
+
+def _install_plan_counter(monkeypatch, *, metadata_written: bool) -> list[int]:
+    """レイアウト計画の構築回数を数え、他の重い段階は無害化する。"""
+    calls = [0]
+
+    def counting_plan(_root):
+        calls[0] += 1
+        return _stub_plan()
+
+    monkeypatch.setattr(inventory, "build_layout_plan", counting_plan)
+    monkeypatch.setattr(
+        inventory,
+        "sync_case_identity_metadata",
+        lambda root, *, write=False, plan=None: {
+            "updated_cases": [],
+            "write_performed": metadata_written,
+        },
+    )
+    monkeypatch.setattr(
+        inventory,
+        "sync_catalog",
+        lambda root, *, write=False, plan=None: {
+            "added_cases": [], "updated_cases": [], "write_performed": False
+        },
+    )
+    monkeypatch.setattr(
+        inventory,
+        "sync_documented_case_counts",
+        lambda root, counts, *, write=False: {"mismatches": [], "write_performed": False},
+    )
+    for name in ("generate_ioc_lists", "generate_code_similarity", "generate_logic_similarity"):
+        monkeypatch.setattr(
+            inventory, name,
+            lambda root, *a, write=False, check=False, **kw: {
+                "mismatches": [], "write_performed": False
+            },
+        )
+    monkeypatch.setattr(
+        inventory, "sync_checksum_manifests",
+        lambda root, *, write=False: {"manifests": 0, "mismatches": [], "write_performed": False},
+    )
+    monkeypatch.setattr(
+        inventory, "_run_ui_command",
+        lambda root, script, *, check: {
+            "script": script, "returncode": 0, "check_failed": False, "stderr": ""
+        },
+    )
+    return calls
+
+
+def test_check_builds_layout_plan_once(monkeypatch, tmp_path: Path) -> None:
+    """書き込まないパスではツリーが変わらないので計画は1回で足りる。"""
+    calls = _install_plan_counter(monkeypatch, metadata_written=False)
+    inventory.refresh(tmp_path, check=True)
+    assert calls[0] == 1
+
+
+def test_write_rebuilds_plan_only_when_metadata_changed(monkeypatch, tmp_path: Path) -> None:
+    """metadataを書き換えた場合だけ計画を作り直す。計画はmetadata.jsonを読むため。"""
+    calls = _install_plan_counter(monkeypatch, metadata_written=True)
+    inventory.refresh(tmp_path, check=True)
+    assert calls[0] == 2
+
+    calls = _install_plan_counter(monkeypatch, metadata_written=False)
+    inventory.refresh(tmp_path, check=True)
+    assert calls[0] == 1

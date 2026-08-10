@@ -193,11 +193,21 @@ def refresh(
     root = repository.resolve()
     mode = "write" if write else "check" if check else "dry_run"
 
-    metadata = sync_case_identity_metadata(root, write=write)
-    catalog = sync_catalog(root, write=write)
+    # レイアウト計画の構築は全成果物の走査を伴い、1パスの実行時間のうち最大の
+    # 割合を占める。以前は metadata同期・catalog同期・ここ の3箇所がそれぞれ
+    # 独自に構築していたため、同じツリーを3回走査していた。
+    #
+    # 計画は metadata.json の内容も読むので、無条件には使い回せない。
+    # metadata同期が実際に書き込んだ場合だけ作り直し、それ以外は共有する。
     plan = build_layout_plan(root)
     if plan.get("errors"):
         raise ValueError(f"layout preflight failed: {plan['errors'][0]}")
+    metadata = sync_case_identity_metadata(root, write=write, plan=plan)
+    if metadata["write_performed"]:
+        plan = build_layout_plan(root)
+        if plan.get("errors"):
+            raise ValueError(f"layout preflight failed: {plan['errors'][0]}")
+    catalog = sync_catalog(root, write=write, plan=plan)
     counts = plan["counts"]
     documents = sync_documented_case_counts(root, counts, write=write)
     iocs = generate_ioc_lists(root, write=write, check=check)

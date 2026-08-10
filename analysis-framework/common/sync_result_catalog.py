@@ -128,12 +128,18 @@ def _metadata_document(path: Path) -> tuple[dict[str, Any], bool]:
 
 
 def sync_case_identity_metadata(
-    repository: Path, *, write: bool = False
+    repository: Path, *, write: bool = False, plan: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """固定レイアウトからcase identity metadataを補完し、安全な分類補正だけを行う。"""
+    """固定レイアウトからcase identity metadataを補完し、安全な分類補正だけを行う。
+
+    `plan` を渡すと、同じレイアウト計画を使い回して再構築を省く。計画の構築は
+    全成果物の走査を伴い1回あたり数十秒かかるため、同一ツリーに対して何度も
+    作り直さないための入口。呼び出し側は、計画の入力(metadata.jsonを含む)が
+    その後に書き換わっていないことを保証する責任を持つ。
+    """
 
     root = repository.resolve()
-    plan = build_layout_plan(root)
+    plan = build_layout_plan(root) if plan is None else plan
     errors = plan.get("errors") or []
     if errors:
         raise LayoutPlanError(f"layout preflight failed: {errors[0]}")
@@ -201,11 +207,16 @@ def _atomic_write(path: Path, value: dict[str, Any]) -> None:
             temporary.unlink()
 
 
-def sync_catalog(repository: Path, *, write: bool = False) -> dict[str, Any]:
-    """レイアウト計画からcatalogを再構成し、単調追加だけを任意で反映する。"""
+def sync_catalog(
+    repository: Path, *, write: bool = False, plan: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """レイアウト計画からcatalogを再構成し、単調追加だけを任意で反映する。
+
+    `plan` の意味は sync_case_identity_metadata と同じ。
+    """
 
     root = repository.resolve()
-    plan = build_layout_plan(root)
+    plan = build_layout_plan(root) if plan is None else plan
     errors = plan.get("errors") or []
     if errors:
         raise LayoutPlanError(f"layout preflight failed: {errors[0]}")
