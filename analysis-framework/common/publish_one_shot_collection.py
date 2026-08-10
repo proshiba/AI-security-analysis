@@ -32,6 +32,7 @@ from c2_analysis_contract import (  # noqa: E402
     validate_contract as validate_c2_contract,
 )
 from ioc_markdown import normalize_confirmed_network_iocs, render_submitted_iocs  # noqa: E402
+from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
 from result_layout import canonical_malware_case_path  # noqa: E402
 from result_publication import (  # noqa: E402
     detect_publication_context,
@@ -42,6 +43,7 @@ from static_logic import render_static_logic_markdown  # noqa: E402
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 COLLECTION_RE = re.compile(r"[a-z0-9][a-z0-9-]{2,79}")
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
+POST_ANALYSIS_HARDENING_STATUS = "renderer_and_resource_coverage_fail_closed_hardening"
 PARTIAL_STAGING_ALLOWED_BLOCKERS = {
     FUNCTION_ANALYSIS_BLOCKER,
     "generic_triage_partial",
@@ -116,6 +118,52 @@ def write_json(path: Path, value: Any) -> None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def build_post_analysis_publication_record(
+    *,
+    sample_count: int,
+    resource_scan_observations: int,
+    relevant_resource_failures: int,
+) -> dict[str, Any]:
+    """解析後hardeningと実行時contract snapshotの関係を定型記録する。"""
+
+    values = {
+        "sample_count": sample_count,
+        "resource_scan_observations": resource_scan_observations,
+        "relevant_resource_failures": relevant_resource_failures,
+    }
+    for label, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{label}は0以上の整数で指定してください")
+    if sample_count <= 0:
+        raise ValueError("sample_countは正の整数で指定してください")
+    if resource_scan_observations <= 0:
+        raise ValueError("resource_scan_observationsは正の整数で指定してください")
+    if relevant_resource_failures > resource_scan_observations:
+        raise ValueError("relevant_resource_failuresが観測数を超えています")
+
+    result_changed = relevant_resource_failures > 0
+    impact = (
+        "該当失敗があるため、影響検体の再解析が必要。"
+        if result_changed
+        else "該当失敗は0件で、抽出結果は不変。"
+    )
+    return {
+        "status": POST_ANALYSIS_HARDENING_STATUS,
+        "sample_count": sample_count,
+        "resource_scan_observations": resource_scan_observations,
+        "relevant_resource_failures": relevant_resource_failures,
+        "analysis_result_changed": result_changed,
+        "analysis_contract_semantics": "execution_time_snapshot",
+        "note_ja": (
+            "公開用OVERALL-LOGIC.mdレンダラーとPE resource coverageの"
+            "fail-closed hardeningを解析完了後に修正した。"
+            f"今回{sample_count}件で確認したresource scan "
+            f"{resource_scan_observations}観測について、{impact}"
+            "analysis_contract SHA-256は解析実行時のsnapshotとして保持する。"
+        ),
+    }
 
 
 def normalize_reported_name(value: object) -> str:
@@ -707,6 +755,10 @@ def publish_case(
     logic["family"] = family
     write_json(destination / "static-logic.json", logic)
     (destination / "STATIC-LOGIC.md").write_text(render_static_logic_markdown(logic), encoding="utf-8")
+    (destination / "OVERALL-LOGIC.md").write_text(
+        render_overall_logic_markdown(logic, documents["static-layers.json"]),
+        encoding="utf-8",
+    )
     generic = documents["generic-triage.json"]
     pe = pe_summary(generic)
     capabilities = capability_notes(pe)
@@ -786,6 +838,7 @@ def publish_case(
             "static_layers": "static-layers.json",
             "handler_results": "handler-results.json",
             "static_logic": "static-logic.json",
+            "overall_logic": "OVERALL-LOGIC.md",
             "c2_analysis": "c2-analysis.json",
             "iocs": "iocs.json",
         },
@@ -946,6 +999,8 @@ def publish(
     *,
     allow_function_staging: bool = False,
     expected_contract_sha256: str | None = None,
+    post_analysis_resource_scan_observations: int | None = None,
+    post_analysis_resource_failures: int = 0,
 ) -> dict[str, Any]:
     if not COLLECTION_RE.fullmatch(collection_id):
         raise ValueError("collection IDは小文字英数とhyphenだけで指定してください")
@@ -954,6 +1009,17 @@ def publish(
     results = repository / "analysis-results"
     manifest = load_json(manifest_path)
     requested_count, items = _validate_acquisition_manifest_count(manifest)
+    post_analysis_publication = None
+    if post_analysis_resource_scan_observations is not None:
+        post_analysis_publication = build_post_analysis_publication_record(
+            sample_count=requested_count,
+            resource_scan_observations=post_analysis_resource_scan_observations,
+            relevant_resource_failures=post_analysis_resource_failures,
+        )
+    elif post_analysis_resource_failures != 0:
+        raise ValueError(
+            "post_analysis_resource_failuresにはresource scan観測数も必要です"
+        )
     validated_sources = {}
     source_stages: dict[str, str] = {}
     baseline_contract: dict[str, Any] | None = None
@@ -1100,6 +1166,15 @@ def publish(
             "",
         ]
     )
+    if post_analysis_publication is not None:
+        lines.extend(
+            [
+                "## 解析後の公開・hardening変更",
+                "",
+                post_analysis_publication["note_ja"],
+                "",
+            ]
+        )
     (collection / "README.md").write_text("\n".join(lines), encoding="utf-8")
     collection_manifest = load_json(collection / "manifest.json")
     collection_manifest["analysis_contract_sha256"] = analysis_contract_sha256
@@ -1110,24 +1185,24 @@ def publish(
         {"family": family, "path": f"sources/{family}"} for family in sorted(by_family)
     ]
     write_json(collection / "manifest.json", collection_manifest)
-    write_json(
-        collection / "publication-summary.json",
-        {
-            "schema_version": 1,
-            "publication_stage": publication_stage,
-            "analysis_complete": publication_stage == "complete",
-            "analysis_contract_sha256": analysis_contract_sha256,
-            "counts": dict(counts),
-            "static_logic_status": dict(status_counts),
-            "handler_successes": handler_successes,
-            "handler_failures": handler_failures,
-            "static_config_recovered": static_config_count,
-            "confirmed_static_c2_observations": confirmed_c2_count,
-            "cases": summaries,
-            "samples_executed": False,
-            "network_contacted": False,
-        },
-    )
+    publication_summary = {
+        "schema_version": 1,
+        "publication_stage": publication_stage,
+        "analysis_complete": publication_stage == "complete",
+        "analysis_contract_sha256": analysis_contract_sha256,
+        "counts": dict(counts),
+        "static_logic_status": dict(status_counts),
+        "handler_successes": handler_successes,
+        "handler_failures": handler_failures,
+        "static_config_recovered": static_config_count,
+        "confirmed_static_c2_observations": confirmed_c2_count,
+        "cases": summaries,
+        "samples_executed": False,
+        "network_contacted": False,
+    }
+    if post_analysis_publication is not None:
+        publication_summary["post_analysis_publication"] = post_analysis_publication
+    write_json(collection / "publication-summary.json", publication_summary)
     return {
         "published": len(summaries),
         "publication_stage": publication_stage,
@@ -1171,6 +1246,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="整合性検証済みのpartial caseを追加静的解析用stagingとして配置します",
     )
+    parser.add_argument(
+        "--post-analysis-resource-scan-observations",
+        type=int,
+        help="解析後のPE resource coverage hardeningを記録する場合の確認済み観測数",
+    )
+    parser.add_argument(
+        "--post-analysis-resource-failures",
+        type=int,
+        default=0,
+        help="上記観測のうちhardening該当失敗だった件数",
+    )
     return parser
 
 
@@ -1183,6 +1269,8 @@ def main(argv: list[str] | None = None) -> int:
         args.collection_id,
         allow_function_staging=args.allow_function_staging,
         expected_contract_sha256=args.expected_contract_sha256,
+        post_analysis_resource_scan_observations=args.post_analysis_resource_scan_observations,
+        post_analysis_resource_failures=args.post_analysis_resource_failures,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return 0

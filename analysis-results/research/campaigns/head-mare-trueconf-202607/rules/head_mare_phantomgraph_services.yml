@@ -1,0 +1,30 @@
+title: PhantomGraph SysExcSvc／SysReadSvcサービス登録
+id: 5aa1ee21-2a95-4bf3-964b-9ca386a3587e
+status: experimental
+description: TrueConf Server侵害後にPhantomGraphの2 moduleをWindowsサービスとして登録する挙動を検知する。
+references:
+  - https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/
+author: AI-security-analysis
+date: 2026-08-10
+tags:
+  - attack.persistence
+  - attack.privilege-escalation
+  - attack.t1543.003
+logsource:
+  product: windows
+  service: system
+detection:
+  selection_event:
+    EventID: 7045
+  selection_name:
+    ServiceName:
+      - SysExcSvc
+      - SysReadSvc
+  selection_path:
+    ImagePath|contains:
+      - '\Windows\System32\inetsrv\SysExcSvc.dll'
+      - '\Windows\System32\inetsrv\SysReadSvc.dll'
+  condition: selection_event and selection_name and selection_path
+falsepositives:
+  - 同名moduleを使った社内検証。service binaryのhash、署名、作成process、近接するPowerShellを確認する。
+level: high

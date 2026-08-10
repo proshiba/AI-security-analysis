@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "case_id": "head-mare-trueconf-202607",
+  "queried_at_date": "2026-08-10",
+  "public_match_count": 1,
+  "matches": [
+    {
+      "sample_id": "260722-z86htahl6y",
+      "filename": "trueconf_windows_client_x64.exe",
+      "submitted_at_utc": "2026-07-22T21:24:18Z",
+      "completed_at_utc": "2026-07-22T21:30:05Z",
+      "md5": "748c9f8cb1065000616204935f96207f",
+      "sha256": "e66bbb6c651b5ab839434b8e62f502169f35894e28dbe9f3275911582eccd250",
+      "size": 193317970,
+      "format": "Windows x86 Inno Setup",
+      "signature_status": "unsigned_pe",
+      "behavioral_score": 8,
+      "normalized_observations": [
+        "Inno Setup temporary process execution",
+        "existing TrueConf.exe process termination",
+        "inbound firewall rule replacement for TrueConf components",
+        "installed TrueConf.exe launch",
+        "exact CLSID InprocServer32 persistence"
+      ]
+    }
+  ],
+  "excluded_network_context": [
+    {
+      "value": "c.pki.goog",
+      "reason": "certificate revocation infrastructure",
+      "classification": "context_only"
+    },
+    {
+      "value": "162.159.36.2",
+      "reason": "Cloudflare shared edge",
+      "classification": "context_only"
+    }
+  ],
+  "safety": {
+    "sample_submitted": false,
+    "sample_downloaded": false,
+    "artifact_downloaded": false,
+    "memory_downloaded": false,
+    "pcap_downloaded": false,
+    "sample_executed_locally": false
+  }
+}

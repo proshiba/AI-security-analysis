@@ -175,7 +175,7 @@ def test_each_selected_family_uses_only_its_own_layer(tmp_path: Path, monkeypatc
     monkeypatch.setattr(
         one_shot,
         "_run_generic_triage",
-        lambda _layers, _case_dir: (
+        lambda _layers, _case_dir, **_kwargs: (
             {
                 "analysis_coverage": {"status": "complete"},
                 "executed_sample": False,
@@ -1082,7 +1082,7 @@ def test_strongest_ancestor_fallback_is_not_skipped(tmp_path: Path, monkeypatch:
     monkeypatch.setattr(
         one_shot,
         "_run_generic_triage",
-        lambda _layers, _case_dir: (
+        lambda _layers, _case_dir, **_kwargs: (
             {"analysis_coverage": {"status": "complete"}},
             "complete",
         ),

@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">external_api_helpers</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:/home/operator/lab-workspace/AI-security-analysis/analysis-framework/common/external_api_helpers.py">/home/operator/lab-workspace/AI-security-analysis/analysis-framework/common/external_api_helpers.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/external_api_helpers.py">analysis-framework/common/external_api_helpers.py</a></td></tr></table>
     <p><span class="code">検体取得とIOC補強に使う外部APIの小さな共通クライアント。<br>
 &nbsp;<br>
 資格情報は各操作の実行時に環境変数からだけ読み込む。moduleのimportやclientの<br>
@@ -28,11 +28,12 @@
 <a href="ipaddress.html">ipaddress</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
 <a href="os.html">os</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="threading.html">threading</a><br>
+<a href="pyzipper.html">pyzipper</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="threading.html">threading</a><br>
 <a href="time.html">time</a><br>
-<a href="urllib.html">urllib</a><br>
-</td><td class="multicolumn"><a href="uuid.html">uuid</a><br>
+</td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
+<a href="uuid.html">uuid</a><br>
 <a href="zipfile.html">zipfile</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
@@ -63,6 +64,12 @@
 </dt><dt class="heading-text"><a href="external_api_helpers.html#RateLimiter">RateLimiter</a>
 </dt><dt class="heading-text"><a href="external_api_helpers.html#TriageClient">TriageClient</a>
 </dt><dt class="heading-text"><a href="external_api_helpers.html#VirusTotalClient">VirusTotalClient</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>(<a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="external_api_helpers.html#NoRedirectHandler">NoRedirectHandler</a>
 </dt></dl>
 </dd>
 </dl>
@@ -98,18 +105,18 @@ Static methods inherited from <a href="builtins.html#RuntimeError">builtins.Runt
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="CredentialError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="CredentialError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="CredentialError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="CredentialError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="CredentialError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="CredentialError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="CredentialError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="CredentialError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#CredentialError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="CredentialError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#CredentialError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="CredentialError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#CredentialError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="CredentialError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#CredentialError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -134,7 +141,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="ExternalServiceError">class <strong>ExternalServiceError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#ExternalServiceError">ExternalServiceError</a>(message:&nbsp;'str',&nbsp;*,&nbsp;status:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ExternalServiceError">ExternalServiceError</a>(message:&nbsp;'str',&nbsp;*,&nbsp;status:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;code:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 秘密値や応答本文を含めない外部service&nbsp;error。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -147,7 +154,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="ExternalServiceError-__init__"><strong>__init__</strong></a>(self, message: 'str', *, status: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="ExternalServiceError-__init__"><strong>__init__</strong></a>(self, message: 'str', *, status: 'int | None' = None, code: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -162,18 +169,18 @@ Static methods inherited from <a href="builtins.html#RuntimeError">builtins.Runt
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="ExternalServiceError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="ExternalServiceError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="ExternalServiceError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="ExternalServiceError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="ExternalServiceError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="ExternalServiceError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="ExternalServiceError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="ExternalServiceError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ExternalServiceError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="ExternalServiceError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ExternalServiceError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="ExternalServiceError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ExternalServiceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="ExternalServiceError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#ExternalServiceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -198,14 +205,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="HttpClient">class <strong>HttpClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#HttpClient">HttpClient</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;30.0,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;attempts:&nbsp;'int'&nbsp;=&nbsp;3,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;user_agent:&nbsp;'str'&nbsp;=&nbsp;'AI-security-analysis/external-api-helpers/1',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;opener:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;<br>
-)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#HttpClient">HttpClient</a>(*,&nbsp;timeout:&nbsp;'float'&nbsp;=&nbsp;30.0,&nbsp;attempts:&nbsp;'int'&nbsp;=&nbsp;3,&nbsp;user_agent:&nbsp;'str'&nbsp;=&nbsp;'AI-security-analysis/external-api-helpers/1',&nbsp;opener:&nbsp;'Any&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 stdlibだけでtimeout、再試行、応答上限を適用するHTTP&nbsp;client。<br>
 &nbsp;<br>
@@ -213,26 +213,9 @@ header、URL、応答本文をlogや例外へ出さないため、Authorization&
 secretがdebug出力へ混入しない。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="HttpClient-__init__"><strong>__init__</strong></a>(
-    self,
-    *,
-    timeout: 'float' = 30.0,
-    attempts: 'int' = 3,
-    user_agent: 'str' = 'AI-security-analysis/external-api-helpers/1',
-    opener: 'Any | None' = None,
-    sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;
-) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="HttpClient-__init__"><strong>__init__</strong></a>(self, *, timeout: 'float' = 30.0, attempts: 'int' = 3, user_agent: 'str' = 'AI-security-analysis/external-api-helpers/1', opener: 'Any | None' = None, sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt><a name="HttpClient-request"><strong>request</strong></a>(
-    self,
-    method: 'str',
-    url: 'str',
-    *,
-    headers: 'Mapping[str, str] | None' = None,
-    data: 'bytes | None' = None,
-    max_bytes: 'int' = 26214400,
-    limiter: 'RateLimiter | None' = None
-) -&gt; 'HttpResponse'</dt><dd><span class="code">HTTP要求を上限付きで実行し、429と一時的5xxだけを再試行する。</span></dd></dl>
+<dl><dt><a name="HttpClient-request"><strong>request</strong></a>(self, method: 'str', url: 'str', *, headers: 'Mapping[str, str] | None' = None, data: 'bytes | None' = None, max_bytes: 'int' = 26214400, limiter: 'RateLimiter | None' = None) -&gt; 'HttpResponse'</dt><dd><span class="code">HTTP要求を上限付きで実行し、429と一時的5xxだけを再試行する。</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -260,8 +243,6 @@ Data descriptors defined here:<br>
 <dl><dt><a name="HttpResponse-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
 <dl><dt><a name="HttpResponse-__init__"><strong>__init__</strong></a>(self, status: 'int', headers: 'Mapping[str, str]', body: 'bytes') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="HttpResponse-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
 <dl><dt><a name="HttpResponse-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -304,13 +285,7 @@ ZIPを自動展開・実行せず、orchestrator上でdetonateしないこと。
 <td class="singlecolumn">Methods defined here:<br>
 <dl><dt><a name="MalwareBazaarClient-__init__"><strong>__init__</strong></a>(self, *, http: 'HttpClient | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt><a name="MalwareBazaarClient-download_sample"><strong>download_sample</strong></a>(
-    self,
-    sha256: 'str',
-    output_path: 'Path | None' = None,
-    *,
-    downloads_dir: 'Path | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">検体をpassword保護済みZIPのまま保存し、展開せず転送情報を返す。</span></dd></dl>
+<dl><dt><a name="MalwareBazaarClient-download_sample"><strong>download_sample</strong></a>(self, sha256: 'str', output_path: 'Path | None' = None, *, downloads_dir: 'Path | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">検体をpassword保護済みZIPのまま保存し、展開せず転送情報を返す。</span></dd></dl>
 
 <dl><dt><a name="MalwareBazaarClient-query_by_family"><strong>query_by_family</strong></a>(self, family: 'str', *, limit: 'int' = 100) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">family名をMalwareBazaar&nbsp;signatureとして照会し、照会種別を保持する。</span></dd></dl>
 
@@ -334,12 +309,7 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="MaxMindClient">class <strong>MaxMindClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#MaxMindClient">MaxMindClient</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;city_db_path:&nbsp;'Path&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;asn_db_path:&nbsp;'Path&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None<br>
-)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#MaxMindClient">MaxMindClient</a>(city_db_path:&nbsp;'Path&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;asn_db_path:&nbsp;'Path&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;*,&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 local&nbsp;GeoLite2&nbsp;MMDB優先のIP&nbsp;Geo/ASN補強helper。<br>
 &nbsp;<br>
@@ -348,13 +318,7 @@ MALWAREを展開・実行せず、orchestrator上でdetonateしないこと。we
 明示した場合だけ``MAXMIND_LICENSE_KEY``を環境変数から読む。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="MaxMindClient-__init__"><strong>__init__</strong></a>(
-    self,
-    city_db_path: 'Path | None' = None,
-    asn_db_path: 'Path | None' = None,
-    *,
-    http: 'HttpClient | None' = None
-) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="MaxMindClient-__init__"><strong>__init__</strong></a>(self, city_db_path: 'Path | None' = None, asn_db_path: 'Path | None' = None, *, http: 'HttpClient | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="MaxMindClient-enrich_ip"><strong>enrich_ip</strong></a>(self, ip_address: 'str', *, use_web_service: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">IPをcountry、city、ASN、organizationの共通dictへ正規化する。</span></dd></dl>
 
@@ -369,10 +333,82 @@ Data descriptors defined here:<br>
 </td></tr></table> <p>
 <table class="section">
 <tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="NoRedirectHandler">class <strong>NoRedirectHandler</strong></a>(<a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">認証付きTriage&nbsp;API&nbsp;requestのsame-host／cross-host&nbsp;redirectを拒否する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="external_api_helpers.html#NoRedirectHandler">NoRedirectHandler</a></dd>
+<dd><a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a></dd>
+<dd><a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="NoRedirectHandler-redirect_request"><strong>redirect_request</strong></a>(self, req, fp, code, msg, headers, newurl)</dt><dd><span class="code">Return&nbsp;a&nbsp;Request&nbsp;or&nbsp;None&nbsp;in&nbsp;response&nbsp;to&nbsp;a&nbsp;redirect.<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;called&nbsp;by&nbsp;the&nbsp;http_error_30x&nbsp;methods&nbsp;when&nbsp;a<br>
+redirection&nbsp;response&nbsp;is&nbsp;received.&nbsp;&nbsp;If&nbsp;a&nbsp;redirection&nbsp;should<br>
+take&nbsp;place,&nbsp;return&nbsp;a&nbsp;new&nbsp;Request&nbsp;to&nbsp;allow&nbsp;http_error_30x&nbsp;to<br>
+perform&nbsp;the&nbsp;redirect.&nbsp;&nbsp;Otherwise,&nbsp;raise&nbsp;HTTPError&nbsp;if&nbsp;no-one<br>
+else&nbsp;should&nbsp;try&nbsp;to&nbsp;handle&nbsp;this&nbsp;url.&nbsp;&nbsp;Return&nbsp;None&nbsp;if&nbsp;you&nbsp;can't<br>
+but&nbsp;another&nbsp;Handler&nbsp;might.</span></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>redirects_denied</strong> = True</dl>
+
+<hr>
+Methods inherited from <a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>:<br>
+<dl><dt><a name="NoRedirectHandler-http_error_301"><strong>http_error_301</strong></a> = <a href="#NoRedirectHandler-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
+
+<dl><dt><a name="NoRedirectHandler-http_error_302"><strong>http_error_302</strong></a>(self, req, fp, code, msg, headers)</dt><dd><span class="code">#&nbsp;Implementation&nbsp;note:&nbsp;To&nbsp;avoid&nbsp;the&nbsp;server&nbsp;sending&nbsp;us&nbsp;into&nbsp;an<br>
+#&nbsp;infinite&nbsp;loop,&nbsp;the&nbsp;request&nbsp;<a href="builtins.html#object">object</a>&nbsp;needs&nbsp;to&nbsp;track&nbsp;what&nbsp;URLs&nbsp;we<br>
+#&nbsp;have&nbsp;already&nbsp;seen.&nbsp;&nbsp;Do&nbsp;this&nbsp;by&nbsp;adding&nbsp;a&nbsp;handler-specific<br>
+#&nbsp;attribute&nbsp;to&nbsp;the&nbsp;Request&nbsp;<a href="builtins.html#object">object</a>.</span></dd></dl>
+
+<dl><dt><a name="NoRedirectHandler-http_error_303"><strong>http_error_303</strong></a> = <a href="#NoRedirectHandler-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
+
+<dl><dt><a name="NoRedirectHandler-http_error_307"><strong>http_error_307</strong></a> = <a href="#NoRedirectHandler-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
+
+<dl><dt><a name="NoRedirectHandler-http_error_308"><strong>http_error_308</strong></a> = <a href="#NoRedirectHandler-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
+
+<hr>
+Data and other attributes inherited from <a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>:<br>
+<dl><dt><strong>inf_msg</strong> = 'The HTTP server returned a redirect error that w...n infinite loop.<span class="repr">\n</span>The last 30x error message was:<span class="repr">\n</span>'</dl>
+
+<dl><dt><strong>max_redirections</strong> = 10</dl>
+
+<dl><dt><strong>max_repeats</strong> = 4</dl>
+
+<hr>
+Methods inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
+<dl><dt><a name="NoRedirectHandler-__lt__"><strong>__lt__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
+
+<dl><dt><a name="NoRedirectHandler-add_parent"><strong>add_parent</strong></a>(self, parent)</dt></dl>
+
+<dl><dt><a name="NoRedirectHandler-close"><strong>close</strong></a>(self)</dt></dl>
+
+<hr>
+Data descriptors inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
+<dl><dt><strong>handler_order</strong> = 500</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><a name="RateLimitError">class <strong>RateLimitError</strong></a>(<a href="external_api_helpers.html#ExternalServiceError">ExternalServiceError</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RateLimitError">RateLimitError</a>(message:&nbsp;'str',&nbsp;*,&nbsp;status:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RateLimitError">RateLimitError</a>(message:&nbsp;'str',&nbsp;*,&nbsp;status:&nbsp;'int&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;code:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 設定した日次request上限へ達したことを示す。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -386,7 +422,7 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Methods inherited from <a href="external_api_helpers.html#ExternalServiceError">ExternalServiceError</a>:<br>
-<dl><dt><a name="RateLimitError-__init__"><strong>__init__</strong></a>(self, message: 'str', *, status: 'int | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="RateLimitError-__init__"><strong>__init__</strong></a>(self, message: 'str', *, status: 'int | None' = None, code: 'str | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <hr>
 Data descriptors inherited from <a href="external_api_helpers.html#ExternalServiceError">ExternalServiceError</a>:<br>
@@ -401,18 +437,18 @@ Static methods inherited from <a href="builtins.html#RuntimeError">builtins.Runt
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="RateLimitError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="RateLimitError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="RateLimitError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="RateLimitError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="RateLimitError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="RateLimitError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="RateLimitError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="RateLimitError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#RateLimitError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="RateLimitError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RateLimitError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="RateLimitError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#RateLimitError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="RateLimitError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#RateLimitError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -437,27 +473,12 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="RateLimiter">class <strong>RateLimiter</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#RateLimiter">RateLimiter</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;requests_per_minute:&nbsp;'int'&nbsp;=&nbsp;4,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;requests_per_day:&nbsp;'int'&nbsp;=&nbsp;500,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;day_provider:&nbsp;'Callable[[],&nbsp;date]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;method&nbsp;today&nbsp;of&nbsp;type&nbsp;<a href="builtins.html#object">object</a>&nbsp;at&nbsp;0xa23ac0&amp;gt;,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;<br>
-)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RateLimiter">RateLimiter</a>(requests_per_minute:&nbsp;'int'&nbsp;=&nbsp;4,&nbsp;requests_per_day:&nbsp;'int'&nbsp;=&nbsp;500,&nbsp;*,&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,&nbsp;day_provider:&nbsp;'Callable[[],&nbsp;date]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;method&nbsp;today&nbsp;of&nbsp;type&nbsp;<a href="builtins.html#object">object</a>&nbsp;at&nbsp;0x00007FF9ACB7FA60&amp;gt;,&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 request間隔と日次件数をprocess内で制限する簡易limiter。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="RateLimiter-__init__"><strong>__init__</strong></a>(
-    self,
-    requests_per_minute: 'int' = 4,
-    requests_per_day: 'int' = 500,
-    *,
-    clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;,
-    day_provider: 'Callable[[], date]' = &lt;built-in method today of type object at 0xa23ac0&gt;,
-    sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;
-) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="RateLimiter-__init__"><strong>__init__</strong></a>(self, requests_per_minute: 'int' = 4, requests_per_day: 'int' = 500, *, clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;, day_provider: 'Callable[[], date]' = &lt;built-in method today of type object at 0x00007FF9ACB7FA60&gt;, sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="RateLimiter-acquire"><strong>acquire</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">必要なら待機し、1&nbsp;request分の日次枠を確保する。</span></dd></dl>
 
@@ -475,12 +496,7 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="TriageClient">class <strong>TriageClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#TriageClient">TriageClient</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;<br>
-)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TriageClient">TriageClient</a>(*,&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;sleeper:&nbsp;'Callable[[float],&nbsp;None]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;sleep&amp;gt;,&nbsp;clock:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 Hatching&nbsp;Triageの検体、analysis、report、memory&nbsp;artifact&nbsp;helper。<br>
 &nbsp;<br>
@@ -489,54 +505,25 @@ Hatching&nbsp;Triageの検体、analysis、report、memory&nbsp;artifact&nbsp;he
 sandbox&nbsp;workflowだけで使う。``TRIAGE_API_KEY``は操作時に環境変数からだけ読む。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="TriageClient-__init__"><strong>__init__</strong></a>(
-    self,
-    *,
-    http: 'HttpClient | None' = None,
-    sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;,
-    clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;
-) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="TriageClient-__init__"><strong>__init__</strong></a>(self, *, http: 'HttpClient | None' = None, sleeper: 'Callable[[float], None]' = &lt;built-in function sleep&gt;, clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt><a name="TriageClient-fetch_sample"><strong>fetch_sample</strong></a>(
-    self,
-    sample_id: 'str',
-    output_path: 'Path | None' = None,
-    *,
-    downloads_dir: 'Path | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Triage検体をserver提供の暗号化ZIPのまま保存し、自動展開しない。</span></dd></dl>
+<dl><dt><a name="TriageClient-fetch_sample"><strong>fetch_sample</strong></a>(self, sample_id: 'str', output_path: 'Path | None' = None, *, downloads_dir: 'Path | None' = None, expected_sha256: 'str | None' = None, password: 'str' = 'infected', member_name: 'str | None' = None, max_bytes: 'int' = 536870912) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Triage検体を暗号化ZIPとして保存し、平文をdiskへ書かない。<br>
+&nbsp;<br>
+serverが暗号化ZIPを返す既存経路では応答byteをそのまま保存する。raw応答は<br>
+``expected_sha256``との完全一致を必須とし、memory上でWinZip&nbsp;AES-256へ包んで<br>
+からだけ保存する。</span></dd></dl>
 
 <dl><dt><a name="TriageClient-get_analysis_status"><strong>get_analysis_status</strong></a>(self, sample_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Triage&nbsp;sample&nbsp;metadataからanalysis&nbsp;statusを返す。</span></dd></dl>
 
 <dl><dt><a name="TriageClient-list_memory_dump_artifacts"><strong>list_memory_dump_artifacts</strong></a>(self, sample_id: 'str') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから取得可能なmemory&nbsp;artifact候補だけを列挙する。</span></dd></dl>
 
-<dl><dt><a name="TriageClient-poll_analysis_status"><strong>poll_analysis_status</strong></a>(
-    self,
-    sample_id: 'str',
-    *,
-    interval_seconds: 'float' = 15.0,
-    timeout_seconds: 'float' = 900.0
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">analysisがterminal&nbsp;statusになるまで上限時間内でpollする。</span></dd></dl>
+<dl><dt><a name="TriageClient-poll_analysis_status"><strong>poll_analysis_status</strong></a>(self, sample_id: 'str', *, interval_seconds: 'float' = 15.0, timeout_seconds: 'float' = 900.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">analysisがterminal&nbsp;statusになるまで上限時間内でpollする。</span></dd></dl>
 
 <dl><dt><a name="TriageClient-retrieve_behavioral_report"><strong>retrieve_behavioral_report</strong></a>(self, sample_id: 'str', task_id: 'str | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">Triage&nbsp;behavioral&nbsp;reportをraw&nbsp;commandを除いた共通形式へ要約する。</span></dd></dl>
 
-<dl><dt><a name="TriageClient-retrieve_memory_dump"><strong>retrieve_memory_dump</strong></a>(
-    self,
-    sample_id: 'str',
-    task_id: 'str',
-    artifact_name: 'str',
-    output_path: 'Path',
-    *,
-    max_bytes: 'int' = 67108864
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">指定memory&nbsp;dumpを不透明なartifactとして保存し、解析・実行しない。</span></dd></dl>
+<dl><dt><a name="TriageClient-retrieve_memory_dump"><strong>retrieve_memory_dump</strong></a>(self, sample_id: 'str', task_id: 'str', artifact_name: 'str', output_path: 'Path', *, max_bytes: 'int' = 67108864) -&gt; 'dict[str, Any]'</dt><dd><span class="code">指定memory&nbsp;dumpを不透明なartifactとして保存し、解析・実行しない。</span></dd></dl>
 
-<dl><dt><a name="TriageClient-submit_sample"><strong>submit_sample</strong></a>(
-    self,
-    sample_path: 'Path',
-    *,
-    profiles: 'Sequence[str]' = (),
-    tags: 'Sequence[str]' = (),
-    timeout_seconds: 'int | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">明示した検体をTriageへsubmitし、orchestratorでは実行しない。</span></dd></dl>
+<dl><dt><a name="TriageClient-submit_sample"><strong>submit_sample</strong></a>(self, sample_path: 'Path', *, profiles: 'Sequence[str]' = (), tags: 'Sequence[str]' = (), timeout_seconds: 'int | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">明示した検体をTriageへsubmitし、orchestratorでは実行しない。</span></dd></dl>
 
 <hr>
 Data descriptors defined here:<br>
@@ -552,11 +539,7 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><a name="VirusTotalClient">class <strong>VirusTotalClient</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#VirusTotalClient">VirusTotalClient</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;limiter:&nbsp;'<a href="#RateLimiter">RateLimiter</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None<br>
-)&nbsp;-&amp;gt;&nbsp;'None'<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#VirusTotalClient">VirusTotalClient</a>(*,&nbsp;http:&nbsp;'<a href="#HttpClient">HttpClient</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,&nbsp;limiter:&nbsp;'<a href="#RateLimiter">RateLimiter</a>&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;'None'<br>
 &nbsp;<br>
 VirusTotal&nbsp;v3のfile&nbsp;hash、IP、domain、behavior補強helper。<br>
 &nbsp;<br>
@@ -565,12 +548,7 @@ orchestrator上でdetonateしないこと。``VT_API_KEY``は各操作時に環�
 だけ読む。既定limiterはpublic&nbsp;APIの4&nbsp;request/分、500&nbsp;request/日である。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="VirusTotalClient-__init__"><strong>__init__</strong></a>(
-    self,
-    *,
-    http: 'HttpClient | None' = None,
-    limiter: 'RateLimiter | None' = None
-) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="VirusTotalClient-__init__"><strong>__init__</strong></a>(self, *, http: 'HttpClient | None' = None, limiter: 'RateLimiter | None' = None) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="VirusTotalClient-enrich_domain"><strong>enrich_domain</strong></a>(self, domain: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">domainのVirusTotal&nbsp;reputation、登録情報、直近解決先を正規化する。</span></dd></dl>
 
@@ -594,5 +572,5 @@ Data descriptors defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>__all__</strong> = ['CredentialError', 'ExternalServiceError', 'HttpClient', 'HttpResponse', 'MalwareBazaarClient', 'MaxMindClient', 'RateLimitError', 'RateLimiter', 'TriageClient', 'VirusTotalClient']</td></tr></table>
+<td class="singlecolumn"><strong>__all__</strong> = ['CredentialError', 'ExternalServiceError', 'HttpClient', 'HttpResponse', 'MalwareBazaarClient', 'MaxMindClient', 'NoRedirectHandler', 'RateLimitError', 'RateLimiter', 'TriageClient', 'VirusTotalClient']</td></tr></table>
 </body></html>

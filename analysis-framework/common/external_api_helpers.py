@@ -12,24 +12,26 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
-from datetime import date
 import hashlib
-from io import BytesIO
 import ipaddress
 import json
 import os
-from pathlib import Path
 import re
 import threading
 import time
-from typing import Any
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
 import zipfile
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
+from datetime import date
+from io import BytesIO
+from pathlib import Path
+from typing import Any
+
+import pyzipper
 
 __all__ = [
     "CredentialError",
@@ -38,6 +40,7 @@ __all__ = [
     "HttpResponse",
     "MalwareBazaarClient",
     "MaxMindClient",
+    "NoRedirectHandler",
     "RateLimitError",
     "RateLimiter",
     "TriageClient",
@@ -73,9 +76,16 @@ class CredentialError(RuntimeError):
 class ExternalServiceError(RuntimeError):
     """秘密値や応答本文を含めない外部service error。"""
 
-    def __init__(self, message: str, *, status: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int | None = None,
+        code: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.status = status
+        self.code = code
 
 
 class RateLimitError(ExternalServiceError):
@@ -165,6 +175,23 @@ class HttpClient:
         self.attempts = attempts
         self.user_agent = user_agent
         self._opener = opener or urllib.request.build_opener()
+        opener_handlers = getattr(self._opener, "handlers", ())
+        if not isinstance(opener_handlers, Sequence):
+            opener_handlers = ()
+        redirect_handlers = [
+            handler
+            for handler in opener_handlers
+            if isinstance(handler, urllib.request.HTTPRedirectHandler)
+        ]
+        if redirect_handlers:
+            self.redirects_denied = all(
+                getattr(handler, "redirects_denied", False) is True
+                for handler in redirect_handlers
+            )
+        else:
+            self.redirects_denied = (
+                getattr(self._opener, "redirects_denied", False) is True
+            )
         self._sleeper = sleeper
 
     def request(
@@ -200,7 +227,10 @@ class HttpClient:
                 with self._opener.open(request, timeout=self.timeout) as response:
                     body = response.read(max_bytes + 1)
                     if len(body) > max_bytes:
-                        raise ExternalServiceError("外部API応答が設定したbyte上限を超えました")
+                        raise ExternalServiceError(
+                            "外部API応答が設定したbyte上限を超えました",
+                            code="response_size_limit_exceeded",
+                        )
                     raw_status = getattr(response, "status", None)
                     status = int(raw_status if raw_status is not None else response.getcode())
                     response_headers = {
@@ -411,7 +441,7 @@ class MaxMindClient:
     def _web_lookup(self, ip_address: str) -> dict[str, Any]:
         account_id = _require_environment("MAXMIND_ACCOUNT_ID")
         license_key = _require_environment("MAXMIND_LICENSE_KEY")
-        token = base64.b64encode(f"{account_id}:{license_key}".encode("utf-8")).decode("ascii")
+        token = base64.b64encode(f"{account_id}:{license_key}".encode()).decode("ascii")
         response = self.http.request(
             "GET",
             f"{MAXMIND_WEB_API}/city/{urllib.parse.quote(ip_address, safe=':.')}",
@@ -578,6 +608,18 @@ class VirusTotalClient:
         return _json_mapping(response)
 
 
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """認証付きTriage API requestのsame-host／cross-host redirectを拒否する。"""
+
+    redirects_denied = True
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201
+        raise urllib.error.HTTPError(req.full_url, code, "redirect refused", headers, fp)
+
+
+_NoRedirect = NoRedirectHandler
+
+
 class TriageClient:
     """Hatching Triageの検体、analysis、report、memory artifact helper。
 
@@ -593,7 +635,17 @@ class TriageClient:
         sleeper: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self.http = http or HttpClient(timeout=60.0, attempts=4)
+        if http is None:
+            http = HttpClient(
+                timeout=60.0,
+                attempts=4,
+                opener=urllib.request.build_opener(NoRedirectHandler()),
+            )
+        if getattr(http, "redirects_denied", False) is not True:
+            raise ValueError(
+                "Triage HTTP transportにはredirect拒否capabilityが必要です"
+            )
+        self.http = http
         self._sleeper = sleeper
         self._clock = clock
 
@@ -603,32 +655,87 @@ class TriageClient:
         output_path: Path | None = None,
         *,
         downloads_dir: Path | None = None,
+        expected_sha256: str | None = None,
+        password: str = "infected",
+        member_name: str | None = None,
+        max_bytes: int = DEFAULT_MAX_SAMPLE_BYTES,
     ) -> dict[str, Any]:
-        """Triage検体をserver提供の暗号化ZIPのまま保存し、自動展開しない。"""
+        """Triage検体を暗号化ZIPとして保存し、平文をdiskへ書かない。
 
+        serverが暗号化ZIPを返す既存経路では応答byteをそのまま保存する。raw応答は
+        ``expected_sha256``との完全一致を必須とし、memory上でWinZip AES-256へ包んで
+        からだけ保存する。
+        """
+
+        if (
+            isinstance(max_bytes, bool)
+            or not isinstance(max_bytes, int)
+            or not 1 <= max_bytes <= DEFAULT_MAX_SAMPLE_BYTES
+        ):
+            raise ValueError("root sample上限は1 byteから512 MiBの範囲が必要です")
         identifier = _normalize_sample_id(sample_id)
         response = self._request(
             "GET",
             f"/samples/{identifier}/sample",
             accept="application/zip, application/octet-stream",
-            max_bytes=DEFAULT_MAX_SAMPLE_BYTES,
+            max_bytes=max_bytes,
         )
-        _require_encrypted_zip(response.body, "Hatching Triage")
+        source = response.body
+        if len(source) > max_bytes:
+            raise ExternalServiceError(
+                "Triage sample応答が設定したbyte上限を超えました",
+                code="response_size_limit_exceeded",
+            )
+        source_sha256 = hashlib.sha256(source).hexdigest()
+        server_response_encrypted_zip = _is_encrypted_zip(source)
+        archive_member_name: str | None = None
+        if server_response_encrypted_zip:
+            archive_bytes = source
+            archive_encryption = "server_provided_encrypted_zip"
+        else:
+            if expected_sha256 is None:
+                raise ExternalServiceError("Triage raw sample応答にはexpected_sha256が必要です")
+            expected = _normalize_sha256(expected_sha256)
+            if source_sha256 != expected:
+                raise ExternalServiceError("Triage raw sample応答のSHA-256が要求値と一致しません")
+            archive_member_name = _safe_filename(member_name or f"{identifier}.bin")
+            archive_bytes = _encrypted_zip_bytes(
+                source,
+                archive_member_name,
+                password,
+            )
+            _require_encrypted_zip(
+                archive_bytes,
+                "memory上で生成したTriage archive",
+            )
+            archive_encryption = "WinZip AES-256"
+        if len(archive_bytes) > max_bytes:
+            raise ExternalServiceError(
+                "Triage sample archiveが設定したbyte上限を超えました",
+                code="archive_size_limit_exceeded",
+            )
         destination = _download_destination(
             output_path,
             downloads_dir,
             default_subdirectory="triage",
             filename=f"{identifier}.zip",
         )
-        _write_new_file(destination, response.body)
+        _write_new_file(destination, archive_bytes)
         return {
             "source": "hatching_triage",
             "sample_id": identifier,
             "archive_path": str(destination),
-            "archive_sha256": hashlib.sha256(response.body).hexdigest(),
-            "archive_size": len(response.body),
+            "archive_sha256": hashlib.sha256(archive_bytes).hexdigest(),
+            "archive_size": len(archive_bytes),
+            "archive_size_limit": max_bytes,
             "archive_encrypted": True,
+            "archive_encryption": archive_encryption,
+            "archive_member_name": archive_member_name,
             "archive_extracted": False,
+            "server_response_encrypted_zip": server_response_encrypted_zip,
+            "source_sha256": source_sha256,
+            "source_size": len(source),
+            "plaintext_written": False,
             "sample_executed_locally": False,
         }
 
@@ -958,9 +1065,41 @@ def _write_new_file(path: Path, data: bytes) -> None:
     try:
         with temporary.open("xb") as handle:
             handle.write(data)
-        temporary.replace(path)
+        try:
+            os.link(temporary, path)
+        except FileExistsError as error:
+            raise FileExistsError(f"既存のdownload先は上書きしません: {path}") from error
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _is_encrypted_zip(data: bytes) -> bool:
+    """応答全体が1件以上の暗号化memberを持つZIPならtrueを返す。"""
+
+    try:
+        with zipfile.ZipFile(BytesIO(data)) as archive:
+            files = [item for item in archive.infolist() if not item.is_dir()]
+            return bool(files) and all(item.flag_bits & 0x1 for item in files)
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
+def _encrypted_zip_bytes(data: bytes, member_name: str, password: str) -> bytes:
+    """平文をdiskへ書かず、memory上でWinZip AES-256 ZIPを作る。"""
+
+    safe_name = _safe_filename(member_name)
+    safe_password = _bounded_text(password, "ZIP password")
+    buffer = BytesIO()
+    with pyzipper.AESZipFile(
+        buffer,
+        "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES,
+    ) as archive:
+        archive.setpassword(safe_password.encode("utf-8"))
+        archive.setencryption(pyzipper.WZ_AES, nbits=256)
+        archive.writestr(safe_name, data)
+    return buffer.getvalue()
 
 
 def _require_encrypted_zip(data: bytes, source: str) -> None:
@@ -1046,9 +1185,7 @@ def _multipart_body(
     chunks.extend(
         [
             f"--{boundary}\r\n".encode("ascii"),
-            f'Content-Disposition: form-data; name="file"; filename="{safe_name}"\r\n'.encode(
-                "utf-8"
-            ),
+            f'Content-Disposition: form-data; name="file"; filename="{safe_name}"\r\n'.encode(),
             b"Content-Type: application/octet-stream\r\n\r\n",
             sample,
             b"\r\n",

@@ -17,6 +17,13 @@ from pathlib import Path
 from typing import Any
 
 import pyzipper
+from external_api_helpers import (
+    DEFAULT_MAX_SAMPLE_BYTES,
+    ExternalServiceError,
+    HttpClient,
+    NoRedirectHandler,
+    TriageClient,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 TRIAGE_API = "https://tria.ge/api/v0"
@@ -27,14 +34,12 @@ TASK_ID_RE = re.compile(r"^behavioral\d+$")
 MEMORY_RESOURCE_RE = re.compile(r"^(behavioral\d+)/memory/([^/]+)$")
 DEFAULT_MAX_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_TOTAL_BYTES = 256 * 1024 * 1024
+DEFAULT_MAX_ROOT_TOTAL_BYTES = DEFAULT_MAX_SAMPLE_BYTES
+MAX_ROOT_TOTAL_BYTES = 1024 * 1024 * 1024
 MAX_JSON_BYTES = 25 * 1024 * 1024
 
 
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-    """レビュー済みAPI pathから別scopeへ移るredirectを拒否する。"""
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201
-        raise urllib.error.HTTPError(req.full_url, code, "redirect refused", headers, fp)
+NoRedirect = NoRedirectHandler
 
 
 def utc_now() -> str:
@@ -49,6 +54,8 @@ def safe_error_record(error: Exception) -> dict[str, Any]:
     record: dict[str, Any] = {"error": type(error).__name__}
     if isinstance(error, urllib.error.HTTPError):
         record["http_status"] = int(error.code)
+    elif isinstance(error, ExternalServiceError) and error.code:
+        record["reason"] = error.code
     elif isinstance(error, ValueError):
         record["reason"] = str(error)
     return record
@@ -387,6 +394,7 @@ def discover_candidates(
     opener: Any,
     timeout: float,
     include_memory: bool,
+    root_sample_candidates: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     """完全hash一致の公開解析から取得候補と失敗分類を列挙する。"""
 
@@ -415,6 +423,18 @@ def discover_candidates(
                     sample_id, opener=opener, timeout=timeout
                 ):
                     raise ValueError("公開解析ではないため成果物取得を拒否しました")
+                if root_sample_candidates is not None:
+                    root_sample_candidates.append(
+                        {
+                            "parent_sha256": digest,
+                            "expected_sha256": digest,
+                            "sample_id": sample_id,
+                            "kind": "root_sample",
+                            "selection": "exact_sha256_public_triage_analysis",
+                            "endpoint_path": f"/samples/{sample_id}/sample",
+                            "metadata_sha256_verified": True,
+                        }
+                    )
                 overview = api_json(
                     f"/samples/{sample_id}/overview.json",
                     api_key,
@@ -442,6 +462,152 @@ def discover_candidates(
     return list(unique.values()), errors
 
 
+def _deduplicate_root_sample_candidates(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """同一hashのroot sampleを、最初に検証できた公開解析1件へ限定する。"""
+
+    unique: dict[str, dict[str, Any]] = {}
+    for candidate in candidates:
+        digest = normalize_sha256(candidate.get("expected_sha256"))
+        if normalize_sha256(candidate.get("parent_sha256")) != digest:
+            raise ValueError("root sample候補の親SHA-256が要求値と一致しません")
+        sample_id = str(candidate.get("sample_id") or "")
+        if not SAMPLE_ID_RE.fullmatch(sample_id):
+            raise ValueError("root sample候補のsample ID形式が不正です")
+        unique.setdefault(digest, candidate)
+    return list(unique.values())
+
+
+def _retrieve_root_samples(
+    candidates: list[dict[str, Any]],
+    *,
+    output_root: Path,
+    password: str,
+    client: TriageClient,
+    max_samples: int,
+    max_sample_bytes: int,
+    max_total_bytes: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    """root sampleを応答・合計上限内で取得し、失敗を構造化して返す。"""
+
+    if not 1 <= max_samples <= 100:
+        raise ValueError("max_samplesは1から100の範囲が必要です")
+    if (
+        isinstance(max_sample_bytes, bool)
+        or not isinstance(max_sample_bytes, int)
+        or not 1 <= max_sample_bytes <= DEFAULT_MAX_SAMPLE_BYTES
+    ):
+        raise ValueError("root sample応答上限は1 byteから512 MiBの範囲が必要です")
+    if (
+        isinstance(max_total_bytes, bool)
+        or not isinstance(max_total_bytes, int)
+        or not 1 <= max_total_bytes <= MAX_ROOT_TOTAL_BYTES
+    ):
+        raise ValueError("root sample合計上限は1 byteから1 GiBの範囲が必要です")
+
+    downloads: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    exhausted_reasons: list[str] = []
+    archive_total_bytes = 0
+    attempted_count = 0
+    for candidate in candidates[:max_samples]:
+        expected_sha256 = candidate.get("expected_sha256")
+        sample_id = str(candidate.get("sample_id") or "")
+        remaining = max_total_bytes - archive_total_bytes
+        if remaining <= 0:
+            reason = "root_sample_aggregate_byte_budget_exhausted"
+            exhausted_reasons.append(reason)
+            errors.append(
+                {
+                    "parent_sha256": str(candidate.get("parent_sha256") or ""),
+                    "expected_sha256": str(expected_sha256 or ""),
+                    "sample_id": sample_id,
+                    "stage": "root_sample_download",
+                    "error": "RootSampleBudgetExceeded",
+                    "reason": reason,
+                }
+            )
+            break
+        effective_max_bytes = min(max_sample_bytes, remaining)
+        attempted_count += 1
+        try:
+            digest = normalize_sha256(expected_sha256)
+            if normalize_sha256(candidate.get("parent_sha256")) != digest:
+                raise ValueError("root sample候補の親SHA-256が要求値と一致しません")
+            if not SAMPLE_ID_RE.fullmatch(sample_id):
+                raise ValueError("root sample候補のsample ID形式が不正です")
+            destination = output_root / digest / sample_id / "root-sample.zip"
+            result = client.fetch_sample(
+                sample_id,
+                output_path=destination,
+                expected_sha256=digest,
+                password=password,
+                member_name=f"{digest}.bin",
+                max_bytes=effective_max_bytes,
+            )
+            if result.get("archive_encrypted") is not True:
+                raise ValueError("root sample archiveが暗号化済みではありません")
+            if result.get("plaintext_written") is not False:
+                raise ValueError("root sample取得で平文がdiskへ書き込まれました")
+            archive_size = result.get("archive_size")
+            if (
+                isinstance(archive_size, bool)
+                or not isinstance(archive_size, int)
+                or not 1 <= archive_size <= effective_max_bytes
+            ):
+                raise ValueError("root sample archive sizeが取得上限と整合しません")
+            archive_total_bytes += archive_size
+            downloads.append(
+                {
+                    **candidate,
+                    **result,
+                    "expected_sha256": digest,
+                    "effective_max_bytes": effective_max_bytes,
+                    "payload_sha256_verified": not bool(
+                        result.get("server_response_encrypted_zip")
+                    ),
+                    "metadata_sha256_verified": True,
+                }
+            )
+        except Exception as error:  # helper/network/filesystemは異種例外を返す
+            error_record = safe_error_record(error)
+            errors.append(
+                {
+                    "parent_sha256": str(candidate.get("parent_sha256") or ""),
+                    "expected_sha256": str(expected_sha256 or ""),
+                    "sample_id": sample_id,
+                    "stage": "root_sample_download",
+                    **error_record,
+                }
+            )
+            if (
+                error_record.get("reason")
+                in {
+                    "archive_size_limit_exceeded",
+                    "response_size_limit_exceeded",
+                }
+                and effective_max_bytes < max_sample_bytes
+            ):
+                exhausted_reasons.append(
+                    "root_sample_aggregate_byte_budget_exhausted"
+                )
+                break
+
+    exhausted_reasons = list(dict.fromkeys(exhausted_reasons))
+    budget = {
+        "status": "partial" if errors else "complete",
+        "configured_per_response_bytes": max_sample_bytes,
+        "configured_aggregate_bytes": max_total_bytes,
+        "attempted_count": attempted_count,
+        "archive_total_bytes": archive_total_bytes,
+        "remaining_bytes": max_total_bytes - archive_total_bytes,
+        "budget_exhausted": bool(exhausted_reasons),
+        "exhausted_reasons": exhausted_reasons,
+    }
+    return downloads, errors, budget
+
+
 def build_parser() -> argparse.ArgumentParser:
     """限定取得CLIの引数parserを構築する。"""
 
@@ -453,7 +619,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--download", action="store_true")
     parser.add_argument("--include-memory", action="store_true")
+    parser.add_argument(
+        "--include-root-sample",
+        action="store_true",
+        help="--download時に、完全SHA-256一致を確認した公開解析のroot sampleも取得する",
+    )
     parser.add_argument("--max-artifacts", type=int, default=20)
+    parser.add_argument("--max-root-samples", type=int, default=1)
+    parser.add_argument(
+        "--max-root-sample-bytes",
+        type=int,
+        default=DEFAULT_MAX_SAMPLE_BYTES,
+    )
+    parser.add_argument(
+        "--max-root-total-bytes",
+        type=int,
+        default=DEFAULT_MAX_ROOT_TOTAL_BYTES,
+    )
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES)
     parser.add_argument("--max-total-bytes", type=int, default=DEFAULT_MAX_TOTAL_BYTES)
     parser.add_argument("--timeout", type=float, default=30.0)
@@ -471,6 +653,12 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("max_artifactsは1から100の範囲が必要です")
     if not 1 <= args.max_total_bytes <= 1024 * 1024 * 1024:
         raise ValueError("max_total_bytesは1から1GiBの範囲が必要です")
+    if not 1 <= args.max_root_samples <= 100:
+        raise ValueError("max_root_samplesは1から100の範囲が必要です")
+    if not 1 <= args.max_root_sample_bytes <= DEFAULT_MAX_SAMPLE_BYTES:
+        raise ValueError("max_root_sample_bytesは1 byteから512 MiBの範囲が必要です")
+    if not 1 <= args.max_root_total_bytes <= MAX_ROOT_TOTAL_BYTES:
+        raise ValueError("max_root_total_bytesは1 byteから1 GiBの範囲が必要です")
     api_key = os.environ.get("TRIAGE_API_KEY", "")
     if not api_key:
         raise SystemExit("TRIAGE_API_KEYが必要です")
@@ -487,12 +675,16 @@ def main(argv: list[str] | None = None) -> int:
     output_root = _outside_repository(args.output_root)
     output_root.mkdir(parents=True, exist_ok=True)
     opener = urllib.request.build_opener(NoRedirect())
+    root_sample_candidates: list[dict[str, Any]] = []
     candidates, errors = discover_candidates(
         hashes,
         api_key,
         opener=opener,
         timeout=args.timeout,
         include_memory=args.include_memory,
+        root_sample_candidates=(
+            root_sample_candidates if args.include_root_sample else None
+        ),
     )
     if reviewed_candidates:
         verify_reviewed_candidates(
@@ -506,7 +698,35 @@ def main(argv: list[str] | None = None) -> int:
             for item in [*candidates, *reviewed_candidates]
         }
         candidates = list(merged.values())
+        if args.include_root_sample:
+            root_sample_candidates.extend(
+                {
+                    "parent_sha256": item["parent_sha256"],
+                    "expected_sha256": item["parent_sha256"],
+                    "sample_id": item["sample_id"],
+                    "kind": "root_sample",
+                    "selection": "reviewed_exact_sha256_public_triage_analysis",
+                    "endpoint_path": f"/samples/{item['sample_id']}/sample",
+                    "metadata_sha256_verified": True,
+                }
+                for item in reviewed_candidates
+            )
+    root_sample_candidates = _deduplicate_root_sample_candidates(
+        root_sample_candidates
+    )
     downloads: list[dict[str, Any]] = []
+    root_sample_downloads: list[dict[str, Any]] = []
+    root_sample_errors: list[dict[str, Any]] = []
+    root_sample_budget: dict[str, Any] = {
+        "status": "not_requested" if not args.include_root_sample else "not_started",
+        "configured_per_response_bytes": args.max_root_sample_bytes,
+        "configured_aggregate_bytes": args.max_root_total_bytes,
+        "attempted_count": 0,
+        "archive_total_bytes": 0,
+        "remaining_bytes": args.max_root_total_bytes,
+        "budget_exhausted": False,
+        "exhausted_reasons": [],
+    }
     total_bytes = 0
     if args.download:
         for candidate in candidates[: args.max_artifacts]:
@@ -552,6 +772,27 @@ def main(argv: list[str] | None = None) -> int:
                     }
                 )
 
+        if args.include_root_sample:
+            (
+                root_sample_downloads,
+                root_sample_errors,
+                root_sample_budget,
+            ) = _retrieve_root_samples(
+                root_sample_candidates,
+                output_root=output_root,
+                password=args.password,
+                client=TriageClient(
+                    http=HttpClient(
+                        timeout=args.timeout,
+                        attempts=1,
+                        opener=opener,
+                    )
+                ),
+                max_samples=args.max_root_samples,
+                max_sample_bytes=args.max_root_sample_bytes,
+                max_total_bytes=args.max_root_total_bytes,
+            )
+
     result = {
         "schema_version": 1,
         "created_at_utc": utc_now(),
@@ -563,17 +804,34 @@ def main(argv: list[str] | None = None) -> int:
         "downloaded_total_bytes": total_bytes,
         "candidates": candidates,
         "downloads": downloads,
+        "root_sample_opt_in": bool(args.include_root_sample),
+        "root_sample_candidates": root_sample_candidates,
+        "root_sample_limit": args.max_root_samples,
+        "root_sample_download_attempted": bool(
+            args.download and args.include_root_sample
+        ),
+        "root_sample_downloaded_count": len(root_sample_downloads),
+        "root_sample_download_status": root_sample_budget["status"],
+        "root_sample_budget": root_sample_budget,
+        "root_sample_archive_total_bytes": root_sample_budget["archive_total_bytes"],
+        "root_sample_downloads": root_sample_downloads,
+        "root_sample_errors": root_sample_errors,
         "errors": errors,
         "safety": {
             "sample_submitted": False,
             "sample_executed_locally": False,
             "artifact_executed": False,
             "network_contacted": True,
-            "network_scope": "Triage API exact-hash search and bounded artifact GET only",
+            "network_scope": (
+                "Triage API exact-hash search, bounded artifact GET, and opted-in "
+                "exact-hash root sample GET"
+                if args.download and args.include_root_sample
+                else "Triage API exact-hash search and bounded artifact GET only"
+            ),
             "redirects_followed": False,
             "ambiguous_visibility_requires_unauthenticated_public_page": True,
             "plaintext_artifact_written": False,
-            "artifacts_encrypted_at_rest": bool(downloads),
+            "artifacts_encrypted_at_rest": bool(downloads or root_sample_downloads),
             "api_key_published": False,
         },
     }
@@ -585,6 +843,8 @@ def main(argv: list[str] | None = None) -> int:
                 "candidate_count": len(candidates),
                 "downloaded_count": len(downloads),
                 "errors": len(errors),
+                "root_sample_downloaded_count": len(root_sample_downloads),
+                "root_sample_errors": len(root_sample_errors),
                 "output": str(output_root / "manifest.json"),
             },
             ensure_ascii=False,

@@ -1115,6 +1115,77 @@ def test_acquisition_manifest_count_accepts_requested_50() -> None:
     assert validated == items
 
 
+def test_post_analysis_publication_record_is_structured_and_explicit() -> None:
+    """解析後hardening、非影響件数、contract snapshotを定型記録する。"""
+
+    record = publisher.build_post_analysis_publication_record(
+        sample_count=50,
+        resource_scan_observations=93,
+        relevant_resource_failures=0,
+    )
+
+    assert record == {
+        "status": "renderer_and_resource_coverage_fail_closed_hardening",
+        "sample_count": 50,
+        "resource_scan_observations": 93,
+        "relevant_resource_failures": 0,
+        "analysis_result_changed": False,
+        "analysis_contract_semantics": "execution_time_snapshot",
+        "note_ja": (
+            "公開用OVERALL-LOGIC.mdレンダラーとPE resource coverageの"
+            "fail-closed hardeningを解析完了後に修正した。"
+            "今回50件で確認したresource scan 93観測について、"
+            "該当失敗は0件で、抽出結果は不変。"
+            "analysis_contract SHA-256は解析実行時のsnapshotとして保持する。"
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    ("sample_count", "observations", "failures"),
+    [
+        (0, 1, 0),
+        (1, 0, 0),
+        (1, 1, 2),
+        (True, 1, 0),
+        (1, 1, -1),
+    ],
+)
+def test_post_analysis_publication_record_rejects_invalid_counts(
+    sample_count: int,
+    observations: int,
+    failures: int,
+) -> None:
+    """件数矛盾とboolをfail closedで拒否する。"""
+
+    with pytest.raises(ValueError):
+        publisher.build_post_analysis_publication_record(
+            sample_count=sample_count,
+            resource_scan_observations=observations,
+            relevant_resource_failures=failures,
+        )
+
+
+def test_parser_accepts_post_analysis_resource_hardening_counts() -> None:
+    """定型注記を再生成できるCLI引数を保持する。"""
+
+    args = publisher.build_parser().parse_args(
+        [
+            "--manifest",
+            "manifest.json",
+            "--one-shot",
+            "one-shot",
+            "--collection-id",
+            "daily-test",
+            "--post-analysis-resource-scan-observations",
+            "93",
+            "--post-analysis-resource-failures",
+            "0",
+        ]
+    )
+    assert args.post_analysis_resource_scan_observations == 93
+    assert args.post_analysis_resource_failures == 0
+
 def test_acquisition_manifest_count_keeps_legacy_100_default() -> None:
     """requestedを持たない旧manifestは従来どおり100件として検証する。"""
 
@@ -1350,6 +1421,11 @@ def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
     assert family == "unclassified"
     metadata = publisher.load_json(destination / "metadata.json")
     assert metadata["case_kind"] == "unclassified"
+    overall = (destination / "OVERALL-LOGIC.md").read_text(encoding="utf-8")
+    assert overall.count("```mermaid") == 3
+    analysis = publisher.load_json(destination / "analysis.json")
+    assert analysis["artifacts"]["overall_logic"] == "OVERALL-LOGIC.md"
+    assert "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" in (destination / "README.md").read_text(encoding="utf-8")
 
 
 def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(

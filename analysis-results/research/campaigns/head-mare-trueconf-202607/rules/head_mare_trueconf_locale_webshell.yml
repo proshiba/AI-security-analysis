@@ -1,0 +1,23 @@
+title: Head MareによるTrueConf locale.php WebShell配置
+id: ec5cf783-398d-4b2b-91b2-d99a495c08ee
+status: experimental
+description: TrueConf Server配下のpublic\js\locale.phpが作成または置換される、Head Mareの初期侵害後挙動を検知する。
+references:
+  - https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/
+author: AI-security-analysis
+date: 2026-08-10
+tags:
+  - attack.persistence
+  - attack.t1505.003
+logsource:
+  category: file_event
+  product: windows
+detection:
+  selection_path:
+    TargetFilename|endswith: '\public\js\locale.php'
+  selection_product:
+    TargetFilename|contains: '\TrueConf'
+  condition: selection_path and selection_product
+falsepositives:
+  - TrueConf管理者が同名のlocalization用PHPを正規の保守手順で更新した場合。署名、親process、変更元、hashを確認する。
+level: high
