@@ -283,6 +283,9 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 - [analysis-framework/README.md](analysis-framework/README.md): 解析フレームワーク概要
 - [analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md](analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md): 関数ロジック記録、fingerprint、コード類似性索引
 - [analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md](analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md): 検体特徴、充足度監査、campaign相関、自動label
+- [analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md](analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md): 全C2候補の限定probe、MaxMind、DNS／停止履歴、RAT session sidecarの統合手順
+- [analysis-framework/docs/RAT-C2-HOST-EMULATOR.md](analysis-framework/docs/RAT-C2-HOST-EMULATOR.md): 通常probeから分離した短時間RAT host emulatorの安全境界。常時稼働は未実装
+- [analysis-framework/docs/C2-ANALYSIS-COMPLETION-STANDARD.md](analysis-framework/docs/C2-ANALYSIS-COMPLETION-STANDARD.md): 終端payload、設定、protocol、ライブ証跡を分離したC2解析完了基準
 - [analysis-framework/malware/valleyrat/README.md](analysis-framework/malware/valleyrat/README.md): ValleyRAT固有解析
 - [analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md](analysis-framework/malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md): ValleyRAT解析ワークフロー
 - [analysis-results/README.md](analysis-results/README.md): 公開可能な結果の保存方針

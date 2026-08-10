@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "artifact_type": "defensive_rat_emulator_public_summary",
+  "session_id": "venomrat-603-6a24ba25-localto-6377-af28f7b29dc7422ea5775576010d3453",
+  "started_at": "2026-08-09T09:41:20Z",
+  "completed_at": "2026-08-09T09:41:22Z",
+  "status": "failed",
+  "stop_reason": "ConnectionRefusedError",
+  "metadata": {
+    "profile_id": "venomrat-603-6a24ba25-localto-6377",
+    "family": "venomrat",
+    "protocol_profile_id": "venomrat-603-6a24ba25-localto-6377",
+    "registry_sha256": "9d57ba366142f7cb88b49b64e8329d5afc688c3e733a5e3502cdbd37e7c0afb6",
+    "protocol_profile_object_sha256": "d73c9bd57ed96071fbc398cc1252e1f5e34faab7fbd4cb3dd97071d6faed2d54",
+    "evidence_sha256": "2db755d8ed49d1488d558da77171be8a7ff95a175f1322e65b359a368a8219b9",
+    "certificate_mismatch_is_negative_evidence": false,
+    "pinned_ip": "45.140.42.50",
+    "dns_answers": [
+      "45.140.42.50"
+    ],
+    "maxmind": {
+      "freshness_policy": {
+        "schema_version": 1,
+        "checked_at_utc": "2026-08-09T09:41:15.674291+00:00",
+        "checked_before_live_check": true,
+        "maximum_build_age_hours": 24.0,
+        "build_epoch_before_refresh": {
+          "GeoLite2-City": 1786080645,
+          "GeoLite2-ASN": 1786263351
+        },
+        "stale_before_refresh": {
+          "GeoLite2-City": true,
+          "GeoLite2-ASN": false
+        },
+        "refresh_performed": true,
+        "refresh_reason": "database_build_age_threshold_exceeded",
+        "build_epoch_after_refresh": {
+          "GeoLite2-City": 1786080645,
+          "GeoLite2-ASN": 1786263351
+        },
+        "stale_after_refresh": {
+          "GeoLite2-City": true,
+          "GeoLite2-ASN": false
+        },
+        "latest_available_still_stale": true
+      },
+      "city_build_time_utc": "2026-08-07T05:30:45+00:00",
+      "asn_build_time_utc": "2026-08-09T08:15:51+00:00",
+      "ip_record": {
+        "ip": "45.140.42.50",
+        "geo": {
+          "continent_code": "EU",
+          "continent_name": "ヨーロッパ",
+          "country_iso_code": "DE",
+          "country_name": "ドイツ連邦共和国",
+          "registered_country_iso_code": "GB",
+          "represented_country_iso_code": null,
+          "subdivision_iso_code": "HE",
+          "subdivision_name": "ヘッセン州",
+          "city_name": "フランクフルト・アム・マイン",
+          "postal_code": "65933",
+          "latitude": 50.0971,
+          "longitude": 8.5952,
+          "accuracy_radius_km": 20,
+          "time_zone": "Europe/Berlin",
+          "is_anycast": null
+        },
+        "as": {
+          "autonomous_system_number": 62240,
+          "autonomous_system_organization": "Clouvider Limited"
+        }
+      },
+      "attribution": "This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com."
+    },
+    "sample_executed": false
+  },
+  "event_count": 2,
+  "transcript_root_sha256": "0dbb9ff693c4fd1a1c8bb037724e14f29ffed5623f8687d6d2c6939ca0857efc",
+  "events": [
+    {
+      "sequence": 1,
+      "captured_at": "2026-08-09T09:41:20Z",
+      "direction": "internal",
+      "event_type": "preconnect_policy_validated",
+      "frame": null,
+      "public_fields": {
+        "single_connection": true,
+        "single_pinned_ip": true,
+        "live_fake_result_allowed": false,
+        "certificate_mismatch_is_negative_evidence": false,
+        "kill_switch_armed": true
+      },
+      "event_sha256": "9df99d7e544e9055cddabcee5c34225367c7a4ac1e8c8c298ad5cb6ca3466f36"
+    },
+    {
+      "sequence": 2,
+      "captured_at": "2026-08-09T09:41:22Z",
+      "direction": "internal",
+      "event_type": "session_failed",
+      "frame": null,
+      "public_fields": {
+        "error_type": "ConnectionRefusedError",
+        "task_executed": false
+      },
+      "event_sha256": "20e280670d87e2969c9faf8cf36bac05bc355bda8f05ed317dd964827000b9ef"
+    }
+  ]
+}

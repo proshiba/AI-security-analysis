@@ -24,9 +24,15 @@ from maxmind_c2_enrichment import (
     write_json,
 )
 from monitor_recent_c2 import PlanError, monitor, render_markdown, validate_plan
+from rat_emulation_evidence import (
+    attach_sessions as attach_rat_emulation_sessions,
+    load_and_validate as load_rat_emulation_evidence,
+    public_sha256 as rat_emulation_public_sha256,
+)
 from render_c2_maxmind_section import insert_section, render_maxmind_section
 
 DEFAULT_MAX_BUILD_AGE_HOURS = 24.0
+RAT_EMULATION_EVIDENCE_FILENAME = "rat-emulation-evidence.json"
 
 
 def _maxminddb_module() -> Any:
@@ -194,6 +200,24 @@ def render_enriched_report(result: dict[str, Any]) -> str:
     return insert_section(render_markdown(result), render_maxmind_section(result))
 
 
+def load_optional_rat_emulation_evidence(
+    path: Path | None,
+    expected_sha256: str | None,
+    plan: dict[str, Any],
+) -> tuple[dict[str, Any], str] | None:
+    """pathと期待SHAが両方ある場合だけ、検証済み公開sidecarを返す。"""
+
+    if (path is None) != (expected_sha256 is None):
+        raise ValueError(
+            "--rat-emulation-evidenceと--rat-emulation-evidence-sha256は"
+            "同時に指定する必要があります"
+        )
+    if path is None or expected_sha256 is None:
+        return None
+    evidence = load_rat_emulation_evidence(path, expected_sha256, plan)
+    return evidence, rat_emulation_public_sha256(evidence)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets", type=Path, required=True)
@@ -254,6 +278,15 @@ def main() -> int:
         type=Path,
         help="リポジトリ外のXLoader検体固有鍵・合成PKT2 JSON。",
     )
+    parser.add_argument(
+        "--rat-emulation-evidence",
+        type=Path,
+        help="RAT emulatorが生成したリポジトリ外のsession evidence JSON。",
+    )
+    parser.add_argument(
+        "--rat-emulation-evidence-sha256",
+        help="RAT emulator session evidence入力の期待SHA-256。",
+    )
     args = parser.parse_args()
 
     try:
@@ -265,6 +298,11 @@ def main() -> int:
         )
         plan, carried_forward = carry_forward_active_targets(plan, previous_active)
         validate_plan(plan)
+        rat_emulation = load_optional_rat_emulation_evidence(
+            args.rat_emulation_evidence,
+            args.rat_emulation_evidence_sha256,
+            plan,
+        )
         acquired, freshness = acquire_private_databases(
             args.maxmind_cache_dir,
             refresh=args.refresh_maxmind_databases,
@@ -284,6 +322,14 @@ def main() -> int:
             private_credential_vault=args.private_credential_vault,
             xloader_private_material=args.xloader_private_material,
         )
+        if rat_emulation is not None:
+            rat_evidence, rat_evidence_sha256 = rat_emulation
+            attach_rat_emulation_sessions(
+                result,
+                rat_evidence,
+                evidence_source=RAT_EMULATION_EVIDENCE_FILENAME,
+                evidence_sha256=rat_evidence_sha256,
+            )
         result["monitoring_continuity"] = {
             "schema_version": 1,
             "previous_active_plan_found": previous_active is not None,
@@ -307,6 +353,11 @@ def main() -> int:
     write_json(args.output_directory / "monitoring-history.json", monitoring_history)
     write_json(args.output_directory / "effective-targets.json", plan)
     write_json(args.output_directory / "active-targets.json", active_plan)
+    if rat_emulation is not None:
+        write_json(
+            args.output_directory / RAT_EMULATION_EVIDENCE_FILENAME,
+            rat_emulation[0],
+        )
     readme_path.write_text(render_enriched_report(result), encoding="utf-8")
     print(
         json.dumps(
@@ -318,6 +369,7 @@ def main() -> int:
                 "maxmind": maxmind_summary,
                 "monitoring_history": result["monitoring_history_summary"],
                 "carried_forward_target_count": carried_forward,
+                "rat_emulation": result.get("rat_emulation_summary"),
             },
             ensure_ascii=False,
             indent=2,

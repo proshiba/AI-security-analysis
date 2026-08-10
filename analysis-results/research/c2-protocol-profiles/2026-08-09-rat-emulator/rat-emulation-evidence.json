@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-09T09:55:58.256929+00:00",
+  "protocol_profile_registry": {
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+    "sha256": "6d0ffb3c9a96c7cb3d9cffc6b46ec5e637f9670676fbbdfd4945f8f64253081e"
+  },
+  "emulator_profile_registry": {
+    "source": "analysis-framework/common/rat_emulator_profiles.json",
+    "sha256": "9d57ba366142f7cb88b49b64e8329d5afc688c3e733a5e3502cdbd37e7c0afb6"
+  },
+  "sessions": [
+    {
+      "schema_version": 1,
+      "session_id": "asyncrat-058-20f21565-191-96-78-221-7788-8a550cc0aa4c4fc5af84a8b1e99a7cbf",
+      "family": "asyncrat",
+      "host": "191.96.78.221",
+      "port": 7788,
+      "protocol": "asyncrat",
+      "transport": "direct",
+      "http_path": null,
+      "protocol_profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "protocol_profile_registry_sha256": "6d0ffb3c9a96c7cb3d9cffc6b46ec5e637f9670676fbbdfd4945f8f64253081e",
+      "emulator_profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "emulator_profile_registry_source": "analysis-framework/common/rat_emulator_profiles.json",
+      "emulator_profile_registry_sha256": "9d57ba366142f7cb88b49b64e8329d5afc688c3e733a5e3502cdbd37e7c0afb6",
+      "sample_sha256s": [
+        "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3"
+      ],
+      "source_summary_snapshot": {
+        "size": 10625,
+        "sha256": "e35064443718acf80c87d28183bba0553487b39419e0124d017bbe0e6c15db1e",
+        "link_count": 1
+      },
+      "started_at_utc": "2026-08-09T09:40:33+00:00",
+      "ended_at_utc": "2026-08-09T09:40:34+00:00",
+      "status": "heartbeat_response_observed",
+      "connection_established": true,
+      "handshake_confirmed": true,
+      "registration_accepted": true,
+      "c2_confirmed": true,
+      "heartbeat_count": 1,
+      "commands": [
+        {
+          "sequence": 1,
+          "direction": "server_to_client",
+          "observed_at_utc": "2026-08-09T09:40:34+00:00",
+          "message_kind": "heartbeat",
+          "packet_kind": "heartbeat",
+          "opcode": "pong",
+          "wire_size": 41,
+          "wire_sha256": "0f361df3565943f12f89bc6ba505ead190a20787ef3c180c093394d65e23b356",
+          "arguments_published": false,
+          "raw_published": false
+        }
+      ],
+      "synthetic_replies": [],
+      "safety": {
+        "raw_transcript_published": false,
+        "command_content_published": false,
+        "token_published": false,
+        "url_published": false,
+        "payload_published": false,
+        "task_executed": false,
+        "real_effect_performed": false,
+        "payload_download_attempted": false,
+        "followup_network_attempted": false,
+        "victim_metadata_sent": false
+      },
+      "private_evidence": {
+        "archived": true,
+        "datastore_target": "asyncrat-058-20f21565-191-96-78-221-7788-8a550cc0aa4c4fc5af84a8b1e99a7cbf",
+        "object_uri": "s3://malware-analysis-datastore-720232834682/analysis-targets/asyncrat-058-20f21565-191-96-78-221-7788-8a550cc0aa4c4fc5af84a8b1e99a7cbf/2026/08/asyncrat-058-20f21565-191-96-78-221-7788-8a550cc0aa4c4fc5af84a8b1e99a7cbf-20260809T094215Z-507cdc5df50f.zip",
+        "archive_sha256": "3d3092390fabb946293f90d0e1d2052bc06ffa6a5bac70f89b7659328852a4a0",
+        "manifest_sha256": "507cdc5df50ff9ff2e24a91f4cae58ac86b2da85a7f4438a757cfeacfeed96d5",
+        "archive_report_sha256": "3e7deb93cb8b0733cbefda7b9e7fce53fbf7c51f899ff9f6ff567ea2e71d6629",
+        "server_side_encryption": "AES256",
+        "transcript_root_sha256": "c51cae45428639fc64f5801e6d34fc7b0182a1cbf9efb76532809cd43fe56619"
+      }
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "family": "asyncrat",
+  "sample_sha256": "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3",
+  "analysis_status": "complete",
+  "registration": {
+    "packet_key": "Packet",
+    "packet_value": "ClientInfo",
+    "method": "Client.Helper.IdSender.SendInfo",
+    "method_token": "0x06000058",
+    "cil_semantic_sha256": "a1592771fd904a600cb560bf9d0364a99a6700949e780da0961eb7b8c04763d7",
+    "observed_required_fields": [
+      "Packet",
+      "HWID",
+      "User",
+      "OS",
+      "Path",
+      "Admin",
+      "Performance",
+      "Pastebin",
+      "Antivirus",
+      "Installed",
+      "Pong",
+      "Group"
+    ],
+    "observed_optional_fields": [],
+    "missing_required_fields": [],
+    "synthetic_values_required": true,
+    "real_host_metadata_allowed": false
+  },
+  "dispatcher": {
+    "method": "Client.Handle_Packet.Packet.Read",
+    "method_token": "0x0600006f",
+    "cil_semantic_sha256": "5aaef7203b8f3e9384360373d4229ff7cc54de88f2ae788198e1ae6295be747b",
+    "observed_command_markers": [
+      "winUpdate",
+      "pong",
+      "plugin",
+      "savePlugin"
+    ],
+    "missing_command_markers": [],
+    "heartbeat_request": {
+      "method": "Client.Connection.ClientSocket.KeepAlivePacket",
+      "method_token": "0x06000024",
+      "cil_semantic_sha256": "88475d38f43dae09d0afa8eeb3fa2fb713fbccf38417ff9dcb568add90893fe0",
+      "packet_key": "Packet",
+      "packet_value": "Ping",
+      "message_key": "Message",
+      "message_source": "active_window_title",
+      "emulator_message_value": "",
+      "sanitized_for_privacy": true,
+      "schema_confirmed": true
+    },
+    "heartbeat_response_markers": [
+      "pong"
+    ],
+    "file_or_plugin_transfer_markers": [
+      "winUpdate",
+      "plugin",
+      "savePlugin"
+    ]
+  },
+  "emulator_readiness": {
+    "registration_schema_confirmed": true,
+    "command_dispatcher_confirmed": true,
+    "heartbeat_request_response_confirmed": true,
+    "operation_result_serializer_confirmed": false,
+    "live_operation_fake_result_allowed": false,
+    "unknown_command_reply_allowed": false
+  },
+  "safety": {
+    "sample_executed": false,
+    "network_contacted": false,
+    "raw_cil_published": false,
+    "unreviewed_literals_published": false
+  }
+}

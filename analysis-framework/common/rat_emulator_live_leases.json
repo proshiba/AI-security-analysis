@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "profile_registry": {
+    "source": "analysis-framework/common/rat_emulator_profiles.json",
+    "sha256": "9d57ba366142f7cb88b49b64e8329d5afc688c3e733a5e3502cdbd37e7c0afb6"
+  },
+  "leases": [
+    {
+      "profile_id": "valleyrat-n520-host-d11e793-9999",
+      "reviewed_at_utc": "2026-08-09T09:30:00Z",
+      "expires_at_utc": "2026-08-10T09:30:00Z",
+      "review_owner": "security-analysis-review"
+    },
+    {
+      "profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "reviewed_at_utc": "2026-08-09T09:30:00Z",
+      "expires_at_utc": "2026-08-10T09:30:00Z",
+      "review_owner": "security-analysis-review"
+    },
+    {
+      "profile_id": "venomrat-603-6a24ba25-localto-6377",
+      "reviewed_at_utc": "2026-08-09T09:30:00Z",
+      "expires_at_utc": "2026-08-10T09:30:00Z",
+      "review_owner": "security-analysis-review"
+    }
+  ]
+}
