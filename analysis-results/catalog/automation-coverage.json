@@ -1,0 +1,2478 @@
+{
+  "ai_used": false,
+  "counts": {
+    "by_status": {
+      "candidate_verification_only": 31,
+      "classification_only": 0,
+      "fully_routable": 53,
+      "manual_handler_only": 0,
+      "manual_only_without_detector": 2,
+      "unsupported": 0
+    },
+    "candidate_verification_only": 31,
+    "detector_registered": 53,
+    "families": 86,
+    "fully_routable": 53,
+    "fully_routable_percent": 61.63,
+    "script_only_handler_available": 84,
+    "script_only_handler_percent": 97.67
+  },
+  "executed_sample": false,
+  "families": [
+    {
+      "accepted_formats": [
+        "autoit-a3x",
+        "cab",
+        "data",
+        "ole",
+        "pe",
+        "script",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "acrstealer:extractors.acrstealer.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "acrstealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "agenttesla:analysis.framework.malware.agenttesla.extract.config.py:extract_config",
+        "agenttesla:extractors.agenttesla.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "agenttesla",
+      "manual_or_unsupported_handlers": [
+        "agenttesla:analysis.framework.malware.agenttesla.agenttesla.config.extractor.py:extract_config",
+        "agenttesla:analysis.framework.malware.agenttesla.agenttesla.luajit.chain.py:analyze",
+        "agenttesla:analysis.framework.malware.agenttesla.agenttesla.script.loader.py:extract_config"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "amadey:extractors.amadey.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "amadey",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "amosstealer:extractors.amosstealer.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "amosstealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "asyncrat:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "asyncrat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "atlascross:extractors.atlascross.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "atlascross",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "blackhorse_miner_agent",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "blazetrack",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "elf"
+      ],
+      "automatic_handlers": [
+        "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "catddos",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "chud_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "clickfix_booking",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "condi",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "credential_phishing_html",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "darkcomet:extractors.darkcomet.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "darkcomet",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "dcrat:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "dcrat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "donutloader:extractors.donutloader.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "donutloader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automatic_handlers": [
+        "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "dotnet_resource_loader",
+      "manual_or_unsupported_handlers": [
+        "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.bitmap.chunk.loader.py:extract_config",
+        "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.bitmap.column.loader.py:extract_config",
+        "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.bitmap.stego.loader.py:extract_config",
+        "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.offloader.zip.py:extract_config"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "elf"
+      ],
+      "automatic_handlers": [
+        "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "dysphoria",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "eclipse_ddos_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automatic_handlers": [
+        "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "efimer",
+      "manual_or_unsupported_handlers": [
+        "efimer:analysis.framework.malware.efimer.extract.config.py:extract_directory"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "electron_payload_loader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "formbook:extractors.formbook.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "formbook",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "formbook_loader",
+      "manual_or_unsupported_handlers": [
+        "formbook_loader:analysis.framework.malware.formbook.loader.extract.script.chain.py:analyze"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "script"
+      ],
+      "automatic_handlers": [
+        "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "freepbx_k_php",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "genddos_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "gh0strat:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "gh0strat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "go_synthetic_workload",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "guloader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "hijackloader:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "hijackloader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "infrastructure_decoy_hta",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "jackskid",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "jiproxy_relay",
+      "manual_or_unsupported_handlers": [
+        "jiproxy_relay:analysis.framework.malware.jiproxy.relay.tcp.variant.py:extract_config"
+      ],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "jomangy",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "latrodectus:extractors.latrodectus.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "latrodectus",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "script"
+      ],
+      "automatic_handlers": [
+        "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "linux_downloader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "linux_ens_sns_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "linux_reverse_shell",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "lummastealer:extractors.lummastealer.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "lummastealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "macos_stealer_v2",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "script",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "manageengine_endpoint_central_abuse",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "maskgram_stealer:analysis.framework.malware.maskgram.stealer.extract.config.py:extract_config",
+        "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "maskgram_stealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "mig_logcleaner",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "elf"
+      ],
+      "automatic_handlers": [
+        "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "mirai",
+      "manual_or_unsupported_handlers": [
+        "mirai:analysis.framework.malware.mirai.nullnet.ppc.py:extract_config"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "mirai_ens_doh_bot",
+      "manual_or_unsupported_handlers": [
+        "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.structure.analyzer.py:analyze"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "mx-go",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "nanocore",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "njrat:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "njrat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "npm_supply_chain",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "nsis_obfuscated_loader",
+      "manual_or_unsupported_handlers": [
+        "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.script.analyzer.py:analyze"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "owareaper",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "panchan",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "phorpiex_downloader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "phorpiex_spam",
+      "manual_or_unsupported_handlers": [
+        "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.v2.py:extract_config"
+      ],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automatic_handlers": [
+        "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "png_registry_loader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "pony",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "prometei",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "protected_pe_loader",
+      "manual_or_unsupported_handlers": [
+        "protected_pe_loader:analysis.framework.malware.protected.pe.loader.c18.native.stage.py:analyze"
+      ],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "protection_agent_loader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "proxyrack_pop_deployer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "purehvnc:analysis.framework.malware.purehvnc.extract.config.py:extract_config",
+        "purehvnc:extractors.purehvnc.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "purehvnc",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "purelogs:extractors.purelogs.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "purelogs",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "putita_v3",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "quasarrat:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "quasarrat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "redlinestealer:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "redlinestealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "remcosrat:extractors.remcosrat.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "remcosrat",
+      "manual_or_unsupported_handlers": [
+        "remcosrat:analysis.framework.malware.remcosrat.remcos.config.extractor.py:extract_config"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "remusstealer:extractors.remusstealer.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "remusstealer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automatic_handlers": [
+        "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "screenconnect_rmm",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "shadowpad:extractors.shadowpad.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "shadowpad",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "elf"
+      ],
+      "automatic_handlers": [
+        "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "signed_dht_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "snakekeylogger:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "snakekeylogger",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "sobfox_launcher",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "softbot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "spyglace:extractors.spyglace.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "spyglace",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "stealc:extractors.stealc.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "stealc",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automatic_handlers": [
+        "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "suomi_agent",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "tbot_iot_bot",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [],
+      "automatic_handlers": [],
+      "automatic_selection_possible": false,
+      "blocker": "detector_and_automatic_handler_missing",
+      "candidate_verification_possible": false,
+      "detector_registered": false,
+      "family": "tor_openssh_backdoor",
+      "manual_or_unsupported_handlers": [
+        "tor_openssh_backdoor:analysis.framework.malware.tor.openssh.backdoor.extract.config.py:extract_config"
+      ],
+      "next_action_ja": "detectorを追加し、既存handlerを共通契約へ適合させる。",
+      "script_only_handler_available": false,
+      "status": "manual_only_without_detector"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "traffmonetizer_deployer",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [],
+      "automatic_handlers": [],
+      "automatic_selection_possible": false,
+      "blocker": "detector_and_automatic_handler_missing",
+      "candidate_verification_possible": false,
+      "detector_registered": false,
+      "family": "unclassified",
+      "manual_or_unsupported_handlers": [
+        "unclassified:analysis.framework.malware.unclassified.mx.go.static.analyzer.py:analyze"
+      ],
+      "next_action_ja": "detectorを追加し、既存handlerを共通契約へ適合させる。",
+      "script_only_handler_available": false,
+      "status": "manual_only_without_detector"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.msi.lzx.protected.pe.analyze.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.protected.installer.bundle.analyze.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.signed.proxy.sideload.analyze.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.dotnet.il.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.single.pe.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.vvas.resource.analyze.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.yuanbao.sideload.analyze.bundle.py:analyze",
+        "valleyrat:extractors.valleyrat.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "valleyrat",
+      "manual_or_unsupported_handlers": [
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.recover.n520.config.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.recover.silverfox.http.bundle.py:analyze",
+        "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.unpack.upx.nrv2e.py:analyze"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "venomrat:extractors.venomrat.extractor.py:extract"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "venomrat",
+      "manual_or_unsupported_handlers": [
+        "venomrat:analysis.framework.malware.venomrat.venomrat.static.py:analyze"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "vidar:extractors.vidar.extractor.py:extract"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "vidar",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "wannacry",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "windows_script_stager",
+      "manual_or_unsupported_handlers": [
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.bd20.base64.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.corb.xor.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.fa7d.xor.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.javascript.dual.xor.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.javascript.unicode.separator.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.unicode.separator.stager.py:extract_config"
+      ],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    },
+    {
+      "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
+        "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
+        "pe",
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
+      ],
+      "automatic_handlers": [
+        "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": false,
+      "blocker": "detector_missing",
+      "candidate_verification_possible": true,
+      "detector_registered": false,
+      "family": "xmrig",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": "family固有detectorを追加し、候補検証から自動選択へ昇格させる。",
+      "script_only_handler_available": true,
+      "status": "candidate_verification_only"
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "pe",
+        "script"
+      ],
+      "automatic_handlers": [
+        "xworm:extractors.profiled_family:extractor_for"
+      ],
+      "automatic_selection_possible": true,
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "detector_registered": true,
+      "family": "xworm",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "script_only_handler_available": true,
+      "status": "fully_routable"
+    }
+  ],
+  "network_contacted": false,
+  "schema_version": 1,
+  "status": "complete"
+}

@@ -38,15 +38,24 @@ def test_known_hash_can_resolve_without_handler() -> None:
     assert result["family"] == "valleyrat"
 
 
-def test_external_metadata_requires_validated_static_configuration() -> None:
+def test_external_metadata_requires_decoded_configuration() -> None:
     candidate = [{"family": "nanocore", "source": "external_metadata"}]
     weak = _record("nanocore", {"capabilities": ["remote_shell"]})
     assert resolve_family(candidate, [weak])["status"] == "unresolved"
 
-    strong = _record(
+    still_insufficient = _record(
         "nanocore",
         {
             "static_config_recovered": True,
+            "config": {"campaign": "fixture"},
+        },
+    )
+    assert resolve_family(candidate, [still_insufficient])["status"] == "unresolved"
+
+    strong = _record(
+        "nanocore",
+        {
+            "decoded_config_recovered": True,
             "config": {"campaign": "fixture"},
         },
     )

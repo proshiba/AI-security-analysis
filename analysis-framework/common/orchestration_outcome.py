@@ -47,12 +47,13 @@ SOURCE_STRENGTH = {
     "explicit_operator_selection": 4,
     "detector_selected": 3,
     "detector": 3,
+    "detector_and_external_metadata": 3,
     "detector_candidate": 2,
     "external_metadata": 1,
     "handler_only": 0,
     "exhaustive": 0,
 }
-MINIMUM_HANDLER_TIER = {4: 0, 3: 1, 2: 2, 1: 3, 0: 4}
+MINIMUM_HANDLER_TIER = {4: 0, 3: 1, 2: 2, 1: 4, 0: 4}
 
 
 def _text(value: object) -> str | None:
@@ -73,6 +74,21 @@ def _source_strength(candidate: Mapping[str, Any]) -> tuple[str, int]:
     explicit = candidate.get("source_strength")
     if isinstance(explicit, int) and not isinstance(explicit, bool):
         return source, max(0, min(explicit, 4))
+    if explicit == "high":
+        evidence = candidate.get("evidence")
+        if isinstance(evidence, Sequence) and any(
+            isinstance(item, Mapping)
+            and item.get("kind") in {"known_outer_sha256", "known_inner_sha256"}
+            for item in evidence
+        ):
+            return source, 4
+        return source, 3
+    if explicit == "medium":
+        if candidate.get("routing_mode") == "selected_family_analysis":
+            return source, 3
+        return source, 2
+    if explicit == "unverified":
+        return source, 1
     return source, SOURCE_STRENGTH.get(source, 0)
 
 
@@ -128,7 +144,13 @@ def _handler_best_by_family(
             continue
         quality = _execution_quality(record)
         status = _text(record.get("status")) or "unknown"
-        eligible = status in {"succeeded", "no_evidence", "ambiguous_evidence", "assessed"}
+        eligible = status in {
+            "succeeded",
+            "candidate_evidence",
+            "no_evidence",
+            "ambiguous_evidence",
+            "assessed",
+        }
         rank = (
             int(quality.get("tier", 0)) if eligible else 0,
             int(quality.get("score", 0)) if eligible else 0,
