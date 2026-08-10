@@ -14,10 +14,29 @@ CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+HINT_CONFIDENCE_VALUES = {"high", "medium", "low", "unknown", "unverified"}
+MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
+MAX_FAMILY_HINT_SAMPLES = 10_000
+MAX_FAMILY_HINTS_PER_SAMPLE = 16
+MAX_ROUTING_LAYERS = 512
+MAX_ROUTING_FAMILY_COVERAGE = 512
+_EXTERNAL_PUBLICATION_BASES = {
+    "malwarebazaar_direct_tag",
+    "malwarebazaar_reported_signature",
+}
+_ATTRIBUTION_EVIDENCE_BASES = {
+    "known_outer_sha256",
+    "known_inner_sha256",
+    "type_detector_structure",
+}
 
 
 class DetectorPathError(ValueError):
     """レジストリが許可外の検出器を指した場合に送出する。"""
+
+
+class FamilyHintManifestError(ValueError):
+    """外部family候補manifestが厳格schemaに適合しない場合に送出する。"""
 
 
 def _resolve_detector_path(
@@ -178,6 +197,586 @@ def clear_classifier_caches() -> None:
 def detection_uses_known_inner(detection: dict) -> bool:
     """検出器がレビュー済み内包SHA-256へ一致したか返す。"""
     return any("known inner SHA-256" in candidate.get("reasons", []) for candidate in detection.get("campaigns", []))
+
+
+def _bounded_hint_text(value: Any, field: str, maximum: int) -> str:
+    """外部hintの文字列を制御文字なしの上限付き値として検証する。"""
+
+    if not isinstance(value, str) or not value or len(value) > maximum:
+        raise FamilyHintManifestError(f"{field} must be a non-empty string of at most {maximum} characters")
+    if any(ord(character) < 0x20 for character in value):
+        raise FamilyHintManifestError(f"{field} contains a control character")
+    return value
+
+
+def _normalize_family_hint(value: Any, location: str) -> dict[str, str]:
+    """1件の外部family hintを正規化し、未知fieldを拒否する。"""
+
+    if not isinstance(value, dict):
+        raise FamilyHintManifestError(f"{location} must be an object")
+    allowed = {"family", "source", "provenance", "confidence", "label", "observed_at"}
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise FamilyHintManifestError(f"{location} contains unknown fields: {', '.join(unknown)}")
+    missing = sorted({"family", "source", "provenance", "confidence"} - set(value))
+    if missing:
+        raise FamilyHintManifestError(f"{location} is missing fields: {', '.join(missing)}")
+
+    family = _bounded_hint_text(value["family"], f"{location}.family", 64).lower()
+    if FAMILY_ID_RE.fullmatch(family) is None or family in {"unknown", "unclassified"}:
+        raise FamilyHintManifestError(f"{location}.family is not a routable canonical family id")
+    confidence = _bounded_hint_text(value["confidence"], f"{location}.confidence", 16).lower()
+    if confidence not in HINT_CONFIDENCE_VALUES:
+        allowed_values = ", ".join(sorted(HINT_CONFIDENCE_VALUES))
+        raise FamilyHintManifestError(f"{location}.confidence must be one of: {allowed_values}")
+
+    normalized = {
+        "family": family,
+        "source": _bounded_hint_text(value["source"], f"{location}.source", 128),
+        "provenance": _bounded_hint_text(value["provenance"], f"{location}.provenance", 512),
+        "confidence": confidence,
+    }
+    if "label" in value:
+        normalized["label"] = _bounded_hint_text(value["label"], f"{location}.label", 128)
+    if "observed_at" in value:
+        normalized["observed_at"] = _bounded_hint_text(
+            value["observed_at"], f"{location}.observed_at", 64
+        )
+    return normalized
+
+
+def normalize_family_hint_manifest(document: Any) -> dict[str, Any]:
+    """SHA-256 keyed外部family hint manifestを厳格schemaへ正規化する。
+
+    外部providerのconfidenceはそのまま保持するが、分類confidenceへは昇格
+    しない。family確定には別途detectorまたは既知hashの証拠が必要である。
+    """
+
+    if not isinstance(document, dict):
+        raise FamilyHintManifestError("hint manifest root must be an object")
+    unknown = sorted(set(document) - {"schema_version", "samples"})
+    if unknown:
+        raise FamilyHintManifestError(f"hint manifest contains unknown fields: {', '.join(unknown)}")
+    if type(document.get("schema_version")) is not int or document["schema_version"] != 1:
+        raise FamilyHintManifestError("hint manifest schema_version must be 1")
+    samples = document.get("samples")
+    if not isinstance(samples, dict):
+        raise FamilyHintManifestError("hint manifest samples must be an object")
+    if len(samples) > MAX_FAMILY_HINT_SAMPLES:
+        raise FamilyHintManifestError("hint manifest exceeds the sample count limit")
+
+    normalized_samples: dict[str, list[dict[str, str]]] = {}
+    for raw_digest, raw_hints in samples.items():
+        if not isinstance(raw_digest, str) or SHA256_RE.fullmatch(raw_digest) is None:
+            raise FamilyHintManifestError(f"hint manifest contains an invalid SHA-256: {raw_digest!r}")
+        digest = raw_digest.lower()
+        if digest in normalized_samples:
+            raise FamilyHintManifestError(f"hint manifest contains duplicate SHA-256 keys: {digest}")
+        if not isinstance(raw_hints, list) or not raw_hints:
+            raise FamilyHintManifestError(f"samples.{digest} must be a non-empty list")
+        if len(raw_hints) > MAX_FAMILY_HINTS_PER_SAMPLE:
+            raise FamilyHintManifestError(f"samples.{digest} exceeds the hint count limit")
+        hints = [
+            _normalize_family_hint(hint, f"samples.{digest}[{index}]")
+            for index, hint in enumerate(raw_hints)
+        ]
+        fingerprints = {
+            (
+                hint["family"],
+                hint["source"],
+                hint["provenance"],
+                hint["confidence"],
+                hint.get("label"),
+                hint.get("observed_at"),
+            )
+            for hint in hints
+        }
+        if len(fingerprints) != len(hints):
+            raise FamilyHintManifestError(f"samples.{digest} contains duplicate hints")
+        normalized_samples[digest] = sorted(
+            hints,
+            key=lambda item: (
+                item["family"],
+                item["source"],
+                item["provenance"],
+                item["confidence"],
+                item.get("label", ""),
+            ),
+        )
+    return {
+        "schema_version": 1,
+        "samples": dict(sorted(normalized_samples.items())),
+    }
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """JSON object内の重複keyを黙って上書きせず拒否する。"""
+
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise FamilyHintManifestError(f"hint manifest contains a duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite_json(value: str) -> None:
+    """NaNやInfinityをJSON値として受理しない。"""
+
+    raise FamilyHintManifestError(f"hint manifest contains a non-finite number: {value}")
+
+
+def load_family_hint_manifest(path: Path) -> dict[str, Any]:
+    """上限付きで外部family hint manifestを読み、厳格検証済み値を返す。"""
+
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        raise FamilyHintManifestError(f"cannot stat hint manifest: {exc}") from exc
+    if size > MAX_FAMILY_HINT_MANIFEST_BYTES:
+        raise FamilyHintManifestError("hint manifest exceeds the byte limit")
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+        document = json.loads(
+            text,
+            object_pairs_hook=_reject_duplicate_json_keys,
+            parse_constant=_reject_nonfinite_json,
+        )
+    except FamilyHintManifestError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise FamilyHintManifestError(f"cannot read hint manifest: {exc}") from exc
+    return normalize_family_hint_manifest(document)
+
+
+def family_hints_for_sha256(manifest: dict[str, Any], digest: str) -> list[dict[str, str]]:
+    """検証済みmanifestから完全一致SHA-256のhintだけをコピーして返す。"""
+
+    if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+        raise FamilyHintManifestError("sample digest must be a SHA-256")
+    normalized = normalize_family_hint_manifest(manifest)
+    return [dict(item) for item in normalized["samples"].get(digest.lower(), [])]
+
+
+def family_hint_manifest_from_publication_summary(
+    document: Any,
+    *,
+    source: str = "malwarebazaar_publication_summary",
+) -> dict[str, Any]:
+    """MalwareBazaar publication-summaryを未検証hint manifestへ変換する。
+
+    publication時のfamily名は確定証拠へ変換せず、外部tagまたはreported
+    signature由来と明示されたcaseだけを候補として取り込む。
+    """
+
+    _bounded_hint_text(source, "source", 128)
+    if not isinstance(document, dict) or not isinstance(document.get("cases"), list):
+        raise FamilyHintManifestError("publication summary cases must be a list")
+    samples: dict[str, list[dict[str, str]]] = {}
+    for index, case in enumerate(document["cases"]):
+        if not isinstance(case, dict):
+            raise FamilyHintManifestError(f"publication summary cases[{index}] must be an object")
+        basis = case.get("attribution_basis")
+        if basis not in _EXTERNAL_PUBLICATION_BASES:
+            continue
+        digest = case.get("sha256")
+        family = case.get("family")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise FamilyHintManifestError(f"publication summary cases[{index}].sha256 is invalid")
+        if not isinstance(family, str):
+            raise FamilyHintManifestError(f"publication summary cases[{index}].family is invalid")
+        confidence = case.get("metadata_hint_confidence", "unverified")
+        hint: dict[str, str] = {
+            "family": family.lower(),
+            "source": source,
+            "provenance": f"publication-summary:{basis}",
+            "confidence": confidence,
+            "label": case.get("reported_signature") or family,
+        }
+        first_seen = case.get("first_seen")
+        if isinstance(first_seen, str) and first_seen:
+            hint["observed_at"] = first_seen
+        samples.setdefault(digest.lower(), []).append(hint)
+    return normalize_family_hint_manifest({"schema_version": 1, "samples": samples})
+
+
+def _normalize_family_coverage(
+    family_coverage: list[dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    """one-shot側のfamily coverageを候補routing用の最小shapeへ正規化する。"""
+
+    if family_coverage is None:
+        return {}
+    if not isinstance(family_coverage, list):
+        raise TypeError("family_coverage must be a list")
+    if len(family_coverage) > MAX_ROUTING_FAMILY_COVERAGE:
+        raise TypeError("family_coverage exceeds the family count limit")
+    normalized: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(family_coverage):
+        if not isinstance(item, dict):
+            raise TypeError(f"family_coverage[{index}] must be an object")
+        family = item.get("family")
+        if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
+            raise TypeError(f"family_coverage[{index}].family is invalid")
+        if family in normalized:
+            raise TypeError(f"family_coverage contains duplicate family: {family}")
+        detector_registered = item.get("detector_registered")
+        if not isinstance(detector_registered, bool):
+            raise TypeError(f"family_coverage[{index}].detector_registered must be a boolean")
+        automatic = item.get("automatic_handlers", [])
+        manual = item.get("manual_or_unsupported_handlers", [])
+        if (
+            not isinstance(automatic, list)
+            or any(not isinstance(value, str) or not value for value in automatic)
+            or not isinstance(manual, list)
+            or any(not isinstance(value, str) or not value for value in manual)
+        ):
+            raise TypeError(f"family_coverage[{index}] handler ids must be string lists")
+        normalized[family] = {
+            "detector_registered": detector_registered,
+            "automatic_handlers": sorted(set(automatic)),
+            "manual_or_unsupported_handlers": sorted(set(manual)),
+            "status": str(item.get("status", "unknown")),
+        }
+    return normalized
+
+
+def _routing_layer_records(
+    layer_classifications: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """公開layer classification列をrouting評価用の内部recordへ変換する。"""
+
+    if not isinstance(layer_classifications, list):
+        raise TypeError("layer_classifications must be a list")
+    if len(layer_classifications) > MAX_ROUTING_LAYERS:
+        raise TypeError("layer_classifications exceeds the layer count limit")
+    records = []
+    for index, item in enumerate(layer_classifications):
+        if not isinstance(item, dict):
+            raise TypeError(f"layer_classifications[{index}] must be an object")
+        wrapped = isinstance(item.get("classification"), dict)
+        classification = item["classification"] if wrapped else item
+        layer = item.get("layer", {}) if wrapped else {}
+        if not isinstance(layer, dict):
+            raise TypeError(f"layer_classifications[{index}].layer must be an object")
+        evaluations = classification.get("detector_evaluations", [])
+        if not isinstance(evaluations, list):
+            raise TypeError(
+                f"layer_classifications[{index}].classification.detector_evaluations must be a list"
+            )
+        normalized_evaluations: dict[str, dict[str, Any]] = {}
+        for evaluation_index, evaluation in enumerate(evaluations):
+            if not isinstance(evaluation, dict):
+                raise TypeError(
+                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] "
+                    "must be an object"
+                )
+            family = evaluation.get("malware_type")
+            if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
+                raise TypeError(
+                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] "
+                    "has an invalid family"
+                )
+            if family in normalized_evaluations:
+                raise TypeError(
+                    f"layer_classifications[{index}] contains duplicate detector evaluation: {family}"
+                )
+            normalized_evaluations[family] = evaluation
+
+        observations = classification.get("observations", {})
+        if not isinstance(observations, dict):
+            observations = {}
+        digest = layer.get("sha256") or observations.get("sha256")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            digest = None
+        selected_family = classification.get("malware_type")
+        attribution_basis = classification.get("attribution_basis")
+        confidence = classification.get("malware_type_confidence")
+        selection_verified = bool(
+            isinstance(selected_family, str)
+            and FAMILY_ID_RE.fullmatch(selected_family) is not None
+            and selected_family not in {"unknown", "unclassified"}
+            and attribution_basis in _ATTRIBUTION_EVIDENCE_BASES
+            and confidence in {"high", "medium"}
+        )
+        records.append(
+            {
+                "index": index,
+                "sha256": digest.lower() if digest else None,
+                "depth": layer.get("depth") if isinstance(layer.get("depth"), int) else None,
+                "classification": classification,
+                "evaluations": normalized_evaluations,
+                "selected_family": selected_family if selection_verified else None,
+                "attribution_basis": attribution_basis if selection_verified else None,
+                "confidence": confidence if selection_verified else None,
+            }
+        )
+    return records
+
+
+def _positive_detector_evidence(
+    evaluation: dict[str, Any],
+    record: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """1 detector評価の肯定証拠を、推測を加えずrouting根拠へ変換する。"""
+
+    evidence = []
+    values = (
+        ("known_outer_sha256", "high", evaluation.get("known_outer_sha256") is True),
+        ("known_inner_sha256", "high", evaluation.get("known_inner_sha256") is True),
+        ("type_detector_structure", "medium", evaluation.get("detector_matched") is True),
+    )
+    for kind, confidence, matched in values:
+        if matched:
+            evidence.append(
+                {
+                    "kind": kind,
+                    "confidence": confidence,
+                    "layer_index": record["index"],
+                    "layer_sha256": record["sha256"],
+                    "supports_attribution": True,
+                }
+            )
+    return evidence
+
+
+def build_family_routing_candidates(
+    layer_classifications: list[dict[str, Any]],
+    *,
+    metadata_hints: list[dict[str, Any]] | None = None,
+    family_coverage: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """全layer証拠と外部hintからfail-closedなfamily routing候補を作る。
+
+    既存分類器が各layerで一意選択したfamilyだけを通常の自動解析へ送る。
+    外部metadataだけの候補や同順位で曖昧なdetector候補は、上限付きhandler
+    がある場合でも候補検証routeに限定し、family attributionへ使わない。
+    metadata_hintsはsubmitted rootの完全一致SHA-256で事前選択した値を渡す。
+    """
+
+    records = _routing_layer_records(layer_classifications)
+    coverage = _normalize_family_coverage(family_coverage)
+    if metadata_hints is not None and not isinstance(metadata_hints, list):
+        raise TypeError("metadata_hints must be a list")
+    if len(metadata_hints or []) > MAX_FAMILY_HINTS_PER_SAMPLE:
+        raise TypeError("metadata_hints exceeds the hint count limit")
+    normalized_hints = [
+        _normalize_family_hint(item, f"metadata_hints[{index}]")
+        for index, item in enumerate(metadata_hints or [])
+    ]
+
+    candidate_families: set[str] = {item["family"] for item in normalized_hints}
+    selected_families: set[str] = set()
+    for record in records:
+        selected = record["selected_family"]
+        if selected:
+            candidate_families.add(selected)
+            selected_families.add(selected)
+        for family, evaluation in record["evaluations"].items():
+            if (
+                evaluation.get("known_outer_sha256") is True
+                or evaluation.get("known_inner_sha256") is True
+                or evaluation.get("detector_matched") is True
+            ):
+                candidate_families.add(family)
+
+    candidates = []
+    for family in sorted(candidate_families):
+        family_hints = [dict(item) for item in normalized_hints if item["family"] == family]
+        layer_support = []
+        detector_evidence = []
+        selected_layers = []
+        for record in records:
+            evaluation = record["evaluations"].get(family)
+            is_selected = record["selected_family"] == family
+            if is_selected:
+                selected_layers.append(record["index"])
+            if evaluation is None:
+                if is_selected:
+                    detector_evidence.append(
+                        {
+                            "kind": record["attribution_basis"],
+                            "confidence": record["confidence"],
+                            "layer_index": record["index"],
+                            "layer_sha256": record["sha256"],
+                            "supports_attribution": True,
+                            "source": "legacy_classification_selection",
+                        }
+                    )
+                continue
+            positive = _positive_detector_evidence(evaluation, record)
+            detector_evidence.extend(positive)
+            layer_support.append(
+                {
+                    "layer_index": record["index"],
+                    "layer_sha256": record["sha256"],
+                    "depth": record["depth"],
+                    "selected_by_existing_classifier": is_selected,
+                    "known_outer_sha256": evaluation.get("known_outer_sha256") is True,
+                    "known_inner_sha256": evaluation.get("known_inner_sha256") is True,
+                    "detector_matched": evaluation.get("detector_matched") is True,
+                    "detector_error": evaluation.get("error"),
+                    "automatic_route_eligible": evaluation.get("automatic_route_eligible") is True,
+                }
+            )
+
+        metadata_evidence = [
+            {
+                "kind": "external_metadata_hint",
+                "confidence": "unverified",
+                "provider_confidence": hint["confidence"],
+                "source": hint["source"],
+                "provenance": hint["provenance"],
+                "label": hint.get("label"),
+                "observed_at": hint.get("observed_at"),
+                "layer_index": 0 if records else None,
+                "layer_sha256": records[0]["sha256"] if records else None,
+                "supports_attribution": False,
+            }
+            for hint in family_hints
+        ]
+        evidence = detector_evidence + metadata_evidence
+        has_high = any(item["confidence"] == "high" for item in detector_evidence)
+        has_medium = any(item["confidence"] == "medium" for item in detector_evidence)
+        candidate_confidence = "high" if has_high else ("medium" if has_medium else "unverified")
+        capability = coverage.get(family)
+        observed_detector = any(family in record["evaluations"] for record in records)
+        detector_registered = bool(
+            observed_detector or (capability and capability["detector_registered"])
+        )
+        automatic_handlers = capability["automatic_handlers"] if capability else []
+        manual_handlers = capability["manual_or_unsupported_handlers"] if capability else []
+        selected_clean_route = any(
+            item["selected_by_existing_classifier"]
+            and item["automatic_route_eligible"]
+            and not item["detector_error"]
+            for item in layer_support
+        )
+        selected_family_analysis = bool(
+            selected_layers
+            and selected_clean_route
+            and detector_registered
+            and automatic_handlers
+        )
+        verification_only = bool(
+            not selected_family_analysis
+            and automatic_handlers
+            and records
+            and (detector_evidence or family_hints)
+        )
+        if selected_family_analysis:
+            routing_mode = "selected_family_analysis"
+        elif verification_only:
+            routing_mode = "candidate_verification"
+        else:
+            routing_mode = "blocked"
+
+        reason_codes = []
+        if selected_layers:
+            reason_codes.append("unambiguous_detector_selection")
+        elif detector_evidence:
+            reason_codes.append("ambiguous_or_nonwinning_detector_evidence")
+        if family_hints:
+            reason_codes.append("metadata_hint_unverified")
+        if not detector_registered:
+            reason_codes.append("detector_not_registered")
+        elif not detector_evidence:
+            reason_codes.append("detector_did_not_match")
+        if automatic_handlers:
+            reason_codes.append("automatic_handler_available")
+        else:
+            reason_codes.append("automatic_handler_unavailable")
+        if verification_only:
+            reason_codes.append("handler_evidence_required_before_attribution")
+
+        confidence_score = {"high": 400, "medium": 300, "unverified": 100}[candidate_confidence]
+        provider_score = max(
+            (
+                {"high": 4, "medium": 3, "low": 2, "unknown": 1, "unverified": 0}[
+                    hint["confidence"]
+                ]
+                for hint in family_hints
+            ),
+            default=0,
+        )
+        score = (
+            confidence_score
+            + (40 if selected_layers else 0)
+            + min(30, 5 * len(detector_evidence))
+            + min(12, 2 * len(family_hints))
+            + provider_score
+            + (1 if automatic_handlers else 0)
+        )
+        if detector_evidence and family_hints:
+            source_kind = "detector_and_external_metadata"
+        elif detector_evidence:
+            source_kind = "detector"
+        else:
+            source_kind = "external_metadata"
+        supported_layer_sha256 = sorted(
+            {
+                item["layer_sha256"]
+                for item in evidence
+                if isinstance(item.get("layer_sha256"), str)
+            }
+        )
+        candidates.append(
+            {
+                "family": family,
+                "source": source_kind,
+                "source_strength": candidate_confidence,
+                "confidence": candidate_confidence,
+                "rank_score": score,
+                "routing_eligible": bool(selected_family_analysis or verification_only),
+                "routing_mode": routing_mode,
+                "layer_sha256": supported_layer_sha256,
+                "evidence": evidence,
+                "layer_support": layer_support,
+                "metadata_hints": family_hints,
+                "metadata_only": bool(family_hints and not detector_evidence),
+                "capabilities": {
+                    "coverage_known": capability is not None,
+                    "coverage_status": capability["status"] if capability else "not_supplied",
+                    "detector_registered": detector_registered,
+                    "registry_detector_gap": bool(
+                        capability is not None and not capability["detector_registered"]
+                    ),
+                    "automatic_handlers": automatic_handlers,
+                    "manual_or_unsupported_handlers": manual_handlers,
+                },
+                "routing_eligibility": {
+                    "mode": routing_mode,
+                    "selected_family_analysis": selected_family_analysis,
+                    "candidate_verification": verification_only,
+                    "family_attribution": bool(selected_layers),
+                    "reason_codes": sorted(set(reason_codes)),
+                },
+                "selected_layer_indexes": sorted(selected_layers),
+            }
+        )
+
+    candidates.sort(key=lambda item: (-item["rank_score"], item["family"]))
+    for rank, candidate in enumerate(candidates, start=1):
+        candidate["rank"] = rank
+    return {
+        "schema_version": 1,
+        "selection_policy": "fail_closed_existing_classifier_v1",
+        "metadata_hints_used_for_attribution": False,
+        "selected_families": sorted(selected_families),
+        "automatic_analysis_families": [
+            item["family"]
+            for item in candidates
+            if item["routing_eligibility"]["selected_family_analysis"]
+        ],
+        "verification_only_families": [
+            item["family"]
+            for item in candidates
+            if item["routing_eligibility"]["candidate_verification"]
+        ],
+        "candidate_count": len(candidates),
+        "metadata_hint_count": len(normalized_hints),
+        "candidates": candidates,
+    }
 
 
 def _unknown_result(
