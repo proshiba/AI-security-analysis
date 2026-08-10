@@ -100,12 +100,26 @@ def normalize_candidates(candidates: Sequence[Mapping[str, Any]]) -> list[dict[s
         if family is None:
             continue
         source, strength = _source_strength(candidate)
+        metadata_only = candidate.get("metadata_only") is True or source == "external_metadata"
+        routing_eligibility = candidate.get("routing_eligibility")
+        declared_attribution = (
+            routing_eligibility.get("family_attribution")
+            if isinstance(routing_eligibility, Mapping)
+            else None
+        )
+        attribution_eligible = (
+            declared_attribution
+            if isinstance(declared_attribution, bool)
+            else not metadata_only
+        )
         normalized.append(
             {
                 "family": family,
                 "source": source,
                 "source_strength": strength,
                 "routing_eligible": candidate.get("routing_eligible", True) is True,
+                "attribution_eligible": attribution_eligible and not metadata_only,
+                "metadata_only": metadata_only,
                 "layer_sha256": _text(candidate.get("layer_sha256")),
                 "confidence": _text(candidate.get("confidence")),
                 "reason": _text(candidate.get("reason")),
@@ -146,6 +160,7 @@ def _handler_best_by_family(
         eligible = status in {
             "succeeded",
             "candidate_evidence",
+            "corroborated",
             "no_evidence",
             "ambiguous_evidence",
             "assessed",
@@ -162,6 +177,7 @@ def _handler_best_by_family(
                 "score": rank[1],
                 "status": status,
                 "handler_id": _text(record.get("handler_id")),
+                "corroborated": status == "corroborated",
             }
     return best
 
@@ -179,7 +195,14 @@ def resolve_family(
         handler = handler_best.get(candidate["family"], {})
         tier = int(handler.get("tier", 0))
         minimum = MINIMUM_HANDLER_TIER[candidate["source_strength"]]
-        qualified = candidate["routing_eligible"] and tier >= minimum
+        attribution_ready = candidate["attribution_eligible"] or handler.get(
+            "corroborated", False
+        )
+        qualified = (
+            candidate["routing_eligible"]
+            and attribution_ready
+            and tier >= minimum
+        )
         assessed.append(
             {
                 **candidate,
@@ -187,6 +210,7 @@ def resolve_family(
                 "handler_tier": tier,
                 "handler_score": int(handler.get("score", 0)),
                 "handler_id": handler.get("handler_id"),
+                "handler_corroborated": bool(handler.get("corroborated")),
                 "qualified": qualified,
                 "rank": [candidate["source_strength"], tier, int(handler.get("score", 0))],
             }
@@ -294,6 +318,8 @@ def _walk_evidence(
 
 def summarize_handler_outputs(
     handler_records: Sequence[Mapping[str, Any]],
+    *,
+    family_filter: str | None = None,
 ) -> dict[str, Any]:
     """handler出力からconfig、通信先、後段payloadの事実だけを抽出する。"""
 
@@ -301,6 +327,16 @@ def summarize_handler_outputs(
     endpoints: dict[tuple[Any, ...], dict[str, Any]] = {}
     terminal_hashes: set[str] = set()
     for record in handler_records:
+        record_family = _family(record.get("family"))
+        if family_filter is not None and record_family != _family(family_filter):
+            continue
+        if record.get("status") not in {
+            "succeeded",
+            "candidate_evidence",
+            "assessed",
+            "corroborated",
+        }:
+            continue
         handler_id = _text(record.get("handler_id"))
         payload = record.get("result")
         if isinstance(payload, Mapping) and "result" in payload:
@@ -334,7 +370,13 @@ def summarize_handler_outputs(
                 endpoints[identity] = {**endpoint, "handler_id": handler_id, "contacted": False}
     return {
         "config_recovered": config_recovered,
-        "network_endpoints": [endpoints[key] for key in sorted(endpoints)],
+        "network_endpoints": [
+            endpoints[key]
+            for key in sorted(
+                endpoints,
+                key=lambda item: tuple("" if value is None else str(value) for value in item),
+            )
+        ],
         "terminal_payload_sha256": sorted(terminal_hashes),
     }
 
@@ -365,7 +407,18 @@ def build_outcome(
     if not SHA256_RE.fullmatch(sample_sha256):
         raise ValueError("sample_sha256は小文字SHA-256で指定してください")
     resolution = resolve_family(candidates, handler_records)
-    outputs = summarize_handler_outputs(handler_records)
+    candidate_outputs = summarize_handler_outputs(handler_records)
+    if resolution["status"] == "resolved":
+        outputs = summarize_handler_outputs(
+            handler_records,
+            family_filter=resolution["family"],
+        )
+    else:
+        outputs = {
+            "config_recovered": False,
+            "network_endpoints": [],
+            "terminal_payload_sha256": [],
+        }
     requirements = resolution.get("requirements") if resolution["status"] == "resolved" else {}
     if not isinstance(requirements, Mapping):
         requirements = {}
@@ -413,6 +466,7 @@ def build_outcome(
         "status": status,
         "family_resolution": resolution,
         "outputs": outputs,
+        "candidate_outputs": candidate_outputs,
         "quality_gates": gates,
         "blockers": blockers,
         "next_actions_ja": [next_actions[item] for item in blockers],

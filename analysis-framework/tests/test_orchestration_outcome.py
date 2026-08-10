@@ -36,7 +36,7 @@ def test_known_hash_can_resolve_without_handler() -> None:
     assert result["family"] == "valleyrat"
 
 
-def test_external_metadata_requires_decoded_configuration() -> None:
+def test_external_metadata_never_confirms_without_detector() -> None:
     candidate = [{"family": "nanocore", "source": "external_metadata"}]
     weak = _record("nanocore", {"capabilities": ["remote_shell"]})
     assert resolve_family(candidate, [weak])["status"] == "unresolved"
@@ -57,7 +57,7 @@ def test_external_metadata_requires_decoded_configuration() -> None:
             "config": {"campaign": "fixture"},
         },
     )
-    assert resolve_family(candidate, [strong])["family"] == "nanocore"
+    assert resolve_family(candidate, [strong])["status"] == "unresolved"
 
 
 def test_detector_candidate_accepts_structural_corroboration() -> None:
@@ -82,6 +82,23 @@ def test_equal_best_families_remain_ambiguous() -> None:
     )
     assert result["status"] == "ambiguous"
     assert result["winning_families"] == ["family-a", "family-b"]
+
+
+def test_verification_only_detector_candidate_needs_corroborated_status() -> None:
+    candidate = {
+        "family": "family-a",
+        "source": "detector",
+        "source_strength": "medium",
+        "routing_mode": "candidate_verification",
+        "routing_eligibility": {"family_attribution": False},
+    }
+    payload = {
+        "decoded_config_recovered": True,
+        "config": {"campaign": "fixture"},
+    }
+    assert resolve_family([candidate], [_record("family-a", payload)])["status"] == "unresolved"
+    corroborated = _record("family-a", payload, status="corroborated")
+    assert resolve_family([candidate], [corroborated])["family"] == "family-a"
 
 
 def test_network_output_drops_credentials_and_query() -> None:
@@ -145,3 +162,38 @@ def test_terminal_payload_requires_authenticated_sha256() -> None:
     )
     outputs = summarize_handler_outputs([record])
     assert outputs["terminal_payload_sha256"] == ["b" * 64]
+
+
+def test_other_family_endpoint_cannot_satisfy_network_gate() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            {
+                "family": "valleyrat",
+                "source": "known_hash",
+                "requirements": {"network_required": True},
+            }
+        ],
+        handler_records=[
+            _record("formbook", {"c2_candidates": ["formbook.example:443"]})
+        ],
+        function_analysis_available=True,
+    )
+    assert result["status"] == "partial"
+    assert result["outputs"]["network_endpoints"] == []
+    assert result["candidate_outputs"]["network_endpoints"]
+    assert "network" in result["blockers"]
+
+
+def test_host_only_and_host_port_endpoints_sort_deterministically() -> None:
+    outputs = summarize_handler_outputs(
+        [
+            _record(
+                "family",
+                {"c2_candidates": ["same.example", "same.example:443"]},
+            )
+        ]
+    )
+    assert [item["port"] for item in outputs["network_endpoints"]] == [None, 443]
