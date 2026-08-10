@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -71,11 +72,7 @@ def _coverage(
 
     return {
         "family": family,
-        "status": (
-            "automatic_handler_available"
-            if detector_registered
-            else "handler_without_registered_detector"
-        ),
+        "status": ("automatic_handler_available" if detector_registered else "handler_without_registered_detector"),
         "detector_registered": detector_registered,
         "automatic_handlers": automatic_handlers,
         "manual_or_unsupported_handlers": [],
@@ -210,10 +207,7 @@ def test_ambiguous_detector_matches_are_verification_only() -> None:
     assert result["selected_families"] == []
     assert result["automatic_analysis_families"] == []
     assert result["verification_only_families"] == ["asyncrat", "venomrat"]
-    assert all(
-        item["routing_eligibility"]["family_attribution"] is False
-        for item in result["candidates"]
-    )
+    assert all(item["routing_eligibility"]["family_attribution"] is False for item in result["candidates"])
 
 
 def test_all_layer_detector_evidence_is_retained_and_ranked() -> None:
@@ -253,8 +247,7 @@ def test_all_layer_detector_evidence_is_retained_and_ranked() -> None:
         CHILD_SHA,
     }
     assert any(
-        item["kind"] == "known_inner_sha256" and item["layer_sha256"] == CHILD_SHA
-        for item in candidate["evidence"]
+        item["kind"] == "known_inner_sha256" and item["layer_sha256"] == CHILD_SHA for item in candidate["evidence"]
     )
     assert candidate["selected_layer_indexes"] == [1]
 
@@ -500,3 +493,123 @@ def test_routing_rejects_non_list_metadata_hints() -> None:
             [_layer(ROOT_SHA)],
             metadata_hints={"family": "nanocore"},  # type: ignore[arg-type]
         )
+
+
+def test_hyphenated_canonical_family_is_routable() -> None:
+    """registry/handler契約で利用するhyphen付きfamily IDを拒否しない。"""
+
+    result = classify_sample.build_family_routing_candidates(
+        [_layer(ROOT_SHA)],
+        metadata_hints=[
+            {
+                "family": "family-hyphen",
+                "source": "fixture",
+                "provenance": "exact-sha256",
+                "confidence": "unverified",
+            }
+        ],
+        family_coverage=[
+            _coverage(
+                "family-hyphen",
+                detector_registered=False,
+                automatic_handlers=["family-hyphen.extract"],
+            )
+        ],
+    )
+    assert result["verification_only_families"] == ["family-hyphen"]
+
+
+def test_validated_manifest_is_immutable_and_lookup_skips_renormalization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """検証済みmarkerは変更不能で、sample lookup時に全体走査しない。"""
+
+    path = tmp_path / "hints.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "samples": {
+                    ROOT_SHA: [
+                        {
+                            "family": "nanocore",
+                            "source": "fixture",
+                            "provenance": "exact-sha256",
+                            "confidence": "unverified",
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded = classify_sample.load_family_hint_manifest(path, allowed_root=tmp_path)
+    with pytest.raises(TypeError):
+        classify_sample.ValidatedFamilyHintManifest(dict(loaded), _token=object())
+    with pytest.raises(TypeError):
+        loaded["samples"][ROOT_SHA][0]["family"] = "forged"
+
+    monkeypatch.setattr(
+        classify_sample,
+        "normalize_family_hint_manifest",
+        lambda _value: pytest.fail("検証済みmanifestを再正規化しました"),
+    )
+    assert classify_sample.family_hints_for_sha256(loaded, ROOT_SHA)[0]["family"] == "nanocore"
+
+
+def test_manifest_loader_rejects_oversize_and_open_time_swap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """limit+1読込とlstat/fstat同一性検査を回帰確認する。"""
+
+    oversized = tmp_path / "oversized.json"
+    with oversized.open("wb") as handle:
+        handle.truncate(classify_sample.MAX_FAMILY_HINT_MANIFEST_BYTES + 1)
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="byte limit"):
+        classify_sample.load_family_hint_manifest(oversized, allowed_root=tmp_path)
+
+    path = tmp_path / "hints.json"
+    replacement = tmp_path / "replacement.json"
+    payload = json.dumps({"schema_version": 1, "samples": {}})
+    path.write_text(payload, encoding="utf-8")
+    replacement.write_text(payload + " ", encoding="utf-8")
+    original_open = Path.open
+    swapped = False
+
+    def swapping_open(self: Path, *args: object, **kwargs: object):
+        nonlocal swapped
+        if self == path and not swapped:
+            swapped = True
+            os.replace(replacement, path)
+        return original_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", swapping_open)
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="changed before"):
+        classify_sample.load_family_hint_manifest(path, allowed_root=tmp_path)
+
+
+def test_manifest_loader_rejects_reparse_target(tmp_path: Path) -> None:
+    """manifest自身がsymlink/reparse pointなら解決前に拒否する。"""
+
+    target = tmp_path / "target.json"
+    link = tmp_path / "link.json"
+    target.write_text('{"schema_version":1,"samples":{}}', encoding="utf-8")
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("この環境ではsymlinkを作成できません")
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="reparse"):
+        classify_sample.load_family_hint_manifest(link, allowed_root=tmp_path)
+
+
+def test_routing_candidate_family_count_is_bounded() -> None:
+    """大量の肯定detector評価でも候補生成を上限内で停止する。"""
+
+    evaluations = [
+        _evaluation(f"family-{index:03d}", matched=True)
+        for index in range(classify_sample.MAX_ROUTING_CANDIDATE_FAMILIES + 1)
+    ]
+    with pytest.raises(TypeError, match="candidate family count"):
+        classify_sample.build_family_routing_candidates([_layer(ROOT_SHA, evaluations=evaluations)])

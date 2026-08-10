@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
 from functools import lru_cache
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
+import stat
 import sys
 from typing import Any
 
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
-FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
+FAMILY_ID_RE = re.compile(r"^[a-z0-9_-]+$")
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 HINT_CONFIDENCE_VALUES = {"high", "medium", "low", "unknown", "unverified"}
 MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
@@ -20,6 +23,7 @@ MAX_FAMILY_HINT_SAMPLES = 10_000
 MAX_FAMILY_HINTS_PER_SAMPLE = 16
 MAX_ROUTING_LAYERS = 512
 MAX_ROUTING_FAMILY_COVERAGE = 512
+MAX_ROUTING_CANDIDATE_FAMILIES = 128
 _EXTERNAL_PUBLICATION_BASES = {
     "malwarebazaar_direct_tag",
     "malwarebazaar_reported_signature",
@@ -37,6 +41,48 @@ class DetectorPathError(ValueError):
 
 class FamilyHintManifestError(ValueError):
     """外部family候補manifestが厳格schemaに適合しない場合に送出する。"""
+
+
+class _FrozenDict(dict):
+    """JSON互換性を保ったまま検証済みmanifestを深く不変にするdict。"""
+
+    def _immutable(self, *_args: object, **_kwargs: object) -> None:
+        raise TypeError("検証済みfamily hint manifestは変更できません")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    pop = _immutable
+    popitem = _immutable
+    setdefault = _immutable
+    update = _immutable
+    __ior__ = _immutable
+
+
+_VALIDATED_MANIFEST_TOKEN = object()
+
+
+class ValidatedFamilyHintManifest(_FrozenDict):
+    """厳格検証済みで再正規化を必要としないmanifest marker。"""
+
+    def __init__(self, values: dict[str, Any], *, _token: object) -> None:
+        if _token is not _VALIDATED_MANIFEST_TOKEN:
+            raise TypeError("検証済みmanifest markerは直接生成できません")
+        super().__init__(values)
+
+
+def _freeze_manifest(
+    samples: dict[str, list[dict[str, str]]],
+) -> ValidatedFamilyHintManifest:
+    """正規化済み値をJSON化可能な深い不変表現へ変換する。"""
+
+    frozen_samples = _FrozenDict(
+        {digest: tuple(_FrozenDict(dict(hint)) for hint in hints) for digest, hints in sorted(samples.items())}
+    )
+    return ValidatedFamilyHintManifest(
+        {"schema_version": 1, "samples": frozen_samples},
+        _token=_VALIDATED_MANIFEST_TOKEN,
+    )
 
 
 def _resolve_detector_path(
@@ -239,19 +285,19 @@ def _normalize_family_hint(value: Any, location: str) -> dict[str, str]:
     if "label" in value:
         normalized["label"] = _bounded_hint_text(value["label"], f"{location}.label", 128)
     if "observed_at" in value:
-        normalized["observed_at"] = _bounded_hint_text(
-            value["observed_at"], f"{location}.observed_at", 64
-        )
+        normalized["observed_at"] = _bounded_hint_text(value["observed_at"], f"{location}.observed_at", 64)
     return normalized
 
 
-def normalize_family_hint_manifest(document: Any) -> dict[str, Any]:
+def normalize_family_hint_manifest(document: Any) -> ValidatedFamilyHintManifest:
     """SHA-256 keyed外部family hint manifestを厳格schemaへ正規化する。
 
     外部providerのconfidenceはそのまま保持するが、分類confidenceへは昇格
     しない。family確定には別途detectorまたは既知hashの証拠が必要である。
     """
 
+    if isinstance(document, ValidatedFamilyHintManifest):
+        return document
     if not isinstance(document, dict):
         raise FamilyHintManifestError("hint manifest root must be an object")
     unknown = sorted(set(document) - {"schema_version", "samples"})
@@ -276,10 +322,7 @@ def normalize_family_hint_manifest(document: Any) -> dict[str, Any]:
             raise FamilyHintManifestError(f"samples.{digest} must be a non-empty list")
         if len(raw_hints) > MAX_FAMILY_HINTS_PER_SAMPLE:
             raise FamilyHintManifestError(f"samples.{digest} exceeds the hint count limit")
-        hints = [
-            _normalize_family_hint(hint, f"samples.{digest}[{index}]")
-            for index, hint in enumerate(raw_hints)
-        ]
+        hints = [_normalize_family_hint(hint, f"samples.{digest}[{index}]") for index, hint in enumerate(raw_hints)]
         fingerprints = {
             (
                 hint["family"],
@@ -303,10 +346,7 @@ def normalize_family_hint_manifest(document: Any) -> dict[str, Any]:
                 item.get("label", ""),
             ),
         )
-    return {
-        "schema_version": 1,
-        "samples": dict(sorted(normalized_samples.items())),
-    }
+    return _freeze_manifest(normalized_samples)
 
 
 def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -326,35 +366,97 @@ def _reject_nonfinite_json(value: str) -> None:
     raise FamilyHintManifestError(f"hint manifest contains a non-finite number: {value}")
 
 
-def load_family_hint_manifest(path: Path) -> dict[str, Any]:
-    """上限付きで外部family hint manifestを読み、厳格検証済み値を返す。"""
+def _is_reparse_or_link(stat_result: os.stat_result) -> bool:
+    """stat結果がsymlinkまたはWindows reparse pointならTrueを返す。"""
 
+    attributes = getattr(stat_result, "st_file_attributes", 0)
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    return stat.S_ISLNK(stat_result.st_mode) or bool(attributes & reparse)
+
+
+def _manifest_path(
+    supplied: Path,
+    allowed_root: Path | None,
+) -> tuple[Path, os.stat_result]:
+    """元pathと任意rootを検証し、reparseを解決前に拒否する。"""
+
+    path = Path(os.path.abspath(supplied))
+    root = Path(os.path.abspath(allowed_root)) if allowed_root is not None else None
+    if root is not None:
+        try:
+            relative = path.relative_to(root)
+        except ValueError as exc:
+            raise FamilyHintManifestError("hint manifest is outside the allowed root") from exc
+        current = root
+        components = [root]
+        for part in relative.parts:
+            current /= part
+            components.append(current)
+    else:
+        components = [path]
     try:
-        size = path.stat().st_size
+        for component in components:
+            component_stat = os.lstat(component)
+            if _is_reparse_or_link(component_stat):
+                raise FamilyHintManifestError("hint manifest path contains a reparse point")
+        original = os.lstat(path)
+    except FamilyHintManifestError:
+        raise
     except OSError as exc:
         raise FamilyHintManifestError(f"cannot stat hint manifest: {exc}") from exc
-    if size > MAX_FAMILY_HINT_MANIFEST_BYTES:
-        raise FamilyHintManifestError("hint manifest exceeds the byte limit")
+    if not stat.S_ISREG(original.st_mode):
+        raise FamilyHintManifestError("hint manifest must be a regular file")
+    return path, original
+
+
+def load_family_hint_manifest(
+    path: Path,
+    *,
+    allowed_root: Path | None = None,
+) -> ValidatedFamilyHintManifest:
+    """単一handleから上限付きで読み、TOCTOUを拒否して厳格検証する。"""
+
+    checked_path, original = _manifest_path(path, allowed_root)
     try:
-        text = path.read_text(encoding="utf-8-sig")
+        with checked_path.open("rb") as handle:
+            opened = os.fstat(handle.fileno())
+            if not stat.S_ISREG(opened.st_mode) or not os.path.samestat(original, opened):
+                raise FamilyHintManifestError("hint manifest changed before it was opened")
+            if opened.st_size > MAX_FAMILY_HINT_MANIFEST_BYTES:
+                raise FamilyHintManifestError("hint manifest exceeds the byte limit")
+            raw = handle.read(MAX_FAMILY_HINT_MANIFEST_BYTES + 1)
+    except FamilyHintManifestError:
+        raise
+    except OSError as exc:
+        raise FamilyHintManifestError(f"cannot read hint manifest: {exc}") from exc
+    if len(raw) > MAX_FAMILY_HINT_MANIFEST_BYTES:
+        raise FamilyHintManifestError("hint manifest exceeds the byte limit")
+    if len(raw) != opened.st_size:
+        raise FamilyHintManifestError("hint manifest size changed while it was read")
+    try:
         document = json.loads(
-            text,
+            raw.decode("utf-8-sig"),
             object_pairs_hook=_reject_duplicate_json_keys,
             parse_constant=_reject_nonfinite_json,
         )
     except FamilyHintManifestError:
         raise
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (UnicodeError, json.JSONDecodeError) as exc:
         raise FamilyHintManifestError(f"cannot read hint manifest: {exc}") from exc
     return normalize_family_hint_manifest(document)
 
 
-def family_hints_for_sha256(manifest: dict[str, Any], digest: str) -> list[dict[str, str]]:
+def family_hints_for_sha256(
+    manifest: Mapping[str, Any],
+    digest: str,
+) -> list[dict[str, str]]:
     """検証済みmanifestから完全一致SHA-256のhintだけをコピーして返す。"""
 
     if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
         raise FamilyHintManifestError("sample digest must be a SHA-256")
-    normalized = normalize_family_hint_manifest(manifest)
+    normalized = (
+        manifest if isinstance(manifest, ValidatedFamilyHintManifest) else normalize_family_hint_manifest(manifest)
+    )
     return [dict(item) for item in normalized["samples"].get(digest.lower(), [])]
 
 
@@ -461,26 +563,20 @@ def _routing_layer_records(
             raise TypeError(f"layer_classifications[{index}].layer must be an object")
         evaluations = classification.get("detector_evaluations", [])
         if not isinstance(evaluations, list):
-            raise TypeError(
-                f"layer_classifications[{index}].classification.detector_evaluations must be a list"
-            )
+            raise TypeError(f"layer_classifications[{index}].classification.detector_evaluations must be a list")
         normalized_evaluations: dict[str, dict[str, Any]] = {}
         for evaluation_index, evaluation in enumerate(evaluations):
             if not isinstance(evaluation, dict):
                 raise TypeError(
-                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] "
-                    "must be an object"
+                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] must be an object"
                 )
             family = evaluation.get("malware_type")
             if not isinstance(family, str) or FAMILY_ID_RE.fullmatch(family) is None:
                 raise TypeError(
-                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] "
-                    "has an invalid family"
+                    f"layer_classifications[{index}].detector_evaluations[{evaluation_index}] has an invalid family"
                 )
             if family in normalized_evaluations:
-                raise TypeError(
-                    f"layer_classifications[{index}] contains duplicate detector evaluation: {family}"
-                )
+                raise TypeError(f"layer_classifications[{index}] contains duplicate detector evaluation: {family}")
             normalized_evaluations[family] = evaluation
 
         observations = classification.get("observations", {})
@@ -561,8 +657,7 @@ def build_family_routing_candidates(
     if len(metadata_hints or []) > MAX_FAMILY_HINTS_PER_SAMPLE:
         raise TypeError("metadata_hints exceeds the hint count limit")
     normalized_hints = [
-        _normalize_family_hint(item, f"metadata_hints[{index}]")
-        for index, item in enumerate(metadata_hints or [])
+        _normalize_family_hint(item, f"metadata_hints[{index}]") for index, item in enumerate(metadata_hints or [])
     ]
 
     candidate_families: set[str] = {item["family"] for item in normalized_hints}
@@ -579,6 +674,9 @@ def build_family_routing_candidates(
                 or evaluation.get("detector_matched") is True
             ):
                 candidate_families.add(family)
+
+    if len(candidate_families) > MAX_ROUTING_CANDIDATE_FAMILIES:
+        raise TypeError("routing candidate family count exceeds the configured limit")
 
     candidates = []
     for family in sorted(candidate_families):
@@ -641,28 +739,18 @@ def build_family_routing_candidates(
         candidate_confidence = "high" if has_high else ("medium" if has_medium else "unverified")
         capability = coverage.get(family)
         observed_detector = any(family in record["evaluations"] for record in records)
-        detector_registered = bool(
-            observed_detector or (capability and capability["detector_registered"])
-        )
+        detector_registered = bool(observed_detector or (capability and capability["detector_registered"]))
         automatic_handlers = capability["automatic_handlers"] if capability else []
         manual_handlers = capability["manual_or_unsupported_handlers"] if capability else []
         selected_clean_route = any(
-            item["selected_by_existing_classifier"]
-            and item["automatic_route_eligible"]
-            and not item["detector_error"]
+            item["selected_by_existing_classifier"] and item["automatic_route_eligible"] and not item["detector_error"]
             for item in layer_support
         )
         selected_family_analysis = bool(
-            selected_layers
-            and selected_clean_route
-            and detector_registered
-            and automatic_handlers
+            selected_layers and selected_clean_route and detector_registered and automatic_handlers
         )
         verification_only = bool(
-            not selected_family_analysis
-            and automatic_handlers
-            and records
-            and (detector_evidence or family_hints)
+            not selected_family_analysis and automatic_handlers and records and (detector_evidence or family_hints)
         )
         if selected_family_analysis:
             routing_mode = "selected_family_analysis"
@@ -692,9 +780,7 @@ def build_family_routing_candidates(
         confidence_score = {"high": 400, "medium": 300, "unverified": 100}[candidate_confidence]
         provider_score = max(
             (
-                {"high": 4, "medium": 3, "low": 2, "unknown": 1, "unverified": 0}[
-                    hint["confidence"]
-                ]
+                {"high": 4, "medium": 3, "low": 2, "unknown": 1, "unverified": 0}[hint["confidence"]]
                 for hint in family_hints
             ),
             default=0,
@@ -714,11 +800,7 @@ def build_family_routing_candidates(
         else:
             source_kind = "external_metadata"
         supported_layer_sha256 = sorted(
-            {
-                item["layer_sha256"]
-                for item in evidence
-                if isinstance(item.get("layer_sha256"), str)
-            }
+            {item["layer_sha256"] for item in evidence if isinstance(item.get("layer_sha256"), str)}
         )
         candidates.append(
             {
@@ -738,9 +820,7 @@ def build_family_routing_candidates(
                     "coverage_known": capability is not None,
                     "coverage_status": capability["status"] if capability else "not_supplied",
                     "detector_registered": detector_registered,
-                    "registry_detector_gap": bool(
-                        capability is not None and not capability["detector_registered"]
-                    ),
+                    "registry_detector_gap": bool(capability is not None and not capability["detector_registered"]),
                     "automatic_handlers": automatic_handlers,
                     "manual_or_unsupported_handlers": manual_handlers,
                 },
@@ -764,14 +844,10 @@ def build_family_routing_candidates(
         "metadata_hints_used_for_attribution": False,
         "selected_families": sorted(selected_families),
         "automatic_analysis_families": [
-            item["family"]
-            for item in candidates
-            if item["routing_eligibility"]["selected_family_analysis"]
+            item["family"] for item in candidates if item["routing_eligibility"]["selected_family_analysis"]
         ],
         "verification_only_families": [
-            item["family"]
-            for item in candidates
-            if item["routing_eligibility"]["candidate_verification"]
+            item["family"] for item in candidates if item["routing_eligibility"]["candidate_verification"]
         ],
         "candidate_count": len(candidates),
         "metadata_hint_count": len(normalized_hints),
