@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">triage_artifact_retrieval</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Ctriage_artifact_retrieval.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\triage_artifact_retrieval.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/triage_artifact_retrieval.py">analysis-framework/common/triage_artifact_retrieval.py</a></td></tr></table>
     <p><span class="code">Triageの完全ハッシュ一致解析から次段・メモリ成果物を限定取得する。</span></p>
 <p>
 <table class="section">
@@ -25,95 +25,13 @@
 </td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
-<tr class="decor index-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
-
-<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl>
-<dt class="heading-text"><a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>(<a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>)
-</dt><dd>
-<dl>
-<dt class="heading-text"><a href="triage_artifact_retrieval.html#NoRedirect">NoRedirect</a>
-</dt></dl>
-</dd>
-</dl>
- <p>
-<table class="section">
-<tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="NoRedirect">class <strong>NoRedirect</strong></a>(<a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>)</td></tr>
-
-<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code">レビュー済みAPI&nbsp;pathから別scopeへ移るredirectを拒否する。<br>&nbsp;</span></td></tr>
-<tr><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
-<dd><a href="triage_artifact_retrieval.html#NoRedirect">NoRedirect</a></dd>
-<dd><a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a></dd>
-<dd><a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a></dd>
-<dd><a href="builtins.html#object">builtins.object</a></dd>
-</dl>
-<hr>
-Methods defined here:<br>
-<dl><dt><a name="NoRedirect-redirect_request"><strong>redirect_request</strong></a>(self, req, fp, code, msg, headers, newurl)</dt><dd><span class="code">Return&nbsp;a&nbsp;Request&nbsp;or&nbsp;None&nbsp;in&nbsp;response&nbsp;to&nbsp;a&nbsp;redirect.<br>
-&nbsp;<br>
-This&nbsp;is&nbsp;called&nbsp;by&nbsp;the&nbsp;http_error_30x&nbsp;methods&nbsp;when&nbsp;a<br>
-redirection&nbsp;response&nbsp;is&nbsp;received.&nbsp;&nbsp;If&nbsp;a&nbsp;redirection&nbsp;should<br>
-take&nbsp;place,&nbsp;return&nbsp;a&nbsp;new&nbsp;Request&nbsp;to&nbsp;allow&nbsp;http_error_30x&nbsp;to<br>
-perform&nbsp;the&nbsp;redirect.&nbsp;&nbsp;Otherwise,&nbsp;raise&nbsp;HTTPError&nbsp;if&nbsp;no-one<br>
-else&nbsp;should&nbsp;try&nbsp;to&nbsp;handle&nbsp;this&nbsp;url.&nbsp;&nbsp;Return&nbsp;None&nbsp;if&nbsp;you&nbsp;can't<br>
-but&nbsp;another&nbsp;Handler&nbsp;might.</span></dd></dl>
-
-<hr>
-Methods inherited from <a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>:<br>
-<dl><dt><a name="NoRedirect-http_error_301"><strong>http_error_301</strong></a> = <a href="#NoRedirect-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
-
-<dl><dt><a name="NoRedirect-http_error_302"><strong>http_error_302</strong></a>(self, req, fp, code, msg, headers)</dt><dd><span class="code">#&nbsp;Implementation&nbsp;note:&nbsp;To&nbsp;avoid&nbsp;the&nbsp;server&nbsp;sending&nbsp;us&nbsp;into&nbsp;an<br>
-#&nbsp;infinite&nbsp;loop,&nbsp;the&nbsp;request&nbsp;object&nbsp;needs&nbsp;to&nbsp;track&nbsp;what&nbsp;URLs&nbsp;we<br>
-#&nbsp;have&nbsp;already&nbsp;seen.&nbsp;&nbsp;Do&nbsp;this&nbsp;by&nbsp;adding&nbsp;a&nbsp;handler-specific<br>
-#&nbsp;attribute&nbsp;to&nbsp;the&nbsp;Request&nbsp;object.</span></dd></dl>
-
-<dl><dt><a name="NoRedirect-http_error_303"><strong>http_error_303</strong></a> = <a href="#NoRedirect-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
-
-<dl><dt><a name="NoRedirect-http_error_307"><strong>http_error_307</strong></a> = <a href="#NoRedirect-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
-
-<dl><dt><a name="NoRedirect-http_error_308"><strong>http_error_308</strong></a> = <a href="#NoRedirect-http_error_302">http_error_302</a>(self, req, fp, code, msg, headers)</dt></dl>
-
-<hr>
-Data and other attributes inherited from <a href="urllib.request.html#HTTPRedirectHandler">urllib.request.HTTPRedirectHandler</a>:<br>
-<dl><dt><strong>inf_msg</strong> = 'The HTTP server returned a redirect error that w...n infinite loop.<span class="repr">\n</span>The last 30x error message was:<span class="repr">\n</span>'</dl>
-
-<dl><dt><strong>max_redirections</strong> = 10</dl>
-
-<dl><dt><strong>max_repeats</strong> = 4</dl>
-
-<hr>
-Methods inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
-<dl><dt><a name="NoRedirect-__lt__"><strong>__lt__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self&lt;value.</span></dd></dl>
-
-<dl><dt><a name="NoRedirect-add_parent"><strong>add_parent</strong></a>(self, parent)</dt></dl>
-
-<dl><dt><a name="NoRedirect-close"><strong>close</strong></a>(self)</dt></dl>
-
-<hr>
-Data descriptors inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
-<dl><dt><strong>__dict__</strong></dt>
-<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
-</dl>
-<dl><dt><strong>__weakref__</strong></dt>
-<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
-</dl>
-<hr>
-Data and other attributes inherited from <a href="urllib.request.html#BaseHandler">urllib.request.BaseHandler</a>:<br>
-<dl><dt><strong>handler_order</strong> = 500</dl>
-
-</td></tr></table></td></tr></table><p>
-<table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-api_json"><strong>api_json</strong></a>(path: 'str', api_key: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'Any'</dt><dd><span class="code">許可済みTriage&nbsp;API&nbsp;pathから上限付きJSONを取得する。</span></dd></dl>
  <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">限定取得CLIの引数parserを構築する。</span></dd></dl>
- <dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(hashes: 'list[str]', api_key: 'str', *, opener: 'Any', timeout: 'float', include_memory: 'bool') -&gt; 'tuple[list[dict[str, Any]], list[dict[str, str]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
+ <dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(hashes: 'list[str]', api_key: 'str', *, opener: 'Any', timeout: 'float', include_memory: 'bool', root_sample_candidates: 'list[dict[str, Any]] | None' = None) -&gt; 'tuple[list[dict[str, Any]], list[dict[str, str]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
  <dl><dt><a name="-encrypted_zip_bytes"><strong>encrypted_zip_bytes</strong></a>(data: 'bytes', member_name: 'str', password: 'str') -&gt; 'bytes'</dt><dd><span class="code">平文をdiskへ書かず、AES-256&nbsp;ZIPをmemory上で作る。</span></dd></dl>
  <dl><dt><a name="-extract_artifact_candidates"><strong>extract_artifact_candidates</strong></a>(overview: 'dict[str, Any]', *, expected_sha256: 'str', sample_id: 'str', include_memory: 'bool') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから、task境界を検証できる成果物API&nbsp;pathだけを作る。</span></dd></dl>
  <dl><dt><a name="-fetch_bounded"><strong>fetch_bounded</strong></a>(endpoint_path: 'str', api_key: 'str', *, opener: 'Any', timeout: 'float', max_bytes: 'int') -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">成果物を指定byte上限内で取得し、HTTP証跡を返す。</span></dd></dl>
@@ -132,10 +50,13 @@ Data and other attributes inherited from <a href="urllib.request.html#BaseHandle
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>DEFAULT_MAX_BYTES</strong> = 67108864<br>
+<strong>DEFAULT_MAX_ROOT_TOTAL_BYTES</strong> = 536870912<br>
+<strong>DEFAULT_MAX_SAMPLE_BYTES</strong> = 536870912<br>
 <strong>DEFAULT_MAX_TOTAL_BYTES</strong> = 268435456<br>
 <strong>MAX_JSON_BYTES</strong> = 26214400<br>
+<strong>MAX_ROOT_TOTAL_BYTES</strong> = 1073741824<br>
 <strong>MEMORY_RESOURCE_RE</strong> = re.compile('^(behavioral\\d+)/memory/([^/]+)$')<br>
-<strong>REPOSITORY</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727')<br>
+<strong>REPOSITORY</strong> = WindowsPath('&lt;repository-root&gt;')<br>
 <strong>SAMPLE_ID_RE</strong> = re.compile('^\\d{6}-[a-z0-9]{10}$')<br>
 <strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
 <strong>TASK_ID_RE</strong> = re.compile('^behavioral\\d+$')<br>

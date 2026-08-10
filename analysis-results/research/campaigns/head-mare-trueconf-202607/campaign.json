@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "campaign_id": "head-mare-trueconf-202607",
+  "title": "Head MareによるTrueConf Server侵害",
+  "observed_period": {
+    "start": "2026-07-01",
+    "end": "2026-07-31",
+    "precision": "month"
+  },
+  "actor": {
+    "name": "Head Mare",
+    "status": "source_attributed",
+    "independent_attribution": false
+  },
+  "campaign_confidence": "medium_high",
+  "families": [
+    "PhantomCore",
+    "PhantomGraph"
+  ],
+  "branches": {
+    "server_initial_access": [
+      "KLCERT-26-057",
+      "KLCERT-26-058",
+      "locale.php webshell"
+    ],
+    "client_supply_chain": [
+      "trojanized TrueConf Client installer",
+      "PhantomCore",
+      "CLSID InprocServer32 persistence"
+    ],
+    "server_backdoor": [
+      "SysExcSvc.dll",
+      "SysReadSvc.dll",
+      "OneDrive command channel",
+      "SSH reverse tunnel"
+    ]
+  },
+  "evidence": [
+    {
+      "type": "primary_research",
+      "source": "Kaspersky Securelist",
+      "url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+      "published": "2026-08-07"
+    },
+    {
+      "type": "external_public_sandbox",
+      "source": "Triage",
+      "sample_id": "260722-z86htahl6y",
+      "exact_hash_match": true
+    },
+    {
+      "type": "provider_lookup",
+      "source": "VirusTotal and MalwareBazaar",
+      "queried_md5_count": 20,
+      "sha256_recovered_count": 6,
+      "submission_performed": false
+    }
+  ],
+  "guardrails": [
+    "4307/TCP is initial access, not C2",
+    "generic OneDrive and Microsoft endpoints are not IOCs",
+    "shared Cloudflare edges are not IOCs",
+    "provider family labels are supporting evidence only"
+  ]
+}

@@ -95,6 +95,7 @@ MAX_RECOVERED_TOTAL_SIZE = static_layers.MAX_RECOVERED_TOTAL_SIZE
 MAX_STATIC_COMPRESSION_RATIO = static_layers.MAX_STATIC_COMPRESSION_RATIO
 MAX_ARCHIVE_MEMBERS = static_layers.MAX_ARCHIVE_MEMBERS
 recover_layer_pipeline = static_layers.recover_static_layers
+DEFAULT_STRING_SCAN_LIMIT = analyze_family_sample.DEFAULT_STRING_SCAN_LIMIT
 
 
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
@@ -114,6 +115,18 @@ class JapaneseArgumentParser(argparse.ArgumentParser):
             .replace("options:", "オプション:")
             .replace("show this help message and exit", "このヘルプを表示して終了します")
         )
+
+
+def _positive_integer(value: str) -> int:
+    """CLI引数を正の整数へ変換し、0以下と非整数を拒否する。"""
+
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("正の整数で指定してください") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("正の整数で指定してください")
+    return parsed
 
 
 def normalize_family(value: str) -> str:
@@ -437,7 +450,12 @@ def _triage_issues(value: Any, path: str = "root") -> list[str]:
     return issues
 
 
-def _run_generic_triage(layers: list[StaticLayer], case_dir: Path) -> tuple[dict[str, Any], str]:
+def _run_generic_triage(
+    layers: list[StaticLayer],
+    case_dir: Path,
+    *,
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
+) -> tuple[dict[str, Any], str]:
     """全静的復元層を個別にトリアージし、部分失敗を隠さず集約する。"""
 
     entries = []
@@ -449,6 +467,7 @@ def _run_generic_triage(layers: list[StaticLayer], case_dir: Path) -> tuple[dict
                 case_dir / "scripts",
                 persist_normalized_text=False,
                 recurse_archives=False,
+                string_scan_limit=string_scan_limit,
             )
             issues = _triage_issues(value)
             entries.append(
@@ -806,6 +825,7 @@ def analyze_unit(
     max_static_layers: int = MAX_STATIC_LAYERS,
     retry_max_static_layers: int | None = None,
     archive_password: str = "infected",
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
 ) -> dict[str, Any]:
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
 
@@ -936,7 +956,11 @@ def analyze_unit(
 
     generic_status = "not_run_assessment_only"
     if not assessment_only:
-        generic, generic_status = _run_generic_triage(layers, case_dir)
+        generic, generic_status = _run_generic_triage(
+            layers,
+            case_dir,
+            string_scan_limit=string_scan_limit,
+        )
         write_json(case_dir / "generic-triage.json", generic)
 
     executions = []
@@ -1215,7 +1239,7 @@ def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]
         CAMPAIGN_CORRELATION_RULES.resolve(),
         CAMPAIGN_FINGERPRINTS.resolve(),
     }
-    for root in (COMMON_ROOT, CLASSIFIERS_ROOT):
+    for root in (COMMON_ROOT, CLASSIFIERS_ROOT, FRAMEWORK_ROOT / "malware"):
         if root.is_dir():
             components.update(
                 path.resolve()
@@ -1308,6 +1332,7 @@ def _build_analysis_contract(
     archive_password: str = "infected",
     assessment_only: bool,
     max_file_size: int,
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
 ) -> dict[str, Any]:
     """再開判定に必要なコード・レジストリ・設定指紋を構築する。"""
 
@@ -1323,6 +1348,7 @@ def _build_analysis_contract(
         "minimum_confidence": minimum_confidence,
         "assessment_only": assessment_only,
         "max_file_size": max_file_size,
+        "string_scan_limit": string_scan_limit,
         "static_tools": _static_tool_settings(upx, sevenzip, diec),
         "force_container_probe": force_container_probe,
         "max_static_layers": max_static_layers,
@@ -1431,6 +1457,7 @@ def run_batch(
     max_static_layers: int = MAX_STATIC_LAYERS,
     retry_max_static_layers: int | None = None,
     max_file_size: int = DEFAULT_MAX_FILE_SIZE,
+    string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     resume: bool = False,
 ) -> dict[str, Any]:
     """複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。"""
@@ -1443,6 +1470,12 @@ def run_batch(
         raise ValueError("解析対象ファイルがありません")
     if not isinstance(password, str):
         raise TypeError("archive passwordは文字列で指定してください")
+    if (
+        isinstance(string_scan_limit, bool)
+        or not isinstance(string_scan_limit, int)
+        or string_scan_limit <= 0
+    ):
+        raise ValueError("string_scan_limitは正の整数で指定してください")
     StaticLayerPolicy(max_layers=max_static_layers)
     if retry_max_static_layers is not None:
         StaticLayerPolicy(max_layers=retry_max_static_layers)
@@ -1476,6 +1509,7 @@ def run_batch(
         retry_max_static_layers=retry_max_static_layers,
         archive_password=password,
         max_file_size=max_file_size,
+        string_scan_limit=string_scan_limit,
     )
     cases = []
     errors = []
@@ -1521,6 +1555,7 @@ def run_batch(
                     max_static_layers=max_static_layers,
                     retry_max_static_layers=retry_max_static_layers,
                     archive_password=password,
+                    string_scan_limit=string_scan_limit,
                     assessment_only=assessment_only,
                     analysis_contract=analysis_contract,
                 )
@@ -1566,6 +1601,7 @@ def run_batch(
             "assessment_only": assessment_only,
             "max_files": max_files,
             "max_file_size": max_file_size,
+            "string_scan_limit": string_scan_limit,
             "static_tools": {
                 "upx": upx.name if upx else None,
                 "sevenzip": sevenzip.name if sevenzip else None,
@@ -1621,6 +1657,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=DEFAULT_MAX_FILE_SIZE,
         help="外装と内包検体それぞれのbyte上限。",
+    )
+    parser.add_argument(
+        "--string-scan-limit",
+        type=_positive_integer,
+        default=DEFAULT_STRING_SCAN_LIMIT,
+        help="各静的復元層から保持する文字列候補数の上限。正の整数で指定します。",
     )
     parser.add_argument(
         "--resume",
@@ -1682,6 +1724,7 @@ def main(argv: list[str] | None = None) -> int:
         max_static_layers=args.max_static_layers,
         retry_max_static_layers=args.retry_max_static_layers,
         max_file_size=args.max_file_size,
+        string_scan_limit=args.string_scan_limit,
         resume=args.resume,
     )
     print(json.dumps(summary["counts"], ensure_ascii=False, indent=2))

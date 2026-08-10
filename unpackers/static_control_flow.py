@@ -16,6 +16,7 @@ import json
 import math
 from pathlib import Path
 import re
+import struct
 from typing import Any
 
 try:
@@ -955,7 +956,7 @@ def analyze_pe_control_flow(
             "method_plan": [],
         }
     try:
-        image = pefile.PE(data=data, fast_load=False)
+        image = pefile.PE(data=data, fast_load=True)
     except (pefile.PEFormatError, ValueError) as exc:
         return {
             "schema_version": 1,
@@ -968,6 +969,31 @@ def analyze_pe_control_flow(
             "techniques": {},
             "method_plan": [],
         }
+    import_directory_status: dict[str, str] = {"status": "not_attempted"}
+    parse_directories = getattr(image, "parse_data_directories", None)
+    if callable(parse_directories):
+        try:
+            parse_directories(
+                directories=[
+                    pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]
+                ]
+            )
+            import_directory_status = {"status": "parsed"}
+        except (
+            AttributeError,
+            IndexError,
+            KeyError,
+            pefile.PEFormatError,
+            struct.error,
+            ValueError,
+        ) as exc:
+            import_directory_status = {
+                "status": "parse_failed",
+                "error_type": type(exc).__name__,
+            }
+    else:
+        import_directory_status = {"status": "parser_hook_unavailable"}
+
     machine = int(image.FILE_HEADER.Machine)
     bits_by_machine = {0x14C: 32, 0x8664: 64}
     bits = bits_by_machine.get(machine)
@@ -1018,17 +1044,23 @@ def analyze_pe_control_flow(
             "executable": executable,
             "entropy": section_entropy,
         })
-    imports = sum(len(entry.imports) for entry in getattr(image, "DIRECTORY_ENTRY_IMPORT", []))
+    import_analysis_complete = import_directory_status["status"] == "parsed"
+    import_entries = (
+        list(getattr(image, "DIRECTORY_ENTRY_IMPORT", []))
+        if import_analysis_complete
+        else []
+    )
+    imports = sum(len(entry.imports) for entry in import_entries) if import_analysis_complete else None
     import_names = sorted({
         (item.name or b"").decode(errors="replace")
-        for entry in getattr(image, "DIRECTORY_ENTRY_IMPORT", [])
+        for entry in import_entries
         for item in entry.imports
         if item.name
     })[:256]
     image_base = int(image.OPTIONAL_HEADER.ImageBase)
     known_indirect_targets: dict[int, str] = {}
     full_import_addresses: set[int] = set()
-    for entry in getattr(image, "DIRECTORY_ENTRY_IMPORT", []):
+    for entry in import_entries:
         library = (getattr(entry, "dll", b"") or b"").decode(errors="replace")
         for item in entry.imports:
             try:
@@ -1062,7 +1094,12 @@ def analyze_pe_control_flow(
     ]
     is_dotnet = bool(image.OPTIONAL_HEADER.DATA_DIRECTORY[14].VirtualAddress)
     entry_high_entropy = entry_section in high_entropy_exec
-    virtualized_shape = imports <= 2 and zero_raw_virtual >= 4 and entry_high_entropy
+    virtualized_shape = (
+        isinstance(imports, int)
+        and imports <= 2
+        and zero_raw_virtual >= 4
+        and entry_high_entropy
+    )
     normalized_section_names = {name.upper() for name in (item["name"] for item in section_inventory)}
     # MPRESS may occur as an unrelated printable string. Only its documented
     # section names/signatures are strong enough to route analysis as a packer.
@@ -1087,7 +1124,20 @@ def analyze_pe_control_flow(
         "is_dotnet": is_dotnet,
         "imports": imports,
         "import_names": import_names,
-        "import_thunk_count": len(full_import_addresses),
+        "import_thunk_count": (
+            len(full_import_addresses) if import_analysis_complete else None
+        ),
+        "import_directory_parse": import_directory_status,
+        "analysis_coverage": {
+            "status": "complete" if import_analysis_complete else "partial",
+            "imports_known": import_analysis_complete,
+            "low_import_heuristics_applied": import_analysis_complete,
+            "limitations": (
+                []
+                if import_analysis_complete
+                else [f"import_directory_{import_directory_status['status']}"]
+            ),
+        },
         "entrypoint_rva": hex(entrypoint),
         "entrypoint_section": entry_section,
         "entrypoint_high_entropy": entry_high_entropy,
@@ -1099,7 +1149,7 @@ def analyze_pe_control_flow(
         "sections": section_inventory,
         "large_file_structural_mode": len(data) > 32 * 1024 * 1024,
     }
-    return _analyze_mapped_code(
+    result = _analyze_mapped_code(
         data,
         sorted(set(mappings)),
         entrypoint,
@@ -1110,6 +1160,8 @@ def analyze_pe_control_flow(
         max_block_bytes,
         known_indirect_targets,
     )
+    result["analysis_coverage"] = context["analysis_coverage"]
+    return result
 
 
 def build_parser() -> argparse.ArgumentParser:

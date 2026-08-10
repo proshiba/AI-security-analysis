@@ -44,6 +44,21 @@ def test_cli_help_is_japanese() -> None:
     assert "show this help message" not in rendered
 
 
+def test_cli_string_scan_limit_is_positive_and_defaults_compatibly() -> None:
+    """文字列走査上限の既定値を維持し、CLIでは正の整数だけを受け入れる。"""
+
+    parser = one_shot.build_parser()
+    required = ["--input", "sample.bin", "--output", "out"]
+    default_args = parser.parse_args(required)
+    explicit_args = parser.parse_args([*required, "--string-scan-limit", "100000"])
+
+    assert one_shot.DEFAULT_STRING_SCAN_LIMIT == 1_000_000
+    assert default_args.string_scan_limit == one_shot.DEFAULT_STRING_SCAN_LIMIT
+    assert explicit_args.string_scan_limit == 100_000
+    with pytest.raises(SystemExit):
+        parser.parse_args([*required, "--string-scan-limit", "0"])
+
+
 def test_catalog_covers_legacy_scripts_and_marks_nonstandard_interfaces() -> None:
     """既存解析関数を広く棚卸しし、特殊引数を自動実行しない。"""
 
@@ -628,6 +643,55 @@ def test_resume_rejects_changed_routing_contract(tmp_path: Path, monkeypatch) ->
     assert rerun["counts"]["resumed"] == 0
 
 
+def test_resume_rejects_changed_string_scan_contract(tmp_path: Path, monkeypatch) -> None:
+    """文字列走査上限が変われば、完了caseを異なる契約として再解析する。"""
+
+    sample = tmp_path / "string-contract.bin"
+    sample.write_bytes(b"resume string scan contract fixture")
+    output = tmp_path / "out-string-contract"
+    monkeypatch.setattr(
+        one_shot.classify_sample,
+        "classify_bytes",
+        lambda *_args, **_kwargs: {
+            "schema_version": 1,
+            "malware_type": "unknown",
+            "malware_type_confidence": "low",
+            "campaign_type": "unknown",
+            "attribution_basis": "bounded_test",
+            "observations": {},
+            "campaign_candidates": [],
+        },
+    )
+    first = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        assessment_only=True,
+        string_scan_limit=100,
+    )
+    assert first["analysis_contract"]["settings"]["string_scan_limit"] == 100
+    assert first["cases"][0]["case_state"] == "assessment_only_complete"
+    original = one_shot.analyze_unit
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(kwargs["string_scan_limit"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(one_shot, "analyze_unit", counted)
+    rerun = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        assessment_only=True,
+        string_scan_limit=101,
+        resume=True,
+    )
+    assert calls == [101]
+    assert rerun["counts"]["resumed"] == 0
+    assert rerun["analysis_contract"]["settings"]["string_scan_limit"] == 101
+
+
 def test_resume_rejects_modified_artifact(tmp_path: Path, monkeypatch) -> None:
     """成果物内容がreport記録hashと違う場合は完了caseを再解析する。"""
 
@@ -706,3 +770,28 @@ def test_generic_string_limit_is_reported_as_partial(tmp_path: Path) -> None:
     )
     assert result["string_scan"]["truncated"] is True
     assert result["analysis_coverage"]["status"] == "partial"
+
+
+def test_one_shot_string_scan_limit_is_propagated_and_keeps_partial(tmp_path: Path) -> None:
+    """低い上限を全経路へ渡し、打切りをtruncatedかつpartialとして保持する。"""
+
+    sample = tmp_path / "bounded-strings.bin"
+    sample.write_bytes(b"AAAA\0BBBB\0CCCC")
+    output = tmp_path / "out-bounded-strings"
+    summary = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        string_scan_limit=2,
+    )
+
+    case = summary["cases"][0]
+    case_dir = output / "cases" / case["sha256"]
+    generic = json.loads((case_dir / "generic-triage.json").read_text(encoding="utf-8"))
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+
+    assert generic["string_scan"] == {"limit": 2, "returned": 2, "truncated": True}
+    assert generic["analysis_coverage"]["status"] == "partial"
+    assert summary["counts"]["analysis_stage_partial"] == 1
+    assert summary["settings"]["string_scan_limit"] == 2
+    assert report["analysis_contract"]["settings"]["string_scan_limit"] == 2

@@ -1,0 +1,24 @@
+title: PhantomCoreのTrueConf Client固定CLSID永続化
+id: 19fcc0de-e65f-4453-9c38-b11c192c0c4d
+status: experimental
+description: Head Mareの改ざんTrueConf Clientで観測された、固定CLSIDのInprocServer32へ悪性DLLを登録する永続化を検知する。
+references:
+  - https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/
+  - https://tria.ge/260722-z86htahl6y
+author: AI-security-analysis
+date: 2026-08-10
+tags:
+  - attack.persistence
+  - attack.t1546.015
+logsource:
+  category: registry_set
+  product: windows
+detection:
+  selection_key:
+    TargetObject|contains: '\Software\Classes\CLSID\{0340F119-A598-4ed9-B0AC-6F6A12D3E755}\InprocServer32'
+  selection_value:
+    Details|endswith: '\TrueConf\Client\api-ms-win-crt-time-l1-1-0-2.dll'
+  condition: selection_key and selection_value
+falsepositives:
+  - 同一CLSIDとDLL名を意図的に再現するincident response／adversary emulation。
+level: high

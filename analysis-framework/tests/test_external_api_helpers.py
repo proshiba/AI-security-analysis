@@ -2,24 +2,26 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
-from datetime import date
+import hashlib
 import io
 import json
 import os
-from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
 import urllib.error
 import zipfile
+from datetime import date
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pyzipper
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import external_api_helpers as api  # noqa: E402
+import external_api_helpers as api
 
 
 def json_response(value: object, status: int = 200) -> api.HttpResponse:
@@ -163,9 +165,11 @@ class MalwareBazaarTests(unittest.TestCase):
         """client生成時は失敗せず、実操作時だけmissing keyを報告する。"""
 
         client = api.MalwareBazaarClient(http=Mock())
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(api.CredentialError, "MALWAREBAZAAR_AUTH_KEY"):
-                client.query_by_hash("a" * 64)
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            self.assertRaisesRegex(api.CredentialError, "MALWAREBAZAAR_AUTH_KEY"),
+        ):
+            client.query_by_hash("a" * 64)
         client.http.request.assert_not_called()
 
 
@@ -244,9 +248,11 @@ class MaxMindTests(unittest.TestCase):
         self.assertEqual(result["asn"], 15169)
         self.assertEqual(result["organization"], "Google LLC")
 
-        with patch.dict(os.environ, {"MAXMIND_ACCOUNT_ID": "123"}, clear=True):
-            with self.assertRaisesRegex(api.CredentialError, "MAXMIND_LICENSE_KEY"):
-                client.enrich_ip("8.8.8.8", use_web_service=True)
+        with (
+            patch.dict(os.environ, {"MAXMIND_ACCOUNT_ID": "123"}, clear=True),
+            self.assertRaisesRegex(api.CredentialError, "MAXMIND_LICENSE_KEY"),
+        ):
+            client.enrich_ip("8.8.8.8", use_web_service=True)
 
 
 class VirusTotalTests(unittest.TestCase):
@@ -326,9 +332,8 @@ class VirusTotalTests(unittest.TestCase):
         http = Mock()
         limiter = Mock()
         client = api.VirusTotalClient(http=http, limiter=limiter)
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(api.CredentialError, "VT_API_KEY"):
-                client.enrich_domain("example.com")
+        with patch.dict(os.environ, {}, clear=True), self.assertRaisesRegex(api.CredentialError, "VT_API_KEY"):
+            client.enrich_domain("example.com")
         http.request.assert_not_called()
         limiter.acquire.assert_not_called()
 
@@ -338,10 +343,19 @@ class TriageTests(unittest.TestCase):
 
     SAMPLE_ID = "260809-abcdefghij"
 
+    @staticmethod
+    def _safe_http() -> Mock:
+        """redirect拒否capabilityを宣言したHTTP mockを返す。"""
+
+        http = Mock()
+        http.redirects_denied = True
+        return http
+
     def test_submit_status_report_and_artifact_success(self) -> None:
         """主要操作がraw commandを公開せず、downloadを自動展開しない。"""
 
-        http = Mock()
+        http = self._safe_http()
+        encrypted_sample = encrypted_zip_fixture()
         http.request.side_effect = [
             json_response({"id": self.SAMPLE_ID, "status": "submitted"}),
             json_response({"status": "completed"}),
@@ -362,7 +376,7 @@ class TriageTests(unittest.TestCase):
                 }
             ),
             api.HttpResponse(200, {}, b"memory-fixture"),
-            api.HttpResponse(200, {}, encrypted_zip_fixture()),
+            api.HttpResponse(200, {}, encrypted_sample),
         ]
         client = api.TriageClient(http=http, sleeper=Mock())
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
@@ -384,7 +398,7 @@ class TriageTests(unittest.TestCase):
             downloaded = client.fetch_sample(self.SAMPLE_ID, downloads_dir=root / "downloads")
 
             self.assertEqual(Path(memory["artifact_path"]).read_bytes(), b"memory-fixture")
-            self.assertEqual(Path(downloaded["archive_path"]).read_bytes(), encrypted_zip_fixture())
+            self.assertEqual(Path(downloaded["archive_path"]).read_bytes(), encrypted_sample)
 
         self.assertEqual(submitted["sample_id"], self.SAMPLE_ID)
         self.assertEqual(status["status"], "completed")
@@ -395,14 +409,170 @@ class TriageTests(unittest.TestCase):
         self.assertEqual(artifacts, [{"task_id": "behavioral1", "name": "process-memory.dmp", "kind": "memory_dump"}])
         self.assertFalse(downloaded["archive_extracted"])
 
+    def test_fetch_sample_preserves_server_encrypted_zip(self) -> None:
+        """server提供の暗号化ZIPはbyteを変更せず保存する。"""
+
+        body = encrypted_zip_fixture()
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, body)
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            result = client.fetch_sample(
+                self.SAMPLE_ID,
+                downloads_dir=Path(temporary),
+            )
+            saved = Path(result["archive_path"]).read_bytes()
+
+        self.assertEqual(saved, body)
+        self.assertTrue(result["server_response_encrypted_zip"])
+        self.assertEqual(result["source_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertEqual(result["source_size"], len(body))
+        self.assertFalse(result["plaintext_written"])
+
+    def test_fetch_sample_wraps_matching_raw_response_in_aes256(self) -> None:
+        """完全SHA-256一致のraw応答だけをmemory上でAES-256へ包む。"""
+
+        payload = b"MZ" + b"benign-raw-fixture" * 32
+        expected = hashlib.sha256(payload).hexdigest()
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, payload)
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            root = Path(temporary)
+            result = client.fetch_sample(
+                self.SAMPLE_ID,
+                downloads_dir=root,
+                expected_sha256=expected,
+                member_name="fixture.exe",
+            )
+            archive_path = Path(result["archive_path"])
+            with pyzipper.AESZipFile(archive_path) as archive:
+                archive.setpassword(b"infected")
+                restored = archive.read("fixture.exe")
+                encryption_strength = archive.getinfo("fixture.exe").wz_aes_strength
+            plaintext_paths = [path for path in root.rglob("*") if path.is_file() and path != archive_path]
+
+        self.assertEqual(restored, payload)
+        self.assertEqual(encryption_strength, 3)
+        self.assertEqual(plaintext_paths, [])
+        self.assertFalse(result["server_response_encrypted_zip"])
+        self.assertEqual(result["archive_encryption"], "WinZip AES-256")
+        self.assertEqual(result["source_sha256"], expected)
+        self.assertEqual(result["source_size"], len(payload))
+        self.assertEqual(
+            result["archive_size_limit"],
+            api.DEFAULT_MAX_SAMPLE_BYTES,
+        )
+        self.assertFalse(result["plaintext_written"])
+
+    def test_fetch_sample_rejects_archive_growth_beyond_limit(self) -> None:
+        """AES archiveがsourceより増えて上限超過する場合は保存前に拒否する。"""
+
+        payload = b"MZ"
+        expected = hashlib.sha256(payload).hexdigest()
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, payload)
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            root = Path(temporary)
+            with self.assertRaises(api.ExternalServiceError) as captured:
+                client.fetch_sample(
+                    self.SAMPLE_ID,
+                    downloads_dir=root,
+                    expected_sha256=expected,
+                    max_bytes=len(payload),
+                )
+            self.assertEqual(list(root.rglob("*")), [])
+
+        self.assertEqual(captured.exception.code, "archive_size_limit_exceeded")
+        self.assertEqual(http.request.call_args.kwargs["max_bytes"], len(payload))
+
+    def test_fetch_sample_rejects_invalid_max_before_request(self) -> None:
+        """不正な応答上限は資格情報・network処理より先に拒否する。"""
+
+        http = self._safe_http()
+        client = api.TriageClient(http=http)
+        for invalid in (0, True, api.DEFAULT_MAX_SAMPLE_BYTES + 1):
+            with self.subTest(max_bytes=invalid), self.assertRaises(ValueError):
+                client.fetch_sample(self.SAMPLE_ID, max_bytes=invalid)
+        http.request.assert_not_called()
+
+    def test_fetch_sample_rejects_raw_without_expected_sha256(self) -> None:
+        """raw応答でexpected SHA-256がない場合は保存前に拒否する。"""
+
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, b"MZraw-fixture")
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            root = Path(temporary)
+            with self.assertRaisesRegex(api.ExternalServiceError, "expected_sha256"):
+                client.fetch_sample(self.SAMPLE_ID, downloads_dir=root)
+            self.assertEqual(list(root.rglob("*")), [])
+
+    def test_fetch_sample_rejects_raw_sha256_mismatch(self) -> None:
+        """raw応答のSHA-256不一致ではarchiveを作らない。"""
+
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, b"MZraw-fixture")
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            root = Path(temporary)
+            with self.assertRaisesRegex(api.ExternalServiceError, "一致しません"):
+                client.fetch_sample(
+                    self.SAMPLE_ID,
+                    downloads_dir=root,
+                    expected_sha256="0" * 64,
+                )
+            self.assertEqual(list(root.rglob("*")), [])
+
+    def test_fetch_sample_never_overwrites_existing_destination(self) -> None:
+        """既存archiveがある場合はraw一致後も内容を変更しない。"""
+
+        payload = b"MZ" + b"raw-fixture" * 16
+        expected = hashlib.sha256(payload).hexdigest()
+        http = self._safe_http()
+        http.request.return_value = api.HttpResponse(200, {}, payload)
+        client = api.TriageClient(http=http)
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(os.environ, {"TRIAGE_API_KEY": "test-key"}, clear=True),
+        ):
+            destination = Path(temporary) / "existing.zip"
+            destination.write_bytes(b"preserve-existing")
+            with self.assertRaises(FileExistsError):
+                client.fetch_sample(
+                    self.SAMPLE_ID,
+                    output_path=destination,
+                    expected_sha256=expected,
+                )
+            self.assertEqual(destination.read_bytes(), b"preserve-existing")
+            self.assertEqual(list(destination.parent.glob(".*.part")), [])
+
     def test_missing_key_is_lazy(self) -> None:
         """Triage helperも操作時だけ環境資格情報を要求する。"""
 
-        http = Mock()
+        http = self._safe_http()
         client = api.TriageClient(http=http)
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(api.CredentialError, "TRIAGE_API_KEY"):
-                client.get_analysis_status(self.SAMPLE_ID)
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            self.assertRaisesRegex(api.CredentialError, "TRIAGE_API_KEY"),
+        ):
+            client.get_analysis_status(self.SAMPLE_ID)
         http.request.assert_not_called()
 
 

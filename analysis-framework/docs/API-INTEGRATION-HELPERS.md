@@ -38,7 +38,7 @@ enrich_domain(domain: str) -> dict
 fetch_behavior_reports(file_hash: str) -> dict
 
 TriageClient(*, http=None, sleeper=time.sleep, clock=time.monotonic)
-fetch_sample(sample_id: str, output_path: Path | None = None, *, downloads_dir: Path | None = None) -> dict
+fetch_sample(sample_id: str, output_path: Path | None = None, *, downloads_dir: Path | None = None, expected_sha256: str | None = None, password: str = "infected", member_name: str | None = None, max_bytes: int = 536870912) -> dict
 submit_sample(sample_path: Path, *, profiles: Sequence[str] = (), tags: Sequence[str] = (), timeout_seconds: int | None = None) -> dict
 get_analysis_status(sample_id: str) -> dict
 poll_analysis_status(sample_id: str, *, interval_seconds: float = 15.0, timeout_seconds: float = 900.0) -> dict
@@ -49,6 +49,9 @@ retrieve_memory_dump(sample_id: str, task_id: str, artifact_name: str, output_pa
 
 `HttpClient`はtimeout、応答byte上限、429／一時的5xxの上限付き再試行を共有します。
 header、URL、応答本文をlogや例外へ出さないため、tokenをdebug出力へ含めません。
+Triageの既定transportは`NoRedirectHandler`を使い、same-host／cross-hostの30xを拒否します。
+`TriageClient(http=...)`へ明示transportを注入する場合は、`redirects_denied is True`を
+公開する必要があります。拒否能力を確認できないtransportはfail closedで受け付けません。
 
 ## GeoLite2の準備
 
@@ -83,9 +86,15 @@ web serviceは`use_web_service=True`を明示した場合だけ使用します�
 
 ## 検体取扱い
 
-取得対象はLIVE MALWAREです。MalwareBazaarとTriageの検体downloadは、serverから返された
-暗号化ZIPであることを確認して、そのarchiveだけを保存します。自動展開、password解除、
-import、実行は行いません。`infected` passwordも展開には使用しません。
+取得対象はLIVE MALWAREです。MalwareBazaarの検体downloadと、Triageが暗号化ZIPを
+返す既存経路では、server応答が暗号化ZIPであることを確認し、そのbyteを変更せず保存します。
+Triageがraw sampleを返した場合は`expected_sha256`との完全一致を必須とし、平文をdiskへ
+書かずmemory上でpassword `infected`のWinZip AES-256へ包んでから保存します。保存先は
+atomicな新規fileとして作成し、既存fileを上書きしません。結果metadataにはserver応答が
+暗号化ZIPだったか、sourceのSHA-256とsize、平文を保存していないことを記録します。
+`max_bytes`はHTTP応答だけでなく保存する暗号化archiveにも適用します。raw sampleが上限内でも、
+AES-256 ZIP化による増加後に上限を超えた場合はdiskへ書く前に拒否し、
+`archive_size_limit_exceeded`として分類します。自動展開、password解除、import、実行は行いません。
 
 Triageへのsubmitは、承認済みのdynamic-analysis workflowで対象と保存先を明示した場合だけ
 使用してください。helperはorchestrator上で検体を実行しません。memory dumpも不透明な

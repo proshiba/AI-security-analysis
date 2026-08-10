@@ -17,6 +17,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 import zlib
 from unpackers.path_safety import safe_member_name as validate_member_name
@@ -55,6 +56,12 @@ from unpackers.managed_il_triage import (
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
 from unpackers.static_control_flow import analyze_pe_control_flow
+from unpackers.bounded_pe_scan import (
+    BoundedExtent,
+    CarvedPeArtifacts,
+    inspect_structural_pe_extent,
+    scan_embedded_pe_candidates,
+)
 
 MAX_ARTIFACT = 256 * 1024 * 1024
 ENTROPY_FULL_LIMIT = 8 * 1024 * 1024
@@ -74,6 +81,13 @@ MACHO_MAGICS = {
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 MAX_PNG_CHUNKS = 4096
 MAX_DETACHED_IDAT_CANDIDATES = 256
+PADDING_PREFILTER_BYTES = 64 * 1024
+PADDING_COMPARE_CHUNK_BYTES = 1024 * 1024
+MAX_PEFILE_EMBEDDED_CANDIDATE_BYTES = 32 * 1024 * 1024
+LEGACY_PEFILE_CANDIDATE_BYTES = 64 * 1024
+MAX_PE_RESOURCE_ENTRIES = 512
+MAX_PE_RESOURCE_TOTAL_BYTES = 256 * 1024 * 1024
+MAX_PE_RESOURCE_ELAPSED_SECONDS = 10.0
 SCRIPT_SUFFIXES = {
     ".au3",
     ".html",
@@ -415,18 +429,33 @@ def should_analyze_pe_control_flow(
 
 
 def repetitive_padding(data: bytes, max_period: int = 32) -> dict[str, object] | None:
-    """短いバイトパターンの反復だけで構成されたバッファ全体を識別する。"""
+    """短い周期の反復paddingかを、全長相当の巨大一時bytesを作らず判定する。"""
     if len(data) < 4096:
         return None
+    probe = data[: min(len(data), PADDING_PREFILTER_BYTES)]
     for period in range(1, min(max_period, len(data)) + 1):
         pattern = data[:period]
-        if pattern * (len(data) // period) + pattern[: len(data) % period] == data:
-            return {
-                "period": period,
-                "pattern_hex": pattern.hex(),
-                "repetitions": len(data) // period,
-                "trailing_bytes": len(data) % period,
-            }
+        # 周期データなら任意のprefixでも同じ周期を満たす。大半の通常データを
+        # 64 KiB以下で除外し、入力全長相当の一時bytesを最大32回作らない。
+        if probe[period:] != probe[:-period]:
+            continue
+        matched = True
+        for chunk_start in range(0, len(data), PADDING_COMPARE_CHUNK_BYTES):
+            chunk_end = min(len(data), chunk_start + PADDING_COMPARE_CHUNK_BYTES)
+            phase = chunk_start % period
+            needed = phase + (chunk_end - chunk_start)
+            expected = (pattern * ((needed + period - 1) // period))[phase:needed]
+            if data[chunk_start:chunk_end] != expected:
+                matched = False
+                break
+        if not matched:
+            continue
+        return {
+            "period": period,
+            "pattern_hex": pattern.hex(),
+            "repetitions": len(data) // period,
+            "trailing_bytes": len(data) % period,
+        }
     return None
 
 
@@ -436,11 +465,31 @@ def safe_member_name(name: str) -> str:
 
 
 def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
-    """*offset*にあるPEの上限付きファイル範囲を返し、無効なら``None``を返す。"""
+    """*offset*のPE候補長を、巨大な末尾copyを作らず検証して返す。"""
     if offset < 0 or offset + 0x40 > len(data) or data[offset : offset + 2] != b"MZ":
         return None
+    structural = inspect_structural_pe_extent(data, offset, max_extent=MAX_ARTIFACT)
+    if structural.extent is None:
+        # 小さなfixtureと過去の呼出契約はpefileで確認する。一方、大容量入力の
+        # 偽MZ候補で ``data[offset:]`` を繰り返し複製する経路は閉じる。
+        if len(data) - offset > LEGACY_PEFILE_CANDIDATE_BYTES:
+            return None
+        candidate = data[offset:]
+        validation_method = "pefile_fast_legacy_small_candidate"
+        validation_note = structural.reason
+    else:
+        extent_hint = structural.extent
+        if extent_hint > MAX_PEFILE_EMBEDDED_CANDIDATE_BYTES:
+            return BoundedExtent(
+                extent_hint,
+                validation_method="bounded_structural_headers",
+                validation_note="pefile_validation_skipped_candidate_size_budget",
+            )
+        candidate = data[offset : offset + extent_hint]
+        validation_method = "structural_headers_and_pefile_fast"
+        validation_note = None
     try:
-        image = pefile.PE(data=data[offset:], fast_load=True)
+        image = pefile.PE(data=candidate, fast_load=True)
         if not 1 <= image.FILE_HEADER.NumberOfSections <= 96:
             return None
         if len(image.sections) != image.FILE_HEADER.NumberOfSections:
@@ -451,38 +500,82 @@ def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
         security = image.OPTIONAL_HEADER.DATA_DIRECTORY[4]
         if security.VirtualAddress and security.Size:
             extent = max(extent, int(security.VirtualAddress + security.Size))
-        if extent <= 0 or offset + extent > len(data) or extent > MAX_ARTIFACT:
+        if extent <= 0 or extent > len(candidate) or extent > MAX_ARTIFACT:
             return None
-        return extent
+        return BoundedExtent(
+            extent,
+            validation_method=validation_method,
+            validation_note=validation_note,
+        )
     except (AttributeError, IndexError, pefile.PEFormatError, ValueError):
         return None
 
 
 def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
-    """スタブを実行せず、先頭以外にある検証済みPEイメージを切り出す。"""
+    """実行せず、有界走査で検証済みの埋め込みPEを切り出す。"""
+    if limit <= 0:
+        return CarvedPeArtifacts(
+            [],
+            {
+                "schema_version": 1,
+                "status": "partial",
+                "input_size": len(data),
+                "recovered_candidate_count": 0,
+                "budget_exhausted": True,
+                "exhausted_reasons": ["result_count_budget"],
+                "executed": False,
+                "network_contacted": False,
+            },
+        )
+    candidates, scan_report = scan_embedded_pe_candidates(
+        data,
+        valid_pe_extent,
+        start_offset=min(1, len(data)),
+        max_results=limit,
+    )
     artifacts: list[tuple[str, bytes]] = []
     seen: set[str] = set()
-    cursor = 1
-    while len(artifacts) < limit:
-        offset = data.find(b"MZ", cursor)
-        if offset < 0:
-            break
-        extent = valid_pe_extent(data, offset)
-        if extent:
-            blob = data[offset : offset + extent]
-            digest = sha256_bytes(blob)
-            if digest not in seen:
-                artifacts.append(("embedded-pe", blob))
-                seen.add(digest)
-            cursor = offset + extent
-        else:
-            cursor = offset + 2
-    return artifacts
+    duplicate_digests = 0
+    for offset, extent in candidates:
+        blob = data[offset : offset + extent]
+        digest = sha256_bytes(blob)
+        if digest in seen:
+            duplicate_digests += 1
+            continue
+        artifacts.append(("embedded-pe", blob))
+        seen.add(digest)
+    scan_report["unique_artifact_count"] = len(artifacts)
+    scan_report["duplicate_digest_count"] = duplicate_digests
+    return CarvedPeArtifacts(artifacts, scan_report)
 
 
 def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     """PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。"""
-    pe = pefile.PE(data=data, fast_load=False)
+    pe = pefile.PE(data=data, fast_load=True)
+    directory_parse: dict[str, dict[str, str]] = {}
+    parse_directories = getattr(pe, "parse_data_directories", None)
+    for label, directory_name in (
+        ("imports", "IMAGE_DIRECTORY_ENTRY_IMPORT"),
+        ("resources", "IMAGE_DIRECTORY_ENTRY_RESOURCE"),
+    ):
+        if not callable(parse_directories):
+            directory_parse[label] = {"status": "parser_hook_unavailable"}
+            continue
+        try:
+            parse_directories(directories=[pefile.DIRECTORY_ENTRY[directory_name]])
+            directory_parse[label] = {"status": "parsed"}
+        except (
+            AttributeError,
+            IndexError,
+            KeyError,
+            pefile.PEFormatError,
+            struct.error,
+            ValueError,
+        ) as exc:
+            directory_parse[label] = {
+                "status": "parse_failed",
+                "error_type": type(exc).__name__,
+            }
     sections = []
     for section in pe.sections:
         sections.append(
@@ -494,14 +587,27 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 "characteristics": hex(section.Characteristics),
             }
         )
-    import_entries = list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
-    imports = sum(len(entry.imports) for entry in import_entries)
-    import_libraries = sorted(
-        {
-            entry.dll.decode("ascii", errors="replace").lower()
-            for entry in import_entries
-            if getattr(entry, "dll", None)
-        }
+    import_analysis_complete = directory_parse["imports"]["status"] == "parsed"
+    import_entries = (
+        list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
+        if import_analysis_complete
+        else []
+    )
+    imports = (
+        sum(len(entry.imports) for entry in import_entries)
+        if import_analysis_complete
+        else None
+    )
+    import_libraries = (
+        sorted(
+            {
+                entry.dll.decode("ascii", errors="replace").lower()
+                for entry in import_entries
+                if getattr(entry, "dll", None)
+            }
+        )
+        if import_analysis_complete
+        else None
     )
     overlay_offset = pe.get_overlay_data_start_offset()
     image_end = overlay_offset if overlay_offset is not None else len(data)
@@ -526,41 +632,95 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         artifacts.append(("pe-overlay-padding-removed", data[:overlay_offset]))
     if overlay and overlay_format != "data" and overlay_padding is None:
         artifacts.append((f"pe-overlay-{overlay_format}", overlay))
-    artifacts.extend(carve_embedded_pes(overlay))
+    overlay_embedded = carve_embedded_pes(overlay)
+    artifacts.extend(overlay_embedded)
+    overlay_embedded_scan = getattr(
+        overlay_embedded,
+        "scan_report",
+        {
+            "status": "not_reported_compatibility_hook",
+            "executed": False,
+            "network_contacted": False,
+        },
+    )
     resource_count = 0
+    resource_bytes_inspected = 0
+    resource_exhausted_reasons: list[str] = []
     opaque_resources = 0
     archive_resources = 0
     png_resources_inspected = 0
     png_resources_with_concealed_data = 0
     invalid_png_resources = 0
+    resource_started = time.monotonic()
+    if directory_parse["resources"]["status"] != "parsed":
+        resource_exhausted_reasons.append(
+            f"resource_directory_{directory_parse['resources']['status']}"
+        )
     if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
-        for type_entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
-            for name_entry in getattr(type_entry.directory, "entries", []):
-                for lang_entry in getattr(name_entry.directory, "entries", []):
-                    resource_count += 1
-                    item = lang_entry.data.struct
-                    blob = pe.get_data(item.OffsetToData, item.Size)
-                    if not 0 < len(blob) <= MAX_ARTIFACT:
-                        continue
-                    resource_format, children, png_report = pe_resource_children(blob)
-                    archive_resources += int(resource_format in {"7z", "cab", "zip"})
-                    if png_report is not None:
-                        png_resources_inspected += 1
-                        png_status = png_report["status"]
-                        if png_status == "concealed_data_recovered":
-                            png_resources_with_concealed_data += 1
-                        elif png_status != "valid_png_no_concealed_data":
-                            invalid_png_resources += 1
-                    artifacts.extend(children)
-                    if (
-                        resource_format == "data"
-                        and not children
-                        and len(blob) >= 4096
-                        and entropy(blob) >= 7.2
-                        and opaque_resources < 32
-                    ):
-                        artifacts.append(("pe-resource-opaque", blob))
-                        opaque_resources += 1
+        resource_entries = (
+            lang_entry
+            for type_entry in pe.DIRECTORY_ENTRY_RESOURCE.entries
+            for name_entry in getattr(type_entry.directory, "entries", [])
+            for lang_entry in getattr(name_entry.directory, "entries", [])
+        )
+        for lang_entry in resource_entries:
+            if resource_count >= MAX_PE_RESOURCE_ENTRIES:
+                resource_exhausted_reasons.append("resource_count_budget")
+                break
+            if time.monotonic() - resource_started >= MAX_PE_RESOURCE_ELAPSED_SECONDS:
+                resource_exhausted_reasons.append("resource_elapsed_time_budget")
+                break
+            item = lang_entry.data.struct
+            declared_size = int(item.Size)
+            resource_count += 1
+            if declared_size <= 0:
+                continue
+            if declared_size > MAX_ARTIFACT:
+                resource_exhausted_reasons.append("resource_entry_size_budget")
+                continue
+            if (
+                resource_bytes_inspected + declared_size
+                > MAX_PE_RESOURCE_TOTAL_BYTES
+            ):
+                resource_exhausted_reasons.append("resource_total_bytes_budget")
+                break
+            blob = pe.get_data(item.OffsetToData, declared_size)
+            resource_bytes_inspected += len(blob)
+            if len(blob) != declared_size:
+                continue
+            resource_format, children, png_report = pe_resource_children(blob)
+            archive_resources += int(resource_format in {"7z", "cab", "zip"})
+            if png_report is not None:
+                png_resources_inspected += 1
+                png_status = png_report["status"]
+                if png_status == "concealed_data_recovered":
+                    png_resources_with_concealed_data += 1
+                elif png_status != "valid_png_no_concealed_data":
+                    invalid_png_resources += 1
+            artifacts.extend(children)
+            if (
+                resource_format == "data"
+                and not children
+                and len(blob) >= 4096
+                and entropy(blob) >= 7.2
+                and opaque_resources < 32
+            ):
+                artifacts.append(("pe-resource-opaque", blob))
+                opaque_resources += 1
+    resource_scan = {
+        "status": "partial" if resource_exhausted_reasons else "complete",
+        "entries_inspected": resource_count,
+        "bytes_inspected": resource_bytes_inspected,
+        "budgets": {
+            "max_entries": MAX_PE_RESOURCE_ENTRIES,
+            "max_total_bytes": MAX_PE_RESOURCE_TOTAL_BYTES,
+            "max_elapsed_seconds": MAX_PE_RESOURCE_ELAPSED_SECONDS,
+        },
+        "budget_exhausted": bool(resource_exhausted_reasons),
+        "exhausted_reasons": resource_exhausted_reasons,
+        "executed": False,
+        "network_contacted": False,
+    }
     high_entropy = [
         item["name"]
         for item in sections
@@ -604,7 +764,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     ]
     containerized = "Nullsoft" in markers or archive_resources > 0
     virtualized_shape = (
-        imports <= 2
+        isinstance(imports, int)
+        and imports <= 2
         and len(zero_raw_virtual_sections) >= 4
         and bool(code_entropy)
         and entrypoint_section in code_entropy
@@ -623,7 +784,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "ws2_32.dll",
     }
     single_non_system_import_library = (
-        len(import_libraries) == 1
+        import_libraries is not None
+        and len(import_libraries) == 1
         and import_libraries[0] not in common_system_libraries
         and not import_libraries[0].startswith(("api-ms-win-", "ext-ms-win-"))
     )
@@ -631,6 +793,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         not is_dotnet
         and not is_go
         and entrypoint_section in code_entropy
+        and isinstance(imports, int)
         and imports >= 32
         and single_non_system_import_library
     )
@@ -644,7 +807,13 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         classification = "packed_or_protected"
     elif encrypted_sideload_host_shape:
         classification = "suspected_encrypted_sideload_host"
-    elif not is_dotnet and not is_go and code_entropy and imports <= 8:
+    elif (
+        not is_dotnet
+        and not is_go
+        and code_entropy
+        and isinstance(imports, int)
+        and imports <= 8
+    ):
         classification = "suspected_packed"
     else:
         classification = "not_packed"
@@ -684,6 +853,23 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             managed_il["malformed_method_bodies"] = malformed[:128]
             managed_il["malformed_method_bodies_truncated"] = True
         managed_protector = analyze_managed_protector(data)
+    coverage_limitations = []
+    if not import_analysis_complete:
+        coverage_limitations.append(
+            f"import_directory_{directory_parse['imports']['status']}"
+        )
+    if resource_scan["status"] != "complete":
+        coverage_limitations.extend(
+            f"resource_scan_{reason}"
+            for reason in resource_scan["exhausted_reasons"]
+        )
+    analysis_coverage = {
+        "status": "partial" if coverage_limitations else "complete",
+        "imports_known": import_analysis_complete,
+        "low_import_heuristics_applied": import_analysis_complete,
+        "resources_complete": resource_scan["status"] == "complete",
+        "limitations": coverage_limitations,
+    }
     return (
         {
             "machine": hex(pe.FILE_HEADER.Machine),
@@ -711,6 +897,10 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "png_resources_inspected": png_resources_inspected,
             "png_resources_with_concealed_data": png_resources_with_concealed_data,
             "invalid_png_resources": invalid_png_resources,
+            "resource_scan": resource_scan,
+            "directory_parse": directory_parse,
+            "analysis_coverage": analysis_coverage,
+            "overlay_embedded_pe_scan": overlay_embedded_scan,
             "control_flow_triage": control_flow,
             "managed_il_triage": managed_il,
             "managed_protector_profile": managed_protector,
@@ -924,6 +1114,10 @@ def recover_whole_file_base64(data: bytes) -> list[tuple[str, bytes]]:
     厳密なBase64検証、再エンコード一致を満たす場合だけ data も返す。
     """
     if not 128 <= len(data) <= (MAX_ARTIFACT * 4 // 3) + 4:
+        return []
+    # バイナリPE等を全長splitする前に、コピーなしのC実装regexで除外する。
+    # 全体がBase64文字と空白だけの場合に限り、復号に必要なcompact bytesを作る。
+    if re.search(rb"[^A-Za-z0-9+/=\t\n\r\f\v ]", data) is not None:
         return []
     compact = b"".join(data.split())
     if len(compact) < 128 or len(compact) % 4:
@@ -2282,7 +2476,17 @@ def unpack_bytes(
     if len(static_data) <= 32 * 1024 * 1024:
         report["donut"], recovered = recover_donut_payloads(static_data)
         artifacts.extend(recovered)
-    artifacts.extend(carve_embedded_pes(static_data))
+    whole_file_embedded = carve_embedded_pes(static_data)
+    artifacts.extend(whole_file_embedded)
+    report["embedded_pe_scan"] = getattr(
+        whole_file_embedded,
+        "scan_report",
+        {
+            "status": "not_reported_compatibility_hook",
+            "executed": False,
+            "network_contacted": False,
+        },
+    )
     deduplicated: list[tuple[str, bytes]] = []
     seen: set[str] = set()
     for artifact_kind, blob in artifacts:
