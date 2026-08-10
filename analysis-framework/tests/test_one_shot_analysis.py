@@ -599,11 +599,16 @@ def test_empty_handler_result_is_not_counted_as_success(
     )
     monkeypatch.setattr(
         one_shot,
-        "execute_handler",
+        "execute_handler_bounded_for_assessment",
         lambda *_args, **_kwargs: {
-            "result": {},
-            "executed_sample": False,
-            "network_contacted": False,
+            "status": "completed",
+            "preflight": {"eligible": True, "blockers": []},
+            "handler_timeout_seconds": 30.0,
+            "execution": {
+                "result": {},
+                "executed_sample": False,
+                "network_contacted": False,
+            },
         },
     )
     output = tmp_path / "out"

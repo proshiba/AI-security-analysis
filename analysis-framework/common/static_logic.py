@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
-from collections import Counter
 import hashlib
 import json
-from pathlib import Path
 import re
-from typing import Any, Iterable, Mapping
+from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
+from typing import Any
 
 
 SCHEMA_VERSION = 1
@@ -564,6 +565,48 @@ def build_static_logic_report(
             "raw_pseudocode_exported": False,
         },
     }
+
+
+def function_analysis_is_available(report: Mapping[str, Any]) -> bool:
+    """品質gateを満たす関数解析証拠がreportに揃っているか返す。"""
+
+    status = report.get("status")
+    if status not in {"automated_script_structure", "reviewed_function_logic"}:
+        return False
+    functions = report.get("functions")
+    if (
+        not isinstance(functions, Sequence)
+        or isinstance(functions, (str, bytes, bytearray))
+        or not functions
+    ):
+        return False
+    missing_values = {"", "none", "not_recorded", "unknown", "unresolved"}
+    for function in functions:
+        if not isinstance(function, Mapping):
+            return False
+        evidence = function.get("evidence")
+        if not isinstance(evidence, Mapping):
+            return False
+        tool = str(evidence.get("tool") or "").strip().casefold()
+        selector = str(evidence.get("program_selector") or "").strip().casefold()
+        if tool in missing_values or selector in missing_values:
+            return False
+        if status == "reviewed_function_logic":
+            role = str(function.get("role") or "").strip().casefold()
+            steps = function.get("logic_steps_ja")
+            confidence = str(evidence.get("confidence") or "").strip().casefold()
+            if (
+                role in missing_values | {"unclassified"}
+                or not isinstance(steps, Sequence)
+                or isinstance(steps, (str, bytes, bytearray))
+                or not steps
+                or confidence in missing_values | {"review_required"}
+            ):
+                return False
+    if status == "reviewed_function_logic":
+        coverage = report.get("coverage")
+        return isinstance(coverage, Mapping) and coverage.get("function_bodies_reviewed") is True
+    return True
 
 
 def render_static_logic_markdown(report: Mapping[str, Any]) -> str:

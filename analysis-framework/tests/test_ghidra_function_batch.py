@@ -1128,12 +1128,12 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
     refreshed = target.load_json_object_strict(case_dir / "report.json")
     assert refreshed["case_state"] == {
         "status": "triaged_unknown",
-        "complete": True,
-        "resumable": True,
+        "complete": False,
+        "resumable": False,
         "blockers": [],
     }
     assert analysis_contract.verify_report_semantics(refreshed) == []
-    assert validation_calls == [{"expected_digest": digest, "require_resumable": True}]
+    assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
 
 
 def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
@@ -1196,14 +1196,14 @@ def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
     refreshed = target.load_json_object_strict(case_dir / "report.json")
     assert refreshed["case_state"] == {
         "status": "triaged_unknown",
-        "complete": True,
-        "resumable": True,
+        "complete": False,
+        "resumable": False,
         "blockers": [],
     }
     assert "Ghidra MCP" in refreshed["limitations"][-1]
     assert refreshed["generic_triage"] == "complete"
     assert analysis_contract.verify_report_semantics(refreshed) == []
-    assert validation_calls == [{"expected_digest": digest, "require_resumable": True}]
+    assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
 
 
 def _write_complete_generic_container_fixture(

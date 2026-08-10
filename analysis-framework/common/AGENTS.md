@@ -1,3 +1,12 @@
+# `analysis-framework/common` のAI非依存解析runner規則
+
+- WebUI／API向けproduction入口は`analysis_job_runner.py`とし、request JSONから`upx`、`sevenzip`、`diec`、任意command、任意環境変数を受理しない。
+- productionで外部静的toolが必要な場合は、service operatorが管理するmanifest pathとmanifest raw SHA-256 pinをrunner CLIへpairで固定する。client値、`PATH`探索、起動時downloadへ置き換えない。
+- 現在許可するtoolはself-containedなUPXと7zzだけとし、DIECはproduction契約では無効のままにする。追加toolを有効にするときはmanifest exact schema、platform pin、binary size／SHA-256 pin、job-private snapshot、root／child契約、result provenance、process／一時tree上限を同じ変更で実装する。
+- operator tool sourceはinput root、job root、repositoryの外へ分離し、通常file、単一link、非reparseを単一handleで検証する。analyzerへは`contract-inputs/static-tools/`内のsnapshotだけを渡し、worker前後に再検証する。
+- full analyzerと内側workerの`TEMP`、`TMP`、`TMPDIR`は`analysis/.private-temp/`へ固定する。終了時にtree quota、link、identity、空directoryを検証し、残存物を再帰削除して成功扱いしない。
+- 外部tool processは共通containment、有界stdout／stderr、明示timeout、active process／memory上限、一時tree件数／size上限、安全な単一handle出力読込を必須とする。これらをkernel sandboxと説明せず、本番では低権限account、ACL、outbound deny、global quota、container／VMを併用する。
+
 # `analysis-framework/common` の防御的RATエミュレーター規則
 
 この文書は`analysis-framework/common/`配下のRATホストエミュレーター、session evidence、C2監視統合に適用します。リポジトリルートの`AGENTS.md`にある静的解析、ライブC2、秘密情報、MaxMind、履歴管理の規則も併せて守ります。

@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analysis_job_runner</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analysis_job_runner</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Canalysis_job_runner.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\analysis_job_runner.py</a></td></tr></table>
+    <p><span class="code">WebUI／ローカルAPIから安全に呼び出せる静的解析ジョブrunner。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+<a href="hmac.html">hmac</a><br>
+<a href="job_artifact_schemas.html">job_artifact_schemas</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="math.html">math</a><br>
+<a href="orchestration_outcome.html">orchestration_outcome</a><br>
+<a href="os.html">os</a><br>
+<a href="platform.html">platform</a><br>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="runtime_contract.html">runtime_contract</a><br>
+<a href="shutil.html">shutil</a><br>
+<a href="stat.html">stat</a><br>
+<a href="subprocess.html">subprocess</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
+<a href="threading.html">threading</a><br>
+<a href="time.html">time</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>(<a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>, <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_job_runner.html#JapaneseArgumentParser">JapaneseArgumentParser</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_job_runner.html#JobContractError">JobContractError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_job_runner.html#ExpectedInputUnit">ExpectedInputUnit</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#InputRecord">InputRecord</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#InputSnapshotBundle">InputSnapshotBundle</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#JobPrivateTempBinding">JobPrivateTempBinding</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#JobRequest">JobRequest</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#SnapshotInput">SnapshotInput</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#SourceFileBinding">SourceFileBinding</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#TrustedToolBundle">TrustedToolBundle</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#TrustedToolConfiguration">TrustedToolConfiguration</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#TrustedToolPolicy">TrustedToolPolicy</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#TrustedToolSnapshot">TrustedToolSnapshot</a>
+</dt><dt class="heading-text"><a href="analysis_job_runner.html#TrustedToolSource">TrustedToolSource</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ExpectedInputUnit">class <strong>ExpectedInputUnit</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ExpectedInputUnit">ExpectedInputUnit</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;source_name:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;unit_source_name:&nbsp;'str&nbsp;|&nbsp;None',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sha256:&nbsp;'str&nbsp;|&nbsp;None',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;read_succeeded:&nbsp;'bool'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+production実行前に固定した、analyzer単位の入力照合record。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ExpectedInputUnit-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__init__"><strong>__init__</strong></a>(
+    self,
+    source_name: 'str',
+    unit_source_name: 'str | None',
+    sha256: 'str | None',
+    read_succeeded: 'bool'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ExpectedInputUnit-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">監査用bundleへ保存できる固定schema表現を返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'read_succeeded': 'bool', 'sha256': 'str | None', 'source_name': 'str', 'unit_source_name': 'str | None'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'read_succeeded': Field(name='read_succeeded',type='bool',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str | None',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_name': Field(name='source_name',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'unit_source_name': Field(name='unit_source_name',type='str | None',...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('source_name', 'unit_source_name', 'sha256', 'read_succeeded')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="InputRecord">class <strong>InputRecord</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#InputRecord">InputRecord</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kind:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;file_count:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;analyzer_file_count:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;total_bytes:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;source_files:&nbsp;'tuple[<a href="#SourceFileBinding">SourceFileBinding</a>,&nbsp;...]'&nbsp;=&nbsp;()<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+入力境界検証の公開可能な集計。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="InputRecord-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="InputRecord-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="InputRecord-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="InputRecord-__init__"><strong>__init__</strong></a>(
+    self,
+    relative_path: 'str',
+    kind: 'str',
+    file_count: 'int',
+    analyzer_file_count: 'int',
+    total_bytes: 'int',
+    source_files: 'tuple[SourceFileBinding, ...]' = ()
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="InputRecord-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="InputRecord-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="InputRecord-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="InputRecord-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">絶対pathを含まないJSON表現を返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'analyzer_file_count': 'int', 'file_count': 'int', 'kind': 'str', 'relative_path': 'str', 'source_files': 'tuple[SourceFileBinding, ...]', 'total_bytes': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'analyzer_file_count': Field(name='analyzer_file_count',type='int',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'file_count': Field(name='file_count',type='int',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'kind': Field(name='kind',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'relative_path': Field(name='relative_path',type='str',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_files': Field(name='source_files',type='tuple[SourceFile...appingproxy({}),kw_only=False,_field_type=_FIELD), 'total_bytes': Field(name='total_bytes',type='int',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('relative_path', 'kind', 'file_count', 'analyzer_file_count', 'total_bytes', 'source_files')</dl>
+
+<dl><dt><strong>source_files</strong> = ()</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="InputSnapshotBundle">class <strong>InputSnapshotBundle</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#InputSnapshotBundle">InputSnapshotBundle</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;inputs:&nbsp;'tuple[<a href="#SnapshotInput">SnapshotInput</a>,&nbsp;...]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_path:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_document:&nbsp;'Mapping[str,&nbsp;Any]'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+snapshot群と、改ざん検知に使う固定manifest。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="InputSnapshotBundle-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__init__"><strong>__init__</strong></a>(
+    self,
+    inputs: 'tuple[SnapshotInput, ...]',
+    manifest_path: 'Path',
+    manifest_relative_path: 'str',
+    manifest_sha256: 'str',
+    manifest_document: 'Mapping[str, Any]'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="InputSnapshotBundle-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'inputs': 'tuple[SnapshotInput, ...]', 'manifest_document': 'Mapping[str, Any]', 'manifest_path': 'Path', 'manifest_relative_path': 'str', 'manifest_sha256': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'inputs': Field(name='inputs',type='tuple[SnapshotInput, ....appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_document': Field(name='manifest_document',type='Mapping[str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_path': Field(name='manifest_path',type='Path',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_relative_path': Field(name='manifest_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_sha256': Field(name='manifest_sha256',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('inputs', 'manifest_path', 'manifest_relative_path', 'manifest_sha256', 'manifest_document')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JapaneseArgumentParser">class <strong>JapaneseArgumentParser</strong></a>(<a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JapaneseArgumentParser">JapaneseArgumentParser</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;usage=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;description=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epilog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;parents=[],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;formatter_class=&amp;lt;class&nbsp;'argparse.HelpFormatter'&amp;gt;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prefix_chars='-',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fromfile_prefix_chars=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;argument_default=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;conflict_handler='error',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;add_help=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow_abbrev=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit_on_error=True<br>
+)<br>
+&nbsp;<br>
+argparseの固定見出しを日本語へ置換する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_job_runner.html#JapaneseArgumentParser">JapaneseArgumentParser</a></dd>
+<dd><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a></dd>
+<dd><a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a></dd>
+<dd><a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JapaneseArgumentParser-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">日本語化したhelpを返す。</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__init__"><strong>__init__</strong></a>(
+    self,
+    prog=None,
+    usage=None,
+    description=None,
+    epilog=None,
+    parents=[],
+    formatter_class=&lt;class 'argparse.HelpFormatter'&gt;,
+    prefix_chars='-',
+    fromfile_prefix_chars=None,
+    argument_default=None,
+    conflict_handler='error',
+    add_help=True,
+    allow_abbrev=True,
+    exit_on_error=True
+)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_subparsers"><strong>add_subparsers</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-convert_arg_line_to_args"><strong>convert_arg_line_to_args</strong></a>(self, arg_line)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-error"><strong>error</strong></a>(self, message)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-error">error</a>(message:&nbsp;string)<br>
+&nbsp;<br>
+Prints&nbsp;a&nbsp;usage&nbsp;message&nbsp;incorporating&nbsp;the&nbsp;message&nbsp;to&nbsp;stderr&nbsp;and<br>
+exits.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;override&nbsp;this&nbsp;in&nbsp;a&nbsp;subclass,&nbsp;it&nbsp;should&nbsp;not&nbsp;return&nbsp;--&nbsp;it<br>
+should&nbsp;either&nbsp;exit&nbsp;or&nbsp;raise&nbsp;an&nbsp;exception.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-exit"><strong>exit</strong></a>(self, status=0, message=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-format_usage"><strong>format_usage</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_args"><strong>parse_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_intermixed_args"><strong>parse_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_args"><strong>parse_known_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_intermixed_args"><strong>parse_known_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_help"><strong>print_help</strong></a>(self, file=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_usage"><strong>print_usage</strong></a>(self, file=None)</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-add_argument"><strong>add_argument</strong></a>(self, *args, **kwargs)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-add_argument">add_argument</a>(dest,&nbsp;...,&nbsp;name=value,&nbsp;...)<br>
+<a href="#JapaneseArgumentParser-add_argument">add_argument</a>(option_string,&nbsp;option_string,&nbsp;...,&nbsp;name=value,&nbsp;...)</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_argument_group"><strong>add_argument_group</strong></a>(self, *args, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_mutually_exclusive_group"><strong>add_mutually_exclusive_group</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-get_default"><strong>get_default</strong></a>(self, dest)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-register"><strong>register</strong></a>(self, registry_name, value, object)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-set_defaults"><strong>set_defaults</strong></a>(self, **kwargs)</dt></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JobContractError">class <strong>JobContractError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JobContractError">JobContractError</a>(code:&nbsp;'str',&nbsp;message:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+ジョブ契約違反を機械可読code付きで表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_job_runner.html#JobContractError">JobContractError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JobContractError-__init__"><strong>__init__</strong></a>(self, code: 'str', message: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="JobContractError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="JobContractError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="JobContractError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="JobContractError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="JobContractError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="JobContractError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="JobContractError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#JobContractError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="JobContractError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#JobContractError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JobPrivateTempBinding">class <strong>JobPrivateTempBinding</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JobPrivateTempBinding">JobPrivateTempBinding</a>(path:&nbsp;'Path',&nbsp;information:&nbsp;'os.stat_result')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+解析出力quota配下へ固定したjob-private一時directory。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="JobPrivateTempBinding-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__init__"><strong>__init__</strong></a>(self, path: 'Path', information: 'os.stat_result') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="JobPrivateTempBinding-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'information': 'os.stat_result', 'path': 'Path'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'information': Field(name='information',type='os.stat_result',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'path': Field(name='path',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('path', 'information')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JobRequest">class <strong>JobRequest</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JobRequest">JobRequest</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;job_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;inputs:&nbsp;'tuple[str,&nbsp;...]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;family_hint_manifest:&nbsp;'str&nbsp;|&nbsp;None',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;options:&nbsp;'Mapping[str,&nbsp;Any]'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+検証済みジョブ要求。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="JobRequest-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="JobRequest-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="JobRequest-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="JobRequest-__init__"><strong>__init__</strong></a>(
+    self,
+    job_id: 'str',
+    inputs: 'tuple[str, ...]',
+    family_hint_manifest: 'str | None',
+    options: 'Mapping[str, Any]'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JobRequest-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="JobRequest-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="JobRequest-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="JobRequest-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存可能な正規化済み要求を返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'family_hint_manifest': 'str | None', 'inputs': 'tuple[str, ...]', 'job_id': 'str', 'options': 'Mapping[str, Any]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'family_hint_manifest': Field(name='family_hint_manifest',type='str | No...appingproxy({}),kw_only=False,_field_type=_FIELD), 'inputs': Field(name='inputs',type='tuple[str, ...]',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'job_id': Field(name='job_id',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'options': Field(name='options',type='Mapping[str, Any]',de...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('job_id', 'inputs', 'family_hint_manifest', 'options')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SnapshotInput">class <strong>SnapshotInput</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SnapshotInput">SnapshotInput</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;index:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;source_relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;path:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;snapshot_relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;size:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sha256:&nbsp;'str'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+production子processへ渡すjob-private入力snapshot。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="SnapshotInput-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-__init__"><strong>__init__</strong></a>(
+    self,
+    index: 'int',
+    source_relative_path: 'str',
+    path: 'Path',
+    snapshot_relative_path: 'str',
+    size: 'int',
+    sha256: 'str'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="SnapshotInput-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="SnapshotInput-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">元の絶対pathを含めず監査用manifestへ保存する。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'index': 'int', 'path': 'Path', 'sha256': 'str', 'size': 'int', 'snapshot_relative_path': 'str', 'source_relative_path': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'index': Field(name='index',type='int',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'path': Field(name='path',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='int',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'snapshot_relative_path': Field(name='snapshot_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source_relative_path': Field(name='source_relative_path',type='str',def...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('index', 'source_relative_path', 'path', 'snapshot_relative_path', 'size', 'sha256')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="SourceFileBinding">class <strong>SourceFileBinding</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#SourceFileBinding">SourceFileBinding</a>(path:&nbsp;'Path',&nbsp;information:&nbsp;'os.stat_result')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+入力検証時点の通常fileと、その同一性・変更検知用metadata。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="SourceFileBinding-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="SourceFileBinding-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="SourceFileBinding-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="SourceFileBinding-__init__"><strong>__init__</strong></a>(self, path: 'Path', information: 'os.stat_result') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="SourceFileBinding-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="SourceFileBinding-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="SourceFileBinding-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'information': 'os.stat_result', 'path': 'Path'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'information': Field(name='information',type='os.stat_result',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'path': Field(name='path',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('path', 'information')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TrustedToolBundle">class <strong>TrustedToolBundle</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TrustedToolBundle">TrustedToolBundle</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;profile_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;operator_manifest_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tools:&nbsp;'Mapping[str,&nbsp;<a href="#TrustedToolSnapshot">TrustedToolSnapshot</a>&nbsp;|&nbsp;None]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_path:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;manifest_document:&nbsp;'Mapping[str,&nbsp;Any]'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+job-private&nbsp;tool&nbsp;snapshot群と正規化済みprovenance&nbsp;manifest。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TrustedToolBundle-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-__init__"><strong>__init__</strong></a>(
+    self,
+    profile_id: 'str',
+    operator_manifest_sha256: 'str',
+    tools: 'Mapping[str, TrustedToolSnapshot | None]',
+    manifest_path: 'Path',
+    manifest_relative_path: 'str',
+    manifest_sha256: 'str',
+    manifest_document: 'Mapping[str, Any]'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="TrustedToolBundle-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-identities"><strong>identities</strong></a>(self) -&gt; 'dict[str, dict[str, Any] | None]'</dt><dd><span class="code">UPX／7zzと、無効を維持するDIECの契約identityを返す。</span></dd></dl>
+
+<dl><dt><a name="TrustedToolBundle-provenance"><strong>provenance</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">絶対pathを含めず、job成果物へ固定する信頼済みツール情報を返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'manifest_document': 'Mapping[str, Any]', 'manifest_path': 'Path', 'manifest_relative_path': 'str', 'manifest_sha256': 'str', 'operator_manifest_sha256': 'str', 'profile_id': 'str', 'tools': 'Mapping[str, TrustedToolSnapshot | None]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'manifest_document': Field(name='manifest_document',type='Mapping[str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_path': Field(name='manifest_path',type='Path',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_relative_path': Field(name='manifest_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_sha256': Field(name='manifest_sha256',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'operator_manifest_sha256': Field(name='operator_manifest_sha256',type='str'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'profile_id': Field(name='profile_id',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'tools': Field(name='tools',type='Mapping[str, TrustedToo...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('profile_id', 'operator_manifest_sha256', 'tools', 'manifest_path', 'manifest_relative_path', 'manifest_sha256', 'manifest_document')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TrustedToolConfiguration">class <strong>TrustedToolConfiguration</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TrustedToolConfiguration">TrustedToolConfiguration</a>(manifest_path:&nbsp;'Path',&nbsp;manifest_sha256:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+Web&nbsp;requestから分離したoperator管理manifestとraw&nbsp;SHA-256&nbsp;pin。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TrustedToolConfiguration-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__init__"><strong>__init__</strong></a>(self, manifest_path: 'Path', manifest_sha256: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolConfiguration-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'manifest_path': 'Path', 'manifest_sha256': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'manifest_path': Field(name='manifest_path',type='Path',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_sha256': Field(name='manifest_sha256',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('manifest_path', 'manifest_sha256')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TrustedToolPolicy">class <strong>TrustedToolPolicy</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TrustedToolPolicy">TrustedToolPolicy</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;profile_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;operator_manifest_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tools:&nbsp;'Mapping[str,&nbsp;<a href="#TrustedToolSource">TrustedToolSource</a>&nbsp;|&nbsp;None]'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+検証済みoperator&nbsp;manifestとtool&nbsp;source集合。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TrustedToolPolicy-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__init__"><strong>__init__</strong></a>(
+    self,
+    profile_id: 'str',
+    operator_manifest_sha256: 'str',
+    tools: 'Mapping[str, TrustedToolSource | None]'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolPolicy-identities"><strong>identities</strong></a>(self) -&gt; 'dict[str, dict[str, Any] | None]'</dt><dd><span class="code">検証時に絶対pathを公開せずtool&nbsp;identityだけを返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'operator_manifest_sha256': 'str', 'profile_id': 'str', 'tools': 'Mapping[str, TrustedToolSource | None]'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'operator_manifest_sha256': Field(name='operator_manifest_sha256',type='str'...appingproxy({}),kw_only=False,_field_type=_FIELD), 'profile_id': Field(name='profile_id',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'tools': Field(name='tools',type='Mapping[str, TrustedToo...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('profile_id', 'operator_manifest_sha256', 'tools')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TrustedToolSnapshot">class <strong>TrustedToolSnapshot</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TrustedToolSnapshot">TrustedToolSnapshot</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tool_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;path:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;snapshot_relative_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;size:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sha256:&nbsp;'str'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+job-privateに固定した実行fileと公開可能なidentity。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TrustedToolSnapshot-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__init__"><strong>__init__</strong></a>(
+    self,
+    tool_id: 'str',
+    path: 'Path',
+    snapshot_relative_path: 'str',
+    size: 'int',
+    sha256: 'str'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSnapshot-identity"><strong>identity</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">解析契約へ結合するbinary&nbsp;identityを返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'path': 'Path', 'sha256': 'str', 'size': 'int', 'snapshot_relative_path': 'str', 'tool_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'path': Field(name='path',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='int',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'snapshot_relative_path': Field(name='snapshot_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'tool_id': Field(name='tool_id',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('tool_id', 'path', 'snapshot_relative_path', 'size', 'sha256')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TrustedToolSource">class <strong>TrustedToolSource</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TrustedToolSource">TrustedToolSource</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tool_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;path:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;size:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;information:&nbsp;'os.stat_result'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+operator&nbsp;manifestへpinされた外部静的tool&nbsp;source。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="TrustedToolSource-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-__init__"><strong>__init__</strong></a>(
+    self,
+    tool_id: 'str',
+    path: 'Path',
+    size: 'int',
+    sha256: 'str',
+    information: 'os.stat_result'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="TrustedToolSource-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="TrustedToolSource-identity"><strong>identity</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">絶対pathを含まない解析契約用identityを返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'information': 'os.stat_result', 'path': 'Path', 'sha256': 'str', 'size': 'int', 'tool_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'information': Field(name='information',type='os.stat_result',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'path': Field(name='path',type='Path',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD), 'sha256': Field(name='sha256',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'size': Field(name='size',type='int',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'tool_id': Field(name='tool_id',type='str',default=&lt;datacla...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('tool_id', 'path', 'size', 'sha256', 'information')</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-atomic_json"><strong>atomic_json</strong></a>(path: 'Path', value: 'Any') -&gt; 'None'</dt><dd><span class="code">同一directory内の一時fileからJSONをatomicに置換する。</span></dd></dl>
+ <dl><dt><a name="-build_analyzer_argv"><strong>build_analyzer_argv</strong></a>(
+    request: 'JobRequest',
+    inputs: 'Sequence[Path]',
+    output: 'Path',
+    *,
+    python_executable: 'Path | None' = None,
+    family_hint_manifest: 'Path | None' = None,
+    trusted_tools: 'TrustedToolBundle | None' = None
+) -&gt; 'list[str]'</dt><dd><span class="code">固定scriptとallowlist&nbsp;optionだけからshellを介さないargvを作る。</span></dd></dl>
+ <dl><dt><a name="-build_expected_analysis_bundle"><strong>build_expected_analysis_bundle</strong></a>(
+    request: 'JobRequest',
+    inputs: 'Sequence[Path]',
+    analysis_output: 'Path',
+    *,
+    family_hint_manifest: 'Path | None',
+    temporary_root: 'Path | None' = None,
+    trusted_tools: 'TrustedToolBundle | None' = None
+) -&gt; 'tuple[dict[str, Any], dict[str, Any], list[ExpectedInputUnit]]'</dt><dd><span class="code">isolated&nbsp;analyzer&nbsp;workerで契約と入力manifestを一度に固定する。</span></dd></dl>
+ <dl><dt><a name="-build_expected_analysis_contracts"><strong>build_expected_analysis_contracts</strong></a>(
+    request: 'JobRequest',
+    *,
+    family_hint_manifest: 'Path | None'
+) -&gt; 'tuple[dict[str, Any], dict[str, Any]]'</dt><dd><span class="code">要求、固定manifest、現在コードからroot／child契約を独立再計算する。</span></dd></dl>
+ <dl><dt><a name="-build_expected_follow_on_contract"><strong>build_expected_follow_on_contract</strong></a>(request: 'JobRequest') -&gt; 'dict[str, Any]'</dt><dd><span class="code">WebUIが固定したoptionと現在コードから子解析契約を独立再計算する。</span></dd></dl>
+ <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">ローカルjob&nbsp;runnerのCLI&nbsp;parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-build_sanitized_environment"><strong>build_sanitized_environment</strong></a>(
+    *,
+    python_executable: 'Path | None' = None,
+    temporary_root: 'Path | None' = None
+) -&gt; 'dict[str, str]'</dt><dd><span class="code">API&nbsp;keyやPython注入設定を子processへ渡さない最小環境を作る。</span></dd></dl>
+ <dl><dt><a name="-finalize_job_private_temp"><strong>finalize_job_private_temp</strong></a>(
+    binding: 'JobPrivateTempBinding',
+    *,
+    analysis_output: 'Path'
+) -&gt; 'None'</dt><dd><span class="code">quotaとtree安全性を再検証し、空のjob-private一時directoryだけを除去する。</span></dd></dl>
+ <dl><dt><a name="-job_request_json_schema"><strong>job_request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">WebUIとAPI&nbsp;adapterが共有するrequest用JSON&nbsp;Schemaを返す。</span></dd></dl>
+ <dl><dt><a name="-load_job_request"><strong>load_job_request</strong></a>(path: 'Path') -&gt; 'JobRequest'</dt><dd><span class="code">fileから厳格なジョブ要求を読む。</span></dd></dl>
+ <dl><dt><a name="-load_job_request_from_stdin"><strong>load_job_request_from_stdin</strong></a>(stream: 'Any | None' = None) -&gt; 'JobRequest'</dt><dd><span class="code">WebUI&nbsp;adapter向けにrequest&nbsp;JSONを有界stdinから厳格に読む。</span></dd></dl>
+ <dl><dt><a name="-load_json_object_strict"><strong>load_json_object_strict</strong></a>(path: 'Path', *, max_bytes: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">UTF-8、重複key禁止、size上限付きでJSON&nbsp;objectを単一handleから読む。</span></dd></dl>
+ <dl><dt><a name="-load_trusted_tool_policy"><strong>load_trusted_tool_policy</strong></a>(
+    configuration: 'TrustedToolConfiguration',
+    *,
+    forbidden_roots: 'Sequence[Path]' = ()
+) -&gt; 'TrustedToolPolicy'</dt><dd><span class="code">operator&nbsp;manifestとbinary&nbsp;pinをstrictかつ単一handleで検証する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLIを実行し、machine-readableな結果またはerrorを返す。</span></dd></dl>
+ <dl><dt><a name="-persist_analysis_contract_bundle"><strong>persist_analysis_contract_bundle</strong></a>(
+    job_dir: 'Path',
+    *,
+    root_contract: 'Mapping[str, Any]',
+    follow_on_contract: 'Mapping[str, Any]',
+    input_manifest: 'Sequence[ExpectedInputUnit]'
+) -&gt; 'tuple[str, str]'</dt><dd><span class="code">実行前に固定した入力とroot／child契約を監査用に保存する。</span></dd></dl>
+ <dl><dt><a name="-prepare_job_private_temp"><strong>prepare_job_private_temp</strong></a>(analysis_output: 'Path') -&gt; 'JobPrivateTempBinding'</dt><dd><span class="code">解析output内に所有者限定の一時directoryを排他的に作成する。</span></dd></dl>
+ <dl><dt><a name="-read_job_snapshot"><strong>read_job_snapshot</strong></a>(jobs_root: 'Path', job_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">atomic&nbsp;JSONだけを読み、WebUI／API向けsnapshotを返す。</span></dd></dl>
+ <dl><dt><a name="-run_job"><strong>run_job</strong></a>(
+    request: 'JobRequest',
+    *,
+    input_root: 'Path',
+    jobs_root: 'Path',
+    timeout_seconds: 'int' = 21600,
+    trusted_tool_configuration: 'TrustedToolConfiguration | None' = None
+) -&gt; 'int'</dt><dd><span class="code">検証を省略できないproductionジョブ入口。</span></dd></dl>
+ <dl><dt><a name="-stage_family_hint_manifest"><strong>stage_family_hint_manifest</strong></a>(
+    request: 'JobRequest',
+    input_root: 'Path',
+    inputs: 'Sequence[Path]',
+    job_dir: 'Path'
+) -&gt; 'tuple[Path | None, str | None]'</dt><dd><span class="code">検証時bytesをjob-localへatomicに固定し、そのcopyだけを子processへ渡す。</span></dd></dl>
+ <dl><dt><a name="-stage_input_snapshots"><strong>stage_input_snapshots</strong></a>(
+    request: 'JobRequest',
+    records: 'Sequence[InputRecord]',
+    *,
+    input_root: 'Path',
+    job_dir: 'Path'
+) -&gt; 'InputSnapshotBundle'</dt><dd><span class="code">production入力をjob-private&nbsp;directoryへ固定し、元pathを以後使わない。</span></dd></dl>
+ <dl><dt><a name="-stage_trusted_tool_bundle"><strong>stage_trusted_tool_bundle</strong></a>(policy: 'TrustedToolPolicy', *, job_dir: 'Path') -&gt; 'TrustedToolBundle'</dt><dd><span class="code">pin済みtoolを単一handleからjob-private&nbsp;launcherへ固定する。</span></dd></dl>
+ <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">秒精度のcanonical&nbsp;UTC時刻を返す。</span></dd></dl>
+ <dl><dt><a name="-validate_analysis_output_tree"><strong>validate_analysis_output_tree</strong></a>(path: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">解析出力treeの種類・件数・合計sizeをhard&nbsp;quotaで検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_analyzer_runtime"><strong>validate_analyzer_runtime</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">同じinterpreterと最小環境でfull&nbsp;analyzer／handler依存を事前検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_family_hint_manifest"><strong>validate_family_hint_manifest</strong></a>(
+    request: 'JobRequest',
+    input_root: 'Path',
+    inputs: 'Sequence[Path]'
+) -&gt; 'Path | None'</dt><dd><span class="code">family&nbsp;hint&nbsp;manifestを通常入力から分離してstrict&nbsp;JSONとして検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_inputs"><strong>validate_inputs</strong></a>(request: 'JobRequest', input_root: 'Path') -&gt; 'tuple[list[Path], list[InputRecord]]'</dt><dd><span class="code">要求された相対pathをroot内へ固定し、全treeの件数と容量を検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_job"><strong>validate_job</strong></a>(
+    request: 'JobRequest',
+    *,
+    input_root: 'Path',
+    jobs_root: 'Path',
+    trusted_tool_configuration: 'TrustedToolConfiguration | None' = None
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">成果物を書かず、入力境界と安全なruntime&nbsp;importだけを検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_request_object"><strong>validate_request_object</strong></a>(value: 'Mapping[str, Any]') -&gt; 'JobRequest'</dt><dd><span class="code">厳格schemaと固定allowlistでジョブ要求を検証する。</span></dd></dl>
+ <dl><dt><a name="-validate_roots"><strong>validate_roots</strong></a>(
+    input_root: 'Path',
+    jobs_root: 'Path',
+    *,
+    create_jobs_root: 'bool'
+) -&gt; 'tuple[Path, Path]'</dt><dd><span class="code">入力rootとジョブrootを固定し、相互包含を拒否する。</span></dd></dl>
+ <dl><dt><a name="-verify_analysis_contract_trusted_tools"><strong>verify_analysis_contract_trusted_tools</strong></a>(
+    root_contract: 'Mapping[str, Any]',
+    follow_on_contract: 'Mapping[str, Any]',
+    *,
+    trusted_tools: 'TrustedToolBundle | None'
+) -&gt; 'None'</dt><dd><span class="code">隔離workerが返したtool&nbsp;identityをoperator契約と独立照合する。</span></dd></dl>
+ <dl><dt><a name="-verify_input_snapshot_bundle"><strong>verify_input_snapshot_bundle</strong></a>(bundle: 'InputSnapshotBundle', *, job_dir: 'Path') -&gt; 'None'</dt><dd><span class="code">各consumerの直前・直後にsnapshot群とmanifestの不変性を再確認する。</span></dd></dl>
+ <dl><dt><a name="-verify_trusted_tool_bundle"><strong>verify_trusted_tool_bundle</strong></a>(bundle: 'TrustedToolBundle', *, job_dir: 'Path') -&gt; 'None'</dt><dd><span class="code">各workerの直前・直後にtool&nbsp;snapshotとmanifestを完全再検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ACTIVE_FOLLOW_ON_EDGE_STATUSES</strong> = frozenset({'child_complete', 'child_incomplete'})<br>
+<strong>ALLOWED_OPTION_KEYS</strong> = frozenset({'archive_mode', 'assessment_only', 'family', 'force_container_probe', 'max_file_size', 'max_files', ...})<br>
+<strong>ALLOWED_TOP_LEVEL_KEYS</strong> = frozenset({'family_hint_manifest', 'inputs', 'job_id', 'options', 'schema_version'})<br>
+<strong>ANALYZER</strong> = WindowsPath('C:/Users/Administrator/AI-security-...727/analysis-framework/common/analyze_sample.py')<br>
+<strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/common')<br>
+<strong>Callable</strong> = typing.Callable<br>
+<strong>DEFAULT_OPTIONS</strong> = {'archive_mode': 'auto', 'assessment_only': False, 'family': None, 'force_container_probe': False, 'max_file_size': 536870912, 'max_files': 1000, 'max_static_layers': 64, 'minimum_confidence': 'medium', 'retry_max_static_layers': None, 'string_scan_limit': 1000000}<br>
+<strong>DEFAULT_TIMEOUT_SECONDS</strong> = 21600<br>
+<strong>DERIVED_COUNT_KEYS</strong> = ('analyzed', 'identified', 'unknown_or_ambiguous', 'complete', 'triaged_unknown', 'partial', 'failed', 'resumed')<br>
+<strong>FAMILY_RE</strong> = re.compile('^[a-z0-9][a-z0-9_-]{0,63}$')<br>
+<strong>FOLLOW_ON_DOCUMENT_KEYS_BY_STATUS</strong> = {'complete': frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...}), 'disabled_assessment_only': frozenset({'ai_used', 'edges', 'errors', 'executed_sample', 'network_contacted', 'nodes', ...}), 'disabled_repository_output': frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...}), 'failed': frozenset({'ai_used', 'edges', 'errors', 'executed_sample', 'network_contacted', 'nodes', ...}), 'no_retained_payloads': frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...}), 'partial': frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...})}<br>
+<strong>FOLLOW_ON_EDGE_STATUSES</strong> = frozenset({'artifact_count_limit', 'child_complete', 'child_incomplete', 'cycle_excluded', 'depth_limit', 'payload_size_limit', ...})<br>
+<strong>FOLLOW_ON_MINIMAL_DOCUMENT_KEYS</strong> = frozenset({'ai_used', 'edges', 'errors', 'executed_sample', 'network_contacted', 'nodes', ...})<br>
+<strong>FOLLOW_ON_NODE_KEYS_BY_STATE</strong> = {'analyzed': frozenset({'case_state', 'depth', 'sha256', 'size', 'state'}), 'failed': frozenset({'depth', 'error_type', 'sha256', 'size', 'state'}), 'incomplete_case_omitted': frozenset({'case_state', 'depth', 'sha256', 'size', 'state'}), 'queued': frozenset({'depth', 'sha256', 'size', 'state'}), 'resumed_complete': frozenset({'case_state', 'depth', 'sha256', 'size', 'state'}), 'root': frozenset({'depth', 'sha256', 'state'}), 'timeout': frozenset({'depth', 'sha256', 'size', 'state'}), 'wall_clock_limit': frozenset({'depth', 'sha256', 'size', 'state'})}<br>
+<strong>FOLLOW_ON_NODE_STATES</strong> = frozenset({'analyzed', 'failed', 'incomplete_case_omitted', 'queued', 'resumed_complete', 'root', ...})<br>
+<strong>FOLLOW_ON_OMISSION_REASONS</strong> = frozenset({'artifact_verification_failed', 'verified_output_edge_limit', 'verified_output_read_bytes_limit', 'verified_output_read_wall_clock_limit'})<br>
+<strong>FOLLOW_ON_OPERATIONAL_DOCUMENT_KEYS</strong> = frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...})<br>
+<strong>FOLLOW_ON_SEALED_DOCUMENT_KEYS</strong> = frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...})<br>
+<strong>FOLLOW_ON_STATUSES</strong> = frozenset({'complete', 'disabled_assessment_only', 'disabled_repository_output', 'failed', 'no_retained_payloads', 'partial'})<br>
+<strong>FORBIDDEN_OPTION_KEYS</strong> = frozenset({'allow_authentication', 'allow_live_c2_check', 'allow_live_c2_emulation', 'allow_malware_registration_tasking', 'allow_network', 'allow_reviewed_application_probes', ...})<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework')<br>
+<strong>INPUT_MANIFEST_TIMEOUT_SECONDS</strong> = 300<br>
+<strong>INPUT_MANIFEST_WORKER</strong> = "<span class="repr">\n</span>import hashlib<span class="repr">\n</span>import json<span class="repr">\n</span>import sys<span class="repr">\n</span>from path...   separators=(',', ':'),<span class="repr">\n</span>    allow_nan=False,<span class="repr">\n</span>)<span class="repr">\n</span>"<br>
+<strong>INPUT_SNAPSHOT_CHUNK_BYTES</strong> = 1048576<br>
+<strong>JOB_ID_RE</strong> = re.compile('^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$')<br>
+<strong>MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES</strong> = 16777216<br>
+<strong>MAX_ANALYSIS_OUTPUT_BYTES</strong> = 1073741824<br>
+<strong>MAX_ANALYSIS_OUTPUT_ENTRIES</strong> = 100000<br>
+<strong>MAX_ANALYZER_ACTIVE_PROCESSES</strong> = 32<br>
+<strong>MAX_ANALYZER_MEMORY_BYTES</strong> = 4294967296<br>
+<strong>MAX_DISCOVERED_FILES</strong> = 1000<br>
+<strong>MAX_FAMILY_HINT_MANIFEST_BYTES</strong> = 4194304<br>
+<strong>MAX_FILE_SIZE</strong> = 536870912<br>
+<strong>MAX_FOLLOW_ON_ARTIFACTS</strong> = 64<br>
+<strong>MAX_FOLLOW_ON_CHILD_SECONDS</strong> = 120<br>
+<strong>MAX_FOLLOW_ON_DEPTH</strong> = 4<br>
+<strong>MAX_FOLLOW_ON_EDGES</strong> = 128<br>
+<strong>MAX_FOLLOW_ON_OMITTED_METADATA</strong> = 4096<br>
+<strong>MAX_FOLLOW_ON_PAYLOAD_SIZE</strong> = 134217728<br>
+<strong>MAX_FOLLOW_ON_TOTAL_BYTES</strong> = 268435456<br>
+<strong>MAX_FOLLOW_ON_WALL_SECONDS</strong> = 300<br>
+<strong>MAX_INPUT_MANIFEST_ACTIVE_PROCESSES</strong> = 4<br>
+<strong>MAX_INPUT_MANIFEST_MEMORY_BYTES</strong> = 1073741824<br>
+<strong>MAX_INPUT_MANIFEST_RESPONSE_BYTES</strong> = 4194304<br>
+<strong>MAX_INPUT_SNAPSHOT_MANIFEST_BYTES</strong> = 16777216<br>
+<strong>MAX_LOG_BYTES</strong> = 1048576<br>
+<strong>MAX_REGISTRY_BYTES</strong> = 8388608<br>
+<strong>MAX_REQUEST_BYTES</strong> = 65536<br>
+<strong>MAX_REQUEST_INPUTS</strong> = 64<br>
+<strong>MAX_RETRY_STATIC_LAYERS</strong> = 256<br>
+<strong>MAX_RUNTIME_PREFLIGHT_ACTIVE_PROCESSES</strong> = 4<br>
+<strong>MAX_RUNTIME_PREFLIGHT_MEMORY_BYTES</strong> = 1073741824<br>
+<strong>MAX_STATIC_LAYERS</strong> = 64<br>
+<strong>MAX_STRING_SCAN_LIMIT</strong> = 1000000<br>
+<strong>MAX_SUMMARY_BYTES</strong> = 67108864<br>
+<strong>MAX_TIMEOUT_SECONDS</strong> = 86400<br>
+<strong>MAX_TOTAL_INPUT_BYTES</strong> = 2147483648<br>
+<strong>MAX_TREE_ENTRIES</strong> = 10000<br>
+<strong>MAX_TRUSTED_TOOL_BINARY_BYTES</strong> = 134217728<br>
+<strong>MAX_TRUSTED_TOOL_MANIFEST_BYTES</strong> = 1048576<br>
+<strong>MIN_FREE_DISK_RESERVE_BYTES</strong> = 268435456<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>OUTPUT_MONITOR_INTERVAL_SECONDS</strong> = 0.5<br>
+<strong>PIPE_DRAIN_CHUNK_BYTES</strong> = 65536<br>
+<strong>PRIVATE_TEMP_DIRECTORY_NAME</strong> = '.private-temp'<br>
+<strong>REGISTRY</strong> = WindowsPath('C:/Users/Administrator/AI-security-.../analysis-framework/registry/malware_types.json')<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727')<br>
+<strong>REQUIRED_TOP_LEVEL_KEYS</strong> = frozenset({'inputs', 'job_id', 'schema_version'})<br>
+<strong>RESERVED_WINDOWS_NAMES</strong> = {'aux', 'clock$', 'com1', 'com2', 'com3', 'com4', ...}<br>
+<strong>ROOT_CASE_KEYS</strong> = frozenset({'ai_used', 'analysis_stage_failed', 'analysis_stage_partial', 'automation_family', 'automation_state', 'campaign', ...})<br>
+<strong>RUNTIME_IMPORT_PROBE</strong> = 'import importlib; [importlib.import_module(name)...pefile", "pydantic", "pyzipper", "yaml", "yara"]]'<br>
+<strong>RUNTIME_PREFLIGHT_TIMEOUT_SECONDS</strong> = 30<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
+<strong>SUMMARY_COUNT_KEYS</strong> = ('input_files', 'analyzed', 'duplicates', 'errors', 'identified', 'unknown_or_ambiguous', 'automation_resolved', 'automation_partial', 'automation_unknown', 'candidate_handler_attempts', 'handler_successes', 'handler_failures', 'handler_no_evidence', 'handler_ambiguous', 'handler_incompatible', 'analysis_stage_failures', 'analysis_stage_partial', 'complete', 'triaged_unknown', 'partial', ...)<br>
+<strong>SUMMARY_KEYS</strong> = frozenset({'ai_used', 'analysis_contract', 'cases', 'catalog', 'counts', 'derived_cases', ...})<br>
+<strong>SUMMARY_SETTINGS_KEYS</strong> = frozenset({'archive_mode', 'assessment_only', 'family_hint_manifest', 'follow_on_fixed_point', 'force_container_probe', 'forced_family', ...})<br>
+<strong>Sequence</strong> = typing.Sequence<br>
+<strong>TERMINATION_WAIT_SECONDS</strong> = 5.0<br>
+<strong>TOOL_PROFILE_RE</strong> = re.compile('^[a-z0-9][a-z0-9._-]{0,63}$')<br>
+<strong>TRUSTED_STATIC_TOOL_IDS</strong> = ('upx', 'sevenzip')<br>
+<strong>UTC</strong> = datetime.timezone.utc<br>
+<strong>__annotations__</strong> = {'DEFAULT_OPTIONS': 'dict[str, Any]'}</td></tr></table>
+</body></html>

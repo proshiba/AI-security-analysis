@@ -34,6 +34,8 @@ python .\analysis-framework\common\analyze_sample.py `
 
 複数のファイルまたはディレクトリは `--input` を繰り返して指定します。同一SHA-256は1回だけ解析し、1検体のエラーで残りを停止しません。
 
+WebUI／ローカルAPIからは`analysis_job_runner.py`を正本入口として使います。ここで提供するのはscript-onlyのCLI／Python API契約であり、HTTPを待ち受けるWebUI backendではありません。serviceを起動するinterpreterのsystem siteまたは専用venvへ`analysis-framework/requirements.txt`を導入してください。runner、analyzer、隔離handler、follow-on workerは同じinterpreterのisolated modeを使用し、user-siteを無効化したruntime preflightに失敗した場合は解析を開始しません。catalog全体は開始前に構築し、個別handlerの再帰依存監査とimportは実行直前に行います。Windows固有のPython pathへは固定していないため、同じ依存契約を満たせばREMnuxでも利用できます。
+
 ## 処理順
 
 1. symlinkと出力ディレクトリを除外し、ファイル数・ファイルサイズ上限を確認する。
@@ -47,6 +49,18 @@ python .\analysis-framework\common\analyze_sample.py `
 9. 結果から資格情報、メールアドレス、Bearer資格情報、URLのuserinfo・query・fragment・資格情報path、JSON文字列内の秘密値、復元バイナリ本文を除去してJSONへ保存する。unknown、同確度競合、キャンペーン不一致では特殊解析器を強制しない。
 10. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化ハッシュとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
 11. 挙動・検体特徴プロファイルを作り、登録済みの強いキャンペーン指紋と一致する場合だけ自動ラベルを付ける。
+
+この処理順には、全レイヤーのdetector証拠をまとめる`family-routing.json`、exact root SHA-256に束縛した外部hintを安全handlerで補強する`candidate-handler-assessment.json`、family・config・network・終端payload・関数ロジックを判定する`orchestration.json`の品質ゲートが含まれます。外部label単独、空のhandler成功、別familyの結果だけでfamilyや完了状態を昇格しません。
+
+handlerがraw payloadを復元した場合は、isolated workerの一時成果物を親processが再hashしてcaseへ保持します。保持監査が完全なpayloadだけを、最大64件・128 edge・深さ4・合計256 MiB・300秒の有界fixed-point queueで同じ解析へ再投入します。子caseにはrootとは別の解析契約を使い、timeout途中、seal不一致、成果物hash不一致、cycle、共有payload、上限到達を`partial`として残します。別rootと同じSHA-256はroot nodeを共有しますが、root契約caseをchild契約の親昇格proofには使いません。
+
+保持metadataは`edge`、先頭4,096件までの理由付き`omitted_metadata`、それを超える親別の件数・canonical多重集合SHA-256である`omitted_metadata_commitments`へ完全分割します。runnerは親wrapperからこの分割を独立再計算します。omissionまたはcommitmentが1件でもあればjobは`partial`であり、commitmentがある場合は親caseを`complete`へ昇格しません。詳細は[AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)を参照してください。
+
+## process封じ込めと配備境界
+
+runner経由のfull analyzerとdirect CLIのisolated full analyzerはactive process 32件・job全体4 GiB、runtime preflightと入力manifest workerは各4件・1 GiB、follow-on workerは8件・2 GiBへ制限します。direct CLIは最大24時間、runtime preflightは各30秒、follow-on workerは子解析timeout以下です。従来入口の`invoke_analysis.py`が起動する各stageも32件・4 GiB、`import_ghidra_project.py`が起動するGhidra headless importも64件・8 GiBの共通境界を使います。Windowsは`KILL_ON_JOB_CLOSE`付きJob Object、POSIXは独立process groupと`RLIMIT_AS`／`RLIMIT_NPROC`を使い、割当失敗時は無制限実行へfallbackしません。
+
+ただし、Windowsにはprocess生成からJob Object割当までの短いraceがあり、POSIXでは`setsid`等によるprocess group離脱の余地があります。これらは外向き通信、filesystem権限、敵対的コードを完全に隔離するsandboxではありません。また、runnerの解析出力100,000 entry・合計1 GiB・空き256 MiB監視はjob単位であり、全同時jobのglobal quotaではありません。本番では低権限service account、必要最小ACL、outbound deny、同時実行数とglobal filesystem quota、Windowsのより強い起動brokerまたはcontainer／VM、POSIXのcontainer／cgroupを併用します。
 
 ## 適用状態
 
@@ -94,10 +108,14 @@ HANDLER_CONTRACT = {
 ```text
 <output>/
   summary.json
+  follow-on-analysis.json
   cases/<sha256>/
     report.json
     static-layers.json
     classification.json
+    family-routing.json
+    candidate-handler-assessment.json
+    orchestration.json
     applicability.json
     generic-triage.json
     features.json
@@ -106,11 +124,16 @@ HANDLER_CONTRACT = {
     STATIC-LOGIC.md
     campaign-labels.json
     handlers/<family>-<handler-id-hash>.json
+    p/<sha256>.<kind別拡張子>
 ```
 
-- `summary.json`: 入力数、解析数、重複数、入力エラー数、識別数、解析器の証拠状態、汎用解析の網羅状態、ケース完了状態、再開件数、解析契約
+- `summary.json`: root入力の件数・状態、後段payloadの`derived_cases`／`derived_counts`、解析器の証拠状態、汎用解析の網羅状態、再開件数、解析契約
+- `follow-on-analysis.json`: rootから保持payloadを辿ったnode／edge、深さ、除外理由、上限、子解析契約SHA-256
 - `static-layers.json`: 静的復元の親子関係、方法、上限適用状況。復元本文は含まない
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
+- `family-routing.json`: 全レイヤーの候補、証拠tier、一意性、候補handler実行可否
+- `candidate-handler-assessment.json`: external hint候補の隔離検証結果。候補観測とfamily確定を分離する
+- `orchestration.json`: family、config、network、終端payload、関数ロジックの品質gateとblocker
 - `applicability.json`: 全既存解析器の対応状況とインポート前検証結果
 - `generic-triage.json`: ルートと全復元層の形式、ハッシュ、エントロピー、PE／ELF／スクリプト構造、未確認の静的IOC候補、層別状態、集約した `analysis_coverage`
 - `features.json`／`FEATURES.md`: IOC値や検知ルールを除いた、機械可読／人向けの挙動・検体特徴
@@ -123,14 +146,18 @@ HANDLER_CONTRACT = {
 | 状態 | 意味 | `--resume`で再利用 |
 |---|---|---|
 | `complete` | ファミリーを一意に選択し、有効な固有解析証拠を得て、阻害要因がない | 可 |
-| `triaged_unknown` | ファミリーは未確定だが、汎用トリアージと必要な成果物は完全 | 可 |
+| `triaged_unknown` | 汎用トリアージ処理は成功したが、ファミリーと必要な解析証拠を確定できていない | 不可 |
 | `assessment_only_complete` | 適用可否判定モードを阻害要因なしで完了 | 可 |
 | `partial` | 上限到達、層の部分解析、検出器エラー、証拠不足、曖昧性、形式不一致、代表関数解析未完了などがある | 不可 |
 | `failed` | 汎用トリアージが全体として失敗し、有効な固有解析結果もない | 不可 |
 
+`triaged_unknown` は実行処理の成功を表す状態名として保持しますが、解析完了ではありません。`complete=false`、`resumable=false` とし、CLIでは部分成功の終了コード `20`、job runnerでは `completed_partial`／`analysis_state=partial` へ写像します。
+
 `case_state.blockers` には完了を妨げた理由を列挙します。`report.json` の `analysis_contract` は、パイプライン契約バージョン、解析コード、`requirements.txt`、Python実装、主要依存パッケージ版、レジストリ、検出器、抽出器、アンパッカー、ルール、ハンドラーカタログ、結果へ影響する設定から作ったSHA-256指紋です。`artifact_sha256` はケース内の必須成果物ごとの内容ハッシュ、`report_semantic_sha256` はseal field自身を除くreport全体の決定的な内容ハッシュです。
 
-`analyze_sample.py`の完了は、入力された層に対する静的解析の完了です。包括解析ではこれに加えて、公開サンドボックスの完全一致hash照会、後段payload・memory image・drop物の取得可否確認と追加静的解析、設定から得たC2候補を含む全履歴ライブ確認を実施します。一次dropperだけを解析して包括完了とは判定しません。具体的な一括手順は[MALWAREBAZAAR-WINDOWS-BATCH.md](MALWAREBAZAAR-WINDOWS-BATCH.md)を参照してください。
+`orchestration.json` のconfig gateは、受理済みfamily handler内で `decoded_config_recovered` または `static_config_recovered` と同じobjectに復元実値が存在し、handler ID・family・証拠pathのprovenanceを記録できた場合だけ満たします。boolean自己申告、capability名、`configuration_recovered`だけでは満たしません。network gateは候補表示用の `network_endpoints` ではなく `qualified_network_endpoints` を使います。C2／control／exfiltrationの役割があり、同じhandlerの静的config実値と相関するか、由来付きのreview済みprotocol証拠があるendpointだけが品質gateを満たします。配布URL、更新先、decoy、legitimate host、未検証candidateは候補として残しても完了へ昇格させません。
+
+`analyze_sample.py`の完了は、入力とローカルで保持できた後段payloadに対するオフライン静的解析の完了です。全edgeを親のseal済みwrapper metadataと保持file本体の再SHA-256へ結び付け、子caseの解析契約、report seal、成果物hash、親子edgeをproofとして親wrapperへ結び付けます。品質gateと親reportを再sealできた場合は、深いstageから親caseを順に`complete`へ昇格します。他のblockerまたはproof不一致があれば`partial`のままです。包括解析ではこれに加えて、公開sandboxの完全一致hash照会、memory image・外部drop物の取得可否確認、設定から得たC2候補を含む全履歴ライブ確認を別の安全境界で実施します。具体的な一括手順は[MALWAREBAZAAR-WINDOWS-BATCH.md](MALWAREBAZAAR-WINDOWS-BATCH.md)を参照してください。
 
 正規化したスクリプト本文は既定で保存しません。出力は公開前提の最終成果物ではなく、解析者がレビューする中間成果物です。IOCの役割、確度、配布先とC2の分離は別途確認してください。関数ロジックのレビューと類似性判定は[静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
@@ -156,7 +183,7 @@ python .\analysis-framework\common\analyze_sample.py `
 
 `--resume` は、単に `report.json` が存在するだけでは再利用しません。次をすべて満たすケースだけを再利用します。
 
-- `case_state.resumable` が `true` で、`complete`、`triaged_unknown`、`assessment_only_complete` のいずれかである。
+- `case_state.resumable` が `true` で、`complete`または`assessment_only_complete`である。
 - `status`、`complete`、`resumable`、`blockers`、実行モード、選択family、handler成功状態が相互に矛盾しない。
 - 内包検体SHA-256に加え、入力名、入力種別、外装SHA-256、メンバー名が現在の入力と一致する。
 - `analysis_contract` が現在の解析コード、依存版、レジストリ、ルール、カタログ、外部ツールの同一性、パスワードのSHA-256指紋を含むCLI設定から計算した指紋と完全一致する。パスワード平文は保存しない。
@@ -197,7 +224,7 @@ python .\analysis-framework\common\analyze_sample.py `
 
 ## 終了コード
 
-- `0`: 入力エラーがなく、全caseが `complete`、`triaged_unknown`、`assessment_only_complete` のいずれか
-- `20`: 1件以上の入力エラー、または `partial`／`failed` caseあり。成功したcaseと成功した段階の結果は保持する
+- `0`: 入力エラーがなく、全caseが `complete`または`assessment_only_complete`
+- `20`: 1件以上の入力エラー、`triaged_unknown`、`partial`、`failed`、または未完了の後段解析あり。成功した処理と成功した段階の結果は保持する
 
 CLI引数自体が不正な場合は、Pythonの引数parserが終了コード `2` を返します。

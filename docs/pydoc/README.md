@@ -20,7 +20,8 @@ $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-frame
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_sample analysis_contract handler_catalog classifiers.classify_sample `
+  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner bounded_process `
+  follow_on_commitment handler_catalog job_artifact_schemas runtime_contract classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
   generate_ioc_lists deep_static_triage `
   unpackers.static_unpacker unpackers.msi_static_inventory unpackers.static_control_flow unpackers.managed_il_triage `
@@ -41,8 +42,13 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 
 - `analyze_sample.html`：入力収集、静的layer復元、解析器の適用可否判定、一括実行、再開整合性
 - `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
+- `analysis_job_runner.html`：WebUI／ローカルAPI向けの要求検証、入力snapshot、job状態、成果物再検証
+- `bounded_process.html`：timeout、process／memory上限、子孫cleanupを担うOS別の共通process境界
+- `follow_on_commitment.html`：保持metadata残余の親別canonical多重集合commitment
 - `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
+- `job_artifact_schemas.html`：status、progress、result、snapshotのJSON Schemaと依存なし検証
 - `pe_structural_profile.html`：エクスポート、API、復号リソースを組み合わせる宣言型PE検出
+- `runtime_contract.html`：isolated processで要求する固定Python依存の共有契約
 - `static_layer_pipeline.html`：任意unpackerを上限付きの認証済みレイヤーDAGへ変換する共有処理
 - `classifiers.classify_sample.html`：登録済み検出器による共通分類と検出結果の正規化
 

@@ -30,6 +30,8 @@
 
 推奨する 7-Zip binary は NSIS decompile 対応 build です。信頼済み archive parser としてだけ使用し、installer は実行しません。
 
+外部toolは`PATH`から探索せず、絶対pathで明示した通常fileだけを使います。各processは子孫process containment、active process 8件、memory 1 GiB、stdout／stderr各1 MiB、明示timeout、一時tree最大10,000 entry／1 GiBの内側で実行します。API keyやPython注入環境を継承せず、一時treeのreparse、hardlink、特殊file、path escapeを拒否し、保持する出力は単一handleからsize上限付きで再読込します。これらはkernel sandboxではありません。WebUI／APIのproduction経路では下記の直接path引数を使わず、operatorがSHA-256 pinしたmanifestからjob-private UPX／7zz snapshotを作る`analysis_job_runner.py`を使用します。DIECはproduction契約では無効です。
+
 ```powershell
 $Python = 'C:\Users\Administrator\Tools\Python313\python.exe'
 $SevenZipNSIS = 'C:\Users\Administrator\Tools\7z-nsis-26.02\7z.exe'

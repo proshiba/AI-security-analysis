@@ -11,6 +11,8 @@
 
 ## 現行基盤
 
+- [AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)
+- [WebUI／ローカルAPI向け静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)
 - [dailyマルウェア解析の3系統取込](DAILY-NEWS-MALWARE-INTAKE.md)
 - [ClickFix／ClearFake 50件の収集・インフラ・Triage照合](../clickfix/README.md)
 - [一括静的解析と解析器適用可否判定](ONE-SHOT-ANALYSIS.md)

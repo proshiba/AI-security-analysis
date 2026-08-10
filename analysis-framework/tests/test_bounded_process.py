@@ -10,7 +10,7 @@ import signal
 import subprocess
 import sys
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -236,6 +236,70 @@ def test_invalid_timeout_is_rejected_before_spawn(timeout: object) -> None:
     popen.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("active_processes", "memory_bytes"),
+    [
+        (True, 1024),
+        (0, 1024),
+        (bounded_process.MAX_CONTAINED_ACTIVE_PROCESSES + 1, 1024),
+        (1, True),
+        (1, 0),
+        (1, bounded_process.MAX_CONTAINED_MEMORY_BYTES + 1),
+    ],
+)
+def test_process_containment_rejects_out_of_range_limits(
+    active_processes: object,
+    memory_bytes: object,
+) -> None:
+    """bool、ゼロ、実装境界超過はPopen option生成前に拒否する。"""
+
+    with pytest.raises(ValueError):
+        bounded_process.ProcessContainment(
+            maximum_active_processes=active_processes,  # type: ignore[arg-type]
+            maximum_memory_bytes=memory_bytes,  # type: ignore[arg-type]
+        )
+
+
+def test_posix_containment_applies_both_resource_limits() -> None:
+    """POSIXの両上限を適用し、既存のより厳しいlimitを緩和しない。"""
+
+    resource_module = Mock(RLIMIT_AS=1, RLIMIT_NPROC=2, RLIM_INFINITY=-1)
+    resource_module.getrlimit.side_effect = [(2048, 3072), (5, 6)]
+    with patch.dict(sys.modules, {"resource": resource_module}):
+        containment = bounded_process.ProcessContainment(
+            os_name="posix",
+            maximum_active_processes=7,
+            maximum_memory_bytes=4096,
+        )
+        options = containment.popen_options()
+        options["preexec_fn"]()  # type: ignore[operator]
+
+    assert options["start_new_session"] is True
+    assert resource_module.setrlimit.call_args_list == [
+        call(resource_module.RLIMIT_AS, (2048, 3072)),
+        call(resource_module.RLIMIT_NPROC, (5, 6)),
+    ]
+
+
+def test_windows_job_assignment_failure_terminates_process_tree() -> None:
+    """Job Objectへ割り当てられなければprocess treeを終了してfail-closedにする。"""
+
+    process = Mock(spec=subprocess.Popen)
+    containment = bounded_process.ProcessContainment(
+        os_name="nt",
+        maximum_active_processes=8,
+        maximum_memory_bytes=8192,
+    )
+    with (
+        patch.object(bounded_process, "_assign_windows_job", side_effect=OSError("assign failed")),
+        patch.object(bounded_process, "terminate_process_tree") as terminate,
+        pytest.raises(OSError, match="assign failed"),
+    ):
+        containment.attach(process)
+
+    terminate.assert_called_once_with(process, os_name="nt")
+
+
 def _pid_is_alive(pid: int) -> bool:
     """POSIX integration test用にzombieを停止済みとして判定する。"""
 
@@ -303,6 +367,14 @@ def test_invoke_module_routes_python_stage_through_bounded_helper() -> None:
     assert runner.call_args.args[0] == ["python", "stage.py"]
     assert runner.call_args.kwargs["timeout"] == 17
     assert runner.call_args.kwargs["check"] is False
+    assert runner.call_args.kwargs["stdout"] is subprocess.DEVNULL
+    assert runner.call_args.kwargs["stderr"] is subprocess.DEVNULL
+    assert runner.call_args.kwargs["require_containment"] is True
+    assert (
+        runner.call_args.kwargs["maximum_active_processes"]
+        == invoke_module.MAX_STAGE_ACTIVE_PROCESSES
+    )
+    assert runner.call_args.kwargs["maximum_memory_bytes"] == invoke_module.MAX_STAGE_MEMORY_BYTES
     child_environment = runner.call_args.kwargs["env"]
     assert all(name not in child_environment for name in ambient)
 
@@ -324,6 +396,20 @@ def test_invoke_module_converts_bounded_timeout() -> None:
             stage="fixture",
             timeout_seconds=17,
         )
+
+
+def test_invoke_module_fails_closed_when_containment_is_unavailable() -> None:
+    """containment作成失敗時に旧stageを無制限実行へfallbackしない。"""
+
+    with (
+        patch.object(
+            invoke_module,
+            "run_bounded",
+            side_effect=RuntimeError("containment unavailable"),
+        ),
+        pytest.raises(invoke_module.OrchestrationError, match="封じ込めて起動できません"),
+    ):
+        invoke_module.run_python("python", ["stage.py"], stage="fixture")
 
 
 def _ghidra_arguments(tmp_path: Path) -> argparse.Namespace:
@@ -356,6 +442,14 @@ def test_ghidra_module_routes_headless_tree_through_bounded_helper(tmp_path: Pat
     assert isinstance(runner.call_args.args[0], list)
     assert runner.call_args.kwargs["shell"] is True
     assert runner.call_args.kwargs["timeout"] == 15 + 120
+    assert runner.call_args.kwargs["stdout"] is subprocess.DEVNULL
+    assert runner.call_args.kwargs["stderr"] is subprocess.DEVNULL
+    assert runner.call_args.kwargs["require_containment"] is True
+    assert (
+        runner.call_args.kwargs["maximum_active_processes"]
+        == ghidra_module.MAX_GHIDRA_ACTIVE_PROCESSES
+    )
+    assert runner.call_args.kwargs["maximum_memory_bytes"] == ghidra_module.MAX_GHIDRA_MEMORY_BYTES
 
 
 def test_ghidra_module_converts_bounded_timeout(tmp_path: Path) -> None:
@@ -369,6 +463,21 @@ def test_ghidra_module_converts_bounded_timeout(tmp_path: Path) -> None:
             side_effect=subprocess.TimeoutExpired(["analyzeHeadless"], 135),
         ),
         pytest.raises(ghidra_module.GhidraImportError, match="135秒でtimeout"),
+    ):
+        ghidra_module.import_project(args)
+
+
+def test_ghidra_module_fails_closed_when_containment_is_unavailable(tmp_path: Path) -> None:
+    """Ghidraもcontainment失敗時に無制限実行へfallbackしない。"""
+
+    args = _ghidra_arguments(tmp_path)
+    with (
+        patch.object(
+            ghidra_module,
+            "run_bounded",
+            side_effect=RuntimeError("containment unavailable"),
+        ),
+        pytest.raises(ghidra_module.GhidraImportError, match="封じ込めて起動できません"),
     ):
         ghidra_module.import_project(args)
 
@@ -540,3 +649,43 @@ def test_windows_timeout_terminates_real_descendant(tmp_path: Path) -> None:
                     stderr=subprocess.DEVNULL,
                     timeout=bounded_process.TASKKILL_TIMEOUT_SECONDS,
                 )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows Job Object向けintegration test")
+def test_windows_containment_blocks_persistent_child_after_success(tmp_path: Path) -> None:
+    """workerが正常終了してもJob Object外へ子processを残せないことを確認する。"""
+
+    sentinel = tmp_path / "late-child.txt"
+    blocked = tmp_path / "spawn-blocked.txt"
+    child_code = (
+        "import pathlib,sys,time;"
+        "time.sleep(0.5);"
+        "pathlib.Path(sys.argv[1]).write_text('escaped',encoding='ascii')"
+    )
+    parent_code = (
+        "import pathlib,subprocess,sys;"
+        "\ntry:"
+        "\n subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]])"
+        "\nexcept BaseException:"
+        "\n pathlib.Path(sys.argv[3]).write_text('blocked',encoding='ascii')"
+    )
+    completed = bounded_process.run_bounded(
+        [
+            sys.executable,
+            "-c",
+            parent_code,
+            child_code,
+            str(sentinel),
+            str(blocked),
+        ],
+        timeout=10,
+        require_containment=True,
+        maximum_active_processes=1,
+        maximum_memory_bytes=bounded_process.DEFAULT_CONTAINED_MEMORY_BYTES,
+    )
+    assert completed.returncode == 0
+    deadline = time.monotonic() + 1.5
+    while time.monotonic() < deadline and not blocked.exists():
+        time.sleep(0.05)
+    assert blocked.is_file()
+    assert not sentinel.exists()

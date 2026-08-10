@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from pathlib import Path
 import struct
+import sys
 from types import SimpleNamespace
 import zipfile
 import zlib
@@ -15,6 +17,110 @@ import pyzipper
 import pytest
 
 from unpackers import static_unpacker as unpacker
+
+
+def test_static_tool_process_drops_host_secret_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """外部toolへAPI key等のhost環境変数を継承しない。"""
+
+    monkeypatch.setenv("VT_API_KEY", "must-not-leak")
+    completed = unpacker._run_static_tool_process(
+        [
+            str(Path(sys.executable).resolve()),
+            "-I",
+            "-B",
+            "-c",
+            "import os; print(os.environ.get('VT_API_KEY', 'missing'))",
+        ],
+        cwd=tmp_path.resolve(),
+        timeout=10,
+        max_temp_entries=8,
+        max_temp_bytes=1024 * 1024,
+    )
+    assert completed.returncode == 0
+    assert completed.stdout.strip() == "missing"
+
+
+def test_static_tool_process_rejects_bounded_stdout_overflow(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """tool stdoutを保持上限超過時に成功扱いしない。"""
+
+    monkeypatch.setattr(unpacker, "MAX_STATIC_TOOL_STDOUT_BYTES", 64)
+    with pytest.raises(unpacker.StaticToolExecutionError, match="output_limit"):
+        unpacker._run_static_tool_process(
+            [
+                str(Path(sys.executable).resolve()),
+                "-I",
+                "-B",
+                "-c",
+                "print('X' * 4096)",
+            ],
+            cwd=tmp_path.resolve(),
+            timeout=10,
+            max_temp_entries=8,
+            max_temp_bytes=1024 * 1024,
+        )
+
+
+def test_static_tool_process_rejects_temporary_byte_overflow(tmp_path: Path) -> None:
+    """toolが一時directory quotaを超えた場合は成果物を採用しない。"""
+
+    with pytest.raises(unpacker.StaticToolExecutionError, match="temporary_byte_limit"):
+        unpacker._run_static_tool_process(
+            [
+                str(Path(sys.executable).resolve()),
+                "-I",
+                "-B",
+                "-c",
+                "open('overflow.bin', 'wb').write(b'X' * 4096)",
+            ],
+            cwd=tmp_path.resolve(),
+            timeout=10,
+            max_temp_entries=8,
+            max_temp_bytes=128,
+        )
+
+
+def test_static_tool_temp_tree_rejects_entry_overflow(tmp_path: Path) -> None:
+    """directory全体をlist化せず、entry上限到達時点で走査を止める。"""
+
+    (tmp_path / "one.bin").write_bytes(b"1")
+    (tmp_path / "two.bin").write_bytes(b"2")
+    with pytest.raises(
+        unpacker.StaticToolExecutionError, match="temporary_entry_limit"
+    ):
+        unpacker._validate_static_tool_temp_tree(
+            tmp_path,
+            expected_root=tmp_path.lstat(),
+            max_entries=1,
+            max_bytes=1024,
+        )
+
+
+def test_static_tool_temp_tree_rejects_hardlink(tmp_path: Path) -> None:
+    """tool一時tree内の複数link fileを成果物として扱わない。"""
+
+    source = tmp_path / "source.bin"
+    alias = tmp_path / "alias.bin"
+    source.write_bytes(b"fixture")
+    try:
+        os.link(source, alias)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"このfilesystemではhardlinkを作成できません: {exc}")
+    with pytest.raises(
+        unpacker.StaticToolExecutionError,
+        match="temporary_special_file_forbidden",
+    ):
+        unpacker._validate_static_tool_temp_tree(
+            tmp_path,
+            expected_root=tmp_path.lstat(),
+            max_entries=8,
+            max_bytes=1024,
+        )
 
 
 def minimal_macho() -> bytes:
@@ -510,26 +616,27 @@ def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
             stderr="",
         )
 
-    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
     report = unpacker.sevenzip_inventory(b"fixture", executable)
     assert "-sccUTF-8" in observed["command"]
     assert observed["kwargs"]["encoding"] == "utf-8"
-    assert observed["kwargs"]["errors"] == "replace"
+    assert Path(observed["kwargs"]["cwd"]).is_absolute()
+    assert Path(observed["kwargs"]["cwd"]).name.startswith("asa-7z-list-")
     assert report["members"] == ["member-�.bin"]
 
 
 def test_select_high_value_archive_members_prioritizes_application_code() -> None:
-    '''大規模Electronアーカイブでは依存ライブラリよりアプリ本体を優先する。'''
+    """大規模Electronアーカイブでは依存ライブラリよりアプリ本体を優先する。"""
 
     records = [
-        {'name': 'resources/app/node_modules/a/index.js', 'size': 10},
-        {'name': 'resources/app/main.js', 'size': 20},
-        {'name': 'resources/app/app.jsc', 'size': 30},
-        {'name': 'resources/app/package.json', 'size': 40},
-        {'name': 'resources/app/node_modules/dpapi.node', 'size': 50},
-        {'name': 'LICENSES.chromium.html', 'size': 60},
-        {'name': 'oversized.exe', 'size': 5000},
-        {'name': '../escape.js', 'size': 1},
+        {"name": "resources/app/node_modules/a/index.js", "size": 10},
+        {"name": "resources/app/main.js", "size": 20},
+        {"name": "resources/app/app.jsc", "size": 30},
+        {"name": "resources/app/package.json", "size": 40},
+        {"name": "resources/app/node_modules/dpapi.node", "size": 50},
+        {"name": "LICENSES.chromium.html", "size": 60},
+        {"name": "oversized.exe", "size": 5000},
+        {"name": "../escape.js", "size": 1},
     ]
 
     selected = unpacker.select_high_value_archive_members(
@@ -539,66 +646,70 @@ def test_select_high_value_archive_members_prioritizes_application_code() -> Non
         max_total_size=140,
     )
 
-    assert [item['name'] for item in selected] == [
-        'resources/app/app.jsc',
-        'resources/app/main.js',
-        'resources/app/package.json',
-        'resources/app/node_modules/dpapi.node',
+    assert [item["name"] for item in selected] == [
+        "resources/app/app.jsc",
+        "resources/app/main.js",
+        "resources/app/package.json",
+        "resources/app/node_modules/dpapi.node",
     ]
-    assert sum(int(item['size']) for item in selected) == 140
+    assert sum(int(item["size"]) for item in selected) == 140
 
 
 def test_sevenzip_over_member_limit_uses_bounded_selective_extraction(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    '''全展開を拒否する件数でも高価値ファイルだけを明示選択して回収する。'''
+    """全展開を拒否する件数でも高価値ファイルだけを明示選択して回収する。"""
 
     records = [
-        {'name': 'resources/app/main.js', 'size': 18, 'attributes': 'A'},
-        {'name': 'resources/app/package.json', 'size': 2, 'attributes': 'A'},
-        {'name': 'resources/app/node_modules/a/index.js', 'size': 10, 'attributes': 'A'},
+        {"name": "resources/app/main.js", "size": 18, "attributes": "A"},
+        {"name": "resources/app/package.json", "size": 2, "attributes": "A"},
+        {
+            "name": "resources/app/node_modules/a/index.js",
+            "size": 10,
+            "attributes": "A",
+        },
     ]
 
-    def fake_inventory(_data: bytes, _executable: Path, _password: str = ''):
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
         return {
-            'status': 'listed',
-            'archive_types': ['7z'],
-            'members': [item['name'] for item in records],
-            'total_members': 1823,
-            'declared_total_size': 9999,
-            'archive_unlock_attempted': False,
-            '_member_records': records,
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [item["name"] for item in records],
+            "total_members": 1823,
+            "declared_total_size": 9999,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
         }
 
     commands: list[list[str]] = []
 
     def fake_run(command, **_kwargs):
         commands.append(command)
-        output_arg = next(item for item in command if item.startswith('-o'))
-        output = Path(output_arg[2:]) / 'resources' / 'app'
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:]) / "resources" / "app"
         output.mkdir(parents=True)
-        (output / 'main.js').write_bytes(b'require-app-jsc')
-        (output / 'package.json').write_bytes(b'{}')
-        return SimpleNamespace(returncode=0, stdout='', stderr='')
+        (output / "main.js").write_bytes(b"require-app-jsc")
+        (output / "package.json").write_bytes(b"{}")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr(unpacker, 'sevenzip_inventory', fake_inventory)
-    monkeypatch.setattr(unpacker.subprocess, 'run', fake_run)
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
 
     report, artifacts = unpacker.sevenzip_extract(
-        b'7zfixture',
-        tmp_path / '7z.exe',
+        b"7zfixture",
+        tmp_path / "7z.exe",
         max_members=2,
         max_member_size=1024,
         max_total_size=1024,
     )
 
-    assert report['status'] == 'selectively_extracted'
-    assert report['selective_extraction']['full_inventory_count'] == 1823
-    assert report['selective_extraction']['selected_total_size'] == 20
-    assert 'resources/app/main.js' in commands[0]
-    assert 'resources/app/package.json' in commands[0]
-    assert all('node_modules' not in item for item in commands[0])
-    assert {kind for kind, _blob in artifacts} == {'7z-script', '7z-data'}
+    assert report["status"] == "selectively_extracted"
+    assert report["selective_extraction"]["full_inventory_count"] == 1823
+    assert report["selective_extraction"]["selected_total_size"] == 20
+    assert "resources/app/main.js" in commands[0]
+    assert "resources/app/package.json" in commands[0]
+    assert all("node_modules" not in item for item in commands[0])
+    assert {kind for kind, _blob in artifacts} == {"7z-script", "7z-data"}
 
 
 def test_reviewed_container_hint_forces_bounded_archive_probe(
@@ -674,7 +785,7 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
-    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
     report, artifacts = unpacker.sevenzip_extract(
         b"MZfixture", tmp_path / "7z.exe", password="infected"
     )
@@ -708,7 +819,7 @@ def test_sevenzip_empty_member_is_inventory_only(
         return SimpleNamespace(returncode=2, stdout="", stderr="data error")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
-    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
     report, artifacts = unpacker.sevenzip_extract(
         b"MZfixture",
         tmp_path / "7z.exe",
@@ -756,7 +867,7 @@ def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
         return SimpleNamespace(returncode=2, stdout="", stderr="data error")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
-    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
 
     report, artifacts = unpacker.sevenzip_extract(
         b"Rar!fixture", tmp_path / "7z.exe", password="infected"
@@ -768,6 +879,7 @@ def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
     assert report["archive_unlock_candidate_index"] == 1
     assert "WNcry@2ol7" not in repr(report)
     assert artifacts == [("7z-pe", b"MZpayload")]
+
 
 def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -791,7 +903,7 @@ def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
-    monkeypatch.setattr(unpacker.subprocess, "run", fake_run)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
     report, artifacts = unpacker.sevenzip_extract(
         b"MSCFfixture",
         tmp_path / "7z.exe",

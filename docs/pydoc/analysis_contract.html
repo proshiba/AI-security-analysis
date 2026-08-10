@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">analysis_contract</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Canalysis_contract.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\analysis_contract.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Canalysis_contract.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\analysis_contract.py</a></td></tr></table>
     <p><span class="code">一括静的解析の入力契約、証拠品質、再開整合性を共通化する。</span></p>
 <p>
 <table class="section">
@@ -19,10 +19,11 @@
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
 <a href="importlib.metadata.html">importlib.metadata</a><br>
 </td><td class="multicolumn"><a href="json.html">json</a><br>
-<a href="os.html">os</a><br>
-</td><td class="multicolumn"><a href="platform.html">platform</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="stat.html">stat</a><br>
+<a href="math.html">math</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="platform.html">platform</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="stat.html">stat</a><br>
 </td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
@@ -30,13 +31,25 @@
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-artifact_hashes"><strong>artifact_hashes</strong></a>(case_dir: 'Path', relative_paths: 'Iterable[str]') -&gt; 'dict[str, str]'</dt><dd><span class="code">case成果物の相対pathとSHA-256を決定的に記録する。</span></dd></dl>
- <dl><dt><a name="-build_pipeline_fingerprint"><strong>build_pipeline_fingerprint</strong></a>(*, repository_root: 'Path', components: 'Iterable[Path]', settings: 'Mapping[str, Any]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">解析コード・レジストリ・ルーティング設定の決定的な指紋を返す。</span></dd></dl>
- <dl><dt><a name="-case_integrity_errors"><strong>case_integrity_errors</strong></a>(case_dir: 'Path', report: 'Mapping[str, Any]', *, expected_digest: 'str | None' = None, expected_contract: 'Mapping[str, Any] | None' = None, require_resumable: 'bool' = True) -&gt; 'list[str]'</dt><dd><span class="code">再開・公開に必要なreport意味整合性と全成果物を検証する。</span></dd></dl>
+ <dl><dt><a name="-build_pipeline_fingerprint"><strong>build_pipeline_fingerprint</strong></a>(
+    *,
+    repository_root: 'Path',
+    components: 'Iterable[Path]',
+    settings: 'Mapping[str, Any]'
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">解析コード・レジストリ・ルーティング設定の決定的な指紋を返す。</span></dd></dl>
+ <dl><dt><a name="-case_integrity_errors"><strong>case_integrity_errors</strong></a>(
+    case_dir: 'Path',
+    report: 'Mapping[str, Any]',
+    *,
+    expected_digest: 'str | None' = None,
+    expected_contract: 'Mapping[str, Any] | None' = None,
+    require_resumable: 'bool' = True
+) -&gt; 'list[str]'</dt><dd><span class="code">再開・公開に必要なreport意味整合性と全成果物を検証する。</span></dd></dl>
  <dl><dt><a name="-ensure_no_reparse_components"><strong>ensure_no_reparse_components</strong></a>(path: 'Path') -&gt; 'None'</dt><dd><span class="code">resolve前の既存path&nbsp;componentにreparse&nbsp;pointがないことを確認する。</span></dd></dl>
  <dl><dt><a name="-ensure_tree_without_reparse"><strong>ensure_tree_without_reparse</strong></a>(root: 'Path', *, max_entries: 'int' = 100000) -&gt; 'None'</dt><dd><span class="code">case&nbsp;tree内の全entryをfollowせず走査し、reparse&nbsp;pointを拒否する。</span></dd></dl>
  <dl><dt><a name="-format_compatible"><strong>format_compatible</strong></a>(accepted_formats: 'Sequence[str]', actual_format: 'str') -&gt; 'bool'</dt><dd><span class="code">ハンドラーの宣言形式と静的に識別した入力形式が両立するか返す。</span></dd></dl>
  <dl><dt><a name="-handler_result_quality"><strong>handler_result_quality</strong></a>(value: 'Any', minimum_score: 'int' = 1) -&gt; 'dict[str, Any]'</dt><dd><span class="code">戻り値を証拠tierへ正規化し、空の正常終了と有効結果を分離する。</span></dd></dl>
- <dl><dt><a name="-load_json_object_strict"><strong>load_json_object_strict</strong></a>(path: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">容量上限と重複key拒否を適用してJSON&nbsp;objectを読み込む。</span></dd></dl>
+ <dl><dt><a name="-load_json_object_strict"><strong>load_json_object_strict</strong></a>(path: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">単一handle、容量上限、厳密UTF-8でJSON&nbsp;objectを読み込む。</span></dd></dl>
  <dl><dt><a name="-normalize_artifact_path"><strong>normalize_artifact_path</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">成果物pathを曖昧性のない安全なPOSIX相対pathとして検証する。</span></dd></dl>
  <dl><dt><a name="-normalize_sha256_digest"><strong>normalize_sha256_digest</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">小文字16進64文字のSHA-256だけを受理する。</span></dd></dl>
  <dl><dt><a name="-report_semantic_sha256"><strong>report_semantic_sha256</strong></a>(report: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">seal&nbsp;field自身を除くreport全体の決定的なSHA-256を返す。</span></dd></dl>
@@ -57,13 +70,15 @@
 <strong>FILE_ATTRIBUTE_REPARSE_POINT</strong> = 1024<br>
 <strong>MAX_ARTIFACT_COUNT</strong> = 4096<br>
 <strong>MAX_ARTIFACT_PATH_LENGTH</strong> = 1024<br>
+<strong>MAX_CASE_ARTIFACT_SIZE</strong> = 1073741824<br>
 <strong>MAX_JSON_OBJECT_SIZE</strong> = 67108864<br>
 <strong>NEGATIVE_VALUES</strong> = frozenset({'', 'error', 'failed', 'failure', 'false', 'n/a', ...})<br>
 <strong>NETWORK_EVIDENCE_KEYS</strong> = frozenset({'c2', 'c2_candidates', 'config_endpoints', 'endpoints', 'findings', 'network_candidates', ...})<br>
 <strong>PIPELINE_CONTRACT_VERSION</strong> = 2<br>
 <strong>REPORT_SEMANTIC_HASH_FIELD</strong> = 'report_semantic_sha256'<br>
 <strong>REQUIRED_KNOWLEDGE_ARTIFACTS</strong> = {'campaign_labels': 'campaign-labels.json', 'features': 'features.json', 'features_markdown': 'FEATURES.md', 'static_logic': 'static-logic.json', 'static_logic_markdown': 'STATIC-LOGIC.md'}<br>
-<strong>RESUMABLE_CASE_STATES</strong> = frozenset({'assessment_only_complete', 'complete', 'triaged_unknown'})<br>
+<strong>RESUMABLE_CASE_STATES</strong> = frozenset({'assessment_only_complete', 'complete'})<br>
 <strong>SHA256_RE</strong> = re.compile('[0-9a-f]{64}\\Z')<br>
+<strong>SNAPSHOT_READ_CHUNK_SIZE</strong> = 1048576<br>
 <strong>STRUCTURAL_EVIDENCE_KEYS</strong> = frozenset({'capabilities', 'commands', 'logic', 'marker_hits', 'matched_patterns', 'observed_config_keys', ...})</td></tr></table>
 </body></html>

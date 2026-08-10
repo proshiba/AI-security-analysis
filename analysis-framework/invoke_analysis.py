@@ -25,6 +25,8 @@ MAX_JSON_BYTES = 16 * 1024 * 1024
 MAX_LIVE_C2_TARGETS = 32
 MAX_SEND_HEX_CHARACTERS = 2048
 MAX_STAGE_TIMEOUT_SECONDS = 24 * 60 * 60
+MAX_STAGE_ACTIVE_PROCESSES = 32
+MAX_STAGE_MEMORY_BYTES = 4 * 1024 * 1024 * 1024
 MAX_EXISTING_OUTPUT_ENTRIES = 100_000
 DEFAULT_STAGE_TIMEOUT_SECONDS = 30 * 60
 NETWORK_STAGE_TIMEOUT_SECONDS = 120
@@ -141,11 +143,16 @@ def run_python(
             check=False,
             env=_child_environment(environment_overlay),
             timeout=timeout_seconds,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            require_containment=True,
+            maximum_active_processes=MAX_STAGE_ACTIVE_PROCESSES,
+            maximum_memory_bytes=MAX_STAGE_MEMORY_BYTES,
         )
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise OrchestrationError(f"{stage}を封じ込めて起動できません。") from exc
     except subprocess.TimeoutExpired as exc:
         raise OrchestrationError(f"{stage}が{timeout_seconds}秒でtimeoutしました。") from exc
-    except OSError as exc:
-        raise OrchestrationError(f"{stage}を起動できません: {exc}") from exc
     if completed.returncode not in allowed_exit_codes:
         raise OrchestrationError(f"{stage}が終了code {completed.returncode}で失敗しました。")
     return completed.returncode

@@ -25,6 +25,8 @@ _WINDOWS_RESERVED_NAMES = frozenset(
 )
 _WINDOWS_CMD_UNSAFE_PATTERN = re.compile(r'[&|<>^()%!\r\n\x00"]')
 _REPARSE_POINT = int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+MAX_GHIDRA_ACTIVE_PROCESSES = 64
+MAX_GHIDRA_MEMORY_BYTES = 8 * 1024 * 1024 * 1024
 
 
 class GhidraImportError(RuntimeError):
@@ -329,11 +331,16 @@ def import_project(args: argparse.Namespace) -> dict[str, object]:
             shell=use_shell,
             timeout=total_timeout,
             env=child_environment,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            require_containment=True,
+            maximum_active_processes=MAX_GHIDRA_ACTIVE_PROCESSES,
+            maximum_memory_bytes=MAX_GHIDRA_MEMORY_BYTES,
         )
     except subprocess.TimeoutExpired as exc:
         raise GhidraImportError(f"Ghidra headless解析が{total_timeout}秒でtimeoutしました。") from exc
-    except OSError as exc:
-        raise GhidraImportError(f"Ghidra headless解析を起動できません: {exc}") from exc
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise GhidraImportError("Ghidra headless解析を封じ込めて起動できません。") from exc
     if completed.returncode != 0:
         raise GhidraImportError(f"Ghidra解析が終了code {completed.returncode}で失敗しました。")
     validate_created_project(project_path, repository_path)

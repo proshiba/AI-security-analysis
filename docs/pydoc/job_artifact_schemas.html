@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module job_artifact_schemas</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">job_artifact_schemas</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cjob_artifact_schemas.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\job_artifact_schemas.py</a></td></tr></table>
+    <p><span class="code">WebUI／ローカルAPI向け解析ジョブ成果物のJSON&nbsp;Schemaを提供する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#ValueError">builtins.ValueError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="job_artifact_schemas.html#JobArtifactValidationError">JobArtifactValidationError</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JobArtifactValidationError">class <strong>JobArtifactValidationError</strong></a>(<a href="builtins.html#ValueError">builtins.ValueError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JobArtifactValidationError">JobArtifactValidationError</a>(path:&nbsp;'str',&nbsp;reason:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+成果物が公開Schemaまたはsnapshot整合性に違反したことを表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="job_artifact_schemas.html#JobArtifactValidationError">JobArtifactValidationError</a></dd>
+<dd><a href="builtins.html#ValueError">builtins.ValueError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JobArtifactValidationError-__init__"><strong>__init__</strong></a>(self, path: 'str', reason: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueError</a>:<br>
+<dl><dt><a name="JobArtifactValidationError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#ValueError">builtins.ValueError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="JobArtifactValidationError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="JobArtifactValidationError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="JobArtifactValidationError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="JobArtifactValidationError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="JobArtifactValidationError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="JobArtifactValidationError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#JobArtifactValidationError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="JobArtifactValidationError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#JobArtifactValidationError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">解析ジョブ成果物Schemaを選択するCLI&nbsp;parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-job_artifact_json_schema"><strong>job_artifact_json_schema</strong></a>(kind: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">成果物名から対応するSchemaを返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">指定された成果物のJSON&nbsp;Schemaを標準出力へ書き出す。</span></dd></dl>
+ <dl><dt><a name="-progress_json_schema"><strong>progress_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">progress.json用Draft&nbsp;2020-12&nbsp;Schemaを返す。</span></dd></dl>
+ <dl><dt><a name="-read_job_snapshot_json_schema"><strong>read_job_snapshot_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">read_job_snapshot返却値用Draft&nbsp;2020-12&nbsp;Schemaを返す。<br>
+&nbsp;<br>
+result.jsonはstatus.jsonより先にatomic置換されるため、非終端statusと<br>
+resultが同居する短い遷移状態も正規のsnapshotとして許可する。</span></dd></dl>
+ <dl><dt><a name="-result_json_schema"><strong>result_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">result.json用Draft&nbsp;2020-12&nbsp;Schemaを返す。</span></dd></dl>
+ <dl><dt><a name="-status_json_schema"><strong>status_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">status.json用Draft&nbsp;2020-12&nbsp;Schemaを返す。</span></dd></dl>
+ <dl><dt><a name="-validate_job_artifact_document"><strong>validate_job_artifact_document</strong></a>(
+    kind: 'str',
+    value: 'Any',
+    *,
+    expected_job_id: 'str | None' = None
+) -&gt; 'None'</dt><dd><span class="code">成果物を公開Schemaとsnapshot遷移規則でfail-closedに検証する。<br>
+&nbsp;<br>
+外部入力の値をerror&nbsp;messageへ含めない。snapshotでは各内包文書のjob&nbsp;ID、<br>
+status／progress／resultを照合する。非終端statusとresultの同居は、<br>
+status→progress→resultという読取順で生じるatomic遷移として許可する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ARTIFACT_KINDS</strong> = ('status', 'progress', 'result', 'snapshot')<br>
+<strong>DERIVED_COUNT_KEYS</strong> = ('analyzed', 'identified', 'unknown_or_ambiguous', 'complete', 'triaged_unknown', 'partial', 'failed', 'resumed')<br>
+<strong>FOLLOW_ON_STATUSES</strong> = ('complete', 'partial', 'failed', 'no_retained_payloads', 'disabled_assessment_only', 'disabled_repository_output')<br>
+<strong>JSON_SCHEMA_DIALECT</strong> = 'https://json-schema.org/draft/2020-12/schema'<br>
+<strong>MAX_ANALYSIS_OUTPUT_BYTES</strong> = 1073741824<br>
+<strong>MAX_ANALYSIS_OUTPUT_ENTRIES</strong> = 100000<br>
+<strong>MAX_DISCOVERED_FILES</strong> = 1000<br>
+<strong>MAX_FOLLOW_ON_ARTIFACTS</strong> = 64<br>
+<strong>MAX_FOLLOW_ON_EDGES</strong> = 128<br>
+<strong>MAX_FOLLOW_ON_NODES</strong> = 1064<br>
+<strong>MAX_HANDLER_EVENTS</strong> = 64000<br>
+<strong>MAX_REQUEST_INPUTS</strong> = 64<br>
+<strong>MAX_TIMEOUT_SECONDS</strong> = 86400<br>
+<strong>MAX_TOTAL_INPUT_BYTES</strong> = 2147483648<br>
+<strong>MAX_TRUSTED_TOOL_BINARY_BYTES</strong> = 134217728<br>
+<strong>Mapping</strong> = typing.Mapping<br>
+<strong>SCHEMA_ID_ROOT</strong> = 'https://schemas.ai-security-analysis.local/analysis-job/v1'<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SUMMARY_COUNT_KEYS</strong> = ('input_files', 'analyzed', 'duplicates', 'errors', 'identified', 'unknown_or_ambiguous', 'automation_resolved', 'automation_partial', 'automation_unknown', 'candidate_handler_attempts', 'handler_successes', 'handler_failures', 'handler_no_evidence', 'handler_ambiguous', 'handler_incompatible', 'analysis_stage_failures', 'analysis_stage_partial', 'complete', 'triaged_unknown', 'partial', ...)<br>
+<strong>Sequence</strong> = typing.Sequence</td></tr></table>
+</body></html>

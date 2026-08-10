@@ -216,6 +216,15 @@ def test_run_python_strips_ambient_secrets_and_allows_explicit_overlay() -> None
         child_environment = runner.call_args.kwargs["env"]
         assert all(name not in child_environment for name in secret_names)
         assert runner.call_args.kwargs["timeout"] == invoke_analysis.DEFAULT_STAGE_TIMEOUT_SECONDS
+        assert runner.call_args.kwargs["require_containment"] is True
+        assert (
+            runner.call_args.kwargs["maximum_active_processes"]
+            == invoke_analysis.MAX_STAGE_ACTIVE_PROCESSES
+        )
+        assert (
+            runner.call_args.kwargs["maximum_memory_bytes"]
+            == invoke_analysis.MAX_STAGE_MEMORY_BYTES
+        )
 
         with patch.object(invoke_analysis, "run_bounded", return_value=completed) as runner:
             invoke_analysis.run_python(
@@ -583,6 +592,15 @@ def test_ghidra_batch_subprocess_uses_safe_argument_list(short_tmp: Path) -> Non
             import_ghidra_project.import_project(args)
     assert isinstance(runner.call_args.args[0], list)
     assert runner.call_args.kwargs["shell"] is True
+    assert runner.call_args.kwargs["require_containment"] is True
+    assert (
+        runner.call_args.kwargs["maximum_active_processes"]
+        == import_ghidra_project.MAX_GHIDRA_ACTIVE_PROCESSES
+    )
+    assert (
+        runner.call_args.kwargs["maximum_memory_bytes"]
+        == import_ghidra_project.MAX_GHIDRA_MEMORY_BYTES
+    )
     environment = runner.call_args.kwargs["env"]
     for secret_name in (
         "VT_API_KEY",

@@ -15,6 +15,7 @@ from generate_code_similarity_index import build_index  # noqa: E402
 from record_static_logic import generate as generate_static_logic_artifacts  # noqa: E402
 from static_logic import (  # noqa: E402
     build_static_logic_report,
+    function_analysis_is_available,
     normalize_logic_text,
     render_static_logic_markdown,
     simhash_similarity,
@@ -168,6 +169,25 @@ def test_reviewed_call_graph_resolves_names_and_callers() -> None:
             "callee": "decode_config@00402000",
         }
     ]
+    assert function_analysis_is_available(report) is False
+
+
+def test_function_analysis_availability_requires_recorded_tool_and_program() -> None:
+    report = build_static_logic_report(
+        sha256=SHA_A,
+        family="fixture",
+        source_name="review.json",
+        records=[_reviewed_record("return decode(buffer);", "401000")],
+    )
+
+    assert report["status"] == "reviewed_function_logic"
+    assert function_analysis_is_available(report) is True
+
+    report["functions"][0]["evidence"]["tool"] = "unknown"
+    assert function_analysis_is_available(report) is False
+    report["functions"][0]["evidence"]["tool"] = "ghidra-mcp"
+    report["functions"][0]["evidence"]["program_selector"] = "not_recorded"
+    assert function_analysis_is_available(report) is False
 
 
 def test_japanese_review_steps_without_pseudocode_have_similarity_tokens() -> None:

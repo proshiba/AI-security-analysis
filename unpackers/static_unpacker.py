@@ -5,18 +5,22 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
+from dataclasses import dataclass
 import base64
 import binascii
 import hashlib
 import io
 import json
 import math
+import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import zipfile
 import zlib
@@ -63,6 +67,13 @@ from unpackers.bounded_pe_scan import (
     scan_embedded_pe_candidates,
 )
 
+COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "common"
+if str(COMMON_ROOT) not in sys.path:
+    sys.path.insert(0, str(COMMON_ROOT))
+
+from analysis_contract import ensure_no_reparse_components  # noqa: E402
+from bounded_process import ProcessContainment  # noqa: E402
+
 MAX_ARTIFACT = 256 * 1024 * 1024
 ENTROPY_FULL_LIMIT = 8 * 1024 * 1024
 ENTROPY_SAMPLE_WINDOW = 1 * 1024 * 1024
@@ -88,6 +99,14 @@ LEGACY_PEFILE_CANDIDATE_BYTES = 64 * 1024
 MAX_PE_RESOURCE_ENTRIES = 512
 MAX_PE_RESOURCE_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_PE_RESOURCE_ELAPSED_SECONDS = 10.0
+MAX_STATIC_TOOL_STDOUT_BYTES = 1024 * 1024
+MAX_STATIC_TOOL_STDERR_BYTES = 1024 * 1024
+MAX_STATIC_TOOL_TEMP_BYTES = 1024 * 1024 * 1024
+MAX_STATIC_TOOL_TEMP_ENTRIES = 10_000
+MAX_STATIC_TOOL_ACTIVE_PROCESSES = 8
+MAX_STATIC_TOOL_MEMORY_BYTES = 1024 * 1024 * 1024
+MAX_STATIC_TOOL_BINARY_BYTES = 128 * 1024 * 1024
+STATIC_TOOL_MONITOR_INTERVAL_SECONDS = 0.05
 SCRIPT_SUFFIXES = {
     ".au3",
     ".html",
@@ -123,7 +142,461 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
     ".7z",
     ".cab",
 }
-SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {'.jsc', '.node', '.py'}
+SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {".jsc", ".node", ".py"}
+
+
+class StaticToolExecutionError(RuntimeError):
+    """外部静的toolを有界に完了できなかった理由を保持する。"""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class StaticToolCompleted:
+    """外部静的toolの公開可能な有界実行結果。"""
+
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+class _BoundedPipeCapture:
+    """pipeを最後までdrainしつつ保持量だけを上限化する。"""
+
+    def __init__(self, maximum_bytes: int) -> None:
+        self.maximum_bytes = maximum_bytes
+        self.payload = bytearray()
+        self.truncated = False
+        self.error: BaseException | None = None
+        self._lock = threading.Lock()
+
+    def drain(self, pipe: object) -> None:
+        try:
+            while True:
+                chunk = pipe.read(64 * 1024)  # type: ignore[attr-defined]
+                if not chunk:
+                    break
+                with self._lock:
+                    remaining = self.maximum_bytes - len(self.payload)
+                    if remaining > 0:
+                        self.payload.extend(chunk[:remaining])
+                    if len(chunk) > remaining:
+                        self.truncated = True
+        except BaseException as exc:  # pragma: no cover - OS pipe障害
+            self.error = exc
+        finally:
+            try:
+                pipe.close()  # type: ignore[attr-defined]
+            except OSError:
+                pass
+
+
+def _same_static_file_identity(
+    first: os.stat_result,
+    second: os.stat_result,
+) -> bool:
+    try:
+        return os.path.samestat(first, second)
+    except (AttributeError, OSError):
+        return (
+            first.st_dev == second.st_dev
+            and first.st_ino != 0
+            and first.st_ino == second.st_ino
+        )
+
+
+def _has_reparse_attribute(information: os.stat_result) -> bool:
+    return bool(
+        int(getattr(information, "st_file_attributes", 0))
+        & int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+    )
+
+
+def _windows_number_of_links(path: Path) -> int | None:
+    """Windowsの`st_nlink=0`時にhandle metadataからlink数を取得する。"""
+
+    if os.name != "nt":
+        return None
+    import ctypes  # noqa: PLC0415
+    from ctypes import wintypes  # noqa: PLC0415
+
+    class ByHandleFileInformation(ctypes.Structure):
+        _fields_ = [
+            ("file_attributes", wintypes.DWORD),
+            ("creation_time", wintypes.FILETIME),
+            ("last_access_time", wintypes.FILETIME),
+            ("last_write_time", wintypes.FILETIME),
+            ("volume_serial_number", wintypes.DWORD),
+            ("file_size_high", wintypes.DWORD),
+            ("file_size_low", wintypes.DWORD),
+            ("number_of_links", wintypes.DWORD),
+            ("file_index_high", wintypes.DWORD),
+            ("file_index_low", wintypes.DWORD),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.GetFileInformationByHandle.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(ByHandleFileInformation),
+    ]
+    kernel32.GetFileInformationByHandle.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    handle = kernel32.CreateFileW(
+        str(path),
+        0x0080,  # FILE_READ_ATTRIBUTES
+        0x00000001 | 0x00000002 | 0x00000004,  # READ | WRITE | DELETE share
+        None,
+        3,  # OPEN_EXISTING
+        0x00200000,  # FILE_FLAG_OPEN_REPARSE_POINT
+        None,
+    )
+    invalid_handle = ctypes.c_void_p(-1).value
+    handle_value = (
+        handle if isinstance(handle, int) else int(getattr(handle, "value", 0) or 0)
+    )
+    if not handle_value or handle_value == invalid_handle:
+        return None
+    try:
+        result = ByHandleFileInformation()
+        if not kernel32.GetFileInformationByHandle(handle, ctypes.byref(result)):
+            return None
+        return int(result.number_of_links)
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def _has_single_link(information: os.stat_result, path: Path | None = None) -> bool:
+    """複数hardlinkを拒否し、Windowsの未知値0はhandleで再確認する。"""
+
+    if information.st_nlink == 1:
+        return True
+    if information.st_nlink != 0 or os.name != "nt" or path is None:
+        return False
+    return _windows_number_of_links(path) == 1
+
+
+def _validate_static_tool_temp_tree(
+    root: Path,
+    *,
+    expected_root: os.stat_result,
+    max_entries: int,
+    max_bytes: int,
+) -> tuple[int, int]:
+    """tool一時treeをlink非追跡で走査し、型・件数・総sizeを制限する。"""
+
+    try:
+        current_root = root.lstat()
+    except OSError as exc:
+        raise StaticToolExecutionError("temporary_tree_changed") from exc
+    if (
+        not stat.S_ISDIR(current_root.st_mode)
+        or _has_reparse_attribute(current_root)
+        or not _same_static_file_identity(expected_root, current_root)
+    ):
+        raise StaticToolExecutionError("temporary_tree_changed")
+    entries = 0
+    total_bytes = 0
+    pending = [root]
+    while pending:
+        directory = pending.pop()
+        try:
+            iterator = os.scandir(directory)
+        except OSError as exc:
+            raise StaticToolExecutionError("temporary_tree_unreadable") from exc
+        with iterator:
+            for child in iterator:
+                entries += 1
+                if entries > max_entries:
+                    raise StaticToolExecutionError("temporary_entry_limit")
+                try:
+                    information = child.stat(follow_symlinks=False)
+                except OSError as exc:
+                    raise StaticToolExecutionError("temporary_tree_unreadable") from exc
+                if child.is_symlink() or _has_reparse_attribute(information):
+                    raise StaticToolExecutionError("temporary_reparse_forbidden")
+                if stat.S_ISDIR(information.st_mode):
+                    pending.append(Path(child.path))
+                    continue
+                if not stat.S_ISREG(information.st_mode) or not _has_single_link(
+                    information, Path(child.path)
+                ):
+                    raise StaticToolExecutionError("temporary_special_file_forbidden")
+                total_bytes += information.st_size
+                if total_bytes > max_bytes:
+                    raise StaticToolExecutionError("temporary_byte_limit")
+    return entries, total_bytes
+
+
+def _static_tool_environment(temporary_root: Path) -> dict[str, str]:
+    """credentialとPython注入設定を継承しない外部tool用環境を作る。"""
+
+    environment: dict[str, str] = {}
+    for key in ("SYSTEMROOT", "WINDIR", "PATHEXT", "LANG", "LC_ALL"):
+        value = os.environ.get(key)
+        if value:
+            environment[key] = value
+    system_root = environment.get("SYSTEMROOT") or environment.get("WINDIR")
+    if system_root:
+        environment["PATH"] = str(Path(system_root) / "System32")
+    else:
+        environment["PATH"] = os.pathsep.join(("/usr/bin", "/bin"))
+    private_temp = str(temporary_root)
+    environment.update(
+        {
+            "TEMP": private_temp,
+            "TMP": private_temp,
+            "TMPDIR": private_temp,
+        }
+    )
+    return environment
+
+
+def _run_static_tool_process(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout: float,
+    max_temp_entries: int,
+    max_temp_bytes: int,
+    encoding: str = "utf-8",
+) -> StaticToolCompleted:
+    """process tree・出力・時間・一時treeを全て有界にしてtoolを起動する。"""
+
+    if (
+        not command
+        or not cwd.is_absolute()
+        or isinstance(timeout, bool)
+        or not isinstance(timeout, (int, float))
+        or not math.isfinite(float(timeout))
+        or timeout <= 0
+        or isinstance(max_temp_entries, bool)
+        or not 1 <= max_temp_entries <= MAX_STATIC_TOOL_TEMP_ENTRIES
+        or isinstance(max_temp_bytes, bool)
+        or not 1 <= max_temp_bytes <= MAX_STATIC_TOOL_TEMP_BYTES
+    ):
+        raise ValueError("static tool実行上限が不正です")
+    executable = Path(command[0])
+    try:
+        ensure_no_reparse_components(executable)
+    except ValueError as exc:
+        raise StaticToolExecutionError("tool_file_invalid") from exc
+    try:
+        executable_before = executable.lstat()
+    except OSError as exc:
+        raise StaticToolExecutionError("tool_unavailable") from exc
+    if (
+        not executable.is_absolute()
+        or not stat.S_ISREG(executable_before.st_mode)
+        or not _has_single_link(executable_before, executable)
+        or _has_reparse_attribute(executable_before)
+        or not 1 <= executable_before.st_size <= MAX_STATIC_TOOL_BINARY_BYTES
+    ):
+        raise StaticToolExecutionError("tool_file_invalid")
+    try:
+        ensure_no_reparse_components(cwd)
+    except ValueError as exc:
+        raise StaticToolExecutionError("temporary_tree_unreadable") from exc
+    try:
+        root_information = cwd.lstat()
+    except OSError as exc:
+        raise StaticToolExecutionError("temporary_tree_unreadable") from exc
+    _validate_static_tool_temp_tree(
+        cwd,
+        expected_root=root_information,
+        max_entries=max_temp_entries,
+        max_bytes=max_temp_bytes,
+    )
+    containment = ProcessContainment(
+        maximum_active_processes=MAX_STATIC_TOOL_ACTIVE_PROCESSES,
+        maximum_memory_bytes=MAX_STATIC_TOOL_MEMORY_BYTES,
+    )
+    process: subprocess.Popen[bytes] | None = None
+    stdout_capture = _BoundedPipeCapture(MAX_STATIC_TOOL_STDOUT_BYTES)
+    stderr_capture = _BoundedPipeCapture(MAX_STATIC_TOOL_STDERR_BYTES)
+    threads: list[threading.Thread] = []
+    deadline = time.monotonic() + float(timeout)
+    failure: StaticToolExecutionError | None = None
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            env=_static_tool_environment(cwd),
+            shell=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            **containment.popen_options(),
+        )
+        containment.attach(process)
+        if process.stdout is None or process.stderr is None:  # pragma: no cover
+            raise StaticToolExecutionError("pipe_unavailable")
+        threads = [
+            threading.Thread(
+                target=stdout_capture.drain,
+                args=(process.stdout,),
+                daemon=True,
+            ),
+            threading.Thread(
+                target=stderr_capture.drain,
+                args=(process.stderr,),
+                daemon=True,
+            ),
+        ]
+        for thread in threads:
+            thread.start()
+        while process.poll() is None:
+            if time.monotonic() >= deadline:
+                raise StaticToolExecutionError("timeout")
+            if stdout_capture.truncated or stderr_capture.truncated:
+                raise StaticToolExecutionError("output_limit")
+            _validate_static_tool_temp_tree(
+                cwd,
+                expected_root=root_information,
+                max_entries=max_temp_entries,
+                max_bytes=max_temp_bytes,
+            )
+            time.sleep(STATIC_TOOL_MONITOR_INTERVAL_SECONDS)
+        process.wait(timeout=5.0)
+        _validate_static_tool_temp_tree(
+            cwd,
+            expected_root=root_information,
+            max_entries=max_temp_entries,
+            max_bytes=max_temp_bytes,
+        )
+        executable_after = executable.lstat()
+        if (
+            not _same_static_file_identity(executable_before, executable_after)
+            or not _has_single_link(executable_after, executable)
+            or executable_after.st_size != executable_before.st_size
+            or getattr(executable_after, "st_mtime_ns", None)
+            != getattr(executable_before, "st_mtime_ns", None)
+        ):
+            raise StaticToolExecutionError("tool_file_changed")
+    except StaticToolExecutionError as exc:
+        failure = exc
+        containment.abort()
+    except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
+        failure = StaticToolExecutionError("containment_or_process_failed")
+        containment.abort()
+        failure.__cause__ = exc
+    else:
+        try:
+            containment.close(strict=True)
+        except (OSError, RuntimeError) as exc:
+            failure = StaticToolExecutionError("containment_cleanup_failed")
+            failure.__cause__ = exc
+    finally:
+        for thread in threads:
+            thread.join(timeout=5.0)
+        if any(thread.is_alive() for thread in threads):
+            failure = failure or StaticToolExecutionError("pipe_cleanup_failed")
+        if stdout_capture.error is not None or stderr_capture.error is not None:
+            failure = failure or StaticToolExecutionError("pipe_read_failed")
+        if stdout_capture.truncated or stderr_capture.truncated:
+            failure = failure or StaticToolExecutionError("output_limit")
+    if failure is not None:
+        raise failure
+    if process is None:  # pragma: no cover - Popen失敗は上で変換される
+        raise StaticToolExecutionError("process_unavailable")
+    return StaticToolCompleted(
+        returncode=int(process.returncode),
+        stdout=bytes(stdout_capture.payload).decode(encoding, errors="replace"),
+        stderr=bytes(stderr_capture.payload).decode(encoding, errors="replace"),
+    )
+
+
+def _static_tool_failure_status(error: StaticToolExecutionError) -> str:
+    """内部理由を機密情報を含まない安定した公開statusへ写像する。"""
+
+    if error.reason == "timeout":
+        return "timeout"
+    if error.reason == "output_limit":
+        return "tool_output_limit"
+    if error.reason.startswith("temporary_"):
+        return "temporary_quota_blocked"
+    if error.reason.startswith("output_"):
+        return "unsafe_tool_output"
+    if error.reason in {"tool_unavailable", "tool_file_invalid", "tool_file_changed"}:
+        return "tool_integrity_failed"
+    return "tool_failed"
+
+
+def _read_static_tool_output(
+    path: Path,
+    *,
+    root: Path,
+    maximum_size: int,
+) -> bytes:
+    """tool出力を単一handleから有界に読み、差替え・linkを拒否する。"""
+
+    try:
+        path.relative_to(root)
+    except ValueError as exc:
+        raise StaticToolExecutionError("output_path_escape") from exc
+    current = root
+    for component in path.relative_to(root).parts:
+        current = current / component
+        information = current.lstat()
+        if _has_reparse_attribute(information) or current.is_symlink():
+            raise StaticToolExecutionError("output_reparse_forbidden")
+    before = path.lstat()
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or not _has_single_link(before, path)
+        or not 0 <= before.st_size <= maximum_size
+    ):
+        raise StaticToolExecutionError("output_file_invalid")
+    flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0))
+    flags |= int(getattr(os, "O_CLOEXEC", 0))
+    flags |= int(getattr(os, "O_NOINHERIT", 0))
+    flags |= int(getattr(os, "O_NOFOLLOW", 0))
+    descriptor = os.open(path, flags)
+    try:
+        opened = os.fstat(descriptor)
+        if (
+            not _same_static_file_identity(before, opened)
+            or not _has_single_link(opened, path)
+            or opened.st_size > maximum_size
+        ):
+            raise StaticToolExecutionError("output_file_changed")
+        remaining = opened.st_size + 1
+        chunks: list[bytes] = []
+        while remaining > 0:
+            chunk = os.read(descriptor, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
+        after_handle = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    after_path = path.lstat()
+    if (
+        len(payload) != opened.st_size
+        or not _same_static_file_identity(opened, after_handle)
+        or not _same_static_file_identity(opened, after_path)
+        or not _has_single_link(after_handle, path)
+        or not _has_single_link(after_path, path)
+        or after_handle.st_size != opened.st_size
+        or getattr(after_handle, "st_mtime_ns", None)
+        != getattr(opened, "st_mtime_ns", None)
+    ):
+        raise StaticToolExecutionError("output_file_changed")
+    return payload
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -678,10 +1151,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             if declared_size > MAX_ARTIFACT:
                 resource_exhausted_reasons.append("resource_entry_size_budget")
                 continue
-            if (
-                resource_bytes_inspected + declared_size
-                > MAX_PE_RESOURCE_TOTAL_BYTES
-            ):
+            if resource_bytes_inspected + declared_size > MAX_PE_RESOURCE_TOTAL_BYTES:
                 resource_exhausted_reasons.append("resource_total_bytes_budget")
                 break
             blob = pe.get_data(item.OffsetToData, declared_size)
@@ -860,8 +1330,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         )
     if resource_scan["status"] != "complete":
         coverage_limitations.extend(
-            f"resource_scan_{reason}"
-            for reason in resource_scan["exhausted_reasons"]
+            f"resource_scan_{reason}" for reason in resource_scan["exhausted_reasons"]
         )
     analysis_coverage = {
         "status": "partial" if coverage_limitations else "complete",
@@ -1412,21 +1881,38 @@ def run_upx(
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}, None
     with tempfile.TemporaryDirectory(prefix="asa-upx-") as temp:
-        source, output = Path(temp) / "input.bin", Path(temp) / "unpacked.bin"
+        root = Path(temp).resolve(strict=True)
+        source, output = root / "input.bin", root / "unpacked.bin"
         source.write_bytes(data)
-        completed = subprocess.run(
-            [str(executable), "-d", "-o", str(output), str(source)],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
+        try:
+            completed = _run_static_tool_process(
+                [str(executable), "-d", "-o", str(output), str(source)],
+                cwd=root,
+                timeout=timeout,
+                max_temp_entries=32,
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + MAX_ARTIFACT + 16 * 1024 * 1024),
+                ),
+            )
+        except StaticToolExecutionError as exc:
+            return {"status": _static_tool_failure_status(exc)}, None
         if completed.returncode or not output.is_file():
             return {
                 "status": "not_upx_or_failed",
                 "exit_code": completed.returncode,
             }, None
-        blob = output.read_bytes()
+        try:
+            blob = _read_static_tool_output(
+                output,
+                root=root,
+                maximum_size=MAX_ARTIFACT,
+            )
+        except (OSError, StaticToolExecutionError):
+            return {
+                "status": "unsafe_tool_output",
+                "exit_code": completed.returncode,
+            }, None
         if not blob.startswith(b"MZ"):
             return {"status": "invalid_output", "exit_code": completed.returncode}, None
         return {
@@ -1585,19 +2071,23 @@ def run_die(
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-die-") as temp:
+        root = Path(temp).resolve(strict=True)
         suffix = safe_temporary_suffix(name)
-        source = Path(temp) / f"sample{suffix}"
+        source = root / f"sample{suffix}"
         source.write_bytes(data)
         try:
-            completed = subprocess.run(
+            completed = _run_static_tool_process(
                 [str(executable), "-j", "-d", "-u", str(source)],
-                capture_output=True,
-                text=True,
+                cwd=root,
                 timeout=timeout,
-                check=False,
+                max_temp_entries=32,
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + 16 * 1024 * 1024),
+                ),
             )
-        except subprocess.TimeoutExpired:
-            return {"status": "timeout"}
+        except StaticToolExecutionError as exc:
+            return {"status": _static_tool_failure_status(exc)}
         if completed.returncode:
             return {"status": "failed", "exit_code": completed.returncode}
         try:
@@ -1624,62 +2114,64 @@ def select_high_value_archive_members(
     max_member_size: int = MAX_ARTIFACT,
     max_total_size: int = MAX_EXTRACTED_TOTAL,
 ) -> list[dict[str, object]]:
-    '''大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。'''
+    """大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。"""
 
     if any(
         isinstance(value, bool) or not isinstance(value, int) or value <= 0
         for value in (max_members, max_member_size, max_total_size)
     ):
-        raise ValueError('selective archive limits must be positive integers')
+        raise ValueError("selective archive limits must be positive integers")
     ranked: list[tuple[int, str, dict[str, object]]] = []
     for record in records[:MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS]:
-        raw_name = str(record.get('name') or '')
+        raw_name = str(record.get("name") or "")
         try:
             normalized = safe_member_name(raw_name)
         except ValueError:
             continue
-        attributes = str(record.get('attributes') or '')
+        attributes = str(record.get("attributes") or "")
         try:
-            size = int(record.get('size') or 0)
+            size = int(record.get("size") or 0)
         except (TypeError, ValueError):
             continue
-        if 'D' in attributes.upper() or not 0 < size <= max_member_size:
+        if "D" in attributes.upper() or not 0 < size <= max_member_size:
             continue
         lowered = normalized.lower()
         suffix = PurePosixPath(lowered).suffix
         basename = PurePosixPath(lowered).name
-        in_node_modules = '/node_modules/' in f'/{lowered}'
-        if basename.startswith(('license', 'notice', 'credits')):
+        in_node_modules = "/node_modules/" in f"/{lowered}"
+        if basename.startswith(("license", "notice", "credits")):
             continue
         if suffix not in SELECTIVE_ARCHIVE_SUFFIXES:
             continue
         if not in_node_modules and (
-            suffix in SCRIPT_SUFFIXES | {'.jsc', '.py', '.asar'}
-            or basename in {'package.json', 'package-lock.json'}
+            suffix in SCRIPT_SUFFIXES | {".jsc", ".py", ".asar"}
+            or basename in {"package.json", "package-lock.json"}
         ):
             priority = 0
-        elif not in_node_modules and suffix in {'.json', '.ini', '.cfg', '.conf'}:
+        elif not in_node_modules and suffix in {".json", ".ini", ".cfg", ".conf"}:
             priority = 1
         elif not in_node_modules:
             priority = 2
-        elif suffix == '.node':
+        elif suffix == ".node":
             priority = 3
         else:
             # node_modules配下の一般ライブラリは依存関係名だけで十分であり、
             # アプリ本体より先に保持枠を消費させない。
             continue
-        ranked.append((priority, lowered, {'name': raw_name, 'size': size}))
+        ranked.append((priority, lowered, {"name": raw_name, "size": size}))
 
     selected: list[dict[str, object]] = []
     selected_total = 0
     seen: set[str] = set()
-    for priority, lowered, record in sorted(ranked, key=lambda item: (item[0], item[1])):
+    for priority, lowered, record in sorted(
+        ranked, key=lambda item: (item[0], item[1])
+    ):
         if lowered in seen:
             continue
-        size = int(record['size'])
+        size = int(record["size"])
         if selected_total + size > max_total_size:
             continue
-        selected.append({**record, 'priority': priority})
+        selected.append({**record, "priority": priority})
         selected_total += size
         seen.add(lowered)
         if len(selected) >= max_members:
@@ -1699,21 +2191,36 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-7z-list-") as temp:
-        source = Path(temp) / "input.bin"
+        root = Path(temp).resolve(strict=True)
+        source = root / "input.bin"
         source.write_bytes(data)
         command = [str(executable), "l", "-slt", "-sccUTF-8"]
         if password:
             command.append(f"-p{password}")
         command.extend(["--", str(source)])
-        completed = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=60,
-            check=False,
-        )
+        try:
+            completed = _run_static_tool_process(
+                command,
+                cwd=root,
+                timeout=60,
+                max_temp_entries=32,
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + 16 * 1024 * 1024),
+                ),
+                encoding="utf-8",
+            )
+        except StaticToolExecutionError as exc:
+            return {
+                "status": _static_tool_failure_status(exc),
+                "archive_types": [],
+                "members": [],
+                "total_members": 0,
+                "declared_total_size": 0,
+                "password_attempted": bool(password),
+                "archive_unlock_attempted": bool(password),
+                "_member_records": [],
+            }
         paths, types, declared_sizes = [], [], []
         member_records: list[dict[str, object]] = []
         current: dict[str, object] | None = None
@@ -1722,7 +2229,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
                 value = line[7:]
                 if current is not None:
                     member_records.append(current)
-                current = {'name': value} if value != str(source) else None
+                current = {"name": value} if value != str(source) else None
                 if value != str(source):
                     paths.append(value)
             elif line.startswith("Type = "):
@@ -1731,9 +2238,9 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
                 value = int(line[7:].strip())
                 declared_sizes.append(value)
                 if current is not None:
-                    current['size'] = value
-            if line.startswith('Attributes = ') and current is not None:
-                current['attributes'] = line[13:]
+                    current["size"] = value
+            if line.startswith("Attributes = ") and current is not None:
+                current["attributes"] = line[13:]
         if current is not None:
             member_records.append(current)
         return {
@@ -1747,7 +2254,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             "declared_total_size": sum(declared_sizes),
             "password_attempted": bool(password),
             # sevenzip_extract内の選択抽出にだけ使い、公開レポートへは残さない。
-            '_member_records': member_records,
+            "_member_records": member_records,
             # Safe public alias retained by report sanitizers that intentionally
             # remove every field whose name contains "password".
             "archive_unlock_attempted": bool(password),
@@ -1890,7 +2397,14 @@ def sevenzip_extract(
         else sevenzip_inventory(data, executable, effective_password)
     )
     member_records = listing.pop("_member_records", [])
-    if listing["status"] == "unavailable":
+    if listing["status"] in {
+        "unavailable",
+        "timeout",
+        "tool_output_limit",
+        "temporary_quota_blocked",
+        "tool_integrity_failed",
+        "tool_failed",
+    }:
         return listing, []
     extractable_types = {
         "7z",
@@ -1928,12 +2442,14 @@ def sevenzip_extract(
                 password_candidates.append(candidate)
 
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
-        root = Path(temp)
+        root = Path(temp).resolve(strict=True)
+        root_information = root.lstat()
         suffix = safe_temporary_suffix(name)
 
         source = root / f"input{suffix}"
         source.write_bytes(data)
         attempts = []
+        attempt_failures: list[str] = []
         for candidate_index, candidate_password in enumerate(password_candidates):
             output = root / f"out-{candidate_index}"
             command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
@@ -1943,33 +2459,73 @@ def sevenzip_extract(
             if selective_members:
                 command.extend(str(item["name"]) for item in selective_members)
             try:
-                completed = subprocess.run(
+                completed = _run_static_tool_process(
                     command,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
+                    cwd=root,
                     timeout=180,
-                    check=False,
+                    max_temp_entries=min(
+                        MAX_STATIC_TOOL_TEMP_ENTRIES,
+                        max(1024, max_members * 4 + 32),
+                    ),
+                    max_temp_bytes=min(
+                        MAX_STATIC_TOOL_TEMP_BYTES,
+                        max(
+                            1,
+                            len(data) + max_total_size + 16 * 1024 * 1024,
+                        ),
+                    ),
+                    encoding="utf-8",
                 )
-            except subprocess.TimeoutExpired:
+            except StaticToolExecutionError as exc:
+                attempt_failures.append(_static_tool_failure_status(exc))
                 continue
-            extracted_size = sum(
-                entry.stat().st_size
-                for entry in output.rglob("*")
-                if entry.is_file() and not entry.is_symlink()
-            ) if output.is_dir() else 0
+            extracted_size = (
+                sum(
+                    entry.lstat().st_size
+                    for entry in output.rglob("*")
+                    if (
+                        not entry.is_symlink()
+                        and stat.S_ISREG(entry.lstat().st_mode)
+                        and _has_single_link(entry.lstat(), entry)
+                        and not _has_reparse_attribute(entry.lstat())
+                    )
+                )
+                if output.is_dir()
+                else 0
+            )
             attempts.append((completed, output, candidate_index, extracted_size))
             if completed.returncode == 0:
                 break
         if not attempts:
-            return {**listing, "status": "extract_timeout"}, []
+            status = (
+                "extract_timeout"
+                if attempt_failures and set(attempt_failures) == {"timeout"}
+                else attempt_failures[-1]
+                if attempt_failures
+                else "tool_failed"
+            )
+            return {**listing, "status": status}, []
         completed, output, selected_candidate_index, _ = max(
             attempts,
             key=lambda item: (item[0].returncode == 0, item[3], -item[2]),
         )
         inventory, candidates = [], []
         extracted_total = 0
+        try:
+            _validate_static_tool_temp_tree(
+                root,
+                expected_root=root_information,
+                max_entries=min(
+                    MAX_STATIC_TOOL_TEMP_ENTRIES,
+                    max(1024, max_members * 4 + 32),
+                ),
+                max_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + max_total_size + 16 * 1024 * 1024),
+                ),
+            )
+        except StaticToolExecutionError as exc:
+            return {**listing, "status": _static_tool_failure_status(exc)}, []
         output_resolved = output.resolve()
         extracted_entries = sorted(output.rglob("*")) if output.is_dir() else []
         regular_entries = [entry for entry in extracted_entries if entry.is_file()]
@@ -1980,7 +2536,17 @@ def sevenzip_extract(
                 "actual_members": len(regular_entries),
             }, []
         for entry in extracted_entries:
-            if not entry.is_file() or entry.is_symlink():
+            try:
+                information = entry.lstat()
+            except OSError:
+                inventory.append({"name": str(entry), "status": "metadata_blocked"})
+                continue
+            if (
+                not stat.S_ISREG(information.st_mode)
+                or entry.is_symlink()
+                or not _has_single_link(information, entry)
+                or _has_reparse_attribute(information)
+            ):
                 continue
             resolved = entry.resolve()
             try:
@@ -1988,7 +2554,7 @@ def sevenzip_extract(
             except ValueError:
                 inventory.append({"name": str(entry), "status": "path_blocked"})
                 continue
-            attributes = getattr(entry.stat(), "st_file_attributes", 0)
+            attributes = getattr(information, "st_file_attributes", 0)
             if attributes & 0x400:
                 inventory.append({"name": str(entry), "status": "reparse_blocked"})
                 continue
@@ -1998,7 +2564,7 @@ def sevenzip_extract(
             except ValueError:
                 inventory.append({"name": relative, "status": "path_blocked"})
                 continue
-            size = entry.stat().st_size
+            size = information.st_size
             extracted_total += size
             if size > max_member_size:
                 inventory.append(
@@ -2010,7 +2576,17 @@ def sevenzip_extract(
                     {"name": relative, "size": size, "status": "total_size_blocked"}
                 )
                 continue
-            blob = entry.read_bytes()
+            try:
+                blob = _read_static_tool_output(
+                    entry,
+                    root=output,
+                    maximum_size=max_member_size,
+                )
+            except (OSError, StaticToolExecutionError):
+                inventory.append(
+                    {"name": relative, "size": size, "status": "read_blocked"}
+                )
+                continue
             if not blob:
                 inventory.append(
                     {
