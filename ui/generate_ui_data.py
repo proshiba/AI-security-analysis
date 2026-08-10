@@ -888,9 +888,14 @@ def git_added_dates() -> dict[str, str]:
             current = line
             continue
         match = case_re.match(line)
-        # git log は新しい順に出るため、最初に見えた日付が追加日
-        if match and current and match.group(1) not in added:
-            added[match.group(1)] = current
+        if not match or not current:
+            continue
+        # `--diff-filter=A` はcaseディレクトリ配下に「ファイルが増えた」commitを
+        # すべて挙げる。既存caseへ成果物を1つ足しただけでも該当するため、
+        # 新しい順の先頭を採ると追加日が後ろへずれ、そのcaseが新着一覧の上位へ
+        # 舞い戻り、--check も落ちる。caseがリポジトリへ入った日は最も古い
+        # 追加commitなので、新しい順の出力を最後まで上書きして最古を残す。
+        added[match.group(1)] = current
     return added
 
 
