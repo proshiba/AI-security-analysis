@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
-
 
 COMMON_ROOT = Path(__file__).resolve().parents[1] / 'common'
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
-import handler_catalog as catalog  # noqa: E402
+import handler_catalog as catalog
 
 
 @pytest.fixture
@@ -93,6 +92,16 @@ def _structural_detector() -> dict:
     }
 
 
+def _candidate(family: str, source: str = 'metadata_hint') -> dict:
+    return {
+        'family': family,
+        'source': source,
+        'routing_eligible': True,
+        'routing_mode': 'candidate_verification',
+        'routing_eligibility': {'candidate_verification': True},
+    }
+
+
 def test_multiple_candidates_try_every_layer_and_confirm_only_correlated_family(
     isolated_catalog,
 ) -> None:
@@ -114,8 +123,8 @@ def test_multiple_candidates_try_every_layer_and_confirm_only_correlated_family(
 
     result = catalog.assess_candidate_handlers(
         [
-            {'family': 'family_a', 'source': 'metadata_hint'},
-            {'family': 'family_b', 'source': 'metadata_hint'},
+            _candidate('family_a'),
+            _candidate('family_b'),
         ],
         [root, child],
         specs=[family_a, family_b],
@@ -150,7 +159,7 @@ def test_handler_evidence_without_detector_is_not_confirmed(isolated_catalog) ->
     layer = _layer(b'candidate payload', 'payload.bin')
 
     result = catalog.assess_candidate_handlers(
-        [{'family': 'candidate_family', 'source': 'metadata_hint'}],
+        [_candidate('candidate_family')],
         [layer],
         specs=[spec],
         detector_evaluations={
@@ -166,6 +175,81 @@ def test_handler_evidence_without_detector_is_not_confirmed(isolated_catalog) ->
     assert family['attempts'][0]['detector_corroboration']['basis'] == (
         'no_corroborated_detector_in_lineage'
     )
+
+
+@pytest.mark.parametrize(
+    'candidate',
+    [
+        {
+            'family': 'candidate_family',
+            'source': 'metadata_hint',
+            'routing_eligible': False,
+            'routing_mode': 'blocked',
+        },
+        {'family': 'candidate_family', 'source': 'metadata_hint'},
+        {
+            'family': 'candidate_family',
+            'source': 'metadata_hint',
+            'routing_eligible': True,
+            'routing_mode': 'candidate_verification',
+            'routing_eligibility': {'candidate_verification': False},
+        },
+    ],
+)
+def test_mapping_candidate_without_complete_routing_authorization_is_blocked(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+    candidate: dict,
+) -> None:
+    """routing許可が欠けるmapping候補はpreflightもworkerも起動しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        'candidate_family',
+        _source("{'marker_hits': ['marker']}"),
+    )
+    called = []
+    monkeypatch.setattr(
+        catalog,
+        '_execute_handler_bounded',
+        lambda *_args, **_kwargs: called.append(True),
+    )
+    result = catalog.assess_candidate_handlers(
+        [candidate],
+        [_layer(b'candidate payload', 'payload.bin')],
+        specs=[spec],
+    )
+
+    family = result['families'][0]
+    assert family['status'] == 'blocked'
+    assert family['attempts'] == []
+    assert result['planned_attempt_count'] == 0
+    assert result['blocked_candidate_count'] == 1
+    assert called == []
+
+
+def test_string_candidate_is_explicit_caller_selected_compatibility(isolated_catalog) -> None:
+    """文字列候補は後方互換としてcaller明示選択のverification候補に限定する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        'candidate_family',
+        _source('{}'),
+    )
+    result = catalog.assess_candidate_handlers(
+        ['candidate_family'],
+        [_layer(b'candidate payload', 'payload.bin')],
+        specs=[spec],
+    )
+    family = result['families'][0]
+    assert family['routing_eligible'] is True
+    assert family['routing_mode'] == 'candidate_verification'
+    assert family['caller_selected_string'] is True
+    assert family['sources'] == ['explicit_caller_candidate']
 
 
 @pytest.mark.parametrize(
@@ -268,6 +352,201 @@ def test_unreachable_cli_writer_does_not_block_pure_handler(isolated_catalog) ->
         input_size=10,
     )
     assert preflight['eligible'] is True
+
+
+@pytest.mark.parametrize('location', ['import_time', 'reachable'])
+def test_repository_local_import_alias_side_effect_is_blocked_recursively(
+    isolated_catalog,
+    location: str,
+) -> None:
+    """alias付きlocal helperのimport時・到達関数副作用をfile間で検出する。"""
+
+    repository, malware_root = isolated_catalog
+    family_root = malware_root / 'candidate_family'
+    family_root.mkdir(parents=True, exist_ok=True)
+    touched = family_root / 'touched.txt'
+    if location == 'import_time':
+        helper = (
+            'from pathlib import Path\n'
+            f'Path({str(touched)!r}).write_text("bad", encoding="utf-8")\n'
+            'def exfiltrate(data):\n'
+            "    return {'marker_hits': ['marker']}\n"
+        )
+    else:
+        helper = (
+            'from pathlib import Path\n'
+            'def exfiltrate(data):\n'
+            f'    Path({str(touched)!r}).write_text("bad", encoding="utf-8")\n'
+            "    return {'marker_hits': ['marker']}\n"
+        )
+    (family_root / 'helper_module.py').write_text(helper, encoding='utf-8')
+    source = (
+        'from helper_module import exfiltrate as helper\n'
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    return helper(data)\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    preflight = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format='data',
+        input_size=10,
+    )
+    assert preflight['eligible'] is False
+    assert any(location in blocker for blocker in preflight['blockers'])
+    assert preflight['dependency_audit']['files_inspected'] == 2
+    assert not touched.exists()
+
+
+def test_unresolved_dynamic_callable_fails_closed(isolated_catalog) -> None:
+    """getattrで生成した未解決callableは候補handlerとして許可しない。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    callback = getattr(data, "decode")\n'
+        '    return callback()\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    preflight = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format='data',
+        input_size=10,
+    )
+    assert preflight['eligible'] is False
+    assert any('unresolved_dynamic_name_call:callback' in item for item in preflight['blockers'])
+
+
+def test_execute_handler_verifies_raw_terminal_binary_and_separates_self_report(
+    isolated_catalog,
+) -> None:
+    """handler自己申告hashではなくraw bytesをwrapperがhashして公開する。"""
+
+    repository, malware_root = isolated_catalog
+    payload = b'MZ' + b'A' * 30
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    return {\n'
+        '        "verified_binary_outputs": [{"sha256": "0" * 64, "size": 999}],\n'
+        f'        "terminal_payload": {{"name": "stage.exe", "data": {payload!r}}},\n'
+        '    }\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    result = catalog.execute_handler(spec, b'input', 'sample.bin')
+    verified = result['verified_binary_outputs']
+    assert verified == [
+        {
+            'role': 'terminal_payload',
+            'kind': 'pe',
+            'path': 'stage.exe',
+            'sha256': hashlib.sha256(payload).hexdigest(),
+            'size': len(payload),
+            'verification': {
+                'status': 'artifact_hash_verified',
+                'sha256_matches': True,
+                'size_matches': True,
+            },
+        }
+    ]
+    assert result['result']['verified_binary_outputs'][0]['sha256'] == '0' * 64
+    assert result['result']['terminal_payload']['data']['content_exported'] is False
+
+
+def test_verified_binary_scan_is_bounded_and_cycle_safe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """raw result走査はcycleと総byte上限で停止する。"""
+
+    cyclic: dict = {}
+    cyclic['terminal_payload'] = cyclic
+    outputs, audit = catalog._verified_binary_outputs(cyclic)
+    assert outputs == []
+    assert 'cycle_detected' in audit['reasons']
+
+    monkeypatch.setattr(catalog, 'MAX_VERIFIED_BINARY_TOTAL_SIZE', 4)
+    outputs, audit = catalog._verified_binary_outputs({'terminal_payload': b'MZ123'})
+    assert outputs == []
+    assert 'maximum_total_binary_size' in audit['reasons']
+    assert audit['truncated'] is True
+
+
+def test_public_sanitizer_covers_keys_leading_url_and_set_order() -> None:
+    """dict keyと先頭空白URLを秘匿し、setを決定順序で公開する。"""
+
+    secret_key = 'github_pat_' + 'A' * 40
+    sanitized = catalog.sanitize_public_value({secret_key: 'value'})
+    rendered_key = next(iter(sanitized))
+    assert secret_key not in rendered_key
+    assert '[REDACTED' in rendered_key
+    assert catalog.sanitize_public_value(
+        '  https://user:pass@example.test/token/secret?api_key=value  '
+    ) == 'https://example.test/token/[REDACTED]'
+    assert catalog.sanitize_public_value({'z', 'a', 'm'}) == ['a', 'm', 'z']
+
+
+def test_load_handler_restores_sys_path(isolated_catalog) -> None:
+    """handler importが変更したsys.pathを呼出し元processへ残さない。"""
+
+    repository, malware_root = isolated_catalog
+    marker = str(repository / 'poisoned-import-path')
+    source = (
+        'import sys\n'
+        f'sys.path.insert(0, {marker!r})\n'
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    return {}\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    original = list(sys.path)
+    catalog.load_handler(spec)
+    assert sys.path == original
+    assert marker not in sys.path
+
+
+def test_candidate_handler_wall_clock_timeout(isolated_catalog) -> None:
+    """停止しないhandlerは別process treeごとtimeoutし、jobを継続可能にする。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    while True:\n'
+        '        pass\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    result = catalog.assess_candidate_handlers(
+        ['candidate_family'],
+        [_layer(b'candidate payload', 'payload.bin')],
+        specs=[spec],
+        handler_timeout_seconds=0.2,
+    )
+    assert result['families'][0]['status'] == 'handler_timed_out'
+    assert result['families'][0]['attempts'][0]['status'] == 'timed_out'
+
+
+def test_public_bounded_assessment_api_returns_stable_execution_shape(
+    isolated_catalog,
+) -> None:
+    """selected/candidate共通の公開境界が事前検査と隔離実行結果を返す。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        'candidate_family',
+        _source("{'marker_hits': ['bounded-public-api']}"),
+    )
+    result = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b'candidate payload',
+        'payload.bin',
+        actual_format='data',
+        timeout_seconds=2.0,
+    )
+    assert result['status'] == 'completed'
+    assert result['preflight']['eligible'] is True
+    assert result['handler_timeout_seconds'] == 2.0
+    assert result['execution']['result']['marker_hits'] == ['bounded-public-api']
 
 
 def test_size_and_unbounded_format_contracts_fail_closed(isolated_catalog) -> None:

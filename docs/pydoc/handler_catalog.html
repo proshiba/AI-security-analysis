@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">handler_catalog</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Ctmp%5Cai-security-analysis-orchestration%5Canalysis-framework%5Ccommon%5Chandler_catalog.py">c:\tmp\ai-security-analysis-orchestration\analysis-framework\common\handler_catalog.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Chandler_catalog.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\handler_catalog.py</a></td></tr></table>
     <p><span class="code">既存の静的解析関数を棚卸しし、安全な共通インターフェースで実行する。</span></p>
 <p>
 <table class="section">
@@ -17,12 +17,17 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ast.html">ast</a><br>
-<a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"><a href="importlib.html">importlib</a><br>
+<a href="base64.html">base64</a><br>
+<a href="builtins.html">builtins</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="importlib.html">importlib</a><br>
 <a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
-<a href="sys.html">sys</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="re.html">re</a><br>
+<a href="subprocess.html">subprocess</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="tempfile.html">tempfile</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -80,18 +85,18 @@ Static methods inherited from <a href="builtins.html#RuntimeError">builtins.Runt
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="HandlerLoadError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="HandlerLoadError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="HandlerLoadError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="HandlerLoadError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="HandlerLoadError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="HandlerLoadError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="HandlerLoadError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="HandlerLoadError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#HandlerLoadError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="HandlerLoadError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#HandlerLoadError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="HandlerLoadError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#HandlerLoadError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="HandlerLoadError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#HandlerLoadError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -142,18 +147,18 @@ Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueE
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="HandlerNoEvidenceError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="HandlerNoEvidenceError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="HandlerNoEvidenceError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="HandlerNoEvidenceError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="HandlerNoEvidenceError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="HandlerNoEvidenceError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="HandlerNoEvidenceError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="HandlerNoEvidenceError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#HandlerNoEvidenceError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="HandlerNoEvidenceError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#HandlerNoEvidenceError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="HandlerNoEvidenceError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#HandlerNoEvidenceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="HandlerNoEvidenceError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#HandlerNoEvidenceError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -178,21 +183,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="section-title" colspan=3>&nbsp;<br><a name="HandlerSpec">class <strong>HandlerSpec</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#HandlerSpec">HandlerSpec</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;id:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;family:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;relative_path:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;callable_name:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;invocation:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;source:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;automatic:&nbsp;'bool',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;campaign:&nbsp;'str&nbsp;|&nbsp;None',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;supported_interface:&nbsp;'bool',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;reason:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;input_formats:&nbsp;'tuple[str,&nbsp;...]',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;input_contract_source:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;minimum_evidence_score:&nbsp;'int'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#HandlerSpec">HandlerSpec</a>(id:&nbsp;'str',&nbsp;family:&nbsp;'str',&nbsp;relative_path:&nbsp;'str',&nbsp;callable_name:&nbsp;'str',&nbsp;invocation:&nbsp;'str',&nbsp;source:&nbsp;'str',&nbsp;automatic:&nbsp;'bool',&nbsp;campaign:&nbsp;'str&nbsp;|&nbsp;None',&nbsp;supported_interface:&nbsp;'bool',&nbsp;reason:&nbsp;'str',&nbsp;input_formats:&nbsp;'tuple[str,&nbsp;...]',&nbsp;input_contract_source:&nbsp;'str',&nbsp;minimum_evidence_score:&nbsp;'int')&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 1つの既存静的解析関数に対する検証済み呼び出し仕様。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -203,24 +194,7 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 
 <dl><dt><a name="HandlerSpec-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="HandlerSpec-__init__"><strong>__init__</strong></a>(
-    self,
-    id: 'str',
-    family: 'str',
-    relative_path: 'str',
-    callable_name: 'str',
-    invocation: 'str',
-    source: 'str',
-    automatic: 'bool',
-    campaign: 'str | None',
-    supported_interface: 'bool',
-    reason: 'str',
-    input_formats: 'tuple[str, ...]',
-    input_contract_source: 'str',
-    minimum_evidence_score: 'int'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="HandlerSpec-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+<dl><dt><a name="HandlerSpec-__init__"><strong>__init__</strong></a>(self, id: 'str', family: 'str', relative_path: 'str', callable_name: 'str', invocation: 'str', source: 'str', automatic: 'bool', campaign: 'str | None', supported_interface: 'bool', reason: 'str', input_formats: 'tuple[str, ...]', input_contract_source: 'str', minimum_evidence_score: 'int') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
 <dl><dt><a name="HandlerSpec-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -252,31 +226,17 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-assess_candidate_handlers"><strong>assess_candidate_handlers</strong></a>(
-    candidates: 'Sequence[Any]',
-    layers: 'Sequence[Any]',
-    *,
-    detector_evaluations: 'Mapping[str, Any] | None' = None,
-    specs: 'Sequence[HandlerSpec] | None' = None,
-    maximum_layer_size: 'int' = 134217728,
-    maximum_total_size: 'int' = 268435456,
-    maximum_attempts: 'int' = 2048
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-assess_candidate_handlers"><strong>assess_candidate_handlers</strong></a>(candidates: 'Sequence[Any]', layers: 'Sequence[Any]', *, detector_evaluations: 'Mapping[str, Any] | None' = None, specs: 'Sequence[HandlerSpec] | None' = None, maximum_layer_size: 'int' = 134217728, maximum_total_size: 'int' = 268435456, maximum_attempts: 'int' = 2048, handler_timeout_seconds: 'float' = 30.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。</span></dd></dl>
  <dl><dt><a name="-catalog_summary"><strong>catalog_summary</strong></a>(specs: 'list[HandlerSpec]') -&gt; 'dict[str, Any]'</dt><dd><span class="code">解析器カタログの対応数と手動確認対象数を集計する。</span></dd></dl>
  <dl><dt><a name="-clear_handler_caches"><strong>clear_handler_caches</strong></a>() -&gt; 'None'</dt><dd><span class="code">同一process内の次回batchが変更済みsourceを再読込できるようにする。</span></dd></dl>
  <dl><dt><a name="-collect_detector_evaluations"><strong>collect_detector_evaluations</strong></a>(layer_classifications: 'Sequence[Any]') -&gt; 'dict[str, dict[str, dict[str, Any]]]'</dt><dd><span class="code">既存layer分類結果を候補試行API用のfamily・SHA-256索引へ変換する。</span></dd></dl>
  <dl><dt><a name="-detector_corroboration"><strong>detector_corroboration</strong></a>(value: 'Any') -&gt; 'dict[str, Any]'</dt><dd><span class="code">classifier評価またはdetector戻り値から独立裏付けの有無を判定する。</span></dd></dl>
  <dl><dt><a name="-discover_handlers"><strong>discover_handlers</strong></a>() -&gt; 'list[HandlerSpec]'</dt><dd><span class="code">信頼済みディレクトリから既存解析関数を決定的に棚卸しする。</span></dd></dl>
  <dl><dt><a name="-execute_handler"><strong>execute_handler</strong></a>(spec: 'HandlerSpec', data: 'bytes', source_name: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">1つの静的解析関数を実行し、秘密値とバイナリを除去して返す。</span></dd></dl>
+ <dl><dt><a name="-execute_handler_bounded_for_assessment"><strong>execute_handler_bounded_for_assessment</strong></a>(spec: 'HandlerSpec', data: 'bytes', source_name: 'str', *, actual_format: 'str', maximum_input_size: 'int' = 134217728, timeout_seconds: 'float' = 30.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">事前検査済みhandlerを隔離processで実行し、安定した公開結果を返す。</span></dd></dl>
  <dl><dt><a name="-load_handler"><strong>load_handler</strong></a>(spec: 'HandlerSpec') -&gt; 'tuple[Callable[..., Any], str]'</dt><dd><span class="code">許可リスト検証後に既存静的解析関数を読み込む。</span></dd></dl>
- <dl><dt><a name="-preflight_handler_for_assessment"><strong>preflight_handler_for_assessment</strong></a>(
-    spec: 'HandlerSpec',
-    *,
-    actual_format: 'str',
-    input_size: 'int',
-    maximum_input_size: 'int' = 134217728
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補試行前に契約、形式、容量、外部副作用をimportせず検証する。</span></dd></dl>
- <dl><dt><a name="-sanitize_public_value"><strong>sanitize_public_value</strong></a>(value: 'Any', *, key: 'str' = '', depth: 'int' = 0) -&gt; 'Any'</dt><dd><span class="code">資格情報とバイナリを除去し、JSONへ安全に保存できる値へ変換する。</span></dd></dl>
+ <dl><dt><a name="-preflight_handler_for_assessment"><strong>preflight_handler_for_assessment</strong></a>(spec: 'HandlerSpec', *, actual_format: 'str', input_size: 'int', maximum_input_size: 'int' = 134217728) -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補試行前に契約、形式、容量、外部副作用をimportせず検証する。</span></dd></dl>
+ <dl><dt><a name="-sanitize_public_value"><strong>sanitize_public_value</strong></a>(value: 'Any', *, key: 'str' = '', depth: 'int' = 0, _seen: 'set[int] | None' = None) -&gt; 'Any'</dt><dd><span class="code">資格情報とバイナリを除去し、JSONへ安全に保存できる値へ変換する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -284,26 +244,35 @@ Data and other attributes defined here:<br>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BEARER_CREDENTIAL</strong> = re.compile('(?i)(\\b(?:authorization\\s*:\\s*)?bearer\\s+)([^\\s,;\\"\']+)', re.IGNORECASE)<br>
-<strong>Callable</strong> = typing.Callable<br>
+<strong>DEFAULT_HANDLER_TIMEOUT_SECONDS</strong> = 30.0<br>
 <strong>DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE</strong> = 134217728<br>
 <strong>DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE</strong> = 268435456<br>
 <strong>EMAIL</strong> = re.compile('(?&lt;![\\w.+-])[\\w.+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?![\\w.-])')<br>
-<strong>EXTRACTORS_ROOT</strong> = WindowsPath('C:/tmp/AI-security-analysis-orchestration/extractors')<br>
+<strong>EXTRACTORS_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/extractors')<br>
 <strong>FAMILY_ID</strong> = re.compile('^[a-z0-9_-]+$')<br>
-<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/tmp/AI-security-analysis-orchestration/analysis-framework')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework')<br>
 <strong>HANDLER_CONTRACT_NAME</strong> = 'HANDLER_CONTRACT'<br>
 <strong>KNOWN_INPUT_FORMATS</strong> = frozenset({'7z', 'any', 'apple-disk-image', 'asar', 'autoit-a3x', 'cab', ...})<br>
-<strong>MALWARE_ROOT</strong> = WindowsPath('C:/tmp/AI-security-analysis-orchestration/analysis-framework/malware')<br>
+<strong>MALWARE_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/malware')<br>
 <strong>MAX_ASSESSMENT_ATTEMPTS</strong> = 2048<br>
 <strong>MAX_ASSESSMENT_CANDIDATES</strong> = 64<br>
+<strong>MAX_ASSESSMENT_IMPORT_DEPTH</strong> = 12<br>
+<strong>MAX_ASSESSMENT_IMPORT_FILES</strong> = 96<br>
 <strong>MAX_ASSESSMENT_LAYERS</strong> = 128<br>
 <strong>MAX_COLLECTION_ITEMS</strong> = 20000<br>
 <strong>MAX_DEPTH</strong> = 24<br>
+<strong>MAX_HANDLER_TIMEOUT_SECONDS</strong> = 300.0<br>
+<strong>MAX_HANDLER_WORKER_OUTPUT_SIZE</strong> = 16777216<br>
 <strong>MAX_STRING_LENGTH</strong> = 65536<br>
+<strong>MAX_VERIFIED_BINARY_OUTPUTS</strong> = 64<br>
+<strong>MAX_VERIFIED_BINARY_TOTAL_SIZE</strong> = 268435456<br>
 <strong>OPAQUE_CREDENTIAL</strong> = re.compile('(?i)\\b(?:github_pat_[A-Za-z0-9_]{20...9_-]{8,}\\.[A-Za-z0-9_-]{8,})\\b', re.IGNORECASE)<br>
-<strong>PROFILE_PATH</strong> = WindowsPath('C:/tmp/AI-security-analysis-orchest...xtractors/profiles/windows_family_profiles.json')<br>
-<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/tmp/AI-security-analysis-orchestration')<br>
+<strong>PROFILE_PATH</strong> = WindowsPath('C:/Users/Administrator/AI-security-...xtractors/profiles/windows_family_profiles.json')<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727')<br>
 <strong>SECRET_ASSIGNMENT</strong> = re.compile('(?i)(?P&lt;prefix&gt;[\\"\']?(?:password|p...^\\"]*\\"|\'[^\']*\'|[^\\s,;}]+)', re.IGNORECASE)<br>
 <strong>SECRET_KEY</strong> = re.compile('(?i)^(?:password|passwd|secret|token...ies?|session[_-]?(?:id|token)|cli, re.IGNORECASE)<br>
-<strong>SENSITIVE_URL_PATH</strong> = re.compile('(?i)/((?:access[_-]?)?token|api[_-]?...|client[_-]?secret|secret)/[^/]+', re.IGNORECASE)</td></tr></table>
+<strong>SENSITIVE_URL_ASSIGNMENT</strong> = re.compile('(?i)([/;])((?:access[_-]?)?token|api...-]?secret|secret)(?:=|:)[^/?#;]+', re.IGNORECASE)<br>
+<strong>SENSITIVE_URL_PATH</strong> = re.compile('(?i)/((?:access[_-]?)?token|api[_-]?...|client[_-]?secret|secret)/[^/]+', re.IGNORECASE)<br>
+<strong>VERIFIED_BINARY_KINDS</strong> = frozenset({'archive', 'binary', 'elf', 'macho', 'pe', 'script'})<br>
+<strong>__annotations__</strong> = {'_LEGACY_DYNAMIC_LOCAL_DEPENDENCIES': 'dict[str, tuple[tuple[str, tuple[str, ...], str], ...]]', '_LOADED_HANDLER_MODULE_NAMES': 'set[str]'}</td></tr></table>
 </body></html>

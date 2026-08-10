@@ -4,18 +4,23 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
-from functools import lru_cache
+import base64
+import builtins
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
+import os
 import re
+import subprocess
 import sys
-from typing import Any, Callable
+import tempfile
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
+from dataclasses import asdict, dataclass
+from functools import cache
+from pathlib import Path
+from typing import Any
 from urllib.parse import unquote, urlsplit, urlunsplit
-
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = FRAMEWORK_ROOT.parent
@@ -39,6 +44,10 @@ SENSITIVE_URL_PATH = re.compile(
     r"(?i)/((?:access[_-]?)?token|api[_-]?key|auth(?:orization)?|"
     r"password|client[_-]?secret|secret)/[^/]+"
 )
+SENSITIVE_URL_ASSIGNMENT = re.compile(
+    r'(?i)([/;])((?:access[_-]?)?token|api[_-]?key|auth(?:orization)?|'
+    r'password|client[_-]?secret|secret)(?:=|:)[^/?#;]+'
+)
 SECRET_KEY = re.compile(
     r"(?i)^(?:password|passwd|secret|token|api[_-]?key|auth[_-]?key|"
     r"auth(?:entication)?[_-]?token|access[_-]?token|refresh[_-]?token|bot[_-]?token|"
@@ -54,6 +63,14 @@ DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE = 256 * 1024 * 1024
 MAX_ASSESSMENT_CANDIDATES = 64
 MAX_ASSESSMENT_LAYERS = 128
 MAX_ASSESSMENT_ATTEMPTS = 2_048
+MAX_ASSESSMENT_IMPORT_DEPTH = 12
+MAX_ASSESSMENT_IMPORT_FILES = 96
+DEFAULT_HANDLER_TIMEOUT_SECONDS = 30.0
+MAX_HANDLER_TIMEOUT_SECONDS = 300.0
+MAX_VERIFIED_BINARY_OUTPUTS = 64
+MAX_VERIFIED_BINARY_TOTAL_SIZE = 256 * 1024 * 1024
+MAX_HANDLER_WORKER_OUTPUT_SIZE = 16 * 1024 * 1024
+VERIFIED_BINARY_KINDS = frozenset({'archive', 'binary', 'elf', 'macho', 'pe', 'script'})
 KNOWN_INPUT_FORMATS = frozenset(
     {
         "any",
@@ -109,7 +126,7 @@ class HandlerNoEvidenceError(ValueError):
     """入力は解析できたが、対象variantの適用証拠がないことを表す。"""
 
 
-@lru_cache(maxsize=None)
+@cache
 def _module_tree(path: Path) -> ast.Module:
     """同一ソースを繰り返し読まず、ASTをキャッシュして返す。"""
 
@@ -274,9 +291,7 @@ def _declared_handler_contract(path: Path) -> dict[str, Any] | None:
         if isinstance(node, ast.Assign) and any(
             isinstance(target, ast.Name) and target.id == HANDLER_CONTRACT_NAME
             for target in node.targets
-        ):
-            value_node = node.value
-        elif (
+        ) or (
             isinstance(node, ast.AnnAssign)
             and isinstance(node.target, ast.Name)
             and node.target.id == HANDLER_CONTRACT_NAME
@@ -286,7 +301,7 @@ def _declared_handler_contract(path: Path) -> dict[str, Any] | None:
             continue
         value = ast.literal_eval(value_node)
         if not isinstance(value, dict):
-            raise ValueError(f"{HANDLER_CONTRACT_NAME}はobjectで宣言してください")
+            raise TypeError(f"{HANDLER_CONTRACT_NAME}はobjectで宣言してください")
         return value
     return None
 
@@ -519,6 +534,10 @@ def _resolve_handler_path(spec: HandlerSpec) -> Path:
     if requested.is_absolute() or ".." in requested.parts:
         raise HandlerLoadError(f"unsafe handler path: {spec.relative_path!r}")
     try:
+        from analysis_contract import ensure_no_reparse_components
+
+        ensure_no_reparse_components(REPOSITORY_ROOT)
+        ensure_no_reparse_components(REPOSITORY_ROOT / requested)
         resolved = (REPOSITORY_ROOT / requested).resolve(strict=True)
     except (OSError, FileNotFoundError) as exc:
         raise HandlerLoadError(f"handler path does not exist: {spec.relative_path}") from exc
@@ -530,17 +549,65 @@ def _resolve_handler_path(spec: HandlerSpec) -> Path:
     return resolved
 
 
-@lru_cache(maxsize=None)
+_LOADED_HANDLER_MODULE_NAMES: set[str] = set()
+
+
+def _trusted_handler_import_paths(path: Path) -> tuple[Path, ...]:
+    """handler import中だけ使用する信頼済み検索pathを重複なしで返す。"""
+
+    dynamic_framework_root = REPOSITORY_ROOT / 'analysis-framework'
+    values = (
+        REPOSITORY_ROOT,
+        dynamic_framework_root,
+        dynamic_framework_root / 'common',
+        path.parent,
+    )
+    result: list[Path] = []
+    for value in values:
+        resolved = value.resolve()
+        if resolved not in result:
+            result.append(resolved)
+    return tuple(result)
+
+
+def _module_is_repository_local(module: object) -> bool:
+    source = getattr(module, '__file__', None)
+    if not isinstance(source, str) or not source:
+        return False
+    try:
+        resolved = Path(source).resolve(strict=True)
+        root = REPOSITORY_ROOT.resolve(strict=True)
+    except OSError:
+        return False
+    return resolved == root or root in resolved.parents
+
+
+@contextmanager
+def _handler_import_environment(path: Path, *, keep_modules: Sequence[str] = ()):
+    """sys.pathとrepository-local moduleをhandler呼出し境界の外へ残さない。"""
+
+    original_path = list(sys.path)
+    original_modules = set(sys.modules)
+    trusted = [str(item) for item in _trusted_handler_import_paths(path)]
+    sys.path[:] = [*trusted, *[item for item in original_path if item not in trusted]]
+    try:
+        yield
+    finally:
+        sys.path[:] = original_path
+        retained = set(keep_modules)
+        for name in tuple(set(sys.modules).difference(original_modules)):
+            module = sys.modules.get(name)
+            if name not in retained and module is not None and _module_is_repository_local(module):
+                sys.modules.pop(name, None)
+
+
+@cache
 def load_handler(spec: HandlerSpec) -> tuple[Callable[..., Any], str]:
     """許可リスト検証後に既存静的解析関数を読み込む。"""
 
     if not spec.supported_interface:
         raise HandlerLoadError(f"unsupported handler interface: {spec.reason}")
     path = _resolve_handler_path(spec)
-    for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, FRAMEWORK_ROOT / "common", path.parent):
-        value = str(trusted)
-        if value not in sys.path:
-            sys.path.insert(0, value)
     module_name = f"one_shot_handler_{hashlib.sha256(str(path).encode()).hexdigest()[:16]}"
     module_spec = importlib.util.spec_from_file_location(module_name, path)
     if module_spec is None or module_spec.loader is None:
@@ -552,13 +619,15 @@ def load_handler(spec: HandlerSpec) -> tuple[Callable[..., Any], str]:
     previous_module = sys.modules.get(module_name)
     sys.modules[module_name] = module
     try:
-        module_spec.loader.exec_module(module)
+        with _handler_import_environment(path, keep_modules=(module_name,)):
+            module_spec.loader.exec_module(module)
     except Exception:
         if previous_module is None:
             sys.modules.pop(module_name, None)
         else:
             sys.modules[module_name] = previous_module
         raise
+    _LOADED_HANDLER_MODULE_NAMES.add(module_name)
     callable_value = getattr(module, spec.callable_name, None)
     if not callable(callable_value):
         raise HandlerLoadError(f"callable not found: {spec.callable_name}")
@@ -574,7 +643,13 @@ def clear_handler_caches() -> None:
     """同一process内の次回batchが変更済みsourceを再読込できるようにする。"""
 
     _module_tree.cache_clear()
+    _recursive_handler_side_effect_audit.cache_clear()
+    _relative_audit_path.cache_clear()
+    _resolve_local_module_path.cache_clear()
     load_handler.cache_clear()
+    for module_name in tuple(_LOADED_HANDLER_MODULE_NAMES):
+        sys.modules.pop(module_name, None)
+    _LOADED_HANDLER_MODULE_NAMES.clear()
 
 
 
@@ -599,6 +674,7 @@ def _sanitize_url(value: str) -> str:
     original_path = parsed.path
     decoded_path = unquote(original_path, errors="replace")
     sanitized_path = SENSITIVE_URL_PATH.sub(r"/\1/[REDACTED]", decoded_path)
+    sanitized_path = SENSITIVE_URL_ASSIGNMENT.sub(r'\1\2=[REDACTED]', sanitized_path)
     path = sanitized_path if sanitized_path != decoded_path else original_path
     hostname = hostname.lower()
     if "api.telegram.org" in hostname and path not in {"", "/"}:
@@ -611,42 +687,118 @@ def _sanitize_url(value: str) -> str:
     return urlunsplit((parsed.scheme.lower(), f"{rendered_host}{port}", path, "", ""))
 
 
-def sanitize_public_value(value: Any, *, key: str = "", depth: int = 0) -> Any:
+def _sanitize_public_text(value: str) -> str:
+    """自由文字列からURL資格情報、token、メールアドレスを除去する。"""
+
+    stripped = value.strip()
+    result = (
+        _sanitize_url(stripped)
+        if stripped.lower().startswith(('http://', 'https://', 'ftp://'))
+        else value
+    )
+    result = EMAIL.sub('[REDACTED_EMAIL]', result)
+    result = SECRET_ASSIGNMENT.sub(
+        lambda match: f"{match.group('prefix')}[REDACTED]",
+        result,
+    )
+    result = BEARER_CREDENTIAL.sub(
+        lambda match: f"{match.group(1)}[REDACTED]",
+        result,
+    )
+    return OPAQUE_CREDENTIAL.sub('[REDACTED_CREDENTIAL]', result)
+
+
+def _stable_public_sort_key(value: Any) -> str:
+    """set公開値をprocess間で同じ順序に並べる比較keyを返す。"""
+
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(',', ':'),
+            default=str,
+        )
+    except (TypeError, ValueError, RecursionError):
+        return f'{type(value).__module__}.{type(value).__qualname__}'
+
+
+def sanitize_public_value(
+    value: Any,
+    *,
+    key: str = "",
+    depth: int = 0,
+    _seen: set[int] | None = None,
+) -> Any:
     """資格情報とバイナリを除去し、JSONへ安全に保存できる値へ変換する。"""
 
     if depth > MAX_DEPTH:
         return {"truncated": True, "reason": "maximum_depth"}
     if SECRET_KEY.fullmatch(key) and value is not None:
         return "[REDACTED]"
-    if isinstance(value, bytes):
+    if isinstance(value, (bytes, bytearray)):
+        raw = bytes(value)
         return {
             "type": "bytes",
-            "size": len(value),
-            "sha256": hashlib.sha256(value).hexdigest(),
+            "size": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
             "content_exported": False,
         }
     if isinstance(value, Path):
-        return value.name
+        return _sanitize_public_text(value.name)
+    seen = _seen if _seen is not None else set()
     if isinstance(value, dict):
+        identity = id(value)
+        if identity in seen:
+            return {"truncated": True, "reason": "cycle_detected"}
+        seen.add(identity)
         result = {}
-        for index, (item_key, item_value) in enumerate(value.items()):
-            if index >= MAX_COLLECTION_ITEMS:
-                result["_truncated"] = True
-                break
-            text_key = str(item_key)
-            result[text_key] = sanitize_public_value(
-                item_value, key=text_key, depth=depth + 1
-            )
-        return result
+        collisions: dict[str, int] = {}
+        try:
+            for index, (item_key, item_value) in enumerate(value.items()):
+                if index >= MAX_COLLECTION_ITEMS:
+                    result["_truncated"] = True
+                    break
+                text_key = _sanitize_public_text(str(item_key)[:MAX_STRING_LENGTH])
+                collision_count = collisions.get(text_key, 0) + 1
+                collisions[text_key] = collision_count
+                output_key = (
+                    text_key
+                    if collision_count == 1
+                    else f'{text_key}[duplicate-{collision_count}]'
+                )
+                result[output_key] = sanitize_public_value(
+                    item_value,
+                    key=text_key,
+                    depth=depth + 1,
+                    _seen=seen,
+                )
+            return result
+        finally:
+            seen.remove(identity)
     if isinstance(value, (list, tuple, set)):
-        items = list(value)
-        sanitized = [
-            sanitize_public_value(item, key=key, depth=depth + 1)
-            for item in items[:MAX_COLLECTION_ITEMS]
-        ]
-        if len(items) > MAX_COLLECTION_ITEMS:
-            sanitized.append({"truncated": True, "reason": "maximum_items"})
-        return sanitized
+        identity = id(value)
+        if identity in seen:
+            return [{"truncated": True, "reason": "cycle_detected"}]
+        seen.add(identity)
+        try:
+            items = list(value)
+            sanitized = [
+                sanitize_public_value(
+                    item,
+                    key=key,
+                    depth=depth + 1,
+                    _seen=seen,
+                )
+                for item in items[:MAX_COLLECTION_ITEMS]
+            ]
+            if isinstance(value, set):
+                sanitized.sort(key=_stable_public_sort_key)
+            if len(items) > MAX_COLLECTION_ITEMS:
+                sanitized.append({"truncated": True, "reason": "maximum_items"})
+            return sanitized
+        finally:
+            seen.remove(identity)
     if isinstance(value, str):
         truncated = len(value) > MAX_STRING_LENGTH
         working = value[:MAX_STRING_LENGTH] if truncated else value
@@ -657,16 +809,17 @@ def sanitize_public_value(value: Any, *, key: str = "", depth: int = 0) -> Any:
             except (json.JSONDecodeError, RecursionError):
                 parsed_json = None
             if isinstance(parsed_json, (dict, list)):
-                return sanitize_public_value(parsed_json, key=key, depth=depth + 1)
-        result = _sanitize_url(working) if working.lower().startswith(("http://", "https://", "ftp://")) else working
-        result = EMAIL.sub("[REDACTED_EMAIL]", result)
-        result = SECRET_ASSIGNMENT.sub(lambda match: f"{match.group('prefix')}[REDACTED]", result)
-        result = BEARER_CREDENTIAL.sub(lambda match: f"{match.group(1)}[REDACTED]", result)
-        result = OPAQUE_CREDENTIAL.sub("[REDACTED_CREDENTIAL]", result)
+                return sanitize_public_value(
+                    parsed_json,
+                    key=key,
+                    depth=depth + 1,
+                    _seen=seen,
+                )
+        result = _sanitize_public_text(working)
         return result + "…[truncated]" if truncated else result
     if value is None or isinstance(value, (bool, int, float)):
         return value
-    return str(value)[:MAX_STRING_LENGTH]
+    return _sanitize_public_text(str(value)[:MAX_STRING_LENGTH])
 
 
 def _pe_timestamp(data: bytes) -> int:
@@ -680,31 +833,472 @@ def _pe_timestamp(data: bytes) -> int:
     return int.from_bytes(data[pe_offset + 8:pe_offset + 12], "little")
 
 
+def _verified_binary_kind(data: bytes) -> str:
+    """wrapper自身がmagicを確認し、公開可能なbinary kindへ正規化する。"""
+
+    if data.startswith(b'MZ'):
+        return 'pe'
+    if data.startswith(b'\x7fELF'):
+        return 'elf'
+    if data.startswith((b'PK\x03\x04', b'Rar!\x1a\x07', b'7z\xbc\xaf\x27\x1c')):
+        return 'archive'
+    if data[:4] in {
+        b'\xfe\xed\xfa\xce',
+        b'\xce\xfa\xed\xfe',
+        b'\xfe\xed\xfa\xcf',
+        b'\xcf\xfa\xed\xfe',
+        b'\xca\xfe\xba\xbe',
+    }:
+        return 'macho'
+    prefix = data[:4_096].lstrip().lower()
+    if prefix.startswith((b'#!', b'<hta', b'<html', b'function ', b'var ', b'let ', b'const ')):
+        return 'script'
+    return 'binary'
+
+
+def _verified_binary_role(path: Sequence[str], parent: Mapping[str, Any] | None) -> str | None:
+    """raw resultの明示的なterminal/final役割だけを採用する。"""
+
+    aliases = {
+        'terminal_payload': 'terminal_payload',
+        'terminal_payload_bytes': 'terminal_payload',
+        'terminal_payload_data': 'terminal_payload',
+        'final_payload': 'final_payload',
+        'final_payload_bytes': 'final_payload',
+        'final_payload_data': 'final_payload',
+    }
+    if parent is not None:
+        supplied = parent.get('role')
+        if isinstance(supplied, str) and supplied in {'terminal_payload', 'final_payload'}:
+            return supplied
+    for segment in reversed(path):
+        normalized = segment.strip().casefold().replace('-', '_')
+        if normalized in aliases:
+            return aliases[normalized]
+    return None
+
+
+def _safe_verified_binary_path(
+    supplied: Any,
+    *,
+    role: str,
+    kind: str,
+    digest: str,
+) -> str:
+    """handler由来pathを安全な相対pathへ制限し、不正時は決定的pathへ置換する。"""
+
+    extension = {
+        'archive': 'archive',
+        'binary': 'bin',
+        'elf': 'elf',
+        'macho': 'macho',
+        'pe': 'exe',
+        'script': 'txt',
+    }[kind]
+    fallback = f'handler-result/{role}/{digest}.{extension}'
+    if not isinstance(supplied, (str, Path)):
+        return fallback
+    normalized = str(supplied).strip().replace('\\', '/')
+    if (
+        not normalized
+        or len(normalized) > 4_096
+        or normalized.startswith('/')
+        or re.match(r'^[A-Za-z]:', normalized)
+        or '\x00' in normalized
+    ):
+        return fallback
+    parts = normalized.split('/')
+    if any(part in {'', '.', '..'} for part in parts):
+        return fallback
+    sanitized = _sanitize_public_text(normalized)
+    if '[REDACTED' in sanitized or sanitized != normalized:
+        return fallback
+    return normalized
+
+
+def _verified_binary_outputs(raw_result: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """raw handler resultを有界走査し、実体hash済みterminal/final payloadだけを返す。"""
+
+    outputs: list[dict[str, Any]] = []
+    output_keys: set[tuple[str, str, str]] = set()
+    seen: set[int] = set()
+    binary_values_seen = 0
+    binary_bytes_seen = 0
+    traversal_items = 0
+    reasons: set[str] = set()
+
+    def visit(
+        value: Any,
+        path: tuple[str, ...],
+        parent: Mapping[str, Any] | None,
+        depth: int,
+    ) -> None:
+        nonlocal binary_bytes_seen, binary_values_seen, traversal_items
+        if depth > MAX_DEPTH:
+            reasons.add('maximum_depth')
+            return
+        traversal_items += 1
+        if traversal_items > MAX_COLLECTION_ITEMS:
+            reasons.add('maximum_items')
+            return
+        if isinstance(value, (bytes, bytearray)):
+            binary_values_seen += 1
+            size = len(value)
+            if size <= 0:
+                reasons.add('empty_binary_value')
+                return
+            if binary_bytes_seen + size > MAX_VERIFIED_BINARY_TOTAL_SIZE:
+                reasons.add('maximum_total_binary_size')
+                return
+            binary_bytes_seen += size
+            role = _verified_binary_role(path, parent)
+            if role is None:
+                return
+            if len(outputs) >= MAX_VERIFIED_BINARY_OUTPUTS:
+                reasons.add('maximum_verified_outputs')
+                return
+            raw = bytes(value)
+            digest = hashlib.sha256(raw).hexdigest()
+            kind = _verified_binary_kind(raw)
+            supplied_path = None
+            if parent is not None:
+                supplied_path = next(
+                    (
+                        parent.get(key)
+                        for key in ('relative_path', 'path', 'name', 'file_name')
+                        if parent.get(key) is not None
+                    ),
+                    None,
+                )
+            output_path = _safe_verified_binary_path(
+                supplied_path,
+                role=role,
+                kind=kind,
+                digest=digest,
+            )
+            identity = (role, output_path, digest)
+            if identity in output_keys:
+                return
+            output_keys.add(identity)
+            outputs.append(
+                {
+                    'role': role,
+                    'kind': kind,
+                    'path': output_path,
+                    'sha256': digest,
+                    'size': size,
+                    'verification': {
+                        'status': 'artifact_hash_verified',
+                        'sha256_matches': True,
+                        'size_matches': True,
+                    },
+                }
+            )
+            return
+        if isinstance(value, Mapping):
+            identity = id(value)
+            if identity in seen:
+                reasons.add('cycle_detected')
+                return
+            seen.add(identity)
+            try:
+                for index, (key, item) in enumerate(value.items()):
+                    if index >= MAX_COLLECTION_ITEMS:
+                        reasons.add('maximum_items')
+                        break
+                    visit(item, (*path, str(key)), value, depth + 1)
+            finally:
+                seen.remove(identity)
+            return
+        if isinstance(value, (list, tuple, set)):
+            identity = id(value)
+            if identity in seen:
+                reasons.add('cycle_detected')
+                return
+            seen.add(identity)
+            try:
+                items = list(value)
+                if isinstance(value, set):
+                    items.sort(key=lambda item: _stable_public_sort_key(sanitize_public_value(item)))
+                for index, item in enumerate(items[:MAX_COLLECTION_ITEMS]):
+                    visit(item, (*path, f'item-{index}'), None, depth + 1)
+                if len(items) > MAX_COLLECTION_ITEMS:
+                    reasons.add('maximum_items')
+            finally:
+                seen.remove(identity)
+
+    visit(raw_result, (), None, 0)
+    outputs.sort(key=lambda item: (item['role'], item['path'], item['sha256']))
+    return outputs, {
+        'schema_version': 1,
+        'maximum_outputs': MAX_VERIFIED_BINARY_OUTPUTS,
+        'maximum_total_size': MAX_VERIFIED_BINARY_TOTAL_SIZE,
+        'binary_values_seen': binary_values_seen,
+        'binary_bytes_seen': binary_bytes_seen,
+        'traversal_items': traversal_items,
+        'retained_for_follow_on_analysis': False,
+        'observation_scope': 'wrapper_hash_metadata_only',
+        'truncated': bool(reasons.intersection({
+            'maximum_depth',
+            'maximum_items',
+            'maximum_total_binary_size',
+            'maximum_verified_outputs',
+        })),
+        'reasons': sorted(reasons),
+    }
+
+
+def _invoke_handler(spec: HandlerSpec, data: bytes, source_name: str) -> Any:
+    """検証済みhandlerを現在processで呼び出し、raw resultを返す。"""
+
+    handler, invocation = load_handler(spec)
+    path = _resolve_handler_path(spec)
+    with _handler_import_environment(path, keep_modules=tuple(_LOADED_HANDLER_MODULE_NAMES)):
+        if invocation == "bytes_name":
+            return handler(data, source_name)
+        if invocation == "bytes":
+            return handler(data)
+        if invocation == "bytes_expected_sha256":
+            return handler(data, hashlib.sha256(data).hexdigest())
+        if invocation == "bytes_pe_timestamp":
+            return handler(data, timestamp=_pe_timestamp(data))
+        if invocation == "text":
+            return handler(data.decode("utf-8-sig", errors="replace"))
+    raise HandlerLoadError(f"unsupported invocation: {invocation}")
+
+
 def execute_handler(spec: HandlerSpec, data: bytes, source_name: str) -> dict[str, Any]:
     """1つの静的解析関数を実行し、秘密値とバイナリを除去して返す。"""
 
-    handler, invocation = load_handler(spec)
     try:
-        if invocation == "bytes_name":
-            result = handler(data, source_name)
-        elif invocation == "bytes":
-            result = handler(data)
-        elif invocation == "bytes_expected_sha256":
-            result = handler(data, hashlib.sha256(data).hexdigest())
-        elif invocation == "bytes_pe_timestamp":
-            result = handler(data, timestamp=_pe_timestamp(data))
-        elif invocation == "text":
-            result = handler(data.decode("utf-8-sig", errors="replace"))
-        else:
-            raise HandlerLoadError(f"unsupported invocation: {invocation}")
+        result = _invoke_handler(spec, data, source_name)
     except HandlerNoEvidenceError as exc:
         result = {"status": "not_applicable", "reason": str(exc)}
+    verified_outputs, verification_audit = _verified_binary_outputs(result)
     return {
         "handler": spec.public(),
         "result": sanitize_public_value(result),
+        "verified_binary_outputs": verified_outputs,
+        "verified_binary_output_audit": verification_audit,
         "executed_sample": False,
         "network_contacted": False,
     }
+
+
+class _DiscardHandlerText:
+    """worker内handlerのstdout/stderrをmemoryへ蓄積せず破棄する。"""
+
+    encoding = 'utf-8'
+
+    def write(self, value: str) -> int:
+        return len(value)
+
+    def flush(self) -> None:
+        return None
+
+
+def _handler_spec_from_public(value: Mapping[str, Any]) -> HandlerSpec:
+    """JSON化された公開specを型検証してimmutable HandlerSpecへ戻す。"""
+
+    fields = {
+        'id',
+        'family',
+        'relative_path',
+        'callable_name',
+        'invocation',
+        'source',
+        'automatic',
+        'campaign',
+        'supported_interface',
+        'reason',
+        'input_formats',
+        'input_contract_source',
+        'minimum_evidence_score',
+    }
+    if set(value) != fields:
+        raise HandlerLoadError('worker handler spec fields are invalid')
+    raw_formats = value.get('input_formats')
+    if not isinstance(raw_formats, list) or any(not isinstance(item, str) for item in raw_formats):
+        raise HandlerLoadError('worker handler input_formats are invalid')
+    normalized = dict(value)
+    normalized['input_formats'] = tuple(raw_formats)
+    return HandlerSpec(**normalized)
+
+
+def _worker_root(value: Any, *, name: str) -> Path:
+    """workerに渡したrootをabsolute・非reparse pathへ限定する。"""
+
+    if not isinstance(value, str) or not value or '\x00' in value:
+        raise HandlerLoadError(f'worker {name} is invalid')
+    path = Path(value)
+    if not path.is_absolute():
+        raise HandlerLoadError(f'worker {name} is not absolute')
+    from analysis_contract import ensure_no_reparse_components
+
+    ensure_no_reparse_components(path)
+    return path.resolve(strict=True)
+
+
+def _assessment_worker_main(encoded_request: str, output_path: str) -> int:
+    """隔離Python process内で1 handler・1 layerだけを実行する内部entrypoint。"""
+
+    global EXTRACTORS_ROOT, FRAMEWORK_ROOT, MALWARE_ROOT, PROFILE_PATH, REPOSITORY_ROOT
+    worker_common = str(Path(__file__).resolve().parent)
+    if worker_common not in sys.path:
+        sys.path.insert(0, worker_common)
+    worker_output = Path(output_path)
+    if not worker_output.is_absolute() or worker_output.exists() or not worker_output.parent.is_dir():
+        return 2
+    try:
+        from analysis_contract import ensure_no_reparse_components
+
+        ensure_no_reparse_components(worker_output.parent)
+    except (OSError, ValueError):
+        return 2
+    try:
+        if len(encoded_request) > 65_536:
+            raise HandlerLoadError('worker request is too large')
+        padding = '=' * (-len(encoded_request) % 4)
+        decoded = base64.urlsafe_b64decode((encoded_request + padding).encode('ascii'))
+        request = json.loads(decoded.decode('utf-8'))
+        if not isinstance(request, dict):
+            raise HandlerLoadError('worker request is not an object')
+        repository = _worker_root(request.get('repository_root'), name='repository_root')
+        framework = _worker_root(request.get('framework_root'), name='framework_root')
+        malware = _worker_root(request.get('malware_root'), name='malware_root')
+        extractors = _worker_root(request.get('extractors_root'), name='extractors_root')
+        if framework != repository / 'analysis-framework':
+            raise HandlerLoadError('worker framework_root does not match repository')
+        if malware != framework / 'malware' or extractors != repository / 'extractors':
+            raise HandlerLoadError('worker handler roots do not match repository')
+        source_name = request.get('source_name')
+        if (
+            not isinstance(source_name, str)
+            or not source_name
+            or len(source_name) > 4_096
+            or any(ord(character) < 32 or ord(character) == 127 for character in source_name)
+        ):
+            raise HandlerLoadError('worker source_name is invalid')
+        raw_spec = request.get('spec')
+        if not isinstance(raw_spec, dict):
+            raise HandlerLoadError('worker spec is invalid')
+
+        REPOSITORY_ROOT = repository
+        FRAMEWORK_ROOT = framework
+        MALWARE_ROOT = malware
+        EXTRACTORS_ROOT = extractors
+        PROFILE_PATH = extractors / 'profiles' / 'windows_family_profiles.json'
+        clear_handler_caches()
+        spec = _handler_spec_from_public(raw_spec)
+        data = sys.stdin.buffer.read(DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE + 1)
+        if len(data) > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE:
+            raise HandlerLoadError('worker input exceeds maximum layer size')
+        discarded = _DiscardHandlerText()
+        with redirect_stdout(discarded), redirect_stderr(discarded):
+            result = execute_handler(spec, data, source_name)
+        response: dict[str, Any] = {'ok': True, 'result': result}
+    except Exception as exc:  # noqa: BLE001 - worker境界では全障害を公開用に正規化する
+        response = {
+            'ok': False,
+            'error': 'handler_worker_failed',
+            'error_type': type(exc).__name__,
+        }
+    encoded = json.dumps(
+        response,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(',', ':'),
+    ).encode('utf-8')
+    if len(encoded) > MAX_HANDLER_WORKER_OUTPUT_SIZE:
+        encoded = b'{"error":"worker_output_limit_exceeded","ok":false}'
+    try:
+        with worker_output.open('xb') as stream:
+            stream.write(encoded)
+    except OSError:
+        return 3
+    return 0
+
+
+def _bounded_handler_environment() -> dict[str, str]:
+    """API key等を子processへ渡さない最小環境変数を返す。"""
+
+    allowed = ('SystemRoot', 'WINDIR') if os.name == 'nt' else ('LANG', 'LC_ALL')
+    environment = {
+        key: value
+        for key in allowed
+        if isinstance((value := os.environ.get(key)), str) and value
+    }
+    environment['PYTHONIOENCODING'] = 'utf-8'
+    return environment
+
+
+def _execute_handler_bounded(
+    spec: HandlerSpec,
+    data: bytes,
+    source_name: str,
+    *,
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    """handlerをisolated subprocessで実行し、wall-clock上限とtree終了を保証する。"""
+
+    request = {
+        'repository_root': str(REPOSITORY_ROOT.resolve(strict=True)),
+        'framework_root': str((REPOSITORY_ROOT / 'analysis-framework').resolve(strict=True)),
+        'malware_root': str(MALWARE_ROOT.resolve(strict=True)),
+        'extractors_root': str(EXTRACTORS_ROOT.resolve(strict=True)),
+        'source_name': source_name,
+        'spec': spec.public(),
+    }
+    token = base64.urlsafe_b64encode(
+        json.dumps(request, ensure_ascii=False, sort_keys=True).encode('utf-8')
+    ).decode('ascii').rstrip('=')
+    from bounded_process import run_bounded
+
+    with tempfile.TemporaryDirectory(prefix='handler-assessment-') as temporary:
+        output_path = Path(temporary) / 'response.json'
+        completed = run_bounded(
+            [
+                sys.executable,
+                '-I',
+                '-B',
+                str(Path(__file__).resolve()),
+                '--assessment-worker',
+                token,
+                str(output_path),
+            ],
+            timeout=timeout_seconds,
+            check=False,
+            shell=False,
+            env=_bounded_handler_environment(),
+            cwd=REPOSITORY_ROOT,
+            input=data,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=False,
+        )
+        if completed.returncode != 0:
+            raise HandlerLoadError('handler worker failed')
+        try:
+            from analysis_contract import ensure_no_reparse_components
+
+            ensure_no_reparse_components(output_path)
+            size = output_path.stat().st_size
+            if not 0 < size <= MAX_HANDLER_WORKER_OUTPUT_SIZE:
+                raise HandlerLoadError('handler worker output size is invalid')
+            output = output_path.read_bytes()
+        except OSError as exc:
+            raise HandlerLoadError('handler worker output is unavailable') from exc
+    try:
+        response = json.loads(output.decode('utf-8'))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise HandlerLoadError('handler worker output is invalid JSON') from exc
+    if not isinstance(response, dict) or response.get('ok') is not True:
+        error = response.get('error') if isinstance(response, dict) else 'invalid_worker_response'
+        raise HandlerLoadError(str(sanitize_public_value(error)))
+    result = response.get('result')
+    if not isinstance(result, dict):
+        raise HandlerLoadError('handler worker result is invalid')
+    return result
 
 _DETECTOR_METADATA_KEYS = frozenset(
     {
@@ -794,6 +1388,78 @@ _FORBIDDEN_METHOD_NAMES = frozenset(
         'write_text',
     }
 )
+_APPROVED_EXTERNAL_MODULE_ROOTS = frozenset(
+    {
+        'Cryptodome',
+        'cabarchive',
+        'capstone',
+        'cryptography',
+        'dncil',
+        'dnfile',
+        'nrv2e',
+        'numpy',
+        'olefile',
+        'pefile',
+        'pyzipper',
+        'refinery',
+    }
+)
+_LEGACY_DYNAMIC_LOCAL_DEPENDENCIES: dict[
+    str,
+    tuple[tuple[str, tuple[str, ...], str], ...],
+] = {
+    'analysis-framework/malware/jackskid/extract_config.py': (
+        (
+            'analysis-framework/malware/linux_ens_sns_bot/profile.py',
+            (),
+            'literal_reviewed_profile_module',
+        ),
+    ),
+    'analysis-framework/malware/purehvnc/extract_config.py': (
+        (
+            'analysis-framework/malware/purehvnc/detect.py',
+            ('structural_summary',),
+            'literal_sibling_detector_module',
+        ),
+    ),
+    'extractors/remusstealer/extractor.py': (
+        (
+            'analysis-framework/common/remus_memory_config.py',
+            ('extract_remus_memory_config',),
+            'validated_common_module_loader',
+        ),
+        (
+            'analysis-framework/common/remus_c2_profile.py',
+            ('build_remus_c2_profile',),
+            'validated_common_module_loader',
+        ),
+    ),
+}
+_APPROVED_STATIC_SYS_PATH_SOURCES = frozenset(
+    {
+        'analysis-framework/malware/agenttesla/agenttesla_luajit_chain.py',
+        'analysis-framework/malware/agenttesla/agenttesla_recover.py',
+        'analysis-framework/malware/agenttesla/detect.py',
+        'analysis-framework/malware/purehvnc/extract_config.py',
+        'analysis-framework/common/dotnet_resource_loader_evidence.py',
+        'analysis-framework/common/extract_dotnet_resources.py',
+        'unpackers/static_unpacker.py',
+    }
+)
+_SAFE_LOCAL_DATA_METHODS = frozenset(
+    {'findall', 'finditer', 'fullmatch', 'get', 'items', 'keys', 'match', 'search', 'split', 'sub', 'subn', 'values'}
+)
+_APPROVED_CALLBACK_PARAMETERS = frozenset(
+    {('unpackers/javascript_obfuscator.py', '_safe_arithmetic', 'parse_int')}
+)
+
+
+@dataclass(frozen=True)
+class _ImportBinding:
+    module: str
+    symbol: str | None
+    level: int
+    imported_module: str
 
 
 def _ast_call_name(node: ast.AST) -> str | None:
@@ -841,9 +1507,12 @@ def _open_call_writes(node: ast.Call) -> bool:
         values.append(node.args[1])
     values.extend(item.value for item in node.keywords if item.arg == 'mode')
     for value in values:
-        if isinstance(value, ast.Constant) and isinstance(value.value, str):
-            if any(marker in value.value for marker in ('w', 'a', 'x', '+')):
-                return True
+        if (
+            isinstance(value, ast.Constant)
+            and isinstance(value.value, str)
+            and any(marker in value.value for marker in ('w', 'a', 'x', '+'))
+        ):
+            return True
     return False
 
 
@@ -917,6 +1586,755 @@ def _handler_side_effect_issues(path: Path, callable_name: str) -> list[str]:
     return sorted(issues)
 
 
+@cache
+def _relative_audit_path(path: Path) -> str:
+    """監査対象pathをrepository相対の公開値へ変換する。"""
+
+    return path.resolve(strict=True).relative_to(REPOSITORY_ROOT.resolve(strict=True)).as_posix()
+
+
+def _approved_external_module(module: str) -> bool:
+    root = module.split('.', 1)[0]
+    return (
+        root == '__future__'
+        or root in sys.stdlib_module_names
+        or root in _APPROVED_EXTERNAL_MODULE_ROOTS
+    )
+
+
+def _local_import_roots(current_path: Path) -> tuple[Path, ...]:
+    framework = REPOSITORY_ROOT / 'analysis-framework'
+    values = (
+        current_path.parent,
+        REPOSITORY_ROOT,
+        framework,
+        framework / 'common',
+        REPOSITORY_ROOT / 'extractors',
+    )
+    result: list[Path] = []
+    for value in values:
+        resolved = value.resolve()
+        if resolved not in result:
+            result.append(resolved)
+    return tuple(result)
+
+
+@cache
+def _resolve_local_module_path(
+    current_path: Path,
+    module: str,
+    *,
+    level: int = 0,
+) -> tuple[Path | None, str | None]:
+    """Python import規則のrepository-local候補だけを安全に解決する。"""
+
+    parts = tuple(item for item in module.split('.') if item)
+    if level:
+        base = current_path.parent
+        for _index in range(level - 1):
+            base = base.parent
+        roots = (base,)
+    else:
+        roots = _local_import_roots(current_path)
+    matches: list[Path] = []
+    repository = REPOSITORY_ROOT.resolve(strict=True)
+    from analysis_contract import ensure_no_reparse_components
+
+    for root in roots:
+        base = root.joinpath(*parts)
+        for candidate in (base.with_suffix('.py'), base / '__init__.py'):
+            if not candidate.exists():
+                continue
+            try:
+                ensure_no_reparse_components(candidate)
+                resolved = candidate.resolve(strict=True)
+            except (OSError, ValueError) as exc:
+                return None, f'unsafe_local_import:{type(exc).__name__}'
+            if resolved != repository and repository not in resolved.parents:
+                return None, 'local_import_outside_repository'
+            if not resolved.is_file() or resolved.suffix.casefold() != '.py':
+                return None, 'local_import_not_python_source'
+            if resolved not in matches:
+                matches.append(resolved)
+    if len(matches) > 1:
+        rendered = ','.join(sorted(_relative_audit_path(item) for item in matches))
+        return None, f'ambiguous_local_import:{module}:{rendered}'
+    if (
+        not matches
+        and level == 0
+        and len(parts) == 1
+        and not _approved_external_module(module)
+    ):
+        fallback_matches: list[Path] = []
+        for candidate in repository.rglob(f'{parts[0]}.py'):
+            relative_parts = candidate.relative_to(repository).parts
+            if any(part in {'tests', '.git', '.venv', '__pycache__'} for part in relative_parts):
+                continue
+            try:
+                ensure_no_reparse_components(candidate)
+                resolved = candidate.resolve(strict=True)
+            except (OSError, ValueError) as exc:
+                return None, f'unsafe_local_import:{type(exc).__name__}'
+            if resolved not in fallback_matches:
+                fallback_matches.append(resolved)
+            if len(fallback_matches) > 16:
+                return None, f'ambiguous_local_import:{module}:too_many_matches'
+        if len(fallback_matches) > 1:
+            rendered = ','.join(sorted(_relative_audit_path(item) for item in fallback_matches))
+            return None, f'ambiguous_local_import:{module}:{rendered}'
+        if fallback_matches:
+            return fallback_matches[0], None
+    return (matches[0], None) if matches else (None, None)
+
+
+def _detailed_import_bindings(scope: ast.AST) -> dict[str, _ImportBinding]:
+    bindings: dict[str, _ImportBinding] = {}
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                if item.asname:
+                    alias = item.asname
+                    bound_module = item.name
+                else:
+                    alias = item.name.split('.')[0]
+                    bound_module = alias
+                bindings[alias] = _ImportBinding(
+                    module=bound_module,
+                    symbol=None,
+                    level=0,
+                    imported_module=item.name,
+                )
+        elif isinstance(node, ast.ImportFrom):
+            for item in node.names:
+                if item.name == '*':
+                    continue
+                alias = item.asname or item.name
+                bindings[alias] = _ImportBinding(
+                    module=node.module or '',
+                    symbol=item.name,
+                    level=node.level,
+                    imported_module=node.module or '',
+                )
+    return bindings
+
+
+def _top_level_calls(tree: ast.Module) -> list[ast.Call]:
+    """import時に評価される式のcallだけを列挙し、関数bodyとmain guardを除く。"""
+
+    calls: list[ast.Call] = []
+
+    class Visitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            for expression in (*node.decorator_list, *node.args.defaults, *node.args.kw_defaults):
+                if expression is not None:
+                    self.visit(expression)
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            return None
+
+        def visit_If(self, node: ast.If) -> None:
+            is_main_guard = (
+                isinstance(node.test, ast.Compare)
+                and isinstance(node.test.left, ast.Name)
+                and node.test.left.id == '__name__'
+                and any(
+                    isinstance(item, ast.Constant) and item.value == '__main__'
+                    for item in node.test.comparators
+                )
+            )
+            self.visit(node.test)
+            if not is_main_guard:
+                for statement in (*node.body, *node.orelse):
+                    self.visit(statement)
+
+        def visit_Call(self, node: ast.Call) -> None:
+            calls.append(node)
+            self.generic_visit(node)
+
+    visitor = Visitor()
+    for statement in tree.body:
+        visitor.visit(statement)
+    return calls
+
+
+def _assigned_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for item in ast.walk(node):
+        if isinstance(item, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
+            targets = item.targets if isinstance(item, ast.Assign) else (item.target,)
+            for target in targets:
+                for child in ast.walk(target):
+                    if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
+                        names.add(child.id)
+        elif isinstance(item, (ast.For, ast.AsyncFor)):
+            for child in ast.walk(item.target):
+                if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
+                    names.add(child.id)
+    return names
+
+
+def _static_path_expression(
+    node: ast.AST,
+    tree: ast.Module,
+    visited_names: set[str] | None = None,
+) -> tuple[bool, bool]:
+    """path式が安全なliteralだけで構成され、__file__起点かを返す。"""
+
+    visited = set() if visited_names is None else visited_names
+    if isinstance(node, ast.Name):
+        if node.id == '__file__':
+            return True, True
+        if node.id in visited:
+            return False, False
+        assignment = next(
+            (
+                item.value
+                for item in tree.body
+                if isinstance(item, (ast.Assign, ast.AnnAssign))
+                and any(
+                    isinstance(target, ast.Name) and target.id == node.id
+                    for target in (
+                        item.targets if isinstance(item, ast.Assign) else (item.target,)
+                    )
+                )
+            ),
+            None,
+        )
+        if assignment is None:
+            loop_values = next(
+                (
+                    item.iter.elts
+                    for item in tree.body
+                    if isinstance(item, (ast.For, ast.AsyncFor))
+                    and isinstance(item.target, ast.Name)
+                    and item.target.id == node.id
+                    and isinstance(item.iter, (ast.Tuple, ast.List))
+                ),
+                None,
+            )
+            if loop_values is None:
+                return False, False
+            evaluated = [
+                _static_path_expression(item, tree, {*visited, node.id})
+                for item in loop_values
+            ]
+            return all(valid for valid, _origin in evaluated), all(
+                origin for _valid, origin in evaluated
+            )
+        return _static_path_expression(assignment, tree, {*visited, node.id})
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, int):
+            return True, False
+        if isinstance(node.value, str):
+            value = node.value.replace('\\', '/')
+            safe = '\x00' not in value and not value.startswith('/') and not re.match(r'^[A-Za-z]:', value) and '..' not in value.split('/')
+            return safe, False
+        return False, False
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id in {'Path', 'str'} and len(node.args) == 1:
+            return _static_path_expression(node.args[0], tree, visited)
+        if isinstance(node.func, ast.Attribute) and node.func.attr == 'resolve' and not node.args:
+            return _static_path_expression(node.func.value, tree, visited)
+        return False, False
+    if isinstance(node, ast.Attribute) and node.attr in {'parent', 'parents'}:
+        return _static_path_expression(node.value, tree, visited)
+    if isinstance(node, ast.Subscript):
+        valid, origin = _static_path_expression(node.value, tree, visited)
+        slice_valid, _slice_origin = _static_path_expression(node.slice, tree, visited)
+        return valid and slice_valid, origin
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        left_valid, left_origin = _static_path_expression(node.left, tree, visited)
+        right_valid, right_origin = _static_path_expression(node.right, tree, visited)
+        return left_valid and right_valid, left_origin or right_origin
+    return False, False
+
+
+def _safe_static_sys_path_insert(call: ast.Call, tree: ast.Module) -> bool:
+    """sys.path先頭追加が当該sourceの__file__起点repository pathか確認する。"""
+
+    if len(call.args) < 2 or not isinstance(call.args[0], ast.Constant) or call.args[0].value != 0:
+        return False
+    valid, file_origin = _static_path_expression(call.args[1], tree)
+    return valid and file_origin
+
+
+def _binding_local_call_target(
+    path: Path,
+    binding: _ImportBinding,
+    remainder: Sequence[str],
+) -> tuple[Path | None, str | None, str | None]:
+    """import alias経由callをlocal module pathとsymbolへ解決する。"""
+
+    if binding.symbol is not None:
+        expanded_segments = [*binding.module.split('.'), binding.symbol, *remainder]
+        minimum_module_parts = len(binding.module.split('.')) + 1
+        for split_at in range(len(expanded_segments) - 1, minimum_module_parts - 1, -1):
+            expanded_module = '.'.join(expanded_segments[:split_at])
+            expanded_target, expanded_error = _resolve_local_module_path(
+                path,
+                expanded_module,
+                level=binding.level,
+            )
+            if expanded_error:
+                return None, None, expanded_error
+            if expanded_target is not None:
+                return expanded_target, '.'.join(expanded_segments[split_at:]) or None, None
+        target, error = _resolve_local_module_path(
+            path,
+            binding.module,
+            level=binding.level,
+        )
+        if error or target is not None:
+            symbol = '.'.join((binding.symbol, *remainder))
+            return target, symbol, error
+        expanded_module = '.'.join(item for item in (binding.module, binding.symbol) if item)
+        target, error = _resolve_local_module_path(path, expanded_module, level=binding.level)
+        return target, remainder[-1] if target is not None and remainder else None, error
+
+    segments = [*binding.module.split('.'), *remainder]
+    for split_at in range(len(segments) - 1, 0, -1):
+        module = '.'.join(segments[:split_at])
+        target, error = _resolve_local_module_path(path, module, level=binding.level)
+        if error:
+            return None, None, error
+        if target is not None:
+            symbol = '.'.join(segments[split_at:]) or None
+            return target, symbol, None
+    target, error = _resolve_local_module_path(path, binding.module, level=binding.level)
+    return target, '.'.join(remainder) or None, error
+
+
+@cache
+def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict[str, Any]:
+    """reachable local helperをfile間で追跡し、importせず副作用callを監査する。"""
+
+    issues: set[str] = set()
+    files: dict[Path, str] = {}
+    visited_imports: set[Path] = set()
+    visited_functions: set[tuple[Path, str]] = set()
+    allowance_counts: dict[str, int] = {}
+    allowance_examples: dict[str, set[str]] = {}
+    calls_inspected = 0
+    local_calls_followed = 0
+    binding_cache: dict[ast.AST, dict[str, _ImportBinding]] = {}
+    alias_cache: dict[ast.Module, dict[str, str]] = {}
+    definition_cache: dict[ast.Module, dict[str, ast.AST]] = {}
+    scope_symbol_cache: dict[ast.AST, tuple[set[str], set[str], set[str]]] = {}
+
+    def bindings(scope: ast.AST) -> dict[str, _ImportBinding]:
+        return binding_cache.setdefault(scope, _detailed_import_bindings(scope))
+
+    def aliases(tree: ast.Module) -> dict[str, str]:
+        return alias_cache.setdefault(tree, _import_aliases(tree))
+
+    def definitions(tree: ast.Module) -> dict[str, ast.AST]:
+        return definition_cache.setdefault(
+            tree,
+            {
+                node.name: node
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.ClassDef))
+            },
+        )
+
+    def scope_symbols(scope: ast.AST) -> tuple[set[str], set[str], set[str]]:
+        cached = scope_symbol_cache.get(scope)
+        if cached is not None:
+            return cached
+        nested = {
+            node.name
+            for node in ast.walk(scope)
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node is not scope
+        }
+        assigned = _assigned_names(scope)
+        parameters = (
+            {
+                item.arg
+                for item in (
+                    *scope.args.posonlyargs,
+                    *scope.args.args,
+                    *scope.args.kwonlyargs,
+                )
+            }
+            if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+            else set()
+        )
+        cached = (nested, assigned, parameters)
+        scope_symbol_cache[scope] = cached
+        return cached
+
+    def allow(reason: str, call_name: str) -> None:
+        allowance_counts[reason] = allowance_counts.get(reason, 0) + 1
+        examples = allowance_examples.setdefault(reason, set())
+        if len(examples) < 8:
+            examples.add(call_name)
+
+    def register_file(source: Path, depth: int) -> ast.Module | None:
+        if depth > MAX_ASSESSMENT_IMPORT_DEPTH:
+            issues.add(f'import_depth_limit:{_relative_audit_path(source)}')
+            return None
+        try:
+            resolved = source.resolve(strict=True)
+            relative = _relative_audit_path(resolved)
+        except (OSError, ValueError) as exc:
+            issues.add(f'unsafe_dependency_path:{type(exc).__name__}')
+            return None
+        if resolved not in files:
+            if len(files) >= MAX_ASSESSMENT_IMPORT_FILES:
+                issues.add('import_file_limit')
+                return None
+            try:
+                content = resolved.read_bytes()
+                tree = ast.parse(content.decode('utf-8-sig'), filename=str(resolved))
+            except (OSError, SyntaxError, UnicodeError) as exc:
+                issues.add(f'dependency_parse_error:{relative}:{type(exc).__name__}')
+                return None
+            files[resolved] = hashlib.sha256(content).hexdigest()
+            return tree
+        try:
+            return _module_tree(resolved)
+        except (OSError, SyntaxError, UnicodeError) as exc:
+            issues.add(f'dependency_parse_error:{relative}:{type(exc).__name__}')
+            return None
+
+    def dynamic_call_allowed(source: Path, name: str) -> bool:
+        relative = _relative_audit_path(source)
+        if name == 'sys.path.insert':
+            return relative in _APPROVED_STATIC_SYS_PATH_SOURCES
+        if relative not in _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES:
+            return False
+        return (
+            name in {'importlib.util.spec_from_file_location', 'importlib.util.module_from_spec', 'sys.path.insert'}
+            or name.endswith('.exec_module')
+            or name.startswith('sys.modules.')
+        )
+
+    def audit_imports(source: Path, tree: ast.Module, depth: int) -> None:
+        bindings = _detailed_import_bindings(tree)
+        for binding in bindings.values():
+            imported = binding.imported_module
+            target, error = _resolve_local_module_path(
+                source,
+                imported,
+                level=binding.level,
+            )
+            if error:
+                issues.add(f'import:{error}')
+                continue
+            if target is not None:
+                audit_module(target, depth + 1)
+                continue
+            if binding.level:
+                issues.add(f'unresolved_local_import:{imported or binding.symbol}')
+            elif _approved_external_module(imported):
+                allow('approved_external_import', imported)
+            else:
+                issues.add(f'unresolved_local_or_unapproved_import:{imported}')
+
+    def audit_target(source: Path, symbol: str | None, depth: int, context: str) -> None:
+        nonlocal local_calls_followed
+        tree = register_file(source, depth)
+        if tree is None:
+            return
+        if symbol is None:
+            return
+        top_name = symbol.split('.', 1)[0]
+        node = definitions(tree).get(top_name)
+        if node is None:
+            method = symbol.rsplit('.', 1)[-1]
+            assignment = next(
+                (
+                    item
+                    for item in tree.body
+                    if isinstance(item, (ast.Assign, ast.AnnAssign))
+                    and any(
+                        isinstance(target, ast.Name) and target.id == top_name
+                        for target in (
+                            item.targets if isinstance(item, ast.Assign) else (item.target,)
+                        )
+                    )
+                ),
+                None,
+            )
+            if assignment is not None and method in _SAFE_LOCAL_DATA_METHODS:
+                initializer = (
+                    _expanded_call_name(assignment.value, aliases(tree))
+                    if isinstance(assignment.value, ast.Call)
+                    else None
+                )
+                static_container = isinstance(
+                    assignment.value,
+                    (ast.Dict, ast.DictComp, ast.List, ast.ListComp, ast.Set, ast.SetComp, ast.Tuple),
+                )
+                if static_container or (initializer and _approved_external_module(initializer)):
+                    allow('reviewed_local_data_object_method', f'{top_name}.{method}')
+                    return
+            issues.add(f'{context}:unresolved_local_helper:{_relative_audit_path(source)}:{symbol}')
+            return
+        local_calls_followed += 1
+        if isinstance(node, ast.ClassDef):
+            audit_definition(source, tree, node, depth + 1, context)
+        else:
+            audit_function(source, tree, node.name, depth + 1, context)
+
+    def audit_call(
+        source: Path,
+        tree: ast.Module,
+        call: ast.Call,
+        depth: int,
+        context: str,
+        scope: ast.AST,
+    ) -> None:
+        nonlocal calls_inspected
+        calls_inspected += 1
+        module_aliases = aliases(tree)
+        reason = _forbidden_call_reason(call, module_aliases)
+        name = _expanded_call_name(call, module_aliases)
+        if reason:
+            issues.add(f'{context}:{reason}')
+            return
+        if name is None or not isinstance(call.func, (ast.Name, ast.Attribute)):
+            static_lambda_dispatch = (
+                isinstance(call.func, ast.Subscript)
+                and isinstance(call.func.value, ast.Name)
+                and any(
+                    isinstance(item, ast.Assign)
+                    and any(
+                        isinstance(target, ast.Name) and target.id == call.func.value.id
+                        for target in item.targets
+                    )
+                    and isinstance(item.value, ast.Dict)
+                    and item.value.values
+                    and all(isinstance(value, ast.Lambda) for value in item.value.values)
+                    for item in ast.walk(scope)
+                )
+            )
+            if static_lambda_dispatch:
+                allow('static_lambda_dispatch_table', call.func.value.id)
+            else:
+                issues.add(f'{context}:unresolved_dynamic_call')
+            return
+        if name == 'sys.path.insert':
+            if _safe_static_sys_path_insert(call, tree) or dynamic_call_allowed(source, name):
+                allow('static_repository_sys_path_insert', name)
+            else:
+                issues.add(f'{context}:unapproved_dynamic_import:{name}')
+            return
+        if (
+            name in {'importlib.util.spec_from_file_location', 'importlib.util.module_from_spec'}
+            or name.endswith('.exec_module')
+        ):
+            if dynamic_call_allowed(source, name):
+                allow('reviewed_dynamic_local_loader', name)
+            else:
+                issues.add(f'{context}:unapproved_dynamic_import:{name}')
+            return
+
+        call_bindings = dict(bindings(tree))
+        call_bindings.update(bindings(scope))
+        raw_name = _ast_call_name(call.func) or ''
+        parts = raw_name.split('.')
+        binding = call_bindings.get(parts[0]) if parts else None
+        if binding is not None:
+            target, symbol, error = _binding_local_call_target(source, binding, parts[1:])
+            if error:
+                issues.add(f'{context}:{error}')
+                return
+            if target is not None:
+                audit_target(target, symbol, depth + 1, context)
+                return
+            if _approved_external_module(binding.imported_module):
+                allow('approved_external_pure_call', name)
+                return
+            issues.add(f'{context}:unresolved_import_call:{name}')
+            return
+
+        module_definitions = definitions(tree)
+        if isinstance(call.func, ast.Name) and call.func.id in module_definitions:
+            target = module_definitions[call.func.id]
+            if isinstance(target, ast.ClassDef):
+                audit_definition(source, tree, target, depth + 1, context)
+            else:
+                audit_function(source, tree, target.name, depth + 1, context)
+            return
+        nested_names, assigned_names, parameters = scope_symbols(scope)
+        if isinstance(call.func, ast.Name) and call.func.id in nested_names:
+            allow('reachable_nested_local_callable', call.func.id)
+            return
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if isinstance(call.func, ast.Name) and call.func.id in parameters:
+                callback_key = (
+                    _relative_audit_path(source),
+                    scope.name,
+                    call.func.id,
+                )
+                if callback_key in _APPROVED_CALLBACK_PARAMETERS:
+                    allow('reviewed_bounded_callback_parameter', call.func.id)
+                    return
+                issues.add(f'{context}:unresolved_parameter_callable:{call.func.id}')
+                return
+            if isinstance(call.func, ast.Name) and call.func.id in assigned_names:
+                assigned_from_local_factory = any(
+                    isinstance(item, (ast.Assign, ast.AnnAssign))
+                    and any(
+                        isinstance(target, ast.Name) and target.id == call.func.id
+                        for target in (
+                            item.targets if isinstance(item, ast.Assign) else (item.target,)
+                        )
+                    )
+                    and isinstance(item.value, ast.Call)
+                    and isinstance(item.value.func, ast.Name)
+                    and item.value.func.id in module_definitions
+                    for item in ast.walk(scope)
+                )
+                tuple_of_local_functions = any(
+                    isinstance(loop, (ast.For, ast.AsyncFor))
+                    and isinstance(loop.target, ast.Name)
+                    and loop.target.id == call.func.id
+                    and isinstance(loop.iter, ast.Name)
+                    and any(
+                        isinstance(assignment, ast.Assign)
+                        and any(
+                            isinstance(target, ast.Name) and target.id == loop.iter.id
+                            for target in assignment.targets
+                        )
+                        and isinstance(assignment.value, (ast.Tuple, ast.List))
+                        and all(
+                            isinstance(item, ast.Name) and item.id in module_definitions
+                            for item in assignment.value.elts
+                        )
+                        for assignment in ast.walk(scope)
+                    )
+                    for loop in ast.walk(scope)
+                )
+                local_choice_targets: set[str] = set()
+                for assignment in ast.walk(scope):
+                    if not isinstance(assignment, (ast.Assign, ast.AnnAssign)):
+                        continue
+                    targets = assignment.targets if isinstance(assignment, ast.Assign) else (assignment.target,)
+                    if not any(isinstance(target, ast.Name) and target.id == call.func.id for target in targets):
+                        continue
+                    values = (
+                        (assignment.value.body, assignment.value.orelse)
+                        if isinstance(assignment.value, ast.IfExp)
+                        else (assignment.value,)
+                    )
+                    names = {
+                        value.id
+                        for value in values
+                        if isinstance(value, ast.Name) and value.id in module_definitions
+                    }
+                    if len(names) == len(values):
+                        local_choice_targets.update(names)
+                if assigned_from_local_factory or tuple_of_local_functions or local_choice_targets:
+                    for target_name in sorted(local_choice_targets):
+                        target = module_definitions[target_name]
+                        if isinstance(target, ast.FunctionDef):
+                            audit_function(source, tree, target_name, depth + 1, context)
+                    allow('statically_bound_local_callable', call.func.id)
+                    return
+                issues.add(f'{context}:unresolved_dynamic_name_call:{call.func.id}')
+                return
+        if isinstance(call.func, ast.Name):
+            if hasattr(builtins, call.func.id):
+                allow('python_builtin_call', call.func.id)
+                return
+            relative = _relative_audit_path(source)
+            approved_symbols = {
+                symbol
+                for _target, symbols, _reason in _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES.get(relative, ())
+                for symbol in symbols
+            }
+            if call.func.id in approved_symbols:
+                allow('reviewed_dynamic_local_symbol', call.func.id)
+                return
+            issues.add(f'{context}:unresolved_dynamic_name_call:{call.func.id}')
+            return
+        allow('explicit_bounded_object_method', name)
+
+    def audit_definition(
+        source: Path,
+        tree: ast.Module,
+        definition: ast.AST,
+        depth: int,
+        context: str,
+    ) -> None:
+        for call in (node for node in ast.walk(definition) if isinstance(node, ast.Call)):
+            audit_call(source, tree, call, depth, context, definition)
+
+    def audit_function(
+        source: Path,
+        tree: ast.Module,
+        function_name: str,
+        depth: int,
+        context: str,
+    ) -> None:
+        key = (source.resolve(strict=True), function_name)
+        if key in visited_functions:
+            return
+        visited_functions.add(key)
+        function = next(
+            (
+                node
+                for node in tree.body
+                if isinstance(node, ast.FunctionDef) and node.name == function_name
+            ),
+            None,
+        )
+        if function is None:
+            issues.add(f'{context}:unresolved_local_function:{function_name}')
+            return
+        audit_definition(source, tree, function, depth, f'reachable:{function_name}')
+
+    def audit_module(source: Path, depth: int) -> None:
+        resolved = source.resolve(strict=True)
+        if resolved in visited_imports:
+            return
+        tree = register_file(resolved, depth)
+        if tree is None:
+            return
+        visited_imports.add(resolved)
+        audit_imports(resolved, tree, depth)
+        for call in _top_level_calls(tree):
+            audit_call(resolved, tree, call, depth, 'import_time', tree)
+
+        relative = _relative_audit_path(resolved)
+        for dependency, symbols, audit_reason in _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES.get(relative, ()):
+            target = REPOSITORY_ROOT / dependency
+            target_tree = register_file(target, depth + 1)
+            if target_tree is None:
+                continue
+            allow(audit_reason, dependency)
+            audit_module(target, depth + 1)
+            for symbol in symbols:
+                audit_function(target, target_tree, symbol, depth + 1, 'reviewed_dynamic_local')
+
+    root_tree = register_file(path, 0)
+    if root_tree is not None:
+        audit_module(path, 0)
+        audit_function(path, root_tree, callable_name, 0, 'handler_entry')
+    file_records = [
+        {'path': _relative_audit_path(source), 'sha256': digest}
+        for source, digest in sorted(files.items(), key=lambda item: _relative_audit_path(item[0]))
+    ]
+    return {
+        'issues': sorted(issues),
+        'files': file_records,
+        'files_inspected': len(file_records),
+        'calls_inspected': calls_inspected,
+        'local_calls_followed': local_calls_followed,
+        'allowance_counts': dict(sorted(allowance_counts.items())),
+        'allowance_examples': {
+            reason: sorted(values)
+            for reason, values in sorted(allowance_examples.items())
+        },
+        'maximum_import_depth': MAX_ASSESSMENT_IMPORT_DEPTH,
+        'maximum_import_files': MAX_ASSESSMENT_IMPORT_FILES,
+    }
+
+
 def preflight_handler_for_assessment(
     spec: HandlerSpec,
     *,
@@ -950,6 +2368,17 @@ def preflight_handler_for_assessment(
         blockers.append('input_size_limit_exceeded')
 
     source_sha256 = None
+    dependency_audit: dict[str, Any] = {
+        'issues': [],
+        'files': [],
+        'files_inspected': 0,
+        'calls_inspected': 0,
+        'local_calls_followed': 0,
+        'allowance_counts': {},
+        'allowance_examples': {},
+        'maximum_import_depth': MAX_ASSESSMENT_IMPORT_DEPTH,
+        'maximum_import_files': MAX_ASSESSMENT_IMPORT_FILES,
+    }
     try:
         path = _resolve_handler_path(spec)
         source_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -978,8 +2407,9 @@ def preflight_handler_for_assessment(
                 or evidence_score != spec.minimum_evidence_score
             ):
                 blockers.append('handler_contract_changed')
-        blockers.extend(_handler_side_effect_issues(path, spec.callable_name))
-    except Exception as exc:
+        dependency_audit = _recursive_handler_side_effect_audit(path, spec.callable_name)
+        blockers.extend(dependency_audit['issues'])
+    except Exception as exc:  # noqa: BLE001 - 解析不能もfail-closedにする
         blockers.append(
             str(sanitize_public_value(f'preflight_error:{type(exc).__name__}:{exc}'))
         )
@@ -993,6 +2423,7 @@ def preflight_handler_for_assessment(
         'maximum_input_size': maximum_input_size,
         'minimum_evidence_score': spec.minimum_evidence_score,
         'source_sha256': source_sha256,
+        'dependency_audit': dependency_audit,
         'sample_execution_allowed': False,
         'network_allowed': False,
         'filesystem_write_allowed': False,
@@ -1003,6 +2434,116 @@ def _mapping_value(value: Any, key: str, default: Any = None) -> Any:
     if isinstance(value, Mapping):
         return value.get(key, default)
     return getattr(value, key, default)
+
+
+def _preflight_dependency_sources_unchanged(preflight: Mapping[str, Any]) -> bool:
+    """preflight後のhandlerとlocal dependencyが同じbytesか再検証する。"""
+
+    audit = preflight.get('dependency_audit')
+    files = audit.get('files') if isinstance(audit, Mapping) else None
+    if not isinstance(files, list) or not files:
+        return False
+    repository = REPOSITORY_ROOT.resolve(strict=True)
+    from analysis_contract import ensure_no_reparse_components
+
+    for record in files:
+        if not isinstance(record, Mapping):
+            return False
+        relative = record.get('path')
+        expected = record.get('sha256')
+        if (
+            not isinstance(relative, str)
+            or not relative
+            or Path(relative).is_absolute()
+            or '..' in Path(relative).parts
+            or not isinstance(expected, str)
+            or re.fullmatch(r'[0-9a-f]{64}', expected) is None
+        ):
+            return False
+        candidate = repository / relative
+        try:
+            ensure_no_reparse_components(candidate)
+            resolved = candidate.resolve(strict=True)
+            if repository not in resolved.parents:
+                return False
+            actual = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        except (OSError, ValueError):
+            return False
+        if actual != expected:
+            return False
+    return True
+
+
+def execute_handler_bounded_for_assessment(
+    spec: HandlerSpec,
+    data: bytes,
+    source_name: str,
+    *,
+    actual_format: str,
+    maximum_input_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+    timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    """事前検査済みhandlerを隔離processで実行し、安定した公開結果を返す。"""
+
+    if not isinstance(data, bytes):
+        raise TypeError('dataはbytesで指定してください')
+    if not isinstance(source_name, str) or not source_name or len(source_name) > 512:
+        raise ValueError('source_nameが不正です')
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not 0.1 <= float(timeout_seconds) <= MAX_HANDLER_TIMEOUT_SECONDS
+    ):
+        raise ValueError('timeout_secondsは0.1秒以上300秒以下で指定してください')
+
+    preflight = preflight_handler_for_assessment(
+        spec,
+        actual_format=actual_format,
+        input_size=len(data),
+        maximum_input_size=maximum_input_size,
+    )
+    base = {
+        'handler': spec.public(),
+        'preflight': preflight,
+        'handler_timeout_seconds': float(timeout_seconds),
+    }
+    if not preflight['eligible']:
+        return {**base, 'status': 'preflight_blocked'}
+    if not _preflight_dependency_sources_unchanged(preflight):
+        return {
+            **base,
+            'status': 'preflight_blocked',
+            'preflight': {
+                **preflight,
+                'eligible': False,
+                'blockers': ['dependency_source_changed_after_preflight'],
+            },
+        }
+    try:
+        execution = _execute_handler_bounded(
+            spec,
+            data,
+            source_name,
+            timeout_seconds=float(timeout_seconds),
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            **base,
+            'status': 'timed_out',
+            'error': 'handler_wall_clock_timeout',
+        }
+    except Exception as exc:  # noqa: BLE001 - worker障害を公開用に正規化する
+        return {
+            **base,
+            'status': 'failed',
+            'error': 'handler_worker_failed',
+            'error_type': type(exc).__name__,
+        }
+    return {
+        **base,
+        'status': 'completed',
+        'execution': execution,
+    }
 
 
 def _normalized_assessment_layers(
@@ -1120,15 +2661,34 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
         raise TypeError('candidatesはsequenceで指定してください')
     if not 1 <= len(candidates) <= MAX_ASSESSMENT_CANDIDATES:
         raise ValueError(f'候補family数が不正です: {len(candidates)}')
-    merged: dict[str, set[str]] = {}
+    allowed_modes = {'candidate_verification', 'selected_family_analysis'}
+    merged: dict[str, dict[str, Any]] = {}
     for index, supplied in enumerate(candidates):
         if isinstance(supplied, str):
             family = supplied
-            sources = ['unspecified_candidate']
+            sources = ['explicit_caller_candidate']
+            routing_eligible = True
+            routing_mode = 'candidate_verification'
+            caller_selected_string = True
+            blocked_reasons: list[str] = []
         elif isinstance(supplied, Mapping):
             family = supplied.get('family')
             raw_sources = supplied.get('sources', supplied.get('source', []))
             sources = [raw_sources] if isinstance(raw_sources, str) else list(raw_sources or [])
+            routing_eligible = supplied.get('routing_eligible') is True
+            routing_mode = supplied.get('routing_mode')
+            caller_selected_string = False
+            blocked_reasons = []
+            if not routing_eligible:
+                blocked_reasons.append('routing_not_eligible')
+            if routing_mode not in allowed_modes:
+                blocked_reasons.append(f'routing_mode_not_executable:{routing_mode}')
+            nested = supplied.get('routing_eligibility')
+            if nested is not None:
+                if not isinstance(nested, Mapping):
+                    blocked_reasons.append('routing_eligibility_not_mapping')
+                elif routing_mode in allowed_modes and nested.get(routing_mode) is not True:
+                    blocked_reasons.append(f'routing_eligibility_mode_not_true:{routing_mode}')
         else:
             raise TypeError(f'candidate[{index}]が不正です')
         if not isinstance(family, str) or FAMILY_ID.fullmatch(family) is None:
@@ -1141,11 +2701,50 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
             for item in sources
         ):
             raise ValueError(f'candidate[{index}].sourcesが不正です')
-        merged.setdefault(family, set()).update(sources or ['unspecified_candidate'])
-    return [
-        {'family': family, 'sources': sorted(sources)}
-        for family, sources in sorted(merged.items())
-    ]
+        record = merged.setdefault(
+            family,
+            {
+                'family': family,
+                'sources': set(),
+                'routing_modes': set(),
+                'all_routing_eligible': True,
+                'caller_selected_string': False,
+                'blocked_reasons': set(),
+            },
+        )
+        record['sources'].update(sources or ['unspecified_candidate'])
+        record['routing_modes'].add(routing_mode)
+        record['all_routing_eligible'] = (
+            record['all_routing_eligible']
+            and routing_eligible
+            and routing_mode in allowed_modes
+            and not blocked_reasons
+        )
+        record['caller_selected_string'] = (
+            record['caller_selected_string'] or caller_selected_string
+        )
+        record['blocked_reasons'].update(blocked_reasons)
+
+    normalized: list[dict[str, Any]] = []
+    for family, record in sorted(merged.items()):
+        modes = set(record['routing_modes'])
+        if len(modes) != 1:
+            record['blocked_reasons'].add('conflicting_duplicate_routing_modes')
+            record['all_routing_eligible'] = False
+        assessment_eligible = bool(record['all_routing_eligible'])
+        routing_mode = next(iter(modes)) if len(modes) == 1 else 'blocked'
+        normalized.append(
+            {
+                'family': family,
+                'sources': sorted(record['sources']),
+                'routing_eligible': assessment_eligible,
+                'routing_mode': routing_mode,
+                'caller_selected_string': bool(record['caller_selected_string']),
+                'assessment_eligible': assessment_eligible,
+                'blocked_reasons': sorted(record['blocked_reasons']),
+            }
+        )
+    return normalized
 
 
 def _meaningful_detector_value(value: Any, *, key: str = '', depth: int = 0) -> bool:
@@ -1219,7 +2818,7 @@ def collect_detector_evaluations(
             raise ValueError(f'layer_classifications[{index}]のSHA-256が不正です')
         evaluations = classification.get('detector_evaluations', []) if isinstance(classification, Mapping) else []
         if not isinstance(evaluations, list):
-            raise ValueError(f'layer_classifications[{index}].detector_evaluationsが不正です')
+            raise TypeError(f'layer_classifications[{index}].detector_evaluationsが不正です')
         for evaluation in evaluations:
             if not isinstance(evaluation, Mapping):
                 continue
@@ -1306,6 +2905,7 @@ def assess_candidate_handlers(
     maximum_layer_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
     maximum_total_size: int = DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE,
     maximum_attempts: int = MAX_ASSESSMENT_ATTEMPTS,
+    handler_timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     '''候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。'''
 
@@ -1315,6 +2915,12 @@ def assess_candidate_handlers(
         or not 1 <= maximum_attempts <= MAX_ASSESSMENT_ATTEMPTS
     ):
         raise ValueError('maximum_attemptsが不正です')
+    if (
+        isinstance(handler_timeout_seconds, bool)
+        or not isinstance(handler_timeout_seconds, (int, float))
+        or not 0.1 <= float(handler_timeout_seconds) <= MAX_HANDLER_TIMEOUT_SECONDS
+    ):
+        raise ValueError('handler_timeout_secondsは0.1秒以上300秒以下で指定してください')
     normalized_layers = _normalized_assessment_layers(
         layers,
         maximum_layer_size=maximum_layer_size,
@@ -1327,7 +2933,11 @@ def assess_candidate_handlers(
             (
                 spec
                 for spec in catalog
-                if spec.family == candidate['family'] and spec.automatic
+                if (
+                    candidate['assessment_eligible']
+                    and spec.family == candidate['family']
+                    and spec.automatic
+                )
             ),
             key=lambda item: item.id,
         )
@@ -1352,6 +2962,17 @@ def assess_candidate_handlers(
     confirmed_families = []
     for candidate in normalized_candidates:
         family = str(candidate['family'])
+        if not candidate['assessment_eligible']:
+            family_results.append(
+                {
+                    **candidate,
+                    'status': 'blocked',
+                    'confirmed': False,
+                    'detector_layers': {},
+                    'attempts': [],
+                }
+            )
+            continue
         evidence_by_layer = _detector_evidence_by_layer(
             detector_evaluations,
             family,
@@ -1373,52 +2994,45 @@ def assess_candidate_handlers(
                         'size',
                     )
                 }
-                preflight = preflight_handler_for_assessment(
+                bounded = execute_handler_bounded_for_assessment(
                     spec,
+                    layer['data'],
+                    str(layer['name']),
                     actual_format=str(layer['format']),
-                    input_size=int(layer['size']),
                     maximum_input_size=maximum_layer_size,
+                    timeout_seconds=float(handler_timeout_seconds),
                 )
                 attempt: dict[str, Any] = {
                     'handler_id': spec.id,
                     'family': family,
                     'layer': public_layer,
-                    'preflight': preflight,
+                    'preflight': bounded['preflight'],
                 }
-                if not preflight['eligible']:
-                    attempts.append({**attempt, 'status': 'preflight_blocked'})
-                    continue
-                current_source_sha256 = hashlib.sha256(
-                    _resolve_handler_path(spec).read_bytes()
-                ).hexdigest()
-                if current_source_sha256 != preflight['source_sha256']:
+                bounded_status = bounded['status']
+                if bounded_status != 'completed':
                     attempts.append(
                         {
                             **attempt,
-                            'status': 'preflight_blocked',
-                            'preflight': {
-                                **preflight,
-                                'eligible': False,
-                                'blockers': ['source_changed_after_preflight'],
-                            },
+                            'status': bounded_status,
+                            'preflight': bounded['preflight'],
+                            **(
+                                {'error': bounded['error']}
+                                if isinstance(bounded.get('error'), str)
+                                else {}
+                            ),
+                            **(
+                                {'error_type': bounded['error_type']}
+                                if isinstance(bounded.get('error_type'), str)
+                                else {}
+                            ),
                         }
                     )
                     continue
-                try:
-                    executed = execute_handler(spec, layer['data'], str(layer['name']))
-                    quality = handler_result_quality(
-                        executed.get('result'),
-                        minimum_score=spec.minimum_evidence_score,
-                    )
-                except Exception as exc:
-                    attempts.append(
-                        {
-                            **attempt,
-                            'status': 'failed',
-                            'error': sanitize_public_value(f'{type(exc).__name__}: {exc}'),
-                        }
-                    )
-                    continue
+                executed = bounded['execution']
+                quality = handler_result_quality(
+                    executed.get('result'),
+                    minimum_score=spec.minimum_evidence_score,
+                )
                 detector = _best_detector_for_layer(
                     str(layer['sha256']),
                     evidence_by_layer,
@@ -1450,6 +3064,8 @@ def assess_candidate_handlers(
             family_status = 'handler_evidence_without_detector'
         elif detector_available:
             family_status = 'detector_only'
+        elif 'timed_out' in statuses:
+            family_status = 'handler_timed_out'
         elif 'failed' in statuses:
             family_status = 'handler_failed'
         elif attempts:
@@ -1473,8 +3089,12 @@ def assess_candidate_handlers(
         'status': 'confirmed' if confirmed_families else 'no_confirmed_family',
         'confirmed_families': sorted(confirmed_families),
         'candidate_count': len(normalized_candidates),
+        'blocked_candidate_count': sum(
+            not item['assessment_eligible'] for item in normalized_candidates
+        ),
         'layer_count': len(normalized_layers),
         'planned_attempt_count': planned_attempts,
+        'handler_timeout_seconds': float(handler_timeout_seconds),
         'families': family_results,
         'metadata_hint_can_confirm': False,
         'confirmation_requirement': 'handler_evidence_and_detector_corroboration_in_same_lineage',
@@ -1482,3 +3102,9 @@ def assess_candidate_handlers(
         'network_contacted': False,
         'filesystem_written_by_handlers': False,
     }
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 4 and sys.argv[1] == '--assessment-worker':
+        raise SystemExit(_assessment_worker_main(sys.argv[2], sys.argv[3]))
+    raise SystemExit('このmoduleは--assessment-worker以外の直接実行に対応していません')
