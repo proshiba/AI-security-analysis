@@ -483,6 +483,7 @@ def _candidate_handler_assessment(
     layer_classifications: list[dict[str, Any]],
     specs: list[HandlerSpec],
     assessment_only: bool,
+    artifact_directory: Path | None,
 ) -> dict[str, Any]:
     '''互換layerを容量・試行数の上限内で静的に候補検証する。'''
 
@@ -570,6 +571,8 @@ def _candidate_handler_assessment(
         detector_evaluations=collect_detector_evaluations(layer_classifications),
         specs=candidate_specs,
         maximum_attempts=MAX_ASSESSMENT_ATTEMPTS,
+        artifact_directory=artifact_directory,
+        artifact_path_prefix='p',
     )
     result['selected_layer_count'] = len(selected)
     result['selected_total_size'] = total_size
@@ -883,9 +886,20 @@ def _verified_outputs_from_wrapper(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, dict):
         return []
     supplied = value.get('verified_binary_outputs')
+    if not isinstance(supplied, list) or not supplied:
+        supplied = value.get('observed_binary_outputs')
     if not isinstance(supplied, list):
         return []
     return [item for item in supplied if isinstance(item, dict)]
+
+
+def _verified_output_audit_from_wrapper(value: Any) -> dict[str, Any] | None:
+    '''handler wrapperの保持・後続解析auditを改変せずoutcome境界へ渡す。'''
+
+    if not isinstance(value, dict):
+        return None
+    supplied = value.get('verified_binary_output_audit')
+    return supplied if isinstance(supplied, dict) else None
 
 
 def _legacy_outcome_handler_records(
@@ -917,6 +931,9 @@ def _legacy_outcome_handler_records(
             verified = _verified_outputs_from_wrapper(wrapper)
             if verified:
                 record['verified_binary_outputs'] = verified
+            audit = _verified_output_audit_from_wrapper(wrapper)
+            if audit is not None:
+                record['verified_binary_output_audit'] = audit
         records.append(record)
     return records
 
@@ -951,6 +968,9 @@ def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[
                         or (attempt.get('layer') or {}).get('sha256')
                     ),
                     'verified_binary_outputs': _verified_outputs_from_wrapper(
+                        attempt.get('result')
+                    ),
+                    'verified_binary_output_audit': _verified_output_audit_from_wrapper(
                         attempt.get('result')
                     ),
                     'result': attempt.get('result'),
@@ -1009,6 +1029,7 @@ def _public_outcome_handler_records(records: list[dict[str, Any]]) -> list[dict[
                 'detector_corroboration',
                 'selected_layer_sha256',
                 'verified_binary_outputs',
+                'verified_binary_output_audit',
             )
         }
         for record in records
@@ -1382,6 +1403,16 @@ def analyze_unit(
         write_json(case_dir / "generic-triage.json", generic)
 
     executions = []
+    recovered_payload_directory: Path | None = None
+    if not assessment_only:
+        resolved_case = case_dir.resolve(strict=True)
+        resolved_repository = REPOSITORY_ROOT.resolve(strict=True)
+        if resolved_case != resolved_repository and resolved_repository not in resolved_case.parents:
+            # WindowsのMAX_PATH余裕を確保するため、hash case配下は短い固定名にする。
+            recovered_payload_directory = case_dir / 'p'
+            ensure_no_reparse_components(recovered_payload_directory)
+            recovered_payload_directory.mkdir()
+            ensure_no_reparse_components(recovered_payload_directory)
     specs_by_id = {item.id: item for item in specs}
     if not assessment_only:
         for item in applicability:
@@ -1427,6 +1458,8 @@ def analyze_unit(
                         layer.name,
                         actual_format=planned["actual_format"],
                         maximum_input_size=DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+                        artifact_directory=recovered_payload_directory,
+                        artifact_path_prefix='p',
                     )
                     worker_status = bounded.get("status")
                     worker_attempt = {
@@ -1558,6 +1591,7 @@ def analyze_unit(
         layer_classifications=public_classifications,
         specs=specs,
         assessment_only=assessment_only,
+        artifact_directory=recovered_payload_directory,
     )
     write_json(case_dir / 'candidate-handler-assessment.json', candidate_assessment)
 
@@ -1730,6 +1764,16 @@ def analyze_unit(
     artifact_paths.extend(
         ['family-routing.json', 'candidate-handler-assessment.json', 'orchestration.json']
     )
+    retained_outputs = (outcome.get('outputs') or {}).get('retained_binary_outputs')
+    if isinstance(retained_outputs, list):
+        retained_paths = {
+            item['path']
+            for item in retained_outputs
+            if isinstance(item, dict) and isinstance(item.get('path'), str)
+        }
+        artifact_paths.extend(
+            path for path in sorted(retained_paths) if path not in artifact_paths
+        )
     report['artifact_sha256'] = artifact_hashes(case_dir, artifact_paths)
     seal_report(report)
     write_json(case_dir / "report.json", report)

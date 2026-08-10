@@ -87,6 +87,7 @@ def _record(
     *,
     status: str = "succeeded",
     verified_binary_outputs: list[dict[str, object]] | None = None,
+    verified_binary_output_audit: dict[str, object] | None = None,
 ) -> dict[str, object]:
     enriched = {"capabilities": ["fixture"], **payload}
     quality = handler_result_quality(enriched)
@@ -119,6 +120,8 @@ def _record(
         )
     if verified_binary_outputs is not None:
         record["verified_binary_outputs"] = verified_binary_outputs
+    if verified_binary_output_audit is not None:
+        record["verified_binary_output_audit"] = verified_binary_output_audit
     return record
 
 
@@ -134,6 +137,24 @@ def _verified_output(*, matches: bool = True) -> dict[str, object]:
             "sha256_matches": matches,
             "size_matches": True,
         },
+    }
+
+
+def _retention_audit(*, analysis_complete: bool) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "maximum_outputs": 64,
+        "maximum_total_size": 256 * 1024 * 1024,
+        "binary_values_seen": 1,
+        "binary_bytes_seen": 1_234,
+        "traversal_items": 4,
+        "observed_output_count": 1,
+        "retained_output_count": 1,
+        "retained_for_follow_on_analysis": True,
+        "follow_on_analysis_complete": analysis_complete,
+        "observation_scope": "parent_rehashed_case_artifact",
+        "truncated": False,
+        "reasons": [],
     }
 
 
@@ -254,12 +275,60 @@ def test_verified_binary_manifest_marks_terminal_reached() -> None:
         "loader",
         {},
         verified_binary_outputs=[_verified_output()],
+        verified_binary_output_audit=_retention_audit(analysis_complete=True),
     )
     outputs = summarize_handler_outputs([record])
 
     assert outputs["terminal_payload"]["status"] == "verified"
     assert outputs["terminal_payload_sha256"] == ["b" * 64]
     assert outputs["verified_binary_outputs"][0]["size"] == 1_234
+
+
+def test_retained_payload_without_follow_on_analysis_remains_incomplete() -> None:
+    record = _record(
+        "loader",
+        {},
+        verified_binary_outputs=[_verified_output()],
+        verified_binary_output_audit=_retention_audit(analysis_complete=False),
+    )
+    outputs = summarize_handler_outputs([record])
+
+    assert outputs["terminal_payload"]["status"] == "retained_pending_analysis"
+    assert outputs["retained_terminal_payload_sha256"] == ["b" * 64]
+    assert outputs["terminal_payload_sha256"] == []
+    built = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "loader",
+                "known_hash",
+                requirements={"terminal_payload_required": True},
+            )
+        ],
+        handler_records=[record],
+        function_analysis_available=True,
+    )
+    assert built["status"] == "partial"
+    assert built["quality_gates"]["terminal_payload"]["status"] == "required_missing"
+    assert "terminal_payload" in built["blockers"]
+
+
+def test_forged_retention_audit_does_not_upgrade_terminal_payload() -> None:
+    forged = _retention_audit(analysis_complete=True)
+    forged["observation_scope"] = "handler_self_report"
+    record = _record(
+        "loader",
+        {},
+        verified_binary_outputs=[_verified_output()],
+        verified_binary_output_audit=forged,
+    )
+    outputs = summarize_handler_outputs([record])
+
+    assert outputs["terminal_payload"]["status"] == "candidate"
+    assert outputs["retained_binary_outputs"] == []
+    assert outputs["terminal_payload_sha256"] == []
 
 
 def test_invalid_verified_binary_manifest_remains_unresolved() -> None:

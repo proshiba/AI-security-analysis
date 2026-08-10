@@ -296,9 +296,10 @@ def _accepted_record(
     payload: dict,
     *,
     verified_binary_outputs: list[dict] | None = None,
+    follow_on_analysis_complete: bool = False,
 ) -> dict:
     digest = "1" * 64
-    return {
+    record = {
         "source": "selected_family_analysis",
         "family": family,
         "handler_id": f"{family}:fixture",
@@ -307,6 +308,30 @@ def _accepted_record(
         "selected_evidence": one_shot.handler_result_quality(payload),
         "verified_binary_outputs": verified_binary_outputs or [],
         "result": {"result": payload},
+    }
+    if verified_binary_outputs:
+        record["verified_binary_output_audit"] = _retention_audit(
+            output_count=len(verified_binary_outputs),
+            analysis_complete=follow_on_analysis_complete,
+        )
+    return record
+
+
+def _retention_audit(*, output_count: int, analysis_complete: bool) -> dict:
+    return {
+        "schema_version": 1,
+        "maximum_outputs": 64,
+        "maximum_total_size": 256 * 1024 * 1024,
+        "binary_values_seen": output_count,
+        "binary_bytes_seen": 128 * output_count,
+        "traversal_items": 4,
+        "observed_output_count": output_count,
+        "retained_output_count": output_count,
+        "retained_for_follow_on_analysis": True,
+        "follow_on_analysis_complete": analysis_complete,
+        "observation_scope": "parent_rehashed_case_artifact",
+        "truncated": False,
+        "reasons": [],
     }
 
 
@@ -433,9 +458,9 @@ def test_loader_requires_wrapper_verified_terminal_payload() -> None:
         handler_records=[terminal_only],
         function_analysis_available=True,
     )
-    assert missing_network["outputs"]["terminal_payload"]["status"] == "verified"
+    assert missing_network["outputs"]["terminal_payload"]["status"] == "retained_pending_analysis"
     assert missing_network["status"] == "partial"
-    assert missing_network["blockers"] == ["network"]
+    assert missing_network["blockers"] == ["network", "terminal_payload"]
 
     complete = one_shot.orchestration_outcome.build_outcome(
         sample_sha256="1" * 64,
@@ -451,6 +476,7 @@ def test_loader_requires_wrapper_verified_terminal_payload() -> None:
                     "urls": ["https://stage.example.org/payload.bin"],
                 },
                 verified_binary_outputs=[output],
+                follow_on_analysis_complete=True,
             )
         ],
         function_analysis_available=True,
@@ -500,10 +526,14 @@ def test_candidate_flat_record_preserves_corroboration_and_verified_output() -> 
                             "lineage_distance": 0,
                         },
                         "layer": {"sha256": "1" * 64},
-                        "result": {
-                            "result": payload,
-                            "verified_binary_outputs": [output],
-                        },
+                            "result": {
+                                "result": payload,
+                                "verified_binary_outputs": [output],
+                                "verified_binary_output_audit": _retention_audit(
+                                    output_count=1,
+                                    analysis_complete=True,
+                                ),
+                            },
                     }
                 ],
             }
@@ -516,6 +546,7 @@ def test_candidate_flat_record_preserves_corroboration_and_verified_output() -> 
     assert records[0]["detector_corroboration"]["corroborated"] is True
     assert records[0]["selected_layer_sha256"] == "1" * 64
     assert records[0]["verified_binary_outputs"] == [output]
+    assert records[0]["verified_binary_output_audit"]["follow_on_analysis_complete"] is True
     assert records[0]["result"] == assessment["families"][0]["attempts"][0]["result"]
     candidate = {
         "family": "valleyrat",
@@ -543,18 +574,20 @@ def test_candidate_flat_record_preserves_corroboration_and_verified_output() -> 
     assert outputs["terminal_payload"]["status"] == "verified"
 
 
-def test_selected_family_wrapper_output_is_terminal_verified_end_to_end(
+def test_selected_family_retained_output_stays_pending_end_to_end(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    """worker wrapperの検証済みbinary metadataだけを最終payloadへ昇格する。"""
+    """worker payloadを保持しても後続静的解析前はcompleteへ昇格しない。"""
 
     unit = _configure_selected_case(monkeypatch, b"selected wrapper output fixture", "guloader")
+    terminal_bytes = b"MZ" + b"P" * 126
+    terminal_sha256 = hashlib.sha256(terminal_bytes).hexdigest()
     verified = {
         "role": "terminal_payload",
         "kind": "pe",
-        "path": "handler-result/terminal_payload/payload.exe",
-        "sha256": "2" * 64,
+        "path": f"p/{terminal_sha256}.exe",
+        "sha256": terminal_sha256,
         "size": 128,
         "verification": {
             "status": "artifact_hash_verified",
@@ -563,7 +596,9 @@ def test_selected_family_wrapper_output_is_terminal_verified_end_to_end(
         },
     }
 
-    def bounded(spec, _data, _source_name, **_kwargs):
+    def bounded(spec, _data, _source_name, **kwargs):
+        destination = kwargs["artifact_directory"]
+        (destination / f"{terminal_sha256}.exe").write_bytes(terminal_bytes)
         return {
             "status": "completed",
             "handler": spec.public(),
@@ -578,6 +613,10 @@ def test_selected_family_wrapper_output_is_terminal_verified_end_to_end(
                     "terminal_payload": {"sha256": "f" * 64},
                 },
                 "verified_binary_outputs": [verified],
+                "verified_binary_output_audit": _retention_audit(
+                    output_count=1,
+                    analysis_complete=False,
+                ),
                 "executed_sample": False,
                 "network_contacted": False,
             },
@@ -603,9 +642,11 @@ def test_selected_family_wrapper_output_is_terminal_verified_end_to_end(
     outcome = json.loads((case_dir / "orchestration.json").read_text(encoding="utf-8"))
 
     assert wrapper["verified_binary_outputs"] == [verified]
-    assert outcome["status"] == "complete"
-    assert outcome["outputs"]["terminal_payload"]["status"] == "verified"
-    assert outcome["outputs"]["terminal_payload_sha256"] == ["2" * 64]
+    assert outcome["status"] == "partial"
+    assert outcome["outputs"]["terminal_payload"]["status"] == "retained_pending_analysis"
+    assert outcome["outputs"]["retained_terminal_payload_sha256"] == [terminal_sha256]
+    assert outcome["outputs"]["terminal_payload_sha256"] == []
+    assert "terminal_payload" in outcome["blockers"]
     assert "f" * 64 not in outcome["outputs"]["terminal_payload_sha256"]
 
 

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator, Mapping, Sequence
-from itertools import islice
 from ipaddress import ip_address
+from itertools import islice
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlsplit
@@ -52,6 +52,23 @@ MAX_EVIDENCE_NODES = 50_000
 MAX_CONTAINER_ITEMS = 4_096
 VERIFIED_OUTPUT_ROLES = frozenset({"terminal_payload", "final_payload"})
 VERIFIED_OUTPUT_KINDS = frozenset({"binary", "pe", "elf", "macho", "script", "archive"})
+VERIFIED_OUTPUT_AUDIT_KEYS = frozenset(
+    {
+        "schema_version",
+        "maximum_outputs",
+        "maximum_total_size",
+        "binary_values_seen",
+        "binary_bytes_seen",
+        "traversal_items",
+        "observed_output_count",
+        "retained_output_count",
+        "retained_for_follow_on_analysis",
+        "follow_on_analysis_complete",
+        "observation_scope",
+        "truncated",
+        "reasons",
+    }
+)
 SENSITIVE_PATH_RE = re.compile(
     r"(?:^|[-_.])(?:auth|bearer|credential|key|pass(?:word)?|secret|session|token|jwt|api[-_]?key)(?:$|[-_.])",
     re.IGNORECASE,
@@ -555,6 +572,50 @@ def _verified_binary_output(value: object) -> dict[str, Any] | None:
     }
 
 
+def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any] | None:
+    """親processの再hash済み保持auditだけを厳格schemaで受理する。"""
+
+    if not isinstance(value, Mapping) or set(value) != VERIFIED_OUTPUT_AUDIT_KEYS:
+        return None
+    integer_keys = (
+        "maximum_outputs",
+        "maximum_total_size",
+        "binary_values_seen",
+        "binary_bytes_seen",
+        "traversal_items",
+        "observed_output_count",
+        "retained_output_count",
+    )
+    if any(
+        not isinstance(value.get(key), int)
+        or isinstance(value.get(key), bool)
+        or int(value[key]) < 0
+        for key in integer_keys
+    ):
+        return None
+    reasons = value.get("reasons")
+    if (
+        value.get("schema_version") != 1
+        or value.get("maximum_outputs") != 64
+        or value.get("maximum_total_size") != 256 * 1024 * 1024
+        or value.get("retained_output_count") != output_count
+        or int(value.get("observed_output_count", 0)) < output_count
+        or value.get("retained_for_follow_on_analysis") is not True
+        or value.get("observation_scope") != "parent_rehashed_case_artifact"
+        or type(value.get("follow_on_analysis_complete")) is not bool
+        or type(value.get("truncated")) is not bool
+        or not isinstance(reasons, Sequence)
+        or isinstance(reasons, (str, bytes, bytearray))
+        or any(not isinstance(item, str) or not item for item in reasons)
+        or list(reasons) != sorted(set(reasons))
+    ):
+        return None
+    return {
+        "retained": True,
+        "analysis_complete": value.get("follow_on_analysis_complete") is True,
+    }
+
+
 def _provenance(record: Mapping[str, Any], evidence_path: tuple[str, ...]) -> dict[str, str]:
     return {
         "family": _family(record.get("family")) or "unknown",
@@ -589,6 +650,7 @@ def summarize_handler_outputs(
     endpoints: dict[tuple[Any, ...], dict[str, Any]] = {}
     claimed_hashes: set[str] = set()
     output_candidates: dict[tuple[Any, ...], dict[str, Any]] = {}
+    retained_outputs: dict[tuple[Any, ...], dict[str, Any]] = {}
     verified_outputs: dict[tuple[Any, ...], dict[str, Any]] = {}
     for record in handler_records:
         record_family = _family(record.get("family"))
@@ -639,7 +701,12 @@ def summarize_handler_outputs(
 
         supplied_outputs = record.get("verified_binary_outputs")
         if isinstance(supplied_outputs, Sequence) and not isinstance(supplied_outputs, (str, bytes, bytearray)):
-            for raw_output in islice(supplied_outputs, 256):
+            bounded_outputs = list(islice(supplied_outputs, 256))
+            retention = _verified_output_audit(
+                record.get("verified_binary_output_audit"),
+                output_count=len(bounded_outputs),
+            )
+            for raw_output in bounded_outputs:
                 output = _verified_binary_output(raw_output)
                 if output is None:
                     continue
@@ -653,7 +720,10 @@ def summarize_handler_outputs(
                 provenance = _provenance(record, ("verified_binary_outputs",))
                 candidate = output_candidates.setdefault(identity, {**output, "_provenance": set()})
                 candidate["_provenance"].add(tuple(provenance.values()))
-                if accepted:
+                if accepted and retention is not None:
+                    retained = retained_outputs.setdefault(identity, {**output, "_provenance": set()})
+                    retained["_provenance"].add(tuple(provenance.values()))
+                if accepted and retention is not None and retention["analysis_complete"]:
                     verified = verified_outputs.setdefault(identity, {**output, "_provenance": set()})
                     verified["_provenance"].add(tuple(provenance.values()))
 
@@ -667,10 +737,13 @@ def summarize_handler_outputs(
         ]
 
     terminal_candidates = public_outputs(output_candidates)
+    terminal_retained = public_outputs(retained_outputs)
     terminal_verified = public_outputs(verified_outputs)
     terminal_status = (
         "verified"
         if terminal_verified
+        else "retained_pending_analysis"
+        if terminal_retained
         else "candidate"
         if terminal_candidates
         else "claimed"
@@ -694,9 +767,12 @@ def summarize_handler_outputs(
             "status": terminal_status,
             "claimed_sha256": sorted(claimed_hashes),
             "candidates": terminal_candidates,
+            "retained": terminal_retained,
             "verified": terminal_verified,
         },
+        "retained_terminal_payload_sha256": sorted({item["sha256"] for item in terminal_retained}),
         "terminal_payload_sha256": sorted({item["sha256"] for item in terminal_verified}),
+        "retained_binary_outputs": terminal_retained,
         "verified_binary_outputs": terminal_verified,
     }
 

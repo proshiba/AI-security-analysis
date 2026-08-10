@@ -454,6 +454,98 @@ def test_execute_handler_verifies_raw_terminal_binary_and_separates_self_report(
     assert result['result']['terminal_payload']['data']['content_exported'] is False
 
 
+def test_bounded_handler_retains_raw_payload_only_after_parent_rehash(
+    isolated_catalog,
+    tmp_path: Path,
+) -> None:
+    """隔離workerのraw bytesは親再検証後だけrepo外artifactへ保持する。"""
+
+    repository, malware_root = isolated_catalog
+    payload = b'MZ' + b'B' * 62
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        f'    return {{"terminal_payload": {{"name": "stage.exe", "data": {payload!r}}}}}\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    artifact_directory = tmp_path / 'retained'
+    artifact_directory.mkdir()
+
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b'input',
+        'sample.bin',
+        actual_format='data',
+        artifact_directory=artifact_directory,
+        artifact_path_prefix='recovered-payloads',
+    )
+
+    assert bounded['status'] == 'completed'
+    execution = bounded['execution']
+    digest = hashlib.sha256(payload).hexdigest()
+    retained = artifact_directory / f'{digest}.exe'
+    assert retained.read_bytes() == payload
+    assert execution['verified_binary_outputs'][0]['path'] == (
+        f'recovered-payloads/{digest}.exe'
+    )
+    assert execution['verified_binary_output_audit']['retained_for_follow_on_analysis'] is True
+    assert execution['verified_binary_output_audit']['follow_on_analysis_complete'] is False
+    assert execution['verified_binary_output_audit']['observation_scope'] == (
+        'parent_rehashed_case_artifact'
+    )
+
+
+def test_bounded_handler_without_destination_is_observed_only(
+    isolated_catalog,
+) -> None:
+    """保存先なしのraw bytesはhash観測だけを残しterminal完了へ昇格しない。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    return {"terminal_payload": b"MZ-observed"}\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b'input',
+        'sample.bin',
+        actual_format='data',
+    )
+
+    execution = bounded['execution']
+    assert execution['verified_binary_outputs'] == []
+    assert len(execution['observed_binary_outputs']) == 1
+    assert execution['verified_binary_output_audit']['retained_for_follow_on_analysis'] is False
+    assert execution['verified_binary_output_audit']['follow_on_analysis_complete'] is False
+
+
+def test_retention_rejects_repository_destination(
+    isolated_catalog,
+) -> None:
+    """復号payloadをGit repository配下へ保存する指定は拒否する。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        'def extract_config(data):\n'
+        '    return {"terminal_payload": b"MZ-repository"}\n'
+    )
+    spec = _handler_spec(repository, malware_root, 'candidate_family', source)
+    forbidden = repository / 'analysis-output'
+    forbidden.mkdir()
+
+    with pytest.raises(ValueError, match='repository'):
+        catalog.execute_handler_bounded_for_assessment(
+            spec,
+            b'input',
+            'sample.bin',
+            actual_format='data',
+            artifact_directory=forbidden,
+        )
+
+
 def test_verified_binary_scan_is_bounded_and_cycle_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     """raw result走査はcycleと総byte上限で停止する。"""
 
@@ -467,6 +559,26 @@ def test_verified_binary_scan_is_bounded_and_cycle_safe(monkeypatch: pytest.Monk
     outputs, audit = catalog._verified_binary_outputs({'terminal_payload': b'MZ123'})
     assert outputs == []
     assert 'maximum_total_binary_size' in audit['reasons']
+    assert audit['truncated'] is True
+
+
+def test_truncated_raw_payload_is_not_staged(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """total-size上限を超えたraw bytesは一時artifactも生成しない。"""
+
+    artifact_root = tmp_path / 'worker-artifacts'
+    artifact_root.mkdir()
+    monkeypatch.setattr(catalog, 'MAX_VERIFIED_BINARY_TOTAL_SIZE', 4)
+    outputs, audit = catalog._verified_binary_outputs(
+        {'terminal_payload': b'MZ123'},
+        artifact_root=artifact_root,
+    )
+
+    assert outputs == []
+    assert list(artifact_root.iterdir()) == []
+    assert audit['retained_for_follow_on_analysis'] is False
     assert audit['truncated'] is True
 
 

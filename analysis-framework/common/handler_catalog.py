@@ -11,6 +11,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -916,7 +917,31 @@ def _safe_verified_binary_path(
     return normalized
 
 
-def _verified_binary_outputs(raw_result: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _stage_verified_binary(artifact_root: Path, digest: str, raw: bytes) -> None:
+    """worker一時領域へdigest名でraw bytesを排他的に保存する。"""
+
+    from analysis_contract import ensure_no_reparse_components
+
+    ensure_no_reparse_components(artifact_root)
+    resolved_root = artifact_root.resolve(strict=True)
+    destination = resolved_root / f'{digest}.payload'
+    ensure_no_reparse_components(destination)
+    try:
+        with destination.open('xb') as stream:
+            stream.write(raw)
+    except FileExistsError:
+        # 同一digestが複数の役割で返る場合だけ既存stageを再利用する。
+        with destination.open('rb') as stream:
+            existing = stream.read(len(raw) + 1)
+        if existing != raw:
+            raise HandlerLoadError('worker artifact digest collision')
+
+
+def _verified_binary_outputs(
+    raw_result: Any,
+    *,
+    artifact_root: Path | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """raw handler resultを有界走査し、実体hash済みterminal/final payloadだけを返す。"""
 
     outputs: list[dict[str, Any]] = []
@@ -994,6 +1019,11 @@ def _verified_binary_outputs(raw_result: Any) -> tuple[list[dict[str, Any]], dic
                     },
                 }
             )
+            if artifact_root is not None:
+                try:
+                    _stage_verified_binary(artifact_root, digest, raw)
+                except (OSError, ValueError, HandlerLoadError):
+                    reasons.add('artifact_staging_failed')
             return
         if isinstance(value, Mapping):
             identity = id(value)
@@ -1036,8 +1066,15 @@ def _verified_binary_outputs(raw_result: Any) -> tuple[list[dict[str, Any]], dic
         'binary_values_seen': binary_values_seen,
         'binary_bytes_seen': binary_bytes_seen,
         'traversal_items': traversal_items,
+        'observed_output_count': len(outputs),
+        'retained_output_count': 0,
         'retained_for_follow_on_analysis': False,
-        'observation_scope': 'wrapper_hash_metadata_only',
+        'follow_on_analysis_complete': False,
+        'observation_scope': (
+            'worker_staged_untrusted'
+            if artifact_root is not None
+            else 'wrapper_hash_metadata_only'
+        ),
         'truncated': bool(reasons.intersection({
             'maximum_depth',
             'maximum_items',
@@ -1067,14 +1104,23 @@ def _invoke_handler(spec: HandlerSpec, data: bytes, source_name: str) -> Any:
     raise HandlerLoadError(f"unsupported invocation: {invocation}")
 
 
-def execute_handler(spec: HandlerSpec, data: bytes, source_name: str) -> dict[str, Any]:
+def execute_handler(
+    spec: HandlerSpec,
+    data: bytes,
+    source_name: str,
+    *,
+    artifact_root: Path | None = None,
+) -> dict[str, Any]:
     """1つの静的解析関数を実行し、秘密値とバイナリを除去して返す。"""
 
     try:
         result = _invoke_handler(spec, data, source_name)
     except HandlerNoEvidenceError as exc:
         result = {"status": "not_applicable", "reason": str(exc)}
-    verified_outputs, verification_audit = _verified_binary_outputs(result)
+    verified_outputs, verification_audit = _verified_binary_outputs(
+        result,
+        artifact_root=artifact_root,
+    )
     return {
         "handler": spec.public(),
         "result": sanitize_public_value(result),
@@ -1149,10 +1195,14 @@ def _assessment_worker_main(encoded_request: str, output_path: str) -> int:
     worker_output = Path(output_path)
     if not worker_output.is_absolute() or worker_output.exists() or not worker_output.parent.is_dir():
         return 2
+    worker_artifacts = worker_output.parent / 'artifacts'
     try:
         from analysis_contract import ensure_no_reparse_components
 
         ensure_no_reparse_components(worker_output.parent)
+        ensure_no_reparse_components(worker_artifacts)
+        if not worker_artifacts.is_dir():
+            return 2
     except (OSError, ValueError):
         return 2
     try:
@@ -1195,7 +1245,12 @@ def _assessment_worker_main(encoded_request: str, output_path: str) -> int:
             raise HandlerLoadError('worker input exceeds maximum layer size')
         discarded = _DiscardHandlerText()
         with redirect_stdout(discarded), redirect_stderr(discarded):
-            result = execute_handler(spec, data, source_name)
+            result = execute_handler(
+                spec,
+                data,
+                source_name,
+                artifact_root=worker_artifacts,
+            )
         response: dict[str, Any] = {'ok': True, 'result': result}
     except Exception as exc:  # noqa: BLE001 - worker境界では全障害を公開用に正規化する
         response = {
@@ -1232,12 +1287,234 @@ def _bounded_handler_environment() -> dict[str, str]:
     return environment
 
 
+def _validated_artifact_destination(
+    artifact_directory: Path | None,
+    artifact_path_prefix: str,
+) -> tuple[Path, str] | None:
+    """親processが所有する既存artifact directoryと公開相対prefixを検証する。"""
+
+    if artifact_directory is None:
+        return None
+    from analysis_contract import ensure_no_reparse_components
+
+    directory = Path(artifact_directory)
+    if not directory.is_absolute():
+        raise ValueError('artifact_directoryは絶対pathで指定してください')
+    ensure_no_reparse_components(directory)
+    resolved = directory.resolve(strict=True)
+    if not resolved.is_dir():
+        raise ValueError('artifact_directoryは既存directoryで指定してください')
+    repository = REPOSITORY_ROOT.resolve(strict=True)
+    if resolved == repository or repository in resolved.parents:
+        raise ValueError('復号payloadはrepository配下へ保存できません')
+    normalized = artifact_path_prefix.strip().replace(chr(92), '/')
+    if (
+        not normalized
+        or len(normalized) > 256
+        or normalized.startswith('/')
+        or re.fullmatch(r'[A-Za-z0-9_./-]+', normalized) is None
+        or any(part in {'', '.', '..'} for part in normalized.split('/'))
+    ):
+        raise ValueError('artifact_path_prefixが不正です')
+    return resolved, normalized
+
+
+def _read_verified_artifact(path: Path, *, expected_size: int, expected_sha256: str) -> bytes:
+    """通常fileを単一handleで有界読取りし、hardlink・変更・hash不一致を拒否する。"""
+
+    from analysis_contract import ensure_no_reparse_components
+
+    ensure_no_reparse_components(path)
+    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = os.open(path, flags)
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_nlink != 1
+            or before.st_size != expected_size
+            or expected_size > MAX_VERIFIED_BINARY_TOTAL_SIZE
+        ):
+            raise HandlerLoadError('artifact file metadata is invalid')
+        chunks: list[bytes] = []
+        remaining = expected_size + 1
+        while remaining > 0:
+            chunk = os.read(descriptor, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raw = b''.join(chunks)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity_before = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        getattr(before, 'st_mtime_ns', int(before.st_mtime * 1_000_000_000)),
+    )
+    identity_after = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        getattr(after, 'st_mtime_ns', int(after.st_mtime * 1_000_000_000)),
+    )
+    if identity_before != identity_after or len(raw) != expected_size:
+        raise HandlerLoadError('artifact changed while reading')
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise HandlerLoadError('artifact hash does not match worker observation')
+    return raw
+
+
+def _retained_artifact_path(
+    artifact_directory: Path,
+    artifact_path_prefix: str,
+    output: Mapping[str, Any],
+) -> tuple[Path, str]:
+    """検証済みmetadataから衝突しないcase内保存pathを決定する。"""
+
+    extension = {
+        'archive': 'archive',
+        'binary': 'bin',
+        'elf': 'elf',
+        'macho': 'macho',
+        'pe': 'exe',
+        'script': 'txt',
+    }[str(output['kind'])]
+    digest = str(output['sha256'])
+    from analysis_contract import ensure_no_reparse_components
+
+    ensure_no_reparse_components(artifact_directory)
+    destination = artifact_directory / f'{digest}.{extension}'
+    return destination, f'{artifact_path_prefix}/{digest}.{extension}'
+
+
+def _retain_worker_outputs(
+    execution: dict[str, Any],
+    *,
+    worker_artifacts: Path,
+    artifact_destination: tuple[Path, str] | None,
+) -> dict[str, Any]:
+    """worker観測metadataを親再検証済みcase artifactへfail-closedで昇格する。"""
+
+    supplied = execution.get('verified_binary_outputs')
+    observed = [item for item in supplied if isinstance(item, dict)] if isinstance(supplied, list) else []
+    retained: list[dict[str, Any]] = []
+    reasons = {
+        str(item)
+        for item in (execution.get('verified_binary_output_audit') or {}).get('reasons', [])
+        if isinstance(item, str)
+    }
+    if artifact_destination is not None:
+        artifact_directory, artifact_path_prefix = artifact_destination
+        for output in observed[:MAX_VERIFIED_BINARY_OUTPUTS]:
+            try:
+                if set(output) != {'role', 'kind', 'path', 'sha256', 'size', 'verification'}:
+                    raise HandlerLoadError('worker artifact metadata schema is invalid')
+                role = output.get('role')
+                kind = output.get('kind')
+                digest = output.get('sha256')
+                size = output.get('size')
+                verification = output.get('verification')
+                if (
+                    role not in {'terminal_payload', 'final_payload'}
+                    or kind not in VERIFIED_BINARY_KINDS
+                    or not isinstance(digest, str)
+                    or re.fullmatch(r'[0-9a-f]{64}', digest) is None
+                    or not isinstance(size, int)
+                    or isinstance(size, bool)
+                    or not 0 < size <= MAX_VERIFIED_BINARY_TOTAL_SIZE
+                    or not isinstance(verification, dict)
+                    or verification != {
+                        'status': 'artifact_hash_verified',
+                        'sha256_matches': True,
+                        'size_matches': True,
+                    }
+                ):
+                    raise HandlerLoadError('worker artifact metadata is invalid')
+                staged = worker_artifacts / f'{digest}.payload'
+                raw = _read_verified_artifact(
+                    staged,
+                    expected_size=size,
+                    expected_sha256=digest,
+                )
+                destination, public_path = _retained_artifact_path(
+                    artifact_directory,
+                    artifact_path_prefix,
+                    output,
+                )
+                created = False
+                try:
+                    with destination.open('xb') as stream:
+                        created = True
+                        stream.write(raw)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                except FileExistsError:
+                    pass
+                try:
+                    _read_verified_artifact(
+                        destination,
+                        expected_size=size,
+                        expected_sha256=digest,
+                    )
+                except Exception:
+                    if created:
+                        destination.unlink(missing_ok=True)
+                    raise
+                retained.append({**output, 'path': public_path})
+            except (OSError, ValueError, HandlerLoadError):
+                reasons.add('artifact_retention_failed')
+    if len(observed) > MAX_VERIFIED_BINARY_OUTPUTS:
+        reasons.add('maximum_verified_outputs')
+    worker_audit = execution.get('verified_binary_output_audit')
+    truncated = (
+        isinstance(worker_audit, dict)
+        and worker_audit.get('truncated') is True
+    ) or bool(reasons.intersection({
+        'maximum_depth',
+        'maximum_items',
+        'maximum_total_binary_size',
+        'maximum_verified_outputs',
+    }))
+    execution['observed_binary_outputs'] = observed
+    execution['verified_binary_outputs'] = retained
+    execution['verified_binary_output_audit'] = {
+        'schema_version': 1,
+        'maximum_outputs': MAX_VERIFIED_BINARY_OUTPUTS,
+        'maximum_total_size': MAX_VERIFIED_BINARY_TOTAL_SIZE,
+        'binary_values_seen': (
+            worker_audit.get('binary_values_seen', 0) if isinstance(worker_audit, dict) else 0
+        ),
+        'binary_bytes_seen': (
+            worker_audit.get('binary_bytes_seen', 0) if isinstance(worker_audit, dict) else 0
+        ),
+        'traversal_items': (
+            worker_audit.get('traversal_items', 0) if isinstance(worker_audit, dict) else 0
+        ),
+        'observed_output_count': len(observed),
+        'retained_output_count': len(retained),
+        'retained_for_follow_on_analysis': bool(retained),
+        'follow_on_analysis_complete': False,
+        'observation_scope': (
+            'parent_rehashed_case_artifact'
+            if retained
+            else 'wrapper_hash_metadata_only'
+        ),
+        'truncated': truncated,
+        'reasons': sorted(reasons),
+    }
+    return execution
+
+
 def _execute_handler_bounded(
     spec: HandlerSpec,
     data: bytes,
     source_name: str,
     *,
     timeout_seconds: float,
+    artifact_destination: tuple[Path, str] | None = None,
 ) -> dict[str, Any]:
     """handlerをisolated subprocessで実行し、wall-clock上限とtree終了を保証する。"""
 
@@ -1256,6 +1533,8 @@ def _execute_handler_bounded(
 
     with tempfile.TemporaryDirectory(prefix='handler-assessment-') as temporary:
         output_path = Path(temporary) / 'response.json'
+        worker_artifacts = Path(temporary) / 'artifacts'
+        worker_artifacts.mkdir()
         completed = run_bounded(
             [
                 sys.executable,
@@ -1288,17 +1567,21 @@ def _execute_handler_bounded(
             output = output_path.read_bytes()
         except OSError as exc:
             raise HandlerLoadError('handler worker output is unavailable') from exc
-    try:
-        response = json.loads(output.decode('utf-8'))
-    except (UnicodeError, json.JSONDecodeError) as exc:
-        raise HandlerLoadError('handler worker output is invalid JSON') from exc
-    if not isinstance(response, dict) or response.get('ok') is not True:
-        error = response.get('error') if isinstance(response, dict) else 'invalid_worker_response'
-        raise HandlerLoadError(str(sanitize_public_value(error)))
-    result = response.get('result')
-    if not isinstance(result, dict):
-        raise HandlerLoadError('handler worker result is invalid')
-    return result
+        try:
+            response = json.loads(output.decode('utf-8'))
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise HandlerLoadError('handler worker output is invalid JSON') from exc
+        if not isinstance(response, dict) or response.get('ok') is not True:
+            error = response.get('error') if isinstance(response, dict) else 'invalid_worker_response'
+            raise HandlerLoadError(str(sanitize_public_value(error)))
+        result = response.get('result')
+        if not isinstance(result, dict):
+            raise HandlerLoadError('handler worker result is invalid')
+        return _retain_worker_outputs(
+            result,
+            worker_artifacts=worker_artifacts,
+            artifact_destination=artifact_destination,
+        )
 
 _DETECTOR_METADATA_KEYS = frozenset(
     {
@@ -2482,6 +2765,8 @@ def execute_handler_bounded_for_assessment(
     actual_format: str,
     maximum_input_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
     timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
+    artifact_directory: Path | None = None,
+    artifact_path_prefix: str = 'recovered-payloads',
 ) -> dict[str, Any]:
     """事前検査済みhandlerを隔離processで実行し、安定した公開結果を返す。"""
 
@@ -2507,6 +2792,10 @@ def execute_handler_bounded_for_assessment(
         'preflight': preflight,
         'handler_timeout_seconds': float(timeout_seconds),
     }
+    artifact_destination = _validated_artifact_destination(
+        artifact_directory,
+        artifact_path_prefix,
+    )
     if not preflight['eligible']:
         return {**base, 'status': 'preflight_blocked'}
     if not _preflight_dependency_sources_unchanged(preflight):
@@ -2525,6 +2814,7 @@ def execute_handler_bounded_for_assessment(
             data,
             source_name,
             timeout_seconds=float(timeout_seconds),
+            artifact_destination=artifact_destination,
         )
     except subprocess.TimeoutExpired:
         return {
@@ -2906,6 +3196,8 @@ def assess_candidate_handlers(
     maximum_total_size: int = DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE,
     maximum_attempts: int = MAX_ASSESSMENT_ATTEMPTS,
     handler_timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
+    artifact_directory: Path | None = None,
+    artifact_path_prefix: str = 'recovered-payloads',
 ) -> dict[str, Any]:
     '''候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。'''
 
@@ -3001,6 +3293,8 @@ def assess_candidate_handlers(
                     actual_format=str(layer['format']),
                     maximum_input_size=maximum_layer_size,
                     timeout_seconds=float(handler_timeout_seconds),
+                    artifact_directory=artifact_directory,
+                    artifact_path_prefix=artifact_path_prefix,
                 )
                 attempt: dict[str, Any] = {
                     'handler_id': spec.id,
