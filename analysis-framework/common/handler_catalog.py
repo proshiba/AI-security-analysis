@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 import hashlib
@@ -48,6 +49,11 @@ MAX_DEPTH = 24
 MAX_COLLECTION_ITEMS = 20_000
 MAX_STRING_LENGTH = 65_536
 HANDLER_CONTRACT_NAME = "HANDLER_CONTRACT"
+DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE = 128 * 1024 * 1024
+DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE = 256 * 1024 * 1024
+MAX_ASSESSMENT_CANDIDATES = 64
+MAX_ASSESSMENT_LAYERS = 128
+MAX_ASSESSMENT_ATTEMPTS = 2_048
 KNOWN_INPUT_FORMATS = frozenset(
     {
         "any",
@@ -698,4 +704,781 @@ def execute_handler(spec: HandlerSpec, data: bytes, source_name: str) -> dict[st
         "result": sanitize_public_value(result),
         "executed_sample": False,
         "network_contacted": False,
+    }
+
+_DETECTOR_METADATA_KEYS = frozenset(
+    {
+        'attribution_basis',
+        'campaign_confidence',
+        'campaign_type',
+        'classification_confidence',
+        'confidence',
+        'detector',
+        'error',
+        'executed_sample',
+        'family',
+        'label',
+        'malware_type',
+        'malware_type_confidence',
+        'matched',
+        'message',
+        'name',
+        'network_contacted',
+        'note',
+        'reason',
+        'sample_executed',
+        'schema_version',
+        'sha256',
+        'size',
+        'source',
+        'source_name',
+        'status',
+        'type',
+    }
+)
+_FORBIDDEN_CALL_PREFIXES = (
+    'boto3.',
+    'ftplib.',
+    'http.client.',
+    'paramiko.',
+    'requests.',
+    'shutil.',
+    'smtplib.',
+    'socket.',
+    'subprocess.',
+    'tempfile.',
+    'urllib.request.',
+    'winreg.',
+)
+_FORBIDDEN_CALL_NAMES = frozenset(
+    {
+        '__import__',
+        'builtins.open',
+        'compile',
+        'eval',
+        'exec',
+        'open',
+        'os.mkdir',
+        'os.makedirs',
+        'os.popen',
+        'os.remove',
+        'os.rename',
+        'os.replace',
+        'os.rmdir',
+        'os.spawnl',
+        'os.spawnle',
+        'os.spawnlp',
+        'os.spawnlpe',
+        'os.spawnv',
+        'os.spawnve',
+        'os.spawnvp',
+        'os.spawnvpe',
+        'os.startfile',
+        'os.system',
+        'os.unlink',
+    }
+)
+_FORBIDDEN_METHOD_NAMES = frozenset(
+    {
+        'chmod',
+        'chown',
+        'connect',
+        'mkdir',
+        'rename',
+        'rmdir',
+        'send',
+        'sendall',
+        'touch',
+        'unlink',
+        'write_bytes',
+        'write_text',
+    }
+)
+
+
+def _ast_call_name(node: ast.AST) -> str | None:
+    '''呼出式を静的なドット区切り名へ変換する。'''
+
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _ast_call_name(node.value)
+        return f'{parent}.{node.attr}' if parent else node.attr
+    return None
+
+
+def _import_aliases(tree: ast.Module) -> dict[str, str]:
+    '''module内import aliasを副作用APIの完全名へ展開できる形にする。'''
+
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                aliases[item.asname or item.name.split('.')[0]] = item.name
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            for item in node.names:
+                if item.name != '*':
+                    aliases[item.asname or item.name] = f'{node.module}.{item.name}'
+    return aliases
+
+
+def _expanded_call_name(node: ast.Call, aliases: Mapping[str, str]) -> str | None:
+    name = _ast_call_name(node.func)
+    if not name:
+        return None
+    first, separator, remainder = name.partition('.')
+    replacement = aliases.get(first)
+    if not replacement:
+        return name
+    return replacement + (separator + remainder if separator else '')
+
+
+def _open_call_writes(node: ast.Call) -> bool:
+    '''open系呼出しが書込みmodeを明示するか返す。'''
+
+    values: list[ast.AST] = []
+    if len(node.args) >= 2:
+        values.append(node.args[1])
+    values.extend(item.value for item in node.keywords if item.arg == 'mode')
+    for value in values:
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            if any(marker in value.value for marker in ('w', 'a', 'x', '+')):
+                return True
+    return False
+
+
+def _forbidden_call_reason(node: ast.Call, aliases: Mapping[str, str]) -> str | None:
+    name = _expanded_call_name(node, aliases)
+    if not name:
+        return None
+    if name in _FORBIDDEN_CALL_NAMES or name.startswith(_FORBIDDEN_CALL_PREFIXES):
+        return f'forbidden_call:{name}'
+    if name.startswith(('ctypes.windll', 'ctypes.WinDLL', 'ctypes.CDLL', 'ctypes.PyDLL')):
+        return f'forbidden_native_call:{name}'
+    if name.rsplit('.', 1)[-1] in _FORBIDDEN_METHOD_NAMES:
+        return f'forbidden_side_effect_method:{name}'
+    if name.rsplit('.', 1)[-1] == 'open' and _open_call_writes(node):
+        return f'forbidden_write_open:{name}'
+    return None
+
+
+def _reachable_handler_functions(tree: ast.Module, callable_name: str) -> list[ast.FunctionDef]:
+    '''entryから名前で到達可能なmodule内関数を決定的に列挙する。'''
+
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    pending = [callable_name]
+    visited: set[str] = set()
+    result: list[ast.FunctionDef] = []
+    while pending:
+        name = pending.pop(0)
+        if name in visited or name not in functions:
+            continue
+        visited.add(name)
+        function = functions[name]
+        result.append(function)
+        local_calls = sorted(
+            {
+                node.func.id
+                for node in ast.walk(function)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in functions
+            }
+        )
+        pending.extend(item for item in local_calls if item not in visited)
+    return result
+
+
+def _handler_side_effect_issues(path: Path, callable_name: str) -> list[str]:
+    '''import時とhandler到達関数に外部副作用APIがないかASTだけで検査する。'''
+
+    tree = _module_tree(path)
+    aliases = _import_aliases(tree)
+    issues: set[str] = set()
+    for statement in tree.body:
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Call):
+                reason = _forbidden_call_reason(node, aliases)
+                if reason:
+                    issues.add(f'import_time:{reason}')
+    for function in _reachable_handler_functions(tree, callable_name):
+        for node in ast.walk(function):
+            if not isinstance(node, ast.Call):
+                continue
+            reason = _forbidden_call_reason(node, aliases)
+            if reason:
+                issues.add(f'reachable:{function.name}:{reason}')
+    return sorted(issues)
+
+
+def preflight_handler_for_assessment(
+    spec: HandlerSpec,
+    *,
+    actual_format: str,
+    input_size: int,
+    maximum_input_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+) -> dict[str, Any]:
+    '''候補試行前に契約、形式、容量、外部副作用をimportせず検証する。'''
+
+    blockers: list[str] = []
+    if not spec.automatic:
+        blockers.append('handler_not_automatic')
+    if not spec.supported_interface:
+        blockers.append(f'unsupported_interface:{spec.reason}')
+    if actual_format not in KNOWN_INPUT_FORMATS or actual_format == 'any':
+        blockers.append(f'unknown_input_format:{actual_format}')
+    if 'any' in spec.input_formats:
+        blockers.append('unbounded_input_format_contract')
+    elif actual_format not in spec.input_formats:
+        blockers.append(f'incompatible_input_format:{actual_format}')
+    if not isinstance(input_size, int) or isinstance(input_size, bool) or input_size <= 0:
+        blockers.append('invalid_or_empty_input_size')
+    if (
+        not isinstance(maximum_input_size, int)
+        or isinstance(maximum_input_size, bool)
+        or maximum_input_size <= 0
+        or maximum_input_size > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE
+    ):
+        blockers.append('invalid_maximum_input_size')
+    elif isinstance(input_size, int) and input_size > maximum_input_size:
+        blockers.append('input_size_limit_exceeded')
+
+    source_sha256 = None
+    try:
+        path = _resolve_handler_path(spec)
+        source_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        if spec.source == 'profiled_shared_extractor':
+            expected_profiled_path = (EXTRACTORS_ROOT / 'profiled_family.py').resolve()
+            if (
+                path.resolve() != expected_profiled_path
+                or spec.callable_name != 'extractor_for'
+                or spec.invocation != 'profiled_bytes_name'
+                or spec.input_contract_source != 'profile_definition'
+            ):
+                blockers.append('profiled_handler_contract_changed')
+        else:
+            invocation, supported, _reason = _function_shape(path, spec.callable_name)
+            if not supported or invocation != spec.invocation:
+                blockers.append('callable_contract_changed')
+            formats, source, evidence_score = _handler_contract(
+                path,
+                spec.callable_name,
+                invocation,
+                spec.source,
+            )
+            if (
+                formats != spec.input_formats
+                or source != spec.input_contract_source
+                or evidence_score != spec.minimum_evidence_score
+            ):
+                blockers.append('handler_contract_changed')
+        blockers.extend(_handler_side_effect_issues(path, spec.callable_name))
+    except Exception as exc:
+        blockers.append(
+            str(sanitize_public_value(f'preflight_error:{type(exc).__name__}:{exc}'))
+        )
+    return {
+        'handler_id': spec.id,
+        'eligible': not blockers,
+        'blockers': sorted(set(blockers)),
+        'actual_format': actual_format,
+        'accepted_formats': list(spec.input_formats),
+        'input_size': input_size,
+        'maximum_input_size': maximum_input_size,
+        'minimum_evidence_score': spec.minimum_evidence_score,
+        'source_sha256': source_sha256,
+        'sample_execution_allowed': False,
+        'network_allowed': False,
+        'filesystem_write_allowed': False,
+    }
+
+
+def _mapping_value(value: Any, key: str, default: Any = None) -> Any:
+    if isinstance(value, Mapping):
+        return value.get(key, default)
+    return getattr(value, key, default)
+
+
+def _normalized_assessment_layers(
+    layers: Sequence[Any],
+    *,
+    maximum_layer_size: int,
+    maximum_total_size: int,
+) -> list[dict[str, Any]]:
+    '''StaticLayerまたは同等mappingをhash検証済み内部recordへ変換する。'''
+
+    if not isinstance(layers, Sequence) or isinstance(layers, (str, bytes, bytearray)):
+        raise TypeError('layersはsequenceで指定してください')
+    if not 1 <= len(layers) <= MAX_ASSESSMENT_LAYERS:
+        raise ValueError(f'layer数が不正です: {len(layers)}')
+    if (
+        not isinstance(maximum_layer_size, int)
+        or isinstance(maximum_layer_size, bool)
+        or not 1 <= maximum_layer_size <= DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE
+    ):
+        raise ValueError('maximum_layer_sizeが不正です')
+    if (
+        not isinstance(maximum_total_size, int)
+        or isinstance(maximum_total_size, bool)
+        or not 1 <= maximum_total_size <= DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE
+    ):
+        raise ValueError('maximum_total_sizeが不正です')
+
+    from unpackers.static_unpacker import detect_format
+
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    total = 0
+    for index, supplied in enumerate(layers):
+        data = _mapping_value(supplied, 'data')
+        name = _mapping_value(supplied, 'name')
+        if not isinstance(data, bytes):
+            raise TypeError(f'layer[{index}].dataはimmutable bytesで指定してください')
+        if (
+            not isinstance(name, str)
+            or not name
+            or len(name) > 4_096
+            or any(ord(character) < 32 or ord(character) == 127 for character in name)
+        ):
+            raise ValueError(f'layer[{index}].nameが不正です')
+        digest = hashlib.sha256(data).hexdigest()
+        supplied_digest = _mapping_value(supplied, 'sha256', digest)
+        if supplied_digest != digest:
+            raise ValueError(f'layer[{index}]のSHA-256がdataと一致しません')
+        if digest in seen:
+            raise ValueError(f'layer SHA-256が重複しています: {digest}')
+        seen.add(digest)
+        total += len(data)
+        if total > maximum_total_size:
+            raise ValueError('layer総容量上限を超えています')
+        detected_format = detect_format(data, name)
+        supplied_format = _mapping_value(supplied, 'format')
+        if supplied_format is not None and supplied_format != detected_format:
+            raise ValueError(f'layer[{index}].formatがdataの識別結果と一致しません')
+        actual_format = detected_format
+        parent = _mapping_value(supplied, 'parent_sha256')
+        if parent is not None and (
+            not isinstance(parent, str) or re.fullmatch(r'[0-9a-f]{64}', parent) is None
+        ):
+            raise ValueError(f'layer[{index}].parent_sha256が不正です')
+        depth = _mapping_value(supplied, 'depth', 0)
+        transform = _mapping_value(supplied, 'transform', 'unknown')
+        if not isinstance(depth, int) or isinstance(depth, bool) or not 0 <= depth <= 64:
+            raise ValueError(f'layer[{index}].depthが不正です')
+        if (
+            not isinstance(transform, str)
+            or not transform
+            or len(transform) > 240
+            or any(ord(character) < 32 or ord(character) == 127 for character in transform)
+        ):
+            raise ValueError(f'layer[{index}].transformが不正です')
+        normalized.append(
+            {
+                'index': index,
+                'name': name,
+                'data': data,
+                'sha256': digest,
+                'parent_sha256': parent,
+                'depth': depth,
+                'transform': transform,
+                'format': actual_format,
+                'size': len(data),
+            }
+        )
+    known_hashes = {str(layer['sha256']) for layer in normalized}
+    for layer in normalized:
+        parent = layer['parent_sha256']
+        if parent is not None and parent not in known_hashes:
+            raise ValueError(f'layerの親SHA-256が入力集合にありません: {parent}')
+        current = str(layer['sha256'])
+        visited: set[str] = set()
+        while current:
+            if current in visited:
+                raise ValueError('layer親子関係に循環があります')
+            visited.add(current)
+            current = next(
+                (
+                    str(item['parent_sha256'])
+                    for item in normalized
+                    if item['sha256'] == current and item['parent_sha256'] is not None
+                ),
+                '',
+            )
+    return normalized
+
+
+def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
+    '''候補familyを正規化し、同一familyのsourceだけを統合する。'''
+
+    if not isinstance(candidates, Sequence) or isinstance(candidates, (str, bytes, bytearray)):
+        raise TypeError('candidatesはsequenceで指定してください')
+    if not 1 <= len(candidates) <= MAX_ASSESSMENT_CANDIDATES:
+        raise ValueError(f'候補family数が不正です: {len(candidates)}')
+    merged: dict[str, set[str]] = {}
+    for index, supplied in enumerate(candidates):
+        if isinstance(supplied, str):
+            family = supplied
+            sources = ['unspecified_candidate']
+        elif isinstance(supplied, Mapping):
+            family = supplied.get('family')
+            raw_sources = supplied.get('sources', supplied.get('source', []))
+            sources = [raw_sources] if isinstance(raw_sources, str) else list(raw_sources or [])
+        else:
+            raise TypeError(f'candidate[{index}]が不正です')
+        if not isinstance(family, str) or FAMILY_ID.fullmatch(family) is None:
+            raise ValueError(f'candidate[{index}].familyが不正です')
+        if any(
+            not isinstance(item, str)
+            or not item
+            or len(item) > 120
+            or any(ord(character) < 32 or ord(character) == 127 for character in item)
+            for item in sources
+        ):
+            raise ValueError(f'candidate[{index}].sourcesが不正です')
+        merged.setdefault(family, set()).update(sources or ['unspecified_candidate'])
+    return [
+        {'family': family, 'sources': sorted(sources)}
+        for family, sources in sorted(merged.items())
+    ]
+
+
+def _meaningful_detector_value(value: Any, *, key: str = '', depth: int = 0) -> bool:
+    '''confidence等の自己申告を除き、detectorの独立した実値があるか返す。'''
+
+    if depth > 20 or value is None or value is False:
+        return False
+    if isinstance(value, bool):
+        return key.casefold() not in _DETECTOR_METADATA_KEYS
+    if isinstance(value, str):
+        return bool(value.strip()) and key.casefold() not in _DETECTOR_METADATA_KEYS
+    if isinstance(value, (int, float)):
+        return value != 0 and key.casefold() not in _DETECTOR_METADATA_KEYS
+    if isinstance(value, Mapping):
+        return any(
+            str(item_key).casefold() not in _DETECTOR_METADATA_KEYS
+            and _meaningful_detector_value(item, key=str(item_key), depth=depth + 1)
+            for item_key, item in value.items()
+        )
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return any(
+            _meaningful_detector_value(item, key=key, depth=depth + 1)
+            for item in value[:10_000]
+        )
+    return False
+
+
+def detector_corroboration(value: Any) -> dict[str, Any]:
+    '''classifier評価またはdetector戻り値から独立裏付けの有無を判定する。'''
+
+    if not isinstance(value, Mapping):
+        return {'corroborated': False, 'score': 0, 'basis': 'missing_detector_evidence'}
+    if value.get('known_outer_sha256') is True:
+        return {'corroborated': True, 'score': 30_000, 'basis': 'known_outer_sha256'}
+    if value.get('known_inner_sha256') is True:
+        return {'corroborated': True, 'score': 30_000, 'basis': 'known_inner_sha256'}
+    detection = value.get('detection') if isinstance(value.get('detection'), Mapping) else value
+    matched = (
+        value.get('detector_matched') is True
+        and detection.get('matched') is True
+    ) or (
+        'detector_matched' not in value and detection.get('matched') is True
+    )
+    if not matched:
+        return {'corroborated': False, 'score': 0, 'basis': 'detector_not_matched'}
+    payload = {
+        key: item
+        for key, item in detection.items()
+        if str(key).casefold() not in _DETECTOR_METADATA_KEYS
+    }
+    if not _meaningful_detector_value(payload):
+        return {
+            'corroborated': False,
+            'score': 0,
+            'basis': 'matched_boolean_without_independent_evidence',
+        }
+    return {'corroborated': True, 'score': 20_000, 'basis': 'detector_structural_evidence'}
+
+
+def collect_detector_evaluations(
+    layer_classifications: Sequence[Any],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    '''既存layer分類結果を候補試行API用のfamily・SHA-256索引へ変換する。'''
+
+    result: dict[str, dict[str, dict[str, Any]]] = {}
+    for index, record in enumerate(layer_classifications):
+        layer = _mapping_value(record, 'layer')
+        classification = _mapping_value(record, 'classification', {})
+        digest = _mapping_value(layer, 'sha256')
+        if not isinstance(digest, str) or re.fullmatch(r'[0-9a-f]{64}', digest) is None:
+            raise ValueError(f'layer_classifications[{index}]のSHA-256が不正です')
+        evaluations = classification.get('detector_evaluations', []) if isinstance(classification, Mapping) else []
+        if not isinstance(evaluations, list):
+            raise ValueError(f'layer_classifications[{index}].detector_evaluationsが不正です')
+        for evaluation in evaluations:
+            if not isinstance(evaluation, Mapping):
+                continue
+            family = evaluation.get('malware_type')
+            if isinstance(family, str) and FAMILY_ID.fullmatch(family):
+                result.setdefault(family, {})[digest] = dict(evaluation)
+    return result
+
+
+def _detector_evidence_by_layer(
+    detector_evaluations: Mapping[str, Any] | None,
+    family: str,
+    layers: Sequence[Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    supplied = detector_evaluations.get(family) if isinstance(detector_evaluations, Mapping) else None
+    if supplied is None:
+        return {}
+    layer_hashes = {str(layer['sha256']) for layer in layers}
+    if isinstance(supplied, Mapping) and any(
+        key in supplied
+        for key in ('matched', 'detector_matched', 'known_outer_sha256', 'known_inner_sha256')
+    ):
+        return {str(layers[0]['sha256']): detector_corroboration(supplied)}
+    if not isinstance(supplied, Mapping):
+        raise TypeError(f'detector_evaluations[{family}]が不正です')
+    return {
+        digest: detector_corroboration(value)
+        for digest, value in supplied.items()
+        if digest in layer_hashes
+    }
+
+
+def _lineage_distance(
+    source_sha256: str,
+    target_sha256: str,
+    parents: Mapping[str, str | None],
+) -> int | None:
+    '''同一、祖先、子孫ならedge距離を返し、兄弟・無関係ならNoneを返す。'''
+
+    if source_sha256 == target_sha256:
+        return 0
+    for start, goal in ((source_sha256, target_sha256), (target_sha256, source_sha256)):
+        distance = 0
+        current: str | None = start
+        visited: set[str] = set()
+        while current and current not in visited:
+            visited.add(current)
+            current = parents.get(current)
+            distance += 1
+            if current == goal:
+                return distance
+    return None
+
+
+def _best_detector_for_layer(
+    layer_sha256: str,
+    evidence_by_layer: Mapping[str, Mapping[str, Any]],
+    parents: Mapping[str, str | None],
+) -> dict[str, Any]:
+    candidates = []
+    for digest, evidence in evidence_by_layer.items():
+        if evidence.get('corroborated') is not True:
+            continue
+        distance = _lineage_distance(layer_sha256, digest, parents)
+        if distance is None:
+            continue
+        candidates.append((int(evidence.get('score', 0)), -distance, digest, evidence))
+    if not candidates:
+        return {'corroborated': False, 'score': 0, 'basis': 'no_corroborated_detector_in_lineage'}
+    _score, negative_distance, digest, selected = max(candidates)
+    return {
+        **selected,
+        'layer_sha256': digest,
+        'lineage_distance': -negative_distance,
+    }
+
+
+def assess_candidate_handlers(
+    candidates: Sequence[Any],
+    layers: Sequence[Any],
+    *,
+    detector_evaluations: Mapping[str, Any] | None = None,
+    specs: Sequence[HandlerSpec] | None = None,
+    maximum_layer_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+    maximum_total_size: int = DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE,
+    maximum_attempts: int = MAX_ASSESSMENT_ATTEMPTS,
+) -> dict[str, Any]:
+    '''候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。'''
+
+    if (
+        not isinstance(maximum_attempts, int)
+        or isinstance(maximum_attempts, bool)
+        or not 1 <= maximum_attempts <= MAX_ASSESSMENT_ATTEMPTS
+    ):
+        raise ValueError('maximum_attemptsが不正です')
+    normalized_layers = _normalized_assessment_layers(
+        layers,
+        maximum_layer_size=maximum_layer_size,
+        maximum_total_size=maximum_total_size,
+    )
+    normalized_candidates = _candidate_records(candidates)
+    catalog = list(specs) if specs is not None else discover_handlers()
+    by_family = {
+        candidate['family']: sorted(
+            (
+                spec
+                for spec in catalog
+                if spec.family == candidate['family'] and spec.automatic
+            ),
+            key=lambda item: item.id,
+        )
+        for candidate in normalized_candidates
+    }
+    planned_attempts = sum(
+        len(by_family[candidate['family']]) * len(normalized_layers)
+        for candidate in normalized_candidates
+    )
+    if planned_attempts > maximum_attempts:
+        raise ValueError(
+            f'候補試行数上限を超えています: {planned_attempts} > {maximum_attempts}'
+        )
+
+    from analysis_contract import handler_result_quality
+
+    parents = {
+        str(layer['sha256']): layer.get('parent_sha256')
+        for layer in normalized_layers
+    }
+    family_results = []
+    confirmed_families = []
+    for candidate in normalized_candidates:
+        family = str(candidate['family'])
+        evidence_by_layer = _detector_evidence_by_layer(
+            detector_evaluations,
+            family,
+            normalized_layers,
+        )
+        attempts = []
+        for spec in by_family[family]:
+            for layer in normalized_layers:
+                public_layer = {
+                    key: layer[key]
+                    for key in (
+                        'index',
+                        'name',
+                        'sha256',
+                        'parent_sha256',
+                        'depth',
+                        'transform',
+                        'format',
+                        'size',
+                    )
+                }
+                preflight = preflight_handler_for_assessment(
+                    spec,
+                    actual_format=str(layer['format']),
+                    input_size=int(layer['size']),
+                    maximum_input_size=maximum_layer_size,
+                )
+                attempt: dict[str, Any] = {
+                    'handler_id': spec.id,
+                    'family': family,
+                    'layer': public_layer,
+                    'preflight': preflight,
+                }
+                if not preflight['eligible']:
+                    attempts.append({**attempt, 'status': 'preflight_blocked'})
+                    continue
+                current_source_sha256 = hashlib.sha256(
+                    _resolve_handler_path(spec).read_bytes()
+                ).hexdigest()
+                if current_source_sha256 != preflight['source_sha256']:
+                    attempts.append(
+                        {
+                            **attempt,
+                            'status': 'preflight_blocked',
+                            'preflight': {
+                                **preflight,
+                                'eligible': False,
+                                'blockers': ['source_changed_after_preflight'],
+                            },
+                        }
+                    )
+                    continue
+                try:
+                    executed = execute_handler(spec, layer['data'], str(layer['name']))
+                    quality = handler_result_quality(
+                        executed.get('result'),
+                        minimum_score=spec.minimum_evidence_score,
+                    )
+                except Exception as exc:
+                    attempts.append(
+                        {
+                            **attempt,
+                            'status': 'failed',
+                            'error': sanitize_public_value(f'{type(exc).__name__}: {exc}'),
+                        }
+                    )
+                    continue
+                detector = _best_detector_for_layer(
+                    str(layer['sha256']),
+                    evidence_by_layer,
+                    parents,
+                )
+                if not quality['sufficient']:
+                    status = 'no_evidence'
+                elif detector['corroborated']:
+                    status = 'corroborated'
+                else:
+                    status = 'handler_evidence_without_detector'
+                attempts.append(
+                    {
+                        **attempt,
+                        'status': status,
+                        'handler_evidence': quality,
+                        'detector_corroboration': detector,
+                        'result': executed,
+                    }
+                )
+        statuses = {item['status'] for item in attempts}
+        detector_available = any(
+            item.get('corroborated') is True for item in evidence_by_layer.values()
+        )
+        if 'corroborated' in statuses:
+            family_status = 'confirmed'
+            confirmed_families.append(family)
+        elif 'handler_evidence_without_detector' in statuses:
+            family_status = 'handler_evidence_without_detector'
+        elif detector_available:
+            family_status = 'detector_only'
+        elif 'failed' in statuses:
+            family_status = 'handler_failed'
+        elif attempts:
+            family_status = 'no_evidence'
+        else:
+            family_status = 'no_automatic_handler'
+        family_results.append(
+            {
+                **candidate,
+                'status': family_status,
+                'confirmed': family_status == 'confirmed',
+                'detector_layers': {
+                    digest: evidence
+                    for digest, evidence in sorted(evidence_by_layer.items())
+                },
+                'attempts': attempts,
+            }
+        )
+    return {
+        'schema_version': 1,
+        'status': 'confirmed' if confirmed_families else 'no_confirmed_family',
+        'confirmed_families': sorted(confirmed_families),
+        'candidate_count': len(normalized_candidates),
+        'layer_count': len(normalized_layers),
+        'planned_attempt_count': planned_attempts,
+        'families': family_results,
+        'metadata_hint_can_confirm': False,
+        'confirmation_requirement': 'handler_evidence_and_detector_corroboration_in_same_lineage',
+        'executed_sample': False,
+        'network_contacted': False,
+        'filesystem_written_by_handlers': False,
     }
