@@ -187,22 +187,27 @@ def test_each_selected_family_uses_only_its_own_layer(tmp_path: Path, monkeypatc
 
     calls: list[tuple[str, bytes]] = []
 
-    def execute(spec: HandlerSpec, data: bytes, _source_name: str) -> dict:
+    def execute(spec: HandlerSpec, data: bytes, _source_name: str, **_kwargs) -> dict:
         calls.append((spec.family, data))
         return {
-            "handler": spec.public(),
-            "result": {
-                "decoded_config_recovered": True,
-                "config": {
-                    "family": spec.family,
-                    "endpoint": f"{spec.family}.example.org:443",
+            "status": "completed",
+            "preflight": {"eligible": True, "blockers": []},
+            "handler_timeout_seconds": 30.0,
+            "execution": {
+                "handler": spec.public(),
+                "result": {
+                    "decoded_config_recovered": True,
+                    "config": {
+                        "family": spec.family,
+                        "endpoint": f"{spec.family}.example.org:443",
+                    },
                 },
+                "executed_sample": False,
+                "network_contacted": False,
             },
-            "executed_sample": False,
-            "network_contacted": False,
         }
 
-    monkeypatch.setattr(one_shot, "execute_handler", execute)
+    monkeypatch.setattr(one_shot, "execute_handler_bounded_for_assessment", execute)
     unit = one_shot.InputUnit(
         source_name="wrapper.bin",
         data=root_data,
@@ -1089,7 +1094,7 @@ def test_strongest_ancestor_fallback_is_not_skipped(tmp_path: Path, monkeypatch:
     )
     calls = []
 
-    def execute(_spec: HandlerSpec, data: bytes, _source_name: str) -> dict:
+    def execute(_spec: HandlerSpec, data: bytes, _source_name: str, **_kwargs) -> dict:
         calls.append(data)
         result = (
             {"static_config_recovered": True, "config": {"host": "inner.example.org"}}
@@ -1097,12 +1102,17 @@ def test_strongest_ancestor_fallback_is_not_skipped(tmp_path: Path, monkeypatch:
             else {"decoded_config_recovered": True, "config": {"host": "outer.example.org"}}
         )
         return {
-            "result": result,
-            "executed_sample": False,
-            "network_contacted": False,
+            "status": "completed",
+            "preflight": {"eligible": True, "blockers": []},
+            "handler_timeout_seconds": 30.0,
+            "execution": {
+                "result": result,
+                "executed_sample": False,
+                "network_contacted": False,
+            },
         }
 
-    monkeypatch.setattr(one_shot, "execute_handler", execute)
+    monkeypatch.setattr(one_shot, "execute_handler_bounded_for_assessment", execute)
     unit = one_shot.InputUnit(
         source_name="wrapper.bin",
         data=root_data,

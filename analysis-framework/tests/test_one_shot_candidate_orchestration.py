@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 import sys
+import uuid
 from pathlib import Path
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +22,106 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 import analyze_sample as one_shot
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
+
+
+def _fixture_classification(family: str) -> dict:
+    return {
+        "schema_version": 1,
+        "malware_type": family,
+        "malware_type_confidence": "high",
+        "campaign_type": "unknown",
+        "attribution_basis": "type_detector_structure",
+        "observations": {},
+        "campaign_candidates": [],
+        "detector_evaluations": [
+            {
+                "malware_type": family,
+                "known_outer_sha256": False,
+                "known_inner_sha256": False,
+                "detector_matched": True,
+                "automatic_route_eligible": True,
+                "error": None,
+            }
+        ],
+    }
+
+
+def _fixture_handler_spec(
+    family: str,
+    *,
+    relative_path: str = "extractors/one_shot_fixture.py",
+) -> one_shot.HandlerSpec:
+    return one_shot.HandlerSpec(
+        id=f"{family}:fixture:extract",
+        family=family,
+        relative_path=relative_path,
+        callable_name="extract",
+        invocation="bytes",
+        source="fixture",
+        automatic=True,
+        campaign=None,
+        supported_interface=True,
+        reason="bounded_fixture",
+        input_formats=("data",),
+        input_contract_source="declared_contract",
+        minimum_evidence_score=1,
+    )
+
+
+def _configure_selected_case(monkeypatch, data: bytes, family: str) -> one_shot.InputUnit:
+    digest = hashlib.sha256(data).hexdigest()
+    layer = one_shot.StaticLayer(
+        name="fixture.bin",
+        data=data,
+        sha256=digest,
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    layer_report = {
+        "schema_version": 1,
+        "counts": {
+            "layers": 1,
+            "recovered_layers": 0,
+            "recovered_bytes": 0,
+            "limit_events": 0,
+        },
+        "steps": [],
+        "limit_events": [],
+        "layers": [layer.public()],
+        "executed_sample": False,
+        "network_contacted": False,
+        "recovered_content_exported": False,
+    }
+    monkeypatch.setattr(
+        one_shot,
+        "recover_static_layers",
+        lambda _unit, **_kwargs: ([layer], layer_report),
+    )
+    monkeypatch.setattr(
+        one_shot.classify_sample,
+        "classify_bytes",
+        lambda *_args, **_kwargs: _fixture_classification(family),
+    )
+    monkeypatch.setattr(
+        one_shot,
+        "_run_generic_triage",
+        lambda _layers, _case_dir, **_kwargs: (
+            {
+                "analysis_coverage": {"status": "complete"},
+                "executed_sample": False,
+                "network_contacted": False,
+            },
+            "complete",
+        ),
+    )
+    return one_shot.InputUnit(
+        source_name="fixture.bin",
+        data=data,
+        input_kind="raw",
+        outer_sha256=digest,
+        outer_size=len(data),
+    )
 
 
 def test_verification_candidates_are_fail_closed() -> None:
@@ -81,6 +184,7 @@ def test_candidate_status_and_binary_requirement_are_preserved() -> None:
         {"candidates": [{"family": "valleyrat", "routing_eligible": True}]},
         [layer],
         {"status": "function_analysis_required"},
+        one_shot._load_family_analysis_requirements(),
     )
     assert candidates[0]["requirements"]["function_analysis_required"] is True
 
@@ -185,3 +289,411 @@ def test_cli_exposes_family_hint_manifest() -> None:
         ["--input", "sample.bin", "--output", "out", "--family-hint-manifest", "hints.json"]
     )
     assert parsed.family_hint_manifest == Path("hints.json")
+
+
+def _accepted_record(
+    family: str,
+    payload: dict,
+    *,
+    verified_binary_outputs: list[dict] | None = None,
+) -> dict:
+    digest = "1" * 64
+    return {
+        "source": "selected_family_analysis",
+        "family": family,
+        "handler_id": f"{family}:fixture",
+        "status": "succeeded",
+        "selected_layer_sha256": digest,
+        "selected_evidence": one_shot.handler_result_quality(payload),
+        "verified_binary_outputs": verified_binary_outputs or [],
+        "result": {"result": payload},
+    }
+
+
+def _known_hash_candidate(family: str, policy: dict[str, dict]) -> dict:
+    candidate = {
+        "family": family,
+        "source": "known_hash",
+        "source_strength": 4,
+        "routing_eligible": True,
+        "routing_mode": "selected_family_analysis",
+        "routing_eligibility": {
+            "mode": "selected_family_analysis",
+            "selected_family_analysis": True,
+            "family_attribution": True,
+        },
+        "evidence": [
+            {
+                "kind": "known_outer_sha256",
+                "layer_sha256": "1" * 64,
+                "supports_attribution": True,
+                "confidence": "high",
+            }
+        ],
+    }
+    return one_shot._outcome_candidates(
+        {"candidates": [candidate]},
+        [],
+        {"status": "complete"},
+        policy,
+    )[0]
+
+
+def test_requirements_policy_blocks_missing_valleyrat_outputs_and_unknown_family() -> None:
+    """RAT必須成果物と未宣言familyをfail-closedにする。"""
+
+    policy = one_shot._load_family_analysis_requirements()
+    valley = _known_hash_candidate("valleyrat", policy)
+    assert valley["requirements"] == {
+        "policy_declared": True,
+        "policy_category": "rat",
+        "config_required": True,
+        "network_required": True,
+        "terminal_payload_required": False,
+    }
+    missing = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[valley],
+        handler_records=[],
+        function_analysis_available=True,
+    )
+    one_shot._apply_requirements_policy_gate(missing, policy)
+    assert missing["status"] == "partial"
+    assert {"config", "network"}.issubset(missing["blockers"])
+
+    payload = {
+        "configuration_recovered": True,
+        "c2": ["valley.example.org:443"],
+    }
+    complete = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[valley],
+        handler_records=[_accepted_record("valleyrat", payload)],
+        function_analysis_available=True,
+    )
+    one_shot._apply_requirements_policy_gate(complete, policy)
+    assert complete["status"] == "complete"
+
+    undeclared = _known_hash_candidate("freepbx_k_php", policy)
+    unknown = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[undeclared],
+        handler_records=[],
+        function_analysis_available=True,
+    )
+    one_shot._apply_requirements_policy_gate(unknown, policy)
+    assert unknown["status"] == "partial"
+    assert "requirements_policy" in unknown["blockers"]
+
+
+def test_loader_requires_wrapper_verified_terminal_payload() -> None:
+    """loaderの自己申告hashを拒否し、wrapper検証済みpayloadだけでgateを満たす。"""
+
+    policy = one_shot._load_family_analysis_requirements()
+    candidate = _known_hash_candidate("guloader", policy)
+    missing = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[candidate],
+        handler_records=[],
+        function_analysis_available=True,
+    )
+    assert "terminal_payload" in missing["blockers"]
+    assert "network" in missing["blockers"]
+
+    output = {
+        "role": "terminal_payload",
+        "kind": "pe",
+        "path": "handler-result/terminal_payload/payload.exe",
+        "sha256": "2" * 64,
+        "size": 128,
+        "verification": {
+            "status": "artifact_hash_verified",
+            "sha256_matches": True,
+            "size_matches": True,
+        },
+    }
+    terminal_only = _accepted_record(
+        "guloader",
+        {"static_config_recovered": True, "config": {"campaign": "fixture"}},
+        verified_binary_outputs=[output],
+    )
+    missing_network = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[candidate],
+        handler_records=[terminal_only],
+        function_analysis_available=True,
+    )
+    assert missing_network["outputs"]["terminal_payload"]["status"] == "verified"
+    assert missing_network["status"] == "partial"
+    assert missing_network["blockers"] == ["network"]
+
+    complete = one_shot.orchestration_outcome.build_outcome(
+        sample_sha256="1" * 64,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[candidate],
+        handler_records=[
+            _accepted_record(
+                "guloader",
+                {
+                    "static_config_recovered": True,
+                    "config": {"campaign": "fixture"},
+                    "urls": ["https://stage.example.org/payload.bin"],
+                },
+                verified_binary_outputs=[output],
+            )
+        ],
+        function_analysis_available=True,
+    )
+    assert complete["outputs"]["terminal_payload"]["status"] == "verified"
+    assert complete["status"] == "complete"
+    assert one_shot._verified_outputs_from_wrapper(
+        {"result": {"verified_binary_outputs": [output], "payload_sha256": "2" * 64}}
+    ) == []
+
+
+def test_candidate_flat_record_preserves_corroboration_and_verified_output() -> None:
+    """candidate flatten後もhandler・detector・lineage証拠とterminal metadataを保持する。"""
+
+    payload = {
+        "static_config_recovered": True,
+        "config": {"campaign": "fixture"},
+        "c2": ["rat.example.org:443"],
+    }
+    quality = one_shot.handler_result_quality(payload)
+    output = {
+        "role": "terminal_payload",
+        "kind": "pe",
+        "path": "handler-result/terminal_payload/payload.exe",
+        "sha256": "3" * 64,
+        "size": 64,
+        "verification": {
+            "status": "artifact_hash_verified",
+            "sha256_matches": True,
+            "size_matches": True,
+        },
+    }
+    assessment = {
+        "families": [
+            {
+                "family": "valleyrat",
+                "attempts": [
+                        {
+                            "handler_id": "valleyrat:fixture",
+                            "source": "candidate_verification",
+                            "status": "corroborated",
+                        "handler_evidence": quality,
+                        "detector_corroboration": {
+                            "corroborated": True,
+                            "basis": "detector_structural_evidence",
+                            "layer_sha256": "1" * 64,
+                            "lineage_distance": 0,
+                        },
+                        "layer": {"sha256": "1" * 64},
+                        "result": {
+                            "result": payload,
+                            "verified_binary_outputs": [output],
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+    records = one_shot._candidate_outcome_handler_records(assessment)
+    assert records[0]["handler_evidence"] == quality
+    assert records[0]["source"] == "candidate_verification"
+    assert records[0]["status"] == "corroborated"
+    assert records[0]["detector_corroboration"]["corroborated"] is True
+    assert records[0]["selected_layer_sha256"] == "1" * 64
+    assert records[0]["verified_binary_outputs"] == [output]
+    assert records[0]["result"] == assessment["families"][0]["attempts"][0]["result"]
+    candidate = {
+        "family": "valleyrat",
+        "source": "detector_candidate",
+        "source_strength": 2,
+        "routing_eligible": True,
+        "routing_mode": "candidate_verification",
+        "routing_eligibility": {
+            "mode": "candidate_verification",
+            "candidate_verification": True,
+            "family_attribution": False,
+        },
+        "evidence": [
+            {
+                "kind": "type_detector_structure",
+                "layer_sha256": "1" * 64,
+                "supports_attribution": True,
+                "confidence": "medium",
+            }
+        ],
+    }
+    resolved = one_shot.orchestration_outcome.resolve_family([candidate], records)
+    assert resolved["status"] == "resolved"
+    outputs = one_shot.orchestration_outcome.summarize_handler_outputs(records)
+    assert outputs["terminal_payload"]["status"] == "verified"
+
+
+def test_selected_family_wrapper_output_is_terminal_verified_end_to_end(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """worker wrapperの検証済みbinary metadataだけを最終payloadへ昇格する。"""
+
+    unit = _configure_selected_case(monkeypatch, b"selected wrapper output fixture", "guloader")
+    verified = {
+        "role": "terminal_payload",
+        "kind": "pe",
+        "path": "handler-result/terminal_payload/payload.exe",
+        "sha256": "2" * 64,
+        "size": 128,
+        "verification": {
+            "status": "artifact_hash_verified",
+            "sha256_matches": True,
+            "size_matches": True,
+        },
+    }
+
+    def bounded(spec, _data, _source_name, **_kwargs):
+        return {
+            "status": "completed",
+            "handler": spec.public(),
+            "preflight": {"eligible": True, "blockers": []},
+            "handler_timeout_seconds": 30.0,
+            "execution": {
+                "handler": spec.public(),
+                "result": {
+                    "decoded_config_recovered": True,
+                    "config": {"campaign": "fixture"},
+                    "urls": ["https://stage.example.org/payload.bin"],
+                    "terminal_payload": {"sha256": "f" * 64},
+                },
+                "verified_binary_outputs": [verified],
+                "executed_sample": False,
+                "network_contacted": False,
+            },
+        }
+
+    monkeypatch.setattr(one_shot, "execute_handler_bounded_for_assessment", bounded)
+    output = tmp_path / "out"
+    result = one_shot.analyze_unit(
+        unit,
+        output=output,
+        registry=REGISTRY,
+        specs=[_fixture_handler_spec("guloader")],
+        registered={"guloader"},
+        forced_family=None,
+        minimum_confidence="medium",
+        assessment_only=False,
+        analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
+    )
+    case_dir = output / "cases" / result["sha256"]
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+    execution = report["handler_executions"][0]
+    wrapper = json.loads((case_dir / execution["result"]).read_text(encoding="utf-8"))
+    outcome = json.loads((case_dir / "orchestration.json").read_text(encoding="utf-8"))
+
+    assert wrapper["verified_binary_outputs"] == [verified]
+    assert outcome["status"] == "complete"
+    assert outcome["outputs"]["terminal_payload"]["status"] == "verified"
+    assert outcome["outputs"]["terminal_payload_sha256"] == ["2" * 64]
+    assert "f" * 64 not in outcome["outputs"]["terminal_payload_sha256"]
+
+
+def test_selected_family_timeout_keeps_legacy_failure_schema(tmp_path: Path, monkeypatch) -> None:
+    """worker timeoutを従来のfailed executionへ正規化し、原因情報を保持する。"""
+
+    unit = _configure_selected_case(monkeypatch, b"selected timeout fixture", "guloader")
+    monkeypatch.setattr(
+        one_shot,
+        "execute_handler_bounded_for_assessment",
+        lambda spec, *_args, **_kwargs: {
+            "status": "timed_out",
+            "handler": spec.public(),
+            "preflight": {"eligible": True, "blockers": []},
+            "handler_timeout_seconds": 0.1,
+            "error": "handler_wall_clock_timeout",
+        },
+    )
+    output = tmp_path / "out"
+    result = one_shot.analyze_unit(
+        unit,
+        output=output,
+        registry=REGISTRY,
+        specs=[_fixture_handler_spec("guloader")],
+        registered={"guloader"},
+        forced_family=None,
+        minimum_confidence="medium",
+        assessment_only=False,
+        analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
+    )
+    report = json.loads(
+        (output / "cases" / result["sha256"] / "report.json").read_text(encoding="utf-8")
+    )
+    execution = report["handler_executions"][0]
+    attempt = next(item for item in execution["attempts"] if item["status"] == "failed")
+    assert execution["status"] == "failed"
+    assert execution["error"] == "all_eligible_layers_failed"
+    assert attempt["execution_boundary"] == "bounded_assessment_worker"
+    assert attempt["worker_status"] == "timed_out"
+    assert attempt["error"] == "handler_wall_clock_timeout"
+
+
+def test_selected_family_does_not_import_handler_in_parent_process(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """import時副作用を持つhandlerでも親processではmoduleをloadしない。"""
+
+    unit = _configure_selected_case(monkeypatch, b"parent import sentinel fixture", "guloader")
+    fixture_dir = REPOSITORY_ROOT / ".work" / "one-shot-import-sentinel" / uuid.uuid4().hex
+    module_path = fixture_dir / "handler.py"
+    sentinel = tmp_path / "import-process-id.txt"
+    fixture_dir.mkdir(parents=True, exist_ok=False)
+    module_path.write_text(
+        "import os\n"
+        "from pathlib import Path\n"
+        f"Path({str(sentinel)!r}).write_text(str(os.getpid()), encoding='utf-8')\n"
+        "SUPPORTED_INPUT_FORMATS = ('data',)\n"
+        "MINIMUM_EVIDENCE_SCORE = 1\n"
+        "def extract(data: bytes) -> dict:\n"
+        "    return {'static_config_recovered': True, 'config': {'fixture': 'ok'}}\n",
+        encoding="utf-8",
+    )
+    try:
+        output = tmp_path / "out"
+        result = one_shot.analyze_unit(
+            unit,
+            output=output,
+            registry=REGISTRY,
+            specs=[
+                _fixture_handler_spec(
+                    "guloader",
+                    relative_path=module_path.relative_to(REPOSITORY_ROOT).as_posix(),
+                )
+            ],
+            registered={"guloader"},
+            forced_family=None,
+            minimum_confidence="medium",
+            assessment_only=False,
+            analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
+        )
+        report = json.loads(
+            (output / "cases" / result["sha256"] / "report.json").read_text(encoding="utf-8")
+        )
+        attempt = report["handler_executions"][0]["attempts"][0]
+        assert attempt["execution_boundary"] == "bounded_assessment_worker"
+        assert attempt["worker_status"] in {"preflight_blocked", "failed"}
+        if sentinel.exists():
+            assert sentinel.read_text(encoding="utf-8") != str(os.getpid())
+    finally:
+        shutil.rmtree(fixture_dir)

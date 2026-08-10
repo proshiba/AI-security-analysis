@@ -74,8 +74,7 @@ from handler_catalog import (  # noqa: E402
     clear_handler_caches,
     collect_detector_evaluations,
     discover_handlers,
-    execute_handler,
-    load_handler,
+    execute_handler_bounded_for_assessment,
     sanitize_public_value,
 )
 from malware_io import (  # noqa: E402
@@ -104,10 +103,26 @@ MAX_ARCHIVE_MEMBERS = static_layers.MAX_ARCHIVE_MEMBERS
 recover_layer_pipeline = static_layers.recover_static_layers
 DEFAULT_STRING_SCAN_LIMIT = analyze_family_sample.DEFAULT_STRING_SCAN_LIMIT
 BINARY_FORMATS = frozenset({'pe', 'elf', 'macho'})
+FAMILY_POLICY_CATEGORIES = frozenset(
+    {
+        'rat',
+        'stealer',
+        'loader',
+        'downloader',
+        'backdoor',
+        'ransomware',
+        'worm',
+        'bot',
+        'keylogger',
+        'miner',
+        'other',
+    }
+)
 
 
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
 CAMPAIGN_FINGERPRINTS = FRAMEWORK_ROOT / "registry" / "campaign_fingerprints.json"
+FAMILY_ANALYSIS_REQUIREMENTS = FRAMEWORK_ROOT / "registry" / "family_analysis_requirements.json"
 
 
 class JapaneseArgumentParser(argparse.ArgumentParser):
@@ -418,6 +433,49 @@ def _verification_candidates(routing: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _load_family_analysis_requirements(path: Path = FAMILY_ANALYSIS_REQUIREMENTS) -> dict[str, dict[str, Any]]:
+    '''family別の必須成果物policyを厳格schemaで読み込む。'''
+
+    document = load_json_object_strict(path)
+    if (
+        set(document) != {'schema_version', 'policies'}
+        or type(document.get('schema_version')) is not int
+        or document.get('schema_version') != 1
+    ):
+        raise ValueError('family analysis requirementsのroot schemaが不正です')
+    supplied = document.get('policies')
+    if not isinstance(supplied, dict) or len(supplied) > 512:
+        raise ValueError('family analysis requirementsのpoliciesが不正です')
+    expected = {'category', 'config_required', 'network_required', 'terminal_payload_required'}
+    policies: dict[str, dict[str, Any]] = {}
+    for family, policy in supplied.items():
+        if not isinstance(family, str) or classify_sample.FAMILY_ID_RE.fullmatch(family) is None:
+            raise ValueError('family analysis requirementsに不正なfamilyがあります')
+        if not isinstance(policy, dict) or set(policy) != expected:
+            raise ValueError(f'family analysis requirementsのfieldが不正です: {family}')
+        if policy.get('category') not in FAMILY_POLICY_CATEGORIES:
+            raise ValueError(f'family analysis requirementsのcategoryが不正です: {family}')
+        if any(type(policy.get(key)) is not bool for key in expected - {'category'}):
+            raise ValueError(f'family analysis requirementsのbooleanが不正です: {family}')
+        policies[family] = dict(policy)
+    return dict(sorted(policies.items()))
+
+
+def _requirements_policy_summary(policies: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    '''requirements policyのcoverageを機械可読に要約する。'''
+
+    categories = {
+        category: sum(policy.get('category') == category for policy in policies.values())
+        for category in sorted(FAMILY_POLICY_CATEGORIES)
+    }
+    return {
+        'source': 'registry/family_analysis_requirements.json',
+        'declared_family_count': len(policies),
+        'categories': categories,
+        'undeclared_family_policy': 'block_complete_after_resolution',
+    }
+
+
 def _candidate_handler_assessment(
     *,
     routing: dict[str, Any],
@@ -520,22 +578,23 @@ def _candidate_handler_assessment(
 
 
 def _preflight_applicable(specs: list[HandlerSpec], applicability: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """適用対象だけをimportし、依存関係または関数欠落を事前確認する。"""
+    """親processではimportせず、layer単位の事前検査を隔離workerへ委譲する。"""
 
-    by_id = {item.id: item for item in specs}
+    known_ids = {item.id for item in specs}
     results = []
     for item in applicability:
         if item["status"] not in {"applicable", "applicable_forced"}:
             continue
-        status = {"handler_id": item["id"], "available": True, "error": None}
-        try:
-            load_handler(by_id[item["id"]])
-        except Exception as exc:
-            status.update(
-                available=False,
-                error=sanitize_public_value(f"{type(exc).__name__}: {exc}"),
-            )
-        results.append(status)
+        handler_id = item["id"]
+        results.append(
+            {
+                "handler_id": handler_id,
+                "available": handler_id in known_ids,
+                "error": None if handler_id in known_ids else "handler_spec_not_found",
+                "execution_boundary": "bounded_assessment_worker",
+                "preflight": "deferred_to_per_layer_worker",
+            }
+        )
     return results
 
 
@@ -818,6 +877,17 @@ def _handler_static_logic_records(
     return records[:512]
 
 
+def _verified_outputs_from_wrapper(value: Any) -> list[dict[str, Any]]:
+    '''handler wrapperが生成した検証済みbinary metadataだけを返す。'''
+
+    if not isinstance(value, dict):
+        return []
+    supplied = value.get('verified_binary_outputs')
+    if not isinstance(supplied, list):
+        return []
+    return [item for item in supplied if isinstance(item, dict)]
+
+
 def _legacy_outcome_handler_records(
     case_dir: Path,
     executions: list[dict[str, Any]],
@@ -842,7 +912,11 @@ def _legacy_outcome_handler_records(
         }
         relative = execution.get('result')
         if isinstance(relative, str):
-            record['result'] = load_json_object_strict(resolve_case_artifact(case_dir, relative))
+            wrapper = load_json_object_strict(resolve_case_artifact(case_dir, relative))
+            record['result'] = wrapper
+            verified = _verified_outputs_from_wrapper(wrapper)
+            if verified:
+                record['verified_binary_outputs'] = verified
         records.append(record)
     return records
 
@@ -858,20 +932,27 @@ def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[
         for attempt in family_result.get('attempts') or []:
             if not isinstance(attempt, dict):
                 continue
-            status = attempt.get('status')
-            normalized_status = {
-                'corroborated': 'corroborated',
-                'handler_evidence_without_detector': 'candidate_evidence',
-                'no_evidence': 'no_evidence',
-            }.get(status, status)
+            supplied_source = attempt.get('source')
+            source = (
+                supplied_source
+                if isinstance(supplied_source, str) and supplied_source
+                else 'candidate_verification'
+            )
             records.append(
                 {
-                    'source': 'candidate_verification',
+                    'source': source,
                     'family': family,
                     'handler_id': attempt.get('handler_id'),
-                    'status': normalized_status,
-                    'selected_evidence': attempt.get('handler_evidence'),
-                    'selected_layer_sha256': (attempt.get('layer') or {}).get('sha256'),
+                    'status': attempt.get('status'),
+                    'handler_evidence': attempt.get('handler_evidence'),
+                    'detector_corroboration': attempt.get('detector_corroboration'),
+                    'selected_layer_sha256': (
+                        attempt.get('selected_layer_sha256')
+                        or (attempt.get('layer') or {}).get('sha256')
+                    ),
+                    'verified_binary_outputs': _verified_outputs_from_wrapper(
+                        attempt.get('result')
+                    ),
                     'result': attempt.get('result'),
                 }
             )
@@ -882,6 +963,7 @@ def _outcome_candidates(
     routing: dict[str, Any],
     layers: list[StaticLayer],
     logic_report: dict[str, Any],
+    requirements_policy: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     '''binaryの未完了関数解析を候補familyの必須gateへ反映する。'''
 
@@ -893,7 +975,17 @@ def _outcome_candidates(
         if not isinstance(supplied, dict):
             continue
         candidate = dict(supplied)
-        requirements = dict(candidate.get('requirements') or {})
+        family = candidate.get('family')
+        policy = requirements_policy.get(family) if isinstance(family, str) else None
+        requirements = {
+            'policy_declared': policy is not None,
+            'policy_category': policy.get('category') if policy is not None else None,
+            'config_required': policy.get('config_required') if policy is not None else None,
+            'network_required': policy.get('network_required') if policy is not None else None,
+            'terminal_payload_required': (
+                policy.get('terminal_payload_required') if policy is not None else None
+            ),
+        }
         if function_required:
             requirements['function_analysis_required'] = True
         candidate['requirements'] = requirements
@@ -913,7 +1005,10 @@ def _public_outcome_handler_records(records: list[dict[str, Any]]) -> list[dict[
                 'handler_id',
                 'status',
                 'selected_evidence',
+                'handler_evidence',
+                'detector_corroboration',
                 'selected_layer_sha256',
+                'verified_binary_outputs',
             )
         }
         for record in records
@@ -931,6 +1026,40 @@ def _automation_summary_state(outcome: dict[str, Any]) -> str:
     if resolution_status in {'unresolved', 'ambiguous'} and blockers.issubset({'family_resolution'}):
         return 'unknown'
     return 'partial'
+
+
+def _apply_requirements_policy_gate(
+    outcome: dict[str, Any],
+    requirements_policy: dict[str, dict[str, Any]],
+) -> None:
+    '''resolved familyにpolicy宣言がない場合、completeをfail-closedで拒否する。'''
+
+    resolution = outcome.get('family_resolution')
+    resolved = isinstance(resolution, dict) and resolution.get('status') == 'resolved'
+    resolved_family = resolution.get('family') if resolved else None
+    declared = isinstance(resolved_family, str) and resolved_family in requirements_policy
+    outcome['requirements_policy'] = {
+        'schema_version': 1,
+        'source': 'registry/family_analysis_requirements.json',
+        'declared_family_count': len(requirements_policy),
+        'resolved_family': resolved_family,
+    }
+    outcome.setdefault('quality_gates', {})['requirements_policy'] = {
+        'required': resolved,
+        'satisfied': bool(not resolved or declared),
+        'observed': declared if resolved else None,
+        'status': 'satisfied' if resolved and declared else ('required_missing' if resolved else 'not_applicable'),
+    }
+    if resolved and not declared:
+        blockers = set(outcome.get('blockers') or [])
+        blockers.add('requirements_policy')
+        outcome['blockers'] = sorted(blockers)
+        outcome['status'] = 'partial'
+        actions = list(outcome.get('next_actions_ja') or [])
+        action = 'familyの必須config・通信先・最終payload policyをregistryへ宣言してください。'
+        if action not in actions:
+            actions.append(action)
+        outcome['next_actions_ja'] = actions
 
 
 def _completion_state(
@@ -1084,6 +1213,7 @@ def analyze_unit(
     assessment_only: bool,
     analysis_contract: dict[str, Any],
     family_hint_manifest: dict[str, Any] | None = None,
+    family_requirements_policy: dict[str, dict[str, Any]] | None = None,
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
@@ -1096,6 +1226,11 @@ def analyze_unit(
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
 
     digest = hashlib.sha256(unit.data).hexdigest()
+    requirements_policy = (
+        family_requirements_policy
+        if family_requirements_policy is not None
+        else _load_family_analysis_requirements()
+    )
     case_dir = _prepare_case_directory(output, digest)
     classifier_family = forced_family if forced_family in registered else None
     if assessment_only:
@@ -1286,14 +1421,53 @@ def analyze_unit(
                     attempts.append({**attempt, "status": "skipped_fallback_not_needed"})
                     continue
                 try:
-                    result = execute_handler(spec, layer.data, layer.name)
+                    bounded = execute_handler_bounded_for_assessment(
+                        spec,
+                        layer.data,
+                        layer.name,
+                        actual_format=planned["actual_format"],
+                        maximum_input_size=DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+                    )
+                    worker_status = bounded.get("status")
+                    worker_attempt = {
+                        **attempt,
+                        "execution_boundary": "bounded_assessment_worker",
+                        "worker_status": worker_status,
+                        "preflight": sanitize_public_value(bounded.get("preflight")),
+                    }
+                    if worker_status != "completed":
+                        attempts.append(
+                            {
+                                **worker_attempt,
+                                "status": "failed",
+                                "error": sanitize_public_value(
+                                    bounded.get("error")
+                                    or (
+                                        "handler_preflight_blocked"
+                                        if worker_status == "preflight_blocked"
+                                        else "handler_worker_incomplete"
+                                    )
+                                ),
+                            }
+                        )
+                        continue
+                    result = bounded.get("execution")
+                    if not isinstance(result, dict):
+                        attempts.append(
+                            {
+                                **worker_attempt,
+                                "status": "failed",
+                                "error": "handler_worker_invalid_execution",
+                            }
+                        )
+                        continue
                     quality = handler_result_quality(
                         result.get("result"),
                         minimum_score=spec.minimum_evidence_score,
                     )
                     attempts.append(
                         {
-                            **attempt,
+                            **worker_attempt,
                             "status": "succeeded",
                             "evidence_status": ("sufficient" if quality["sufficient"] else "insufficient"),
                             "evidence": quality,
@@ -1465,7 +1639,12 @@ def analyze_unit(
     legacy_outcome_records = _legacy_outcome_handler_records(case_dir, executions, specs)
     candidate_outcome_records = _candidate_outcome_handler_records(candidate_assessment)
     outcome_handler_records = legacy_outcome_records + candidate_outcome_records
-    outcome_candidates = _outcome_candidates(routing, layers, logic_report)
+    outcome_candidates = _outcome_candidates(
+        routing,
+        layers,
+        logic_report,
+        requirements_policy,
+    )
     family_resolution = orchestration_outcome.resolve_family(
         outcome_candidates,
         outcome_handler_records,
@@ -1483,6 +1662,7 @@ def analyze_unit(
         function_analysis_available=logic_report.get('status') != 'function_analysis_required',
     )
     outcome['family_resolution'] = family_resolution
+    _apply_requirements_policy_gate(outcome, requirements_policy)
     outcome['handler_evidence'] = _public_outcome_handler_records(outcome_handler_records)
     outcome['artifacts'] = {
         'routing': 'family-routing.json',
@@ -1857,6 +2037,7 @@ def run_batch(
     family_hint_document, family_hint_identity = _load_family_hint_manifest(
         family_hint_manifest
     )
+    family_requirements_policy = _load_family_analysis_requirements()
 
     clear_handler_caches()
     classify_sample.clear_classifier_caches()
@@ -1933,6 +2114,7 @@ def run_batch(
                     assessment_only=assessment_only,
                     analysis_contract=analysis_contract,
                     family_hint_manifest=family_hint_document,
+                    family_requirements_policy=family_requirements_policy,
                 )
             )
         except Exception as exc:
@@ -1970,6 +2152,7 @@ def run_batch(
         },
         "catalog": catalog_summary(specs),
         "analysis_contract": analysis_contract,
+        "requirements_policy": _requirements_policy_summary(family_requirements_policy),
         "cases": cases,
         "duplicates": duplicates,
         "errors": errors,
