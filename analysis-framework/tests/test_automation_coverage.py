@@ -184,6 +184,31 @@ def test_programmatic_quality_policy_is_strictly_validated() -> None:
         )
 
 
+def test_extended_quality_policy_category_is_accepted() -> None:
+    policies = _policies("downloader_family")
+    policies["downloader_family"]["category"] = "downloader"
+    report = build_coverage(
+        registered_families={"downloader_family"},
+        specs=[_spec("downloader_family")],
+        quality_policies=policies,
+        preflight=_preflight(),
+    )
+    assert report["families"][0]["status"] == "fully_routable"
+    assert report["families"][0]["quality_policy"]["category"] == "downloader"
+
+
+def test_unknown_quality_policy_category_is_rejected() -> None:
+    policies = _policies("unknown_category")
+    policies["unknown_category"]["category"] = "unknown"
+    with pytest.raises(ValueError, match="categoryが不正"):
+        build_coverage(
+            registered_families={"unknown_category"},
+            specs=[_spec("unknown_category")],
+            quality_policies=policies,
+            preflight=_preflight(),
+        )
+
+
 def test_handler_is_safe_when_at_least_one_declared_format_is_eligible() -> None:
     report = build_coverage(
         registered_families={"mixed"},

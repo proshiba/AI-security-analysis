@@ -29,6 +29,21 @@ DEFAULT_REQUIREMENTS = FRAMEWORK_ROOT / "registry" / "family_analysis_requiremen
 MAX_COVERAGE_PREFLIGHTS = 2_048
 PREFLIGHT_PROBE_INPUT_SIZE = 1
 FAMILY_ID = re.compile(r"^[a-z0-9_-]+$")
+QUALITY_POLICY_CATEGORIES = frozenset(
+    {
+        "rat",
+        "stealer",
+        "loader",
+        "downloader",
+        "backdoor",
+        "ransomware",
+        "worm",
+        "bot",
+        "keylogger",
+        "miner",
+        "other",
+    }
+)
 
 PreflightCallable = Callable[..., dict[str, Any]]
 
@@ -74,7 +89,7 @@ def _normalize_quality_policies(
             raise ValueError(
                 f"family analysis requirementsのfieldが不正です: {family}"
             )
-        if policy.get("category") not in {"rat", "stealer", "loader"}:
+        if policy.get("category") not in QUALITY_POLICY_CATEGORIES:
             raise ValueError(
                 f"family analysis requirementsのcategoryが不正です: {family}"
             )
