@@ -3,38 +3,33 @@
     {
       "blockers": [
         "human_documented_terminal_gap",
-        "terminal_family_config_and_c2_not_recovered"
+        "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2"
       ],
       "canonical_path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
       "evidence": [
         {
-          "locator": "line:24",
+          "locator": "line:25",
           "path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/FEATURES.md",
           "source": "human_readable_case_document",
-          "summary": "最終設定、C2、版、コマンド体系は未復元である。過去のPureRAT事例のC2は本検体IOCとして扱わない。未復元理由は最終resourceの不存在ではなく、sample固有32-byte反復鍵と仮想化dispatcherの静的定数伝播が未完であるため。"
+          "summary": "最終設定、C2、家族版、コマンド体系は未復元である。過去のPureRAT事例のC2は本検体IOCとして扱わない。未復元理由は終端assemblyの不存在ではなく、resource-backed protectorから設定保持methodの実bodyを静的復元できていないためである。"
         },
         {
-          "locator": "line:22",
+          "locator": "line:93",
           "path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/OVERALL-LOGIC.md",
           "source": "human_readable_case_document",
-          "summary": "Q --> Z[\"最終assembly／config／C2は未復元\"]"
-        },
-        {
-          "locator": "line:14",
-          "path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/metadata.json",
-          "source": "human_readable_case_document",
-          "summary": "\"reason\": \"終端managed payloadの家族固有設定と版を復元できない\","
+          "summary": "| NETRESEC PureRAT報告 | Eazfuscator系loader、暗号化／圧縮managed payload | 本検体の最終config未復元 | protector構成は類似。sample固有通信の一致は未確認 |"
         },
         {
           "locator": "classification.terminal_family_confirmed / case_state.blockers",
           "path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9/report.json",
           "source": "structured_case_report",
-          "summary": "terminal_family_config_and_c2_not_recovered"
+          "summary": "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2"
         }
       ],
       "family": "purehvnc",
       "gap_types": [
         "container_or_resource_boundary",
+        "protector_or_virtualization_boundary",
         "terminal_config_unrecovered",
         "terminal_payload_unrecovered"
       ],
@@ -333,7 +328,7 @@
     },
     {
       "blockers": [
-        "terminal_family_attribution_unresolved"
+        "terminal_family_not_confirmed"
       ],
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701",
       "evidence": [
@@ -341,7 +336,7 @@
           "locator": "classification.terminal_family_confirmed / case_state.blockers",
           "path": "analysis-results/malware/valleyrat/versions/unknown/cases/4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701/report.json",
           "source": "structured_case_report",
-          "summary": "terminal_family_attribution_unresolved"
+          "summary": "terminal_family_confirmed=false"
         }
       ],
       "family": "valleyrat",
@@ -15634,7 +15629,7 @@
       "source_material_absent_count": 0,
       "top_blockers": [
         "human_documented_terminal_gap",
-        "terminal_family_config_and_c2_not_recovered"
+        "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2"
       ]
     },
     {
@@ -16413,7 +16408,7 @@
       "explicit_unrecovered": 566,
       "source_material_absent": 5
     },
-    "structured_report_match_count": 7,
+    "structured_report_match_count": 8,
     "structured_terminal_completion_count": 20
   },
   "source_paths": [

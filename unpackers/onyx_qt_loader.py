@@ -7,14 +7,14 @@ GPU処理はChaCha20鍵流とのXORを行うため、等価な変換をPythonで
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import stat
 import struct
+from dataclasses import dataclass
+from pathlib import Path
 
 MAX_INPUT_SIZE = 32 * 1024 * 1024
 MAX_HUFFMAN_SIZE = 8 * 1024 * 1024
@@ -83,8 +83,8 @@ def matches_onyx_qt_profile(data: bytes) -> bool:
 class _HuffmanNode:
     symbol: int
     weight: int
-    left: "_HuffmanNode | None" = None
-    right: "_HuffmanNode | None" = None
+    left: _HuffmanNode | None = None
+    right: _HuffmanNode | None = None
 
 
 class _StableMinHeap:
@@ -333,7 +333,7 @@ def modified_chacha20_transform(key: bytes, data: bytes) -> bytes:
     """64-bit nonce型ChaCha20とGPU XORマスクを等価に再現する。"""
     if not key or len(key) > 32:
         raise ValueError("invalid ChaCha key size")
-    padded_key = key.ljust(32, b"\0")
+    padded_key = key + b"\0" * (32 - len(key))
     state = [
         0x61707865,
         0x3320646E,

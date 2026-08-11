@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib
+import importlib
 import json
 import os
 import sys
@@ -12,17 +12,17 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import c2_protocol_probe_profiles as profile_module
-import remus_profile_evidence as evidence
-from build_all_c2_monitoring_targets import build_inventory
-from c2_protocol_probe_profiles import (
-    ProtocolProfileError,
-    apply_profiles,
-    load_profiles,
-    profile_registry_metadata,
-    remus_review_registry_metadata,
-    resolve_profile,
-)
+profile_module = importlib.import_module("c2_protocol_probe_profiles")
+evidence = importlib.import_module("remus_profile_evidence")
+build_inventory = importlib.import_module(
+    "build_all_c2_monitoring_targets"
+).build_inventory
+ProtocolProfileError = profile_module.ProtocolProfileError
+apply_profiles = profile_module.apply_profiles
+load_profiles = profile_module.load_profiles
+profile_registry_metadata = profile_module.profile_registry_metadata
+remus_review_registry_metadata = profile_module.remus_review_registry_metadata
+resolve_profile = profile_module.resolve_profile
 
 
 def test_registry_contains_reviewed_protocols() -> None:
@@ -144,7 +144,10 @@ def test_purerat_direct_tls_profile_is_exact_and_evidence_pinned() -> None:
 
     repository = Path(__file__).resolve().parents[2]
     evidence_source = repository / profile["source"]
-    assert hashlib.sha256(evidence_source.read_bytes()).hexdigest() == (
+    assert evidence.canonical_lf_json_sha256(
+        evidence_source.read_bytes(),
+        label="PureRAT evidence",
+    ) == (
         "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8"
     )
     assert profile_module.canonical_profile_object_sha256(profile) == (
