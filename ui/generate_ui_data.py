@@ -795,16 +795,24 @@ def parse_payload(text: str) -> dict | None:
         return None
 
 
-def only_unresolved_added_at(current: str, fresh: dict) -> bool:
-    """差分が「commit前で確定しなかった added_at」だけかどうかを判定する。
+def only_environment_derived_difference(current: str, fresh: dict) -> bool:
+    """差分が「環境由来のフィールド」だけかどうかを判定する。
 
-    added_at は `git log --diff-filter=A` 由来のため、case を追加する commit
-    そのものの中ではまだ確定しない。case追加とdata.js再生成を1コミットに
-    まとめると生成時点では null になり、commit後に日付が付くので、この
-    null→日付 の一方向だけは「未確定だった値が確定した」ものとして許容する。
-    これを差分扱いにすると、case を追加するPRが構造的に必ず `--check` で
-    落ちてしまう。配信されるdata.jsはワークフローが毎回再生成するため、
-    公開内容は常に確定後の日付になる。
+    data.js の大半は解析成果物から決まるが、次の2つは**生成した環境**で決まる。
+    同じ成果物でも、生成した機械やcommitのタイミングで値が変わる。
+
+    - `repo`: `MALDB_REPO_SLUG` 環境変数か `git remote` から推定する。
+      どちらも取れない環境(remoteの無いクローン等)ではnullになる。実際に
+      日次自動化の生成物ではnull、CIでは実値になり、両者が食い違う。
+    - `cases[].added_at`: `git log --diff-filter=A` 由来。case を追加する
+      commit そのものの中ではまだ確定しないため、生成時点ではnullになり、
+      commit後に日付が付く。
+
+    これらを差分扱いにすると、解析を追加するPRが構造的に必ず `--check` で
+    落ちる。配信される data.js はワークフローが毎回再生成するので、公開内容は
+    常にCI環境の値になる。したがって、この2つ以外に差分が無い場合だけ最新と
+    みなす。added_at は「未確定だった値が確定した」null→日付の一方向に限り、
+    日付の書き換えや退行は従来どおり差分として検出する。
     """
     old = parse_payload(current)
     if old is None:
@@ -815,12 +823,13 @@ def only_unresolved_added_at(current: str, fresh: dict) -> bool:
         return False
     if len(old_cases) != len(new_cases):
         return False
-    if {k: v for k, v in old.items() if k != "cases"} != {
-        k: v for k, v in fresh.items() if k != "cases"
+    # repo 以外のトップレベル項目は厳密に一致していなければならない
+    if {k: v for k, v in old.items() if k not in ("cases", "repo")} != {
+        k: v for k, v in fresh.items() if k not in ("cases", "repo")
     }:
         return False
 
-    tolerated = False
+    tolerated = old.get("repo") != fresh.get("repo")
     for old_case, new_case in zip(old_cases, new_cases):
         if old_case == new_case:
             continue
@@ -1194,7 +1203,7 @@ def main() -> int:
     if args.check:
         current = read_text(OUTPUT)
         index_ok = current == payload
-        tolerated = not index_ok and only_unresolved_added_at(current, data)
+        tolerated = not index_ok and only_environment_derived_difference(current, data)
         if not index_ok and not tolerated:
             print("ui/data.js is out of date. Run: python3 ui/generate_ui_data.py", file=sys.stderr)
             return 1
@@ -1213,7 +1222,7 @@ def main() -> int:
         if tolerated:
             print(
                 "ui/data.js is up to date. "
-                "(commit前で未確定だった added_at のみ差分。次回の再生成で解消されます)"
+                "(環境由来の repo / 未確定だった added_at のみ差分。配信時に再生成されます)"
             )
         else:
             print("ui/data.js is up to date.")
