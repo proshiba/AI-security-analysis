@@ -11,7 +11,7 @@ import pytest
 COMMON = Path(__file__).resolve().parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import build_terminal_payload_gap_inventory as gaps
+import build_terminal_payload_gap_inventory as gaps  # noqa: E402
 
 
 def _sha(character: str) -> str:
@@ -212,6 +212,45 @@ def test_terminal_completion_is_independent_from_c2_case_completion(
     assert scenario_hashes["d"] not in resolved
 
 
+def test_terminal_managed_client_c2_evidence_closes_gap_without_report_flag(
+    tmp_path: Path,
+) -> None:
+    _fixture_repository(tmp_path)
+    catalog_path = tmp_path / "analysis-results" / "catalog" / "cases.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))["cases"]
+    digest = _sha("9")
+    case_dir = _case_path(tmp_path, "venomrat", digest)
+    case_dir.mkdir(parents=True)
+    catalog[digest] = {
+        "case_id": f"sha256:{digest}",
+        "canonical_path": case_dir.relative_to(tmp_path).as_posix(),
+        "case_kind": "malware",
+        "family": "venomrat",
+        "version_key": "v6.0.3",
+    }
+    _write_json(
+        case_dir / "report.json",
+        {
+            "classification": {"family": "venomrat"},
+            "case_state": {"status": "partial", "complete": False},
+        },
+    )
+    _write_json(
+        case_dir / "c2-analysis.json",
+        {
+            "terminal_payload": {
+                "reached": True,
+                "status": "terminal_managed_client_and_config_recovered",
+                "family": "venomrat",
+            }
+        },
+    )
+
+    resolved = gaps._structured_terminal_completions(tmp_path, catalog)
+
+    assert digest in resolved
+
+
 def test_document_match_requires_same_sentence_payload_gap() -> None:
     assert gaps._line_is_explicit_gap("最終payloadは未取得です。")
     assert gaps._line_is_explicit_gap("未復元保護層または別payloadを一般化しない。")
@@ -235,6 +274,24 @@ def test_render_and_sync_are_deterministic(tmp_path: Path) -> None:
     csv_text = (tmp_path / output / "inventory.csv").read_text(encoding="utf-8")
     assert "終端ペイロード未取得ケース" in readme
     assert "ファミリー" in csv_text
+
+
+def test_sync_outputs_supports_absolute_sibling_dry_run(tmp_path: Path) -> None:
+    """repo外の絶対outputを表示でき、dry-runではdirectoryを作成しない。"""
+
+    repository = tmp_path / "repository"
+    _fixture_repository(repository)
+    output = (tmp_path / "inventory-audit").resolve()
+
+    result = gaps.sync_outputs(repository, output)
+
+    expected_names = ("README.md", "CASES.md", "inventory.csv", "inventory.json")
+    assert result["mismatches"] == [
+        (output / name).resolve().as_posix() for name in expected_names
+    ]
+    assert result["output_dir"] == output.as_posix()
+    assert result["write_performed"] is False
+    assert not output.exists()
 
 
 def test_invalid_curated_hash_fails_closed(tmp_path: Path) -> None:

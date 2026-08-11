@@ -43,6 +43,15 @@ from unpackers.javascript_obfuscator import (
     deobfuscate_string_array,
 )
 from unpackers.nsis_unpacker import recover_nsis_scripted_layers
+from unpackers.onyx_qt_loader import (
+    matches_onyx_qt_profile,
+    recover_onyx_qt_payload,
+)
+from unpackers.rzk_lece_unpacker import (
+    ENCODED_LECE_MAGIC,
+    candidate_report as rzk_lece_candidate_report,
+    find_rzk_lece_streams,
+)
 from unpackers.container_recovery import (
     recover_inflated_pe,
     recover_macho_slices,
@@ -3136,6 +3145,27 @@ def unpack_bytes(
                     legacy_attempt
                 )
     if not iso9660_candidate and len(static_data) <= 32 * 1024 * 1024:
+        if b"rzk-stream-v3" in static_data and ENCODED_LECE_MAGIC in static_data:
+            rzk_lece = find_rzk_lece_streams(static_data)
+            report["rzk_lece"] = {
+                "status": "encrypted_container_recovered" if rzk_lece else "profile_matched_recovery_failed",
+                "candidates": rzk_lece_candidate_report(rzk_lece),
+                "executed": False,
+                "network_contacted": False,
+                "family_classification": "independent_verification_required",
+            }
+            artifacts.extend(("rzk-lece-encrypted-container", item.data) for item in rzk_lece)
+        if matches_onyx_qt_profile(static_data):
+            onyx_result = recover_onyx_qt_payload(static_data)
+            if onyx_result is None:
+                report["onyx_qt_loader"] = {
+                    "status": "profile_matched_recovery_failed",
+                    "executed": False,
+                    "network_contacted": False,
+                }
+            else:
+                report["onyx_qt_loader"] = onyx_result.metadata()
+                artifacts.append(("onyx-qt-shellcode", onyx_result.payload))
         report["donut"], recovered = recover_donut_payloads(static_data)
         artifacts.extend(recovered)
     whole_file_embedded = [] if iso9660_candidate else carve_embedded_pes(static_data)

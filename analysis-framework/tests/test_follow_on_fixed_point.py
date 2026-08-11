@@ -707,6 +707,236 @@ def _run_fixed_point(
     return result, calls
 
 
+def test_fixed_point_propagates_parent_family_hint_with_hash_lineage(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """保持payloadを親候補familyの静的再検証へ回し、lineageをworkerへ渡す。"""
+
+    root = "a" * 64
+    child_data = b"MZ lineage child payload"
+    child = hashlib.sha256(child_data).hexdigest()
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest == root:
+            return ([{
+                "sha256": child,
+                "size": len(child_data),
+                "path": "p/child.bin",
+                "role": "terminal_payload",
+                "kind": "memory_pe",
+                "data": child_data,
+            }], [], 1, len(child_data))
+        return [], [], 0, 0
+
+    monkeypatch.setattr(one_shot, "_case_retained_payloads", retained)
+    monkeypatch.setattr(
+        one_shot,
+        "_case_result_from_disk",
+        lambda *_args, **_kwargs: {"case_state": "complete"},
+    )
+    monkeypatch.setattr(one_shot, "_case_strict_complete", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(one_shot, "_case_has_follow_on_promotion", lambda *_args, **_kwargs: False)
+    captured = []
+
+    def execute(**kwargs):
+        captured.append(kwargs)
+        return {}
+
+    result = one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=tmp_path,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence="medium",
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password="infected",
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=execute,
+        root_family_hints={
+            root: [
+                {
+                    "family": "vidar",
+                    "source": "malwarebazaar",
+                    "provenance": "reported_signature",
+                    "confidence": "medium",
+                }
+            ]
+        },
+    )
+
+    assert len(captured) == 1
+    hint = captured[0]["family_hints"][0]
+    assert hint["family"] == "vidar"
+    assert hint["artifact_sha256"] == child
+    assert hint["parent_sha256"] == root
+    assert hint["root_sha256"] == root
+    assert hint["artifact_kind"] == "memory_pe"
+    assert hint["depth"] == 1
+    assert hint["family_hint_source"] == "parent_metadata_candidate"
+    child_node = next(item for item in result["nodes"] if item["sha256"] == child)
+    assert child_node["family_hint_count"] == 1
+    assert child_node["family_hint_root_sha256"] == root
+    assert one_shot._family_hint_conflicts(captured[0]["family_hints"], ["acrstealer"])[0][
+        "kind"
+    ] == "classification_conflict"
+
+    captured.clear()
+    original_root = "b" * 64
+    lineaged_root_hint = {
+        "family": "vidar",
+        "source": "triage",
+        "provenance": f"inherited-from-sha256:{original_root}",
+        "confidence": "medium",
+        "artifact_sha256": root,
+        "parent_sha256": original_root,
+        "root_sha256": original_root,
+        "artifact_kind": "memory_pe",
+        "source_id": "260810-spjflsbr8v",
+        "depth": 1,
+        "inherited_family": "vidar",
+        "family_hint_source": "parent_confirmed",
+    }
+    external_output = tmp_path / "external-lineage"
+    external_output.mkdir()
+    second = one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=external_output,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence="medium",
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password="infected",
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=execute,
+        root_family_hints={root: [lineaged_root_hint]},
+    )
+
+    inherited = captured[0]["family_hints"][0]
+    assert inherited["root_sha256"] == original_root
+    assert inherited["parent_sha256"] == root
+    assert inherited["artifact_sha256"] == child
+    assert inherited["depth"] == 2
+    second_child_node = next(item for item in second["nodes"] if item["sha256"] == child)
+    assert second_child_node["family_hint_lineage_depth"] == 2
+
+
+def test_artifact_lineage_deduplicates_equivalent_multi_provider_hints() -> None:
+    """provider差分が子で同一hintへ収束してもfollow-onを失敗させない。"""
+
+    parent = "a" * 64
+    child = "b" * 64
+    manifest = one_shot.build_artifact_family_hint_manifest(
+        artifact_sha256=child,
+        parent_sha256=parent,
+        root_sha256=parent,
+        artifact_kind="memory_pe",
+        source="one_shot_recovered_artifact",
+        source_id=f"sha256:{parent}",
+        depth=1,
+        parent_hints=[
+            {
+                "family": "vidar",
+                "source": "provider-a",
+                "provenance": "reported-signature-a",
+                "confidence": "medium",
+            },
+            {
+                "family": "vidar",
+                "source": "provider-b",
+                "provenance": "reported-signature-b",
+                "confidence": "medium",
+            },
+        ],
+    )
+
+    assert manifest is not None
+    hints = one_shot.classify_sample.family_hints_for_sha256(manifest, child)
+    assert len(hints) == 1
+    assert hints[0]["family"] == "vidar"
+    assert hints[0]["root_sha256"] == parent
+    assert hints[0]["depth"] == 1
+
+
+def test_fixed_point_rejects_conflicting_root_lineage_contexts(
+    tmp_path: Path,
+) -> None:
+    """異なるroot/depthを新しいdepth 1へ黙って付け替えない。"""
+
+    root = "a" * 64
+
+    def lineage(*, family: str, lineage_root: str, parent: str, depth: int) -> dict:
+        return {
+            "family": family,
+            "source": "triage",
+            "provenance": f"inherited-from-sha256:{parent}",
+            "confidence": "medium",
+            "artifact_sha256": root,
+            "parent_sha256": parent,
+            "root_sha256": lineage_root,
+            "artifact_kind": "memory_pe",
+            "source_id": f"sha256:{parent}",
+            "depth": depth,
+            "inherited_family": family,
+            "family_hint_source": "parent_confirmed",
+        }
+
+    with pytest.raises(ValueError, match="conflicting artifact lineage contexts"):
+        one_shot._run_follow_on_fixed_point(
+            root_digests=[root],
+            output=tmp_path,
+            registry=REGISTRY,
+            specs=[],
+            requirements_policy={},
+            minimum_confidence="medium",
+            upx=None,
+            sevenzip=None,
+            diec=None,
+            force_container_probe=False,
+            max_static_layers=8,
+            retry_max_static_layers=None,
+            archive_password="infected",
+            string_scan_limit=1000,
+            analysis_contract={},
+            root_analysis_contract={},
+            resume=False,
+            root_family_hints={
+                root: [
+                    lineage(
+                        family="vidar",
+                        lineage_root="b" * 64,
+                        parent="c" * 64,
+                        depth=2,
+                    ),
+                    lineage(
+                        family="stealc",
+                        lineage_root="d" * 64,
+                        parent="e" * 64,
+                        depth=3,
+                    ),
+                ]
+            },
+        )
+
+
 def test_fixed_point_completes_child_graph_with_parent_promotion_enabled(
     tmp_path: Path,
     monkeypatch,

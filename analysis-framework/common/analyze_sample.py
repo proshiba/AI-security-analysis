@@ -155,6 +155,17 @@ FAMILY_POLICY_CATEGORIES = frozenset(
         "other",
     }
 )
+FAMILY_HINT_LINEAGE_FIELDS = (
+    "root_sha256",
+    "parent_sha256",
+    "artifact_sha256",
+    "artifact_kind",
+    "source",
+    "source_id",
+    "depth",
+    "inherited_family",
+    "family_hint_source",
+)
 
 
 def _bounded_json_size(value: Any, *, maximum_bytes: int) -> int | None:
@@ -174,6 +185,56 @@ def _bounded_json_size(value: Any, *, maximum_bytes: int) -> int | None:
     except (RecursionError, TypeError, ValueError):
         return None
     return total
+
+
+def _normalized_handler_result_digest(execution: dict[str, Any]) -> str | None:
+    """明示的なlayer provenanceだけを除いたhandler結果digestを返す。"""
+
+    payload = copy.deepcopy(execution.get("result"))
+    if not isinstance(payload, dict):
+        return None
+    payload.pop("sample_sha256", None)
+    payload.pop("source_name", None)
+    config = payload.get("config")
+    if isinstance(config, dict):
+        config.pop("source_name", None)
+    try:
+        encoded = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (RecursionError, TypeError, ValueError):
+        return None
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _equivalent_pe_padding_handler_layers(
+    strongest: list[tuple[dict[str, Any], int, StaticLayer, dict[str, Any]]],
+) -> list[str]:
+    """PE末尾padding除去の直系親子で意味結果が同一の場合だけ両hashを返す。"""
+
+    if len(strongest) != 2:
+        return []
+    first, second = strongest
+    first_layer, second_layer = first[2], second[2]
+    if first_layer.parent_sha256 == second_layer.sha256:
+        child = first_layer
+    elif second_layer.parent_sha256 == first_layer.sha256:
+        child = second_layer
+    else:
+        return []
+    if child.transform != "pe-overlay-padding-removed":
+        return []
+    digests = {
+        _normalized_handler_result_digest(first[3]),
+        _normalized_handler_result_digest(second[3]),
+    }
+    if None in digests or len(digests) != 1:
+        return []
+    return sorted({first_layer.sha256, second_layer.sha256})
 
 
 CAMPAIGN_CORRELATION_RULES = FRAMEWORK_ROOT / "registry" / "campaign_correlation_rules.json"
@@ -470,6 +531,126 @@ def _load_family_hint_manifest(
         "canonical_sha256": hashlib.sha256(canonical).hexdigest(),
     }
     return manifest, identity
+
+
+def build_artifact_family_hint_manifest(
+    *,
+    artifact_sha256: str,
+    parent_sha256: str,
+    root_sha256: str,
+    artifact_kind: str,
+    source: str,
+    source_id: str,
+    depth: int,
+    parent_hints: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """親の候補familyを、帰属には使わない子artifact検証hintへ変換する。"""
+
+    artifact = normalize_sha256_digest(artifact_sha256)
+    parent = normalize_sha256_digest(parent_sha256)
+    root = normalize_sha256_digest(root_sha256)
+    if artifact in {parent, root}:
+        raise ValueError("artifact family hint lineage must reference an ancestor")
+    if (
+        isinstance(depth, bool)
+        or not isinstance(depth, int)
+        or not 1 <= depth <= classify_sample.MAX_FAMILY_HINT_LINEAGE_DEPTH
+    ):
+        raise ValueError("artifact family hint depth is outside the bounded lineage")
+    normalized_kind = re.sub(r"[^a-z0-9_.-]+", "_", str(artifact_kind).casefold()).strip("._-")
+    if not normalized_kind:
+        normalized_kind = "recovered_payload"
+    normalized_kind = normalized_kind[:64]
+    inherited_by_fingerprint: dict[str, dict[str, Any]] = {}
+    for supplied in parent_hints:
+        if not isinstance(supplied, Mapping):
+            raise TypeError("parent family hint must be a mapping")
+        family = supplied.get("family")
+        if not isinstance(family, str):
+            raise ValueError("parent family hint is missing family")
+        hint: dict[str, Any] = {
+            "family": family,
+            "source": source,
+            "provenance": f"inherited-from-sha256:{parent}",
+            "confidence": supplied.get("confidence", "unverified"),
+            "artifact_sha256": artifact,
+            "parent_sha256": parent,
+            "root_sha256": root,
+            "artifact_kind": normalized_kind,
+            "source_id": source_id,
+            "depth": depth,
+            "inherited_family": family,
+            "family_hint_source": "parent_metadata_candidate",
+        }
+        for optional in ("label", "observed_at"):
+            if optional in supplied:
+                hint[optional] = supplied[optional]
+        # 親manifestではproviderごとに異なるsource/provenanceを持つ同一family hintを
+        # 許可する。一方、子lineageではsource/provenanceを継承機構の固定値へ正規化
+        # するため、同じfamily/confidenceのhintが同一objectへ収束し得る。ここで
+        # canonical fingerprintにより決定的に集約し、正当な複数provider入力が
+        # duplicate hintとしてfollow-on全体を失敗させないようにする。
+        fingerprint = json.dumps(
+            hint,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        inherited_by_fingerprint.setdefault(fingerprint, hint)
+    inherited = [inherited_by_fingerprint[key] for key in sorted(inherited_by_fingerprint)]
+    if not inherited:
+        return None
+    return classify_sample.normalize_family_hint_manifest(
+        {"schema_version": 1, "samples": {artifact: inherited}}
+    )
+
+
+def _family_hint_lineage_records(hints: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """検証済みhintから、hashで結合可能なartifact lineageだけを公開する。"""
+
+    records = []
+    for hint in hints:
+        if "artifact_sha256" not in hint:
+            continue
+        records.append({key: hint[key] for key in FAMILY_HINT_LINEAGE_FIELDS})
+    return sorted(
+        records,
+        key=lambda item: (
+            item["depth"],
+            item["root_sha256"],
+            item["parent_sha256"],
+            item["artifact_sha256"],
+            item["inherited_family"],
+        ),
+    )
+
+
+def _family_hint_conflicts(
+    hints: Sequence[Mapping[str, Any]],
+    selected_families: Sequence[str],
+) -> list[dict[str, Any]]:
+    """親hintと子artifact自身の独立検出が異なる場合を上書きせず記録する。"""
+
+    inherited = sorted(
+        {
+            str(hint["inherited_family"])
+            for hint in hints
+            if isinstance(hint.get("inherited_family"), str)
+        }
+    )
+    detected = sorted({family for family in selected_families if isinstance(family, str)})
+    if not inherited or not detected or set(inherited) == set(detected):
+        return []
+    return [
+        {
+            "kind": "classification_conflict",
+            "inherited_family_candidates": inherited,
+            "independently_detected_families": detected,
+            "resolution": "independent_detector_and_handler_evidence_take_precedence",
+            "metadata_hint_used_for_attribution": False,
+        }
+    ]
 
 
 def _verification_candidates(routing: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1435,6 +1616,10 @@ def analyze_unit(
         if family_hint_manifest is not None
         else []
     )
+    family_hint_lineage = _family_hint_lineage_records(metadata_hints)
+    family_hint_conflicts = _family_hint_conflicts(metadata_hints, selected_families)
+    classification_document["family_hint_lineage"] = family_hint_lineage
+    classification_document["classification_conflicts"] = family_hint_conflicts
     routing = classify_sample.build_family_routing_candidates(
         public_classifications,
         metadata_hints=metadata_hints,
@@ -1457,6 +1642,8 @@ def analyze_unit(
             "selected_family": root_selection["selected_family"],
             "selected_families": selected_families,
             "selection_basis": root_selection["selection_basis"],
+            "family_hint_lineage": family_hint_lineage,
+            "classification_conflicts": family_hint_conflicts,
             "catalog": catalog_summary(specs),
             "family_coverage": summarize_family_coverage(specs, registered),
             "handlers": applicability,
@@ -1673,7 +1860,9 @@ def analyze_unit(
                 for value in completed
                 if value[0]["score"] == selected_quality["score"] and value[0]["sufficient"]
             ]
-            ambiguous_layers = sorted({value[2].sha256 for value in strongest})
+            tied_layers = sorted({value[2].sha256 for value in strongest})
+            equivalent_layers = _equivalent_pe_padding_handler_layers(strongest)
+            ambiguous_layers = [] if equivalent_layers else tied_layers
             if not selected_quality["sufficient"]:
                 execution_status = "no_evidence"
             elif len(ambiguous_layers) > 1 or handler_truncated:
@@ -1696,6 +1885,7 @@ def analyze_unit(
                     "selected_evidence_score": selected_quality["score"],
                     "selection_strategy": "evidence_tier_then_score_then_root_order",
                     "ambiguous_best_layer_sha256": ambiguous_layers,
+                    "equivalent_best_layer_sha256": equivalent_layers,
                     "resource_budget_truncated": handler_truncated,
                     "resource_budget_reason": (handler_budget_reason if handler_truncated else None),
                     "attempts": attempts,
@@ -1708,6 +1898,7 @@ def analyze_unit(
                     "selected_layer_sha256": selected_layer.sha256,
                     "selected_evidence": selected_quality,
                     "ambiguous_best_layer_sha256": ambiguous_layers,
+                    "equivalent_best_layer_sha256": equivalent_layers,
                     "resource_budget_truncated": handler_truncated,
                     "resource_budget_reason": (handler_budget_reason if handler_truncated else None),
                     "result": f"handlers/{filename}",
@@ -1743,6 +1934,8 @@ def analyze_unit(
             "selected_family": root_selection["selected_family"],
             "selected_families": selected_families,
             "selection_basis": root_selection["selection_basis"],
+            "family_hint_lineage": family_hint_lineage,
+            "classification_conflicts": family_hint_conflicts,
         },
         "static_layers": "static-layers.json",
         "generic_triage": generic_status,
@@ -2160,6 +2353,7 @@ def _build_follow_on_analysis_contract(
     retry_max_static_layers: int | None,
     archive_password: str,
     string_scan_limit: int,
+    family_hint_manifest_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """保持済みraw payloadへ実際に適用する設定だけで契約を構築する。"""
 
@@ -2179,7 +2373,7 @@ def _build_follow_on_analysis_contract(
         archive_password=archive_password,
         max_file_size=MAX_FOLLOW_ON_PAYLOAD_SIZE,
         string_scan_limit=string_scan_limit,
-        family_hint_manifest_identity=None,
+        family_hint_manifest_identity=family_hint_manifest_identity,
     )
 
 
@@ -2521,6 +2715,7 @@ def _follow_on_worker_main(
             "expected_sha256",
             "depth",
             "parent_sha256",
+            "family_hints",
         }
         if not isinstance(request, dict) or set(request) != expected_keys:
             raise ValueError("follow-on worker request schemaが不正です")
@@ -2535,6 +2730,19 @@ def _follow_on_worker_main(
             raise ValueError("follow-on registryがrepository境界外です")
         expected_sha256 = normalize_sha256_digest(request["expected_sha256"])
         parent_sha256 = normalize_sha256_digest(request["parent_sha256"])
+        supplied_family_hints = request["family_hints"]
+        if not isinstance(supplied_family_hints, list):
+            raise ValueError("follow-on family_hints must be a list")
+        child_family_hint_manifest = (
+            classify_sample.normalize_family_hint_manifest(
+                {
+                    "schema_version": 1,
+                    "samples": {expected_sha256: supplied_family_hints},
+                }
+            )
+            if supplied_family_hints
+            else None
+        )
         depth = request["depth"]
         if not isinstance(depth, int) or isinstance(depth, bool) or not 1 <= depth <= MAX_FOLLOW_ON_DEPTH:
             raise ValueError("follow-on depthが不正です")
@@ -2588,6 +2796,11 @@ def _follow_on_worker_main(
             retry_max_static_layers=request["retry_max_static_layers"],
             archive_password=str(request["archive_password"]),
             string_scan_limit=int(request["string_scan_limit"]),
+            family_hint_manifest_identity=(
+                analysis_contract.get("settings", {}).get("family_hint_manifest")
+                if isinstance(analysis_contract.get("settings"), dict)
+                else None
+            ),
         )
         if analysis_contract != child_contract:
             raise ValueError("follow-on analysis_contractが実行時設定と一致しません")
@@ -2609,7 +2822,7 @@ def _follow_on_worker_main(
             minimum_confidence=minimum_confidence,
             assessment_only=False,
             analysis_contract=child_contract,
-            family_hint_manifest=None,
+            family_hint_manifest=child_family_hint_manifest,
             family_requirements_policy=_load_family_analysis_requirements(),
             upx=upx,
             sevenzip=sevenzip,
@@ -2672,9 +2885,19 @@ def _execute_follow_on_child(
     string_scan_limit: int,
     analysis_contract: dict[str, Any],
     timeout_seconds: float,
+    family_hints: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """保持payloadを隔離processの既存analyze_unitへwall-clock上限付きで渡す。"""
 
+    normalized_family_hints = []
+    if family_hints:
+        normalized_manifest = classify_sample.normalize_family_hint_manifest(
+            {"schema_version": 1, "samples": {digest: list(family_hints)}}
+        )
+        normalized_family_hints = classify_sample.family_hints_for_sha256(
+            normalized_manifest,
+            digest,
+        )
     request = {
         "schema_version": 1,
         "output": str(output.resolve(strict=True)),
@@ -2693,6 +2916,7 @@ def _execute_follow_on_child(
         "expected_sha256": digest,
         "depth": depth,
         "parent_sha256": parent_sha256,
+        "family_hints": normalized_family_hints,
     }
     request_raw = json.dumps(
         request,
@@ -3437,6 +3661,7 @@ def _run_follow_on_fixed_point(
     resume: bool,
     execute_child: Callable[..., dict[str, Any]] | None = None,
     monotonic: Callable[[], float] = time.monotonic,
+    root_family_hints: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """保持payloadをSHA-256固定点queueで同一job内の子caseへ再投入する。"""
 
@@ -3475,6 +3700,42 @@ def _run_follow_on_fixed_point(
     executor = execute_child or _execute_follow_on_child
     deadline = monotonic() + MAX_FOLLOW_ON_WALL_SECONDS
     roots = sorted({normalize_sha256_digest(item) for item in root_digests})
+    supplied_root_hints = root_family_hints or {}
+    unknown_hint_roots = set(supplied_root_hints) - set(roots)
+    if unknown_hint_roots:
+        raise ValueError("root family hints reference a digest outside this fixed-point run")
+    hint_context_by_digest: dict[str, list[dict[str, Any]]] = {}
+    lineage_root_by_digest: dict[str, str] = {}
+    lineage_depth_by_digest: dict[str, int] = {}
+    for root_digest in roots:
+        raw_hints = list(supplied_root_hints.get(root_digest, ()))
+        if raw_hints:
+            normalized_manifest = classify_sample.normalize_family_hint_manifest(
+                {"schema_version": 1, "samples": {root_digest: raw_hints}}
+            )
+            hints = classify_sample.family_hints_for_sha256(normalized_manifest, root_digest)
+        else:
+            hints = []
+        hint_context_by_digest[root_digest] = hints
+        lineages = _family_hint_lineage_records(hints)
+        lineage_contexts = {
+            (item["root_sha256"], item["depth"])
+            for item in lineages
+        }
+        if len(lineage_contexts) == 1:
+            lineage_root, lineage_depth = next(iter(lineage_contexts))
+            lineage_root_by_digest[root_digest] = lineage_root
+            lineage_depth_by_digest[root_digest] = lineage_depth
+        elif lineage_contexts:
+            # 異なるroot/depthを現在root/depth=0へ黙って畳むと、次の子artifactが
+            # depth=1の新規lineageとして記録され、元のprovenance chainを失う。
+            # どのchainを継承すべきか決定できない入力はfail closedにする。
+            raise ValueError(
+                "root family hints contain conflicting artifact lineage contexts"
+            )
+        else:
+            lineage_root_by_digest[root_digest] = root_digest
+            lineage_depth_by_digest[root_digest] = 0
     queue: deque[dict[str, Any]] = deque()
     queued: set[str] = set()
     visited: set[str] = set(roots)
@@ -3648,23 +3909,63 @@ def _run_follow_on_fixed_point(
             if queued_bytes + payload["size"] > MAX_FOLLOW_ON_TOTAL_BYTES:
                 edge["status"] = "total_bytes_limit"
                 continue
+            parent_hints = hint_context_by_digest[parent_sha256]
+            inherited_lineage_depth = lineage_depth_by_digest[parent_sha256] + 1
+            inherited_manifest = (
+                build_artifact_family_hint_manifest(
+                    artifact_sha256=child_sha256,
+                    parent_sha256=parent_sha256,
+                    root_sha256=lineage_root_by_digest[parent_sha256],
+                    artifact_kind=str(payload["kind"]),
+                    source="one_shot_recovered_artifact",
+                    source_id=f"sha256:{parent_sha256}",
+                    depth=inherited_lineage_depth,
+                    parent_hints=parent_hints,
+                )
+                if parent_hints
+                and inherited_lineage_depth
+                <= classify_sample.MAX_FAMILY_HINT_LINEAGE_DEPTH
+                else None
+            )
+            inherited_hints = (
+                classify_sample.family_hints_for_sha256(inherited_manifest, child_sha256)
+                if inherited_manifest is not None
+                else []
+            )
             queued.add(child_sha256)
             visited.add(child_sha256)
             queued_artifacts += 1
             queued_bytes += payload["size"]
             depths[child_sha256] = child_depth
             ancestors[child_sha256] = frozenset({*ancestors[parent_sha256], child_sha256})
+            hint_context_by_digest[child_sha256] = inherited_hints
+            lineage_root_by_digest[child_sha256] = (
+                lineage_root_by_digest[parent_sha256]
+                if inherited_hints
+                else child_sha256
+            )
+            lineage_depth_by_digest[child_sha256] = (
+                inherited_lineage_depth if inherited_hints else 0
+            )
             nodes[child_sha256] = {
                 "sha256": child_sha256,
                 "depth": child_depth,
                 "size": payload["size"],
                 "state": "queued",
+                "family_hint_count": len(inherited_hints),
+                "family_hint_root_sha256": (
+                    lineage_root_by_digest[child_sha256] if inherited_hints else None
+                ),
+                "family_hint_lineage_depth": (
+                    lineage_depth_by_digest[child_sha256] if inherited_hints else None
+                ),
             }
             queue.append(
                 {
                     **payload,
                     "parent_sha256": parent_sha256,
                     "depth": child_depth,
+                    "family_hints": inherited_hints,
                 }
             )
 
@@ -3729,6 +4030,7 @@ def _run_follow_on_fixed_point(
                 string_scan_limit=string_scan_limit,
                 analysis_contract=analysis_contract,
                 timeout_seconds=timeout,
+                family_hints=item["family_hints"],
             )
             result = _case_result_from_disk(
                 output,
@@ -3970,6 +4272,7 @@ def run_batch(
         retry_max_static_layers=retry_max_static_layers,
         archive_password=password,
         string_scan_limit=string_scan_limit,
+        family_hint_manifest_identity=family_hint_identity,
     )
     cases = []
     errors = []
@@ -4063,6 +4366,17 @@ def run_batch(
                 analysis_contract=follow_on_analysis_contract,
                 root_analysis_contract=analysis_contract,
                 resume=resume,
+                root_family_hints={
+                    item["sha256"]: (
+                        classify_sample.family_hints_for_sha256(
+                            family_hint_document,
+                            item["sha256"],
+                        )
+                        if family_hint_document is not None
+                        else []
+                    )
+                    for item in cases
+                },
             )
             refreshed = []
             for item in cases:

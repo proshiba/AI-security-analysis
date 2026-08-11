@@ -594,13 +594,37 @@ def test_real_monitoring_target_shape_accepts_live_asyncrat_summary_and_report(
     )
     plan_sha = hashlib.sha256(plan_path.read_bytes()).hexdigest()
     summary_sha = hashlib.sha256(summary_path.read_bytes()).hexdigest()
-    real_plan = builder.load_monitoring_plan(plan_path, plan_sha)
+    historical_plan = builder.load_monitoring_plan(plan_path, plan_sha)
+    real_plan = deepcopy(historical_plan)
     real_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    current_summary = deepcopy(real_summary)
+    current_summary["metadata"]["registry_sha256"] = REGISTRY.sha256
+    current_summary["metadata"]["evidence_sha256"] = REGISTRY.profiles[
+        real_summary["metadata"]["profile_id"]
+    ]["evidence_sha256"]
+    current_summary_path = short_tmp / "current-registry-live-asyncrat.json"
+    current_summary_sha = write_json(current_summary_path, current_summary)
+    current_protocol_registry = REGISTRY.protocol_profile_registry
+    real_plan["protocol_profile_registry"] = deepcopy(current_protocol_registry)
+    asyncrat_targets = [
+        target
+        for target in real_plan["targets"]
+        if target.get("protocol_profile_id")
+        == real_summary["metadata"]["protocol_profile_id"]
+    ]
+    assert len(asyncrat_targets) == 1
+    asyncrat_target = asyncrat_targets[0]
+    asyncrat_target["protocol_profile_registry_source"] = current_protocol_registry[
+        "source"
+    ]
+    asyncrat_target["protocol_profile_registry_sha256"] = current_protocol_registry[
+        "sha256"
+    ]
     report_path = short_tmp / "real-shape-archive-report.json"
     report_sha = write_json(report_path, archive_report(real_summary["session_id"]))
 
     built = builder.build_evidence(
-        [builder.SummaryInput(summary_path, summary_sha)],
+        [builder.SummaryInput(current_summary_path, current_summary_sha)],
         real_plan,
         archive_reports=[builder.ArchiveReportInput(report_path, report_sha)],
         reference_time=datetime(2026, 8, 9, 10, tzinfo=UTC),
@@ -616,12 +640,14 @@ def test_real_monitoring_target_shape_accepts_live_asyncrat_summary_and_report(
     builder.write_evidence(
         output,
         built,
-        input_paths=[plan_path, summary_path, report_path],
+        input_paths=[plan_path, current_summary_path, report_path],
     )
     output_sha = hashlib.sha256(output.read_bytes()).hexdigest()
     validated = evidence.load_and_validate(output, output_sha, real_plan)
     assert validated["sessions"][0]["protocol"] == "asyncrat"
     assert validated["sessions"][0]["transport"] == "direct"
+    assert hashlib.sha256(plan_path.read_bytes()).hexdigest() == plan_sha
+    assert hashlib.sha256(summary_path.read_bytes()).hexdigest() == summary_sha
 
 
 @pytest.mark.parametrize(

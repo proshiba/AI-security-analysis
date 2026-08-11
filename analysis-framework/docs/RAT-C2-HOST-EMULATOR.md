@@ -28,6 +28,14 @@ flowchart LR
 
 family adapterは暗号化、frame復号、review済みregistration／heartbeat／Ping requestの構築、task分類だけを担当します。heartbeat応答やtaskへのreply、任意操作結果のfake replyは構築しません。socket、DNS、時間・byte上限、kill-switch、transcriptは共通層が管理します。adapterからshell、process、filesystem、registry、別hostへのnetwork接続を呼び出せない構造にします。
 
+profileの`live_scope`は、短期leaseを必須とする`leased_external`と、外部接続を常に拒否する`offline_or_loopback_only`を区別します。fieldの欠落、未知値、adapterとの不一致はfail-closedです。`offline_or_loopback_only`はprofile検証直後、lease、MaxMind、DNS、socketより前に拒否し、live leaseも付与しません。
+
+ValleyRAT／Winosの`valleyrat-winos-heartbeat-20260803-ljdnxz`はcontrol channel `ljdnxz.cc:8868`だけを対象とする`offline_or_loopback_only` profileです。stage channel `:8856`はprofileへ含めません。共通runnerとの結合はpreflightと127.0.0.1統合testまでに限定し、外部live用CLIから実行できません。これは、loopback fixtureを実C2確認やlive evidenceへ誤って昇格させないためです。公開loopback session CLIとsidecar契約は、offline結果を`c2_confirmed=false`として区別するschemaを別途reviewするまで追加しません。
+
+PureRAT／PureHVNC 4.4.1の`purerat-441-d025a296-direct-tls10-empty-gclass4`も`offline_or_loopback_only` profileです。全memberがdefaultの匿名固定`GClass4` registrationであるprotobuf `0a00`をLE32／GZipでframe化し、注入済みoffline streamまたは`127.0.0.1` loopbackへ1回だけ送信します。受信は最大1 application frameだけを分類し、heartbeat、task、既知・未知messageのいずれにも返信しません。plugin／fileを保持せず、configurationを適用せず、commandを実行しません。外部live registrationはprofile検証直後、lease、MaxMind、DNS、socketより前に拒否します。
+
+ValleyRAT固有の設計と検証手順は[ハンドラー概要](../malware/valleyrat/README.md)、[解析ワークフロー](../malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md)、[防御的エミュレーション](../malware/valleyrat/docs/EMULATION.md)を参照してください。
+
 ## live sessionの許可条件
 
 次をすべて満たす場合だけ実C2へ接続します。
@@ -45,9 +53,9 @@ CLIは任意の`--host`、`--port`、lease path、検証時刻を公開しませ
 
 短期leaseはprofileそのものを変更せず、現在の接続許可だけを最大24時間に区切る別registryです。更新時は次の順で再レビューします。
 
-1. 対象3 profileの検体SHA-256、endpoint、単一pinned IP、SNI、証明書SHA-256、protocol profile object SHA-256、evidence SHA-256を再確認する。
-2. `rat_emulator_profiles.json`のraw SHA-256を取得し、lease registryの`profile_registry.source`と`profile_registry.sha256`へ固定する。lease延長だけを理由にprofile registryを編集しない。
-3. 全profileを1件ずつ含め、`reviewed_at_utc`、24時間以内の`expires_at_utc`、`review_owner`を更新する。未知、欠落、重複profileを残さない。
+1. `leased_external`の対象profileについて、検体SHA-256、endpoint、単一pinned IP、SNI、証明書SHA-256、protocol profile object SHA-256を再確認する。各`evidence_source`はstrict UTF-8 JSONのCRLFだけをLFへ正規化したSHA-256で固定し、LF／CRLF以外の内容変更を拒否する。`offline_or_loopback_only`へleaseを追加しない。
+2. `rat_emulator_profiles.json`もstrict UTF-8 JSONのCRLFだけをLFへ正規化したSHA-256を取得し、lease registryの`profile_registry.source`と`profile_registry.sha256`へ固定する。evidenceとregistryの両方でCRLF／LFによりpinが変わらないことをtestし、lease延長だけを理由にprofile registryを編集しない。
+3. `leased_external`の全profileを1件ずつ含め、`offline_or_loopback_only`は含めない。`reviewed_at_utc`、24時間以内の`expires_at_utc`、`review_owner`を更新し、未知、欠落、重複profileを残さない。
 4. lease validatorのstrict UTF-8、重複key、size、reparse／hardlink、registry pin、開始・終了境界testを実行する。
 5. `run_defensive_rat_emulator.py preflight --profile-id <完全一致ID>`で、通信せずlease source／SHA-256、review時刻、期限、review ownerを確認する。
 
@@ -70,11 +78,11 @@ lease更新では既存live summary、監視sidecar、静的evidenceを変更・
 | family／protocol | 現在復元済みの範囲 | 初期エミュレーターの範囲 | 主な不足情報 |
 |---|---|---|---|
 | ValleyRAT／N520 | TLS server-first handshake、session鍵、AES-CBC／HMAC／CRC frame、command decode、plugin command 16／18 | 空command 1登録、bounded受信、command fingerprint、転送要求で切断 | command別result serializerとACK値 |
-| ValleyRAT／Winos | XOR frame、heartbeat、command byte分類 | heartbeatと短時間受信 | 登録構造、command別結果形式 |
+| ValleyRAT／Winos | LE32 total-length、固定header、C9 heartbeat、command byte分類 | 制御用`:8868`だけをoffline／127.0.0.1で検証。固定15-byte C9を1回送信し、最大64-byteの完全frame 1件を分類して無応答終了 | 登録構造、command別結果形式、実C2へ許可する独立review |
 | AsyncRAT 0.5.8 | TLS、gzip MessagePack、`ClientInfo`、token `0x06000024`の`KeepAlivePacket`、Ping／pong | 合成`ClientInfo`、空`Message`の固定Ping、pongまたはtask 1 frame受信、無応答終了 | 任意操作の分類表とresult serializer |
 | VenomRAT 6.0.3 | TLS、gzip MessagePack、`ClientInfo`、token `0x06000056`の`KeepAlivePacket`、`Pac_ket=Ping`／`Po_ng` | 合成`ClientInfo`、空`Message`の固定Ping、Po_ngまたはtask 1 frame受信、無応答終了 | command別result serializer |
 | DarkComet | RC4とserver-first `IDTYPE` | 受信・fingerprint | client identity、command／result mapping |
-| PureRAT／PureHVNC | prelude、TLS、offline GZip／protobuf codec | handshakeまで | post-TLS登録、task dispatcher、結果形式 |
+| PureRAT／PureHVNC 4.4.1 direct-TLS | TLS 1.0、LE32／GZip／protobuf-net、`GClass2`／`GClass4` registration schema | `offline_or_loopback_only`。匿名固定`GClass4`を1回送信し、最大1 application frameを分類して無応答終了 | 実C2側の登録受理、task dispatcher、result serializer。外部liveは禁止 |
 | Remcos／Quasar／Gh0st／NanoCore等 | 部分的なtransportまたは状態モデル | offline／loopbackのみ | 実C2互換の登録・command・結果形式 |
 
 exact ILの`KeepAlivePacket`はactive window titleを`Ping.Message`へ入れますが、エミュレーターは`GetActiveWindowTitle`を呼ばず、空文字へsanitizeします。「heartbeat応答まで」と「遠隔commandを受信できる」は同じ完成度ではありません。公開要約では、`handshake_confirmed`、`registration_accepted`、Ping request送信、heartbeat応答、task受信を分け、`synthetic_reply_sent=false`を明示します。

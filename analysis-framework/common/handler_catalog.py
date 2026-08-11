@@ -2697,6 +2697,13 @@ _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES: dict[
             'validated_common_module_loader',
         ),
     ),
+    'extractors/venomrat/integrated.py': (
+        (
+            'analysis-framework/common/dotnet_rat_config.py',
+            ('recover',),
+            'validated_common_module_loader',
+        ),
+    ),
 }
 _APPROVED_STATIC_SYS_PATH_SOURCES = frozenset(
     {
@@ -2744,6 +2751,8 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         'hashlib.md5',
         'hashlib.pbkdf2_hmac',
         'hashlib.sha256',
+        'hmac.compare_digest',
+        'hmac.new',
         'importlib.util.module_from_spec',
         'importlib.util.spec_from_file_location',
         'io.BytesIO',
@@ -2967,6 +2976,11 @@ _REVIEWED_SOURCE_CALLS = {
         'module.build_remus_c2_profile',
     ): 'hash検証済みdynamic dependencyの監査済みsymbol',
     (
+        'extractors/venomrat/integrated.py',
+        'reachable:_validated_recovery',
+        'module.recover',
+    ): 'hash検証済みdotnet_rat_configのHMAC検証済みVenom設定復元',
+    (
         'analysis-framework/common/remus_profile_evidence.py',
         'reachable:_forbidden_identity',
         'absolute.stat',
@@ -3025,6 +3039,11 @@ _REVIEWED_IMPORT_NAMESPACE_MUTATIONS = frozenset(
         (
             'extractors/remusstealer/extractor.py',
             'reachable:_load_exact_module',
+            'sys.modules[]',
+        ),
+        (
+            'extractors/venomrat/integrated.py',
+            'reachable:_load_dotnet_rat_config',
             'sys.modules[]',
         ),
     }

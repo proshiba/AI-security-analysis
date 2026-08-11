@@ -22,7 +22,7 @@
 ## 短期live leaseの再レビュー
 
 - leaseは`reviewed_at_utc <= 現在時刻 < expires_at_utc`の半開区間だけ有効とし、1件の有効期間を24時間以内に限定します。期限前、期限到達、profile欠落、未知profile、重複、registry pin不一致はfail-closedです。
-- 再レビューでは3 profileそれぞれの検体SHA-256、endpoint、単一pinned IP、SNI、証明書SHA-256、protocol／evidence SHA-256を再確認します。既存`rat_emulator_profiles.json`をlease更新だけの目的で変更せず、そのraw SHA-256を新しいlease registryからpinします。
+- 再レビューでは各profileの検体SHA-256、endpoint、単一pinned IP、SNI、証明書SHA-256、protocol／evidence SHA-256を再確認します。`evidence_source`と`rat_emulator_profiles.json`はstrict UTF-8 JSONのCRLFだけをLFへ正規化したSHA-256で固定し、LF／CRLF以外の変更は拒否します。既存profile registryをlease更新だけの目的で変更しません。
 - 再確認後に`reviewed_at_utc`、`expires_at_utc`、`review_owner`を更新し、lease validator、preflight、期限境界testを実行します。過去のlive summary、sidecar、静的evidenceは再生成しません。
 - live開始時の残lease秒をmonotonic deadlineへ変換し、profileのsession期限との短い方を使います。MaxMind後、DNS後、TLS後、各send／recv直前に期限を再確認し、transport timeoutも残時間以下へ再設定します。kill-switchはleaseとは独立して継続利用します。
 

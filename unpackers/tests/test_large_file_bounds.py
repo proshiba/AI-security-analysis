@@ -138,6 +138,7 @@ def test_protected_pe_routes_to_bounded_cfg_without_block_bloat(monkeypatch) -> 
             DATA_DIRECTORY=directories, AddressOfEntryPoint=0x1000
         ),
         FILE_HEADER=SimpleNamespace(Machine=0x14C),
+        parse_data_directories=lambda **_kwargs: None,
         get_overlay_data_start_offset=lambda: None,
     )
     monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
@@ -191,6 +192,7 @@ def test_single_custom_dll_many_imports_marks_encrypted_sideload_host(
         DIRECTORY_ENTRY_IMPORT=[
             SimpleNamespace(dll=b"uJQ.2w", imports=[object()] * 101)
         ],
+        parse_data_directories=lambda **_kwargs: None,
         get_overlay_data_start_offset=lambda: None,
     )
     monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
