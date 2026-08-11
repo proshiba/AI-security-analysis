@@ -28,6 +28,7 @@
     <div id="global-suggest" class="gsg" hidden></div>
   </form>
 </header>
+<div id="freshness-alert" class="freshness-alert" role="status" hidden></div>
 <main id="app">
   <div class="loading">データを読み込んでいます…</div>
 </main>
@@ -64,8 +65,10 @@
     </dl>
     <p class="credits-note">各サービスの提供者に感謝します。本サイトはこれらのサービスとは無関係であり、提供者による承認・推奨を示すものではありません。サンドボックスや外部照会の結果は相関用の参考情報として扱い、単独では C2 やファミリの確定に用いていません。</p>
   </section>
-  <p class="footer-note">データ生成: <code>python3 ui/generate_ui_data.py</code> ／ 検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</p>
+  <p class="footer-note" id="freshness-note">データ生成: <code>python3 ui/generate_ui_data.py</code></p>
+  <p class="footer-note">検体本体は含まれません。IOC・ルールは検知仮説であり環境別の検証が必要です。</p>
 </footer>
+<script src="build-info.js"></script>
 <script src="data.js"></script>
 <script src="worldmap.js"></script>
 <script src="app.js"></script>
