@@ -1251,7 +1251,7 @@ def _completion_state(
                     )
         if incomplete_anchor_attempts:
             blockers.append("selected_family_layer_incomplete")
-        if selected_families and not function_analysis_is_available(logic_report):
+        if not function_analysis_is_available(logic_report):
             blockers.append("representative_function_analysis_required")
 
     blockers = sorted(set(blockers))

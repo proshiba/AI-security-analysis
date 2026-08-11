@@ -80,7 +80,7 @@ def build_carchive(entries: dict[str, bytes]) -> bytes:
     return b"MZ" + b"\0" * 126 + bytes(data_region) + bytes(toc) + cookie
 
 
-def encrypted_efimer_entries(module) -> dict[str, bytes]:
+def encrypted_efimer_entries(module, bundle_id: str = "002") -> dict[str, bytes]:
     phase = b"c2MIdLA5PdAD"
     xml = (
         '\ufeff<?xml version="1.0" encoding="UTF-16"?>'
@@ -101,12 +101,13 @@ def encrypted_efimer_entries(module) -> dict[str, bytes]:
         f"var FILE_URL='http://{host_b}.onion/route.php';"
         f"var STUB_URL='http://{host_c}.onion/core/repla.php';"
     ).encode()
+    prefix = f"data_p{bundle_id}\\"
     plaintext = {
-        "data_p002\\002.xml": xml,
-        "data_p002\\002_b.js": bjs,
-        "data_p002\\002_n.js": njs,
-        "data_p002\\pack.js": b"var PACK=true;",
-        "data_p002\\uusd.exe": b"MZ-synthetic-tor-placeholder",
+        prefix + f"{bundle_id}.xml": xml,
+        prefix + f"{bundle_id}_b.js": bjs,
+        prefix + f"{bundle_id}_n.js": njs,
+        prefix + "pack.js": b"var PACK=true;",
+        prefix + "uusd.exe": b"MZ-synthetic-tor-placeholder",
     }
     entries = {name: module.xor_repeating(payload, phase) for name, payload in plaintext.items()}
     entries["pyarmor_runtime_000000\\pyarmor_runtime.pyd"] = b"synthetic-pyarmor-runtime"
@@ -124,6 +125,10 @@ def test_efimer_embedded_config_is_decoded_without_disk_or_network() -> None:
     assert result["decoded_config_recovered"] is True
     assert result["static_config_recovered"] is True
     assert result["carchive"]["saved_to_disk"] is False
+    assert result["carchive"]["data_bundle_id"] == "002"
+    assert result["data_bundle"]["id"] == "002"
+    assert result["xor"]["stream_phase_published"] is False
+    assert "key_ascii" not in result["xor"]
     assert result["executed_sample"] is False
     assert result["network_contacted"] is False
     assert result["endpoint_summary"]["unique_url_count"] == 3
@@ -141,6 +146,41 @@ def test_efimer_embedded_config_is_decoded_without_disk_or_network() -> None:
     assert handler_result_quality(result)["tier_name"] == "decoded_configuration"
 
 
+
+def test_efimer_generation_003_is_detected_and_decoded_in_memory() -> None:
+    module = load("malware/efimer/extract_config.py", "efimer_memory_generation_003")
+    detector = load("malware/efimer/detect.py", "efimer_detector_generation_003")
+    sample = build_carchive(encrypted_efimer_entries(module, "003"))
+
+    detection = detector.detect(sample)
+    result = module.extract_config(sample)
+
+    assert detection["matched"] is True
+    assert detection["data_bundle_id"] == "003"
+    assert detection["complete_data_bundle_ids"] == ["003"]
+    assert detection["observed_data_bundle_ids"] == ["003"]
+    assert result["data_bundle"]["id"] == "003"
+    assert result["carchive"]["selected_data_bundle_entries"] == 5
+    assert result["decoded_config_recovered"] is True
+    assert result["terminal_family_confirmed"] is True
+    assert result["executed_sample"] is False
+    assert result["network_contacted"] is False
+
+
+def test_efimer_mixed_generation_decoy_fails_closed() -> None:
+    module = load("malware/efimer/extract_config.py", "efimer_memory_mixed_generation")
+    detector = load("malware/efimer/detect.py", "efimer_detector_mixed_generation")
+    entries = encrypted_efimer_entries(module, "003")
+    entries["data_p004\\004.xml"] = b"partial-decoy"
+    sample = build_carchive(entries)
+
+    detection = detector.detect(sample)
+    assert detection["matched"] is False
+    assert detection["complete_data_bundle_ids"] == ["003"]
+    assert detection["observed_data_bundle_ids"] == ["003", "004"]
+    with pytest.raises(HandlerNoEvidenceError, match="混在"):
+        module.extract_config(sample)
+
 def test_generic_pyinstaller_pyarmor_is_not_labeled_efimer() -> None:
     module = load("malware/efimer/extract_config.py", "efimer_memory_negative")
     detector = load("malware/efimer/detect.py", "efimer_detector_negative")
@@ -154,7 +194,7 @@ def test_generic_pyinstaller_pyarmor_is_not_labeled_efimer() -> None:
         }
     )
 
-    with pytest.raises(HandlerNoEvidenceError, match="data_p002"):
+    with pytest.raises(HandlerNoEvidenceError, match="data_pNNN"):
         module.extract_config(sample)
     assert detector.detect(sample)["matched"] is False
 

@@ -509,7 +509,11 @@ def _probe_args(target: dict, allow_network: bool) -> SimpleNamespace:
     )
 
 
-def _probe_winos_reviewed(profile: dict, allow_network: bool) -> dict:
+def _probe_winos_reviewed(
+    profile: dict,
+    allow_network: bool,
+    expected_registry_sha256: str,
+) -> dict:
     """既存のreview済みWinos実装を明示pathから読み、完全一致profileだけを渡す。"""
     if not allow_network:
         return {
@@ -538,20 +542,30 @@ def _probe_winos_reviewed(profile: dict, allow_network: bool) -> dict:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module.probe_reviewed_endpoint(
+        profile["profile_id"],
         profile["host"],
         profile["port"],
-        profile["pinned_ips"][0],
         allow_live=True,
-        timeout=float(profile["timeout_seconds"]),
+        expected_registry_sha256=expected_registry_sha256,
     )
 
 
 def _winos_observation(target: dict, allow_network: bool) -> dict:
-    """Winos heartbeatを共通observatonへ正規化し、operation commandは保持しない。"""
+    """Winos heartbeatを共通observationへ正規化し、operation commandは保持しない。"""
     timestamp = datetime.now(UTC).isoformat()
-    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
+    registry_sha256 = target["protocol_profile_registry_sha256"]
+    profile = resolve_profile(
+        target["protocol_profile_id"],
+        target["host"],
+        target["port"],
+        expected_registry_sha256=registry_sha256,
+    )
     try:
-        raw = _probe_winos_reviewed(profile, allow_network)
+        raw = _probe_winos_reviewed(
+            profile,
+            allow_network,
+            registry_sha256,
+        )
     except ConnectionRefusedError:
         return {
             "timestamp_utc": timestamp,
@@ -616,6 +630,7 @@ def _winos_observation(target: dict, allow_network: bool) -> dict:
         "protocol_response_received": received > 0,
         "resolved_ips": list(raw.get("dns_answers") or []),
         "pinned_ip": raw.get("pinned_ip"),
+        "channel_role": raw.get("channel_role"),
         "sent_bytes": sent,
         "received_bytes": received,
         "winos_response": (

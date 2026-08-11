@@ -56,6 +56,8 @@ PROFILE_METHODS = {
     ),
 }
 
+WINOS_CHANNEL_ROLES = frozenset({"control", "stage_and_control"})
+
 
 class ProtocolProfileError(ValueError):
     """profileが安全制約または完全一致条件を満たさない場合のエラー。"""
@@ -369,8 +371,30 @@ def load_profiles(
             raise ProtocolProfileError(f"active probeの上限が不正です: {profile_id}")
         if handler == "valleyrat_winos_reviewed":
             pinned = profile.get("pinned_ips")
-            if not isinstance(pinned, list) or len(pinned) != 1 or maximum != 64:
-                raise ProtocolProfileError("Winos profileには単一pinned IPが必要です")
+            if (
+                not isinstance(pinned, list)
+                or len(pinned) != 1
+                or not _is_canonical_global_ip(pinned[0])
+                or not _is_canonical_global_host(host)
+                or (_is_canonical_global_ip(host) and host != pinned[0])
+                or profile.get("channel_role") not in WINOS_CHANNEL_ROLES
+                or type(profile.get("timeout_seconds")) is not float
+                or profile.get("timeout_seconds") != 3.0
+                or type(profile.get("maximum_response_bytes")) is not int
+                or maximum != 64
+                or any(
+                    key in profile
+                    for key in (
+                        "send_hex",
+                        "payload",
+                        "checkin",
+                        "stage_request",
+                        "victim_metadata",
+                        "operation_command",
+                    )
+                )
+            ):
+                raise ProtocolProfileError("Winos profileの完全一致endpointまたは安全境界が不正です")
         elif handler == "c2_detector_vvas":
             if profile.get("send_hex") != "333200" or maximum != 64:
                 raise ProtocolProfileError("vvaS check-inはレビュー済み333200だけを許可します")

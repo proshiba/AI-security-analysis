@@ -10,6 +10,12 @@ from extractors.common import (
     valid_host,
 )
 from extractors.stealer_common import infrastructure_urls
+from extractors.valleyrat.nvml_dat import (
+    NvmlDatError,
+    looks_like_nvml_dat,
+    public_recovery_summary,
+    recover_nvml_dat,
+)
 
 
 def identify_variant(strings: list[str]) -> str:
@@ -28,6 +34,14 @@ def identify_variant(strings: list[str]) -> str:
         for item in ("myappdomainmanager", "initializenewdomain", "enumuilanguagesa")
     ):
         return "appdomainmanager_pixel_loader"
+    nvml_markers = ("nvml.dat", "nvml.dll", "runtimebroker.exe")
+    nvml_loader_apis = ("queueuserapc", "virtualalloc", "virtualprotect", "readfile")
+    if all(item in lower for item in nvml_markers) and sum(
+        item in lower for item in nvml_loader_apis
+    ) >= 3:
+        # raw ISO/IMGとcompact proxy DLLの両方で成立するhash非依存構造。
+        # filename共存だけではなく、APC・memory保護・DAT読込みAPIを要求する。
+        return "nvml_compact_dat_iso_bundle"
     winos_stage_markers = (
         "ipdatespecial",
         "sedebugprivilege",
@@ -68,8 +82,26 @@ def decode_vvas_reversed_config(strings: list[str]) -> dict[str, str]:
 def extract(data: bytes, name: str = "sample") -> dict:
     """Return static ValleyRAT config candidates without contacting endpoints."""
     strings = extract_strings(data)
-    variant = identify_variant(strings)
+    nvml_recovery = None
+    if looks_like_nvml_dat(data):
+        try:
+            nvml_recovery = recover_nvml_dat(data)
+        except NvmlDatError:
+            # trailer長だけが偶然一致したdataをValleyRATへ昇格しない。
+            nvml_recovery = None
+    variant = (
+        "nvml_compact_dat_winos_stage"
+        if nvml_recovery is not None
+        else identify_variant(strings)
+    )
     decoded = decode_vvas_reversed_config(strings)
+    if nvml_recovery is not None:
+        decoded = {
+            f"endpoint_{index}": endpoint
+            for index, endpoint in enumerate(
+                nvml_recovery.codemark_config["endpoints"], start=1
+            )
+        }
     endpoints, urls = endpoint_candidates(strings), infrastructure_urls(strings)
     if not decoded and variant == "unresolved_variant":
         endpoints = []
@@ -94,7 +126,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "value": item,
             "role": "static_config_c2" if decoded else "candidate_c2",
             "confidence": "confirmed_static_config" if decoded else "inferred",
-            "source": "decoded_vvas_config" if decoded else "static_string",
+            "source": (
+                "nvml_dat_codemark"
+                if nvml_recovery is not None
+                else "decoded_vvas_config" if decoded else "static_string"
+            ),
         }
         for item in endpoints
     ]
@@ -131,6 +167,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "endpoints": endpoints,
             "ipv4": ips,
             "urls": urls,
+            "nvml_dat": (
+                public_recovery_summary(nvml_recovery, data)
+                if nvml_recovery is not None
+                else None
+            ),
             "placeholder_defaults_excluded": (
                 ["192.168.1.200:6669", "192.168.1.200:9999"]
                 if variant == "pdfcore8_winos_recovered_stage"
@@ -142,5 +183,6 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "反転形式を構造どおり復号した値だけを静的設定として確認済みにします。現在の稼働状態と所有者は未確認です。",
             "一般文字列だけから得た値はC2候補に留め、未解決外層では公開しません。",
             "Winos復元stageのRFC1918既定slotは実運用C2として公開しません。",
+            "NVML.DATは復号stageを実行せず、codemarkで構造検証できたslotだけを静的設定として採用します。",
         ],
     )

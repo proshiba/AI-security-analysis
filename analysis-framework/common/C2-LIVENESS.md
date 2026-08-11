@@ -61,7 +61,7 @@ collectorはstation IDを送信せず、最大16 MiB、最大30秒だけ受信�
 
 daily解析で明示的に許可されたC2ライブチェックは、[`build_all_c2_monitoring_targets.py`](build_all_c2_monitoring_targets.py)で`analysis-results`全体のIOC履歴から対象を再生成し、[`run_c2_monitoring_pipeline.py`](run_c2_monitoring_pipeline.py)で観測する経路を標準とします。`.onion`は対象外とし、通常のglobal IP／FQDNは全件を計画へ含めます。既知portは完全一致endpointへ限定probeを1回だけ実行し、port不明hostはDNS解決だけを行ってC2稼働とは判定しません。直近の`active-targets.json`も統合します。
 
-既知のmalware固有protocolは[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)を正本とします。`targets.json`には`protocol_profile_id`だけを保持し、送信byte列、期待header、SNI、IP pinningはregistryから解決します。IDとhost/portが完全一致しない場合は接続前に拒否します。現在のレビュー済みprofileは、Winos制御portへのheartbeat 1 frame、vvaSへの固定3 byte check-in、N520のserver-first 44 byte handshakeです。Winosのstage portではstageを要求せず、N520ではcheck-inを送りません。いずれもvictim metadata、command polling、任意commandを送信しません。
+既知のmalware固有protocolは[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)を正本とします。`targets.json`には`protocol_profile_id`だけを保持し、送信byte列、期待header、channel role、SNI、IP pinningはregistryから解決します。IDとhost/portが完全一致しない場合は接続前に拒否し、IP直指定hostはhost自体と単一pinが一致する場合だけ許可します。現在のレビュー済みprofileは、Winosの`control`／`stage_and_control`への固定C9 heartbeat 1 frame、vvaSへの固定3 byte check-in、N520のserver-first 44 byte handshakeです。Winosは最大64 byteだけを受信してstageを要求せず、N520ではcheck-inを送りません。いずれもvictim metadata、command polling、任意commandを送信しません。
 
 結果では`tcp_connect`成功を`transport_reachable_c2_not_confirmed`、固有protocolの完全一致だけを`c2_protocol_confirmed`として区別します。静的解析でprotocolを復元済みのendpointを、実装上の都合だけで`tcp_connect`へ降格させてはいけません。
 

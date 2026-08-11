@@ -442,11 +442,10 @@ def test_profile_validation_miss_is_not_a_static_layer_failure() -> None:
         executions=[],
         logic_report={"status": "complete"},
     )
-    assert completion["status"] == "triaged_unknown"
+    assert completion["status"] == "partial"
     assert completion["complete"] is False
     assert completion["resumable"] is False
-
-
+    assert completion["blockers"] == ["representative_function_analysis_required"]
 def test_successful_sevenzip_cab_fallback_is_complete() -> None:
     """LZX非対応の内蔵CAB parser失敗を、完全な代替抽出成功後に残さない。"""
 

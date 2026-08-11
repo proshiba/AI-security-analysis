@@ -1,13 +1,14 @@
 {
   "schema_version": 1,
   "campaign_id": "valleyrat-japanese-malspam-20260804",
-  "assessment": "同日観測集合。単一actorは未確定。",
+  "assessment": "2026-08-04〜2026-08-10観測集合。campaign IDは初回観測日を維持する。単一actorは未確定。",
   "cases": [
     {"sha256": "7a330c11f130d4c459ba733f0fc2a7adafa5093d4a7f41d7b87a92e498d5390f", "variant": "appdomainmanager_pixel_loader", "cluster": "new_entry_branch"},
     {"sha256": "194845853f864088bc9fae5c0b2f692f6d6b1564f41111041247b3f86d356f30", "variant": "pdfcore8_winos", "cluster": "winos_stage_branch_a"},
-    {"sha256": "93df03d7db7df23317ee87ebe3946ddff4364e45de5217b0c90c7925b22c8f04", "variant": "nvml_compact_dat_loader", "cluster": "nvml_apc_branch"}
+    {"sha256": "93df03d7db7df23317ee87ebe3946ddff4364e45de5217b0c90c7925b22c8f04", "variant": "nvml_compact_dat_loader", "cluster": "nvml_apc_branch"},
+    {"sha256": "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25", "variant": "nvml_compact_dat_loader", "cluster": "nvml_apc_branch"}
   ],
-  "shared_evidence": ["日本語マルスパム", "ZIP→IMG", "ValleyRAT sandbox family"],
+  "shared_evidence": ["日本語マルスパム", "圧縮ファイル→IMG", "ValleyRAT sandbox family"],
   "strong_links": [{"case": "194845853f864088bc9fae5c0b2f692f6d6b1564f41111041247b3f86d356f30", "related_cluster": "valleyrat-pdfcore8-20260803", "basis": ["ljdnxz.cc", "module ID e84687e90263ec3cc28b55e05d09dc5b"]}],
   "actor_attribution": "unresolved"
 }

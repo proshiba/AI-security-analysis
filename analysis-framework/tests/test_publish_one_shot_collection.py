@@ -1323,6 +1323,26 @@ def test_partial_staging_preserves_all_original_blockers(
         publisher.FUNCTION_ANALYSIS_BLOCKER,
     ]
 
+    report_value["case_state"]["blockers"] = [
+        "orchestration:config",
+        "orchestration:function_analysis",
+        "orchestration:network",
+        "orchestration:terminal_payload",
+        publisher.FUNCTION_ANALYSIS_BLOCKER,
+        "selected_family_layer_incomplete",
+    ]
+    analysis_contract.seal_report(report_value)
+    publisher.write_json(source / "report.json", report_value)
+    assert (
+        publisher.validate_source_case(
+            source,
+            report_value,
+            digest,
+            allow_function_staging=True,
+        )
+        == "analysis_followup_pending"
+    )
+
     report_value["case_state"].update({"status": "failed", "blockers": ["generic_triage_failed"]})
     analysis_contract.seal_report(report_value)
     publisher.write_json(source / "report.json", report_value)

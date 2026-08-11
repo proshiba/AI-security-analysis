@@ -25,7 +25,7 @@ from rat_emulator_live_leases import (  # noqa: E402
 from rat_emulator_profiles import load_registry  # noqa: E402
 
 PROFILE_REGISTRY_SHA256 = (
-    "9d57ba366142f7cb88b49b64e8329d5afc688c3e733a5e3502cdbd37e7c0afb6"
+    "3f3d2afc8879a987ad0dde8abce200d371af452b94a4018d941cf62545d0c8b4"
 )
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)

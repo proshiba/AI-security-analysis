@@ -27,7 +27,7 @@ def test_prometei_embedded_config_redacts_encrypted_key() -> None:
         "id": "bot",
         "enckey": "秘密値",
         "ParentId": "parent",
-        "ip": "192.0.2.10",
+        "ip": "8.8.8.8",
         "ParentIp": "192.0.2.20",
         "ParentHostname": "host",
     }).encode()
@@ -36,9 +36,14 @@ def test_prometei_embedded_config_redacts_encrypted_key() -> None:
     assert report["config"]["encrypted_key_present"] is True
     assert report["config"]["encrypted_key_published"] is False
     assert "秘密値" not in json.dumps(report, ensure_ascii=False)
+    assert report["static_config_recovered"] is True
+    contract = load("analysis-framework/common/analysis_contract.py", "analysis_contract")
+    quality = contract.handler_result_quality(report)
+    assert quality["tier"] == 3
     assert report["c2"] == [{
-        "host": "192.0.2.10", "port": None, "role": "controller",
+        "host": "8.8.8.8", "port": None, "role": "controller",
         "confidence": "confirmed_config_host_only",
+        "monitor_eligible": True,
     }]
 
 
@@ -205,11 +210,11 @@ def test_efimer_and_prometei_network_detectors_are_offline() -> None:
     assert e_report["network_contacted"] is False
     p_report = prometei.detect_events(
         [{
-            "host": "192.0.2.10",
+            "host": "8.8.8.8",
             "port": 12345,
             "prometei_process_or_hash_correlation": True,
         }],
-        {"config": {"controller_ip": "192.0.2.10"}},
+        {"config": {"controller_ip": "8.8.8.8"}},
     )
     assert p_report["matched"] is True
     assert p_report["shodan_query_generated"] is False

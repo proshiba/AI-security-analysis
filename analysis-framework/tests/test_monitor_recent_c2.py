@@ -10,8 +10,8 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import c2_protocol_probe_profiles
-import monitor_recent_c2
+import c2_protocol_probe_profiles  # noqa: E402
+import monitor_recent_c2  # noqa: E402
 
 
 def plan() -> dict:
@@ -295,12 +295,13 @@ def test_winos_heartbeat_confirms_only_reviewed_frame(
     monkeypatch.setattr(
         monitor_recent_c2,
         "_probe_winos_reviewed",
-        lambda profile, allow: {
+        lambda profile, allow, registry_sha256: {
             "connected": True,
             "sent_bytes": 15,
             "received_bytes": 15,
             "dns_answers": ["134.122.185.201"],
             "pinned_ip": "134.122.185.201",
+            "channel_role": "control",
             "response": {
                 "declared_length": 15,
                 "command": 0xC9,
@@ -313,8 +314,60 @@ def test_winos_heartbeat_confirms_only_reviewed_frame(
     entry = result["results"][0]
     assert entry["assessment"]["state"] == "c2_protocol_confirmed"
     assert entry["observation"]["winos_response"]["command"] == 0xC9
+    assert entry["observation"]["channel_role"] == "control"
     assert result["policy"]["malware_checkin_sent"] is True
     assert result["policy"]["stage_requested"] is False
+
+
+def test_winos_ip_literal_dispatch_keeps_exact_profile_and_registry_pin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_id = "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666"
+    value = reviewed_target(
+        profile_id,
+        "64.81.30.192",
+        6666,
+        "winos",
+        "winos_heartbeat",
+    )
+    expected_pin = value["protocol_profile_registry"]["sha256"]
+
+    def fake_probe(profile, allow_network, registry_sha256):
+        assert allow_network is True
+        assert registry_sha256 == expected_pin
+        assert profile["profile_id"] == profile_id
+        assert profile["host"] == profile["pinned_ips"][0] == "64.81.30.192"
+        assert profile["channel_role"] == "stage_and_control"
+        return {
+            "connected": True,
+            "sent_bytes": 15,
+            "received_bytes": 15,
+            "dns_answers": ["64.81.30.192"],
+            "pinned_ip": "64.81.30.192",
+            "channel_role": "stage_and_control",
+            "response": {
+                "declared_length": 15,
+                "command": 0xC9,
+                "role": "heartbeat_or_status",
+                "complete": True,
+            },
+            "stage_requested": False,
+            "victim_metadata_sent": False,
+            "operation_command_sent": False,
+        }
+
+    monkeypatch.setattr(monitor_recent_c2, "_probe_winos_reviewed", fake_probe)
+    result = monitor_recent_c2.monitor(value, allow_network=True)
+    entry = result["results"][0]
+
+    assert entry["assessment"]["state"] == "c2_protocol_confirmed"
+    assert entry["observation"]["channel_role"] == "stage_and_control"
+    assert entry["observation"]["pinned_ip"] == "64.81.30.192"
+    assert result["policy"]["malware_checkin_sent"] is True
+    assert result["policy"]["stage_requested"] is False
+    assert result["policy"]["victim_metadata_sent"] is False
+    assert entry["observation"]["operation_command_sent"] is False
+
 
 
 def test_vvas_uses_registry_payload_without_stage_request(

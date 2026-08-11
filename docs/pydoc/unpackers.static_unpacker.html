@@ -78,8 +78,6 @@
 
 <dl><dt><a name="StaticToolCompleted-__init__"><strong>__init__</strong></a>(self, returncode: 'int', stdout: 'str', stderr: 'str') -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
 
-<dl><dt><a name="StaticToolCompleted-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
-
 <dl><dt><a name="StaticToolCompleted-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
 <dl><dt><a name="StaticToolCompleted-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
@@ -136,18 +134,18 @@ Static methods inherited from <a href="builtins.html#RuntimeError">builtins.Runt
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="StaticToolExecutionError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="StaticToolExecutionError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="StaticToolExecutionError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="StaticToolExecutionError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="StaticToolExecutionError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="StaticToolExecutionError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="StaticToolExecutionError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="StaticToolExecutionError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#StaticToolExecutionError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="StaticToolExecutionError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#StaticToolExecutionError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="StaticToolExecutionError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#StaticToolExecutionError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="StaticToolExecutionError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#StaticToolExecutionError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -181,21 +179,10 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。</span></dd></dl>
  <dl><dt><a name="-pe_resource_children"><strong>pe_resource_children</strong></a>(blob: 'bytes') -&gt; 'tuple[str, list[tuple[str, bytes]], dict[str, object] | None]'</dt><dd><span class="code">PEリソースを直接検査し、次層として意味がある内容だけを返す。</span></dd></dl>
  <dl><dt><a name="-pe_summary"><strong>pe_summary</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。</span></dd></dl>
- <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(
-    files: 'dict[str, bytes]',
-    *,
-    max_parts: 'int' = 512,
-    max_artifact_size: 'int' = 268435456
-) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
+ <dl><dt><a name="-reassemble_split_parts"><strong>reassemble_split_parts</strong></a>(files: 'dict[str, bytes]', *, max_parts: 'int' = 512, max_artifact_size: 'int' = 268435456) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">オフセットと長さを検証してからJadoo形式の分割ファイルを再構築する。</span></dd></dl>
  <dl><dt><a name="-recover_autoit_rc4_lznt1"><strong>recover_autoit_rc4_lznt1</strong></a>(script: 'bytes') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoItのRC4・LZNT1ローダー式からPEペイロードを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_autoit_script"><strong>recover_autoit_script</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">AutoIt&nbsp;A3Xを逆コンパイルし、XOR・RC4・LZNT1層を静的に復元する。</span></dd></dl>
- <dl><dt><a name="-recover_cab_members"><strong>recover_cab_members</strong></a>(
-    data: 'bytes',
-    *,
-    max_members: 'int' = 512,
-    max_member_size: 'int' = 268435456,
-    max_total_size: 'int' = 805306368
-) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">CABをPython&nbsp;parserだけで有界に展開し、解析価値のあるmemberを返す。</span></dd></dl>
+ <dl><dt><a name="-recover_cab_members"><strong>recover_cab_members</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">CABをPython&nbsp;parserだけで有界に展開し、解析価値のあるmemberを返す。</span></dd></dl>
  <dl><dt><a name="-recover_detached_idat_stream"><strong>recover_detached_idat_stream</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">PNGヘッダを持たないCRC-validな連続IDAT/IEND列を境界付きで調べる。</span></dd></dl>
  <dl><dt><a name="-recover_dotnet_bitmap_payloads"><strong>recover_dotnet_bitmap_payloads</strong></a>(resource_set: 'object') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">シリアライズ済み.NET&nbsp;BitmapリソースのRGB画素に隠されたPEストリームを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_dotnet_resources"><strong>recover_dotnet_resources</strong></a>(data: 'bytes') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">.NET&nbsp;manifestリソースを棚卸しし、不透明な符号化ペイロード素材を保持する。</span></dd></dl>
@@ -204,87 +191,32 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 コマンドファイルはcertutil&nbsp;-decodeの前に、多数のecho行で1つのペイロードを<br>
 出力することがある。これらの断片はリダイレクト先ごとに再構築する。<br>
 無作為な高エントロピー引数は個別に保持しない。</span></dd></dl>
- <dl><dt><a name="-recover_ole_streams"><strong>recover_ole_streams</strong></a>(
-    data: 'bytes',
-    *,
-    max_members: 'int' = 512,
-    max_member_size: 'int' = 268435456,
-    max_total_size: 'int' = 805306368
-) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">MSI/OLE&nbsp;streamを有界に列挙し、実行可能層とCAB等だけを復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_iso9660_layers"><strong>recover_iso9660_layers</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">検証済みISO9660の通常fileをone-shot用の子レイヤーへ変換する。</span></dd></dl>
+ <dl><dt><a name="-recover_ole_streams"><strong>recover_ole_streams</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">MSI/OLE&nbsp;streamを有界に列挙し、実行可能層とCAB等だけを復元する。</span></dd></dl>
  <dl><dt><a name="-recover_png_concealed_data"><strong>recover_png_concealed_data</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">PNGのIDAT内で画像zlib終端後に連結されたデータを上限付きで復元する。</span></dd></dl>
  <dl><dt><a name="-recover_whole_file_base64"><strong>recover_whole_file_base64</strong></a>(data: 'bytes') -&gt; 'list[tuple[str, bytes]]'</dt><dd><span class="code">ファイル全体が単一のBase64ストリームである場合に静的復号する。<br>
 &nbsp;<br>
 GuLoaderで確認されるような、先頭がシェルコードで末尾がスクリプトの<br>
 キャリアは既知形式を持たない。このため、ファイル全体との完全一致、<br>
 厳密なBase64検証、再エンコード一致を満たす場合だけ&nbsp;data&nbsp;も返す。</span></dd></dl>
- <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(
-    data: 'bytes',
-    *,
-    max_members: 'int' = 512,
-    max_member_size: 'int' = 268435456,
-    max_total_size: 'int' = 805306368,
-    max_compression_ratio: 'float' = 200.0,
-    read_chunk_size: 'int' = 1048576,
-    password: 'str | bytes' = b''
-) -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。</span></dd></dl>
+ <dl><dt><a name="-recover_zip"><strong>recover_zip</strong></a>(data: 'bytes', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368, max_compression_ratio: 'float' = 200.0, read_chunk_size: 'int' = 1048576, password: 'str | bytes' = b'') -&gt; 'tuple[list[dict], list[tuple[str, bytes]]]'</dt><dd><span class="code">メンバー数、総バイト数、圧縮率の上限内でZIPを棚卸しする。</span></dd></dl>
  <dl><dt><a name="-recovery_candidate_priority"><strong>recovery_candidate_priority</strong></a>(blob: 'bytes', kind: 'str', name: 'str') -&gt; 'int'</dt><dd><span class="code">後段の層上限で重要な候補が落ちないよう、静的証跡だけで優先度を付ける。</span></dd></dl>
  <dl><dt><a name="-repetitive_padding"><strong>repetitive_padding</strong></a>(data: 'bytes', max_period: 'int' = 32) -&gt; 'dict[str, object] | None'</dt><dd><span class="code">短い周期の反復paddingかを、全長相当の巨大一時bytesを作らず判定する。</span></dd></dl>
- <dl><dt><a name="-run_die"><strong>run_die</strong></a>(
-    data: 'bytes',
-    executable: 'Path',
-    name: 'str' = 'sample.bin',
-    timeout: 'float' = 120.0
-) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
+ <dl><dt><a name="-run_die"><strong>run_die</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'sample.bin', timeout: 'float' = 120.0) -&gt; 'dict'</dt><dd><span class="code">Detect&nbsp;It&nbsp;Easyを静的分類器として実行し、JSON証拠を解析する。</span></dd></dl>
  <dl><dt><a name="-run_upx"><strong>run_upx</strong></a>(data: 'bytes', executable: 'Path', timeout: 'float' = 120.0) -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">データ変換としてUPX展開を呼び出し、出力PEを検証する。</span></dd></dl>
  <dl><dt><a name="-safe_member_name"><strong>safe_member_name</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。</span></dd></dl>
  <dl><dt><a name="-safe_temporary_suffix"><strong>safe_temporary_suffix</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。</span></dd></dl>
- <dl><dt><a name="-select_high_value_archive_members"><strong>select_high_value_archive_members</strong></a>(
-    records: 'list[dict[str, object]]',
-    *,
-    max_members: 'int' = 128,
-    max_member_size: 'int' = 268435456,
-    max_total_size: 'int' = 805306368
-) -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。</span></dd></dl>
- <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(
-    data: 'bytes',
-    executable: 'Path',
-    name: 'str' = 'input.bin',
-    password: 'str' = '',
-    *,
-    max_members: 'int' = 512,
-    max_member_size: 'int' = 268435456,
-    max_total_size: 'int' = 805306368
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
+ <dl><dt><a name="-select_high_value_archive_members"><strong>select_high_value_archive_members</strong></a>(records: 'list[dict[str, object]]', *, max_members: 'int' = 128, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">大規模アーカイブから後段解析に必要なファイルだけを有界に選ぶ。</span></dd></dl>
+ <dl><dt><a name="-sevenzip_extract"><strong>sevenzip_extract</strong></a>(data: 'bytes', executable: 'Path', name: 'str' = 'input.bin', password: 'str' = '', *, max_members: 'int' = 512, max_member_size: 'int' = 268435456, max_total_size: 'int' = 805306368) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">認識済みコンテナをパス、件数、バイト数の上限付きで展開する。</span></dd></dl>
  <dl><dt><a name="-sevenzip_inventory"><strong>sevenzip_inventory</strong></a>(data: 'bytes', executable: 'Path', password: 'str' = '') -&gt; 'dict'</dt><dd><span class="code">アーカイブ候補の識別と一覧化だけに7-Zipを使用する。</span></dd></dl>
  <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">バイト列の小文字SHA-256ダイジェストを返す。</span></dd></dl>
- <dl><dt><a name="-should_analyze_pe_control_flow"><strong>should_analyze_pe_control_flow</strong></a>(
-    *,
-    packing_suspected: 'bool',
-    classification: 'str',
-    executable_extent: 'int'
-) -&gt; 'bool'</dt><dd><span class="code">巨大overlayではなく実行image範囲を基準にCFG解析要否を決める。</span></dd></dl>
- <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(
-    data: 'bytes',
-    name: 'str' = 'sample',
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    force_container_probe: 'bool' = False,
-    archive_password: 'str' = '',
-    max_archive_members: 'int' = 512,
-    max_archive_member_size: 'int' = 268435456,
-    max_archive_total_size: 'int' = 805306368,
-    max_archive_compression_ratio: 'float' = 200.0
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">上限付き静的復元を実行し、メタデータとアーティファクトを返す。<br>
+ <dl><dt><a name="-should_analyze_pe_control_flow"><strong>should_analyze_pe_control_flow</strong></a>(*, packing_suspected: 'bool', classification: 'str', executable_extent: 'int') -&gt; 'bool'</dt><dd><span class="code">巨大overlayではなく実行image範囲を基準にCFG解析要否を決める。</span></dd></dl>
+ <dl><dt><a name="-unpack_bytes"><strong>unpack_bytes</strong></a>(data: 'bytes', name: 'str' = 'sample', upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = '', max_archive_members: 'int' = 512, max_archive_member_size: 'int' = 268435456, max_archive_total_size: 'int' = 805306368, max_archive_compression_ratio: 'float' = 200.0) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">上限付き静的復元を実行し、メタデータとアーティファクトを返す。<br>
 forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、<br>
 レビュー済みインベントリの手掛かりに使用する。入力は実行せず、<br>
 設定済みアーカイブパーサーによる検査だけを許可する。</span></dd></dl>
  <dl><dt><a name="-valid_pe_extent"><strong>valid_pe_extent</strong></a>(data: 'bytes', offset: 'int' = 0) -&gt; 'int | None'</dt><dd><span class="code">*offset*のPE候補長を、巨大な末尾copyを作らず検証して返す。</span></dd></dl>
- <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(
-    path: 'Path',
-    artifacts: 'list[tuple[str, bytes]]',
-    password: 'str' = 'infected'
-) -&gt; 'None'</dt><dd><span class="code">復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。</span></dd></dl>
+ <dl><dt><a name="-write_artifacts"><strong>write_artifacts</strong></a>(path: 'Path', artifacts: 'list[tuple[str, bytes]]', password: 'str' = 'infected') -&gt; 'None'</dt><dd><span class="code">復元バイト列をAES暗号化した隔離アーカイブにだけ保存する。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
@@ -295,6 +227,7 @@ forceフラグは、汎用コンテナ判定に合致しない既知NSISキャ�
 <strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/common')<br>
 <strong>ENTROPY_FULL_LIMIT</strong> = 8388608<br>
 <strong>ENTROPY_SAMPLE_WINDOW</strong> = 1048576<br>
+<strong>ISO_IMAGE_SUFFIXES</strong> = {'.img', '.iso'}<br>
 <strong>LEGACY_PEFILE_CANDIDATE_BYTES</strong> = 65536<br>
 <strong>MACHO_MAGICS</strong> = {b'\xbe\xba\xfe\xca', b'\xca\xfe\xba\xbe', b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf'}<br>
 <strong>MAX_ARCHIVE_MEMBERS</strong> = 512<br>

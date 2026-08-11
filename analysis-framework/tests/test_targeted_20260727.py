@@ -149,12 +149,83 @@ def test_winos_frame_and_emulator_only_ack_reviewed_control_messages() -> None:
     assert WINOS_EMULATOR.response_for_frame(unknown) == b""
     with pytest.raises(PermissionError):
         WINOS.probe_reviewed_endpoint(
-            "controller.invalid", 6685, "127.0.0.1", allow_live=False
+            "missing-profile",
+            "controller.invalid", 6685, allow_live=False
         )
-    with pytest.raises(ValueError, match="reviewed Winos endpoint"):
+    with pytest.raises(ValueError, match="protocol_profile_id"):
         WINOS.probe_reviewed_endpoint(
-            "controller.invalid", 6685, "127.0.0.1", allow_live=True
+            "missing-profile",
+            "controller.invalid", 6685, allow_live=True
         )
+
+
+def test_winos_stage_and_control_ip_literal_sends_only_c9(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_id = "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666"
+    profile = WINOS.resolve_profile(profile_id, "192.252.180.45", 6666)
+    header = struct.pack("<II", 1234, 0) + b"\xca\x00"
+    response = WINOS.build_frame(b"\xc9", header)
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.sent: list[bytes] = []
+            self.timeout: float | None = None
+            self.recv_limit: int | None = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def settimeout(self, timeout: float) -> None:
+            self.timeout = timeout
+
+        def sendall(self, data: bytes) -> None:
+            self.sent.append(bytes(data))
+
+        def recv(self, maximum: int) -> bytes:
+            self.recv_limit = maximum
+            return response
+
+    client = FakeClient()
+
+    def fake_create_connection(endpoint, *, timeout):
+        assert endpoint == ("192.252.180.45", 6666)
+        assert timeout == 3.0
+        return client
+
+    monkeypatch.setattr(
+        WINOS.socket,
+        "getaddrinfo",
+        lambda host, port, **_kwargs: [
+            (WINOS.socket.AF_INET, WINOS.socket.SOCK_STREAM, 6, "", (host, port))
+        ],
+    )
+    monkeypatch.setattr(WINOS.socket, "create_connection", fake_create_connection)
+    monkeypatch.setattr(WINOS, "_session_header", lambda: header)
+
+    result = WINOS.probe_reviewed_endpoint(
+        profile_id,
+        profile["host"],
+        profile["port"],
+        allow_live=True,
+        expected_registry_sha256=WINOS.profile_registry_metadata()["sha256"],
+    )
+
+    assert len(client.sent) == 1
+    assert WINOS.parse_frame(client.sent[0]).command == 0xC9
+    assert client.timeout == 3.0
+    assert client.recv_limit == 64
+    assert result["channel_role"] == "stage_and_control"
+    assert result["pinned_ip"] == profile["host"]
+    assert result["dns_answers"] == [profile["host"]]
+    assert result["response"]["command"] == 0xC9
+    assert result["stage_requested"] is False
+    assert result["victim_metadata_sent"] is False
+    assert result["operation_command_sent"] is False
+
 
 
 def test_pdfcore_proxy_uses_export_convergence_not_single_target(monkeypatch) -> None:
