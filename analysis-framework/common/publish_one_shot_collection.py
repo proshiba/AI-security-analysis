@@ -56,6 +56,10 @@ PARTIAL_STAGING_ALLOWED_BLOCKERS = {
     "static_layer_limit_reached",
     "selected_family_layer_incomplete",
     "static_layer_incomplete",
+    "orchestration:config",
+    "orchestration:function_analysis",
+    "orchestration:network",
+    "orchestration:terminal_payload",
 }
 PARTIAL_STAGING_FAMILY_BLOCKER = re.compile(
     r"selected_family_has_no_(?:automatic_handler|valid_handler_evidence):[a-z0-9_-]+"
@@ -393,10 +397,10 @@ def load_validated_source_report(
 def reseal_canonical_report(case_dir: Path, report: dict[str, Any]) -> None:
     """生成後の正規成果物に合わせてhash manifestとreport sealを更新する。"""
 
-    manifest = report.get("artifact_sha256")
-    if not isinstance(manifest, dict) or not manifest:
+    source_manifest = report.get("artifact_sha256")
+    if not isinstance(source_manifest, dict) or not source_manifest:
         raise ValueError("reportに成果物hash manifestがありません")
-    report["artifact_sha256"] = artifact_hashes(case_dir, manifest)
+    report["artifact_sha256"] = artifact_hashes(case_dir, source_manifest)
     seal_report(report)
     write_json(case_dir / "report.json", report)
     errors = case_integrity_errors(
@@ -735,6 +739,12 @@ def publish_case(
     ):
         documents[name] = load_json(resolve_case_artifact(source, name))
         write_json(destination / name, documents[name])
+    for relative_value in (report.get("knowledge_artifacts") or {}).values():
+        relative = normalize_artifact_path(relative_value)
+        source_path = resolve_case_artifact(source, relative)
+        target = destination.joinpath(*relative.split("/"))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source_path.read_bytes())
     handler_results = []
     trusted_handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for execution in report.get("handler_executions") or []:

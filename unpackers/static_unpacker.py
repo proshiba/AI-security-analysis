@@ -71,6 +71,11 @@ COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "comm
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
+from analyze_iso9660 import (  # noqa: E402
+    is_iso9660,
+    recover_iso9660_members,
+    validate_iso9660_members,
+)
 from analysis_contract import ensure_no_reparse_components  # noqa: E402
 from bounded_process import ProcessContainment  # noqa: E402
 
@@ -143,6 +148,7 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
     ".cab",
 }
 SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {".jsc", ".node", ".py"}
+ISO_IMAGE_SUFFIXES = {".img", ".iso"}
 
 
 class StaticToolExecutionError(RuntimeError):
@@ -688,6 +694,28 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         ):
             return "script"
     return "data"
+
+
+def recover_iso9660_layers(
+    data: bytes,
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """検証済みISO9660の通常fileをone-shot用の子レイヤーへ変換する。"""
+    report, members = recover_iso9660_members(
+        data,
+        max_members=max_members,
+        max_member_size=max_member_size,
+        max_total_size=max_total_size,
+    )
+    artifacts: list[tuple[str, bytes]] = []
+    for path, blob in members:
+        kind = detect_format(blob, path)
+        suffix = PurePosixPath(path).suffix.lower().lstrip(".") or "member"
+        artifacts.append((f"iso9660-{kind}-{suffix}", blob))
+    return report, artifacts
 
 
 def recover_png_concealed_data(
@@ -2141,7 +2169,10 @@ def select_high_value_archive_members(
         in_node_modules = "/node_modules/" in f"/{lowered}"
         if basename.startswith(("license", "notice", "credits")):
             continue
-        if suffix not in SELECTIVE_ARCHIVE_SUFFIXES:
+        if (
+            suffix not in SELECTIVE_ARCHIVE_SUFFIXES
+            and suffix not in ISO_IMAGE_SUFFIXES
+        ):
             continue
         if not in_node_modules and (
             suffix in SCRIPT_SUFFIXES | {".jsc", ".py", ".asar"}
@@ -2599,6 +2630,33 @@ def sevenzip_extract(
                 )
                 continue
             kind = detect_format(blob, relative)
+            suffix = entry.suffix.lower()
+            iso_validation: dict[str, object] | None = None
+            if suffix in ISO_IMAGE_SUFFIXES:
+                if not is_iso9660(blob):
+                    iso_validation = {"status": "signature_mismatch"}
+                else:
+                    validated = validate_iso9660_members(
+                        blob,
+                        max_members=max_members,
+                        max_member_size=max_member_size,
+                        max_total_size=max_total_size,
+                    )
+                    iso_validation = {
+                        key: validated[key]
+                        for key in (
+                            "status",
+                            "member_count",
+                            "declared_total_size",
+                            "max_members",
+                            "max_member_size",
+                            "max_total_size",
+                            "error",
+                        )
+                        if key in validated
+                    }
+                    if validated["status"] == "validated":
+                        kind = "iso9660"
             item = {
                 "name": relative,
                 "size": len(blob),
@@ -2606,8 +2664,9 @@ def sevenzip_extract(
                 "format": kind,
                 "status": "extracted",
             }
+            if iso_validation is not None:
+                item["iso9660_validation"] = iso_validation
             inventory.append(item)
-            suffix = entry.suffix.lower()
             keep = kind != "data" or suffix in SELECTIVE_ARCHIVE_SUFFIXES
             keep = keep or ".part-" in entry.name.lower()
             keep = keep or (not suffix and len(blob) <= 16 * 1024 * 1024)
@@ -2843,7 +2902,12 @@ def unpack_bytes(
         "executed": False,
         "network_contacted": False,
     }
-    artifacts: list[tuple[str, bytes]] = recover_whole_file_base64(data)
+    iso9660_candidate = kind == "data" and is_iso9660(data)
+    if iso9660_candidate:
+        report["container_format"] = "iso9660"
+    artifacts: list[tuple[str, bytes]] = (
+        [] if iso9660_candidate else recover_whole_file_base64(data)
+    )
     static_data = data
     if kind == "pe":
         report["inflated_pe"], recovered_blob = recover_inflated_pe(data)
@@ -3031,38 +3095,67 @@ def unpack_bytes(
                     ("javascript-plain-string-array-deobfuscated", transformed)
                 )
     elif kind == "data":
-        report["detached_idat"], recovered = recover_detached_idat_stream(data)
-        artifacts.extend(recovered)
-        report["profiled_transforms"], recovered = recover_profiled_transforms(
-            static_data,
-            input_format=kind,
-            source_name=name,
-        )
-        artifacts.extend(recovered)
-        legacy_attempt = next(
-            (
-                item
-                for item in report["profiled_transforms"]["attempts"]
-                if item.get("profile_id") == "rotate_right_xor_c6_donut"
-            ),
-            None,
-        )
-        if legacy_attempt is not None:
-            report["rotated_xor_donut"] = legacy_report_from_attempt(legacy_attempt)
-    if len(static_data) <= 32 * 1024 * 1024:
+        if iso9660_candidate:
+            report["iso9660"], recovered = recover_iso9660_layers(
+                data,
+                max_members=max_archive_members,
+                max_member_size=max_archive_member_size,
+                max_total_size=max_archive_total_size,
+            )
+            if report["iso9660"]["status"] not in {
+                "artifacts_recovered",
+                "no_artifact_recovered",
+            }:
+                report["unpack_status"] = (
+                    "bounded_limit"
+                    if str(report["iso9660"]["status"]).endswith("_blocked")
+                    else "invalid_container"
+                )
+                report["recovered"] = []
+                return report, []
+            artifacts.extend(recovered)
+        else:
+            report["detached_idat"], recovered = recover_detached_idat_stream(data)
+            artifacts.extend(recovered)
+            report["profiled_transforms"], recovered = recover_profiled_transforms(
+                static_data,
+                input_format=kind,
+                source_name=name,
+            )
+            artifacts.extend(recovered)
+            legacy_attempt = next(
+                (
+                    item
+                    for item in report["profiled_transforms"]["attempts"]
+                    if item.get("profile_id") == "rotate_right_xor_c6_donut"
+                ),
+                None,
+            )
+            if legacy_attempt is not None:
+                report["rotated_xor_donut"] = legacy_report_from_attempt(
+                    legacy_attempt
+                )
+    if not iso9660_candidate and len(static_data) <= 32 * 1024 * 1024:
         report["donut"], recovered = recover_donut_payloads(static_data)
         artifacts.extend(recovered)
-    whole_file_embedded = carve_embedded_pes(static_data)
+    whole_file_embedded = [] if iso9660_candidate else carve_embedded_pes(static_data)
     artifacts.extend(whole_file_embedded)
-    report["embedded_pe_scan"] = getattr(
-        whole_file_embedded,
-        "scan_report",
-        {
-            "status": "not_reported_compatibility_hook",
+    if iso9660_candidate:
+        report["embedded_pe_scan"] = {
+            "status": "skipped_validated_iso9660_members",
             "executed": False,
             "network_contacted": False,
-        },
-    )
+        }
+    else:
+        report["embedded_pe_scan"] = getattr(
+            whole_file_embedded,
+            "scan_report",
+            {
+                "status": "not_reported_compatibility_hook",
+                "executed": False,
+                "network_contacted": False,
+            },
+        )
     deduplicated: list[tuple[str, bytes]] = []
     seen: set[str] = set()
     for artifact_kind, blob in artifacts:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -10,10 +11,10 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import c2_protocol_probe_profiles as profile_module
-import remus_profile_evidence as evidence
-from build_all_c2_monitoring_targets import build_inventory
-from c2_protocol_probe_profiles import (
+import c2_protocol_probe_profiles as profile_module  # noqa: E402
+import remus_profile_evidence as evidence  # noqa: E402
+from build_all_c2_monitoring_targets import build_inventory  # noqa: E402
+from c2_protocol_probe_profiles import (  # noqa: E402
     ProtocolProfileError,
     apply_profiles,
     load_profiles,
@@ -25,7 +26,7 @@ from c2_protocol_probe_profiles import (
 
 def test_registry_contains_reviewed_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 16
+    assert len(profiles) == 18
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",
@@ -54,6 +55,55 @@ def test_profile_requires_exact_host_and_port() -> None:
             "haochisadnka.cc",
             6698,
         )
+
+
+def test_winos_ip_literal_profiles_are_pinned_and_stage_control_only() -> None:
+    profiles = load_profiles()
+    profile_ids = (
+        "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666",
+        "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+    )
+    for profile_id in profile_ids:
+        profile = profiles[profile_id]
+        assert profile["host"] == profile["pinned_ips"][0]
+        assert profile["channel_role"] == "stage_and_control"
+        assert profile["timeout_seconds"] == 3.0
+        assert profile["maximum_response_bytes"] == 64
+        assert profile["sample_sha256s"] == [
+            "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+        ]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("pinned_ips", ["64.81.30.192"]),
+        ("channel_role", "stage"),
+        ("timeout_seconds", 4.0),
+        ("maximum_response_bytes", 65),
+    ],
+)
+def test_winos_profile_mutation_fails_closed(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    document = json.loads(
+        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
+    )
+    profile = next(
+        item
+        for item in document["profiles"]
+        if item["profile_id"]
+        == "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666"
+    )
+    profile[field] = value
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProtocolProfileError, match="Winos profile"):
+        load_profiles(source)
+
 
 
 def test_builder_adds_only_profiles_with_existing_repository_evidence(
@@ -144,7 +194,7 @@ def test_all_repository_profiles_apply_except_rejected_remus() -> None:
 
     remus_profile_id = "remus-ba0044e8-onesdto-2535"
     applied = {target["protocol_profile_id"] for target in targets}
-    assert added == len(targets) == 15
+    assert added == len(targets) == 17
     assert applied == set(load_profiles()) - {remus_profile_id}
     assert all(target["method"] != "remus_registration_task" for target in targets)
     assert [
