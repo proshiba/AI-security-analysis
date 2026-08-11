@@ -2526,6 +2526,71 @@
     }
   });
 
+  // ---------- データ鮮度 ----------
+  // デプロイが失敗すると前回の公開がそのまま残り続けるため、サイトを見ても
+  // 古いことが分からない。build-info.js は公開直前にワークフローが生成するので、
+  // その時刻が「いま配信されている内容がいつ作られたか」になる。
+  var STALE_DAYS = 3;
+
+  function fmtUtc(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) +
+      " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + " UTC";
+  }
+
+  function ageDays(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return (Date.now() - d.getTime()) / 86400000;
+  }
+
+  function fmtAge(days) {
+    if (days < 1 / 24) return "1時間以内";
+    if (days < 1) return Math.floor(days * 24) + "時間前";
+    return Math.floor(days) + "日前";
+  }
+
+  function renderFreshness() {
+    var note = document.getElementById("freshness-note");
+    var alertBox = document.getElementById("freshness-alert");
+    if (!note || !alertBox) return;
+
+    var build = window.MALDB_BUILD;
+    // ローカルで ui/ を直接開いた場合。配信ビルドではないので古さは判定しない。
+    if (!build || !build.built_at_utc) {
+      note.innerHTML = "データ生成: <code>python3 ui/generate_ui_data.py</code>" +
+        '<span class="fa-detail">ローカル表示のため配信ビルド情報はありません。</span>';
+      return;
+    }
+
+    var builtAt = fmtUtc(build.built_at_utc);
+    var days = ageDays(build.built_at_utc);
+    var commit = build.commit ? String(build.commit).slice(0, 8) : null;
+    var commitLink = commit && DB.repo && DB.repo.html_base
+      ? '<a href="' + esc(DB.repo.html_base) + "/commit/" + esc(build.commit) + '">' + esc(commit) + "</a>"
+      : commit ? "<code>" + esc(commit) + "</code>" : "";
+
+    var parts = ["サイト更新: " + esc(builtAt || build.built_at_utc)];
+    if (days !== null) parts[0] += " (" + esc(fmtAge(days)) + ")";
+    if (commitLink) parts.push("commit " + commitLink);
+    if (build.run_url) parts.push('<a href="' + esc(build.run_url) + '">ビルドログ</a>');
+    note.innerHTML = parts.join(" ／ ");
+
+    if (days === null || days < STALE_DAYS) return;
+    alertBox.innerHTML =
+      "<strong>⚠ 表示中のデータが古い可能性があります。</strong>" +
+      "最後にサイトが更新されたのは " + esc(builtAt) + " (" + esc(fmtAge(days)) + ") です。" +
+      '<span class="fa-detail">解析が追加されていても、デプロイが失敗すると前回公開された内容が残り続けます。' +
+      "GitHub Actions の実行結果を確認してください。" +
+      (build.run_url ? ' <a href="' + esc(build.run_url) + '">直近のビルドログ</a>' : "") +
+      "</span>";
+    alertBox.hidden = false;
+  }
+
+  renderFreshness();
+
   window.addEventListener("hashchange", route);
   route();
 })();

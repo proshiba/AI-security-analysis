@@ -83,6 +83,20 @@ code, .mono { font-family: var(--mono); }
 }
 .gsg-empty { padding: 10px 12px; color: var(--text-dim); font-size: 12px; }
 
+/* ---------- データ鮮度の警告 ----------
+   配信ビルドが規定日数より古いときだけ出る。正常時は hidden のままなので、
+   出ていること自体が異常の合図になる。 */
+.freshness-alert {
+  max-width: 1280px; margin: 16px auto -8px; padding: 10px 14px;
+  border: 1px solid var(--warn); border-radius: 8px;
+  background: rgba(255, 199, 107, 0.10);
+  color: var(--text); font-size: 13px; line-height: 1.7;
+}
+.freshness-alert[hidden] { display: none; }
+.freshness-alert strong { color: var(--warn); }
+/* 警告本文と、フッターの鮮度表示の両方で使う補足行 */
+.fa-detail { display: block; color: var(--text-dim); font-size: 12px; }
+
 /* ---------- layout ---------- */
 #app { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
 .loading { padding: 60px; text-align: center; color: var(--text-dim); }

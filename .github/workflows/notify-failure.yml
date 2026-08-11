@@ -1,0 +1,75 @@
+# CI失敗をIssueで知らせる共通ジョブ。
+#
+# デプロイが失敗しても前回公開された内容がサイトに残り続けるため、失敗は
+# 完全に無音になる。既定のメール通知は見落とされやすいので、Issueを立てて
+# 気づける状態にする。同じ原因で何度も落ちてもIssueは1件に保ち、2回目以降は
+# コメントを足す。
+name: 失敗をIssueで通知
+
+on:
+  workflow_call:
+    inputs:
+      key:
+        description: "通知の識別子。同じ key の未解決Issueがあればコメントを足す。"
+        required: true
+        type: string
+      title:
+        description: "Issueのタイトル。key ごとに固定しておく。"
+        required: true
+        type: string
+      body:
+        description: "本文。実行ログへのリンクなどは自動で付く。"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Issueを起票またはコメント
+        uses: actions/github-script@v7
+        env:
+          NOTIFY_TITLE: ${{ inputs.title }}
+          NOTIFY_BODY: ${{ inputs.body }}
+          NOTIFY_KEY: ${{ inputs.key }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = process.env.NOTIFY_TITLE;
+            const label = "ci-failure";
+            const body = [
+              process.env.NOTIFY_BODY,
+              "",
+              `- 実行ログ: ${process.env.RUN_URL}`,
+              `- 対象commit: \`${context.sha}\``,
+              `- ワークフロー: \`${process.env.NOTIFY_KEY}\``,
+              "",
+              "復旧したらこのIssueを閉じてください。",
+            ].join("\n");
+
+            // ラベルで絞ってからタイトル一致を見る。ラベルが未作成でも
+            // listForRepo は空を返すだけで、issues.create 側が自動で作る。
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: "open", labels: label, per_page: 100,
+            });
+            const existing = open.find((issue) => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number, body,
+              });
+              core.notice(`既存のIssue #${existing.number} にコメントしました。`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner, repo, title, body, labels: [label],
+              });
+              core.notice(`Issue #${created.data.number} を起票しました。`);
+            }

@@ -30,8 +30,9 @@ jobs:
       - name: リポジトリを取得
         uses: actions/checkout@v4
         with:
-          # ui/generate_ui_data.py が case の追加日を git 履歴から取るため、
-          # 既定の浅いクローン(depth=1)では追加日が復元できず --check が落ちる。
+          # ui/generate_ui_data.py が case の追加日(added_at)を git 履歴から
+          # 取るため。既定の浅いクローン(depth=1)では追加日が復元できず、
+          # 公開されるUIから新着順が失われる。
           fetch-depth: 0
 
       - name: Pythonを準備
@@ -42,9 +43,6 @@ jobs:
       - name: 依存パッケージを導入
         run: pip install pyyaml
 
-      - name: 全case索引と派生成果物の整合性を検証
-        run: python3 analysis-framework/common/refresh_case_inventory.py --repository . --check
-
       - name: UIデータ(data.js)を再生成
         env:
           MALDB_REPO_SLUG: ${{ github.repository }}
@@ -53,6 +51,29 @@ jobs:
 
       - name: ポータル連携用インデックス(ui/api/v1)を再生成
         run: python3 ui/build_portal_index.py
+
+      - name: 配信ビルド情報(build-info.js)を生成
+        env:
+          MALDB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python3 - > ui/build-info.js <<'PY'
+          import datetime, json, os, subprocess
+
+          def git(*args: str) -> str:
+              return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
+
+          sha = git("rev-parse", "HEAD")
+          info = {
+              "built_at_utc": datetime.datetime.now(datetime.timezone.utc)
+              .replace(microsecond=0)
+              .isoformat(),
+              "commit": sha,
+              "commit_at_utc": git("log", "-1", "--format=%cI", sha),
+              "run_url": os.environ.get("MALDB_RUN_URL") or None,
+          }
+          print("window.MALDB_BUILD = " + json.dumps(info, ensure_ascii=False) + ";")
+          PY
 
       - name: 配信ディレクトリを構成
         run: |
@@ -93,3 +114,21 @@ jobs:
       - name: GitHub Pagesへデプロイ
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify:
+    # デプロイが失敗しても前回の公開が残るため、失敗は無音になる。気づける
+    # ようにIssueを立てる。
+    needs: [build, deploy]
+    if: failure()
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      key: deploy-pages
+      title: "[CI] UIのGitHub Pagesデプロイが失敗しています"
+      body: |
+        UIの公開ワークフローが失敗しました。**サイトには前回公開された内容が
+        残り続けている**ため、最新の解析は反映されていません。
+
+        UI上部にもデータ鮮度の警告が出ます(最終更新から3日以上経過した場合)。

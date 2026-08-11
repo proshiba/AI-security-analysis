@@ -1,0 +1,81 @@
+# 全case索引と派生成果物(カタログ・IOC・チェックサム・UIデータ)の整合性を検証する。
+#
+# 公開ワークフロー(deploy-pages.yml)からは意図的に切り離してある。配信される
+# data.js やポータル索引は公開のたびに再生成されるので、コミット済みの派生
+# ファイルが古いことを理由に公開を止めるべきではない。検証の価値は「手で
+# 派生ファイルを編集した」「生成器が壊れた」をマージ前に捕まえることにある。
+name: 索引と派生成果物の整合性を検証
+
+on:
+  pull_request:
+    paths:
+      - "ui/**"
+      - "analysis-results/**"
+      - "analysis_history.yaml"
+      - "analysis-framework/common/**"
+      - ".github/workflows/verify-catalogs.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ui/**"
+      - "analysis-results/**"
+      - "analysis_history.yaml"
+      - "analysis-framework/common/**"
+      - ".github/workflows/verify-catalogs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-catalogs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+        with:
+          # ui/generate_ui_data.py が case の追加日を git 履歴から取るため、
+          # 既定の浅いクローン(depth=1)では追加日が復元できず --check が落ちる。
+          fetch-depth: 0
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージを導入
+        run: pip install pyyaml
+
+      - name: 全case索引と派生成果物の整合性を検証
+        env:
+          # 公開時と同じ条件で data.js を突き合わせる。
+          MALDB_REPO_SLUG: ${{ github.repository }}
+          MALDB_REPO_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python3 analysis-framework/common/refresh_case_inventory.py --repository . --check
+
+  notify:
+    # PRでは検査結果がそのままチェックとして見えるので、通知は main への push
+    # (＝マージ後に初めて壊れたと分かる場合)だけに絞る。
+    needs: verify
+    if: failure() && github.event_name == 'push'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/notify-failure.yml
+    with:
+      key: verify-catalogs
+      title: "[CI] 索引と派生成果物の整合性検証が失敗しています"
+      body: |
+        main で `refresh_case_inventory.py --check` が失敗しました。
+        コミット済みの派生成果物(カタログ / IOC / チェックサム / `ui/data.js` など)が
+        解析成果物と食い違っています。
+
+        手元での再生成:
+
+        ```
+        python3 analysis-framework/common/refresh_case_inventory.py --repository . --write
+        ```
