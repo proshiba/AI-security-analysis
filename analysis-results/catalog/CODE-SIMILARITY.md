@@ -8,14 +8,14 @@
 | 項目 | 件数 |
 |---|---:|
 | static-logic.json | 2141 |
-| fingerprint対象関数 | 30541 |
-| 完全一致group | 2998 |
+| fingerprint対象関数 | 30585 |
+| 完全一致group | 3001 |
 | SimHash完全一致group | 1665 |
-| 評価した非一致候補pair | 9266887 |
-| 条件に一致した類似候補pair | 9055549 |
+| 評価した非一致候補pair | 9266889 |
+| 条件に一致した類似候補pair | 9055551 |
 | JSONへ保持した類似候補pair | 100000 |
-| 上限により省略した類似候補pair | 8955549 |
-| Ghidra関数hash | 467 |
+| 上限により省略した類似候補pair | 8955551 |
+| Ghidra関数hash | 485 |
 | Ghidra完全一致group | 1 |
 
 ## Ghidra opcode hash完全一致

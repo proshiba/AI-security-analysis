@@ -4,17 +4,17 @@
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
 - 対象family: 86件
-- detector＋安全handler＋品質policyで構造上ルーティング可能: 76件（88.37%）
+- detector＋安全handler＋品質policyで構造上ルーティング可能: 74件（86.05%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 76件
+- detector＋安全handlerでfamily自動選択可能: 74件
 - automatic宣言済みfamily: 84件（97.67%）
-- 安全preflight済みscript-only handler利用可能: 84件（97.67%）
-- 品質policy宣言済み: 84件 / 安全handler＋品質policy: 84件
+- 安全preflight済みscript-only handler利用可能: 82件（95.35%）
+- 品質policy宣言済み: 84件 / 安全handler＋品質policy: 82件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言95件 / 安全95件 / 停止0件
-- automatic handlerが安全preflightで停止: 0件
+- handler実装: 宣言95件 / 安全93件 / 停止2件
+- automatic handlerが安全preflightで停止: 2件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1059件（上限2048件）
+- 実行したformat別preflight: 1044件（上限2048件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -37,7 +37,7 @@
 | dotnet_resource_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | dysphoria | fully_routable | あり | あり | 1 | 1 | なし |
 | eclipse_ddos_bot | fully_routable | あり | あり | 1 | 1 | なし |
-| efimer | fully_routable | あり | あり | 1 | 1 | なし |
+| efimer | automatic_handler_blocked | あり | あり | 1 | 0 | automatic_handler_preflight_blocked |
 | electron_payload_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | formbook | fully_routable | あり | あり | 1 | 1 | なし |
 | formbook_loader | fully_routable | あり | あり | 1 | 1 | なし |
@@ -73,7 +73,7 @@
 | phorpiex_spam | fully_routable | あり | あり | 1 | 1 | なし |
 | png_registry_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | pony | fully_routable | あり | あり | 1 | 1 | なし |
-| prometei | fully_routable | あり | あり | 1 | 1 | なし |
+| prometei | automatic_handler_blocked | あり | あり | 1 | 0 | automatic_handler_preflight_blocked |
 | protected_pe_loader | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
 | protection_agent_loader | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
 | proxyrack_pop_deployer | fully_routable | あり | あり | 1 | 1 | なし |

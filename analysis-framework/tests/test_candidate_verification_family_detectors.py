@@ -158,7 +158,6 @@ NEGATIVE_FIXTURES = {
         _pe(b"YUIPWDFILE0 YUIPKDFILE0 Client Hash STATUS-IMPORT-OK", PONY_POST),
     ),
     "vidar": (
-        _vidar_blob(artifacts=False),
         b"information.txt passwords.txt wallets Vidar",
         _vidar_blob(metadata=False),
     ),
@@ -198,6 +197,18 @@ def test_missing_axis_and_broken_structure_are_rejected(family: str, sample: byt
     result = MODULES[family].detect(sample, Path(f"{family}.bin"))
     assert result["matched"] is False
     assert result["campaigns"] == []
+
+
+def test_vidar_complete_config_does_not_require_output_artifact_names() -> None:
+    """取得済みメモリは完全な暗号化設定だけでVidar候補を検証できる。"""
+
+    result = MODULES["vidar"].detect(
+        _vidar_blob(artifacts=False),
+        Path("vidar-memory.bin"),
+    )
+    assert result["matched"] is True
+    assert result["observations"]["repeated_xor_config_valid"] is True
+    assert result["observations"]["output_artifact_hits"] == []
 
 
 def test_invalid_phishing_action_port_is_rejected_without_exception() -> None:

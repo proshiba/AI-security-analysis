@@ -304,6 +304,67 @@ def test_manifest_routes_only_exact_root_and_does_not_resume_unresolved_case(
     assert resumed["cases"][0]["ai_used"] is False
 
 
+def test_lineaged_artifact_hint_reapplies_existing_handler_without_forced_attribution(
+    tmp_path: Path,
+) -> None:
+    """Triage由来artifactをexact hashで既存family handlerの静的検証へ再投入する。"""
+
+    sample = tmp_path / "memory-artifact.sh"
+    sample.write_bytes(b"#!/bin/sh\necho lineaged static artifact\n")
+    digest = hashlib.sha256(sample.read_bytes()).hexdigest()
+    parent = "a" * 64
+    manifest = tmp_path / "lineaged-hints.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "samples": {
+                    digest: [
+                        {
+                            "family": "freepbx_k_php",
+                            "source": "triage",
+                            "provenance": f"inherited-from-sha256:{parent}",
+                            "confidence": "medium",
+                            "artifact_sha256": digest,
+                            "parent_sha256": parent,
+                            "root_sha256": parent,
+                            "artifact_kind": "dump",
+                            "source_id": "fixture-analysis-id",
+                            "depth": 1,
+                            "inherited_family": "freepbx_k_php",
+                            "family_hint_source": "parent_confirmed",
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "out"
+
+    summary = one_shot.run_batch(
+        [sample],
+        output,
+        registry=REGISTRY,
+        family_hint_manifest=manifest,
+    )
+
+    case_dir = output / "cases" / digest
+    assessment = json.loads(
+        (case_dir / "candidate-handler-assessment.json").read_text(encoding="utf-8")
+    )
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+    assert assessment["planned_attempt_count"] >= 1
+    assert assessment["families"][0]["family"] == "freepbx_k_php"
+    assert assessment["families"][0]["attempts"]
+    assert report["classification"]["family_hint_lineage"][0]["artifact_sha256"] == digest
+    assert report["classification"]["family_hint_lineage"][0]["parent_sha256"] == parent
+    assert summary["cases"][0]["candidate_handler_attempts"] >= 1
+    assert summary["follow_on_analysis_contract"]["settings"]["family_hint_manifest"] == summary[
+        "analysis_contract"
+    ]["settings"]["family_hint_manifest"]
+
+
 def test_cli_exposes_family_hint_manifest() -> None:
     """WebUI job runnerがCLIへstrict manifestを渡せる。"""
 

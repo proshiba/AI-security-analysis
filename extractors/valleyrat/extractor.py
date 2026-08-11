@@ -1,4 +1,4 @@
-"""Extract ValleyRAT configuration indicators across reviewed campaign variants."""
+"""レビュー済みValleyRAT campaign variantから設定指標を静的に抽出する。"""
 
 from __future__ import annotations
 
@@ -16,10 +16,15 @@ from extractors.valleyrat.nvml_dat import (
     public_recovery_summary,
     recover_nvml_dat,
 )
+from unpackers.onyx_qt_loader import (
+    matches_onyx_qt_profile,
+    recover_onyx_qt_payload,
+    recover_onyx_terminal_config,
+)
 
 
 def identify_variant(strings: list[str]) -> str:
-    """Identify a config representation without assuming all ValleyRAT builds match."""
+    """すべてのbuildを同一視せず、設定表現からvariantを識別する。"""
     lower = "\n".join(strings).lower()
     if "odaktomk" in lower or all(
         item in lower for item in ("vvas.bin", "loggercollector.dll")
@@ -36,9 +41,10 @@ def identify_variant(strings: list[str]) -> str:
         return "appdomainmanager_pixel_loader"
     nvml_markers = ("nvml.dat", "nvml.dll", "runtimebroker.exe")
     nvml_loader_apis = ("queueuserapc", "virtualalloc", "virtualprotect", "readfile")
-    if all(item in lower for item in nvml_markers) and sum(
-        item in lower for item in nvml_loader_apis
-    ) >= 3:
+    if (
+        all(item in lower for item in nvml_markers)
+        and sum(item in lower for item in nvml_loader_apis) >= 3
+    ):
         # raw ISO/IMGとcompact proxy DLLの両方で成立するhash非依存構造。
         # filename共存だけではなく、APC・memory保護・DAT読込みAPIを要求する。
         return "nvml_compact_dat_iso_bundle"
@@ -54,7 +60,7 @@ def identify_variant(strings: list[str]) -> str:
 
 
 def decode_vvas_reversed_config(strings: list[str]) -> dict[str, str]:
-    """Decode the reviewed reversed key/value config used by vvaS shellcode."""
+    """レビュー済みvvaS shellcodeの反転key/value設定を復号する。"""
     for value in strings:
         if ":1p" not in value or ":1o" not in value:
             continue
@@ -79,8 +85,69 @@ def decode_vvas_reversed_config(strings: list[str]) -> dict[str, str]:
     return {}
 
 
+def _extract_onyx_terminal(data: bytes, name: str) -> dict | None:
+    """外層3変換と4反復slotをすべて検証できたOnyx設定だけを返す。"""
+
+    if not matches_onyx_qt_profile(data):
+        return None
+    recovery = recover_onyx_qt_payload(data)
+    if recovery is None:
+        return None
+    terminal = recover_onyx_terminal_config(recovery.payload)
+    if terminal is None:
+        return None
+
+    endpoint = f"{terminal.host}:{terminal.port}"
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "onyx_qt_loader_terminal_component",
+            "decoded_vvas": {},
+            "decoded_onyx": {"endpoint_1": endpoint},
+            "static_config_recovered": True,
+            "c2_liveness_confirmed": False,
+            "source_name": name,
+            "endpoints": [endpoint],
+            "ipv4": ipv4_candidates([terminal.host]),
+            "urls": [],
+            "onyx_qt_loader": {
+                "outer_recovery_status": "shellcode_recovered",
+                "terminal_component": "onyx_terminal_stage",
+                "terminal_component_status": "confirmed_static",
+                "terminal_family_attribution": "unresolved",
+                "payload_size": len(recovery.payload),
+                "payload_sha256": recovery.payload_sha256,
+                "config_size": terminal.config_size,
+                "config_sha256": terminal.config_sha256,
+                "repeated_slot_count": terminal.repeated_slot_count,
+                "raw_key_included": False,
+                "raw_config_included": False,
+                "raw_payload_included": False,
+            },
+        },
+        [
+            {
+                "kind": "network.endpoint",
+                "value": endpoint,
+                "role": "static_config_c2",
+                "confidence": "confirmed_static_config",
+                "source": "onyx_terminal_repeated_slots",
+            }
+        ],
+        [
+            "Onyx terminal componentは静的に確証しましたが、独立malware familyの範囲は未確定です。",
+            "providerのValleyRAT／SilverFox labelは終端family帰属の根拠に使用しません。",
+            "endpointの現在の稼働状態と所有者は確認していません。",
+        ],
+    )
+
+
 def extract(data: bytes, name: str = "sample") -> dict:
-    """Return static ValleyRAT config candidates without contacting endpoints."""
+    """endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。"""
+    onyx = _extract_onyx_terminal(data, name)
+    if onyx is not None:
+        return onyx
     strings = extract_strings(data)
     nvml_recovery = None
     if looks_like_nvml_dat(data):
@@ -129,7 +196,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "source": (
                 "nvml_dat_codemark"
                 if nvml_recovery is not None
-                else "decoded_vvas_config" if decoded else "static_string"
+                else "decoded_vvas_config"
+                if decoded
+                else "static_string"
             ),
         }
         for item in endpoints

@@ -6739,12 +6739,11 @@
       "version_key": "unknown"
     },
     "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073": {
-      "attribution_status": "unresolved",
-      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073",
+      "canonical_path": "analysis-results/malware/venomrat/versions/v6.0.3/cases/6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073",
       "case_id": "sha256:6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073",
-      "case_kind": "unclassified",
-      "family": "unclassified",
-      "version_key": "unknown"
+      "case_kind": "malware",
+      "family": "venomrat",
+      "version_key": "v6.0.3"
     },
     "6a25ea3dc7e86e1d0bdcf0becbfb120b4d2b36c38cb63e5106ee7e8ddea1cf7c": {
       "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/6a25ea3dc7e86e1d0bdcf0becbfb120b4d2b36c38cb63e5106ee7e8ddea1cf7c",
@@ -12823,12 +12822,11 @@
       "version_key": "unknown"
     },
     "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677": {
-      "attribution_status": "unresolved",
-      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
+      "canonical_path": "analysis-results/malware/purehvnc/versions/v4.4.1/cases/d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
       "case_id": "sha256:d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
-      "case_kind": "unclassified",
-      "family": "unclassified",
-      "version_key": "unknown"
+      "case_kind": "malware",
+      "family": "purehvnc",
+      "version_key": "v4.4.1"
     },
     "d0285d9b5584f7af316b695a7a45f65c7a7f1c83dca76e4029ddfb97bce25049": {
       "canonical_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/d0285d9b5584f7af316b695a7a45f65c7a7f1c83dca76e4029ddfb97bce25049",

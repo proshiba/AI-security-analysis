@@ -17,12 +17,16 @@ REPOSITORY_ROOT = FRAMEWORK_ROOT.parent
 NMAP_ROOT = FRAMEWORK_ROOT / "nmap"
 NMAP_PROFILES = NMAP_ROOT / "profiles.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+NMAP_MODE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+NSE_SELECTOR_RE = re.compile(
+    r'local\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*stdnse\.get_script_args\("([^"]+)"\)'
+)
 
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
-import c2_protocol_probe_profiles as profile_module
-import monitor_recent_c2 as monitor_module
+import c2_protocol_probe_profiles as profile_module  # noqa: E402
+import monitor_recent_c2 as monitor_module  # noqa: E402
 
 
 class IntegrationAuditError(ValueError):
@@ -65,6 +69,25 @@ def _read_json_object(path: Path, *, maximum_bytes: int = 1024 * 1024) -> dict[s
 
 def _canonical_family(value: Any) -> str:
     return str(value or "").strip().casefold()
+
+
+def _nse_dispatched_modes(text: str) -> set[str] | None:
+    """NSEのmode/family selectorから明示dispatch値を静的に抽出する。"""
+
+    selectors = [
+        variable
+        for variable, argument in NSE_SELECTOR_RE.findall(text)
+        if argument.endswith((".mode", ".family"))
+    ]
+    if not selectors:
+        return None
+    values: set[str] = set()
+    for variable in selectors:
+        comparison = re.compile(
+            rf'\b{re.escape(variable)}\s*(?:==|~=)\s*"([a-z0-9][a-z0-9._-]{{0,63}})"'
+        )
+        values.update(comparison.findall(text))
+    return values
 
 
 def _validate_required_contracts(
@@ -213,6 +236,18 @@ def audit_integration_state(
             else:
                 nmap_aliases.add(alias)
 
+        modes = raw.get("modes")
+        normalized_modes: list[str] = []
+        if (
+            not isinstance(modes, list)
+            or not modes
+            or any(type(mode) is not str or NMAP_MODE_RE.fullmatch(mode) is None for mode in modes)
+            or len(set(modes)) != len(modes)
+        ):
+            add_error("nmap_modes_invalid", family)
+        else:
+            normalized_modes = list(modes)
+
         relative = raw.get("script")
         if not isinstance(relative, str) or not relative:
             add_error("nmap_script_missing", family)
@@ -234,8 +269,27 @@ def audit_integration_state(
             continue
         if "categories" not in text or "c2_confirmed" not in text:
             add_error("nmap_script_contract_marker_missing", f"{family}: {relative}")
-        script_records[relative] = {"path": str(resolved), "families": []}
-        script_records[relative]["families"].append(family)
+        record = script_records.setdefault(
+            relative,
+            {
+                "path": str(resolved),
+                "families": [],
+                "declared_modes": set(),
+                "dispatched_modes": _nse_dispatched_modes(text),
+            },
+        )
+        record["families"].append(family)
+        record["declared_modes"].update(normalized_modes)
+
+    for relative, record in sorted(script_records.items()):
+        dispatched = record["dispatched_modes"]
+        if dispatched is None:
+            continue
+        declared = record["declared_modes"]
+        for mode in sorted(declared - dispatched):
+            add_error("nmap_mode_not_dispatched", f"{relative}: {mode}")
+        for mode in sorted(dispatched - declared):
+            add_error("nmap_dispatch_not_registered", f"{relative}: {mode}")
 
     for family in sorted(profile_families - nmap_families - nmap_aliases):
         add_error("reviewed_family_missing_from_nmap", family)

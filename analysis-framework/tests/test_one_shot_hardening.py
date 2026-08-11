@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import io
 import json
@@ -365,6 +366,74 @@ def test_case_handler_attempt_budget_is_partial_and_bounded(
     assert execution["resource_budget_truncated"] is True
     assert execution["resource_budget_reason"] == "handler_attempt_limit"
     assert report["case_state"]["status"] == "partial"
+
+
+def test_equivalent_pe_padding_parent_child_results_are_not_ambiguous() -> None:
+    """padding除去前後の直系親子で同一configなら真の競合にしない。"""
+
+    root_data = b"memory-region-with-padding"
+    child_data = b"normalized-pe"
+    root = one_shot.StaticLayer(
+        name="memory.dmp",
+        data=root_data,
+        sha256=hashlib.sha256(root_data).hexdigest(),
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    child = one_shot.StaticLayer(
+        name="memory.dmp::pe-overlay-padding-removed",
+        data=child_data,
+        sha256=hashlib.sha256(child_data).hexdigest(),
+        parent_sha256=root.sha256,
+        depth=1,
+        transform="pe-overlay-padding-removed",
+    )
+
+    def execution(layer: one_shot.StaticLayer) -> dict:
+        return {
+            "handler": {"id": "family_a:fixture:extract"},
+            "result": {
+                "family": "family_a",
+                "sample_sha256": layer.sha256,
+                "config": {
+                    "source_name": layer.name,
+                    "endpoints": ["example.invalid:443"],
+                },
+            },
+            "executed_sample": False,
+            "network_contacted": False,
+        }
+
+    strongest = [
+        ({"score": 100, "sufficient": True}, 0, root, execution(root)),
+        ({"score": 100, "sufficient": True}, -1, child, execution(child)),
+    ]
+    assert one_shot._equivalent_pe_padding_handler_layers(strongest) == sorted(
+        [root.sha256, child.sha256]
+    )
+
+    child_different = copy.deepcopy(execution(child))
+    child_different["result"]["config"]["endpoints"] = ["other.invalid:443"]
+    different_results = [
+        strongest[0],
+        ({"score": 100, "sufficient": True}, -1, child, child_different),
+    ]
+    assert one_shot._equivalent_pe_padding_handler_layers(different_results) == []
+
+    other_transform = one_shot.StaticLayer(
+        name="memory.dmp::other",
+        data=child_data,
+        sha256=child.sha256,
+        parent_sha256=root.sha256,
+        depth=1,
+        transform="fixture",
+    )
+    wrong_transform = [
+        strongest[0],
+        ({"score": 100, "sufficient": True}, -1, other_transform, execution(other_transform)),
+    ]
+    assert one_shot._equivalent_pe_padding_handler_layers(wrong_transform) == []
 
 
 @pytest.mark.parametrize(

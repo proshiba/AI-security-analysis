@@ -242,6 +242,10 @@ job_artifact_schemas.validate_job_artifact_document(
 
 `family_hint_manifest`は解析対象file数へ含めず、UTF-8、重複keyなし、非有限数なし、JSON object root、通常file、4 MiB以下をrunnerで検証します。検証した同じbytesをjob-localの`contract-inputs/family-hint-manifest.json`へatomicに固定し、子processには元fileではなくこのcopyだけを渡します。manifest内のexact root SHA-256とfamily候補のschemaは`analyze_sample.py`側でも再検証し、metadata hint単独でfamilyを確定しません。
 
+Triageのmemory dumpや静的に復元したpayloadを別入力として再解析する場合は、そのartifact自身のexact SHA-256を`samples`のkeyにします。hintへ`root_sha256`、`parent_sha256`、`artifact_sha256`、`artifact_kind`、`source`、`source_id`、`depth`、`inherited_family`、`family_hint_source`を全て付けると、親候補familyの既存handlerを子artifactへ再適用できます。一部だけのlineage、manifest keyと異なる`artifact_sha256`、depth 1で一致しないroot／parentは拒否します。継承hintはcandidate verification専用で帰属根拠にはならず、子artifact自身のdetector／handler証拠と異なる場合は`classification_conflict`を記録して独立証拠を優先します。follow-onで保持したpayloadには元artifactのlineage深さへ加算して同じrootを自動継承し、元manifestのidentityをroot／follow-on双方の解析契約へ結合します。
+
+同一artifact SHA-256でも、`root_sha256`、`parent_sha256`、`depth`、family候補、`source`／`source_id`、provenanceが異なれば解析文脈は同一ではありません。将来follow-onをresumeまたはcacheする場合は、artifact SHA-256だけを再利用keyにせず、このcanonical lineage tuple、正規化済みhint、handler契約SHA-256を全てidentityへ結合します。現在のrunnerはjob IDを再利用しません。親providerの元`source`／`provenance`は親manifest／reportに保持し、子hintでは復元sourceと親SHA-256へ正規化します。同じfamily、confidence、lineage、正規化済みsource／provenance等が全て一致する子hintだけをcanonical fingerprintで重複排除します。同じrootに対する`depth`は既存lineageへ加算し、異なるroot／depth候補が残る場合は任意選択せず拒否します。
+
 解析出力はroot case、後段case、機械可読成果物を合わせてjob単位で100,000 entry、合計1 GiBまでです。既定runnerは0.5秒間隔で出力treeとjob filesystemの空きを監視し、上限超過または空きが256 MiB以下になった時点でprocess treeを終了します。process終了後も同じquotaを再検証します。この監視は単一jobの第2境界であり、同時に動く全jobを合算した`jobs-root`のglobal quotaではありません。
 
 runnerは`analysis/.private-temp/`を所有者限定で排他的に作成し、full analyzer、input manifest worker、handler、follow-on workerの`TEMP`、`TMP`、`TMPDIR`をjob内へ固定します。hostの一時pathは継承しません。内側workerはこのdirectory配下へさらに専用一時directoryを作ります。process終了後は解析出力と同じ100,000 entry／1 GiB上限、通常file、hardlink、reparse pointを再検証し、directory identityが作成時と一致し、内容が空である場合だけ非再帰削除します。残存file、差替え、link、quota超過はjob失敗です。Windowsの`chmod`はACLそのものではないため、本番serviceはjob rootを専用accountだけが変更できるACLでも保護します。

@@ -33,6 +33,13 @@ from darkcomet_profile_evidence import (
     validate_darkcomet_profile_evidence,
 )
 from darkcomet_server_first_probe import probe_reviewed_darkcomet_server_first
+from purerat_direct_tls_probe import (
+    PureRatDirectTlsError,
+    probe_reviewed_purerat_direct_tls,
+)
+from purerat_direct_tls_probe import (
+    reviewed_profile as reviewed_purerat_profile,
+)
 from remus_profile_evidence import (
     RemusEvidenceError,
     validate_remus_profile_evidence,
@@ -51,6 +58,7 @@ ALLOWED_PROTOCOLS = {
     "winos",
     "vvas",
     "n520",
+    "purerat_direct_tls",
     "ftp",
     "asyncrat",
     "venomrat",
@@ -71,6 +79,7 @@ ALLOWED_METHODS = {
     "winos_heartbeat",
     "vvas_checkin",
     "n520_server_first",
+    "purerat_direct_tls_certificate_pin",
     "ftp_authenticated",
     "asyncrat_tls_messagepack",
     "venomrat_tls_messagepack",
@@ -85,6 +94,7 @@ ACTIVE_PROFILE_METHODS = {
     "winos_heartbeat",
     "vvas_checkin",
     "n520_server_first",
+    "purerat_direct_tls_certificate_pin",
     "ftp_authenticated",
     "asyncrat_tls_messagepack",
     "venomrat_tls_messagepack",
@@ -107,6 +117,7 @@ METHOD_CEILINGS = {
     "winos_heartbeat": 0.95,
     "vvas_checkin": 0.95,
     "n520_server_first": 0.95,
+    "purerat_direct_tls_certificate_pin": 0.92,
     "ftp_authenticated": 0.95,
     "asyncrat_tls_messagepack": 0.95,
     "venomrat_tls_messagepack": 0.95,
@@ -127,6 +138,7 @@ METHOD_LABELS = {
     "winos_heartbeat": "完全一致・IP pinning済みWinos heartbeat 1 frame＋64 byte限定受信",
     "vvas_checkin": "完全一致・レビュー済みvvaS check-in 3 byte＋64 byte限定header検証",
     "n520_server_first": "完全一致・N520 TLS server-first 44 byte handshake検証（check-in送信なし）",
+    "purerat_direct_tls_certificate_pin": "完全一致・PureRAT direct TLS 1.0 handshake＋leaf証明書pin（application data送信なし）",
     "ftp_authenticated": "完全一致・private資格情報によるFTP USER/PASS/QUIT限定認証（file操作なし）",
     "asyncrat_tls_messagepack": "完全一致・AsyncRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
     "venomrat_tls_messagepack": "完全一致・VenomRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
@@ -231,6 +243,24 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             profile_samples = profile.get("sample_sha256s")
             if not isinstance(profile_samples, list) or target.get("sample_sha256s") != profile_samples:
                 raise PlanError("active targetのsample集合がprofileと完全一致しません")
+            if method == "purerat_direct_tls_certificate_pin" and (
+                profile.get("source")
+                != "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+                or profile.get("handler") != "purerat_direct_tls"
+                or profile.get("wire_mode") != "direct_tls"
+                or profile.get("tls_version") != "TLSv1.0"
+                or profile.get("sni") is not None
+                or profile.get("send_hex") not in (None, "")
+                or type(target.get("maximum_request_bytes")) is not int
+                or target.get("maximum_request_bytes") != 0
+                or type(target.get("maximum_response_bytes")) is not int
+                or target.get("maximum_response_bytes") != 0
+                or type(target.get("timeout_seconds")) is not float
+                or target.get("timeout_seconds") != 3.0
+            ):
+                raise PlanError(
+                    "PureRAT targetはTLS1.0/SNIなし/application送受信0のexact profileに限定します"
+                )
             if method == "darkcomet_server_first_idtype":
                 evidence_sha256 = target.get("protocol_profile_evidence_sha256")
                 evidence_source = target.get("protocol_profile_evidence_source")
@@ -409,6 +439,7 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             "tcp_connect": "tcp",
             "passive_banner": "tcp",
             "tls_handshake": "tls",
+            "purerat_direct_tls_certificate_pin": "purerat_direct_tls",
             "winos_heartbeat": "winos",
             "vvas_checkin": "vvas",
             "n520_server_first": "n520",
@@ -435,12 +466,15 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             target.setdefault("maximum_response_bytes", int(profile["maximum_response_bytes"]))
         timeout = float(target.get("timeout_seconds", 3.0))
         maximum = int(target.get("maximum_response_bytes", 256))
+        minimum_response = (
+            0 if method == "purerat_direct_tls_certificate_pin" else 1
+        )
         response_limit = (
             int(profile["maximum_response_bytes"])
             if profile is not None
             else (1024 if method == "ftp_authenticated" else 256)
         )
-        if not 0.1 <= timeout <= 5.0 or not 1 <= maximum <= response_limit:
+        if not 0.1 <= timeout <= 5.0 or not minimum_response <= maximum <= response_limit:
             raise PlanError(f"timeout<=5秒、response<={response_limit} byteを超えています")
         if profile and (
             timeout != float(profile["timeout_seconds"]) or maximum != int(profile["maximum_response_bytes"])
@@ -804,6 +838,347 @@ def _tls_messagepack_observation(
         "victim_metadata_sent": False,
         "operation_command_sent": False,
     }
+
+
+def _sanitize_purerat_observation(observation: dict) -> dict:
+    """PureRAT観測を既知scalar/TLS fingerprintだけへfail-closedで制限する。"""
+
+    reviewed = reviewed_purerat_profile()
+    allowed_statuses = {
+        "network_disabled",
+        "legacy_tls_disabled",
+        "closed",
+        "timeout",
+        "purerat_direct_tls_probe_error",
+        "confirmed_purerat_direct_tls_certificate",
+        "purerat_direct_tls_certificate_mismatch",
+        "purerat_direct_tls_version_mismatch_inconclusive",
+    }
+    status = observation.get("status")
+    if status not in allowed_statuses:
+        status = "purerat_direct_tls_probe_error"
+    value = {
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "status": status,
+        "profile_id": reviewed["profile_id"],
+        "root_sample_sha256": reviewed["root_sample_sha256"],
+        "terminal_sample_sha256": reviewed["terminal_sample_sha256"],
+        "wire_mode": "direct_tls",
+        "application_framing": "le32/gzip/protobuf-net",
+    }
+    boolean_fields = (
+        "alive",
+        "c2_confirmed",
+        "target_contact_attempted",
+        "target_connection_established",
+        "tls_before_application_data",
+        "plaintext_prelude_sent",
+        "application_data_sent",
+        "protocol_response_received",
+        "victim_metadata_sent",
+        "registration_attempted",
+        "task_poll_attempted",
+        "task_executed",
+        "operation_command_sent",
+        "pfx_loaded",
+        "private_key_loaded",
+        "client_certificate_sent",
+        "raw_request_published",
+        "raw_response_published",
+        "certificate_mismatch_excludes_c2",
+        "certificate_mismatch_excludes_exact_build_endpoint",
+        "certificate_mismatch_excludes_family_c2",
+        "tls_version_mismatch_excludes_c2",
+        "tls_version_mismatch_excludes_exact_build_endpoint",
+        "tls_version_mismatch_excludes_family_c2",
+    )
+    for field in boolean_fields:
+        observed = observation.get(field, False)
+        value[field] = observed if type(observed) is bool else False
+    for field in ("sent_bytes", "received_bytes", "request_count"):
+        observed = observation.get(field, 0)
+        value[field] = observed if type(observed) is int else -1
+    resolved_ips = observation.get("resolved_ips")
+    value["resolved_ips"] = (
+        [item for item in resolved_ips if isinstance(item, str) and _is_ip(item)]
+        if isinstance(resolved_ips, list)
+        else []
+    )
+    connected_ip = observation.get("connected_ip")
+    value["connected_ip"] = (
+        connected_ip
+        if isinstance(connected_ip, str) and _is_ip(connected_ip)
+        else None
+    )
+    tls = observation.get("tls")
+    if isinstance(tls, dict):
+        certificate = tls.get("certificate")
+        certificate = certificate if isinstance(certificate, dict) else {}
+        version = tls.get("version")
+        expected_version = tls.get("expected_version")
+        observed_sha256 = certificate.get("observed_sha256")
+        expected_sha256 = certificate.get("expected_sha256")
+        value["tls"] = {
+            "handshake": tls.get("handshake") is True,
+            "version": version
+            if version in {None, "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"}
+            else "invalid",
+            "expected_version": expected_version
+            if expected_version in {None, "TLSv1"}
+            else "invalid",
+            "version_exact_match": tls.get("version_exact_match") is True,
+            "certificate": {
+                "state": certificate.get("state")
+                if certificate.get("state")
+                in {"exact_match", "mismatch_inconclusive"}
+                else "invalid",
+                "exact_match": certificate.get("exact_match") is True,
+                "observed_sha256": observed_sha256
+                if isinstance(observed_sha256, str)
+                and SHA256_RE.fullmatch(observed_sha256)
+                else None,
+                "expected_sha256": expected_sha256
+                if isinstance(expected_sha256, str)
+                and SHA256_RE.fullmatch(expected_sha256)
+                else None,
+                "certificate_mismatch_excludes_c2": (
+                    certificate.get("certificate_mismatch_excludes_c2") is True
+                ),
+            },
+        }
+    return value
+
+
+def _purerat_direct_tls_observation(
+    target: dict,
+    allow_network: bool,
+    allow_legacy_tls: bool,
+    *,
+    resolver=None,
+    connector=None,
+    tls_handshaker=None,
+) -> dict:
+    """PureRAT TLS 1.0 leaf pinを送信0 byteの独立gateで観測する。"""
+
+    timestamp = datetime.now(UTC).isoformat()
+
+    def failed(status: str, *, attempted: bool, error_type: str | None = None) -> dict:
+        value = {
+            "timestamp_utc": timestamp,
+            "status": status,
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": attempted,
+            "target_connection_established": False,
+            "tls_before_application_data": True,
+            "plaintext_prelude_sent": False,
+            "application_data_sent": False,
+            "protocol_response_received": False,
+            "sent_bytes": 0,
+            "received_bytes": 0,
+            "request_count": 0,
+            "victim_metadata_sent": False,
+            "registration_attempted": False,
+            "task_poll_attempted": False,
+            "task_executed": False,
+            "operation_command_sent": False,
+            "pfx_loaded": False,
+            "private_key_loaded": False,
+            "client_certificate_sent": False,
+            "raw_request_published": False,
+            "raw_response_published": False,
+            "certificate_mismatch_excludes_c2": False,
+            "certificate_mismatch_excludes_family_c2": False,
+            "tls_version_mismatch_excludes_c2": False,
+            "tls_version_mismatch_excludes_family_c2": False,
+            "resolved_ips": [],
+        }
+        if error_type is not None:
+            value["error_type"] = error_type
+        return value
+
+    contact_attempted = False
+    try:
+        registry = profile_registry_metadata()
+        if (
+            target.get("protocol_profile_registry_source") != registry["source"]
+            or target.get("protocol_profile_registry_sha256") != registry["sha256"]
+        ):
+            raise PlanError("PureRAT common registry pinがdispatch直前に一致しません")
+        profile = resolve_profile(
+            target["protocol_profile_id"],
+            target["host"],
+            target["port"],
+            expected_registry_sha256=registry["sha256"],
+        )
+        reviewed = reviewed_purerat_profile()
+        for key, expected in reviewed.items():
+            if key != "source" and profile.get(key) != expected:
+                raise PlanError(
+                    f"PureRAT common/direct profile fieldが不一致です: {key}"
+                )
+        if (
+            profile.get("source")
+            != "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+            or profile.get("protocol") != "purerat_direct_tls"
+            or profile.get("sample_sha256s")
+            != [profile.get("root_sample_sha256"), profile.get("terminal_sample_sha256")]
+        ):
+            raise PlanError("PureRAT common profile evidence/protocol pinが不一致です")
+        exact_target = (
+            target.get("family") == profile.get("family"),
+            target.get("protocol") == profile.get("protocol"),
+            target.get("method") == profile.get("method"),
+            target.get("sample_sha256s") == profile.get("sample_sha256s"),
+            target.get("timeout_seconds") == profile.get("timeout_seconds"),
+            target.get("maximum_request_bytes")
+            == profile.get("maximum_request_bytes"),
+            target.get("maximum_response_bytes")
+            == profile.get("maximum_response_bytes"),
+        )
+        if not all(exact_target):
+            raise PlanError("PureRAT target/profileのdispatch直前pinが一致しません")
+        selected_connector = connector or socket.create_connection
+
+        def tracked_connector(*args, **kwargs):
+            nonlocal contact_attempted
+            contact_attempted = True
+            return selected_connector(*args, **kwargs)
+
+        result = probe_reviewed_purerat_direct_tls(
+            reviewed,
+            allow_network=allow_network,
+            allow_legacy_tls=allow_legacy_tls,
+            resolver=resolver,
+            connector=tracked_connector,
+            tls_handshaker=tls_handshaker,
+        )
+    except ConnectionRefusedError:
+        return failed("closed", attempted=contact_attempted)
+    except TimeoutError:
+        return failed("timeout", attempted=contact_attempted)
+    except (PlanError, PureRatDirectTlsError, ValueError, RuntimeError) as exc:
+        return failed(
+            "purerat_direct_tls_probe_error",
+            attempted=False,
+            error_type=type(exc).__name__,
+        )
+    except OSError as exc:
+        return failed(
+            "purerat_direct_tls_probe_error",
+            attempted=contact_attempted,
+            error_type=type(exc).__name__,
+        )
+    allowed_statuses = {
+        "network_disabled",
+        "legacy_tls_disabled",
+        "confirmed_purerat_direct_tls_certificate",
+        "purerat_direct_tls_certificate_mismatch",
+        "purerat_direct_tls_version_mismatch_inconclusive",
+    }
+    status = result.get("status")
+    if status not in allowed_statuses:
+        return failed(
+            "purerat_direct_tls_probe_error",
+            attempted=contact_attempted,
+            error_type="UnexpectedProbeStatus",
+        )
+    boolean_fields = (
+        "alive",
+        "c2_confirmed",
+        "target_contact_attempted",
+        "target_connection_established",
+        "tls_before_application_data",
+        "plaintext_prelude_sent",
+        "application_data_sent",
+        "protocol_response_received",
+        "victim_metadata_sent",
+        "registration_attempted",
+        "task_poll_attempted",
+        "task_executed",
+        "operation_command_sent",
+        "pfx_loaded",
+        "private_key_loaded",
+        "client_certificate_sent",
+        "raw_request_published",
+        "raw_response_published",
+        "certificate_mismatch_excludes_c2",
+        "certificate_mismatch_excludes_exact_build_endpoint",
+        "certificate_mismatch_excludes_family_c2",
+        "tls_version_mismatch_excludes_c2",
+        "tls_version_mismatch_excludes_exact_build_endpoint",
+        "tls_version_mismatch_excludes_family_c2",
+    )
+    value = {
+        "timestamp_utc": timestamp,
+        "status": status,
+        "profile_id": reviewed["profile_id"],
+        "root_sample_sha256": reviewed["root_sample_sha256"],
+        "terminal_sample_sha256": reviewed["terminal_sample_sha256"],
+        "wire_mode": "direct_tls",
+        "application_framing": "le32/gzip/protobuf-net",
+        "sent_bytes": result.get("sent_bytes", 0)
+        if type(result.get("sent_bytes", 0)) is int
+        else -1,
+        "received_bytes": result.get("received_bytes", 0)
+        if type(result.get("received_bytes", 0)) is int
+        else -1,
+        "request_count": result.get("request_count", 0)
+        if type(result.get("request_count", 0)) is int
+        else -1,
+        "resolved_ips": [
+            item
+            for item in result.get("resolved_ips", [])
+            if isinstance(item, str) and _is_ip(item)
+        ],
+    }
+    for field in boolean_fields:
+        observed = result.get(field, False)
+        value[field] = observed if type(observed) is bool else False
+    connected_ip = result.get("connected_ip")
+    value["connected_ip"] = (
+        connected_ip
+        if isinstance(connected_ip, str) and _is_ip(connected_ip)
+        else None
+    )
+    observed_tls = result.get("tls")
+    if isinstance(observed_tls, dict):
+        observed_certificate = observed_tls.get("certificate")
+        observed_certificate = (
+            observed_certificate if isinstance(observed_certificate, dict) else {}
+        )
+        version = observed_tls.get("version")
+        expected_version = observed_tls.get("expected_version")
+        value["tls"] = {
+            "handshake": observed_tls.get("handshake") is True,
+            "version": version
+            if version in {None, "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"}
+            else "invalid",
+            "expected_version": expected_version
+            if expected_version in {None, "TLSv1"}
+            else "invalid",
+            "version_exact_match": observed_tls.get("version_exact_match") is True,
+            "certificate": {
+                "state": observed_certificate.get("state")
+                if observed_certificate.get("state")
+                in {"exact_match", "mismatch_inconclusive"}
+                else "invalid",
+                "exact_match": observed_certificate.get("exact_match") is True,
+                "observed_sha256": observed_certificate.get("observed_sha256")
+                if isinstance(observed_certificate.get("observed_sha256"), str)
+                and SHA256_RE.fullmatch(observed_certificate["observed_sha256"])
+                else None,
+                "expected_sha256": observed_certificate.get("expected_sha256")
+                if isinstance(observed_certificate.get("expected_sha256"), str)
+                and SHA256_RE.fullmatch(observed_certificate["expected_sha256"])
+                else None,
+                "certificate_mismatch_excludes_c2": (
+                    observed_certificate.get("certificate_mismatch_excludes_c2")
+                    is True
+                ),
+            },
+        }
+    return value
 
 
 def _darkcomet_server_first_observation(
@@ -1366,6 +1741,7 @@ def assess_observation(target: dict, observation: dict) -> dict:
 
     if status in {
         "network_disabled",
+        "legacy_tls_disabled",
         "authentication_disabled",
         "private_credential_vault_missing",
         "private_credential_vault_error",
@@ -1385,6 +1761,113 @@ def assess_observation(target: dict, observation: dict) -> dict:
             "method_confidence_ceiling": ceiling,
             "negative_observation_confidence": 0.0,
             "reason": "安全gateが未充足のためprotocol-level観測を実施していない",
+        }
+
+    if method == "purerat_direct_tls_certificate_pin":
+        certificate = tls.get("certificate") if isinstance(tls, dict) else {}
+        certificate = certificate if isinstance(certificate, dict) else {}
+        expected_certificate = reviewed_purerat_profile()[
+            "expected_certificate_sha256"
+        ]
+        no_send = (
+            observation.get("application_data_sent") is False
+            and observation.get("plaintext_prelude_sent") is False
+            and observation.get("victim_metadata_sent") is False
+            and observation.get("raw_request_published") is False
+            and observation.get("raw_response_published") is False
+            and int(observation.get("sent_bytes") or 0) == 0
+            and int(observation.get("request_count") or 0) == 0
+            and observation.get("registration_attempted") is False
+            and observation.get("task_poll_attempted") is False
+            and observation.get("task_executed") is False
+            and observation.get("operation_command_sent") is False
+            and observation.get("pfx_loaded") is False
+            and observation.get("private_key_loaded") is False
+            and observation.get("client_certificate_sent") is False
+        )
+        exact_confirmation = (
+            status == "confirmed_purerat_direct_tls_certificate"
+            and observation.get("c2_confirmed") is True
+            and observation.get("target_contact_attempted") is True
+            and observation.get("target_connection_established") is True
+            and observation.get("tls_before_application_data") is True
+            and observation.get("protocol_response_received") is False
+            and isinstance(tls, dict)
+            and tls.get("handshake") is True
+            and tls.get("version") == "TLSv1"
+            and tls.get("expected_version") == "TLSv1"
+            and tls.get("version_exact_match") is True
+            and certificate.get("state") == "exact_match"
+            and certificate.get("exact_match") is True
+            and certificate.get("observed_sha256") == expected_certificate
+            and certificate.get("expected_sha256") == expected_certificate
+            and certificate.get("certificate_mismatch_excludes_c2") is False
+            and observation.get("certificate_mismatch_excludes_c2") is False
+            and observation.get("certificate_mismatch_excludes_family_c2")
+            is False
+            and observation.get("tls_version_mismatch_excludes_c2") is False
+            and observation.get("tls_version_mismatch_excludes_family_c2")
+            is False
+            and no_send
+        )
+        if exact_confirmation:
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                "c2_operational_confidence": 0.92,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "送信0 byteのdirect TLS 1.0とreview済みleaf証明書pinが完全一致",
+            }
+        mismatch_status = status in {
+            "purerat_direct_tls_certificate_mismatch",
+            "purerat_direct_tls_version_mismatch_inconclusive",
+        }
+        if mismatch_status and observation.get("c2_confirmed") is False and no_send:
+            return {
+                "state": "purerat_tls_endpoint_reachable_exact_build_not_confirmed",
+                "reachability_confidence": (
+                    0.98
+                    if observation.get("target_connection_established")
+                    else 0.0
+                ),
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": (
+                    "TLS endpointへ到達したがreview済みexact buildのTLS versionまたはleaf pinと不一致。PureRAT family C2の否定根拠にはしない"
+                ),
+            }
+        if (
+            status == "confirmed_purerat_direct_tls_certificate"
+            or observation.get("c2_confirmed") is True
+        ):
+            return {
+                "state": "purerat_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": (
+                    0.98
+                    if observation.get("target_connection_established")
+                    else 0.0
+                ),
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "PureRAT確認status、TLS version、証明書pinまたはno-send flagが矛盾するためC2確定を禁止",
+            }
+        reachable = bool(observation.get("target_connection_established"))
+        return {
+            "state": "purerat_endpoint_not_confirmed",
+            "reachability_confidence": 0.98 if reachable else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": (
+                0.85
+                if status == "closed"
+                else (0.40 if status in {"timeout", "purerat_direct_tls_probe_error"} else 0.0)
+            ),
+            "reason": (
+                "PureRAT専用TLS version／証明書pin契約が完全一致しないためC2確定を禁止"
+            ),
         }
 
     if method == "dns_resolve":
@@ -1705,6 +2188,7 @@ def monitor(
     *,
     allow_network: bool = False,
     allow_application_probes: bool = False,
+    allow_purerat_legacy_tls: bool = False,
     allow_authentication: bool = False,
     allow_malware_registration: bool = False,
     allow_reviewed_checkconnect: bool = False,
@@ -1737,6 +2221,12 @@ def monitor(
                 allow_network,
                 allow_application_probes,
             )
+        elif method == "purerat_direct_tls_certificate_pin":
+            raw = _purerat_direct_tls_observation(
+                target,
+                allow_network,
+                allow_purerat_legacy_tls,
+            )
         elif method == "darkcomet_server_first_idtype":
             raw = _darkcomet_server_first_observation(target, allow_network, repository_root)
         elif method == "redline_checkconnect_soap11":
@@ -1762,6 +2252,8 @@ def monitor(
             raw = _stealer_registration_observation(target, allow_network, allow_malware_registration, repository_root)
         else:
             raw = probe(_probe_args(target, allow_network))
+        if method == "purerat_direct_tls_certificate_pin":
+            raw = _sanitize_purerat_observation(raw)
         observation = _sanitize_observation(raw)
         results.append(
             {
@@ -1853,6 +2345,9 @@ def monitor(
             "tcp_open_confirms_c2": False,
             "network_enabled": allow_network,
             "reviewed_application_probes_enabled": allow_application_probes,
+            "purerat_legacy_tls_certificate_probe_enabled": (
+                allow_purerat_legacy_tls
+            ),
             "reviewed_redline_checkconnect_enabled": allow_reviewed_checkconnect,
             "acknowledged_redline_profile_count": len(
                 redline_acknowledgements
@@ -2208,6 +2703,11 @@ def main() -> int:
         help="完全一致profileの匿名Ping 1 frameを許可します。",
     )
     parser.add_argument(
+        "--allow-purerat-legacy-tls-certificate-probe",
+        action="store_true",
+        help="完全一致PureRAT profileのTLS 1.0 leaf証明書pin観測を許可します（application data送信なし）。",
+    )
+    parser.add_argument(
         "--allow-authentication",
         action="store_true",
         help="完全一致AgentTesla FTP profileのUSER/PASS/QUIT限定認証を許可します。",
@@ -2251,6 +2751,9 @@ def main() -> int:
             plan,
             allow_network=args.allow_network,
             allow_application_probes=args.allow_reviewed_application_probes,
+            allow_purerat_legacy_tls=(
+                args.allow_purerat_legacy_tls_certificate_probe
+            ),
             allow_authentication=args.allow_authentication,
             allow_malware_registration=args.allow_malware_registration_tasking,
             allow_reviewed_checkconnect=args.allow_reviewed_checkconnect,

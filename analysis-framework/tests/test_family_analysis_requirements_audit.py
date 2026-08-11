@@ -138,7 +138,7 @@ def test_audit_is_complete_and_matches_loaded_policies() -> None:
 
 
 def test_every_safe_automatic_family_has_a_quality_policy() -> None:
-    """既存の安全preflight済み84 familyにpolicy漏れがないことを検証する。"""
+    """既存の安全preflight済み82 familyにpolicy漏れがないことを検証する。"""
 
     policies = _load_quality_policies(POLICY)
     coverage = _load_coverage()
@@ -147,9 +147,10 @@ def test_every_safe_automatic_family_has_a_quality_policy() -> None:
         for item in coverage["families"]
         if item["script_only_handler_available"] is True
     }
-    assert len(safe_families) == 84
+    assert len(safe_families) == 82
     assert len(policies) == 84
-    assert set(policies) == safe_families
+    # Efimer/Prometeiは既存preflight blockerがあるため安全対象から除外し、再有効化用policyだけ保持する。
+    assert set(policies) - {"efimer", "prometei"} == safe_families
 
     registered = _registered_families(REGISTRY)
     assert safe_families & registered <= set(policies)

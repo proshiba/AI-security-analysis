@@ -193,6 +193,7 @@ child_contract = analyzer._build_follow_on_analysis_contract(
     retry_max_static_layers=options['retry_max_static_layers'],
     archive_password=request['password'],
     string_scan_limit=int(options['string_scan_limit']),
+    family_hint_manifest_identity=family_hint_identity,
 )
 json.dump(
     {

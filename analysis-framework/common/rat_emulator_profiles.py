@@ -15,6 +15,7 @@ from typing import Any
 
 from c2_protocol_probe_profiles import (
     ProtocolProfileError,
+    canonical_lf_json_sha256,
     canonical_profile_object_sha256,
     profile_registry_metadata,
 )
@@ -29,7 +30,20 @@ MAXIMUM_REGISTRY_BYTES = 256 * 1024
 MAXIMUM_EVIDENCE_BYTES = 1024 * 1024
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{1,127}$")
-ALLOWED_ADAPTERS = frozenset({"tls_messagepack_rat_host", "valleyrat_n520_v1"})
+ALLOWED_ADAPTERS = frozenset(
+    {
+        "purerat_direct_tls_v1",
+        "tls_messagepack_rat_host",
+        "valleyrat_n520_v1",
+        "valleyrat_winos_v1",
+    }
+)
+ALLOWED_LIVE_SCOPES = frozenset(
+    {"leased_external", "offline_or_loopback_only"}
+)
+OFFLINE_ONLY_ADAPTERS = frozenset(
+    {"purerat_direct_tls_v1", "valleyrat_winos_v1"}
+)
 
 PROFILE_KEYS = {
     "profile_id",
@@ -54,6 +68,7 @@ PROFILE_KEYS = {
     "file_transfer_action",
     "fake_result_scope",
     "allow_live_fake_results",
+    "live_scope",
     "limits",
 }
 LIMIT_KEYS = {
@@ -135,7 +150,16 @@ def _evidence_snapshot(root: Path, source: object, expected_sha256: object) -> b
         snapshot = read_bounded_snapshot(absolute, MAXIMUM_EVIDENCE_BYTES)
     except (OSError, ValueError) as exc:
         raise RatEmulatorProfileError(f"evidenceを安全に読み取れません: {exc}") from exc
-    if snapshot.identity.sha256 != expected_sha256:
+    try:
+        evidence_sha256 = canonical_lf_json_sha256(
+            snapshot.data,
+            label=f"RAT emulator evidence: {source}",
+        )
+    except ValueError as exc:
+        raise RatEmulatorProfileError(
+            f"evidenceはstrict UTF-8 JSON textである必要があります: {exc}"
+        ) from exc
+    if evidence_sha256 != expected_sha256:
         raise RatEmulatorProfileError("evidence SHA-256 pinが一致しません")
     return snapshot.data
 
@@ -297,6 +321,144 @@ def _validate_tls_messagepack_evidence(
         )
 
 
+def _validate_winos_evidence(
+    profile: Mapping[str, Any],
+    protocol_profile: Mapping[str, Any],
+    raw: bytes,
+) -> None:
+    """control-only C9 heartbeatの公開証拠を完全一致で検証する。"""
+
+    try:
+        document = decode_strict_json(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RatEmulatorProfileError(f"Winos evidence JSONが不正です: {exc}") from exc
+    if not isinstance(document, dict):
+        raise RatEmulatorProfileError("Winos evidenceはobjectである必要があります")
+    stage = document.get("stage_flow")
+    control = document.get("control_flow")
+    live = document.get("live")
+    safety = document.get("safety")
+    if not all(isinstance(value, dict) for value in (stage, control, live, safety)):
+        raise RatEmulatorProfileError("Winos evidenceの必須sectionがありません")
+    endpoint = f"{profile['host']}:{profile['port']}"
+    if (
+        document.get("schema_version") != 1
+        or document.get("protocol") != "winos_custom_tcp"
+        or protocol_profile.get("protocol") != "winos"
+        or protocol_profile.get("method") != "winos_heartbeat"
+        or protocol_profile.get("handler") != "valleyrat_winos_reviewed"
+        or protocol_profile.get("channel_role") != "control"
+        or protocol_profile.get("pinned_ips") != profile["pinned_ips"]
+        or protocol_profile.get("maximum_response_bytes") != 64
+        or control.get("endpoint") != endpoint
+        or 0xC9 not in list(control.get("observed_commands") or [])
+        or stage.get("endpoint") != f"{profile['host']}:8856"
+        or stage.get("endpoint") == endpoint
+        or live.get("dns") != profile["pinned_ips"][0]
+        or live.get("control_8868") != "valid_0xc9_heartbeat_response"
+        or live.get("stage_8856") != "tcp_connected_no_bytes_sent"
+        or any(
+            safety.get(key) is not False
+            for key in (
+                "stage_requested",
+                "victim_metadata_sent",
+                "operation_command_sent",
+            )
+        )
+    ):
+        raise RatEmulatorProfileError("Winos evidenceとemulator profileが一致しません")
+
+
+def _validate_purerat_evidence(
+    profile: Mapping[str, Any],
+    protocol_profile: Mapping[str, Any],
+    raw: bytes,
+) -> None:
+    """PureRAT 4.4.1 registration schemaとwire pinを完全一致で検証する。"""
+
+    try:
+        document = decode_strict_json(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RatEmulatorProfileError(
+            f"PureRAT evidence JSONが不正です: {exc}"
+        ) from exc
+    if not isinstance(document, dict):
+        raise RatEmulatorProfileError("PureRAT evidenceはobjectである必要があります")
+    source = document.get("source")
+    schema = document.get("registration_schema")
+    synthetic = document.get("synthetic_registration")
+    safety = document.get("safety")
+    call_chain = document.get("wire_call_chain")
+    if (
+        not all(
+            isinstance(value, dict)
+            for value in (source, schema, synthetic, safety)
+        )
+        or not isinstance(call_chain, list)
+    ):
+        raise RatEmulatorProfileError("PureRAT evidenceの必須sectionがありません")
+    members = schema.get("proto_members")
+    if not isinstance(members, list):
+        raise RatEmulatorProfileError("PureRAT GClass4 member inventoryがありません")
+    member_tags = [item.get("tag") for item in members if isinstance(item, dict)]
+    semantic = {
+        item.get("token"): item.get("semantic_sha256")
+        for item in call_chain
+        if isinstance(item, dict)
+    }
+    if (
+        document.get("schema_version") != 1
+        or document.get("status") != "confirmed"
+        or document.get("family") != "purehvnc"
+        or document.get("variant") != "purerat_4_4_1_direct_tls"
+        or source.get("root_sample_sha256")
+        != protocol_profile.get("root_sample_sha256")
+        or source.get("terminal_sample_sha256")
+        != protocol_profile.get("terminal_sample_sha256")
+        or profile.get("sample_sha256s")
+        != [source.get("root_sample_sha256"), source.get("terminal_sample_sha256")]
+        or schema.get("base_contract") != "GClass2"
+        or schema.get("registration_contract") != "GClass4"
+        or schema.get("registration_protoinclude_tag") != 1
+        or schema.get("base_proto_contract_confirmed") is not True
+        or schema.get("registration_proto_contract_confirmed") is not True
+        or schema.get("inventory_canonical_sha256")
+        != "6f3989a771f7571bf06bafe4e2604280864431907e5af1d8a16ec3f4cb7be53f"
+        or member_tags != list(range(1, 21))
+        or semantic
+        != {
+            "0x06000080": "7e4389ecd11c8a416cf092a741162f897ed2a03375fa5b82cf47b3e5f89eb92f",
+            "0x06000086": "bc7d416daddff80ba800ddfd7df609208bf74bb0ccd359b4da301eea950814d4",
+            "0x06000090": "69e69fa120d5e6f2c0d20bcd5268f1346d0ce818c83c012d5a9e300359181e5d",
+            "0x060000b3": "0248e2025ac399ebb40d7205a414a9394c4fd9d998c5ceb6b2a1abf38e4cc743",
+        }
+        or synthetic.get("scope") != "offline_or_loopback_only"
+        or synthetic.get("real_identity_fields_populated") != 0
+        or synthetic.get("protobuf_hex") != "0a00"
+        or synthetic.get("protobuf_size") != 2
+        or synthetic.get("protobuf_sha256")
+        != "102b51b9765a56a3e899f7cf0ee38e5251f9c503b357b330a49183eb7b155604"
+        or synthetic.get("deterministic_frame_size") != 26
+        or synthetic.get("deterministic_frame_sha256")
+        != "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
+        or safety.get("loopback_registration_supported") is not True
+        or any(
+            safety.get(key) is not False
+            for key in (
+                "sample_executed",
+                "network_used_for_schema_recovery",
+                "external_c2_contacted",
+                "raw_il_published",
+                "pfx_published",
+                "private_key_published",
+                "client_certificate_used",
+                "live_registration_allowed",
+            )
+        )
+    ):
+        raise RatEmulatorProfileError("PureRAT evidenceとemulator profileが一致しません")
+
+
 def _validate_profile(
     raw: object,
     *,
@@ -327,6 +489,7 @@ def _validate_profile(
         or profile.get("sample_sha256s") != protocol_profile.get("sample_sha256s")
     ):
         raise RatEmulatorProfileError("protocol profileとのendpoint／sample bindingが一致しません")
+
     pinned = profile.get("pinned_ips")
     if not isinstance(pinned, list) or len(pinned) != 1:
         raise RatEmulatorProfileError("emulator profileには単一pinned IPが必要です")
@@ -337,50 +500,94 @@ def _validate_profile(
         endpoint_ip = None
     if endpoint_ip is not None and endpoint_ip != ipaddress.ip_address(pinned_ip):
         raise RatEmulatorProfileError("IP endpointはpinned IPと完全一致する必要があります")
-    certificate = profile.get("expected_certificate_sha256")
-    if type(certificate) is not str or SHA256_RE.fullmatch(certificate) is None:
-        raise RatEmulatorProfileError("expected_certificate_sha256が不正です")
-    if profile.get("adapter_id") not in ALLOWED_ADAPTERS:
+
+    adapter_id = profile.get("adapter_id")
+    if adapter_id not in ALLOWED_ADAPTERS:
         raise RatEmulatorProfileError("未レビューのadapter_idです")
+    live_scope = profile.get("live_scope")
+    if type(live_scope) is not str or live_scope not in ALLOWED_LIVE_SCOPES:
+        raise RatEmulatorProfileError("live_scopeが欠落または未レビューです")
+    expected_live_scope = (
+        "offline_or_loopback_only"
+        if adapter_id in OFFLINE_ONLY_ADAPTERS
+        else "leased_external"
+    )
+    if live_scope != expected_live_scope:
+        raise RatEmulatorProfileError("adapterとlive_scopeの安全境界が一致しません")
+
+    certificate = profile.get("expected_certificate_sha256")
+    if adapter_id == "valleyrat_winos_v1":
+        transport_valid = (
+            profile.get("transport") == "raw_tcp"
+            and profile.get("tls_version") is None
+            and profile.get("sni") is None
+            and certificate is None
+            and profile.get("certificate_mismatch_is_negative_evidence") is False
+        )
+    elif adapter_id == "purerat_direct_tls_v1":
+        transport_valid = (
+            profile.get("transport") == "tls"
+            and profile.get("tls_version") == "TLSv1.0"
+            and profile.get("sni") is None
+            and type(certificate) is str
+            and SHA256_RE.fullmatch(certificate) is not None
+            and certificate == protocol_profile.get("expected_certificate_sha256")
+            and profile.get("certificate_mismatch_is_negative_evidence") is False
+        )
+    else:
+        transport_valid = (
+            profile.get("transport") == "tls"
+            and profile.get("tls_version") == "TLSv1.2"
+            and profile.get("sni") == protocol_profile.get("sni")
+            and type(certificate) is str
+            and SHA256_RE.fullmatch(certificate) is not None
+            and type(profile.get("certificate_mismatch_is_negative_evidence")) is bool
+        )
+
+    registration_modes = {
+        "purerat_direct_tls_v1": "fixed_empty_gclass4",
+        "valleyrat_n520_v1": "empty_command_1",
+        "valleyrat_winos_v1": "fixed_c9_heartbeat",
+        "tls_messagepack_rat_host": "synthetic_client_info",
+    }
+    fake_result_scopes = {
+        "purerat_direct_tls_v1": "loopback_or_offline_only",
+        "valleyrat_n520_v1": "loopback_or_offline_only",
+        "valleyrat_winos_v1": "loopback_or_offline_only",
+        "tls_messagepack_rat_host": "reviewed_heartbeat_request_only",
+    }
     if (
-        profile.get("transport") != "tls"
-        or profile.get("tls_version") != "TLSv1.2"
-        or profile.get("sni") != protocol_profile.get("sni")
-        or (
-            profile.get("adapter_id") == "valleyrat_n520_v1"
-            and profile.get("registration_mode") != "empty_command_1"
-        )
-        or (
-            profile.get("adapter_id") == "tls_messagepack_rat_host"
-            and profile.get("registration_mode") != "synthetic_client_info"
-        )
+        not transport_valid
+        or profile.get("registration_mode") != registration_modes[adapter_id]
         or profile.get("station_id_sent") is not False
         or profile.get("unknown_task_action") != "no_response"
         or profile.get("file_transfer_action") != "reject_and_close"
-        or (
-            profile.get("adapter_id") == "valleyrat_n520_v1"
-            and profile.get("fake_result_scope") != "loopback_or_offline_only"
-        )
-        or (
-            profile.get("adapter_id") == "tls_messagepack_rat_host"
-            and profile.get("fake_result_scope") != "reviewed_heartbeat_request_only"
-        )
+        or profile.get("fake_result_scope") != fake_result_scopes[adapter_id]
         or profile.get("allow_live_fake_results") is not False
-        or type(profile.get("certificate_mismatch_is_negative_evidence")) is not bool
     ):
         raise RatEmulatorProfileError("emulator profileの安全policyが固定値と一致しません")
+
     limits = _validate_limits(profile.get("limits"))
     if limits["maximum_connections"] != 1 or (
-        profile["adapter_id"] == "valleyrat_n520_v1"
+        adapter_id in {
+            "purerat_direct_tls_v1",
+            "valleyrat_n520_v1",
+            "valleyrat_winos_v1",
+        }
         and limits["maximum_outbound_frames"] != 1
     ):
-        raise RatEmulatorProfileError("初期profileは1接続・空registration 1 frameだけを許可します")
-    evidence = _evidence_snapshot(root, profile["evidence_source"], profile["evidence_sha256"])
-    if profile["adapter_id"] == "valleyrat_n520_v1":
+        raise RatEmulatorProfileError("初期profileは1接続・固定送信1 frameだけを許可します")
+
+    evidence = _evidence_snapshot(
+        root,
+        profile["evidence_source"],
+        profile["evidence_sha256"],
+    )
+    if adapter_id == "valleyrat_n520_v1":
         if protocol_profile.get("method") != "n520_server_first":
             raise RatEmulatorProfileError("N520 adapterとprotocol methodが一致しません")
         _validate_n520_evidence(profile, evidence)
-    elif profile["adapter_id"] == "tls_messagepack_rat_host":
+    elif adapter_id == "tls_messagepack_rat_host":
         if (
             profile["profile_id"] != profile["protocol_profile_id"]
             or protocol_profile.get("method")
@@ -403,9 +610,62 @@ def _validate_profile(
         ):
             raise RatEmulatorProfileError("TLS MessagePack limits exceed the reviewed session")
         _validate_tls_messagepack_evidence(profile, protocol_profile, evidence)
+    elif adapter_id == "purerat_direct_tls_v1":
+        if (
+            profile["profile_id"]
+            != "purerat-441-d025a296-direct-tls10-empty-gclass4"
+            or profile["protocol_profile_id"]
+            != "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
+            or protocol_profile.get("method")
+            != "purerat_direct_tls_certificate_pin"
+            or protocol_profile.get("handler") != "purerat_direct_tls"
+            or protocol_profile.get("tls_version") != "TLSv1.0"
+            or protocol_profile.get("sni") is not None
+            or protocol_profile.get("maximum_request_bytes") != 0
+            or protocol_profile.get("maximum_response_bytes") != 0
+        ):
+            raise RatEmulatorProfileError("PureRAT direct-TLS profile bindingが不正です")
+        if (
+            float(limits["duration_seconds"]) != 3.0
+            or limits["maximum_outbound_frames"] != 1
+            or limits["maximum_outbound_bytes"] != 26
+            or limits["maximum_inbound_frames"] != 1
+            or limits["maximum_inbound_read_calls"] != 64
+            or limits["maximum_inbound_bytes"] != 65_536
+            or limits["maximum_frame_bytes"] != 65_536
+            or limits["maximum_commands"] != 1
+            or limits["minimum_send_interval_seconds"] != 0.0
+        ):
+            raise RatEmulatorProfileError(
+                "PureRAT limitsがreview済みloopback sessionと一致しません"
+            )
+        _validate_purerat_evidence(profile, protocol_profile, evidence)
+    elif adapter_id == "valleyrat_winos_v1":
+        if (
+            profile["profile_id"] != profile["protocol_profile_id"]
+            or protocol_profile.get("method") != "winos_heartbeat"
+            or protocol_profile.get("handler") != "valleyrat_winos_reviewed"
+            or protocol_profile.get("channel_role") != "control"
+        ):
+            raise RatEmulatorProfileError("Winos control-only profile bindingが不正です")
+        if (
+            float(limits["duration_seconds"]) != 3.0
+            or limits["maximum_outbound_frames"] != 1
+            or limits["maximum_outbound_bytes"] != 15
+            or limits["maximum_inbound_frames"] != 1
+            or limits["maximum_inbound_read_calls"] != 16
+            or limits["maximum_inbound_bytes"] != 64
+            or limits["maximum_frame_bytes"] != 64
+            or limits["maximum_commands"] != 1
+            or limits["minimum_send_interval_seconds"] != 0.0
+        ):
+            raise RatEmulatorProfileError("Winos limitsがreview済みsessionと一致しません")
+        _validate_winos_evidence(profile, protocol_profile, evidence)
+    else:
+        raise RatEmulatorProfileError("adapter validatorがありません")
+
     profile["limits"] = limits
     return profile
-
 
 def _read_registry(path: Path) -> tuple[dict[str, Any], str]:
     try:
@@ -415,7 +675,10 @@ def _read_registry(path: Path) -> tuple[dict[str, Any], str]:
         raise RatEmulatorProfileError(f"RAT emulator registryを安全に読み取れません: {exc}") from exc
     if not isinstance(document, dict):
         raise RatEmulatorProfileError("RAT emulator registryはobjectである必要があります")
-    return document, snapshot.identity.sha256
+    return document, canonical_lf_json_sha256(
+        snapshot.data,
+        label="RAT emulator registry",
+    )
 
 
 def load_registry(
@@ -480,12 +743,15 @@ def load_profiles(
 
 
 def registry_metadata(path: Path = DEFAULT_REGISTRY_PATH) -> dict[str, str]:
-    """registryの公開可能なsourceとraw SHA-256を返す。"""
+    """registryの公開可能なsourceと改行正規化SHA-256を返す。"""
 
     snapshot = read_bounded_snapshot(path, MAXIMUM_REGISTRY_BYTES)
     return {
         "source": REGISTRY_SOURCE if path.resolve() == DEFAULT_REGISTRY_PATH.resolve() else str(path),
-        "sha256": snapshot.identity.sha256,
+        "sha256": canonical_lf_json_sha256(
+            snapshot.data,
+            label="RAT emulator registry",
+        ),
     }
 
 

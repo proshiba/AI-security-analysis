@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import importlib.util
 import json
 from pathlib import Path
@@ -14,8 +15,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMETEI = ROOT / "analysis-framework" / "malware" / "prometei"
+COMMON = ROOT / "analysis-framework" / "common"
 if str(PROMETEI) not in sys.path:
     sys.path.insert(0, str(PROMETEI))
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
 
 
 def load(relative: str, name: str):
@@ -171,6 +175,67 @@ def test_private_controller_and_generic_pe_json_are_not_promoted() -> None:
     assert report["operational_c2_recovered"] is False
     assert detection["matched"] is False
     assert detection["observations"]["generic_pe_json_rejected"] is True
+
+
+@pytest.mark.parametrize(
+    "address",
+    (
+        "10.0.0.0",
+        "10.255.255.255",
+        "172.16.0.0",
+        "172.31.255.255",
+        "192.168.0.0",
+        "192.168.255.255",
+    ),
+)
+def test_rfc1918_integer_ranges_preserve_inclusive_boundaries(address: str) -> None:
+    extractor = load(
+        "analysis-framework/malware/prometei/extract_config.py",
+        f"prometei_extract_rfc1918_{address.replace('.', '_')}",
+    )
+
+    assert extractor._ip_scope(address) == ("rfc1918_private", False)
+
+
+@pytest.mark.parametrize(
+    "address",
+    (
+        "9.255.255.255",
+        "11.0.0.0",
+        "172.15.255.255",
+        "172.32.0.0",
+        "192.167.255.255",
+        "192.169.0.0",
+        "fc00::1",
+    ),
+)
+def test_rfc1918_integer_ranges_do_not_expand_scope(address: str) -> None:
+    extractor = load(
+        "analysis-framework/malware/prometei/extract_config.py",
+        f"prometei_extract_non_rfc1918_{address.replace('.', '_').replace(':', '_')}",
+    )
+
+    assert extractor._ip_scope(address)[0] != "rfc1918_private"
+
+
+def test_prometei_handler_passes_fail_closed_preflight() -> None:
+    catalog = importlib.import_module("handler_catalog")
+    spec = next(
+        item for item in catalog.discover_handlers()
+        if item.family == "prometei" and item.callable_name == "extract_config"
+    )
+
+    preflight = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="elf",
+        input_size=4_096,
+    )
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False
 
 
 def test_global_controller_is_config_candidate_but_not_live_confirmed() -> None:

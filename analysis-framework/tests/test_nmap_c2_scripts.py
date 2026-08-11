@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -83,6 +84,43 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "candidate_spray_attempted=false" in xloader
     assert "registration_attempted=false" in xloader
     assert "network_contacted_by_nmap_scan=true" in xloader
+
+    purerat_direct = (NMAP_ROOT / "scripts" / "purerat-direct-tls.nse").read_text(encoding="utf-8")
+    assert 'socket:connect(host.ip, port.number, "ssl")' in purerat_direct
+    assert "socket:send" not in purerat_direct
+    assert "reconnect_ssl" not in purerat_direct
+    assert "get_ssl_certificate" in purerat_direct
+    assert "45.192.211.77" in purerat_direct
+    assert "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677" in purerat_direct
+    assert "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7" in purerat_direct
+    assert "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57" in purerat_direct
+    assert "tls_version_enforced_by_nse=false" in purerat_direct
+    assert "plaintext_prelude_sent=false" in purerat_direct
+    assert "application_data_sent=false" in purerat_direct
+    assert "certificate_mismatch_excludes_c2=false" in purerat_direct
+    assert "certificate_mismatch_excludes_exact_build_endpoint=true" in purerat_direct
+    assert "certificate_mismatch_excludes_family_c2=false" in purerat_direct
+    assert "purerat_direct_tls_certificate_mismatch_inconclusive" in purerat_direct
+    assert "result.confidence = exact and 0.92 or 0.35" in purerat_direct
+    assert "result.c2_confirmed = exact" in purerat_direct
+    assert "result.exact_profile_match = exact" in purerat_direct
+    assert "result.family_c2_candidate = false" not in purerat_direct
+
+
+def test_purerat_direct_tls_nse_script_help_parses_offline() -> None:
+    executable = _nmap_executable()
+    if not executable:
+        pytest.skip("Nmap executableがないためNSE offline構文検証を省略します")
+    script = NMAP_ROOT / "scripts" / "purerat-direct-tls.nse"
+    completed = subprocess.run(
+        [executable, "--script-help", str(script)],
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+    output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace")
+    assert completed.returncode == 0, output
+    assert "purerat-direct-tls" in output
 
 
 def test_redline_production_request_vector_is_exact() -> None:

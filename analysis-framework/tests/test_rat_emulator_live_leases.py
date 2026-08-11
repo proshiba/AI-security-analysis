@@ -15,17 +15,17 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from rat_emulator_live_leases import (  # noqa: E402
+from rat_emulator_live_leases import (
     DEFAULT_LIVE_LEASE_REGISTRY_PATH,
     MAXIMUM_LIVE_LEASE_REGISTRY_BYTES,
     RatEmulatorLiveLeaseError,
     load_live_lease_registry,
     resolve_active_live_lease,
 )
-from rat_emulator_profiles import load_registry  # noqa: E402
+from rat_emulator_profiles import load_registry
 
 PROFILE_REGISTRY_SHA256 = (
-    "3f3d2afc8879a987ad0dde8abce200d371af452b94a4018d941cf62545d0c8b4"
+    "a0725e5ce5f8a6597193e2bde09a06740147186dc1f1818c7da7e59d9209a9d6"
 )
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)
@@ -51,7 +51,13 @@ def test_production_registry_is_bound_to_all_exact_profiles() -> None:
         "source": "analysis-framework/common/rat_emulator_profiles.json",
         "sha256": PROFILE_REGISTRY_SHA256,
     }
-    assert set(registry.leases) == set(profiles.profiles)
+    expected_leases = {
+        profile_id
+        for profile_id, profile in profiles.profiles.items()
+        if profile["live_scope"] == "leased_external"
+    }
+    assert set(registry.leases) == expected_leases
+    assert "valleyrat-winos-heartbeat-20260803-ljdnxz" not in registry.leases
     for lease in registry.leases.values():
         assert lease.reviewed_at == REVIEWED
         assert lease.expires_at == EXPIRES
@@ -93,7 +99,7 @@ def test_naive_or_non_utc_validation_time_is_rejected() -> None:
     with pytest.raises(RatEmulatorLiveLeaseError, match="timezone"):
         resolve_active_live_lease(
             "valleyrat-n520-host-d11e793-9999",
-            now_utc=datetime(2026, 8, 9, 9, 30),
+            now_utc=datetime(2026, 8, 9, 9, 30),  # noqa: DTZ001 - naive日時の拒否を検証
         )
     offset = UTC
     assert offset is UTC
@@ -129,6 +135,17 @@ def test_duplicate_unknown_and_missing_profiles_are_rejected(tmp_path: Path) -> 
     _write(missing_path, missing)
     with pytest.raises(RatEmulatorLiveLeaseError, match="leaseがない"):
         load_live_lease_registry(missing_path)
+
+
+def test_offline_only_profile_cannot_receive_a_live_lease(tmp_path: Path) -> None:
+    document = _document()
+    offline = copy.deepcopy(document["leases"][0])
+    offline["profile_id"] = "valleyrat-winos-heartbeat-20260803-ljdnxz"
+    document["leases"].append(offline)
+    path = tmp_path / "offline-lease.json"
+    _write(path, document)
+    with pytest.raises(RatEmulatorLiveLeaseError, match="offline-only"):
+        load_live_lease_registry(path)
 
 
 @pytest.mark.parametrize(

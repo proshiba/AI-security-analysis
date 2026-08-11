@@ -378,6 +378,7 @@ def _structured_terminal_completions(
             and manual.get("terminal_payload_gap") == "closed"
         )
         c2_terminal_recovered = False
+        c2_terminal_family_confirmed = False
         c2_path = report_path.parent / "c2-analysis.json"
         if c2_path.is_file():
             try:
@@ -393,9 +394,18 @@ def _structured_terminal_completions(
                 isinstance(c2_terminal, dict)
                 and c2_terminal.get("reached") is True
                 and c2_terminal.get("status")
-                in {"recovered", "no_additional_payload_verified"}
+                in {
+                    "recovered",
+                    "no_additional_payload_verified",
+                    "terminal_managed_client_and_config_recovered",
+                }
             )
-        if terminal is True and (
+            c2_terminal_family_confirmed = (
+                c2_terminal_recovered
+                and str(c2_terminal.get("family") or "").casefold()
+                not in {"", "unknown", "unclassified"}
+            )
+        if (terminal is True or c2_terminal_family_confirmed) and (
             case_complete or manual_terminal_closed or c2_terminal_recovered
         ):
             resolved.add(_normalize_sha256(sha256, locator=canonical))
@@ -764,13 +774,24 @@ def render_outputs(inventory: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _display_output_path(path: Path, root: Path) -> str:
+    """出力先をrepo内では相対、repo外では絶対POSIX pathとして表示する。"""
+
+    resolved = path.resolve()
+    repository = root.resolve()
+    try:
+        return resolved.relative_to(repository).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
 def sync_outputs(
     repository: Path, output_dir: Path, *, write: bool = False
 ) -> dict[str, Any]:
     """期待される生成物との差分を返し、指定時だけ原子的に更新する。"""
 
     root = repository.resolve()
-    target = output_dir if output_dir.is_absolute() else root / output_dir
+    target = (output_dir if output_dir.is_absolute() else root / output_dir).resolve()
     inventory = build_inventory(root)
     outputs = render_outputs(inventory)
     mismatches = []
@@ -779,11 +800,11 @@ def sync_outputs(
         current = path.read_text(encoding="utf-8-sig") if path.is_file() else None
         if current == content:
             continue
-        mismatches.append(path.relative_to(root).as_posix())
+        mismatches.append(_display_output_path(path, root))
         if write:
             _atomic_text_write(path, content)
     return {
-        "output_dir": target.relative_to(root).as_posix(),
+        "output_dir": _display_output_path(target, root),
         "mismatches": mismatches,
         "write_performed": bool(write and mismatches),
         "scope": inventory["scope"],
