@@ -55,6 +55,12 @@ local function winos(host, port)
     return {family="valleyrat", protocol="winos", c2_confirmed=false,
       confidence=0.40, status="heartbeat_response_missing"}
   end
+  if #response >= #frame and response:sub(1, #frame) == frame then
+    return {family="valleyrat", protocol="winos", c2_confirmed=false,
+      confidence=0.0, status="winos_request_reflected", request_reflected=true,
+      sent_bytes=#frame, received_bytes=#response,
+      victim_metadata_sent=false, stage_requested=false}
+  end
   local declared = string.unpack("<I4", response)
   if declared < 15 or declared > 64 or #response < declared then
     return {family="valleyrat", protocol="winos", c2_confirmed=false,

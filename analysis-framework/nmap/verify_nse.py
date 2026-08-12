@@ -168,6 +168,15 @@ def _winos_handler(connection: socket.socket) -> None:
     connection.sendall(struct.pack("<I", 15) + header + _xor_winos(b"\xCA", header))
 
 
+def _winos_echo_handler(connection: socket.socket) -> None:
+    declared_raw = _recv_exact(connection, 4)
+    declared = struct.unpack("<I", declared_raw)[0]
+    request = declared_raw + _recv_exact(connection, declared - 4)
+    if declared != 15 or len(request) != 15:
+        raise ValueError("Winos echo試験request形状が不正です")
+    connection.sendall(request)
+
+
 def _vvas_handler(connection: socket.socket) -> None:
     if _recv_exact(connection, 3) != bytes.fromhex("333200"):
         raise ValueError("vvaS check-inが一致しません")
@@ -636,7 +645,7 @@ def _exercise_multi(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """36 caseで経路差分probeを含むNSEを外部networkなしで検証する。"""
+    """37 caseでWinos echo拒否と経路差分probeを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -649,6 +658,7 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
         context, certificate_sha256 = _make_tls_context(Path(temporary))
         cases = [
             (_winos_handler, "valleyrat-c2.nse", "valleyrat.mode=winos", "winos_control_response"),
+            (_winos_echo_handler, "valleyrat-c2.nse", "valleyrat.mode=winos", "winos_request_reflected"),
             (_vvas_handler, "valleyrat-c2.nse", "valleyrat.mode=vvas", "vvas_stage_header_match"),
             (_n520_handler(context), "valleyrat-c2.nse", "valleyrat.mode=n520", "n520_server_first_handshake_match"),
             (_dotnet_handler(context, "Packet", "pong"), "dotnet-rat-c2.nse", f"dotnet-rat.family=asyncrat,dotnet-rat.expected-cert={certificate_sha256}", "messagepack_ping_response_match"),
