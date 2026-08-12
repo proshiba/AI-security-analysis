@@ -14,6 +14,14 @@
       "family": "lummastealer",
       "version_key": "unknown"
     },
+    "00cac49b27e8e7f132a96f18f460ffca7ae0f0c214459f02b4a000e7b755f543": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/00cac49b27e8e7f132a96f18f460ffca7ae0f0c214459f02b4a000e7b755f543",
+      "case_id": "sha256:00cac49b27e8e7f132a96f18f460ffca7ae0f0c214459f02b4a000e7b755f543",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "00d5b68d01d72c7dff69763f1514284a6542f6a1acab9431cfb8c66439bfcf20": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/00d5b68d01d72c7dff69763f1514284a6542f6a1acab9431cfb8c66439bfcf20",
       "case_id": "sha256:00d5b68d01d72c7dff69763f1514284a6542f6a1acab9431cfb8c66439bfcf20",
@@ -114,6 +122,14 @@
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/0299a6526280a968671dd228fe63fd9523487caeda3c7dda535cb1121d1d2e3b",
       "case_id": "sha256:0299a6526280a968671dd228fe63fd9523487caeda3c7dda535cb1121d1d2e3b",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "029a1ad507f87f41e00f9ab4ffe8646636b0da5965581d591e7fc61a1b42280f": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/029a1ad507f87f41e00f9ab4ffe8646636b0da5965581d591e7fc61a1b42280f",
+      "case_id": "sha256:029a1ad507f87f41e00f9ab4ffe8646636b0da5965581d591e7fc61a1b42280f",
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
@@ -1170,6 +1186,20 @@
       "family": "amadey",
       "version_key": "v4.13"
     },
+    "13109ad659b2faded3d4d9ef3188564a2b67c97e3f225090c9b3ae732c49884a": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/13109ad659b2faded3d4d9ef3188564a2b67c97e3f225090c9b3ae732c49884a",
+      "case_id": "sha256:13109ad659b2faded3d4d9ef3188564a2b67c97e3f225090c9b3ae732c49884a",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
+    "1316039caab6e2d8a03e4cd883d6a3ca6d8e2b4e41f172d4192e23c06643c116": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/1316039caab6e2d8a03e4cd883d6a3ca6d8e2b4e41f172d4192e23c06643c116",
+      "case_id": "sha256:1316039caab6e2d8a03e4cd883d6a3ca6d8e2b4e41f172d4192e23c06643c116",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "1320ba4c289d844b5d724fa5af97d129bc8d103c48011952df911ec0d089acee": {
       "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/1320ba4c289d844b5d724fa5af97d129bc8d103c48011952df911ec0d089acee",
       "case_id": "sha256:1320ba4c289d844b5d724fa5af97d129bc8d103c48011952df911ec0d089acee",
@@ -1371,6 +1401,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "16c8424613e4fd9c7cd5c90465844033bd6f339f2881afa0f02d692038a6b29d": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/16c8424613e4fd9c7cd5c90465844033bd6f339f2881afa0f02d692038a6b29d",
+      "case_id": "sha256:16c8424613e4fd9c7cd5c90465844033bd6f339f2881afa0f02d692038a6b29d",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "16d76fb73e844e7ae13081b614f4b7449d4f020246189bfd6d77585d33a55a71": {
       "canonical_path": "analysis-results/malware/screenconnect-rmm/versions/v26.4.3.9662/cases/16d76fb73e844e7ae13081b614f4b7449d4f020246189bfd6d77585d33a55a71",
       "case_id": "sha256:16d76fb73e844e7ae13081b614f4b7449d4f020246189bfd6d77585d33a55a71",
@@ -1413,6 +1450,13 @@
       "case_id": "sha256:17668a4df917779af09b2598df9671e1f6ccfb973e56c9bb548be16a9d8df5cc",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "17a40880292fd293027ea0020dad1a0a21d3fb93086f031b6e1b725fbba38f0a": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/17a40880292fd293027ea0020dad1a0a21d3fb93086f031b6e1b725fbba38f0a",
+      "case_id": "sha256:17a40880292fd293027ea0020dad1a0a21d3fb93086f031b6e1b725fbba38f0a",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "17a545806806ef7fdc6c5bdc8f9009e3b11ecc18e83690550625ff106d03dc3a": {
@@ -1623,6 +1667,14 @@
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1ae69db09035542cafb9ae06eb1e85858743973541e894dfb3a5158ac848d1e0",
       "case_id": "sha256:1ae69db09035542cafb9ae06eb1e85858743973541e894dfb3a5158ac848d1e0",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "1b4865646b89fa938b340c30177e04c88f5e6a5de227fcd89798ea1113d12161": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1b4865646b89fa938b340c30177e04c88f5e6a5de227fcd89798ea1113d12161",
+      "case_id": "sha256:1b4865646b89fa938b340c30177e04c88f5e6a5de227fcd89798ea1113d12161",
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
@@ -2020,6 +2072,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "214a74e2a64c24907c95f23a6d6875c95164ffa9752f35c31f2d132febfa811d": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/214a74e2a64c24907c95f23a6d6875c95164ffa9752f35c31f2d132febfa811d",
+      "case_id": "sha256:214a74e2a64c24907c95f23a6d6875c95164ffa9752f35c31f2d132febfa811d",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "21796e5def787676275be4ee84a07687f6f4ace6c009cbd394da24ec95b24dbd": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/21796e5def787676275be4ee84a07687f6f4ace6c009cbd394da24ec95b24dbd",
@@ -2357,6 +2416,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "25fb430475571f33d8382cfe81b60bf82fbbc45555614440ce0dafb43f6208be": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/25fb430475571f33d8382cfe81b60bf82fbbc45555614440ce0dafb43f6208be",
+      "case_id": "sha256:25fb430475571f33d8382cfe81b60bf82fbbc45555614440ce0dafb43f6208be",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13": {
       "canonical_path": "analysis-results/malware/windows-script-stager/versions/2026-07-unicode-separator/cases/2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
       "case_id": "sha256:2624abf75eb9ebb06126954d914beaac6ea34f55f8307d6099f9f07efad27a13",
@@ -2441,6 +2507,14 @@
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/26eaf074c06ada6319109f04929df85bf2c83f9d17739da26c29b5cca6036d77",
       "case_id": "sha256:26eaf074c06ada6319109f04929df85bf2c83f9d17739da26c29b5cca6036d77",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "26ee67fb5756b14d0a6d2b30ae6bfc064390ecb753cf71746d8902ea379a7222": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/26ee67fb5756b14d0a6d2b30ae6bfc064390ecb753cf71746d8902ea379a7222",
+      "case_id": "sha256:26ee67fb5756b14d0a6d2b30ae6bfc064390ecb753cf71746d8902ea379a7222",
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
@@ -2628,6 +2702,13 @@
       "family": "wannacry",
       "version_key": "unknown"
     },
+    "2a386e48c01010a779d4c1cd99b9909d48d25a8ba4fd5d3e70f98c9397cf0e7e": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/2a386e48c01010a779d4c1cd99b9909d48d25a8ba4fd5d3e70f98c9397cf0e7e",
+      "case_id": "sha256:2a386e48c01010a779d4c1cd99b9909d48d25a8ba4fd5d3e70f98c9397cf0e7e",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "2a6ebbf3901296ecc772eaed7e22b5cfa0e2c316323ac5f74253f63b77823f31": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/2a6ebbf3901296ecc772eaed7e22b5cfa0e2c316323ac5f74253f63b77823f31",
@@ -2692,12 +2773,26 @@
       "family": "amadey",
       "version_key": "v3.70"
     },
+    "2ba902b3eb1c726063e93872166c93bc4142c4f52a17675f995c817f16450c16": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/2ba902b3eb1c726063e93872166c93bc4142c4f52a17675f995c817f16450c16",
+      "case_id": "sha256:2ba902b3eb1c726063e93872166c93bc4142c4f52a17675f995c817f16450c16",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "2bf4dc090d790d0101f61dafb9fcff37c65e32b0b321ab7a03585deb786376fb": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/2bf4dc090d790d0101f61dafb9fcff37c65e32b0b321ab7a03585deb786376fb",
       "case_id": "sha256:2bf4dc090d790d0101f61dafb9fcff37c65e32b0b321ab7a03585deb786376fb",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "2c1f52bc82354ad4d965c05e7a1e59f4f1e526949b0f10767edadc26ad103943": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/2c1f52bc82354ad4d965c05e7a1e59f4f1e526949b0f10767edadc26ad103943",
+      "case_id": "sha256:2c1f52bc82354ad4d965c05e7a1e59f4f1e526949b0f10767edadc26ad103943",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "2c216e25c7b4fcde4393264c822e718044f93e657c14253983136bbda06bd9bc": {
@@ -3749,6 +3844,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "3e728ad2c89e10217c174377627b535cf942fc44c7a6804f8f621c6861fe4a44": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/3e728ad2c89e10217c174377627b535cf942fc44c7a6804f8f621c6861fe4a44",
+      "case_id": "sha256:3e728ad2c89e10217c174377627b535cf942fc44c7a6804f8f621c6861fe4a44",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "3e9c20184a6a8ba20ea14b4eff5bc31866a03887b5f9e23b88b87246aaa5ec17": {
       "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/3e9c20184a6a8ba20ea14b4eff5bc31866a03887b5f9e23b88b87246aaa5ec17",
       "case_id": "sha256:3e9c20184a6a8ba20ea14b4eff5bc31866a03887b5f9e23b88b87246aaa5ec17",
@@ -3990,6 +4092,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "418a07ebd7c417bb91e8ca0cbd5cc4ca89697104ce0e5480d9ed09b100463e5e": {
+      "canonical_path": "analysis-results/malware/asyncrat/versions/unknown/cases/418a07ebd7c417bb91e8ca0cbd5cc4ca89697104ce0e5480d9ed09b100463e5e",
+      "case_id": "sha256:418a07ebd7c417bb91e8ca0cbd5cc4ca89697104ce0e5480d9ed09b100463e5e",
+      "case_kind": "malware",
+      "family": "asyncrat",
+      "version_key": "unknown"
+    },
     "418a30d149de64318e6323c91b86c856875a26eeee24b1383b38e57a0e3f0d7f": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/418a30d149de64318e6323c91b86c856875a26eeee24b1383b38e57a0e3f0d7f",
@@ -4210,6 +4319,13 @@
       "case_id": "sha256:4573bdf440dca3958e138cca96bd9cc67ff8eeca632edea5193f5e6348cb7923",
       "case_kind": "malware",
       "family": "valleyrat",
+      "version_key": "unknown"
+    },
+    "4585d96e251a5d68b2e4e7d77c66d55265128a07a635baed90be8d1a04c85ef9": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/4585d96e251a5d68b2e4e7d77c66d55265128a07a635baed90be8d1a04c85ef9",
+      "case_id": "sha256:4585d96e251a5d68b2e4e7d77c66d55265128a07a635baed90be8d1a04c85ef9",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "45880839303fe491b2676a37faaa1fe6192917b3e64de1d46858563f16518e2f": {
@@ -4950,6 +5066,14 @@
       "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
+    "4f4bd485e8615f45401e0ba17c9f6543f185dea4df144a833c4cbdd17696903e": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/4f4bd485e8615f45401e0ba17c9f6543f185dea4df144a833c4cbdd17696903e",
+      "case_id": "sha256:4f4bd485e8615f45401e0ba17c9f6543f185dea4df144a833c4cbdd17696903e",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "4f4d405d32d76a170ca2899c70b48ef6ffaaef792e024b6f8aab98d4ae55eae4": {
       "canonical_path": "analysis-results/malware/gh0strat/versions/unknown/cases/4f4d405d32d76a170ca2899c70b48ef6ffaaef792e024b6f8aab98d4ae55eae4",
       "case_id": "sha256:4f4d405d32d76a170ca2899c70b48ef6ffaaef792e024b6f8aab98d4ae55eae4",
@@ -5229,6 +5353,13 @@
       "family": "remusstealer",
       "version_key": "unknown"
     },
+    "547efd85a19d88bbbe304ca86cb0b19f8a1bb2c1a06a855329423fff8d56fa4c": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/547efd85a19d88bbbe304ca86cb0b19f8a1bb2c1a06a855329423fff8d56fa4c",
+      "case_id": "sha256:547efd85a19d88bbbe304ca86cb0b19f8a1bb2c1a06a855329423fff8d56fa4c",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de": {
       "canonical_path": "analysis-results/malware/donutloader/versions/unknown/cases/54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
       "case_id": "sha256:54a5c82e4c68c399f56f0af6bde9fb797122239f0ebb8bcdb302e7c4fb02e1de",
@@ -5256,6 +5387,13 @@
       "case_id": "sha256:54d1d87a08600f28fcf8b9b64cee918e8cd65222c558b424503657f1cf0395c6",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "54f7898e2eb3a82c8856699279f015571aa937689296344aea7154925368daac": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/54f7898e2eb3a82c8856699279f015571aa937689296344aea7154925368daac",
+      "case_id": "sha256:54f7898e2eb3a82c8856699279f015571aa937689296344aea7154925368daac",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "551854f430801e8352f6562a48077cb04f399cdc505b42f0daaa3ad61d0e9f62": {
@@ -5402,6 +5540,14 @@
       "case_id": "sha256:56e7837e2855d749d9848d20ffb2e682f2288b7f10156597abd2fdee543e79c6",
       "case_kind": "malware",
       "family": "guloader",
+      "version_key": "unknown"
+    },
+    "5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215",
+      "case_id": "sha256:5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "572d806c0b56d27fe05562301de6a9ed45cda3f36aef2f6e370867d9f3847013": {
@@ -6084,6 +6230,14 @@
       "case_id": "sha256:60a779d7f51d106e4a8d14e6fe987ca6b7ec4b6c7942c665bb6653a0dae0fc4d",
       "case_kind": "malware",
       "family": "nanocore",
+      "version_key": "unknown"
+    },
+    "60bcc5fa3895d13bc5b9a5333198a867cf068190560f7b1fb268d526a7c7b8fd": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/60bcc5fa3895d13bc5b9a5333198a867cf068190560f7b1fb268d526a7c7b8fd",
+      "case_id": "sha256:60bcc5fa3895d13bc5b9a5333198a867cf068190560f7b1fb268d526a7c7b8fd",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "60d74ab66cb37bdaa5877d21d17fdcfdbf741796fcf38425fb2681250c9cf9f9": {
@@ -7103,6 +7257,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "6f0d20d3810c9caa4ef6b0bb2cdf48dddfa4085d9209a25a83c4da72876577f2": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/6f0d20d3810c9caa4ef6b0bb2cdf48dddfa4085d9209a25a83c4da72876577f2",
+      "case_id": "sha256:6f0d20d3810c9caa4ef6b0bb2cdf48dddfa4085d9209a25a83c4da72876577f2",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644": {
       "canonical_path": "analysis-results/malware/amosstealer/versions/unknown/cases/6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644",
       "case_id": "sha256:6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644",
@@ -7341,6 +7502,13 @@
       "case_id": "sha256:72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a",
       "case_kind": "malware",
       "family": "redlinestealer",
+      "version_key": "unknown"
+    },
+    "731acbfa197b35c2db0a80e6dc028dec85bd385d43248dea91512e1e25e64d4f": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/731acbfa197b35c2db0a80e6dc028dec85bd385d43248dea91512e1e25e64d4f",
+      "case_id": "sha256:731acbfa197b35c2db0a80e6dc028dec85bd385d43248dea91512e1e25e64d4f",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "731fc822a6bdfe76804b1d55fdd08de05680ca6d99bd8c3216a466ece9a3f92b": {
@@ -7743,6 +7911,13 @@
       "case_id": "sha256:7a3a1ea98dd7a705e7f213d1466aee55c010d418bab8a9c174fa9f46040d1e1e",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "7a67319224361e3f7f39687c2b04dacd710b7b10293ebc98432085b9f34d7f61": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/7a67319224361e3f7f39687c2b04dacd710b7b10293ebc98432085b9f34d7f61",
+      "case_id": "sha256:7a67319224361e3f7f39687c2b04dacd710b7b10293ebc98432085b9f34d7f61",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "7a6d027aa2ae856b193a91db8c09e1c0750131bf3cf1ca0777db78c6b41045af": {
@@ -8347,6 +8522,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "856795ad3b9f699534f06deadac42c036698b7d2f0d79689bc80af5eb2fbfeca": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/856795ad3b9f699534f06deadac42c036698b7d2f0d79689bc80af5eb2fbfeca",
+      "case_id": "sha256:856795ad3b9f699534f06deadac42c036698b7d2f0d79689bc80af5eb2fbfeca",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643",
       "case_id": "sha256:856e540dd3765d8e1129070615d6104388a4f8c34179b520acfd87d9efa56643",
@@ -8615,6 +8798,14 @@
       "family": "asyncrat",
       "version_key": "unknown"
     },
+    "89570e511508e037fb79e2382704a3c07f9552f1b9a1e50c7722cf22fa477e48": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/89570e511508e037fb79e2382704a3c07f9552f1b9a1e50c7722cf22fa477e48",
+      "case_id": "sha256:89570e511508e037fb79e2382704a3c07f9552f1b9a1e50c7722cf22fa477e48",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "8970de128df9ca7689eb008b88932516c55ac84783d08faa55d925a3188504fd": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/8970de128df9ca7689eb008b88932516c55ac84783d08faa55d925a3188504fd",
@@ -8674,6 +8865,14 @@
       "family": "agenttesla",
       "version_key": "unknown"
     },
+    "8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3",
+      "case_id": "sha256:8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "8a46d5ea2d20041fc3f1f2f9ab60e46247f96acac0677e66255cd563eda1c4b3": {
       "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/8a46d5ea2d20041fc3f1f2f9ab60e46247f96acac0677e66255cd563eda1c4b3",
       "case_id": "sha256:8a46d5ea2d20041fc3f1f2f9ab60e46247f96acac0677e66255cd563eda1c4b3",
@@ -8729,6 +8928,14 @@
       "case_kind": "malware",
       "family": "windows-script-stager",
       "version_key": "2026-07-xor-stager"
+    },
+    "8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb",
+      "case_id": "sha256:8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
     },
     "8ad8dfa6a9f98192d789ec823e33c912bc0f83c71a4bee3a8e3379e6d08aafa0": {
       "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/8ad8dfa6a9f98192d789ec823e33c912bc0f83c71a4bee3a8e3379e6d08aafa0",
@@ -8991,6 +9198,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "8fa9499257d83a30bf4737480259282aa928ce3af19a08dbed4b6eecfbb1f189": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/8fa9499257d83a30bf4737480259282aa928ce3af19a08dbed4b6eecfbb1f189",
+      "case_id": "sha256:8fa9499257d83a30bf4737480259282aa928ce3af19a08dbed4b6eecfbb1f189",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197",
       "case_id": "sha256:8fb3b241a2578c6fbaf43a7c4d1481dc5083d62601edece49d1ce68b0b600197",
@@ -9097,6 +9311,13 @@
       "case_kind": "malware",
       "family": "amadey",
       "version_key": "v4.12"
+    },
+    "91a2cc02adfca746b0ed66a0ad9b84ad77407b34c91ea2d16e2d97e6c4ebd32e": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/91a2cc02adfca746b0ed66a0ad9b84ad77407b34c91ea2d16e2d97e6c4ebd32e",
+      "case_id": "sha256:91a2cc02adfca746b0ed66a0ad9b84ad77407b34c91ea2d16e2d97e6c4ebd32e",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
     },
     "91bb545887307628c4e6a437beeb116ccfbd89c3034e195b20c71a3811795c3a": {
       "canonical_path": "analysis-results/malware/venomrat/versions/unknown/cases/91bb545887307628c4e6a437beeb116ccfbd89c3034e195b20c71a3811795c3a",
@@ -9305,6 +9526,13 @@
       "case_id": "sha256:94ab9f0a1b7cdd5287aef8ac76e6071a0f25884c15c71079c40c5be355ce3a9e",
       "case_kind": "malware",
       "family": "venomrat",
+      "version_key": "unknown"
+    },
+    "94b36640510f414844ee3c674da7fb0dfd52b19004ebf920169d8779aadbbfbd": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/94b36640510f414844ee3c674da7fb0dfd52b19004ebf920169d8779aadbbfbd",
+      "case_id": "sha256:94b36640510f414844ee3c674da7fb0dfd52b19004ebf920169d8779aadbbfbd",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "94df53908e7c6d0bcced95241d450bcf49105dba9e65c0277ba9a9ac579c1bcf": {
@@ -9783,6 +10011,13 @@
     "9c41611e704f413156caa104cc487b9f0a095768a4343898861de8d69d827abb": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/9c41611e704f413156caa104cc487b9f0a095768a4343898861de8d69d827abb",
       "case_id": "sha256:9c41611e704f413156caa104cc487b9f0a095768a4343898861de8d69d827abb",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
+    "9c56c37f2756e500078c24bfe3a4e2d508c4b02bccb31382a690e7a5c36d121b": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/9c56c37f2756e500078c24bfe3a4e2d508c4b02bccb31382a690e7a5c36d121b",
+      "case_id": "sha256:9c56c37f2756e500078c24bfe3a4e2d508c4b02bccb31382a690e7a5c36d121b",
       "case_kind": "malware",
       "family": "vidar",
       "version_key": "unknown"
@@ -10502,6 +10737,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "aa24437389e38fd323e24ae94715b0037f8edfd6e9c71c6aefd1bf5f6aaac57c": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/aa24437389e38fd323e24ae94715b0037f8edfd6e9c71c6aefd1bf5f6aaac57c",
+      "case_id": "sha256:aa24437389e38fd323e24ae94715b0037f8edfd6e9c71c6aefd1bf5f6aaac57c",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "aa3ec6bd662f64b5471ba79945d9e620adb66cae5e2887e44eea03d8abc99c73": {
       "canonical_path": "analysis-results/malware/amadey/versions/unknown/cases/aa3ec6bd662f64b5471ba79945d9e620adb66cae5e2887e44eea03d8abc99c73",
       "case_id": "sha256:aa3ec6bd662f64b5471ba79945d9e620adb66cae5e2887e44eea03d8abc99c73",
@@ -10824,6 +11067,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "af20b2627b1d7119c84457fdc01d568ff845b1c1286e0da608f003a924b6b738": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/af20b2627b1d7119c84457fdc01d568ff845b1c1286e0da608f003a924b6b738",
+      "case_id": "sha256:af20b2627b1d7119c84457fdc01d568ff845b1c1286e0da608f003a924b6b738",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "af5a2f1b7e388d4fb49d72e8f453fda673472ad603bf72aee4869a34b37f535a": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/af5a2f1b7e388d4fb49d72e8f453fda673472ad603bf72aee4869a34b37f535a",
@@ -10931,6 +11182,14 @@
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/b0190be1089b17ada36dbcdf183d6996e840a993f29bd376b0bd3c327572f936",
       "case_id": "sha256:b0190be1089b17ada36dbcdf183d6996e840a993f29bd376b0bd3c327572f936",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "b06e852af247fbea47cfcf85237487ed7adc3ca249833fb5290c2046dba32893": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/b06e852af247fbea47cfcf85237487ed7adc3ca249833fb5290c2046dba32893",
+      "case_id": "sha256:b06e852af247fbea47cfcf85237487ed7adc3ca249833fb5290c2046dba32893",
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
@@ -11312,6 +11571,14 @@
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/b5f7df56de192f53a8122e1e6a7d83c80344d94b401d140004cff8cf04252757",
       "case_id": "sha256:b5f7df56de192f53a8122e1e6a7d83c80344d94b401d140004cff8cf04252757",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "b60e0a04e5a86ee1dbedbfd3fd7c9cd62ffbef0bf2102c0785a8dbb84d83018f": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/b60e0a04e5a86ee1dbedbfd3fd7c9cd62ffbef0bf2102c0785a8dbb84d83018f",
+      "case_id": "sha256:b60e0a04e5a86ee1dbedbfd3fd7c9cd62ffbef0bf2102c0785a8dbb84d83018f",
       "case_kind": "unclassified",
       "family": "unclassified",
       "version_key": "unknown"
@@ -12421,6 +12688,13 @@
       "family": "lummastealer",
       "version_key": "unknown"
     },
+    "c6d3d796b8f2edf8406702e7e58954c6c30e5306ffd69092381d7b4f53a62537": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/c6d3d796b8f2edf8406702e7e58954c6c30e5306ffd69092381d7b4f53a62537",
+      "case_id": "sha256:c6d3d796b8f2edf8406702e7e58954c6c30e5306ffd69092381d7b4f53a62537",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "c703f7c8a9719198f450e6e9f91df340f810a197ef44a24926212c18d70abc8a": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/c703f7c8a9719198f450e6e9f91df340f810a197ef44a24926212c18d70abc8a",
       "case_id": "sha256:c703f7c8a9719198f450e6e9f91df340f810a197ef44a24926212c18d70abc8a",
@@ -12976,11 +13250,26 @@
       "family": "nanocore",
       "version_key": "unknown"
     },
+    "d2e8fb0276b020ba2236162be04d11cb19e5d4327cb333d34f6af7c00ac534b3": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/d2e8fb0276b020ba2236162be04d11cb19e5d4327cb333d34f6af7c00ac534b3",
+      "case_id": "sha256:d2e8fb0276b020ba2236162be04d11cb19e5d4327cb333d34f6af7c00ac534b3",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "d2e9f95d58c56a2c000577b00a0d04bb96d8f9479e115c8dbd20e00195604971": {
       "canonical_path": "analysis-results/malware/prometei/versions/unknown/cases/d2e9f95d58c56a2c000577b00a0d04bb96d8f9479e115c8dbd20e00195604971",
       "case_id": "sha256:d2e9f95d58c56a2c000577b00a0d04bb96d8f9479e115c8dbd20e00195604971",
       "case_kind": "malware",
       "family": "prometei",
+      "version_key": "unknown"
+    },
+    "d330bd6c589541980f2c337d33db76a84dd8fa4bbbda374e327ad13afc322b41": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d330bd6c589541980f2c337d33db76a84dd8fa4bbbda374e327ad13afc322b41",
+      "case_id": "sha256:d330bd6c589541980f2c337d33db76a84dd8fa4bbbda374e327ad13afc322b41",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "d33682b92ddee2be9ab8dce71d6940cf17084571a869cf3e6cebe2f8a41137ef": {
@@ -13087,6 +13376,14 @@
       "case_id": "sha256:d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948",
       "case_kind": "malware",
       "family": "valleyrat",
+      "version_key": "unknown"
+    },
+    "d4f5d1c799c867774875caf143d865ca7a628db803bd6c1f0aa02eb6a0a37461": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d4f5d1c799c867774875caf143d865ca7a628db803bd6c1f0aa02eb6a0a37461",
+      "case_id": "sha256:d4f5d1c799c867774875caf143d865ca7a628db803bd6c1f0aa02eb6a0a37461",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "d503c1d9574deb89855643ab0d1063bc28331cc3a580fe7286a56bfc8b09afc8": {
@@ -13504,6 +13801,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "dbfb2fae3601c7580e3569fb6af6a55d25717f61baaa7aefd43a3210a5aa44ad": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/dbfb2fae3601c7580e3569fb6af6a55d25717f61baaa7aefd43a3210a5aa44ad",
+      "case_id": "sha256:dbfb2fae3601c7580e3569fb6af6a55d25717f61baaa7aefd43a3210a5aa44ad",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "dc1e2425521c3ff8344ea04a2294730e8ddda29da11b809421b85c896a693cad": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/dc1e2425521c3ff8344ea04a2294730e8ddda29da11b809421b85c896a693cad",
@@ -13733,6 +14038,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "e03f6b36e13e78d2c5eb1a863a1612fa5aaa2c89c90970f07675e9f524fd0f67": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/e03f6b36e13e78d2c5eb1a863a1612fa5aaa2c89c90970f07675e9f524fd0f67",
+      "case_id": "sha256:e03f6b36e13e78d2c5eb1a863a1612fa5aaa2c89c90970f07675e9f524fd0f67",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e": {
       "canonical_path": "analysis-results/malware/agenttesla/versions/unknown/cases/e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e",
       "case_id": "sha256:e059c100a917af58168b1e63ebe75cb4558ec144efd91f1ecb145bd9ad79529e",
@@ -13956,6 +14269,13 @@
       "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
+    "e3be7ac36b672045e47c4bb9533b2aa4065b7cf008682fc4862a14694a4ebd13": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/e3be7ac36b672045e47c4bb9533b2aa4065b7cf008682fc4862a14694a4ebd13",
+      "case_id": "sha256:e3be7ac36b672045e47c4bb9533b2aa4065b7cf008682fc4862a14694a4ebd13",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "e3d16f3f69fa0857f966022387ee6f9408385ddf389d09ffe7dc44acc8ac1ad5": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/e3d16f3f69fa0857f966022387ee6f9408385ddf389d09ffe7dc44acc8ac1ad5",
       "case_id": "sha256:e3d16f3f69fa0857f966022387ee6f9408385ddf389d09ffe7dc44acc8ac1ad5",
@@ -14004,6 +14324,13 @@
       "case_id": "sha256:e471b7a12992dc0d44743f6aff67fd96dd30d045399143b8c8e4042653748326",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "e490701b3b43e83a33030f53a027774b487ccb0f86bd837d49650b8d24755697": {
+      "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/e490701b3b43e83a33030f53a027774b487ccb0f86bd837d49650b8d24755697",
+      "case_id": "sha256:e490701b3b43e83a33030f53a027774b487ccb0f86bd837d49650b8d24755697",
+      "case_kind": "malware",
+      "family": "wannacry",
       "version_key": "unknown"
     },
     "e49a106bc6960b958ff9ae49c483ff636d3fdbc817229ef0c8c152c32aa3f611": {
@@ -14063,6 +14390,13 @@
       "case_kind": "malware",
       "family": "manageengine-endpoint-central-abuse",
       "version_key": "v11.3.2400.33.W"
+    },
+    "e58c4fa9e1f9fcbb205b80cf3c2b6cfe824ef9aa9475489e93e613624fe5e582": {
+      "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/e58c4fa9e1f9fcbb205b80cf3c2b6cfe824ef9aa9475489e93e613624fe5e582",
+      "case_id": "sha256:e58c4fa9e1f9fcbb205b80cf3c2b6cfe824ef9aa9475489e93e613624fe5e582",
+      "case_kind": "malware",
+      "family": "wannacry",
+      "version_key": "unknown"
     },
     "e5aed4e2fdda9242d6a723ece8c6d7b2b2a3f1f82abcac66e1480b6794c23bfc": {
       "canonical_path": "analysis-results/malware/latrodectus/versions/v1.1.14/cases/e5aed4e2fdda9242d6a723ece8c6d7b2b2a3f1f82abcac66e1480b6794c23bfc",
@@ -14255,6 +14589,14 @@
       "case_id": "sha256:e8fca6d589613ccb2d1341e2d144bf896d3f73956794dcb00a047d73750641b6",
       "case_kind": "malware",
       "family": "remusstealer",
+      "version_key": "unknown"
+    },
+    "e90a327103b47692433f659931d0b84dacac540f2d12cf262dbc8628f147033d": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/e90a327103b47692433f659931d0b84dacac540f2d12cf262dbc8628f147033d",
+      "case_id": "sha256:e90a327103b47692433f659931d0b84dacac540f2d12cf262dbc8628f147033d",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "e92089c1bcd9543515ccada144422b83f9f0b39b3fc0762d79d6619138a224cb": {
@@ -14477,6 +14819,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "ebebc96e841a785c39d0553a9ed6947cf6a801c09a531840c5ee72f4852aca84": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/ebebc96e841a785c39d0553a9ed6947cf6a801c09a531840c5ee72f4852aca84",
+      "case_id": "sha256:ebebc96e841a785c39d0553a9ed6947cf6a801c09a531840c5ee72f4852aca84",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "ec0078d806fcb7b0ef538a51ae03217888ce1bd3e96a73beceecc2c12675d77d": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/ec0078d806fcb7b0ef538a51ae03217888ce1bd3e96a73beceecc2c12675d77d",
@@ -14498,6 +14847,14 @@
       "case_id": "sha256:ec28fa6cc4dc26dc65e882b52dfbf497cd97ce7fe8b2b9438b4647401b38e0b3",
       "case_kind": "malware",
       "family": "agenttesla",
+      "version_key": "unknown"
+    },
+    "ec5a847a509dd74e16659ce35fb7435bf88e4ce5580f1c96016347997170ee7f": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/ec5a847a509dd74e16659ce35fb7435bf88e4ce5580f1c96016347997170ee7f",
+      "case_id": "sha256:ec5a847a509dd74e16659ce35fb7435bf88e4ce5580f1c96016347997170ee7f",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "ec6ecebe9d9a6c7df63c6fda709b4bd01b86b2c0f7252c452567a39cf8ac8e26": {
@@ -14704,6 +15061,13 @@
       "family": "darkcomet",
       "version_key": "unknown"
     },
+    "ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2": {
+      "canonical_path": "analysis-results/malware/xworm/versions/unknown/cases/ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2",
+      "case_id": "sha256:ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2",
+      "case_kind": "malware",
+      "family": "xworm",
+      "version_key": "unknown"
+    },
     "ef56d1386af7c97a5cd0b70c261de7e87f6c00894e3f30856adfc750a7b73b3b": {
       "canonical_path": "analysis-results/malware/hijackloader/versions/unknown/cases/ef56d1386af7c97a5cd0b70c261de7e87f6c00894e3f30856adfc750a7b73b3b",
       "case_id": "sha256:ef56d1386af7c97a5cd0b70c261de7e87f6c00894e3f30856adfc750a7b73b3b",
@@ -14765,6 +15129,13 @@
       "case_id": "sha256:efc1cb535085a1c44e423c0fd3fbd736d5b55514013093ad25313b42f0b3d296",
       "case_kind": "malware",
       "family": "agenttesla",
+      "version_key": "unknown"
+    },
+    "efe45695a1b6c774274da74384567f52ad06cd5c6929e64ed966ecbcaf72a6e1": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/efe45695a1b6c774274da74384567f52ad06cd5c6929e64ed966ecbcaf72a6e1",
+      "case_id": "sha256:efe45695a1b6c774274da74384567f52ad06cd5c6929e64ed966ecbcaf72a6e1",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "effe9a34b0d6663e9ca76d54047073d70f419b99379314d466e61909dcec3b14": {
