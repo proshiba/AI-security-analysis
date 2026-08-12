@@ -45,6 +45,7 @@ GENERIC_MAX_MEMBERS = 256
 GENERIC_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 GENERIC_MAX_COMPRESSION_RATIO = 100.0
 MAX_BASE64_ENCODED_LENGTH = 1024 * 1024
+MAX_PUBLIC_BEHAVIOR_STRING_LENGTH = 255
 # 大型PEでも全体走査を完了できるよう、実測上限を100万候補へ拡張する。
 # 件数上限は維持し、異常な入力でメモリを無制限に消費しない。
 DEFAULT_STRING_SCAN_LIMIT = 1_000_000
@@ -147,6 +148,23 @@ def extract_iocs(strings: list[dict]) -> dict:
         "ips": _valid_ip_candidates(text),
         "domains": _valid_domain_candidates(text),
     }
+
+
+def _public_behavior_strings(strings: list[dict]) -> list[str]:
+    """公開根拠として保持できる短い挙動文字列だけを返す。"""
+
+    pattern = re.compile(
+        r"(?i)(smtp|ftp|telegram|discord|password|credential|keylog|wallet|outlook|firefox|chrome|mutex|remcos|agent.?tesla|registry|schtasks|powershell)"
+    )
+    return sorted(
+        {
+            value
+            for item in strings
+            if isinstance((value := item.get("value")), str)
+            and len(value) <= MAX_PUBLIC_BEHAVIOR_STRING_LENGTH
+            and pattern.search(value)
+        }
+    )[:1000]
 
 
 def script_info(
@@ -267,16 +285,7 @@ def pe_info(data: bytes, *, string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT) 
         ],
         "string_scan": string_scan,
         "iocs": extract_iocs(strings),
-        "behavior_strings": sorted(
-            {
-                item["value"]
-                for item in strings
-                if re.search(
-                    r"(?i)(smtp|ftp|telegram|discord|password|credential|keylog|wallet|outlook|firefox|chrome|mutex|remcos|agent.?tesla|registry|schtasks|powershell)",
-                    item["value"],
-                )
-            }
-        )[:1000],
+        "behavior_strings": _public_behavior_strings(strings),
     }
 
 

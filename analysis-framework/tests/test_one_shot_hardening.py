@@ -1464,6 +1464,28 @@ def test_analysis_contract_components_include_shared_dependencies() -> None:
     assert any(path.name == "campaigns.json" for path in components)
 
 
+def test_public_behavior_strings_drop_long_payload_like_values() -> None:
+    """公開挙動根拠から長大なpayload様文字列をfail-closedで除外する。"""
+
+    maximum = one_shot.analyze_family_sample.MAX_PUBLIC_BEHAVIOR_STRING_LENGTH
+    short = "powershell -NoProfile"
+    boundary = "password=" + "A" * (maximum - len("password="))
+    oversized = "credential=" + "A" * maximum
+    values = one_shot.analyze_family_sample._public_behavior_strings(
+        [
+            {"value": oversized},
+            {"value": short},
+            {"value": boundary},
+            {"value": short},
+            {"value": "unrelated value"},
+            {"value": 42},
+        ]
+    )
+
+    assert values == sorted([boundary, short])
+    assert all(len(value) <= 255 for value in values)
+
+
 def test_reanalysis_removes_stale_case_artifacts(tmp_path: Path) -> None:
     """再解析前に同じSHA caseの旧handler成果物だけを含むdirectoryを初期化する。"""
 
