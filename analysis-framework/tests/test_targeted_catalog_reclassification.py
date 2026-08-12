@@ -35,8 +35,9 @@ def _old_entry(digest: str) -> dict[str, str]:
     }
 
 
-def _new_entry(digest: str, family: str = "testfamily") -> dict[str, str]:
-    version = "v1.2.3"
+def _new_entry(
+    digest: str, family: str = "testfamily", version: str = "v1.2.3"
+) -> dict[str, str]:
     return {
         "canonical_path": (
             f"analysis-results/malware/{family}/versions/{version}/cases/{digest}"
@@ -125,9 +126,12 @@ def _write_integrity_case(case_path: Path, digest: str) -> None:
 
 def _fixture_repository(
     root: Path,
+    *,
+    old: dict[str, str] | None = None,
+    new: dict[str, str] | None = None,
 ) -> tuple[dict[str, object], Path, Path]:
-    old = _old_entry(DIGEST)
-    new = _new_entry(DIGEST)
+    old = _old_entry(DIGEST) if old is None else old
+    new = _new_entry(DIGEST) if new is None else new
     catalog_path = root / targeted.CATALOG_RELATIVE
     _write_json(
         catalog_path,
@@ -140,13 +144,15 @@ def _fixture_repository(
         "schema_version": 1,
         "sha256": DIGEST,
         "case_id": f"sha256:{DIGEST}",
-        "case_kind": "malware",
+        "case_kind": new["case_kind"],
         "family": new["family"],
         "canonical_path": new["canonical_path"],
         "collections": [COLLECTION],
         "malware_version": {"normalized_key": new["version_key"]},
         "provenance": {"preserved": True},
     }
+    if new["case_kind"] == "unclassified":
+        metadata["attribution_status"] = new["attribution_status"]
     _write_json(case_path / "metadata.json", metadata)
     _write_integrity_case(case_path, DIGEST)
 
@@ -224,6 +230,50 @@ def test_dry_run_and_apply_change_only_catalog(tmp_path: Path) -> None:
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     assert catalog["cases"][DIGEST] == _new_entry(DIGEST)
     assert catalog["cases"][THIRD] == _old_entry(THIRD)
+
+
+def test_unknown_version_target_is_canonical(tmp_path: Path) -> None:
+    new = _new_entry(DIGEST, version="unknown")
+    layout, _catalog_path, _case_path = _fixture_repository(tmp_path, new=new)
+
+    plan = targeted.build_targeted_reclassification_plan(
+        tmp_path, [DIGEST], layout_plan=layout
+    )
+
+    assert plan["updates"][0]["new"] == new
+
+
+def test_reviewed_false_positive_can_return_to_unclassified(tmp_path: Path) -> None:
+    old = _new_entry(DIGEST, family="falsepositive", version="unknown")
+    new = _old_entry(DIGEST)
+    layout, catalog_path, _case_path = _fixture_repository(
+        tmp_path, old=old, new=new
+    )
+
+    plan = targeted.build_targeted_reclassification_plan(
+        tmp_path, [DIGEST], layout_plan=layout
+    )
+    result = targeted.apply_targeted_reclassification_plan(tmp_path, plan)
+
+    assert result["write_performed"] is True
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    assert catalog["cases"][DIGEST] == new
+
+
+def test_classified_to_classified_reclassification_is_rejected(tmp_path: Path) -> None:
+    old = _new_entry(DIGEST, family="oldfamily", version="unknown")
+    new = _new_entry(DIGEST, family="newfamily", version="unknown")
+    layout, _catalog_path, _case_path = _fixture_repository(
+        tmp_path, old=old, new=new
+    )
+
+    with pytest.raises(
+        targeted.TargetedCatalogError,
+        match="unsupported reclassification direction",
+    ):
+        targeted.build_targeted_reclassification_plan(
+            tmp_path, [DIGEST], layout_plan=layout
+        )
 
 
 def test_stale_plan_is_rejected(tmp_path: Path) -> None:

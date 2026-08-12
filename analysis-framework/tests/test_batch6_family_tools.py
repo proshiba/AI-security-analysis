@@ -128,11 +128,14 @@ def test_eclipse_emulator_accepts_registration_and_refuses_nonloopback() -> None
 def test_efimer_parser_redacts_synthetic_http_values() -> None:
     module = family_module("efimer", "emulator.py")
     result = module.parse_http_request(b"POST /route.php HTTP/1.1\r\nHost: example.onion\r\n\r\nseed=secret&mode=test")
+    file_result = module.parse_http_request(b"POST /recvf.php HTTP/1.1\r\nHost: example.onion\r\n\r\nfile=secret")
     serialized = json.dumps(result)
     assert result["path"] == "/route.php"
     assert "secret" not in serialized
     assert result["network_contacted"] is False
     assert module.status()["tor_emulated"] is False
+    assert file_result["path"] == "/recvf.php"
+    assert file_result["values_stored"] is False
 
 
 def test_unrecovered_protocol_emulators_are_explicitly_unavailable() -> None:
