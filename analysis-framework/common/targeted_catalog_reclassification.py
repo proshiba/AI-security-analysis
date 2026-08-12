@@ -237,43 +237,63 @@ def _validate_target_state(
     layout_case: dict[str, Any] | None = None,
     layout_collections: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    old_path = f"analysis-results/malware/unclassified/versions/unknown/cases/{digest}"
-    expected_old = {
-        "attribution_status": "unresolved",
-        "canonical_path": old_path,
-        "case_id": f"sha256:{digest}",
-        "case_kind": "unclassified",
-        "family": "unclassified",
-        "version_key": "unknown",
-    }
-    if not isinstance(old, dict) or set(old) != OLD_ENTRY_KEYS or old != expected_old:
-        raise TargetedCatalogError(f"unexpected old catalog identity for {digest}")
+    def catalog_identity(record: Any, label: str) -> tuple[str, str, str, str]:
+        if not isinstance(record, dict):
+            raise TargetedCatalogError(f"unexpected {label} catalog identity for {digest}")
+        family = record.get("family")
+        version = record.get("version_key")
+        case_kind = record.get("case_kind")
+        if family == "unclassified":
+            path = (
+                "analysis-results/malware/unclassified/versions/unknown/cases/"
+                f"{digest}"
+            )
+            expected = {
+                "attribution_status": record.get("attribution_status"),
+                "canonical_path": path,
+                "case_id": f"sha256:{digest}",
+                "case_kind": "unclassified",
+                "family": "unclassified",
+                "version_key": "unknown",
+            }
+            if (
+                set(record) != OLD_ENTRY_KEYS
+                or record.get("attribution_status") not in {"unresolved", "provisional"}
+                or record != expected
+            ):
+                raise TargetedCatalogError(
+                    f"unexpected {label} catalog identity for {digest}"
+                )
+            return family, "unknown", case_kind, path
+        if (
+            set(record) != CATALOG_ENTRY_KEYS
+            or not isinstance(family, str)
+            or not FAMILY_RE.fullmatch(family)
+            or not isinstance(version, str)
+            or not VERSION_KEY_RE.fullmatch(version)
+            or case_kind != "malware"
+        ):
+            raise TargetedCatalogError(f"unexpected {label} catalog identity for {digest}")
+        path = f"analysis-results/malware/{family}/versions/{version}/cases/{digest}"
+        expected = {
+            "canonical_path": path,
+            "case_id": f"sha256:{digest}",
+            "case_kind": "malware",
+            "family": family,
+            "version_key": version,
+        }
+        if record != expected:
+            raise TargetedCatalogError(f"unexpected {label} catalog identity for {digest}")
+        return family, version, case_kind, path
+
+    old_family, _old_version, _old_kind, old_path = catalog_identity(old, "old")
+    family, version, case_kind, new_path = catalog_identity(new, "desired")
+    if (old_family == "unclassified") == (family == "unclassified"):
+        raise TargetedCatalogError(
+            f"unsupported reclassification direction for {digest}"
+        )
     if os.path.lexists(_contained_path(repository, old_path, "old case path")):
         raise TargetedCatalogError(f"old case path still exists for {digest}: {old_path}")
-
-    if not isinstance(new, dict) or set(new) != CATALOG_ENTRY_KEYS:
-        raise TargetedCatalogError(f"unexpected desired catalog record shape for {digest}")
-    family = new.get("family")
-    version = new.get("version_key")
-    if (
-        not isinstance(family, str)
-        or not FAMILY_RE.fullmatch(family)
-        or family == "unclassified"
-        or not isinstance(version, str)
-        or not VERSION_KEY_RE.fullmatch(version)
-        or version == "unknown"
-    ):
-        raise TargetedCatalogError(f"target family/version is not canonical for {digest}")
-    new_path = f"analysis-results/malware/{family}/versions/{version}/cases/{digest}"
-    expected_new = {
-        "canonical_path": new_path,
-        "case_id": f"sha256:{digest}",
-        "case_kind": "malware",
-        "family": family,
-        "version_key": version,
-    }
-    if new != expected_new:
-        raise TargetedCatalogError(f"unexpected desired catalog identity for {digest}")
     if layout_case is not None and (
         layout_case.get("sha256") != digest
         or layout_case.get("source") != new_path
@@ -301,11 +321,15 @@ def _validate_target_state(
         metadata.get("schema_version") != 1
         or metadata.get("sha256") != digest
         or metadata.get("case_id") != f"sha256:{digest}"
-        or metadata.get("case_kind") != "malware"
+        or metadata.get("case_kind") != case_kind
         or metadata.get("family") != family
         or metadata.get("canonical_path") != new_path
         or not isinstance(metadata_version, dict)
         or metadata_version.get("normalized_key") != version
+        or (
+            family == "unclassified"
+            and metadata.get("attribution_status") != new.get("attribution_status")
+        )
     ):
         raise TargetedCatalogError(f"new case metadata identity mismatch for {digest}")
     memberships, manifest_bindings = _validate_collections(

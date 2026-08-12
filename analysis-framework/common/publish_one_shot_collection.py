@@ -249,6 +249,10 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
                 ):
                     return candidate_public, "one_shot_recovered_layer_detector"
 
+    case_state = report.get("case_state")
+    if isinstance(case_state, dict) and case_state.get("status") == "triaged_unknown":
+        return "unclassified", "internal_static_evidence_unresolved"
+
     signature = normalize_reported_name(metadata.get("signature"))
     mapped = REPORTED_FAMILY_ALIASES.get(signature)
     if mapped in existing_families:

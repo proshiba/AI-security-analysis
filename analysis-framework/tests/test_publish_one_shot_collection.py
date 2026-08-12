@@ -303,6 +303,22 @@ def test_choose_family_is_conservative_for_provider_labels() -> None:
     )
 
 
+def test_choose_family_keeps_triaged_unknown_unclassified() -> None:
+    """内部静的解析がunknownで閉じたcaseをprovider署名だけで再分類しない。"""
+    source_report = report()
+    source_report["case_state"] = {
+        "status": "triaged_unknown",
+        "complete": False,
+        "resumable": False,
+        "blockers": [],
+    }
+    assert publisher.choose_family(
+        {"signature": "Vidar", "tags": []},
+        source_report,
+        {"vidar", "unclassified"},
+    ) == ("unclassified", "internal_static_evidence_unresolved")
+
+
 def test_capability_notes_require_exact_imports() -> None:
     """能力手掛かりは完全一致importだけから作り、実行を断定しない。"""
     notes = publisher.capability_notes({"imports": {"KERNEL32.dll": ["CreateProcessW", "WriteProcessMemory"]}})

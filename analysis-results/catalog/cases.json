@@ -8930,11 +8930,10 @@
       "version_key": "2026-07-xor-stager"
     },
     "8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb": {
-      "attribution_status": "unresolved",
-      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb",
+      "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb",
       "case_id": "sha256:8aca9284f5f4d237ac6d5d1573c29ae26697afc20e07dd6da430c3945afee8bb",
-      "case_kind": "unclassified",
-      "family": "unclassified",
+      "case_kind": "malware",
+      "family": "efimer",
       "version_key": "unknown"
     },
     "8ad8dfa6a9f98192d789ec823e33c912bc0f83c71a4bee3a8e3379e6d08aafa0": {
@@ -15062,10 +15061,11 @@
       "version_key": "unknown"
     },
     "ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2": {
-      "canonical_path": "analysis-results/malware/xworm/versions/unknown/cases/ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2",
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2",
       "case_id": "sha256:ef4b426390fe2f4a378462ff4ee84c744440dc44497396f2d16866064ebc0dd2",
-      "case_kind": "malware",
-      "family": "xworm",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "ef56d1386af7c97a5cd0b70c261de7e87f6c00894e3f30856adfc750a7b73b3b": {
