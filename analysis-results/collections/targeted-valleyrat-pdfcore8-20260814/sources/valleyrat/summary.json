@@ -1,0 +1,27 @@
+{
+  "cases": [
+    {
+      "attribution_basis": "one_shot_static_detector",
+      "c2_analysis_complete": false,
+      "c2_analysis_finding_count": 12,
+      "c2_analysis_outcome": "unresolved",
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "confirmed_static_c2_observations": 0,
+      "family": "valleyrat",
+      "file_type": "zip",
+      "first_seen": null,
+      "handler_failures": 0,
+      "handler_successes": 2,
+      "publication_stage": "analysis_followup_pending",
+      "reported_signature": null,
+      "sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "static_config_recovered": false,
+      "static_logic_status": "reviewed_function_logic"
+    }
+  ],
+  "count": 1,
+  "family": "valleyrat",
+  "network_contacted": false,
+  "sample_executed": false,
+  "schema_version": 1
+}

@@ -314,8 +314,13 @@ def test_arbitrary_synthetic_result_has_no_live_wire_representation() -> None:
     )
     assert decision["send_allowed"] is False
     assert decision["fixture_only"] is True
-    assert decision["wire_schema_status"] == "unreviewed"
+    assert decision["wire_schema_status"] == "operation_result_serializer_unresolved"
     assert decision["wire_bytes"] is None
+    assert decision["family"] == "venomrat"
+    assert decision["direction"] == "client_to_server"
+    assert decision["operation_executed"] is False
+    assert decision["real_effect_performed"] is False
+    assert decision["arbitrary_fake_result_sent"] is False
     assert HOST.LIVE_ARBITRARY_RESULT_ALLOWED is False
 
 

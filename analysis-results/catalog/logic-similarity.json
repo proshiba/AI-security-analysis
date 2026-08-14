@@ -8,8 +8,8 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 2292,
-    "profiled_cases": 1433,
+    "catalog_cases": 2293,
+    "profiled_cases": 1435,
     "candidate_pairs_before_limit": 405660,
     "retained_pairs": 6609,
     "levels": {
@@ -59737,6 +59737,53 @@
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/a7e8bb5263b34be020d8b5c938b4c4187f390b9240f9ce757cae953da9988227/OVERALL-LOGIC.md"
     },
+    "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2": {
+      "case_id": "sha256:a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [
+          "data--iso9660-pe-dll-->pe",
+          "data--iso9660-pe-exe-->pe",
+          "pe--pe-resource-opaque-->data",
+          "root:zip",
+          "zip--zip-data-vat_n0.20260806080456.img-->data"
+        ],
+        "module_stack": [],
+        "capabilities": [
+          "analysis:status",
+          "config:recovered",
+          "container:zip",
+          "delivery:dll_sideload",
+          "packing:suspected",
+          "runtime:dotnet",
+          "unpack:artifacts",
+          "unpack:status"
+        ],
+        "function_roles": [
+          "framed_transport_send",
+          "protected_stage_orchestration",
+          "tcp_controller_connection",
+          "udp_controller_connection"
+        ],
+        "code_fingerprints": [
+          "semantic:6173254ed5c9fe38b72f4b58d7f2d6d4f39323a5026a1ea144a0d4ebc0120ff1",
+          "semantic:93c1f0cd1cbfced069f3b217915353bf6211ae00219112d837d63b1e26cbd544",
+          "semantic:d216d1538012f537f9c590d93e69dcbeca56fa53b2cfb68c75130a1c39517de7",
+          "semantic:dfc83db703ddba47bf7cbd0f0c8d85ebaec10ea5ce8597b0460dcadb8a69d876"
+        ]
+      },
+      "available_dimensions": [
+        "layer_chain",
+        "capabilities",
+        "function_roles",
+        "code_fingerprints"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2/OVERALL-LOGIC.md"
+    },
     "a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1": {
       "case_id": "sha256:a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1",
       "sha256": "a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1",
@@ -61749,6 +61796,41 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/ad2a7dd29ae908c23aeeca3652e1369c661cc4fe6c18a2e07e6c4f3fe5b98858/OVERALL-LOGIC.md"
+    },
+    "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d": {
+      "case_id": "sha256:ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "sha256": "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [
+          "ole_msi--ole_static_extract-->pe32plus_dll",
+          "root:ole_msi"
+        ],
+        "module_stack": [
+          "root_msi_static_extracted_protected_component:pe32plus_dll"
+        ],
+        "capabilities": [
+          "analysis:status",
+          "campaign:delivery",
+          "container:msi",
+          "delivery:office_macro",
+          "entropy:value",
+          "packing:suspected",
+          "size:bytes",
+          "unpack:artifacts"
+        ],
+        "function_roles": [],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "layer_chain",
+        "module_stack",
+        "capabilities"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/OVERALL-LOGIC.md"
     },
     "ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99": {
       "case_id": "sha256:ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99",

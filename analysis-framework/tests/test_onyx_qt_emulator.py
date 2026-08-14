@@ -79,7 +79,11 @@ def test_loopback_sink_classifies_one_request_and_never_sends_valid_response() -
     assert result["request_body_retained"] is False
     assert result["response_body_size"] == 0
     assert result["valid_onyx_response_sent"] is False
+    assert result["synthetic_http_ack_sent"] is True
+    assert result["fake_result_sent"] is False
+    assert result["task_result_wire_schema"] == "unresolved"
     assert result["sample_executed"] is False
+    assert result["operation_executed"] is False
     assert result["external_network_contacted"] is False
 
 
@@ -92,6 +96,8 @@ def test_loopback_sink_fails_closed_on_http_shape_and_bind_target() -> None:
         "reason": "content_length_mismatch",
     }
     assert result["valid_onyx_response_sent"] is False
+    assert result["synthetic_http_ack_sent"] is True
+    assert result["fake_result_sent"] is False
     with pytest.raises(ValueError, match="host_must_be_numeric_loopback"):
         PassiveOnyxLoopbackSink("0.0.0.0")
     with pytest.raises(ValueError, match="host_must_be_numeric_loopback"):

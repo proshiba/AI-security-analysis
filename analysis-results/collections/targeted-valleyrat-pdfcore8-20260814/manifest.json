@@ -1,0 +1,61 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": "ZIP",
+        "file_name": "M_X20260806080501.zip",
+        "file_size": 4984859,
+        "file_type": "zip",
+        "first_seen": null,
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+        "signature": null,
+        "ssdeep": null,
+        "tags": [
+          "signed-proxy-sideload"
+        ],
+        "tlsh": null
+      },
+      "sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "zip_sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "zip_size": 4984859
+    }
+  ],
+  "analysis_complete": false,
+  "analysis_contract_sha256": "30e10caaab7f8b8e9d2f9c69f69b6ef736fcfaa6374cbb6fadf80c0978165219",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2"
+    }
+  ],
+  "collection_id": "targeted-valleyrat-pdfcore8-20260814",
+  "complete": false,
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "valleyrat",
+      "path": "sources/valleyrat"
+    }
+  ],
+  "file_types": [
+    "zip"
+  ],
+  "first_seen_newest": "不明",
+  "first_seen_oldest": "不明",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "analysis_followup_pending",
+  "query_limit": null,
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": "2026-08-14T00:00:00+09:00",
+  "selection_mode": "targeted_user_request",
+  "source": "ユーザー提供ローカル検体"
+}

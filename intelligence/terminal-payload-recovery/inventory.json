@@ -404,11 +404,13 @@
     },
     {
       "blockers": [
+        "human_documented_terminal_gap",
         "native_control_flow_obfuscation",
         "opaque_predicates",
         "overlapping_instructions",
         "rdtsc",
-        "stack_state_manipulation"
+        "stack_state_manipulation",
+        "terminal_payload_not_recovered"
       ],
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
       "evidence": [
@@ -417,17 +419,37 @@
           "path": "analysis-framework/inventories/static-hard-cases.yaml",
           "source": "curated_static_hard_inventory",
           "summary": "native_control_flow_obfuscation, overlapping_instructions, opaque_predicates, rdtsc, stack_state_manipulation"
+        },
+        {
+          "locator": "line:33",
+          "path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/README.md",
+          "source": "human_readable_case_document",
+          "summary": "- `terminal_payload_not_recovered`"
+        },
+        {
+          "locator": "line:45",
+          "path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/STATIC-LOGIC.md",
+          "source": "human_readable_case_document",
+          "summary": "- terminal payload、設定、C2は未回収である。"
+        },
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/report.json",
+          "source": "structured_case_report",
+          "summary": "terminal_payload_not_recovered"
         }
       ],
       "family": "valleyrat",
       "gap_types": [
-        "protector_or_virtualization_boundary"
+        "protector_or_virtualization_boundary",
+        "terminal_config_unrecovered",
+        "terminal_payload_unrecovered"
       ],
       "observation_date": null,
       "priority": "P0",
       "requires_latest_sample": true,
       "sha256": "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
-      "state": "curated_recovery_backlog",
+      "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
     {
@@ -1664,6 +1686,30 @@
     },
     {
       "blockers": [
+        "orchestration:terminal_payload"
+      ],
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/1f1f86689f6caab069cbf0e68a24862df392ed33a790fbff04d9cf9d11b4447b",
+      "evidence": [
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/1f1f86689f6caab069cbf0e68a24862df392ed33a790fbff04d9cf9d11b4447b/report.json",
+          "source": "structured_case_report",
+          "summary": "orchestration:terminal_payload"
+        }
+      ],
+      "family": "dotnet-resource-loader",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "1f1f86689f6caab069cbf0e68a24862df392ed33a790fbff04d9cf9d11b4447b",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
         "human_documented_terminal_gap"
       ],
       "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/4d033b83aec65390c6d90f9d87224fddd3bcd568cf490d9dc02bbb0f7db0d58f",
@@ -1756,6 +1802,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "73827e53552bac53092a3f937f4c29d060969093cf20d9548836de516f2efede",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "orchestration:terminal_payload"
+      ],
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/a8f291510e59a0d9929809d9d7de3cc1958df12e14634895a513f95e3e37b7cb",
+      "evidence": [
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/a8f291510e59a0d9929809d9d7de3cc1958df12e14634895a513f95e3e37b7cb/report.json",
+          "source": "structured_case_report",
+          "summary": "orchestration:terminal_payload"
+        }
+      ],
+      "family": "dotnet-resource-loader",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "a8f291510e59a0d9929809d9d7de3cc1958df12e14634895a513f95e3e37b7cb",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -8514,6 +8584,30 @@
     },
     {
       "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/0bb09dc7ddb47aa43aa1a0e3bbf866e369a01b193514d6b4286e1143c5cd4f98",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/0bb09dc7ddb47aa43aa1a0e3bbf866e369a01b193514d6b4286e1143c5cd4f98/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "0bb09dc7ddb47aa43aa1a0e3bbf866e369a01b193514d6b4286e1143c5cd4f98",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
         "bot_vbe_body_not_recovered",
         "human_documented_terminal_gap",
         "terminal_family_unresolved"
@@ -9779,6 +9873,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/4299024a6d59fa7b6adf4dbde96ad9df42dfc4f98936cc0e813b2b54849031d0",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/4299024a6d59fa7b6adf4dbde96ad9df42dfc4f98936cc0e813b2b54849031d0/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "4299024a6d59fa7b6adf4dbde96ad9df42dfc4f98936cc0e813b2b54849031d0",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/43b79ae0f1fc1311b7d61c1b48d6e73c2ddd89c7ce469aac8d0e7f0217f3816f",
       "evidence": [
         {
@@ -10331,6 +10449,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/53f1813ac4d682990b1fbbb5278b23a1e7ecbdc982796ebbb5bf0da65090a548",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/53f1813ac4d682990b1fbbb5278b23a1e7ecbdc982796ebbb5bf0da65090a548/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "53f1813ac4d682990b1fbbb5278b23a1e7ecbdc982796ebbb5bf0da65090a548",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/559529c54442aea6d6aa5639e51e8144bba3cc6fc5c658e0d59d58411b05c0b4",
       "evidence": [
         {
@@ -10420,6 +10562,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/5874519a4bc619f535e2a4d8cbc14a5f6d938ed0a23975367ac36e23c08d7fcd",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/5874519a4bc619f535e2a4d8cbc14a5f6d938ed0a23975367ac36e23c08d7fcd/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "5874519a4bc619f535e2a4d8cbc14a5f6d938ed0a23975367ac36e23c08d7fcd",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -10835,6 +11001,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/624527f62f0c6e37cbec7b663ba6c0efaf3d84c6c33154592ebab5598d7f2e8a",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/624527f62f0c6e37cbec7b663ba6c0efaf3d84c6c33154592ebab5598d7f2e8a/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "624527f62f0c6e37cbec7b663ba6c0efaf3d84c6c33154592ebab5598d7f2e8a",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/629cfb8d9fcb99aa0083415da49692ce4c94ecf01ed173e628a8ea8a9d4a5cf9",
       "evidence": [
         {
@@ -10852,6 +11042,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "629cfb8d9fcb99aa0083415da49692ce4c94ecf01ed173e628a8ea8a9d4a5cf9",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/63963fc9dede449e5e40520f6c40e34888ef2cc0fa459772437ec6b69f44267e",
+      "evidence": [
+        {
+          "locator": "line:36",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/63963fc9dede449e5e40520f6c40e34888ef2cc0fa459772437ec6b69f44267e/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "63963fc9dede449e5e40520f6c40e34888ef2cc0fa459772437ec6b69f44267e",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -12635,6 +12849,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/ad2a7dd29ae908c23aeeca3652e1369c661cc4fe6c18a2e07e6c4f3fe5b98858",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/ad2a7dd29ae908c23aeeca3652e1369c661cc4fe6c18a2e07e6c4f3fe5b98858/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "ad2a7dd29ae908c23aeeca3652e1369c661cc4fe6c18a2e07e6c4f3fe5b98858",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/aef01ab9e284b663cdd5caf288eff4120406ae452f5fb73e4b135c542aa59919",
       "evidence": [
         {
@@ -12995,6 +13233,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/beb62730a6b536f1305a09156b2bfec325eb243d1dcabc2c182cf5a4b54cc64e",
+      "evidence": [
+        {
+          "locator": "line:38",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/beb62730a6b536f1305a09156b2bfec325eb243d1dcabc2c182cf5a4b54cc64e/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "beb62730a6b536f1305a09156b2bfec325eb243d1dcabc2c182cf5a4b54cc64e",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/c05581c54fb2e63ab1b6d0c8957d24fbcbc0e094339bc02838b50b3f72dddeff",
       "evidence": [
         {
@@ -13259,6 +13521,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/cc2e438fe9cfd34f6af2078e063e600066e4b13b8d393ffa33843905038fc433",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/cc2e438fe9cfd34f6af2078e063e600066e4b13b8d393ffa33843905038fc433/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "cc2e438fe9cfd34f6af2078e063e600066e4b13b8d393ffa33843905038fc433",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/cc337416747a2edee389ac4093a1d9fef944db6475b75de39cf051d949f884b6",
       "evidence": [
         {
@@ -13300,6 +13586,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "cd729223ea3fbd0a61a301df483381e44ada6e0b2a96af470951dc26d92cf0f7",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/cd84d4dcb9389d66405e66423fa2f3834545351e476599ef2dd21e52b8a021cb",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/cd84d4dcb9389d66405e66423fa2f3834545351e476599ef2dd21e52b8a021cb/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "cd84d4dcb9389d66405e66423fa2f3834545351e476599ef2dd21e52b8a021cb",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -13451,6 +13761,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d58faa744aae37bffc16861c35864ecfc0a55f8a2a455d614eae326047b01dac",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/d58faa744aae37bffc16861c35864ecfc0a55f8a2a455d614eae326047b01dac/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "d58faa744aae37bffc16861c35864ecfc0a55f8a2a455d614eae326047b01dac",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d643f913e92cc3d9c799a3e87e7f2833cc2714b8872969b9029042c12dfb8677",
       "evidence": [
         {
@@ -13492,6 +13826,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "d91084567f60c19702fd31ccbb03eab02b8681ade212212084e528c72370b66a",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/da4f273bacb283a271e001f4f7ffe10c900a32bded715edc2949f4e8693ce8cc",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/da4f273bacb283a271e001f4f7ffe10c900a32bded715edc2949f4e8693ce8cc/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "da4f273bacb283a271e001f4f7ffe10c900a32bded715edc2949f4e8693ce8cc",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -14370,6 +14728,30 @@
       "blockers": [
         "human_documented_terminal_gap"
       ],
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/fca74f116e3d48b62d7944ce01458939408fe6aebb37e5f7f8f9ffc1c6e97780",
+      "evidence": [
+        {
+          "locator": "line:37",
+          "path": "analysis-results/malware/unclassified/versions/unknown/cases/fca74f116e3d48b62d7944ce01458939408fe6aebb37e5f7f8f9ffc1c6e97780/FEATURES.md",
+          "source": "human_readable_case_document",
+          "summary": "- `packed_or_protected_inner_payload_not_recovered`"
+        }
+      ],
+      "family": "unclassified",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "fca74f116e3d48b62d7944ce01458939408fe6aebb37e5f7f8f9ffc1c6e97780",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/fce8ba975afa37727c61a9940c81c8e20da1de724f8a10b44b89d7ed44d7f526",
       "evidence": [
         {
@@ -14867,6 +15249,30 @@
       "priority": "P1",
       "requires_latest_sample": true,
       "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
+        "root_to_terminal_byte_derivation_incomplete"
+      ],
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "evidence": [
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2/report.json",
+          "source": "structured_case_report",
+          "summary": "root_to_terminal_byte_derivation_incomplete"
+        }
+      ],
+      "family": "valleyrat",
+      "gap_types": [
+        "static_recovery_incomplete"
+      ],
+      "observation_date": null,
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
       "state": "explicit_unrecovered",
       "version_key": "unknown"
     },
@@ -15967,8 +16373,8 @@
       ]
     },
     {
-      "case_count": 35,
-      "explicit_unrecovered_count": 31,
+      "case_count": 36,
+      "explicit_unrecovered_count": 33,
       "family": "valleyrat",
       "latest_local_observation": "2026-08-12",
       "latest_local_sha256": "be7d04f3bbca91674206a22fdedc0d4874a62ffe0dd164e98de6d3cb065a57bf",
@@ -16431,11 +16837,11 @@
       ]
     },
     {
-      "case_count": 259,
-      "explicit_unrecovered_count": 259,
+      "case_count": 272,
+      "explicit_unrecovered_count": 272,
       "family": "unclassified",
-      "latest_local_observation": "2026-08-12",
-      "latest_local_sha256": "fb1ad6ea8511aa563372a032a265d038501fd8e278e1b3d3efdf807dd8a48c8f",
+      "latest_local_observation": "2026-08-13",
+      "latest_local_sha256": "fca74f116e3d48b62d7944ce01458939408fe6aebb37e5f7f8f9ffc1c6e97780",
       "malwarebazaar_signature_candidates": [],
       "priority": "P1",
       "selection_policy": {
@@ -16473,11 +16879,11 @@
       ]
     },
     {
-      "case_count": 5,
-      "explicit_unrecovered_count": 5,
+      "case_count": 7,
+      "explicit_unrecovered_count": 7,
       "family": "dotnet-resource-loader",
-      "latest_local_observation": "2026-08-12",
-      "latest_local_sha256": "6db1729e39bac1b582584c68919f2ab31ea015e7bb6ed5e4b1d2a5bf5b020095",
+      "latest_local_observation": "2026-08-13",
+      "latest_local_sha256": "a8f291510e59a0d9929809d9d7de3cc1958df12e14634895a513f95e3e37b7cb",
       "malwarebazaar_signature_candidates": [],
       "priority": "P1",
       "selection_policy": {
@@ -16782,18 +17188,18 @@
   },
   "schema_version": 1,
   "scope": {
-    "catalog_case_count": 2242,
+    "catalog_case_count": 2293,
     "curated_active_count": 72,
     "curated_source_absent_count": 5,
     "family_count": 39,
-    "gap_case_count": 643,
-    "human_document_match_count": 584,
+    "gap_case_count": 659,
+    "human_document_match_count": 598,
     "state_counts": {
-      "curated_recovery_backlog": 56,
-      "explicit_unrecovered": 582,
+      "curated_recovery_backlog": 55,
+      "explicit_unrecovered": 599,
       "source_material_absent": 5
     },
-    "structured_report_match_count": 11,
+    "structured_report_match_count": 15,
     "structured_terminal_completion_count": 21
   },
   "source_paths": [

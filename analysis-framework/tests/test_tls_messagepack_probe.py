@@ -12,6 +12,7 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
+from c2_protocol_probe_profiles import load_profiles  # noqa: E402
 from tls_messagepack_probe import (  # noqa: E402
     MessagePackProbeError,
     certificate_assessment,
@@ -36,14 +37,15 @@ class FakeTlsStream:
 
 
 def profile(packet_key: str, response: str) -> dict:
-    return {
-        "packet_key": packet_key,
-        "message_key": "Message",
-        "request_packet": "Ping",
-        "expected_response_packets": [response],
-        "maximum_request_bytes": 96,
-        "maximum_response_bytes": 64,
-    }
+    profile_id = (
+        "asyncrat-058-20f21565-191-96-78-221-7788"
+        if packet_key == "Packet"
+        else "venomrat-603-6a24ba25-localto-6377"
+    )
+    value = load_profiles()[profile_id]
+    assert value["packet_key"] == packet_key
+    assert value["expected_response_packets"] == [response]
+    return value
 
 
 @pytest.mark.parametrize(
