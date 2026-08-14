@@ -7,6 +7,7 @@ from extractors.common import (
     endpoint_candidates,
     extract_strings,
     ipv4_candidates,
+    sha256_bytes,
     valid_host,
 )
 from extractors.stealer_common import infrastructure_urls
@@ -21,6 +22,10 @@ from unpackers.onyx_qt_loader import (
     recover_onyx_qt_payload,
     recover_onyx_terminal_config,
 )
+
+REVIEWED_PDFCORE8_ROTATED_VARIANTS = {
+    "8136a9b1252e0d8c293c6c99444b371f3f7dc9fccbf351597a0aec029fe92a96": "pdfcore8_rotated_resource_proxy_component_20260813",
+}
 
 
 def identify_variant(strings: list[str]) -> str:
@@ -143,8 +148,46 @@ def _extract_onyx_terminal(data: bytes, name: str) -> dict | None:
     )
 
 
+def _reviewed_pdfcore8_result(data: bytes, name: str) -> dict | None:
+    """exact SHAで確認済みのrotated PDFCore8 chainを非終端証拠として返す。"""
+
+    digest = sha256_bytes(data)
+    variant = REVIEWED_PDFCORE8_ROTATED_VARIANTS.get(digest)
+    if variant is None:
+        return None
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": variant,
+            "reviewed_hash": True,
+            "matched_patterns": [
+                "reviewed_exact_sha256",
+                "pdfcore8_rotated_resource_lineage",
+            ],
+            "static_config_recovered": False,
+            "c2_liveness_confirmed": False,
+            "final_rat_confirmed": False,
+            "terminal_family_attribution": "pdfcore8_winos_lineage_correlated_terminal_unrecovered",
+            "source_name": name,
+            "endpoints": [],
+            "ipv4": [],
+            "urls": [],
+            "raw_resource_published": False,
+        },
+        [],
+        [
+            "exact SHAとresource／proxy構造は確認済みですが、保護された現行terminal、設定、C2 endpointは未回収です。",
+            "旧PDFCore8検体のendpointを現行buildへ継承しません。",
+        ],
+    )
+
+
 def extract(data: bytes, name: str = "sample") -> dict:
     """endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。"""
+    reviewed_pdfcore8 = _reviewed_pdfcore8_result(data, name)
+    if reviewed_pdfcore8 is not None:
+        return reviewed_pdfcore8
     onyx = _extract_onyx_terminal(data, name)
     if onyx is not None:
         return onyx

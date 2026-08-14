@@ -64,6 +64,7 @@ PARTIAL_STAGING_ALLOWED_BLOCKERS = {
     "orchestration:config",
     "orchestration:function_analysis",
     "orchestration:network",
+    "orchestration:static_layers",
     "orchestration:terminal_payload",
 }
 PARTIAL_STAGING_FAMILY_BLOCKER = re.compile(

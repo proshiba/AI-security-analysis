@@ -1361,6 +1361,7 @@ def test_partial_staging_preserves_all_original_blockers(
         "orchestration:config",
         "orchestration:function_analysis",
         "orchestration:network",
+        "orchestration:static_layers",
         "orchestration:terminal_payload",
         publisher.FUNCTION_ANALYSIS_BLOCKER,
         "selected_family_layer_incomplete",
