@@ -1,0 +1,61 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": "請求書.JS.js",
+        "file_size": 3451854,
+        "file_type": "JavaScript",
+        "first_seen": "2026-08-12 00:00:00",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": null,
+        "signature": "SnakeKeylogger",
+        "ssdeep": null,
+        "tags": [
+          "donutloader",
+          "snakekeylogger",
+          "vipkeylogger"
+        ],
+        "tlsh": null
+      },
+      "sha256": "dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e",
+      "zip_sha256": "eeb0a7fb66f09ea845fd0b75f270f300a3f0a3b49dde1981499b04102a6b3bec",
+      "zip_size": 1567570
+    }
+  ],
+  "analysis_complete": false,
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e"
+    }
+  ],
+  "collection_id": "snakekeylogger-jp-malspam-20260814",
+  "complete": false,
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "snakekeylogger",
+      "path": "sources/snakekeylogger"
+    }
+  ],
+  "file_types": null,
+  "first_seen_newest": "2026-08-12 00:00:00",
+  "first_seen_oldest": "2026-08-12 00:00:00",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "analysis_followup_pending",
+  "query_limit": null,
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": "2026-08-14T13:26:16.755834+00:00",
+  "selection_mode": "exact_sha256",
+  "source": "MalwareBazaar Community API",
+  "analysis_contract_sha256": "0ea78969f8fc4b4b7661b152503c97f2e76ba7508f40f3bcd13e5cdd4b28a624"
+}

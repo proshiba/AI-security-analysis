@@ -25,6 +25,7 @@ from extractors.quasarrat import extract as extract_quasarrat
 from extractors.remcosrat import extract as extract_remcosrat
 from extractors.remusstealer import extract as extract_remusstealer
 from extractors.shadowpad import extract as extract_shadowpad
+from extractors.snakekeylogger import extract as extract_snakekeylogger
 from extractors.spyglace import extract as extract_spyglace
 from extractors.stealc import extract as extract_stealc
 from extractors.unclassified.mx_go import extract as extract_mx_go
@@ -60,6 +61,7 @@ EXTRACTORS: dict[str, Extractor] = {
     "vidar": extract_vidar,
     "mx-go": extract_mx_go,
     **PROFILED_EXTRACTORS,
+    "snakekeylogger": extract_snakekeylogger,
     "darkcomet": extract_darkcomet,
     "quasarrat": extract_quasarrat,
 }

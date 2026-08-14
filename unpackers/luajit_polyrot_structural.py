@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from unpackers import luajit_polyrot_auto as core
+import unpackers.luajit_polyrot_auto as core
 
 
 LUA_STRING = re.compile(r'"((?:\\[0-9]{1,3}|\\.|[^"\\])*)"')
