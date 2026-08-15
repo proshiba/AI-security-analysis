@@ -76,6 +76,11 @@ METHOD_BINDINGS: dict[str, NmapBinding] = {
     "purerat_direct_tls_certificate_pin": NmapBinding(
         "purerat-direct-tls.nse", confirmation_allowed=False
     ),
+    # prelude variant: TCP接続直後に 04 00 00 00 を送ってからTLS 1.2へ昇格する。
+    # 4 byteを送るので sends_application_data=True。
+    "purerat_tls_prelude": NmapBinding(
+        "purerat-c2.nse", sends_application_data=True
+    ),
     "ftp_authenticated": NmapBinding("agenttesla-ftp-c2.nse", sends_application_data=True),
     "asyncrat_tls_messagepack": NmapBinding(
         "dotnet-rat-c2.nse", "dotnet-rat.family", "asyncrat", True
@@ -408,6 +413,11 @@ def _profile_arguments(
         )
     elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
         arguments["dotnet-rat.expected-cert"] = profile["expected_certificate_sha256"]
+    elif method == "purerat_tls_prelude":
+        # 対象portをprofileの1件へ固定し、走査した他の開放portへ4 byteを
+        # 送らないようにする。
+        arguments["purerat.expected-cert"] = profile["expected_certificate_sha256"]
+        arguments["purerat.ports"] = str(profile["port"])
     elif method == "stealc_v2_registration_task":
         arguments.update(
             {

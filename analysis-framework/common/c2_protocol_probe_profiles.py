@@ -49,6 +49,7 @@ PROFILE_METHODS = {
     "purerat_direct_tls": ("purerat_direct_tls", "purerat_direct_tls_certificate_pin"),
     "asyncrat_tls_messagepack": ("asyncrat", "asyncrat_tls_messagepack"),
     "venomrat_tls_messagepack": ("venomrat", "venomrat_tls_messagepack"),
+    "purerat_tls_prelude": ("purehvnc", "purerat_tls_prelude"),
     "stealc_v2_registration_task": ("stealc", "stealc_v2_registration_task"),
     "lumma_v6_registration_task": ("lummastealer", "lumma_v6_registration_task"),
     "remus_registration_task": ("remusstealer", "remus_registration_task"),
@@ -406,6 +407,27 @@ def load_profiles(
                 raise ProtocolProfileError("vvaS check-inはレビュー済み333200だけを許可します")
             if profile.get("expected_stage_size") != 307214 or profile.get("expected_header_size") != 14:
                 raise ProtocolProfileError("vvaS応答境界がレビュー済み値と一致しません")
+        elif handler == "purerat_tls_prelude":
+            # 送信は 04 00 00 00 の4 byteだけ。SNIは付けない(検体もSNIなし)。
+            # 応答は読まないので上限は形式上の値。登録・task取得は禁止のまま。
+            if (
+                profile.get("send_hex") != "04000000"
+                or profile.get("maximum_request_bytes") != 4
+                or profile.get("sni") is not None
+                or profile.get("tls_version") != "TLSv1.2"
+                or maximum != 64
+                or timeout != 3.0
+                or not SHA256_RE.fullmatch(
+                    str(profile.get("expected_certificate_sha256") or "")
+                )
+                or any(
+                    key in profile
+                    for key in ("payload", "checkin", "request_packet", "artifact_zip")
+                )
+            ):
+                raise ProtocolProfileError(
+                    f"PureRAT prelude profileのreview済み安全境界が不正です: {profile_id}"
+                )
         elif handler == "c2_detector_n520_server_first":
             if profile.get("sni") != "update.microsoft.com" or maximum != 44:
                 raise ProtocolProfileError("N520 server-first profileのSNIまたは応答上限が不正です")

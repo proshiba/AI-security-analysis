@@ -50,7 +50,7 @@ def test_profiles_cover_reviewed_active_families() -> None:
     assert mapping["schema_version"] == 2
     assert mapping["execution_backend"] == "nmap_nse_only"
     methods = {entry["method"] for entry in mapping["method_bindings"]}
-    assert len(methods) == mapping["network_method_count"] == 19
+    assert len(methods) == mapping["network_method_count"] == 20
 
 
 def test_all_declared_scripts_exist_and_are_utf8() -> None:

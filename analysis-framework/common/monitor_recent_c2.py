@@ -63,6 +63,7 @@ ALLOWED_PROTOCOLS = {
     "ftp",
     "asyncrat",
     "venomrat",
+    "purehvnc",
     "stealc",
     "lummastealer",
     "remusstealer",
@@ -84,6 +85,7 @@ ALLOWED_METHODS = {
     "ftp_authenticated",
     "asyncrat_tls_messagepack",
     "venomrat_tls_messagepack",
+    "purerat_tls_prelude",
     "stealc_v2_registration_task",
     "lumma_v6_registration_task",
     "remus_registration_task",
@@ -99,6 +101,7 @@ ACTIVE_PROFILE_METHODS = {
     "ftp_authenticated",
     "asyncrat_tls_messagepack",
     "venomrat_tls_messagepack",
+    "purerat_tls_prelude",
     "stealc_v2_registration_task",
     "lumma_v6_registration_task",
     "remus_registration_task",
@@ -122,6 +125,8 @@ METHOD_CEILINGS = {
     "ftp_authenticated": 0.95,
     "asyncrat_tls_messagepack": 0.95,
     "venomrat_tls_messagepack": 0.95,
+    # 判定表(analysis-results/research/c2-protocol-profiles/2026-08-05-purerat)
+    "purerat_tls_prelude": 0.95,
     "stealc_v2_registration_task": 0.95,
     "lumma_v6_registration_task": 0.95,
     "remus_registration_task": 0.95,
@@ -143,6 +148,7 @@ METHOD_LABELS = {
     "ftp_authenticated": "完全一致・private資格情報によるFTP USER/PASS/QUIT限定認証（file操作なし）",
     "asyncrat_tls_messagepack": "完全一致・AsyncRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
     "venomrat_tls_messagepack": "完全一致・VenomRAT TLS圧縮MessagePack Ping 1 frame＋64 byte限定応答",
+    "purerat_tls_prelude": "完全一致・PureRAT 4 byte prelude＋TLS 1.2昇格と検体内蔵証明書pin照合（応答受信なし）",
     "stealc_v2_registration_task": "完全一致・StealC v2合成端末登録＋loader task取得（最大2要求）",
     "lumma_v6_registration_task": "完全一致・Lumma v6設定登録＋合成hwid task取得（最大2要求）",
     "remus_registration_task": "完全一致・Remus合成端末登録＋step=1 task取得（最大2要求）",
@@ -244,6 +250,25 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             profile_samples = profile.get("sample_sha256s")
             if not isinstance(profile_samples, list) or target.get("sample_sha256s") != profile_samples:
                 raise PlanError("active targetのsample集合がprofileと完全一致しません")
+            # PureRATには2つのwire modeがある。preludeを送る4.4.1(tirakian系)と、
+            # 何も送らずTLS1.0を直接張るdirect-TLS(45.192.211.77)。境界が違うので
+            # methodごとに別々に検証する。
+            if method == "purerat_tls_prelude":
+                # 送信は04 00 00 00の4 byteだけ。上限が緩められていないことを
+                # 計画段階でも確認する(profile側の検証と二重にかける)。
+                if (
+                    type(target.get("timeout_seconds")) is not float
+                    or target.get("timeout_seconds") != 3.0
+                    or type(target.get("maximum_request_bytes")) is not int
+                    or target.get("maximum_request_bytes") != 4
+                    or type(target.get("maximum_response_bytes")) is not int
+                    or target.get("maximum_response_bytes") != 64
+                    or profile.get("send_hex") != "04000000"
+                    or profile.get("sni") is not None
+                ):
+                    raise PlanError(
+                        "PureRAT targetのtimeout/request/response上限が固定値と一致しません"
+                    )
             if method == "purerat_direct_tls_certificate_pin" and (
                 profile.get("source")
                 != "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
@@ -447,6 +472,7 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             "ftp_authenticated": "ftp",
             "asyncrat_tls_messagepack": "asyncrat",
             "venomrat_tls_messagepack": "venomrat",
+            "purerat_tls_prelude": "purehvnc",
             "stealc_v2_registration_task": "stealc",
             "lumma_v6_registration_task": "lummastealer",
             "remus_registration_task": "remusstealer",
@@ -839,7 +865,6 @@ def _tls_messagepack_observation(
         "victim_metadata_sent": False,
         "operation_command_sent": False,
     }
-
 
 
 def _sanitize_tls_messagepack_observation(target: dict, observation: dict) -> dict:
@@ -2003,6 +2028,7 @@ def assess_observation(target: dict, observation: dict) -> dict:
         "private_credential_vault_missing",
         "private_credential_vault_error",
         "tls_handshake_only_application_probe_disabled",
+        "purerat_protocol_prelude_disabled",
         "malware_registration_tasking_disabled",
         "reviewed_checkconnect_not_authorized",
         "profile_acknowledgement_missing_or_mismatch",
@@ -2419,6 +2445,85 @@ def assess_observation(target: dict, observation: dict) -> dict:
                 "reason": "HTTP到達または応答は得たが、404やdecoyを含み得てXLNG暗号応答が一致しないためC2未確認",
             }
 
+    if method == "purerat_tls_prelude":
+        forbidden_side_effect = any(
+            bool(observation.get(field))
+            for field in (
+                "victim_metadata_sent",
+                "registration_attempted",
+                "task_poll_attempted",
+                "task_executed",
+                "payload_download_attempted",
+                "stage_requested",
+                "operation_command_sent",
+                "protocol_response_received",
+            )
+        )
+        certificate = (observation.get("tls") or {}).get("certificate") or {}
+        # 観測はNSE(purerat-c2.nse)経由。statusはNSEが返す名前になる。
+        exact_status = status == "purerat_prelude_tls_certificate_match"
+        exact_flags = (
+            observation.get("c2_confirmed") is True
+            and observation.get("target_connection_established") is True
+            and observation.get("application_data_sent") is True
+            and observation.get("plaintext_prelude_sent") is True
+            and observation.get("sent_bytes") == 4
+            and observation.get("request_count") == 1
+            and tls.get("handshake") is True
+            and certificate.get("exact_match") is True
+            and not forbidden_side_effect
+        )
+        if exact_status and exact_flags:
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                # 判定表の「prelude後TLS成立＋証明書pin完全一致」= 0.95
+                "c2_operational_confidence": 0.95,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "4 byte preludeの受理後にTLS 1.2が成立し、検体内蔵証明書のDER SHA-256と完全一致",
+            }
+        if exact_status or observation.get("c2_confirmed"):
+            return {
+                "state": "purerat_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": 0.98 if tcp_open else 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "PureRAT確認statusとflagの組が整合しないためC2確定を禁止",
+            }
+        states = {
+            "purerat_prelude_tls_observed": (
+                "purerat_certificate_mismatch_c2_not_confirmed",
+                # 別build・別顧客・証明書rotationがあり得るのでfamily否定には使わない
+                "preludeは受理されTLSも成立したが、検体内蔵証明書と一致しないためC2確定はしない",
+            ),
+            "purerat_prelude_tls_failed": (
+                "purerat_prelude_rejected_c2_not_confirmed",
+                "TCPは開いていたがprelude後のTLS昇格が成立しない。"
+                "PureRAT protocolでないほか、client証明書要求やversion差も該当し得る",
+            ),
+        }
+        if status in states:
+            state, reason = states[status]
+            return {
+                "state": state,
+                "reachability_confidence": 0.98,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": reason,
+            }
+        if status == "dns_unresolved":
+            return {
+                "state": "dns_not_resolved",
+                "reachability_confidence": 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.50,
+                "reason": "global IPへ解決できずTCP接続していない",
+            }
+
     if method == "darkcomet_server_first_idtype":
         if (
             status == "confirmed_darkcomet_idtype"
@@ -2527,7 +2632,9 @@ def assess_observation(target: dict, observation: dict) -> dict:
             "negative_observation_confidence": 0.0,
             "reason": "server-first応答を確認したがmalware固有fingerprintではない",
         }
-    if tls:
+    # handshakeが成立しなかったことを明示している観測を、TLS到達として
+    # 扱ってはいけない。tlsは失敗時にも {"handshake": false} が入り得る。
+    if tls and tls.get("handshake") is not False:
         return {
             "state": "tls_endpoint_reachable_c2_not_confirmed",
             "reachability_confidence": 0.95,
@@ -2644,6 +2751,7 @@ def monitor(
             "vvas_checkin",
             "asyncrat_tls_messagepack",
             "venomrat_tls_messagepack",
+            "purerat_tls_prelude",
             "stealc_v2_registration_task",
             "lumma_v6_registration_task",
             "remus_registration_task",

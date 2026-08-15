@@ -2,7 +2,7 @@
   "schema_version": 2,
   "tested_nmap_version": "7.99",
   "execution_backend": "nmap_nse_only",
-  "network_method_count": 19,
+  "network_method_count": 20,
   "method_bindings": [
     {
       "method": "dns_resolve",
@@ -63,6 +63,12 @@
       "script": "scripts/purerat-direct-tls.nse",
       "mode": "direct-tls-certificate",
       "confirmation_allowed": false
+    },
+    {
+      "method": "purerat_tls_prelude",
+      "script": "scripts/purerat-c2.nse",
+      "mode": "prelude-tls12-certificate",
+      "confirmation_allowed": true
     },
     {
       "method": "ftp_authenticated",
@@ -157,7 +163,7 @@
       "aliases": ["purerat"],
       "script": "scripts/purerat-c2.nse",
       "modes": ["managed-purerat"],
-      "maximum_confidence": 0.98,
+      "maximum_confidence": 0.95,
       "confirmation": "04000000 prelude後のTLS昇格と、検体内蔵証明書SHA-256の一致"
     },
     {

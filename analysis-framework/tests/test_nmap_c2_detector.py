@@ -52,7 +52,7 @@ def test_method_coverage_matches_machine_readable_registry() -> None:
     declared = {entry["method"]: entry for entry in profile_map["method_bindings"]}
     runtime = detector.nmap_method_coverage()
     assert runtime["execution_backend"] == "nmap_nse_only"
-    assert runtime["method_count"] == 19
+    assert runtime["method_count"] == 20
     assert set(runtime["methods"]) == set(declared)
     for method, binding in runtime["methods"].items():
         assert f"scripts/{binding['script']}" == declared[method]["script"]
