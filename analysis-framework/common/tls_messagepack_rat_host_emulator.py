@@ -162,7 +162,7 @@ class SyntheticResultDecision:
     outcome: str
     send_allowed: bool = False
     fixture_only: bool = True
-    wire_schema_status: str = "unreviewed"
+    wire_schema_status: str = "operation_result_serializer_unresolved"
     wire_bytes: None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -589,6 +589,17 @@ def _decode_frame(frame: bytes, limits: SessionLimits) -> DecodedFrame:
     )
 
 
+def decode_frame(
+    frame: bytes | bytearray | memoryview,
+    limits: SessionLimits | None = None,
+) -> DecodedFrame:
+    """TLS MessagePack frameを公開用の有界codecで厳格に復号する。"""
+
+    if not isinstance(frame, (bytes, bytearray, memoryview)):
+        raise TypeError("frame must be bytes-like")
+    return _decode_frame(bytes(frame), limits or SessionLimits())
+
+
 def _binary_fingerprint(values: Mapping[str, Scalar]) -> dict[str, int | str | None]:
     """Summarize binary values without retaining their bytes or field names."""
 
@@ -692,7 +703,16 @@ def synthetic_result_decision(
         raise TlsMessagePackHostError("unsupported abstract synthetic-result outcome")
     decision = SyntheticResultDecision(opcode=opcode, outcome=outcome)
     result = decision.to_dict()
-    result["profile_id"] = selected.profile_id
+    result.update(
+        {
+            "profile_id": selected.profile_id,
+            "family": selected.family,
+            "direction": "client_to_server",
+            "operation_executed": False,
+            "real_effect_performed": False,
+            "arbitrary_fake_result_sent": False,
+        }
+    )
     return result
 
 

@@ -45,6 +45,7 @@ from remus_profile_evidence import (
     validate_remus_profile_evidence,
 )
 from stealer_registration_probe import probe_reviewed_stealer_registration
+from tls_messagepack_c2_detector import resolve_detector_binding
 from tls_messagepack_probe import probe_reviewed_tls_messagepack
 
 HOST_RE = re.compile(r"(?=.{1,253}$)[A-Za-z0-9.-]+")
@@ -838,6 +839,147 @@ def _tls_messagepack_observation(
         "victim_metadata_sent": False,
         "operation_command_sent": False,
     }
+
+
+
+def _sanitize_tls_messagepack_observation(target: dict, observation: dict) -> dict:
+    """AsyncRAT／VenomRAT観測を既知scalarとfingerprintだけへ制限する。"""
+
+    expected_packet = resolve_detector_binding(
+        target["protocol_profile_id"]
+    ).response_packet
+    allowed_statuses = {
+        "network_disabled",
+        "closed",
+        "timeout",
+        "tls_handshake_failed",
+        "tls_messagepack_probe_error",
+        "tls_handshake_only_application_probe_disabled",
+        "confirmed_tls_messagepack_c2",
+        "tls_messagepack_response_mismatch",
+        "tls_version_mismatch",
+    }
+    status = observation.get("status")
+    if status not in allowed_statuses:
+        status = "tls_messagepack_probe_error"
+    value: dict[str, object] = {
+        "timestamp_utc": (
+            observation.get("timestamp_utc")
+            if isinstance(observation.get("timestamp_utc"), str)
+            else datetime.now(UTC).isoformat()
+        ),
+        "status": status,
+        "profile_id": target.get("protocol_profile_id"),
+    }
+    boolean_fields = (
+        "alive",
+        "c2_confirmed",
+        "target_contact_attempted",
+        "target_connection_established",
+        "application_data_sent",
+        "protocol_response_received",
+        "certificate_mismatch_excludes_c2",
+        "victim_metadata_sent",
+        "stage_requested",
+        "operation_command_sent",
+        "command_polling_performed",
+        "raw_request_published",
+        "raw_response_published",
+        "raw_response_retained",
+        "synthetic_result_sent",
+        "tls_version_exact",
+    )
+    for field in boolean_fields:
+        observed = observation.get(field, False)
+        value[field] = observed if type(observed) is bool else False
+    integer_fields = (
+        "sent_bytes",
+        "received_bytes",
+        "request_count",
+        "request_budget_used",
+        "response_field_count",
+        "response_frame_size",
+        "response_decoded_size",
+    )
+    for field in integer_fields:
+        observed = observation.get(field, 0)
+        value[field] = observed if type(observed) is int and observed >= 0 else -1
+    response_packet = observation.get("response_packet")
+    value["response_packet"] = response_packet if response_packet == expected_packet else None
+    detector_status = observation.get("detector_status")
+    value["detector_status"] = (
+        detector_status
+        if detector_status
+        in {
+            "confirmed_tls_messagepack_c2",
+            "tls_messagepack_response_mismatch",
+            "tls_version_mismatch",
+        }
+        else None
+    )
+    for field in ("response_frame_sha256", "response_decoded_sha256"):
+        observed = observation.get(field)
+        value[field] = (
+            observed
+            if isinstance(observed, str) and SHA256_RE.fullmatch(observed)
+            else None
+        )
+    resolved_ips = observation.get("resolved_ips")
+    value["resolved_ips"] = (
+        [item for item in resolved_ips if isinstance(item, str) and _is_ip(item)]
+        if isinstance(resolved_ips, list)
+        else []
+    )
+    tls = observation.get("tls")
+    if isinstance(tls, dict):
+        certificate = tls.get("certificate")
+        certificate = certificate if isinstance(certificate, dict) else {}
+        observed_sha256 = certificate.get("observed_sha256")
+        expected_sha256 = certificate.get("expected_sha256")
+        value["tls"] = {
+            "handshake": tls.get("handshake") is True,
+            "observed_version": (
+                tls.get("observed_version")
+                if tls.get("observed_version")
+                in {None, "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"}
+                else "invalid"
+            ),
+            "expected_version": (
+                tls.get("expected_version")
+                if tls.get("expected_version") in {None, "TLSv1.2"}
+                else "invalid"
+            ),
+            "version_exact": tls.get("version_exact") is True,
+            "certificate": {
+                "state": (
+                    certificate.get("state")
+                    if certificate.get("state")
+                    in {
+                        "exact_match",
+                        "mismatch_inconclusive",
+                        "observed_without_static_pin",
+                    }
+                    else "invalid"
+                ),
+                "exact_match": certificate.get("exact_match") is True,
+                "observed_sha256": (
+                    observed_sha256
+                    if isinstance(observed_sha256, str)
+                    and SHA256_RE.fullmatch(observed_sha256)
+                    else None
+                ),
+                "expected_sha256": (
+                    expected_sha256
+                    if isinstance(expected_sha256, str)
+                    and SHA256_RE.fullmatch(expected_sha256)
+                    else None
+                ),
+                "certificate_mismatch_excludes_c2": (
+                    certificate.get("certificate_mismatch_excludes_c2") is True
+                ),
+            },
+        }
+    return value
 
 
 def _sanitize_purerat_observation(observation: dict) -> dict:
@@ -1870,6 +2012,136 @@ def assess_observation(target: dict, observation: dict) -> dict:
             ),
         }
 
+    if method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
+        detector_binding = resolve_detector_binding(
+            target["protocol_profile_id"]
+        )
+        expected_packet = detector_binding.response_packet
+        certificate = tls.get("certificate") if isinstance(tls, dict) else {}
+        certificate = certificate if isinstance(certificate, dict) else {}
+        certificate_shape_exact = (
+            isinstance(certificate.get("observed_sha256"), str)
+            and SHA256_RE.fullmatch(certificate["observed_sha256"]) is not None
+            and certificate.get("expected_sha256")
+            == detector_binding.certificate_sha256
+            and certificate.get("certificate_mismatch_excludes_c2") is False
+            and (
+                (
+                    certificate.get("state") == "exact_match"
+                    and certificate.get("exact_match") is True
+                )
+                or (
+                    certificate.get("state") == "mismatch_inconclusive"
+                    and certificate.get("exact_match") is False
+                )
+            )
+        )
+        no_side_effect = (
+            observation.get("victim_metadata_sent") is False
+            and observation.get("stage_requested") is False
+            and observation.get("operation_command_sent") is False
+            and observation.get("command_polling_performed") is False
+            and observation.get("raw_request_published") is False
+            and observation.get("raw_response_published") is False
+            and observation.get("raw_response_retained") is False
+            and observation.get("synthetic_result_sent") is False
+        )
+        exact_confirmation = (
+            status == "confirmed_tls_messagepack_c2"
+            and observation.get("detector_status") == "confirmed_tls_messagepack_c2"
+            and observation.get("c2_confirmed") is True
+            and observation.get("target_contact_attempted") is True
+            and observation.get("target_connection_established") is True
+            and observation.get("application_data_sent") is True
+            and observation.get("protocol_response_received") is True
+            and observation.get("request_count") == 1
+            and observation.get("request_budget_used") == 1
+            and 0 < int(observation.get("sent_bytes") or 0) <= 96
+            and 4 < int(observation.get("received_bytes") or 0) <= 68
+            and observation.get("response_packet") == expected_packet
+            and observation.get("response_field_count") == 1
+            and 4 < int(observation.get("response_frame_size") or 0) <= 68
+            and 0 < int(observation.get("response_decoded_size") or 0) <= 1024
+            and isinstance(observation.get("response_frame_sha256"), str)
+            and SHA256_RE.fullmatch(observation["response_frame_sha256"]) is not None
+            and isinstance(observation.get("response_decoded_sha256"), str)
+            and SHA256_RE.fullmatch(observation["response_decoded_sha256"]) is not None
+            and observation.get("tls_version_exact") is True
+            and isinstance(tls, dict)
+            and tls.get("handshake") is True
+            and tls.get("observed_version") == "TLSv1.2"
+            and tls.get("expected_version") == "TLSv1.2"
+            and tls.get("version_exact") is True
+            and observation.get("certificate_mismatch_excludes_c2") is False
+            and certificate_shape_exact
+            and no_side_effect
+        )
+        if exact_confirmation:
+            return {
+                "state": "c2_protocol_confirmed",
+                "reachability_confidence": 1.0,
+                "c2_operational_confidence": 0.95,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": (
+                    "TLS 1.2上のreview済みfamily固有Ping応答1 fieldが完全一致し、"
+                    "task・operation・任意result送信は行っていない"
+                ),
+            }
+        mismatch_status = status in {
+            "tls_messagepack_response_mismatch",
+            "tls_version_mismatch",
+        }
+        if mismatch_status and observation.get("c2_confirmed") is False:
+            return {
+                "state": "tls_messagepack_endpoint_reachable_protocol_not_confirmed",
+                "reachability_confidence": (
+                    0.98 if observation.get("target_connection_established") else 0.0
+                ),
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": (
+                    "TLS endpointへ到達したが、TLS 1.2またはfamily固有heartbeat応答が"
+                    "完全一致せずC2確定を禁止"
+                ),
+            }
+        if status == "confirmed_tls_messagepack_c2" or observation.get("c2_confirmed"):
+            return {
+                "state": "tls_messagepack_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": (
+                    0.98 if observation.get("target_connection_established") else 0.0
+                ),
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": (
+                    "TLS MessagePack確認status、TLS version、応答fingerprint、request budget"
+                    "または副作用flagが矛盾するためC2確定を禁止"
+                ),
+            }
+        reachable = bool(observation.get("target_connection_established"))
+        return {
+            "state": (
+                "tls_endpoint_reachable_c2_not_confirmed"
+                if reachable
+                else "tls_messagepack_not_observed"
+            ),
+            "reachability_confidence": 0.98 if reachable else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": (
+                0.85
+                if status == "closed"
+                else (0.40 if status in {"timeout", "tls_handshake_failed"} else 0.0)
+            ),
+            "reason": (
+                "TLS handshakeには到達したがapplication probe未許可のためC2未確認"
+                if reachable
+                else "review済みTLS MessagePack応答を観測していない"
+            ),
+        }
+
     if method == "dns_resolve":
         resolved = bool(observation.get("resolved_ips"))
         return {
@@ -2254,6 +2526,8 @@ def monitor(
             raw = probe(_probe_args(target, allow_network))
         if method == "purerat_direct_tls_certificate_pin":
             raw = _sanitize_purerat_observation(raw)
+        elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
+            raw = _sanitize_tls_messagepack_observation(target, raw)
         observation = _sanitize_observation(raw)
         results.append(
             {

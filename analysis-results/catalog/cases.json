@@ -11086,6 +11086,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "case_id": "sha256:a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1": {
       "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1",
       "case_id": "sha256:a7f980ae03ad3be821209184e1415301c06f5263b7fcfce59032fab0321b87d1",
