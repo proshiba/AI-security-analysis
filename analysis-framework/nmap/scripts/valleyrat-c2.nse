@@ -109,15 +109,20 @@ local function n520(host, port)
   if not socket then return stdnse.format_output(false, err) end
   local status, response = socket:receive_bytes(44)
   socket:close()
-  if not status or not response or #response ~= 44 then
+  -- receive_bytes は「44以上」を返す。serverが44 byteに続けて何か送った場合や
+  -- TCPでまとめて届いた場合に45 byte以上になるので、== 44 で弾いてはいけない。
+  -- 44 byte未満だけを不足として扱い、先頭44 byteをhandshakeとして検証する。
+  if not status or not response or #response < 44 then
     return {family="valleyrat", protocol="n520", c2_confirmed=false,
-      confidence=0.40, status="n520_handshake_missing"}
+      confidence=0.40, status="n520_handshake_missing",
+      received_bytes=response and #response or 0}
   end
-  local session_id, received_magic = string.unpack("<I4I4", response)
+  local frame = response:sub(1, 44)
+  local session_id, received_magic = string.unpack("<I4I4", frame)
   local mixed = (((session_id >> 16) ~ (session_id & 0xffff)) | 0xa5a50000) & 0xffffffff
   local expected_magic = (session_id ~ mixed) & 0xffffffff
-  local stored_crc = string.unpack("<I4", response, 41)
-  local calculated_crc = zlib.crc32(zlib.crc32(), response:sub(1, 40)) & 0xffffffff
+  local stored_crc = string.unpack("<I4", frame, 41)
+  local calculated_crc = zlib.crc32(zlib.crc32(), frame:sub(1, 40)) & 0xffffffff
   local matched = received_magic == expected_magic and stored_crc == calculated_crc
   return {
     family="valleyrat", protocol="n520", c2_confirmed=matched,

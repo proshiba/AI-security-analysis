@@ -128,14 +128,20 @@ def _vvas_handler(connection: socket.socket) -> None:
     connection.sendall(struct.pack("<I", 307214) + b"\0" * 10)
 
 
-def _n520_handler(context: ssl.SSLContext) -> Handler:
+def _n520_handler(context: ssl.SSLContext, trailer: bytes = b"") -> Handler:
+    """N520 server-first handshakeを返す。
+
+    trailerは44 byteの直後に続けて送るbyte列。receive_bytesは要求量以上を
+    返し得るので、続きがあってもhandshake判定が成立することを確認するために使う。
+    """
+
     def handler(connection: socket.socket) -> None:
         with context.wrap_socket(connection, server_side=True) as tls:
             session_id = 0x11223344
             mixed = (((session_id >> 16) ^ (session_id & 0xFFFF)) | 0xA5A50000) & 0xFFFFFFFF
             magic = (session_id ^ mixed) & 0xFFFFFFFF
             first = struct.pack("<II", session_id, magic) + bytes(range(32))
-            tls.sendall(first + struct.pack("<I", zlib.crc32(first) & 0xFFFFFFFF))
+            tls.sendall(first + struct.pack("<I", zlib.crc32(first) & 0xFFFFFFFF) + trailer)
             time.sleep(0.2)
 
     return handler
@@ -514,6 +520,8 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_winos_handler, "valleyrat-c2.nse", "valleyrat.mode=winos", "winos_control_response"),
             (_vvas_handler, "valleyrat-c2.nse", "valleyrat.mode=vvas", "vvas_stage_header_match"),
             (_n520_handler(context), "valleyrat-c2.nse", "valleyrat.mode=n520", "n520_server_first_handshake_match"),
+            # 44 byteの直後に続きがあってもhandshake判定が落ちないこと
+            (_n520_handler(context, b"\x00" * 16), "valleyrat-c2.nse", "valleyrat.mode=n520", "n520_server_first_handshake_match"),
             (_dotnet_handler(context, "Packet", "pong"), "dotnet-rat-c2.nse", f"dotnet-rat.family=asyncrat,dotnet-rat.expected-cert={certificate_sha256}", "messagepack_ping_response_match"),
             (_dotnet_handler(context, "Pac_ket", "Po_ng"), "dotnet-rat-c2.nse", f"dotnet-rat.family=venomrat,dotnet-rat.expected-cert={certificate_sha256}", "messagepack_ping_response_match"),
             (_purerat_handler(context), "purerat-c2.nse", f"purerat.expected-cert={certificate_sha256}", "purerat_prelude_tls_certificate_match"),
