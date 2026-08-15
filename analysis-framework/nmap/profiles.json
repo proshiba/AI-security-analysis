@@ -225,18 +225,18 @@
     {
       "family": "vidar",
       "aliases": ["vidarstealer"],
-      "script": "scripts/c2-transport-observe.nse",
-      "modes": ["tcp-open"],
-      "maximum_confidence": 0.15,
-      "confirmation": "静的復元profileとの受動照合だけを高信頼証拠とし、Nmapはapplication dataを送らない"
+      "script": "scripts/stealer-route-c2.nse",
+      "modes": ["vidar"],
+      "maximum_confidence": 0.6,
+      "confirmation": "完全一致profileと数値IP pinを明示したHEAD経路・陰性対照の差分。probable_c2に限定し、c2_confirmedは常にfalse"
     },
     {
       "family": "amosstealer",
       "aliases": ["amos", "atomic-macos-stealer"],
-      "script": "scripts/c2-transport-observe.nse",
-      "modes": ["tcp-open"],
-      "maximum_confidence": 0.15,
-      "confirmation": "ledger経路はvictim dataを送信し得るため、Nmapはapplication dataを送らずc2_confirmed=false"
+      "script": "scripts/stealer-route-c2.nse",
+      "modes": ["amos"],
+      "maximum_confidence": 0.65,
+      "confirmation": "完全一致profileと数値IP pinを明示した二つのledger HEAD経路・陰性対照の差分。要求bodyやvictim dataは送らず、c2_confirmedは常にfalse"
     }
   ],
   "passive_only_families": [
@@ -244,16 +244,26 @@
       "family": "formbook",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
       "emulator_scope": "passive_sink"
-    },
+    }
+  ],
+  "profile_limited_probable_families": [
     {
       "family": "vidar",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
-      "emulator_scope": "profile_matched_passive_sink"
+      "active_probe": "scripts/stealer-route-c2.nse",
+      "maximum_request_count": 2,
+      "request_method": "HEAD",
+      "request_body_sent": false,
+      "confirmation_allowed": false
     },
     {
       "family": "amosstealer",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
-      "emulator_scope": "paired_passive_sink"
+      "active_probe": "scripts/stealer-route-c2.nse",
+      "maximum_request_count": 3,
+      "request_method": "HEAD",
+      "request_body_sent": false,
+      "confirmation_allowed": false
     }
   ],
   "excluded_until_wire_signature_is_reviewed": [
