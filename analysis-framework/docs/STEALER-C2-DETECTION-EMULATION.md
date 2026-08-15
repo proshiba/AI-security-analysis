@@ -10,7 +10,7 @@
 | Lumma | 同一endpoint上の`uid/cid`登録から`uid/pid/hwid/file` uploadまでの順序 | review済みprofileの合成登録1回。`c2_confirmed=false` | 登録request形状まで |
 | Remus | 同一endpoint上の登録、debug、step、uploadの4段階順序 | review済みprofileの合成登録1回。`c2_confirmed=false` | 登録requestとopaque envelope形状まで |
 | Vidar | 静的復元URL、port、path、User-Agent hashとPCAPの完全一致 | 固定profileのroot `HEAD`と陰性対照。最大0.60のprobable判定 | profile照合後のpassive sink |
-| FormBook | terminal wire signature未回収として明示的に低信頼・受動限定 | application dataを送らないtransport観測だけ | passive sink。XLoader v8のreview済みprofileは別emulator |
+| FormBook | 4件の公開PCAPに共通するGET／POST fan-outとreview済み静的bootstrap経路 | 固定経路と陰性対照の`HEAD`差分。最大0.60のprobable判定 | passive sink。XLoader v8のreview済みprofileは別emulator |
 | AMOS | 同一endpoint・同一64桁campaign IDの`/ledger/`から`/ledger/live/`への順序 | ledger 2経路と陰性対照の`HEAD`差分。最大0.65のprobable判定 | 対応する2経路のpassive sink |
 
 StealCの`create`登録とRC4暗号化JSONは、Proofpointが公開したC2 protocol説明とローカルPCAP解析の双方に整合します。FormBookはMandiantがHTTP、RC4、変更Base64、`FBNG` command形状を公開していますが、このrepositoryの一般化対象ではterminal URIと鍵が揃わないため、古い汎用signatureを送信しません。Lummaの能動操作はMicrosoftが説明するMaaS/C2運用とローカルPCAPの完全一致profileに限定します。AMOSはvariant間のC2差が大きいため、SentinelOneのvariant研究も踏まえ、今回回収した`ledger` pair以外へ一般化しません。
@@ -55,9 +55,9 @@ py -3.13 .\analysis-framework\common\stealer_protocol_evidence.py `
 
 ## Nmapによる観測
 
-Nmap mappingは[`profiles.json`](../nmap/profiles.json)に集約しています。StealC、Lumma、Remusは[`stealer-http-c2.nse`](../nmap/scripts/stealer-http-c2.nse)のfamily別modeを持ち、Vidar／AMOSは[`stealer-route-c2.nse`](../nmap/scripts/stealer-route-c2.nse)の固定経路差分modeを使います。実行にはexact profile、同値acknowledgement、数値IP pin、timeout、request budgetが必要です。
+Nmap mappingは[`profiles.json`](../nmap/profiles.json)に集約しています。StealC、Lumma、Remusは[`stealer-http-c2.nse`](../nmap/scripts/stealer-http-c2.nse)のfamily別modeを持ち、FormBook／Vidar／AMOSは[`stealer-route-c2.nse`](../nmap/scripts/stealer-route-c2.nse)の固定経路差分modeを使います。実行にはexact profile、同値acknowledgement、数値IP pin、timeout、request budgetが必要です。
 
-FormBookだけを`passive_only_families`へ残し、終端URI・鍵・応答契約が揃うまでtransport観測だけを許可します。Vidar／AMOSは`profile_limited_probable_families`へ移し、要求bodyなしの`HEAD`経路差分だけを許可します。詳しい安全境界と実行方法は[`STEALER-ROUTE-PROBES.md`](../nmap/STEALER-ROUTE-PROBES.md)を参照してください。TCP openや経路差だけで`c2_confirmed=true`にはなりません。
+FormBookのPCAP fan-outは受動判定として維持し、review済み単一経路だけを`profile_limited_probable_families`へ追加します。FormBook／Vidar／AMOSの能動側は要求bodyなしの`HEAD`経路差分だけを許可します。詳しい安全境界と実行方法は[`STEALER-ROUTE-PROBES.md`](../nmap/STEALER-ROUTE-PROBES.md)を参照してください。TCP openや経路差だけで`c2_confirmed=true`にはなりません。
 
 loopbackでtransport境界だけを確認する例:
 
@@ -85,7 +85,7 @@ py -3.13 .\emulators\stealers\lab.py client --family amosstealer --base-url http
 - 1 connectionにつき1 request、bodyは64 KiB以下です。
 - 合成IDだけを使用し、victim metadataを送信しません。
 - task、command、payload、plugin、configを返しません。
-- FormBook、Vidar、AMOSのresponseはwire互換C2 responseではありません。
+- FormBook、Vidar、AMOSのroute responseはwire互換C2 responseではありません。
 - すべてのclient結果で`c2_confirmed=false`を固定します。
 
 ## 精度境界
@@ -94,6 +94,6 @@ py -3.13 .\emulators\stealers\lab.py client --family amosstealer --base-url http
 - StealCは単独のJSON POST、異なるpath、family帰属なしでは一致しません。
 - Vidarは静的profileなし、endpoint不一致、User-Agent hash不一致では一致しません。
 - AMOSは片方のrouteだけ、campaign ID不一致、別endpointでは一致しません。
-- FormBookは一般的なHTTP trafficからterminal C2を推測しません。
+- FormBookは単一HTTP requestやstatusからterminal C2を推測せず、受動側は6 endpoint以上のfan-out、能動側は完全一致profileと陰性対照差を要求します。
 
 これらの制約により、検出不能なvariantを無理に陽性化せず、追加のstatic recoveryまたはprocess帰属PCAPが必要な状態を明示します。

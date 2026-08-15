@@ -16,7 +16,7 @@ ValleyRATとPureRATの防御的エミュレーターについて、現在実装�
 
 ## C2検知との分離
 
-通常のC2検知はhost emulatorから分離し、`analysis-framework/nmap/nmap_c2_detector.py`を正式入口とします。ValleyRATのWinos／vvaS／N520は`valleyrat-c2.nse`、PureRAT 4.4.1 direct-TLSは`purerat-direct-tls.nse`へ固定し、20 methodの対応は`analysis-framework/nmap/profiles.json`で管理します。Nmap NSEが未登録またはNmapを利用できない場合、host emulatorやPython direct probeへfallbackしません。
+通常のC2検知はhost emulatorから分離し、`analysis-framework/nmap/nmap_c2_detector.py`を正式入口とします。ValleyRATのWinos／vvaS／N520は`valleyrat-c2.nse`、PureRAT 4.4.1 direct-TLSは`purerat-direct-tls.nse`へ固定し、21 methodの対応は`analysis-framework/nmap/profiles.json`で管理します。Nmap NSEが未登録またはNmapを利用できない場合、host emulatorやPython direct probeへfallbackしません。
 
 ## synthetic behaviorの実装境界
 

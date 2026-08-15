@@ -2,8 +2,8 @@
 """PCAPから値を公開せず、stealer系HTTP C2の構造証拠を判定する。
 
 本文、query値、token、filename、victim metadata、User-Agent原文は保持しない。
-同一socket endpointに属する要求の順序とfield名だけを照合し、単独のHTTP
-status、Host、port、domain、一般的なJSON POSTをC2確認へ昇格しない。
+同一socket endpointに属する要求の順序とfield名、および複数endpointに共通する
+fan-outだけを照合し、単独のHTTP status、Host、port、domain、一般的なJSON POSTをC2確認へ昇格しない。
 """
 
 from __future__ import annotations
@@ -26,6 +26,8 @@ MAX_TSHARK_OUTPUT = 64 * 1024 * 1024
 MULTIPART_NAME = re.compile(r'(?:^|;)\s*name="([^"\r\n]{1,128})"', re.IGNORECASE)
 SAFE_FIELD = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 AMOS_LEDGER_PATH = re.compile(r"^/ledger/(?:(live)/)?([0-9a-f]{64})/?$", re.IGNORECASE)
+FORMBOOK_ROUTE_PATH = re.compile(r"^/[A-Za-z0-9]{4}/$")
+FORMBOOK_MIN_FANOUT_ENDPOINTS = 6
 
 TSHARK_FIELDS = (
     "frame.number", "ip.dst", "tcp.dstport", "http.host",
@@ -362,6 +364,90 @@ def _classify_amos(requests: list[HttpRequestEvidence], family: str) -> dict[str
     return None
 
 
+def _classify_formbook(
+    requests: list[HttpRequestEvidence], family: str
+) -> dict[str, object] | None:
+    """FormBook/XLoaderの複数endpoint fan-outを値なしで照合する。"""
+
+    RouteKey = tuple[EndpointKey, str, str]
+    routes: dict[RouteKey, dict[str, object]] = {}
+    for item in requests:
+        if (
+            FORMBOOK_ROUTE_PATH.fullmatch(item.uri_path) is None
+            or item.user_agent_sha256 is None
+        ):
+            continue
+        key = (
+            (item.destination_ip, item.destination_port, item.http_host),
+            item.uri_path,
+            item.user_agent_sha256,
+        )
+        record = routes.setdefault(
+            key,
+            {"get_query_pairs": Counter(), "get_count": 0, "post_count": 0},
+        )
+        if item.method == "GET" and len(item.query_keys) == 2:
+            record["get_count"] = int(record["get_count"]) + 1
+            pairs = record["get_query_pairs"]
+            assert isinstance(pairs, Counter)
+            pairs[item.query_keys] += 1
+        elif item.method == "POST" and not item.query_keys:
+            record["post_count"] = int(record["post_count"]) + 1
+
+    bindings: Counter[tuple[str, tuple[str, str]]] = Counter()
+    for (*_, user_agent_hash), record in routes.items():
+        pairs = record["get_query_pairs"]
+        assert isinstance(pairs, Counter)
+        if int(record["post_count"]) < 1:
+            continue
+        for pair in pairs:
+            if len(pair) == 2:
+                bindings[(user_agent_hash, pair)] += 1
+    if not bindings:
+        return None
+    binding, _ = sorted(bindings.items(), key=lambda item: (-item[1], item[0]))[0]
+    user_agent_hash, query_pair = binding
+    matched = []
+    for key, record in routes.items():
+        pairs = record["get_query_pairs"]
+        assert isinstance(pairs, Counter)
+        if (
+            key[2] == user_agent_hash
+            and query_pair in pairs
+            and int(record["post_count"]) >= 1
+        ):
+            matched.append((key, record))
+    endpoint_count = len({key[0] for key, _ in matched})
+    route_count = len({key[1] for key, _ in matched})
+    if (
+        endpoint_count < FORMBOOK_MIN_FANOUT_ENDPOINTS
+        or route_count < FORMBOOK_MIN_FANOUT_ENDPOINTS
+    ):
+        return None
+    get_count = sum(int(record["get_count"]) for _, record in matched)
+    post_count = sum(int(record["post_count"]) for _, record in matched)
+    return _classification(
+        profile="formbook_xloader_http_route_fanout",
+        confidence="high" if family in {"formbook", "xloader"} else "medium",
+        evidence={
+            "same_user_agent": True,
+            "endpoint_count": endpoint_count,
+            "unique_route_count": route_count,
+            "query_get_count": get_count,
+            "same_route_post_count": post_count,
+            "query_parameter_count": 2,
+            "route_values_published": False,
+            "query_values_published": False,
+            "user_agent_value_published": False,
+        },
+        active_policy="reviewed_route_head_only",
+        reason=(
+            "複数endpointへのfan-outは受動証拠として扱います。能動確認は完全一致profile、"
+            "数値IP pin、同値acknowledgementを要求するbodyなしHEADと陰性対照だけです。"
+        ),
+    )
+
+
 def classify_protocol(
     requests: list[HttpRequestEvidence], family_hint: str | None,
     reviewed_profile: dict[str, Any] | None = None,
@@ -375,6 +461,7 @@ def classify_protocol(
         lambda: _classify_stealc(requests, family),
         lambda: _classify_vidar(requests, family, reviewed_profile),
         lambda: _classify_amos(requests, family),
+        lambda: _classify_formbook(requests, family),
     ):
         if (result := classifier()) is not None:
             return result

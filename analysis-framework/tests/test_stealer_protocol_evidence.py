@@ -192,3 +192,99 @@ def test_build_report_separates_socket_domain_and_keeps_privacy(tmp_path: Path) 
     assert result["privacy"]["body_values_retained"] is False
     assert result["privacy"]["user_agent_values_retained"] is False
     assert "secret-agent" not in json.dumps(result)
+
+
+def _formbook_fanout_rows(endpoint_count: int = 6) -> str:
+    rows: list[str] = []
+    frame = 1
+    for index in range(endpoint_count):
+        path = f"/a{index:03d}/"
+        common = {
+            "ip": f"198.51.100.{index + 1}",
+            "host": f"candidate-{index}.test",
+            "uri": path,
+            "user_agent": "FormBook-Campaign-Agent/1.0",
+        }
+        rows.append(
+            _row(
+                frame,
+                method="GET",
+                uri=f"{path}?data=redacted&junk=redacted",
+                **{key: value for key, value in common.items() if key != "uri"},
+            )
+        )
+        rows.append(_row(frame + 1, method="POST", **common))
+        frame += 2
+    return "\n".join(rows)
+
+
+def test_formbook_requires_cross_endpoint_route_fanout() -> None:
+    requests = MODULE.parse_tshark_rows(_formbook_fanout_rows())
+    result = MODULE.classify_protocol(requests, "formbook")
+    assert result["profile"] == "formbook_xloader_http_route_fanout"
+    assert result["confidence"] == "high"
+    assert result["evidence"] == {
+        "same_user_agent": True,
+        "endpoint_count": 6,
+        "unique_route_count": 6,
+        "query_get_count": 6,
+        "same_route_post_count": 6,
+        "query_parameter_count": 2,
+        "route_values_published": False,
+        "query_values_published": False,
+        "user_agent_value_published": False,
+    }
+    assert result["active_probe_policy"] == "reviewed_route_head_only"
+
+
+def test_formbook_fanout_fails_closed_below_endpoint_threshold() -> None:
+    requests = MODULE.parse_tshark_rows(_formbook_fanout_rows(5))
+    result = MODULE.classify_protocol(requests, "formbook")
+    assert result["profile"] == "formbook_xloader_terminal_protocol_not_observed"
+    assert result["confidence"] == "low"
+
+
+def _published_formbook_rows(capture_id: str) -> str:
+    root = (
+        Path(__file__).parents[2]
+        / "analysis-results"
+        / "network-traffic"
+        / "malware-traffic-analysis-net"
+        / "2026-07-26"
+        / "captures"
+        / capture_id
+        / "protocol-observations.json"
+    )
+    records = json.loads(root.read_text(encoding="utf-8"))["http"]["records"]
+    rows = []
+    for record in records:
+        if record.get("kind") != "request":
+            continue
+        uri = record.get("uri") if isinstance(record.get("uri"), dict) else {}
+        path = str(uri.get("path") or "/")
+        names = uri.get("query_names") if isinstance(uri.get("query_names"), list) else []
+        target = path
+        if names:
+            target += "?" + "&".join(f"{name}=redacted" for name in names)
+        rows.append(
+            _row(
+                int(record["frame"]), ip=str(record.get("dst") or "192.0.2.1"), port=80,
+                host=str(record.get("host") or ""), method=str(record.get("method") or ""),
+                uri=target, content_type=str(record.get("content_type") or ""), length=0,
+                user_agent=str(record.get("user_agent") or ""),
+            )
+        )
+    return "\n".join(rows)
+
+
+def test_four_published_formbook_campaigns_match_fanout_profile() -> None:
+    for capture_id in (
+        "mta-2026-04-13-007", "mta-2026-01-15-016",
+        "mta-2025-09-05-029", "mta-2025-08-11-034",
+    ):
+        result = MODULE.classify_protocol(
+            MODULE.parse_tshark_rows(_published_formbook_rows(capture_id)), "formbook"
+        )
+        assert result["profile"] == "formbook_xloader_http_route_fanout"
+        assert result["confidence"] == "high"
+        assert result["evidence"]["endpoint_count"] >= 13
