@@ -2722,6 +2722,7 @@ _SAFE_LOCAL_DATA_METHODS = frozenset(
 _APPROVED_EXTERNAL_CALLS = frozenset(
     {
         'Cryptodome.Cipher.AES.new',
+        'Cryptodome.Cipher.DES.new',
         'ast.literal_eval',
         'base64.b64decode',
         'base64.b64encode',

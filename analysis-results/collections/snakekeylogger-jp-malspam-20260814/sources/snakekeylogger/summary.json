@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "family": "snakekeylogger",
+  "count": 1,
+  "cases": [
+    {
+      "sha256": "dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e",
+      "family": "snakekeylogger",
+      "case_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e",
+      "file_type": "JavaScript",
+      "first_seen": "2026-08-12 00:00:00",
+      "reported_signature": "SnakeKeylogger",
+      "attribution_basis": "malwarebazaar_reported_signature_and_exact_static_corroboration",
+      "handler_successes": 1,
+      "handler_failures": 0,
+      "static_config_recovered": true,
+      "confirmed_static_c2_observations": 1,
+      "static_logic_status": "reviewed_function_logic",
+      "c2_analysis_complete": false,
+      "c2_analysis_outcome": "unresolved",
+      "c2_analysis_finding_count": 1,
+      "c2_daily_ready": true,
+      "publication_stage": "analysis_followup_pending"
+    }
+  ],
+  "sample_executed": false,
+  "network_contacted": false
+}

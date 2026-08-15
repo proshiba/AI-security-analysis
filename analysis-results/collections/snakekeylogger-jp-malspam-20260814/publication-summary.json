@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "publication_stage": "analysis_followup_pending",
+  "analysis_complete": false,
+  "analysis_contract_sha256": "0ea78969f8fc4b4b7661b152503c97f2e76ba7508f40f3bcd13e5cdd4b28a624",
+  "counts": {
+    "snakekeylogger": 1
+  },
+  "static_logic_status": {
+    "reviewed_function_logic": 1
+  },
+  "handler_successes": 1,
+  "handler_failures": 0,
+  "static_config_recovered": 1,
+  "confirmed_static_c2_observations": 1,
+  "cases": [
+    {
+      "sha256": "dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e",
+      "family": "snakekeylogger",
+      "case_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e",
+      "file_type": "JavaScript",
+      "first_seen": "2026-08-12 00:00:00",
+      "reported_signature": "SnakeKeylogger",
+      "attribution_basis": "malwarebazaar_reported_signature_and_exact_static_corroboration",
+      "handler_successes": 1,
+      "handler_failures": 0,
+      "static_config_recovered": true,
+      "confirmed_static_c2_observations": 1,
+      "static_logic_status": "reviewed_function_logic",
+      "c2_analysis_complete": false,
+      "c2_analysis_outcome": "unresolved",
+      "c2_analysis_finding_count": 1,
+      "c2_daily_ready": true,
+      "publication_stage": "analysis_followup_pending"
+    }
+  ],
+  "samples_executed": false,
+  "network_contacted": false
+}
