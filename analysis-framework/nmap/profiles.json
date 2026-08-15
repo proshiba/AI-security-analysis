@@ -39,7 +39,7 @@
       "aliases": ["purerat"],
       "script": "scripts/purerat-c2.nse",
       "modes": ["managed-purerat"],
-      "maximum_confidence": 0.98,
+      "maximum_confidence": 0.95,
       "confirmation": "04000000 prelude後のTLS昇格と、検体内蔵証明書SHA-256の一致"
     },
     {

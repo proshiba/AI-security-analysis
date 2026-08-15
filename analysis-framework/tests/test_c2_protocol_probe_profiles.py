@@ -26,7 +26,7 @@ from c2_protocol_probe_profiles import (  # noqa: E402
 
 def test_registry_contains_reviewed_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 18
+    assert len(profiles) == 21
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",
@@ -34,6 +34,7 @@ def test_registry_contains_reviewed_protocols() -> None:
         "ftp_authenticated",
         "asyncrat_tls_messagepack",
         "venomrat_tls_messagepack",
+        "purerat_tls_prelude",
         "stealc_v2_registration_task",
         "lumma_v6_registration_task",
         "remus_registration_task",
@@ -194,7 +195,7 @@ def test_all_repository_profiles_apply_except_rejected_remus() -> None:
 
     remus_profile_id = "remus-ba0044e8-onesdto-2535"
     applied = {target["protocol_profile_id"] for target in targets}
-    assert added == len(targets) == 17
+    assert added == len(targets) == 20
     assert applied == set(load_profiles()) - {remus_profile_id}
     assert all(target["method"] != "remus_registration_task" for target in targets)
     assert [
