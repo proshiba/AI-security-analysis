@@ -100,7 +100,7 @@ HTTP 404はXLoader／FormBook系で偽装やdecoyに利用されるため、単�
 
 `status`とboolean flagが矛盾した場合はC2確定を禁止する。socket error、timeout、HTTP mismatch、復号失敗は「その観測で未確認」であり、直ちに非C2または恒久停止とは扱わない。
 
-## Nmap NSE
+## Nmap NSEによる観測
 
 RedLineとXLoaderは、既存の汎用HTTP GET判定へ混ぜず、familyごとのmodeまたは専用NSEとして登録する。
 
@@ -112,7 +112,7 @@ RedLineとXLoaderは、既存の汎用HTTP GET判定へ混ぜず、familyごと�
 - XLoaderの鍵をCLIへ渡す設計では、process listやscan logへの露出を避けるため、private fileまたは環境依存の安全な参照方式を優先する。
 - `profiles.json`には最大confidenceと、そのconfidenceへ到達する厳密な条件を書く。
 
-NmapのRedLine肯定条件は、完全なSOAP response構造とboolean resultの一致である。XLoader NSEは検体固有private materialを安全に扱えないためtransport-onlyとし、application dataを送らず、`c2_confirmed=false`とconfidence 0.15を固定する。XLoaderの暗号応答による肯定判定はPython probeだけで行い、HTTP statusやbody lengthだけでは`c2_confirmed`にしない。
+NmapのRedLine肯定条件は、完全なSOAP response構造とboolean resultの一致です。XLoader NSEは検体固有private materialを安全に扱えないためtransport-onlyとし、application dataを送らず、`c2_confirmed=false`とconfidence 0.15を固定します。XLoaderの旧Python active probeへfallbackせず、暗号応答を安全に検証できるreview済みNSE profileが完成するまではtransport観測だけに限定します。
 
 ## オフラインテストマトリクス
 

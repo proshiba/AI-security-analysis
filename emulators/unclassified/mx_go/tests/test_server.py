@@ -43,26 +43,25 @@ def test_synthetic_content_and_heartbeat() -> None:
 def test_all_fixture_addresses_are_synthetic() -> None:
     assert all(".invalid" in value for value in CONTENT["/jp01.txt"].splitlines())
 
-def test_c2_detector_lab_checkin_and_recipient_summary() -> None:
+def test_common_c2_detector_remains_offline() -> None:
     server = build_server("127.0.0.1", 0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     detector = __import__("pathlib").Path(__file__).resolve().parents[4] / "analysis-framework" / "common" / "c2_detector.py"
-    common = [
+    command = [
         sys.executable, str(detector), "127.0.0.1", str(server.server_port),
         "--protocol", "mxgo", "--allow-network", "--mxgo-allow-loopback-network",
+        "--mxgo-mode", "checkin",
     ]
     try:
-        checkin = subprocess.run(common + ["--mxgo-mode", "checkin"], capture_output=True, text=True, check=True, timeout=10)
-        checkin_result = json.loads(checkin.stdout)
-        assert checkin_result["c2_confirmed"] is True
-        assert checkin_result["mxgo_checkin"]["real_machine_identity_sent"] is False
-
-        recipients = subprocess.run(common + ["--mxgo-mode", "recipients"], capture_output=True, text=True, check=True, timeout=10)
-        recipient_result = json.loads(recipients.stdout)
-        assert recipient_result["mxgo_recipients"]["count"] == 2
-        assert recipient_result["mxgo_recipients"]["values_redacted"] is True
-        assert recipient_result["mxgo_recipients"]["all_addresses_use_invalid_tld"] is True
+        completed = subprocess.run(command, capture_output=True, text=True, check=False, timeout=10)
+        assert completed.returncode == 1
+        result = json.loads(completed.stdout)
+        assert result["status"] == "python_direct_c2_probe_disabled"
+        assert result["network_contacted"] is False
+        assert result["target_contact_attempted"] is False
+        assert result["application_data_sent"] is False
+        assert server.mxgo_state.heartbeat_count == 0  # type: ignore[attr-defined]
     finally:
         server.shutdown()
         server.server_close()

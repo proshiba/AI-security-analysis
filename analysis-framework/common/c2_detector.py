@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""C2生存確認とInternet scanner指紋を有界に収集する。
+"""C2観測の互換用offline preflightを生成する。
 
-既定動作はoffline preflightとし、live probeは明示許可を要求する。
-後段payload取得、redirect追従、data実行は行わず、到達性とprotocol確認を分離する。
+active network probeは廃止済みであり、`--allow-network`を指定しても接触しない。
+外部targetの標準観測は`analysis-framework/nmap/nmap_c2_detector.py`から
+allowlist済みNmap NSEだけを起動して行う。
 """
 from __future__ import annotations
 
@@ -770,10 +771,27 @@ def collect_jarm(
 
 
 def probe(args) -> dict:
-    """offline既定と明示許可を守ってC2 probeを実行する。"""
+    """互換用offline planを返し、active観測はNmap NSEへ限定する。"""
     validate_http_request_fields(args)
     if not getattr(args, "allow_network", False):
         return preflight_probe(args)
+    result = preflight_probe(args)
+    result.update(
+        {
+            "status": "python_direct_c2_probe_disabled",
+            "execution_engine": "nmap_nse_required",
+            "alive": False,
+            "c2_confirmed": False,
+            "network_contacted": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "request_count": 0,
+            "sent_bytes": 0,
+            "received_bytes": 0,
+        }
+    )
+    return result
     started = time.perf_counter()
     result = {
         "schema_version": 2, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -1015,8 +1033,8 @@ def probe(args) -> dict:
 
 
 def main() -> int:
-    """CLI入力を検証し、probe結果をJSONで出力する。"""
-    parser = argparse.ArgumentParser(description="Bounded C2 liveness and Shodan fingerprint collector.")
+    """CLI入力を検証し、互換用offline planをJSONで出力する。"""
+    parser = argparse.ArgumentParser(description="互換用のC2 offline planを生成します。active観測はNmap NSEだけを使用します。")
     parser.add_argument("host")
     parser.add_argument("port", type=int)
     parser.add_argument("--protocol", choices=["tcp", "udp", "vvas", "n520", "http", "https", "tls", "mxgo"], default="tcp")
@@ -1032,15 +1050,15 @@ def main() -> int:
     parser.add_argument("--mxgo-client-id", default="LAB-MXGO-000000000000")
     parser.add_argument("--mxgo-recipient-path", default="/jp01.txt")
     parser.add_argument("--mxgo-allow-loopback-network", action="store_true")
-    parser.add_argument("--n520-checkin", action="store_true", help="send one empty command-1 registration after a confirmed N520 handshake")
+    parser.add_argument("--n520-checkin", action="store_true", help="互換引数。active送信は実行しません。")
     parser.add_argument("--n520-wait", type=float, default=15.0)
     parser.add_argument("--n520-max-bytes", type=int, default=16 * 1024 * 1024)
     parser.add_argument("--n520-max-frames", type=int, default=16)
     parser.add_argument("--artifact-zip", type=Path)
     parser.add_argument("--archive-password", default="infected")
-    parser.add_argument("--collect-jarm", action="store_true")
-    parser.add_argument("--jarm-script", type=Path, default=Path(r"C:\Users\Administrator\Tools\Salesforce-JARM\jarm.py"))
-    parser.add_argument("--allow-network", action="store_true", help="explicitly allow the bounded live probe")
+    parser.add_argument("--collect-jarm", action="store_true", help="廃止済み互換引数。JARMを実行しません。")
+    parser.add_argument("--jarm-script", type=Path, help="廃止済み互換引数。外部helperを起動しません。")
+    parser.add_argument("--allow-network", action="store_true", help="互換引数。指定時もnetworkへ接触せずNmap NSE必須を返します。")
     parser.add_argument("--connect-only", action="store_true", help="TCP接続の成否だけを確認し、送受信しない")
     parser.add_argument("--proxy-host", choices=["localhost", "127.0.0.1", "::1"])
     parser.add_argument("--proxy-port", type=int, default=9050)

@@ -20,7 +20,8 @@ $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-frame
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner bounded_process `
+  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle bounded_process `
+  c2_detector nmap nmap.nmap_c2_detector nmap.verify_nse `
   follow_on_commitment handler_catalog job_artifact_schemas runtime_contract classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
   generate_ioc_lists deep_static_triage `
@@ -43,6 +44,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `analyze_sample.html`：入力収集、静的layer復元、解析器の適用可否判定、一括実行、再開整合性
 - `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
 - `analysis_job_runner.html`：WebUI／ローカルAPI向けの要求検証、入力snapshot、job状態、成果物再検証
+- `analysis_lifecycle.html`：識別、静的解析、公開、完了判定、派生更新、S3保管を接続する固定stage runner
 - `bounded_process.html`：timeout、process／memory上限、子孫cleanupを担うOS別の共通process境界
 - `follow_on_commitment.html`：保持metadata残余の親別canonical多重集合commitment
 - `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
@@ -51,6 +53,15 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `runtime_contract.html`：isolated processで要求する固定Python依存の共有契約
 - `static_layer_pipeline.html`：任意unpackerを上限付きの認証済みレイヤーDAGへ変換する共有処理
 - `classifiers.classify_sample.html`：登録済み検出器による共通分類と検出結果の正規化
+
+## C2観測module
+
+- `c2_detector.html`：旧CLI向けのoffline preflight互換module。`--allow-network`でも接触しません。
+- `nmap.html`：Nmap C2観測packageの索引。
+- `nmap.verify_nse.html`：全NSEをnumeric loopback fixtureで検証する統合harness。
+- `nmap.nmap_c2_detector.html`：review済みprofileをallowlist済みNmap NSEへ変換し、XML結果を公開allowlistへ再投影する正式adapter。
+
+active C2観測は後者だけを標準入口とし、JARMやPython direct socketへfallbackしません。
 
 ## 深層静的解析module
 
@@ -100,7 +111,7 @@ python -m pydoc -w deep_static_triage unpackers.static_control_flow unpackers.ma
 
 ## PureHVNC／DonutLoaderモジュール
 
-`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.purelogs.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`c2_detector`、`chain` も生成対象です。
+`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.purelogs.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`chain`も生成対象です。C2の互換offline moduleは`c2_detector`、正式Nmap adapterは`nmap.nmap_c2_detector`として別pageへ生成します。
 
 ## APT-C-60／SpyGlaceモジュール
 

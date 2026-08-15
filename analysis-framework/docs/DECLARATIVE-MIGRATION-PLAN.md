@@ -122,7 +122,7 @@ ValleyRAT は campaign variant と reviewed profile が多いため、generic st
 
 実装:
 
-- FLOSS、Ghidra MCP、JARM、YARA／Sigmaの検証アダプター
+- FLOSS、Ghidra MCP、allowlist済みNmap NSE、YARA／Sigmaの検証アダプター
 - tool preflight と version capture
 - finding normalizer
 - README、IOC、検知材料、マニフェスト、履歴候補の生成器

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import copy
 import sys
 from pathlib import Path
@@ -12,8 +11,8 @@ REPOSITORY_ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import monitor_recent_c2
-from c2_protocol_probe_profiles import (
+import monitor_recent_c2  # noqa: E402
+from c2_protocol_probe_profiles import (  # noqa: E402
     apply_profiles,
     profile_registry_metadata,
 )
@@ -66,26 +65,24 @@ def test_darkcomet_exact_idtype_confirms_without_application_send(
     calls: list[dict] = []
 
     def fake_probe(
-        profile: dict,
-        *,
-        allow_network: bool,
-        repository_root: Path | None,
+        target: dict,
+        **kwargs,
     ) -> dict:
-        calls.append(profile)
-        assert allow_network is True
-        assert repository_root == REPOSITORY_ROOT
-        assert base64.b64decode(profile["network_rc4_key_base64"], validate=True) == b"#KCMDDC5#-"
-        assert len(profile["evidence_sha256"]) == 64
-        assert profile["evidence_source"] == profile["source"]
-        return exact_observation()
+        calls.append(target)
+        assert kwargs["allow_network"] is True
+        assert target["protocol_profile_id"] == "darkcomet-b9b052df-f168-name-1604"
+        assert len(target["protocol_profile_evidence_sha256"]) == 64
+        observation = exact_observation()
+        observation["execution_engine"] = "nmap_nse"
+        return observation
 
-    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_darkcomet_server_first", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(reviewed_plan(), allow_network=True, repository_root=REPOSITORY_ROOT)
     entry = result["results"][0]
     assert len(calls) == 1
     assert entry["assessment"]["state"] == "c2_protocol_confirmed"
     assert entry["assessment"]["c2_operational_confidence"] == 0.98
-    assert entry["protocol_profile_evidence_sha256"] == calls[0]["evidence_sha256"]
+    assert entry["protocol_profile_evidence_sha256"] == calls[0]["protocol_profile_evidence_sha256"]
     assert entry["observation"]["application_data_sent"] is False
     assert result["policy"]["malware_checkin_sent"] is False
 
@@ -177,9 +174,18 @@ def test_darkcomet_hint_without_reviewed_endpoint_is_dns_only(
     target.pop("protocol_profile_evidence_sha256")
     target.pop("protocol_profile_evidence_source")
     monkeypatch.setattr(
-        monitor_recent_c2.socket,
-        "getaddrinfo",
-        lambda *_args, **_kwargs: [(2, 1, 6, "", ("203.0.113.9", 0))],
+        monitor_recent_c2,
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "dns_resolved",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "resolved_ips": ["203.0.113.9"],
+        },
     )
     result = monitor_recent_c2.monitor(value, allow_network=True, repository_root=REPOSITORY_ROOT)
     entry = result["results"][0]

@@ -34,27 +34,35 @@ action = function(host, port)
   local user = stdnse.get_script_args("agenttesla.user")
   local password = stdnse.get_script_args("agenttesla.pass")
   if not user or not password then
-    socket:send("QUIT\r\n")
     socket:close()
     return {
       family="agenttesla", protocol="ftp", c2_confirmed=false,
       confidence=0.35, status="ftp_banner_only",
       banner_code=220, authentication_attempted=false,
+      application_data_sent=false, sent_bytes=0, request_count=0,
+      registration_attempted=false, task_poll_attempted=false,
+      task_executed=false, payload_download_attempted=false,
       note="FTP bannerだけではAgentTesla固有C2を証明しません"
     }
   end
   if user:find("[\r\n]") or password:find("[\r\n]") or #user > 256 or #password > 256 then
     socket:close(); return stdnse.format_output(false, "FTP資格情報の形式が不正です")
   end
+  local command_count = 1
+  local sent_bytes = #user + 7
   socket:send("USER " .. user .. "\r\n")
   local user_reply = read_reply(socket) or ""
   local pass_reply = ""
   local accepted = user_reply:match("^230") ~= nil
   if not accepted and user_reply:match("^331") then
+    command_count = command_count + 1
+    sent_bytes = sent_bytes + #password + 7
     socket:send("PASS " .. password .. "\r\n")
     pass_reply = read_reply(socket) or ""
     accepted = pass_reply:match("^230") ~= nil
   end
+  command_count = command_count + 1
+  sent_bytes = sent_bytes + 6
   socket:send("QUIT\r\n")
   socket:close()
   return {
@@ -64,6 +72,10 @@ action = function(host, port)
     banner_code=220, user_reply_code=tonumber(user_reply:sub(1,3)),
     pass_reply_code=tonumber(pass_reply:sub(1,3)),
     authentication_attempted=true, file_operation_attempted=false,
+    application_data_sent=true, sent_bytes=sent_bytes,
+    request_count=command_count, registration_attempted=false,
+    task_poll_attempted=false, task_executed=false,
+    payload_download_attempted=false,
     credential_value_published=false
   }
 end

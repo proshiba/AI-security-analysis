@@ -70,6 +70,9 @@ local function winos(host, port)
     status=matched and "winos_control_response" or "winos_unknown_response",
     response_command=command and string.format("0x%02x", command) or nil,
     declared_length=declared, sent_bytes=#frame, received_bytes=#response,
+    application_data_sent=true, request_count=1,
+    registration_attempted=false, task_poll_attempted=false,
+    task_executed=false, payload_download_attempted=false,
     victim_metadata_sent=false, stage_requested=false
   }
 end
@@ -94,6 +97,9 @@ local function vvas(host, port)
     status=matched and "vvas_stage_header_match" or "vvas_header_mismatch",
     declared_stage_size=size, expected_stage_size=307214,
     sent_bytes=3, received_bytes=#response, stage_downloaded=false,
+    application_data_sent=true, request_count=1,
+    registration_attempted=false, task_poll_attempted=false,
+    task_executed=false, payload_download_attempted=false,
     victim_metadata_sent=false
   }
 end
@@ -120,7 +126,9 @@ local function n520(host, port)
     session_id=string.format("0x%08x", session_id),
     magic_matches=received_magic == expected_magic,
     crc_matches=stored_crc == calculated_crc,
-    application_data_sent=false, received_bytes=#response
+    application_data_sent=false, sent_bytes=0, request_count=0,
+    received_bytes=#response, registration_attempted=false,
+    task_poll_attempted=false, task_executed=false, payload_download_attempted=false
   }
 end
 

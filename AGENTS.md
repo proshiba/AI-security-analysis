@@ -35,9 +35,9 @@
 - 検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報をコミットしないこと。
 - 解析結果として保存してよいものは、README、JSON/CSV/YAMLなどのメタデータ、IOC、テキスト化した逆アセンブル、FLOSS等の文字列出力、Sigma/YARAなどの検知ルール候補に限定すること。
 - 検体やpayloadを実行しないこと。ローカル実行、デバッガ実行、`rundll32` / `regsvr32` / PowerShell reflection 経由の起動も禁止すること。
-- ライブC2確認、JARM収集、HTTP(S) probeなど外部ホストへの通信は、ユーザーが現在のタスクで明示的に許可した場合に限ること。
-- ライブC2確認を行う場合も、対象マルウェアの reviewed profile や種別固有AGENTSの制限に従い、送信データ、受信サイズ、リダイレクト、stage取得を最小化すること。
-- TCP open、HTTPページ、証明書、banner hash、JARM単独でC2確定としないこと。復号config、process帰属付き通信、malware protocol応答などの相関を要求すること。
+- 外部ホストへのlive C2確認やHTTP(S) probeは、ユーザーが現在のタスクで明示的に許可した場合に限ること。active C2接触は`analysis-framework/nmap/nmap_c2_detector.py`を標準入口とし、allowlist済みNmap NSEだけを使用すること。
+- live C2確認では、review済みprofile、完全一致target、追加許可gate、NSEごとの送受信上限を必須とすること。Python direct socket、JARM収集、port range scan、redirect、stage取得へfallbackしないこと。
+- TCP open、HTTPページ、証明書、banner hashだけでC2確定としないこと。復号config、process帰属付き通信、malware protocol応答などの相関を要求すること。過去または受動sourceのJARM値も単独根拠にしないこと。
 
 ## 解析・分類ルール
 
@@ -185,7 +185,7 @@
 - 共通のファミリーマーカー、設定鍵、通信方式の期待値、別名、確認要件は `extractors/profiles/windows_family_profiles.json` に置くこと。ファミリー検出器は薄いアダプターに保ち、抽出ロジックを重複させないこと。
 - MalwareBazaarの完全一致シグネチャとレビュー済みハッシュは、ファミリー選択の証拠として扱うこと。リテラルが復号済み設定または稼働中C2であることの証明にはしないこと。
 - ネットワーク所見は役割別に分類すること。配布段階URLはIOCになり得るがC2ではない。公開IP確認サービス、証明書、文書、プレースホルダー、無害なベンダー値は、C2対象でも単独IOCでもない。
-- 実際に許可された観測なしに、Shodanのバナー／ハッシュ、HTTPタイトル、証明書ハッシュ、JARM、生存確認の出力を作成しないこと。オフラインの照会文字列には、受動的な計画にすぎないことを明記すること。
+- 実際に許可されたNmap観測なしに、Shodanのバナー／ハッシュ、HTTPタイトル、証明書ハッシュ、生存確認の出力を作成しないこと。active JARM収集は標準経路に含めず、過去または受動sourceのJARM値はprovenance付き参考情報としてだけ扱うこと。オフラインの照会文字列には、受動的な計画にすぎないことを明記すること。
 - MalwareBazaarからの取得は再開可能に保つこと。回数を使い切った一時的失敗はハッシュをキーとする再試行キューへ保存し、ほかの静的作業後に再実行すること。選定した最新ハッシュを、通知なく古い検体へ置き換えないこと。
 - プロファイル対象ファミリーの一括処理後に `validate_family_expansion.py` を実行すること。完了には、ハッシュ、ルーティング、公開成果物、非実行、非接続の各確認が必要である。
 - ループバックエミュレーターは合成データ用とし、実際の通信仕様と互換性がないことを明記すること。すべてのバインド先とクライアント対象は、共有のリテラル・ループバック検証を通すこと。

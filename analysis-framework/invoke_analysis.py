@@ -243,12 +243,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--collect-jarm",
         action="store_true",
-        help="--allow-live-c2-checkで許可したlive TLS系targetのJARMも収集します。",
+        help="廃止済みです。active C2観測はNmap NSEだけを使用します。",
     )
     parser.add_argument(
         "--jarm-script",
         type=Path,
-        help="--collect-jarmで使う公式Salesforce JARM Python scriptのpath。",
+        help="廃止済みです。外部Python JARM helperはactive C2観測に使用しません。",
+    )
+    parser.add_argument(
+        "--nmap",
+        help="live C2観測に使用するNmap実体。省略時はNMAP_EXE、固定候補、PATHの順で解決します。",
     )
     parser.add_argument(
         "--archive-mode",
@@ -695,8 +699,12 @@ def run_live_checks(
     framework_root: Path,
     *,
     jarm_script: Path | None = None,
+    nmap_executable: str | Path | None = None,
 ) -> list[dict[str, Any]]:
-    """review済みtargetだけを対象に、上限付きlive probeを実行する。"""
+    """review済みtargetだけを対象に、Nmap NSE live probeを実行する。"""
+
+    if collect_jarm or jarm_script is not None:
+        raise OrchestrationError("active C2観測はNmap NSE-onlyです。外部JARM helperは使用できません。")
 
     targets = reviewed_targets(profile)
     live_directory = output_directory / "c2-live"
@@ -708,7 +716,7 @@ def run_live_checks(
         protocol = target["protocol"]
         output = live_directory / (f"{index:02d}-{safe_filename_component(host)}-{safe_filename_component(port)}.json")
         command: list[object] = [
-            framework_root / "common" / "c2_detector.py",
+            framework_root / "nmap" / "nmap_c2_detector.py",
             host,
             port,
             "--protocol",
@@ -719,18 +727,16 @@ def run_live_checks(
             "--output",
             output,
         ]
-        for key, option in (
-            ("send_hex", "--send-hex"),
-            ("expected_stage_size", "--expected-stage-size"),
-            ("http_host", "--http-host"),
-            ("sni", "--sni"),
-        ):
+        for key, option in (("http_host", "--http-host"), ("http_path", "--http-path")):
             if target.get(key) is not None:
                 command.extend((option, target[key]))
-        if collect_jarm and protocol in {"https", "tls", "n520"}:
-            if jarm_script is None:
-                raise OrchestrationError("JARM収集が許可されていますがscript pathがありません。")
-            command.extend(("--collect-jarm", "--jarm-script", jarm_script))
+        case_id = profile.get("case_id")
+        if isinstance(case_id, str) and re.fullmatch(r"[0-9a-fA-F]{64}", case_id):
+            command.extend(("--sample-sha256", case_id.casefold()))
+        if protocol == "vvas":
+            command.append("--allow-reviewed-application-probes")
+        if nmap_executable is not None:
+            command.extend(("--nmap", nmap_executable))
         run_python(
             python,
             command,
@@ -799,6 +805,7 @@ def run_legacy(args: argparse.Namespace, python: str, framework_root: Path) -> N
             python,
             framework_root,
             jarm_script=args.jarm_script,
+            nmap_executable=args.nmap,
         )
     summary = {
         "malware_type": malware_type,
@@ -825,12 +832,10 @@ def orchestrate(
 ) -> None:
     """引数に応じて標準または旧ValleyRATフローを選択する。"""
 
-    if args.collect_jarm and not args.allow_live_c2_check:
-        raise OrchestrationError("--collect-jarmは--allow-live-c2-checkとの併用が必要です。")
     if args.collect_jarm:
-        args.jarm_script = validate_jarm_script(args.jarm_script)
-    elif args.jarm_script is not None:
-        raise OrchestrationError("--jarm-scriptは--collect-jarmとの併用が必要です。")
+        raise OrchestrationError("--collect-jarmは廃止済みです。active C2観測はNmap NSE-onlyです。")
+    if args.jarm_script is not None:
+        raise OrchestrationError("--jarm-scriptは廃止済みです。active C2観測はNmap NSE-onlyです。")
     vt_requested = args.fetch_virus_total_evidence
     legacy_requested = bool(
         args.legacy_valley_workflow

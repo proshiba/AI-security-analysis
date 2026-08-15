@@ -14,6 +14,10 @@ ValleyRATとPureRATの防御的エミュレーターについて、現在実装�
 | ValleyRAT Onyx terminal | `passive_loopback_sink` | numeric loopbackでHTTP request 1件を分類し、空bodyの204／400 ACKで終了 | 不可 | valid Onyx response、payload配信、task/result protocol |
 | PureRAT／PureHVNC 4.4.1 | `bounded_offline_host_emulation` | 匿名固定`GClass4` registration、最大1 frame分類。plugin result型`4`まで固定したoffline判断を提供 | 不可。`offline_or_loopback_only` | command result型、plugin／command result payload serializer |
 
+## C2検知との分離
+
+通常のC2検知はhost emulatorから分離し、`analysis-framework/nmap/nmap_c2_detector.py`を正式入口とします。ValleyRATのWinos／vvaS／N520は`valleyrat-c2.nse`、PureRAT 4.4.1 direct-TLSは`purerat-direct-tls.nse`へ固定し、19 methodの対応は`analysis-framework/nmap/profiles.json`で管理します。Nmap NSEが未登録またはNmapを利用できない場合、host emulatorやPython direct probeへfallbackしません。
+
 ## synthetic behaviorの実装境界
 
 synthetic behaviorは、wire byteを送るものとmetadataだけを返すものを分離しています。

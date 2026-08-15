@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -122,6 +124,45 @@ def test_authenticated_probe_rejects_command_injection() -> None:
             21,
             {"username": "user\r\nSTOR bad", "password": "secret"},
         )
+
+
+def test_cli_routes_ftp_observation_through_nmap_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load()
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "config_endpoints": [
+                    {"protocol": "ftp", "host": "ftp.example.test", "port": 21}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls: list[tuple[dict, dict]] = []
+
+    def fake_nmap(target: dict, **kwargs) -> dict:
+        calls.append((target, kwargs))
+        return {"status": "server_first_banner_observed", "network_contacted_by_nmap_scan": True}
+
+    monkeypatch.setattr(module, "probe_target_with_nmap", fake_nmap)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["c2_detector.py", str(config), "--probe-ftp", "--allow-network", "--nmap", "nmap-fixture"],
+    )
+    assert module.main() == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["network_execution_backend"] == "nmap_nse_only"
+    assert report["python_direct_probe_used"] is False
+    assert calls[0][0]["method"] == "passive_banner"
+    assert "send_hex" not in calls[0][0]
+    assert calls[0][1]["nmap_executable"] == "nmap-fixture"
+
 
 def test_multiline_ftp_banner_over_256_bytes_is_bounded_at_1024() -> None:
     module = _load()

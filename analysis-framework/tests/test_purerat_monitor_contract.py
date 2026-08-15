@@ -15,8 +15,8 @@ ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import monitor_recent_c2 as monitor
-from c2_protocol_probe_profiles import (
+import monitor_recent_c2 as monitor  # noqa: E402
+from c2_protocol_probe_profiles import (  # noqa: E402
     apply_profiles,
     profile_registry_metadata,
 )
@@ -307,17 +307,19 @@ def test_monitor_uses_dedicated_dispatch_redacts_secrets_and_reports_policy(
 
     def dedicated(
         _target: dict[str, Any],
-        allow_network: bool,
-        allow_legacy_tls: bool,
+        **kwargs: Any,
     ) -> dict[str, Any]:
-        dispatch_calls.append((allow_network, allow_legacy_tls))
-        return copy.deepcopy(injected)
+        dispatch_calls.append((kwargs["allow_network"], kwargs["allow_purerat_legacy_tls"]))
+        observation = copy.deepcopy(injected)
+        observation["execution_engine"] = "nmap_nse"
+        observation["status"] = "purerat_nse_certificate_match_tls_version_unverified"
+        observation["c2_confirmed"] = False
+        return observation
 
     def generic_forbidden(*_args: object, **_kwargs: object) -> Any:
         raise AssertionError("PureRATをgeneric probeへdispatchしてはいけません")
 
-    monkeypatch.setattr(monitor, "_purerat_direct_tls_observation", dedicated)
-    monkeypatch.setattr(monitor, "probe", generic_forbidden)
+    monkeypatch.setattr(monitor, "probe_target_with_nmap", dedicated)
     report = monitor.monitor(
         _plan(),
         allow_network=True,
@@ -326,11 +328,13 @@ def test_monitor_uses_dedicated_dispatch_redacts_secrets_and_reports_policy(
     assert dispatch_calls == [(True, True)]
     assert len(report["results"]) == 1
     result = report["results"][0]
-    assert result["assessment"]["state"] == "c2_protocol_confirmed"
-    assert result["assessment"]["c2_operational_confidence"] == 0.92
+    assert result["assessment"]["state"] == "purerat_certificate_observed_tls_version_unverified"
+    assert result["assessment"]["c2_operational_confidence"] == 0.0
     assert marker not in json.dumps(report, ensure_ascii=False)
     policy = report["policy"]
     assert policy["network_enabled"] is True
+    assert policy["network_execution_backend"] == "nmap_nse_only"
+    assert policy["python_direct_probe_used"] is False
     assert policy["purerat_legacy_tls_certificate_probe_enabled"] is True
     assert policy["maximum_response_bytes"] == 0
     assert policy["reviewed_protocol_probe_count"] == 1

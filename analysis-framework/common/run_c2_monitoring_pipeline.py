@@ -237,6 +237,10 @@ def main() -> int:
     )
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument(
+        "--nmap",
+        help="C2観測に使用するNmap実体。省略時はNMAP_EXE、固定候補、PATHの順で解決します。",
+    )
+    parser.add_argument(
         "--allow-reviewed-application-probes",
         action="store_true",
         help="完全一致AsyncRAT／VenomRAT profileの匿名Ping 1 frameを許可します。",
@@ -321,6 +325,7 @@ def main() -> int:
             allow_xloader_registration=args.allow_xloader_registration,
             private_credential_vault=args.private_credential_vault,
             xloader_private_material=args.xloader_private_material,
+            nmap_executable=args.nmap,
         )
         if rat_emulation is not None:
             rat_evidence, rat_evidence_sha256 = rat_emulation

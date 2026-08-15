@@ -40,13 +40,24 @@ def test_profiles_cover_reviewed_active_families() -> None:
     assert "darkcomet" in mapped
     assert "redlinestealer" in mapped
     assert "xloader" in mapped
-    assert len(mapped) == 11
+    assert {"formbook", "vidar", "amosstealer"} <= mapped
+    assert len(mapped) == 14
+
+    passive = {entry["family"]: entry for entry in mapping["passive_only_families"]}
+    assert set(passive) == {"formbook", "vidar", "amosstealer"}
+    assert all(entry["offline_detector"].endswith("stealer_protocol_evidence.py") for entry in passive.values())
+
+    assert mapping["schema_version"] == 2
+    assert mapping["execution_backend"] == "nmap_nse_only"
+    methods = {entry["method"] for entry in mapping["method_bindings"]}
+    assert len(methods) == mapping["network_method_count"] == 19
 
 
 def test_all_declared_scripts_exist_and_are_utf8() -> None:
     mapping = json.loads((NMAP_ROOT / "profiles.json").read_text(encoding="utf-8"))
     scripts = {entry["script"] for entry in mapping["canonical_families"]}
-    assert len(scripts) == 8
+    scripts.update(entry["script"] for entry in mapping["method_bindings"])
+    assert len(scripts) == 11
     for relative in scripts:
         path = NMAP_ROOT / relative
         assert path.is_file()
@@ -76,6 +87,15 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "c2_confirmed=matched" in redline
     assert 'checkconnect_result=result_text' in redline
     assert "result and 0.98 or 0.95" in redline
+
+    stealer = (NMAP_ROOT / "scripts" / "stealer-http-c2.nse").read_text(encoding="utf-8")
+    assert "redirect_ok=false" in stealer
+    assert "max_body_size=65536" in stealer
+    assert stealer.count("request_count=1") == 3
+    assert stealer.count("response_body_published=false") == 3
+    assert stealer.count("redirect_followed=false") == 3
+    assert "#response.body >= 41 and #response.body <= 8192" in stealer
+    assert 'content_type:match("application/octet%-stream")' in stealer
 
     xloader = (NMAP_ROOT / "scripts" / "xloader-c2.nse").read_text(encoding="utf-8")
     assert 'require "nmap"' not in xloader
@@ -149,5 +169,5 @@ def test_nmap_loopback_protocol_validation() -> None:
         pytest.skip("Nmap executableがないためloopback統合試験を省略します")
     report = _load_validator().verify_all(executable)
     assert report["external_network_used"] is False
-    assert report["case_count"] == 25
-    assert report["passed_count"] == 25
+    assert report["case_count"] == 31
+    assert report["passed_count"] == 31

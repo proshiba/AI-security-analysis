@@ -8,11 +8,12 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">c2_detector</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cc2_detector.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\c2_detector.py</a></td></tr></table>
-    <p><span class="code">C2生存確認とInternet&nbsp;scanner指紋を有界に収集する。<br>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/c2_detector.py">analysis-framework/common/c2_detector.py</a></td></tr></table>
+    <p><span class="code">C2観測の互換用offline&nbsp;preflightを生成する。<br>
 &nbsp;<br>
-既定動作はoffline&nbsp;preflightとし、live&nbsp;probeは明示許可を要求する。<br>
-後段payload取得、redirect追従、data実行は行わず、到達性とprotocol確認を分離する。</span></p>
+active&nbsp;network&nbsp;probeは廃止済みであり、`--allow-network`を指定しても接触しない。<br>
+外部targetの標準観測は`analysis-framework/nmap/nmap_c2_detector.py`から<br>
+allowlist済みNmap&nbsp;NSEだけを起動して行う。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -177,13 +178,13 @@ Data descriptors inherited from <a href="_markupbase.html#ParserBase">_markupbas
     allow_network: 'bool' = False
 ) -&gt; 'dict'</dt><dd><span class="code">helper出力を制限し、fail-closed&nbsp;cleanup付きでJARMを収集する。</span></dd></dl>
  <dl><dt><a name="-is_public_shodan_address"><strong>is_public_shodan_address</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">IPがShodanのInternet&nbsp;pivotとして公開対象かを返す。</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">CLI入力を検証し、probe結果をJSONで出力する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">CLI入力を検証し、互換用offline&nbsp;planをJSONで出力する。</span></dd></dl>
  <dl><dt><a name="-murmur3_32"><strong>murmur3_32</strong></a>(data: 'bytes', seed: 'int' = 0) -&gt; 'int'</dt><dd><span class="code">Shodan互換のMurmurHash3&nbsp;x86_32を計算する。</span></dd></dl>
  <dl><dt><a name="-mxgo_loopback_target"><strong>mxgo_loopback_target</strong></a>(host: 'str') -&gt; 'bool'</dt><dd><span class="code">MX-Goの能動protocol再現をlocal&nbsp;labだけへ制限する。</span></dd></dl>
  <dl><dt><a name="-open_bounded_connection"><strong>open_bounded_connection</strong></a>(args, result: 'dict') -&gt; 'socket.socket'</dt><dd><span class="code">直接socketまたはlocalhost&nbsp;SOCKS5&nbsp;tunnelを開く。</span></dd></dl>
  <dl><dt><a name="-parse_headers"><strong>parse_headers</strong></a>(raw: 'bytes') -&gt; 'tuple[int | None, dict[str, str], bytes]'</dt><dd><span class="code">有界HTTP応答からstatus、header、bodyを分離する。</span></dd></dl>
  <dl><dt><a name="-preflight_probe"><strong>preflight_probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">DNS、socket、subprocessを使わずprobe計画を記述する。</span></dd></dl>
- <dl><dt><a name="-probe"><strong>probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">offline既定と明示許可を守ってC2&nbsp;probeを実行する。</span></dd></dl>
+ <dl><dt><a name="-probe"><strong>probe</strong></a>(args) -&gt; 'dict'</dt><dd><span class="code">互換用offline&nbsp;planを返し、active観測はNmap&nbsp;NSEへ限定する。</span></dd></dl>
  <dl><dt><a name="-probe_udp"><strong>probe_udp</strong></a>(args, result: 'dict', started: 'float') -&gt; 'dict'</dt><dd><span class="code">空データグラム1件だけでUDP到達性を限定確認する。</span></dd></dl>
  <dl><dt><a name="-read_bounded"><strong>read_bounded</strong></a>(sock: 'socket.socket', maximum: 'int') -&gt; 'bytes'</dt><dd><span class="code">応答を指定上限まで読み込む。</span></dd></dl>
  <dl><dt><a name="-read_exact"><strong>read_exact</strong></a>(sock: 'socket.socket', size: 'int') -&gt; 'bytes'</dt><dd><span class="code">小さいprotocol&nbsp;fieldを指定長だけ読み、欠落時はfail-closedにする。</span></dd></dl>

@@ -6,7 +6,7 @@
 |---|---|
 | `analysis-framework/invoke_analysis.py` | 標準one-shotおよび旧ValleyRATフロー |
 | `analysis-framework/invoke_family_batch.py` | AgentTesla／RemcosRATの一括静的解析 |
-| `analysis-framework/common/import_ghidra_project.py` | Ghidra headless import |
+| `analysis-framework/common/import_ghidra_project.py` | Ghidra headless取込 |
 | `analysis-framework/tests/verify_known_families.py` | 既知AgentTesla／RemcosRAT回帰確認 |
 | `analysis-framework/malware/valleyrat/tests/verify_known_samples.py` | 既知ValleyRAT回帰確認 |
 
@@ -73,7 +73,7 @@ GHIDRA_HOME=/opt/ghidra \
 | `-MalwareType` | `--malware-type` |
 | `-VirusTotalApiKey` | `VT_API_KEY`を設定し、`--fetch-virus-total-evidence`を指定する。key値はCLI引数へ置かない |
 | `-AllowLiveC2Check` | `--allow-live-c2-check` |
-| `-CollectJarm` | `--collect-jarm --jarm-script <path>`。`--allow-live-c2-check`との併用必須 |
+| `-Nmap` | `--nmap <path>`。live C2観測に使うNmap実体。省略時は`NMAP_EXE`、固定候補、`PATH`の順で解決 |
 | `-ArchiveMode` | `--archive-mode {auto,raw,malwarebazaar}` |
 | `-AssessmentOnly` | `--assessment-only` |
 | `-LegacyValleyWorkflow` | `--legacy-valley-workflow` |
@@ -87,7 +87,7 @@ GHIDRA_HOME=/opt/ghidra \
 
 通常stageから`VT_API_KEY`、`TRIAGE_API_KEY`、`MAXMIND_LICENSE_KEY`、`GITHUB_TOKEN`、`GH_TOKEN`、`AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`、`AWS_SESSION_TOKEN`を既定除去し、専用stageへ明示overlayした値だけを渡します。
 
-live C2は`--allow-live-c2-check`とreview済みprofileの両方が必要です。target件数、port、protocol、送信hex、期待stage sizeを制限します。JARM収集には`--collect-jarm`に加えて、公式Salesforce JARMの`jarm.py`を`--jarm-script`で明示します。scriptは16 MiB以下の通常単一link fileに限定し、親pathを含むsymlink／reparse pointを拒否します。Windows固定pathへのfallbackは行わず、REMnux／Linux／別userのWindowsでも未指定ならfail-closedにします。
+live C2は`--allow-live-c2-check`とreview済みprofileの両方が必要です。実行backendは`analysis-framework/nmap/nmap_c2_detector.py`から起動するallowlist済みNmap NSEだけで、target、port、protocol、送信byte列、応答上限を中央profileへ固定します。`--collect-jarm`と`--jarm-script`は廃止済み互換引数で、指定すると外部接触前に拒否します。Nmapが解決できない場合やNSE bindingがない場合もPython socketへfallbackせずfail-closedです。
 
 ## Family batchの入力とidentity認証
 
@@ -118,7 +118,7 @@ python analysis-framework/invoke_family_batch.py \
   --sample-root /srv/malware-lab/AgentTesla
 ```
 
-## Ghidra headless import
+## Ghidra headless取込
 
 project名は安全な単一識別子、targetはpayload root内の通常file、project directoryはpayload tree外に限定します。既存の`.gpr`／`.rep`があれば拒否し、fresh project名を必須とします。成功後は新規`.gpr`が通常file、任意`.rep`が通常directoryで、いずれもsymlink／reparse pointでないことを確認します。
 
