@@ -3,9 +3,9 @@ local nmap = require "nmap"
 local stdnse = require "stdnse"
 
 description = [[
-VidarとAMOSについて、静的解析でレビュー済みのHTTP経路だけをHEAD要求で照合します。
+FormBook、Vidar、AMOSについて、静的解析でレビュー済みのHTTP経路だけをHEAD要求で照合します。
 profile ID、同値のacknowledgement、数値IPの明示pinがすべて一致する場合だけ通信します。
-要求body、端末情報、認証情報、登録値は送信せず、redirectも追跡しません。
+要求body、query、cookie、端末情報、認証情報、登録値は送信せず、redirectも追跡しません。
 経路一致はprobable判定に限定し、c2_confirmedは常にfalseです。
 ]]
 
@@ -23,8 +23,23 @@ local CONTROL_PATH = "/.well-known/asa-reviewed-route-negative-control-7f6d9e2b"
 local RESEARCH_USER_AGENT = "AI-security-analysis reviewed-route probe/1.0"
 local VIDAR_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win32) AppleWebKit/537.36 (KHTML, like Gecko) Edg/147.0.0.0"
+local FORMBOOK_USER_AGENT =
+  "Mozilla/5.0 (Linux; U; Android 4.1.2; en-us; Xoom Build/JZO54M) " ..
+  "AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30"
 
 local PROFILES = {
+  ["formbook-guloader-3f79-bootstrap-route-v1"] = {
+    family="formbook", mode="formbook", host_header="www.plantaonewsms.com.br", port=80,
+    sample_sha256="3f79dba83a2059c77f593c3247acf8f3d2b4c3e8a60f9ba1a656d0c04e600948",
+    evidence_source="guloader_xloader_static_bootstrap_record_12",
+    tls=false, paths={"/ximu/", CONTROL_PATH}, user_agent=FORMBOOK_USER_AGENT,
+    confidence=0.60, loopback=false
+  },
+  ["formbook-loopback-route-v1"] = {
+    family="formbook", mode="formbook", host_header="loopback.test", port=0,
+    tls=false, paths={"/a1b2/", CONTROL_PATH}, user_agent=FORMBOOK_USER_AGENT,
+    confidence=0.60, loopback=true
+  },
   ["vidar-3bb64d86-direct-route-v1"] = {
     family="vidar", mode="vidar", host_header="195.201.45.175", port=443,
     sample_sha256="3bb64d86bed8337443f4b6f6c981914dd7d94b6fa7b61709015f9698e13bc67c",
@@ -178,9 +193,9 @@ action = function(host, port)
   local acknowledgement = stdnse.get_script_args("stealer-route.acknowledge-profile")
   local expected_ip = stdnse.get_script_args("stealer-route.expected-ip")
   local profile = profile_id and PROFILES[profile_id] or nil
-  if mode ~= "vidar" and mode ~= "amos" then
+  if mode ~= "formbook" and mode ~= "vidar" and mode ~= "amos" then
     return stdnse.format_output(false,
-      "stealer-route.mode=vidar|amos が必要です")
+      "stealer-route.mode=formbook|vidar|amos が必要です")
   end
   if not profile or acknowledgement ~= profile_id or expected_ip ~= host.ip or mode ~= profile.mode then
     return stdnse.format_output(false,
@@ -217,7 +232,7 @@ action = function(host, port)
   end
 
   local matched = false
-  if not error_status and profile.family == "vidar" then
+  if not error_status and (profile.family == "formbook" or profile.family == "vidar") then
     matched = #responses == 2 and route_status(responses[1].status) and
       control_status(responses[2].status)
   elseif not error_status and profile.family == "amosstealer" then
@@ -227,10 +242,14 @@ action = function(host, port)
   local status
   if error_status then
     status = error_status
+  elseif matched and profile.family == "formbook" then
+    status = "formbook_reviewed_route_pair_match"
   elseif matched and profile.family == "vidar" then
     status = "vidar_reviewed_route_pair_match"
-  elseif matched then
+  elseif matched and profile.family == "amosstealer" then
     status = "amos_reviewed_ledger_pair_match"
+  elseif profile.family == "formbook" then
+    status = "formbook_reviewed_route_pair_mismatch"
   elseif profile.family == "vidar" then
     status = "vidar_reviewed_route_pair_mismatch"
   else

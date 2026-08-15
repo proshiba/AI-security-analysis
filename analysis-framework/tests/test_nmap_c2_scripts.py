@@ -49,7 +49,8 @@ def test_profiles_cover_reviewed_active_families() -> None:
     probable = {
         entry["family"]: entry for entry in mapping["profile_limited_probable_families"]
     }
-    assert set(probable) == {"vidar", "amosstealer"}
+    assert set(probable) == {"formbook", "vidar", "amosstealer"}
+    assert probable["formbook"]["maximum_request_count"] == 2
     assert probable["vidar"]["maximum_request_count"] == 2
     assert probable["amosstealer"]["maximum_request_count"] == 3
     assert all(entry["request_method"] == "HEAD" for entry in probable.values())
@@ -59,7 +60,7 @@ def test_profiles_cover_reviewed_active_families() -> None:
     assert mapping["schema_version"] == 2
     assert mapping["execution_backend"] == "nmap_nse_only"
     methods = {entry["method"] for entry in mapping["method_bindings"]}
-    assert len(methods) == mapping["network_method_count"] == 20
+    assert len(methods) == mapping["network_method_count"] == 21
 
 
 def test_all_declared_scripts_exist_and_are_utf8() -> None:
@@ -122,7 +123,7 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "formbook_terminal_profile_required_tcp_open_only" in xloader
 
     route = (NMAP_ROOT / "scripts" / "stealer-route-c2.nse").read_text(encoding="utf-8")
-    assert 'mode ~= "vidar" and mode ~= "amos"' in route
+    assert 'mode ~= "formbook" and mode ~= "vidar" and mode ~= "amos"' in route
     assert 'stdnse.get_script_args("stealer-route.profile-id")' in route
     assert 'stdnse.get_script_args("stealer-route.acknowledge-profile")' in route
     assert 'stdnse.get_script_args("stealer-route.expected-ip")' in route
@@ -130,12 +131,14 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "MAX_HEADER_BYTES = 4096" in route
     assert "MAX_REQUEST_BYTES = 512" in route
     assert "3bb64d86bed8337443f4b6f6c981914dd7d94b6fa7b61709015f9698e13bc67c" in route
+    assert "3f79dba83a2059c77f593c3247acf8f3d2b4c3e8a60f9ba1a656d0c04e600948" in route
     assert "6f33360d3a3dc60454a64d74e1ac586f6a184b3886df46471b10e520c5fe0644" in route
     assert "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301" in route
     assert "47cd98c6ae435a1a6aa518e29f9e407ca42c82c9f4b86ceee93cc85d7feeae98" in route
     assert route.count("socket:send(request)") == 1
     assert "profile.tls and \"ssl\" or \"tcp\"" in route
     assert "vidar_reviewed_route_pair_match" in route
+    assert "formbook_reviewed_route_pair_match" in route
     assert "amos_reviewed_ledger_pair_match" in route
     assert "confidence=0.60" in route
     assert "confidence=0.65" in route
@@ -211,5 +214,5 @@ def test_nmap_loopback_protocol_validation() -> None:
         pytest.skip("Nmap executableがないためloopback統合試験を省略します")
     report = _load_validator().verify_all(executable)
     assert report["external_network_used"] is False
-    assert report["case_count"] == 37
-    assert report["passed_count"] == 37
+    assert report["case_count"] == 39
+    assert report["passed_count"] == 39

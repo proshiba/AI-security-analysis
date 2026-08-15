@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "analysis_type": "formbook_xloader_http_route_fanout_review",
+  "classification_profile": "formbook_xloader_http_route_fanout",
+  "thresholds": {
+    "minimum_endpoint_count": 6,
+    "minimum_unique_route_count": 6,
+    "route_shape": "four_alphanumeric_characters",
+    "query_parameter_count": 2,
+    "same_route_post_required": true,
+    "same_user_agent_required": true,
+    "http_status_used": false
+  },
+  "published_observations": [
+    {
+      "capture_id": "mta-2026-04-13-007",
+      "source": "analysis-results/network-traffic/malware-traffic-analysis-net/2026-07-26/captures/mta-2026-04-13-007/protocol-observations.json",
+      "matched_endpoint_count": 15,
+      "unique_route_count": 15,
+      "query_get_count": 53,
+      "same_route_post_count": 198,
+      "query_parameter_count": 2,
+      "same_user_agent": true
+    },
+    {
+      "capture_id": "mta-2026-01-15-016",
+      "source": "analysis-results/network-traffic/malware-traffic-analysis-net/2026-07-26/captures/mta-2026-01-15-016/protocol-observations.json",
+      "matched_endpoint_count": 13,
+      "unique_route_count": 13,
+      "query_get_count": 197,
+      "same_route_post_count": 184,
+      "query_parameter_count": 2,
+      "same_user_agent": true
+    },
+    {
+      "capture_id": "mta-2025-09-05-029",
+      "source": "analysis-results/network-traffic/malware-traffic-analysis-net/2026-07-26/captures/mta-2025-09-05-029/protocol-observations.json",
+      "matched_endpoint_count": 13,
+      "unique_route_count": 13,
+      "query_get_count": 825,
+      "same_route_post_count": 175,
+      "query_parameter_count": 2,
+      "same_user_agent": true
+    },
+    {
+      "capture_id": "mta-2025-08-11-034",
+      "source": "analysis-results/network-traffic/malware-traffic-analysis-net/2026-07-26/captures/mta-2025-08-11-034/protocol-observations.json",
+      "matched_endpoint_count": 15,
+      "unique_route_count": 15,
+      "query_get_count": 62,
+      "same_route_post_count": 225,
+      "query_parameter_count": 2,
+      "same_user_agent": true
+    }
+  ],
+  "static_profile": {
+    "sample_sha256": "3f79dba83a2059c77f593c3247acf8f3d2b4c3e8a60f9ba1a656d0c04e600948",
+    "profile_id": "formbook-guloader-3f79-bootstrap-route-v1",
+    "bootstrap_record_index": 12,
+    "host": "www.plantaonewsms.com.br",
+    "port": 80,
+    "path": "/ximu/",
+    "request_methods_reviewed": [
+      "GET",
+      "POST"
+    ],
+    "runtime_url_seed_recovered": false,
+    "response_consumer_recovered": false,
+    "terminal_protocol_confirmed": false
+  },
+  "active_probe_policy": {
+    "script": "analysis-framework/nmap/scripts/stealer-route-c2.nse",
+    "mode": "formbook",
+    "request_method": "HEAD",
+    "maximum_request_count": 2,
+    "request_body_sent": false,
+    "query_sent": false,
+    "cookie_sent": false,
+    "redirect_followed": false,
+    "response_body_published": false,
+    "maximum_confidence": 0.6,
+    "c2_confirmation_allowed": false
+  },
+  "privacy": {
+    "route_values_published_from_pcaps": false,
+    "query_names_published": false,
+    "query_values_published": false,
+    "user_agent_values_published_from_pcaps": false,
+    "body_values_published": false,
+    "raw_packets_published": false
+  },
+  "execution_safety": {
+    "sample_executed": false,
+    "external_network_contacted": false,
+    "loopback_only_validation": true
+  }
+}

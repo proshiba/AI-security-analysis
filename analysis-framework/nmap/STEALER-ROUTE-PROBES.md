@@ -1,16 +1,18 @@
-# Vidar／AMOS経路差分プローブ
+# FormBook／Vidar／AMOS経路差分プローブ
 
 ## 目的
 
-[`stealer-route-c2.nse`](scripts/stealer-route-c2.nse)は、静的解析でレビュー済みのVidarおよびAMOSのHTTP経路を、陰性対照と比較します。TCP openだけを記録していた従来方式より識別力を高めますが、マルウェア固有の登録応答や暗号応答は確認しません。そのため一致時も`probable_c2=true`に限定し、`c2_confirmed=false`を維持します。
+[`stealer-route-c2.nse`](scripts/stealer-route-c2.nse)は、静的解析でレビュー済みのFormBook、Vidar、AMOSのHTTP経路を、陰性対照と比較します。TCP openだけを記録していた従来方式より識別力を高めますが、マルウェア固有の登録応答や暗号応答は確認しません。そのため一致時も`probable_c2=true`に限定し、`c2_confirmed=false`を維持します。
 
-FormBookは終端URI、鍵、応答契約が未回収です。404やroot pageだけでは実C2と64個のdecoyを区別できないため、[`xloader-c2.nse`](scripts/xloader-c2.nse)の`transport-only`を継続します。`xloader.variant=formbook`を指定すると、`formbook_terminal_profile_required_tcp_open_only`を返します。
+FormBookの終端鍵と暗号応答契約は未回収です。追加解析では、検体`3f79dba8…00948`のbootstrap record 12から`www[.]plantaonewsms[.]com[.]br/ximu/`と完全一致User-Agentを静的に確認しました。また4件の公開PCAPで、同一User-Agent、同じ2項目を持つGET、同じ4文字経路へのPOSTが13〜15 endpointへ広がるfan-outを確認しました。Nmapは候補を一斉送信せず、この単一review済み経路と陰性対照だけを比較します。
+追加解析の根拠と4件のPCAP集計は[`2026-08-15-formbook`](../../analysis-results/research/c2-protocol-profiles/2026-08-15-formbook/README.md)に記録しています。
+
 
 ## 安全境界
 
-- profile ID、同じ値のacknowledgement、`vidar`または`amos`のmode、対象と同じ数値IP pinが揃うまで、script固有のsocketを開きません。
-- production profileはTCP 443だけを許可します。script内で名前解決せず、operatorが指定した数値IPへだけ接続します。
-- Vidarは2回、AMOSは3回の`HEAD`要求に固定します。要求body、端末識別子、認証情報、cookie、収集dataは送信しません。
+- profile ID、同じ値のacknowledgement、`formbook`、`vidar`、`amos`のいずれかのmode、対象と同じ数値IP pinが揃うまで、script固有のsocketを開きません。
+- production profileはreview済みportだけを許可します。script内で名前解決せず、operatorが指定した数値IPへだけ接続します。
+- FormBook／Vidarは2回、AMOSは3回の`HEAD`要求に固定します。要求body、query、端末識別子、認証情報、cookie、収集dataは送信しません。
 - redirect、応答body、task、payloadは追跡しません。公開結果にcampaign IDや生の応答headerを含めません。
 - profileにないhost、path、User-Agentを引数で上書きできません。
 - 許可済み監視対象だけに使用します。検体や復号payloadは実行しません。
@@ -18,6 +20,8 @@ FormBookは終端URI、鍵、応答契約が未回収です。404やroot pageだ
 ## 判定条件
 
 Vidarは、レビュー済みroot経路が`200`、`204`、`401`、`403`、`405`のいずれかで、固定陰性対照が`400`、`404`、`410`のいずれかの場合に限り、confidence 0.60のprobable判定とします。静的根拠は、検体`3bb64d86…13bc67c`から復元したdirect IPと完全一致User-Agentです。Telegram／Steamのdead-drop候補へは接続しません。
+FormBookは、review済み`/ximu/`が`200`、`204`、`401`、`403`、`405`のいずれかで、固定陰性対照が`400`、`404`、`410`のいずれかの場合に限り、confidence 0.60のprobable判定とします。review済み経路が404の場合、陰性対照と同じ応答の場合、またはprofile外の4文字経路では昇格しません。公開PCAPのfan-out判定は受動解析専用で、Nmapが13〜15 endpointへ接続することはありません。
+
 
 AMOSは、同一campaignの`/ledger/<id>`と`/ledger/live/<id>`の両方が上記の経路statusを返し、固定陰性対照が不存在statusを返す場合に限り、confidence 0.65のprobable判定とします。3検体から復元したsame-hostの経路対だけを許可します。
 
@@ -30,6 +34,14 @@ AMOSは、同一campaignの`/ledger/<id>`と`/ledger/live/<id>`の両方が上�
 ```powershell
 nmap -n -sT -Pn -p 443 --script .\analysis-framework\nmap\scripts\stealer-route-c2.nse `
   --script-args "stealer-route.mode=vidar,stealer-route.profile-id=vidar-3bb64d86-direct-route-v1,stealer-route.acknowledge-profile=vidar-3bb64d86-direct-route-v1,stealer-route.expected-ip=<approved-numeric-ip>" `
+  <approved-numeric-ip>
+```
+
+FormBookの固定profileは次のように指定します。対象はoperatorが承認した数値IPへ置換します。
+
+```powershell
+nmap -n -sT -Pn -p 80 --script .\analysis-framework\nmap\scripts\stealer-route-c2.nse `
+  --script-args "stealer-route.mode=formbook,stealer-route.profile-id=formbook-guloader-3f79-bootstrap-route-v1,stealer-route.acknowledge-profile=formbook-guloader-3f79-bootstrap-route-v1,stealer-route.expected-ip=<approved-numeric-ip>" `
   <approved-numeric-ip>
 ```
 
@@ -51,4 +63,4 @@ py -3.13 -B .\analysis-framework\nmap\verify_nse.py `
 py -3.13 -B -m pytest -q .\analysis-framework\tests\test_nmap_c2_scripts.py
 ```
 
-検証器はVidarの一致／不一致を各1件、AMOSの一致／不一致を各1件、FormBookのno-sendを1件含む36件を、numeric localhostだけで実行します。
+検証器はFormBook、Vidar、AMOSの一致／不一致を各1件、FormBook transportのno-sendを1件含む38件を、numeric localhostだけで実行します。
