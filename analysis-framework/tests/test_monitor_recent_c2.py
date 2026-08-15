@@ -40,10 +40,8 @@ def plan() -> dict:
 def test_tls_success_separates_reachability_from_c2_confidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_probe(args):
-        assert args.allow_network is True
-        assert args.send_hex is None
-        assert args.n520_checkin is False
+    def fake_probe(_target, **kwargs):
+        assert kwargs["allow_network"] is True
         return {
             "timestamp_utc": "2026-08-02T00:00:00+00:00",
             "status": "tls_connected",
@@ -55,7 +53,7 @@ def test_tls_success_separates_reachability_from_c2_confidence(
             "tls": {"version": "TLSv1.3"},
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "probe", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(plan(), allow_network=True)
     assessment = result["results"][0]["assessment"]
     assert assessment["state"] == "tls_endpoint_reachable_c2_not_confirmed"
@@ -130,8 +128,8 @@ def test_markdown_is_japanese_and_states_confidence_limit(
 ) -> None:
     monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: {
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
             "timestamp_utc": "2026-08-02T00:00:00+00:00",
             "status": "tcp_connect_only",
             "tcp_status": "open",
@@ -161,8 +159,8 @@ def test_markdown_renders_old_to_new_ip_with_as_geo_and_tags(
 ) -> None:
     monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: {
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
             "timestamp_utc": "2026-08-02T00:00:00+00:00",
             "status": "tcp_connect_only",
             "tcp_status": "open",
@@ -227,14 +225,18 @@ def test_dns_resolve_does_not_connect_to_c2_service(
         }
     )
     monkeypatch.setattr(
-        monitor_recent_c2.socket,
-        "getaddrinfo",
-        lambda *_args, **_kwargs: [(2, 1, 6, "", ("203.0.113.10", 0))],
-    )
-    monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: pytest.fail("DNS-only観測でC2 serviceへ接続してはいけない"),
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "dns_resolved",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "resolved_ips": ["203.0.113.10"],
+        },
     )
     result = monitor_recent_c2.monitor(value, allow_network=True)
     entry = result["results"][0]
@@ -294,19 +296,24 @@ def test_winos_heartbeat_confirms_only_reviewed_frame(
     )
     monkeypatch.setattr(
         monitor_recent_c2,
-        "_probe_winos_reviewed",
-        lambda profile, allow, registry_sha256: {
-            "connected": True,
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "winos_control_response",
+            "alive": True,
+            "c2_confirmed": True,
+            "confidence": 0.95,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+            "application_data_sent": True,
             "sent_bytes": 15,
             "received_bytes": 15,
-            "dns_answers": ["134.122.185.201"],
+            "resolved_ips": ["134.122.185.201"],
             "pinned_ip": "134.122.185.201",
             "channel_role": "control",
-            "response": {
+            "winos_response": {
                 "declared_length": 15,
                 "command": 0xC9,
-                "role": "heartbeat_or_status",
-                "complete": True,
             },
         },
     )
@@ -332,31 +339,30 @@ def test_winos_ip_literal_dispatch_keeps_exact_profile_and_registry_pin(
     )
     expected_pin = value["protocol_profile_registry"]["sha256"]
 
-    def fake_probe(profile, allow_network, registry_sha256):
-        assert allow_network is True
-        assert registry_sha256 == expected_pin
+    def fake_probe(target, **kwargs):
+        assert kwargs["allow_network"] is True
+        assert target["protocol_profile_registry_sha256"] == expected_pin
+        profile = c2_protocol_probe_profiles.resolve_profile(profile_id, target["host"], target["port"])
         assert profile["profile_id"] == profile_id
         assert profile["host"] == profile["pinned_ips"][0] == "64.81.30.192"
         assert profile["channel_role"] == "stage_and_control"
         return {
-            "connected": True,
+            "execution_engine": "nmap_nse", "status": "winos_control_response",
+            "alive": True, "c2_confirmed": True, "confidence": 0.95,
+            "target_contact_attempted": True, "target_connection_established": True,
+            "application_data_sent": True,
             "sent_bytes": 15,
             "received_bytes": 15,
             "dns_answers": ["64.81.30.192"],
             "pinned_ip": "64.81.30.192",
             "channel_role": "stage_and_control",
-            "response": {
-                "declared_length": 15,
-                "command": 0xC9,
-                "role": "heartbeat_or_status",
-                "complete": True,
-            },
+            "winos_response": {"declared_length": 15, "command": 0xC9},
             "stage_requested": False,
             "victim_metadata_sent": False,
             "operation_command_sent": False,
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "_probe_winos_reviewed", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(value, allow_network=True)
     entry = result["results"][0]
 
@@ -381,13 +387,11 @@ def test_vvas_uses_registry_payload_without_stage_request(
         "vvas_checkin",
     )
 
-    def fake_probe(args):
-        assert args.send_hex == "333200"
-        assert args.expected_stage_size == 307214
-        assert args.expected_header_size == 14
-        assert args.max_bytes == 64
-        assert args.artifact_zip is None
+    def fake_probe(target, **kwargs):
+        assert target["protocol_profile_id"] == "valleyrat-vvas-8bf54-6666"
+        assert kwargs["allow_network"] is True
         return {
+            "execution_engine": "nmap_nse",
             "timestamp_utc": "2026-08-02T00:00:00+00:00",
             "status": "confirmed_vvas_c2",
             "alive": True,
@@ -399,7 +403,7 @@ def test_vvas_uses_registry_payload_without_stage_request(
             "resolved_ips": ["202.95.8.27"],
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "probe", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(value, allow_network=True)
     assert "sent_hex" not in result["results"][0]["observation"]
     assert result["results"][0]["assessment"]["state"] == "c2_protocol_confirmed"
@@ -443,8 +447,8 @@ def test_markdown_uses_limited_scope_title(
 ) -> None:
     monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: {
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
             "timestamp_utc": "2026-08-04T00:00:00+00:00",
             "status": "tcp_connect_only",
             "tcp_status": "open",
@@ -474,9 +478,9 @@ def test_asyncrat_certificate_mismatch_does_not_exclude_c2(
         "asyncrat_tls_messagepack",
     )
 
-    def fake_probe(_profile, **kwargs):
+    def fake_probe(_target, **kwargs):
         assert kwargs["allow_network"] is True
-        assert kwargs["allow_application_probe"] is False
+        assert kwargs["allow_application_probes"] is False
         return {
             "timestamp_utc": "2026-08-04T00:00:00+00:00",
             "status": "tls_handshake_only_application_probe_disabled",
@@ -498,7 +502,7 @@ def test_asyncrat_certificate_mismatch_does_not_exclude_c2(
             "certificate_mismatch_excludes_c2": False,
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_tls_messagepack", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(value, allow_network=True)
     observation = result["results"][0]["observation"]
     assert observation["tls"]["certificate"]["state"] == "mismatch_inconclusive"
@@ -518,8 +522,8 @@ def test_venomrat_application_probe_requires_separate_flag(
         "venomrat_tls_messagepack",
     )
 
-    def fake_probe(_profile, **kwargs):
-        assert kwargs["allow_application_probe"] is True
+    def fake_probe(_target, **kwargs):
+        assert kwargs["allow_application_probes"] is True
         return {
             "timestamp_utc": "2026-08-04T00:00:00+00:00",
             "status": "confirmed_tls_messagepack_c2",
@@ -570,7 +574,7 @@ def test_venomrat_application_probe_requires_separate_flag(
             "resolved_ips": ["93.184.216.34"],
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_tls_messagepack", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     result = monitor_recent_c2.monitor(
         value,
         allow_network=True,
@@ -614,27 +618,20 @@ def test_agenttesla_accepted_credential_confirms_protocol(
     vault = tmp_path / "private.json"
     vault.write_text("{}", encoding="utf-8")
 
-    class FakeAgentTeslaModule:
-        @staticmethod
-        def load_private_ftp_credential(*_args):
-            return {"username": "fixture-user", "password": "fixture-password"}
-
-        @staticmethod
-        def probe_ftp_authenticated(*_args, **_kwargs):
-            return {
-                "authentication_accepted": True,
-                "commands_sent": ["USER", "PASS", "QUIT"],
-                "banner": {"code": "220", "raw_text_published": False},
-                "user_reply_code": "331",
-                "pass_reply_code": "230",
-                "quit_reply_code": "221",
-                "resolved_addresses": ["93.184.216.34"],
-            }
-
     monkeypatch.setattr(
         monitor_recent_c2,
-        "_load_agenttesla_c2_module",
-        lambda: FakeAgentTeslaModule,
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse", "status": "sample_credential_ftp_login_succeeded",
+            "alive": True, "c2_confirmed": True, "confidence": 0.95,
+            "target_contact_attempted": True, "target_connection_established": True,
+            "application_data_sent": True, "authentication_attempted": True,
+            "authentication_accepted": True, "commands_sent": ["USER", "PASS", "QUIT"],
+            "banner": {"code": "220", "raw_text_published": False},
+            "user_reply_code": 331, "pass_reply_code": 230, "quit_reply_code": 221,
+            "resolved_ips": ["93.184.216.34"], "file_transfer_attempted": False,
+            "credential_material_published": False,
+        },
     )
     result = monitor_recent_c2.monitor(
         value,
@@ -674,15 +671,18 @@ def test_agenttesla_invalid_private_vault_is_not_a_negative_c2_observation(
     vault = tmp_path / "invalid.json"
     vault.write_text("{}", encoding="utf-8")
 
-    class InvalidVaultModule:
-        @staticmethod
-        def load_private_ftp_credential(*_args):
-            raise ValueError("invalid private vault")
-
     monkeypatch.setattr(
         monitor_recent_c2,
-        "_load_agenttesla_c2_module",
-        lambda: InvalidVaultModule,
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "private_credential_vault_error",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+        },
     )
     result = monitor_recent_c2.monitor(
         value,
@@ -713,9 +713,10 @@ def test_stealc_registration_and_tasking_require_separate_gate(
 
     calls = []
 
-    def fake_probe(profile, **kwargs):
-        calls.append((profile["profile_id"], kwargs))
+    def fake_probe(target, **kwargs):
+        calls.append((target["protocol_profile_id"], kwargs))
         return {
+            "execution_engine": "nmap_nse",
             "status": "confirmed_stealc_registration_task",
             "alive": True,
             "c2_confirmed": True,
@@ -725,8 +726,8 @@ def test_stealc_registration_and_tasking_require_separate_gate(
             "protocol_response_received": True,
             "registration_attempted": True,
             "registration_accepted": True,
-            "task_poll_attempted": True,
-            "task_response_received": True,
+            "task_poll_attempted": False,
+            "task_response_received": False,
             "task_available": False,
             "task_content_published": False,
             "task_executed": False,
@@ -734,22 +735,22 @@ def test_stealc_registration_and_tasking_require_separate_gate(
             "victim_metadata_sent": False,
             "synthetic_identity_sent": True,
             "resolved_ips": ["31.77.228.62"],
-            "request_count": 2,
+            "request_count": 1,
         }
 
-    monkeypatch.setattr(monitor_recent_c2, "probe_reviewed_stealer_registration", fake_probe)
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
     enabled = monitor_recent_c2.monitor(value, allow_network=True, allow_malware_registration=True)
     assert calls[0][1]["allow_network"] is True
-    assert calls[0][1]["allow_registration_tasking"] is True
+    assert calls[0][1]["allow_malware_registration"] is True
     assert enabled["results"][0]["assessment"]["state"] == "c2_protocol_confirmed"
     assert enabled["policy"]["registration_attempted_count"] == 1
     assert enabled["policy"]["maximum_response_bytes"] == 16384
-    assert enabled["policy"]["maximum_application_requests_per_target"] == 2
-    assert enabled["policy"]["task_poll_attempted_count"] == 1
+    assert enabled["policy"]["maximum_application_requests_per_target"] == 3
+    assert enabled["policy"]["task_poll_attempted_count"] == 0
     assert enabled["policy"]["task_content_published"] is False
     assert enabled["policy"]["task_executed"] is False
     assert enabled["policy"]["payload_download_attempted"] is False
-    assert "task本文・token・合成IDは公開せず" in monitor_recent_c2.render_markdown(enabled)
+    assert enabled["policy"]["command_polling_performed"] is False
 
 
 def test_profile_required_performs_dns_only_and_keeps_c2_unverified(
@@ -768,14 +769,18 @@ def test_profile_required_performs_dns_only_and_keeps_c2_unverified(
         }
     )
     monkeypatch.setattr(
-        monitor_recent_c2.socket,
-        "getaddrinfo",
-        lambda *_args, **_kwargs: [(2, 1, 6, "", ("203.0.113.20", 0))],
-    )
-    monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: pytest.fail("profile未登録endpointへTCP接続してはいけない"),
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "dns_resolved",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "resolved_ips": ["203.0.113.20"],
+        },
     )
 
     result = monitor_recent_c2.monitor(value, allow_network=True)

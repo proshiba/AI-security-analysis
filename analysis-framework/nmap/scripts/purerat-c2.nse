@@ -41,6 +41,9 @@ action = function(host, port)
     prelude_hex="04000000", certificate_sha256=observed,
     certificate_exact_match=certificate_exact_match,
     certificate_mismatch_excludes_c2=false, victim_metadata_sent=false,
-    registration_attempted=false, task_poll_attempted=false
+    application_data_sent=true, plaintext_prelude_sent=true,
+    sent_bytes=4, request_count=1, registration_attempted=false,
+    task_poll_attempted=false, task_executed=false,
+    payload_download_attempted=false
   }
 end

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module nmap.verify_nse</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="nmap.html" class="white">nmap</a>.verify_nse</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/nmap/verify_nse.py">analysis-framework/nmap/verify_nse.py</a></td></tr></table>
+    <p><span class="code">loopback模擬C2へNmap&nbsp;NSEを接続し、protocol送受信を統合検証する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="base64.html">base64</a><br>
+<a href="gzip.html">gzip</a><br>
+<a href="cryptography.hazmat.primitives.hashes.html">cryptography.hazmat.primitives.hashes</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="cryptography.hazmat.primitives.asymmetric.rsa.html">cryptography.hazmat.primitives.asymmetric.rsa</a><br>
+<a href="cryptography.hazmat.primitives.serialization.html">cryptography.hazmat.primitives.serialization</a><br>
+<a href="shutil.html">shutil</a><br>
+<a href="socket.html">socket</a><br>
+</td><td class="multicolumn"><a href="ssl.html">ssl</a><br>
+<a href="struct.html">struct</a><br>
+<a href="subprocess.html">subprocess</a><br>
+<a href="tempfile.html">tempfile</a><br>
+<a href="threading.html">threading</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+<a href="cryptography.x509.html">cryptography.x509</a><br>
+<a href="zlib.html">zlib</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="nmap.verify_nse.html#OneShotServer">OneShotServer</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="OneShotServer">class <strong>OneShotServer</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#OneShotServer">OneShotServer</a>(handler:&nbsp;'Handler')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+localhostで1&nbsp;connectionだけ処理する試験server。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="OneShotServer-__init__"><strong>__init__</strong></a>(self, handler: 'Handler') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="OneShotServer-finish"><strong>finish</strong></a>(self) -&gt; 'None'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">全NSEをnumeric&nbsp;loopback&nbsp;fixtureで検証し、結果をJSONで出力する。</span></dd></dl>
+ <dl><dt><a name="-verify_all"><strong>verify_all</strong></a>(nmap_value: 'str | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">30&nbsp;caseで汎用transport、RedLine、XLoaderを含むNSEを外部networkなしで検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>Handler</strong> = collections.abc.Callable[[socket.socket], None]<br>
+<strong>ROOT</strong> = WindowsPath('&lt;repository&gt;/analysis-framework/nmap')<br>
+<strong>SCRIPTS</strong> = WindowsPath('&lt;repository&gt;/analysis-framework/nmap/scripts')<br>
+<strong>UTC</strong> = datetime.timezone.utc</td></tr></table>
+</body></html>

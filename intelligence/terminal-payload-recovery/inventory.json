@@ -7107,6 +7107,44 @@
     },
     {
       "blockers": [
+        "human_documented_terminal_gap",
+        "root_to_terminal_byte_derivation_incomplete"
+      ],
+      "canonical_path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
+      "evidence": [
+        {
+          "locator": "line:31",
+          "path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c/README.md",
+          "source": "human_readable_case_document",
+          "summary": "- terminal payload: 未回収"
+        },
+        {
+          "locator": "line:176",
+          "path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c/STATIC-LOGIC.md",
+          "source": "human_readable_case_document",
+          "summary": "3. record grammarと後続payloadへの対応は未回収です。"
+        },
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c/report.json",
+          "source": "structured_case_report",
+          "summary": "root_to_terminal_byte_derivation_incomplete"
+        }
+      ],
+      "family": "purehvnc",
+      "gap_types": [
+        "static_recovery_incomplete",
+        "terminal_payload_unrecovered"
+      ],
+      "observation_date": "2026-08-13",
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
         "human_documented_terminal_gap"
       ],
       "canonical_path": "analysis-results/malware/purehvnc/versions/unknown/cases/d82fd1f36b81436d7fd9096cec50e2d08dbe148680ff1281e59b10d0fe806448",
@@ -16855,11 +16893,11 @@
       ]
     },
     {
-      "case_count": 2,
-      "explicit_unrecovered_count": 2,
+      "case_count": 3,
+      "explicit_unrecovered_count": 3,
       "family": "purehvnc",
-      "latest_local_observation": "2026-08-07",
-      "latest_local_sha256": "d82fd1f36b81436d7fd9096cec50e2d08dbe148680ff1281e59b10d0fe806448",
+      "latest_local_observation": "2026-08-13",
+      "latest_local_sha256": "c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
       "malwarebazaar_signature_candidates": [
         "PureHVNC",
         "PureRAT"
@@ -16875,7 +16913,8 @@
       "source_material_absent_count": 0,
       "top_blockers": [
         "human_documented_terminal_gap",
-        "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2"
+        "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2",
+        "root_to_terminal_byte_derivation_incomplete"
       ]
     },
     {
@@ -17648,14 +17687,14 @@
     "curated_active_count": 72,
     "curated_source_absent_count": 5,
     "family_count": 39,
-    "gap_case_count": 678,
-    "human_document_match_count": 616,
+    "gap_case_count": 679,
+    "human_document_match_count": 617,
     "state_counts": {
       "curated_recovery_backlog": 55,
-      "explicit_unrecovered": 618,
+      "explicit_unrecovered": 619,
       "source_material_absent": 5
     },
-    "structured_report_match_count": 16,
+    "structured_report_match_count": 17,
     "structured_terminal_completion_count": 22
   },
   "source_paths": [

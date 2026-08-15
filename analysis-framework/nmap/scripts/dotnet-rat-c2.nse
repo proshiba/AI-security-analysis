@@ -122,8 +122,11 @@ action = function(host, port)
     confidence=matched and 0.98 or 0.55,
     status=matched and "messagepack_ping_response_match" or "messagepack_response_mismatch",
     response_packet=packet, sent_bytes=#frame, received_bytes=4+#payload,
+    application_data_sent=true, request_count=1,
     certificate_sha256=cert_sha256, certificate_exact_match=cert_match,
     certificate_mismatch_excludes_c2=false, victim_metadata_sent=false,
-    operation_command_sent=false, command_polling_performed=false
+    operation_command_sent=false, command_polling_performed=false,
+    registration_attempted=false, task_poll_attempted=false,
+    task_executed=false, payload_download_attempted=false
   }
 end

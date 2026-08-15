@@ -3,6 +3,8 @@
 ## 目的
 
 `analysis-results`全体のIOC履歴から`.onion`以外の通常IP／FQDNを抽出し、限定したC2候補へのライブチェック、MaxMind GeoLite2 City/ASN照合、DNS/IP遷移の分類、継続監視対象の更新、機械可読JSONと日本語Markdownの生成を一連の手順で実行します。今後のC2監視では、対象漏れ、Geo/AS、DNS履歴、停止履歴の付与漏れを防ぐため、この抽出器と統合ランナーを標準経路として使います。
+C2候補への接触backendはNmap NSEだけです。統合runnerは`--nmap`を`monitor_recent_c2.py`へ渡し、Pythonの直接socket probeへfallbackしません。Nmapが見つからない場合やmethodにNSE bindingがない場合はfail-closedで未観測として記録します。
+
 
 統合runnerが通常実行するのは、endpointごとに1回だけのbounded probeです。対話型RATの登録後にcommandを待つhost emulatorは、このdaily runner内で起動せず、[`run_defensive_rat_emulator.py`](run_defensive_rat_emulator.py)による独立した短時間sessionとして実行します。通常probeとhost emulatorの安全境界は[C2定期モニタリング手順](C2-MONITORING.md)、エミュレーターの詳細は[防御的RATホストエミュレーター](../docs/RAT-C2-HOST-EMULATOR.md)を参照してください。
 
@@ -25,6 +27,7 @@ py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
   --output-directory analysis-results\research\c2-monitoring\YYYY-MM-DD `
   --history-root analysis-results\research\c2-monitoring `
   --maxmind-cache-dir C:\Users\Administrator\MalwareSamples\maxmind\current `
+  --nmap C:\Tools\Nmap\nmap.exe `
   --allow-network `
   --allow-malware-registration-tasking
 ```
@@ -103,6 +106,7 @@ host emulatorのcommand受信は`protocol_activity_tracking`へ肯定証拠と�
 
 ## 安全境界
 
+- C2検知のDNS／TCP／TLS／HTTP／FTP／malware固有protocolはNmap NSEだけで実行し、Python direct probeは使用しません。host emulatorとartifact取得は別機能であり、C2検知へ混在させません。
 - 監視対象は`effective-targets.json`に列挙した完全一致host/portだけです。port不明hostは`dns_resolve`としてDNSだけを観測し、C2 serviceへ接続しません。`.onion`は対象へ含めません。
 - 1対象1回の限定観測、最大5秒です。応答は原則最大256 byte、完全一致AgentTesla FTP認証は最大1024 byteです。StealC／Lumma／Remusは最大3秒・計2 HTTP要求とし、応答上限をそれぞれ16,384／65,536／8,192 byteへ固定します。raw本文は保存しません。
 - 既知のmalware固有protocolは`c2_protocol_probe_profiles.json`の完全一致profileだけを使用します。送信内容を`targets.json`へ直接指定することはできません。

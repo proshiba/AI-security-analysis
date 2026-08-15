@@ -58,22 +58,22 @@ def manifest() -> dict:
 def test_deduplicates_probe_and_associates_every_sample(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
 
-    def fake_probe(args):
-        calls.append(args)
+    def fake_probe(target, **kwargs):
+        calls.append((target, kwargs))
         return {
             "status": "tcp_open_no_banner",
+            "execution_engine": "nmap_nse",
             "alive": True,
             "c2_confirmed": False,
-            "network_contacted": True,
+            "target_contact_attempted": True,
             "application_data_sent": False,
-            "sample_sha256s": args.sample_sha256,
-            "target_role": args.target_role,
         }
 
-    monkeypatch.setattr(c2_validation, "probe", fake_probe)
+    monkeypatch.setattr(c2_validation, "probe_target_with_nmap", fake_probe)
     value = c2_validation.validate_candidates(manifest(), allow_network=True)
     assert len(calls) == 1
-    assert calls[0].sample_sha256 == ["a" * 64, "b" * 64]
+    assert calls[0][0]["sample_sha256s"] == ["a" * 64, "b" * 64]
+    assert calls[0][1]["allow_network"] is True
     assert value["sample_count"] == 3
     assert value["unique_probe_count"] == 1
     assert value["samples"][0]["candidate_results"][0]["deduplicated_probe"] is True
@@ -104,7 +104,7 @@ def test_non_c2_endpoint_is_not_contacted_by_default(monkeypatch: pytest.MonkeyP
     ]
     monkeypatch.setattr(
         c2_validation,
-        "probe",
+        "probe_target_with_nmap",
         lambda _args: pytest.fail("non-C2 endpoint must be skipped"),
     )
     result = c2_validation.validate_candidates(value, allow_network=True)
@@ -115,7 +115,7 @@ def test_non_c2_endpoint_is_not_contacted_by_default(monkeypatch: pytest.MonkeyP
     assert result["samples"][0]["non_c2_connection_validation_status"] == "not_performed_by_policy"
 
 
-def test_tor_candidate_uses_loopback_socks5(
+def test_tor_candidate_is_not_contacted_outside_nmap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     value = {
@@ -138,30 +138,18 @@ def test_tor_candidate_uses_loopback_socks5(
             }
         ],
     }
-    calls = []
-
-    def fake_probe(args):
-        calls.append(args)
-        return {
-            "status": "tcp_open_no_banner",
-            "alive": True,
-            "c2_confirmed": False,
-            "network_contacted": True,
-            "application_data_sent": False,
-            "target_role": args.target_role,
-            "sample_sha256s": args.sample_sha256,
-        }
-
-    monkeypatch.setattr(c2_validation, "probe", fake_probe)
+    monkeypatch.setattr(c2_validation, "probe_target_with_nmap", lambda *_args, **_kwargs: pytest.fail(
+        "unsupported transport must not invoke Nmap"
+    ))
     result = c2_validation.validate_candidates(value, allow_network=True)
     sample = result["samples"][0]
-    assert sample["connection_validation_status"] == "performed"
-    assert calls[0].proxy_host == "127.0.0.1"
-    assert calls[0].proxy_port == 9050
-    assert sample["candidate_results"][0]["transport"] == "tor-socks5"
+    candidate = sample["candidate_results"][0]
+    assert sample["connection_validation_status"] == "not_performed_by_policy"
+    assert candidate["status"] == "nmap_transport_unsupported"
+    assert candidate["target_contact_attempted"] is False
 
 
-def test_udp_candidate_is_allowed_only_with_direct_transport(
+def test_udp_candidate_is_not_contacted_outside_nmap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     value = manifest()
@@ -177,21 +165,15 @@ def test_udp_candidate_is_allowed_only_with_direct_transport(
             "source": "静的sockaddr",
         }],
     }]
-    calls = []
-    monkeypatch.setattr(
-        c2_validation,
-        "probe",
-        lambda args: calls.append(args) or {
-            "status": "udp_no_response_indeterminate",
-            "network_contacted": True,
-            "application_data_sent": False,
-            "target_role": args.target_role,
-            "sample_sha256s": args.sample_sha256,
-        },
-    )
+    monkeypatch.setattr(c2_validation, "probe_target_with_nmap", lambda *_args, **_kwargs: pytest.fail(
+        "unsupported UDP must not invoke Nmap"
+    ))
     result = c2_validation.validate_candidates(value, allow_network=True)
-    assert calls[0].protocol == "udp"
-    assert result["samples"][0]["connection_validation_status"] == "performed"
+    candidate = result["samples"][0]["candidate_results"][0]
+    assert candidate["status"] == "nmap_udp_transport_unsupported"
+    assert candidate["target_contact_attempted"] is False
+    assert result["policy"]["network_execution_backend"] == "nmap_nse_only"
+    assert result["policy"]["python_direct_probe_used"] is False
 
 
 @pytest.mark.parametrize(

@@ -46,13 +46,23 @@ def _state(tmp_path: Path) -> dict:
         "method_ceilings": {"fixture_method": 0.95},
         "method_labels": {"fixture_method": "fixture malware固有probe"},
         "nmap_mapping": {
-            "schema_version": 1,
+            "schema_version": 2,
             "canonical_families": [
                 {
                     "family": "fixturefamily",
                     "aliases": [],
                     "script": script,
                     "modes": ["fixture"],
+                }
+            ],
+            "execution_backend": "nmap_nse_only",
+            "network_method_count": 1,
+            "method_bindings": [
+                {
+                    "method": "fixture_method",
+                    "script": script,
+                    "mode": "fixture",
+                    "confirmation_allowed": True,
                 }
             ],
         },
@@ -66,6 +76,9 @@ def test_repository_active_integration_has_no_cross_layer_drift() -> None:
     assert report["status"] == "pass", report["errors"]
     assert report["summary"]["handler_count"] >= 10
     assert report["summary"]["reviewed_profile_count"] >= 15
+    assert report["summary"]["nmap_method_binding_count"] == len(
+        audit_module.monitor_module.ALLOWED_METHODS
+    )
 
 
 def test_capability_without_reviewed_endpoint_is_warning_not_activation(
@@ -153,11 +166,23 @@ def test_nmap_modes_must_be_present_unique_and_canonical(
 def test_nmap_declared_mode_must_match_script_dispatch(tmp_path: Path) -> None:
     state = _state(tmp_path)
     state["nmap_mapping"]["canonical_families"][0]["modes"] = ["missing"]
+    state["nmap_mapping"]["method_bindings"][0]["mode"] = "missing"
     report = audit_module.audit_integration_state(**state)
     codes = {error["code"] for error in report["errors"]}
     assert report["status"] == "fail"
     assert "nmap_mode_not_dispatched" in codes
     assert "nmap_dispatch_not_registered" in codes
+
+
+def test_schema_two_requires_every_monitor_method_binding(tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state["nmap_mapping"]["method_bindings"] = []
+    state["nmap_mapping"]["network_method_count"] = 0
+    report = audit_module.audit_integration_state(**state)
+    codes = {error["code"] for error in report["errors"]}
+    assert report["status"] == "fail"
+    assert "nmap_method_bindings_invalid" in codes
+    assert "monitor_method_missing_from_nmap" in codes
 
 
 def test_required_contract_detects_handler_and_nmap_drift(tmp_path: Path) -> None:

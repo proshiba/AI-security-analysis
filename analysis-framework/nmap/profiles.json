@@ -1,6 +1,124 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "tested_nmap_version": "7.99",
+  "execution_backend": "nmap_nse_only",
+  "network_method_count": 19,
+  "method_bindings": [
+    {
+      "method": "dns_resolve",
+      "script": "scripts/c2-dns-observe.nse",
+      "mode": "dns-only",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "protocol_profile_required",
+      "script": "scripts/c2-dns-observe.nse",
+      "mode": "dns-only",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "tcp_connect",
+      "script": "scripts/c2-transport-observe.nse",
+      "mode": "tcp-open",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "passive_banner",
+      "script": "scripts/c2-transport-observe.nse",
+      "mode": "server-first",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "tls_handshake",
+      "script": "scripts/c2-transport-observe.nse",
+      "mode": "tls",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "http_get",
+      "script": "scripts/c2-transport-observe.nse",
+      "mode": "http-get",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "winos_heartbeat",
+      "script": "scripts/valleyrat-c2.nse",
+      "mode": "winos",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "vvas_checkin",
+      "script": "scripts/valleyrat-c2.nse",
+      "mode": "vvas",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "n520_server_first",
+      "script": "scripts/valleyrat-c2.nse",
+      "mode": "n520",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "purerat_direct_tls_certificate_pin",
+      "script": "scripts/purerat-direct-tls.nse",
+      "mode": "direct-tls-certificate",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "ftp_authenticated",
+      "script": "scripts/agenttesla-ftp-c2.nse",
+      "mode": "ftp-authenticated",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "asyncrat_tls_messagepack",
+      "script": "scripts/dotnet-rat-c2.nse",
+      "mode": "asyncrat",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "venomrat_tls_messagepack",
+      "script": "scripts/dotnet-rat-c2.nse",
+      "mode": "venomrat",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "stealc_v2_registration_task",
+      "script": "scripts/stealer-http-c2.nse",
+      "mode": "stealc",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "lumma_v6_registration_task",
+      "script": "scripts/stealer-http-c2.nse",
+      "mode": "lumma",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "remus_registration_task",
+      "script": "scripts/stealer-http-c2.nse",
+      "mode": "remus",
+      "confirmation_allowed": false
+    },
+    {
+      "method": "darkcomet_server_first_idtype",
+      "script": "scripts/darkcomet-c2.nse",
+      "mode": "rc4-server-first-idtype",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "redline_checkconnect_soap11",
+      "script": "scripts/redline-c2.nse",
+      "mode": "wcf-soap11-checkconnect",
+      "confirmation_allowed": true
+    },
+    {
+      "method": "xloader_v8_get_registration",
+      "script": "scripts/xloader-c2.nse",
+      "mode": "transport-only",
+      "confirmation_allowed": false
+    }
+  ],
   "canonical_families": [
     {
       "family": "valleyrat",
@@ -88,7 +206,48 @@
       "script": "scripts/xloader-c2.nse",
       "modes": ["transport-only"],
       "maximum_confidence": 0.15,
-      "confirmation": "TCP到達性だけを記録し、c2_confirmedは常にfalse。検体固有private profileによるPython protocol検証へ引き継ぐ"
+      "confirmation": "TCP到達性だけを記録し、c2_confirmedは常にfalse。review済みNSE protocol実装が完成するまでPython direct probeへfallbackしない"
+    },
+    {
+      "family": "formbook",
+      "aliases": ["formbook-stealer"],
+      "script": "scripts/xloader-c2.nse",
+      "modes": ["transport-only"],
+      "maximum_confidence": 0.15,
+      "confirmation": "terminal URIと鍵が未復元のためTCP到達性だけを記録し、c2_confirmedは常にfalse"
+    },
+    {
+      "family": "vidar",
+      "aliases": ["vidarstealer"],
+      "script": "scripts/c2-transport-observe.nse",
+      "modes": ["tcp-open"],
+      "maximum_confidence": 0.15,
+      "confirmation": "静的復元profileとの受動照合だけを高信頼証拠とし、Nmapはapplication dataを送らない"
+    },
+    {
+      "family": "amosstealer",
+      "aliases": ["amos", "atomic-macos-stealer"],
+      "script": "scripts/c2-transport-observe.nse",
+      "modes": ["tcp-open"],
+      "maximum_confidence": 0.15,
+      "confirmation": "ledger経路はvictim dataを送信し得るため、Nmapはapplication dataを送らずc2_confirmed=false"
+    }
+  ],
+  "passive_only_families": [
+    {
+      "family": "formbook",
+      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
+      "emulator_scope": "passive_sink"
+    },
+    {
+      "family": "vidar",
+      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
+      "emulator_scope": "profile_matched_passive_sink"
+    },
+    {
+      "family": "amosstealer",
+      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
+      "emulator_scope": "paired_passive_sink"
     }
   ],
   "excluded_until_wire_signature_is_reviewed": [

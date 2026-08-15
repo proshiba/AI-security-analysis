@@ -1,26 +1,37 @@
 # Nmap C2検知スクリプト
 
-既存のPython C2検出器でレビュー済みの通信だけを、Nmap NSEで再現するための実装です。単なるport openをマルウェア固有C2とは扱わず、Nmapで無理なく検証できる短いprotocol応答を根拠にします。検体の実行、task本文の公開、task実行、追加payloadの追跡は行いません。
+C2検知で対象へ接触する処理は、すべてNmap NSEを実行backendとします。Pythonは対象選択、中央profileの完全一致検証、NSE引数fileの生成、Nmap XMLのallowlist化、結果の評価だけを担当し、DNS、TCP、TLS、HTTP、FTP、malware固有protocolのsocketを直接開きません。単なるport openをマルウェア固有C2とは扱わず、Nmapで検証できる短いprotocol応答だけを根拠にします。検体の実行、task本文の公開、task実行、追加payloadの追跡は行いません。
+
+標準adapterは同じNmapフォルダ内の[`nmap_c2_detector.py`](nmap_c2_detector.py)です。`monitor_recent_c2.py`、`run_c2_monitoring_pipeline.py`、`c2_validation.py`、`invoke_analysis.py`、`Invoke-Analysis.ps1`、PureRAT／AgentTesla／RedLineのfamily別active CLIは、すべてこのadapterへ収束します。
+
+旧`c2_detector.py`はoffline plan生成との互換用です。`--allow-network`を指定しても`python_direct_c2_probe_disabled`を返し、外部targetへ接続しません。family別の旧socket helperは合成fixtureとloopback unit testの互換部品であり、標準active C2検知backendではありません。
+
+実行policyは`network_execution_backend=nmap_nse_only`と`python_direct_probe_used=false`を公開結果へ固定します。19 methodの完全対応は[`profiles.json`](profiles.json)を正本とし、Nmapが見つからない場合、中央profileに一致しない独自送信が要求された場合、またはNSE bindingが未登録の場合はPythonへfallbackせずfail-closedとします。
 
 ## 対応範囲
 
 | family | script／mode | 送信・確認内容 | 最大confidence | 判定上の注意 |
 | --- | --- | --- | ---: | --- |
 | ValleyRAT／Winos | `valleyrat-c2.nse`／`winos` | 匿名heartbeat 1 frame、制御応答 `C9`／`CA`／`CB` | 0.95 | victim metadataは送らない |
+| 汎用DNS | `c2-dns-observe.nse` | Nmapが解決したA／AAAAだけを記録 | 0.05 | serviceへ接続せず`c2_confirmed=false`固定 |
+| 汎用transport | `c2-transport-observe.nse` | TCP open、server-first、TLS、またはGET 1回 | 0.60 | 到達性だけでfamily C2へ昇格しない |
 | ValleyRAT／vvaS | `valleyrat-c2.nse`／`vvas` | `333200`、14-byte固定stage header | 0.95 | stage本体は取得しない |
 | ValleyRAT／N520 | `valleyrat-c2.nse`／`n520` | TLS server-first 44-byte frame、magic、CRC32 | 0.98 | application dataは送らない |
 | AgentTesla | `agenttesla-ftp-c2.nse` | FTP banner、任意で検体由来USER／PASS | 0.95 | bannerだけでは0.35。file操作はしない |
 | AsyncRAT | `dotnet-rat-c2.nse`／`asyncrat` | TLS、gzip圧縮MessagePack Ping／pong | 0.98 | 証明書不一致だけでは除外しない |
 | VenomRAT | `dotnet-rat-c2.nse`／`venomrat` | TLS、gzip圧縮MessagePack Ping／Po_ng | 0.98 | 証明書不一致だけでは除外しない |
-| PureRAT／PureHVNC | `purerat-c2.nse` | `04000000`後のTLS昇格、証明書SHA-256 | 0.98 | 証明書pinなしは0.80で観測扱い |
+| PureRAT／PureHVNC 4.4.1 direct-TLS | `purerat-direct-tls.nse` | application dataを送らないTLS接続、leaf証明書SHA-256 | 0.92 | `c2_confirmed=false`固定。NmapだけではTLS 1.0完全一致を保証しない |
 | StealC v2 | `stealer-http-c2.nse`／`stealc` | RC4登録、復号済みaccess token形式 | 0.90 | task取得はしない |
 | Lumma v6 | `stealer-http-c2.nse`／`lumma` | uid登録、HTTP応答形状 | 0.78 | protocol固有確認ではなく推定 |
 | Remus | `stealer-http-c2.nse`／`remus` | tag／exp登録、HTTP 201、envelope長 | 0.78 | protocol固有確認ではなく推定 |
+| FormBook | `xloader-c2.nse`／`transport-only` | application dataなしのTCP到達性 | 0.15 | terminal URIと鍵が未復元のため`c2_confirmed=false`固定 |
+| Vidar | `c2-transport-observe.nse`／`tcp-open` | application dataなしのTCP到達性 | 0.15 | 静的profileとの受動完全一致だけを高信頼証拠にする |
+| AMOS | `c2-transport-observe.nse`／`tcp-open` | application dataなしのTCP到達性 | 0.15 | ledger経路へvictim dataを送らない |
 | DarkComet | `darkcomet-c2.nse` | RC4 server-first challengeの`IDTYPE`完全一致 | 0.98 | application dataは送信しない |
 | RedLine Stealer | `redline-c2.nse` | 固定SOAP 1.1 `CheckConnect`を1要求、厳密なboolean応答 | 0.98 | review済みprofileのIP・port以外には送信しない |
 | XLoader | `xloader-c2.nse`／`transport-only` | Nmap scanで確認済みのTCP到達性だけを明示的に記録 | 0.15 | `c2_confirmed=false`固定。登録requestや候補一斉送信はしない |
 
-機械可読の対応表は [`profiles.json`](profiles.json) にあります。`gh0strat`、`remcosrat`、`prometei`、`spyglace`、`purelogs` の現行実装は設定抽出・event照合・汎用transport確認が中心で、レビュー済みのon-wire固有応答がありません。誤検知を避けるため、現時点ではNSEのマルウェア固有確認対象に含めていません。
+機械可読の対応表は[`profiles.json`](profiles.json)にあります。`purerat-c2.nse`は`04000000` plaintext prelude後にTLSへ昇格する別variantのloopback回帰用として保持しますが、現行19 methodの正式bindingには含めません。`gh0strat`、`remcosrat`、`prometei`、`spyglace`、`purelogs`の現行実装は設定抽出・event照合・汎用transport確認が中心で、review済みのon-wire固有応答がありません。誤検知を避けるため、現時点ではNSEのマルウェア固有確認対象に含めていません。
 
 ### DarkCometの受信専用判定
 
@@ -40,28 +51,29 @@ HTTP 2xx、単一の`Content-Length`、`text/xml; charset=utf-8`、SOAP 1.1の`E
 
 ### XLoaderのNSE境界
 
-XLoaderは、64候補中の実C2選択とrequest／responseの多層暗号に検体固有のprivate materialが必要です。NSEへ鍵や復元済みendpoint群を埋め込まず、`xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true`を明示した場合だけ、Nmap本体が確認したTCP openを低確度の能力情報として返します。NSE自身は追加socketを開かず、application data、端末登録、candidate spray、task取得を一切送信しません。したがって結果の`c2_confirmed`と`probable_c2`は常に`false`です。protocol確認は、完全一致のprivate profileと鍵境界を検証するPython側の専用probeへ引き継ぎます。
+XLoaderは、64候補中の実C2選択とrequest／responseの多層暗号に検体固有のprivate materialが必要です。NSEへ鍵や復元済みendpoint群を埋め込まず、`xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true`を明示した場合だけ、Nmap本体が確認したTCP openを低確度の能力情報として返します。NSE自身は追加socketを開かず、application data、端末登録、candidate spray、task取得を一切送信しません。したがって結果の`c2_confirmed`と`probable_c2`は常に`false`です。review済みのNSE protocol実装が完成するまではtransport観測だけでfail-closedとし、private Python socket probeへfallbackしません。
 
 ## 実行例
 
-対象へ能動的な通信を送るため、許可された監視対象だけに使用します。profile値は対象検体の解析結果から取得し、shell historyや公開ログへの資格情報・RC4 keyの残存に注意してください。
+標準運用ではadapterを使います。NSE引数に資格情報や鍵が必要な場合もcommand lineへ展開せず、権限制限した一時`--script-args-file`だけに書きます。
 
 ```powershell
-nmap -sT -Pn -p 6685 --script .\analysis-framework\nmap\scripts\valleyrat-c2.nse --script-args valleyrat.mode=winos haochisadnka.cc
-nmap -sT -Pn -p 7788 --script .\analysis-framework\nmap\scripts\dotnet-rat-c2.nse --script-args "dotnet-rat.family=asyncrat,dotnet-rat.expected-cert=<sha256>" 191.96.78.221
-nmap -sT -Pn -p 21 --script .\analysis-framework\nmap\scripts\agenttesla-ftp-c2.nse --script-args-file <protected-args-file> <host>
-nmap -sT -Pn -p 80 --script .\analysis-framework\nmap\scripts\stealer-http-c2.nse --script-args-file <protected-args-file> <host>
-nmap -sT -Pn -p 1604 --script .\analysis-framework\nmap\scripts\darkcomet-c2.nse --script-args-file <protected-args-file> <host>
-nmap -sT -Pn -p 16383 --script .\analysis-framework\nmap\scripts\redline-c2.nse --script-args redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1 192.144.32.84
-nmap -sT -Pn -p <port> --script .\analysis-framework\nmap\scripts\xloader-c2.nse --script-args xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true <single-reviewed-host>
+py -3.13 .\analysis-framework\nmap\nmap_c2_detector.py <host> <port> `
+  --protocol https --sample-sha256 <sha256> `
+  --nmap C:\Tools\Nmap\nmap.exe `
+  --allow-network --output .\.work\c2-observation.json
 ```
+
+対象へ能動的な通信を送るため、許可された監視対象だけに使用します。profile値は対象検体の解析結果から取得し、shell historyや公開ログへの資格情報・RC4 keyの残存に注意してください。
+
+NSEを直接起動するとadapterの中央profile照合と追加許可gateを迂回するため、外部targetの標準運用では使用しません。script単体の確認は`verify_nse.py`が起動するnumeric loopback fixtureだけで行います。運用時は上記adapter例を使用してください。
 
 ## 動作検証
 
-`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に25回呼び出して、全modeの正応答、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoaderのno-send境界を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
+`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に31回呼び出して、汎用DNS／transportと全malware固有modeの正応答、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、StealCのredirect拒否、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoaderのno-send境界を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
 
 ```powershell
-python .\analysis-framework\nmap\verify_nse.py --nmap C:\Users\Administrator\Tools\Nmap\nmap.exe
+python .\analysis-framework\nmap\verify_nse.py --nmap C:\Tools\Nmap\nmap.exe
 python -m pytest .\analysis-framework\tests\test_nmap_c2_scripts.py -q
 ```
 

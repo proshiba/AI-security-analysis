@@ -259,8 +259,8 @@ def test_python_command_script_is_rejected() -> None:
         invoke_analysis.resolve_python("runner.cmd")
 
 
-def test_collect_jarm_requires_live_c2_permission(short_tmp: Path) -> None:
-    """JARM単独指定を旧workflowの暗黙起動として受理しない。"""
+def test_collect_jarm_is_rejected_by_nmap_only_policy(short_tmp: Path) -> None:
+    """外部JARM helperをNmap-onlyのactive観測へ混在させない。"""
 
     args = invoke_analysis.build_parser().parse_args(
         [
@@ -271,7 +271,7 @@ def test_collect_jarm_requires_live_c2_permission(short_tmp: Path) -> None:
             "--collect-jarm",
         ]
     )
-    with pytest.raises(invoke_analysis.OrchestrationError, match="--allow-live-c2-check"):
+    with pytest.raises(invoke_analysis.OrchestrationError, match="Nmap NSE-only"):
         invoke_analysis.orchestrate(args, framework_root=short_tmp / "framework")
     assert not args.output_directory.exists()
 
@@ -696,8 +696,8 @@ def test_one_shot_allows_existing_real_output_directory(short_tmp: Path) -> None
     assert (output / "existing.txt").read_text(encoding="utf-8") == "fixture"
 
 
-def test_collect_jarm_requires_explicit_cross_platform_script(short_tmp: Path) -> None:
-    """live permissionがあってもJARM helper未指定なら外部stage前に拒否する。"""
+def test_collect_jarm_is_rejected_even_with_live_permission(short_tmp: Path) -> None:
+    """live permissionがあっても外部JARM helperを起動しない。"""
 
     args = invoke_analysis.build_parser().parse_args(
         [
@@ -710,7 +710,7 @@ def test_collect_jarm_requires_explicit_cross_platform_script(short_tmp: Path) -
         ]
     )
     with patch.object(invoke_analysis, "run_python") as runner:  # noqa: SIM117
-        with pytest.raises(invoke_analysis.OrchestrationError, match="--jarm-script"):
+        with pytest.raises(invoke_analysis.OrchestrationError, match="Nmap NSE-only"):
             invoke_analysis.orchestrate(args, framework_root=short_tmp / "framework")
     runner.assert_not_called()
     assert not args.output_directory.exists()

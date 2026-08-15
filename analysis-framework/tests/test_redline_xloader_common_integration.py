@@ -13,9 +13,9 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import c2_protocol_probe_profiles as profiles
-import monitor_recent_c2
-from build_all_c2_monitoring_targets import build_inventory
+import c2_protocol_probe_profiles as profiles  # noqa: E402
+import monitor_recent_c2  # noqa: E402
+from build_all_c2_monitoring_targets import build_inventory  # noqa: E402
 
 REDLINE_PROFILE_ID = "redline-3f3ac0a3-checkconnect-v1"
 
@@ -278,48 +278,49 @@ def test_redline_requires_dedicated_gate_and_exact_profile_ack(
 ) -> None:
     calls: list[dict] = []
 
-    class FakeRedLineModule:
-        @staticmethod
-        def probe_reviewed_redline_checkconnect(profile_id: str, **kwargs):
-            calls.append({"profile_id": profile_id, **kwargs})
-            if kwargs["acknowledge_profile"] != profile_id:
-                return {
-                    "status": "profile_acknowledgement_missing_or_mismatch",
-                    "alive": False,
-                    "c2_confirmed": False,
-                    "target_contact_attempted": False,
-                    "target_connection_established": False,
-                    "application_data_sent": False,
-                    "protocol_response_received": False,
-                    "request_count": 0,
-                }
+    def fake_probe(target: dict, **kwargs):
+        calls.append({"target": target, **kwargs})
+        if REDLINE_PROFILE_ID not in kwargs["acknowledged_redline_profiles"]:
             return {
-                "status": "confirmed_redline_checkconnect",
-                "alive": True,
-                "c2_confirmed": True,
-                "target_contact_attempted": True,
-                "target_connection_established": True,
-                "application_data_sent": True,
-                "protocol_response_received": True,
-                "request_count": 1,
-                "request_size": 357,
-                "response_size": 256,
-                "synthetic_identity_sent": False,
-                "victim_metadata_sent": False,
-                "registration_attempted": False,
-                "task_poll_attempted": False,
-                "task_content_published": False,
-                "task_executed": False,
-                "payload_download_attempted": False,
-                "redirect_followed": False,
-                "raw_request_published": False,
-                "raw_response_published": False,
+                "execution_engine": "nmap_nse",
+                "status": "profile_acknowledgement_missing_or_mismatch",
+                "alive": False,
+                "c2_confirmed": False,
+                "target_contact_attempted": False,
+                "target_connection_established": False,
+                "application_data_sent": False,
+                "protocol_response_received": False,
+                "request_count": 0,
             }
+        return {
+            "execution_engine": "nmap_nse",
+            "status": "confirmed_redline_checkconnect",
+            "alive": True,
+            "c2_confirmed": True,
+            "confidence": 0.95,
+            "target_contact_attempted": True,
+            "target_connection_established": True,
+            "application_data_sent": True,
+            "protocol_response_received": True,
+            "request_count": 1,
+            "request_size": 357,
+            "response_size": 256,
+            "synthetic_identity_sent": False,
+            "victim_metadata_sent": False,
+            "registration_attempted": False,
+            "task_poll_attempted": False,
+            "task_content_published": False,
+            "task_executed": False,
+            "payload_download_attempted": False,
+            "redirect_followed": False,
+            "raw_request_published": False,
+            "raw_response_published": False,
+        }
 
     monkeypatch.setattr(
         monitor_recent_c2,
-        "_load_redline_active_probe_module",
-        lambda: FakeRedLineModule,
+        "probe_target_with_nmap",
+        fake_probe,
     )
     missing_ack = monitor_recent_c2.monitor(
         _redline_plan(),
@@ -344,12 +345,10 @@ def test_redline_requires_dedicated_gate_and_exact_profile_ack(
     assert confirmed["policy"]["application_request_count"] == 1
     assert calls[-1]["allow_network"] is True
     assert calls[-1]["allow_reviewed_checkconnect"] is True
-    assert calls[-1]["acknowledge_profile"] == REDLINE_PROFILE_ID
+    assert REDLINE_PROFILE_ID in calls[-1]["acknowledged_redline_profiles"]
     assert (
-        calls[-1]["expected_profile_registry_sha256"]
-        == _redline_plan()["targets"][0][
-            "protocol_profile_family_registry_sha256"
-        ]
+        calls[-1]["target"]["protocol_profile_family_registry_sha256"]
+        == _redline_plan()["targets"][0]["protocol_profile_family_registry_sha256"]
     )
 
 
@@ -475,15 +474,17 @@ def test_xloader_hint_remains_dns_only_without_real_c2_profile(
 
     monkeypatch.setattr(
         monitor_recent_c2,
-        "probe",
-        lambda _args: pytest.fail("未reviewのXLoader候補へ接続してはいけない"),
-    )
-    monkeypatch.setattr(
-        monitor_recent_c2.socket,
-        "getaddrinfo",
-        lambda *_args, **_kwargs: [
-            (2, 1, 6, "", ("203.0.113.30", 0))
-        ],
+        "probe_target_with_nmap",
+        lambda _target, **_kwargs: {
+            "execution_engine": "nmap_nse",
+            "status": "dns_resolved",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "resolved_ips": ["203.0.113.30"],
+        },
     )
     result = monitor_recent_c2.monitor(plan, allow_network=True)
     entry = next(

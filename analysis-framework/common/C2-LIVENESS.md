@@ -1,85 +1,96 @@
-# C2稼働確認とShodan fingerprint収集
+# Nmap NSEによるC2稼働確認
 
-`c2_detector.py` の既定動作は通信を行わない事前確認です。明示的に `--allow-network` を指定した場合だけ、profileに基づく範囲限定の稼働確認を実行し、case report用のJSONを書き出します。
+C2候補へ接触する機能は、すべて[`nmap_c2_detector.py`](../nmap/nmap_c2_detector.py)を経由してNmap NSEで実行します。Pythonは対象選択、中央profileの完全一致検証、NSE引数fileの生成、Nmap XMLのallowlist化、判定だけを担当し、DNS、TCP、TLS、HTTP、FTP、UDP、malware固有protocolのsocketを直接開きません。
 
-対応するprobeは次のとおりです。
+旧[`c2_detector.py`](c2_detector.py)はoffline planとの互換用です。`--allow-network`を指定しても`python_direct_c2_probe_disabled`を返し、対象へ接続しません。Nmapが見つからない場合、NSE bindingが登録されていない場合、中央profileとhost／port／sample SHA-256が一致しない場合、または未レビューの送信byte列が要求された場合は、Pythonへfallbackせずfail-closedとします。
 
-- `tcp`：接続し、必要な場合だけ明示したhex値を送信して、上限付きでbannerを取得します。
-- `udp`：明示された単一のホストとポートへ、長さ0のデータグラムを1回だけ送ります。応答がない場合は稼働中とも停止中とも判定せず、マルウェア固有payloadは送信しません。
-- `vvas`：復元済みの3 byte check-inを送信し、最大64 byteを読み、期待headerとstage sizeが一致した場合だけ `c2_confirmed=true` とします。
-- `n520`：TLSを確立してapplication dataを送らず、server-firstの44 byte handshakeを厳密に読みます。CRC32とsession由来magicの両方が一致した場合だけ `c2_confirmed=true` とします。
-- `http`／`https`：redirectなしでGETを1回だけ行い、上限付きbody、status、title、headerを取得します。
-- `tls`：HTTP requestを送らず、TLS確立と証明書metadataを取得します。
-- TLS serviceに対して、任意でSalesforce JARMを呼び出せます。
+## 対応する観測
 
-JARM helperが保持するのはstdout最大64 KiB、stderr最大16 KiBです。出力超過またはtimeout時はhelperを終了し、fingerprintを返しません。
+- `dns_observe`：Nmapが解決したA／AAAAだけを記録し、serviceへ接続しません。
+- `tcp_connect`／`passive_banner`：TCP openまたは上限付きserver-first bannerを観測します。application dataは送信しません。
+- `tls_handshake`：application dataを送らず、TLS version、cipher、証明書SHA-256を観測します。
+- `http_get`／`https_get`：redirectを追跡せず、指定pathへGETを1回だけ送信します。
+- malware固有method：[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)と[`nmap/profiles.json`](../nmap/profiles.json)の完全一致bindingだけを使用します。
 
-収集する検知fieldには、raw bannerのSHA-256、Shodan `hash:` 用の符号付きMurmurHash3 x86_32、HTTP title、TLS version／cipher、証明書SHA-256、JARM、DNS解決結果、生成したShodan query候補が含まれます。
+汎用transportの到達だけでは`c2_confirmed=true`にしません。malware固有確認は、review済みprofileが固定するrequest、応答形式、上限、host、port、sample、追加acknowledgementのすべてが一致した場合だけ実行します。
 
-N520のserver-first検知は、対象をレビューした後に直接実行できます。
+## 単一対象の実行
 
-```powershell
-python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --sni update.microsoft.com --allow-network --output n520-c2.json
-```
-
-このmodeが送信するのはTLS handshakeだけです。暗号化されたN520 endpoint check-inは送信しません。
-
-明示的に許可された範囲限定の収集では、空のcommand-1 registrationを1回送り、暗号化frameまたはcommand-16／18 plugin payloadをAES ZIP内にだけ保存できます。
+外部対象への接触には、通常のnetwork許可に加えて、確認したい動作に対応する明示gateが必要です。
 
 ```powershell
-python .\analysis-framework\common\c2_detector.py 118.107.21.88 9999 --protocol n520 --n520-checkin --n520-wait 15 --artifact-zip n520-artifacts.zip --allow-network --output n520-collection.json
+python .\analysis-framework\nmap\nmap_c2_detector.py `
+  192.0.2.10 443 `
+  --protocol https `
+  --sample-sha256 <sha256> `
+  --allow-network `
+  --nmap C:\Tools\Nmap\nmap.exe `
+  --output .\c2-observation.json
 ```
 
-collectorはstation IDを送信せず、最大16 MiB、最大30秒だけ受信します。応答を実行せず、operator／admin commandも模倣しません。
+中央profileに一致する固有protocolでは、完全一致host、port、protocol、sample SHA-256を指定します。adapterが中央registryから一意のprofile IDを解決し、method固有gateも検証します。
+
+```powershell
+python .\analysis-framework\nmap\nmap_c2_detector.py `
+  <reviewed-host> <reviewed-port> `
+  --protocol <reviewed-protocol> `
+  --sample-sha256 <sha256> `
+  --allow-network `
+  --allow-reviewed-application-probes `
+  --nmap C:\Tools\Nmap\nmap.exe `
+  --output .\c2-protocol-observation.json
+```
+
+送信byte列、expected stage、SNI pin、証明書pinなどをCLIから自由入力することはできません。これらは中央profileから解決し、NSEへは権限制限した一時`--script-args-file`で渡します。結果にはraw banner、cookie、task本文、token、資格情報、private key、復号済みpayloadを含めません。
 
 ## workflowへの統合
 
-稼働確認は暗黙に実行しません。レビュー済みprofileに `live_c2_targets` を定義し、operatorが `-AllowLiveC2Check` を渡す必要があります。
+稼働確認は暗黙に実行しません。レビュー済みprofileに`live_c2_targets`を定義し、operatorが`-AllowLiveC2Check`とNmap実行fileを指定する必要があります。
 
 ```powershell
 .\analysis-framework\Invoke-Analysis.ps1 `
   -Sample C:\quarantine\sample.zip `
   -OutputDirectory C:\analysis-output\case `
   -ProfilePath .\analysis-framework\malware\valleyrat\config\profiles\<sha256>.json `
-  -AllowLiveC2Check -CollectJarm
+  -AllowLiveC2Check `
+  -Nmap C:\Tools\Nmap\nmap.exe
 ```
 
-出力先は `<OutputDirectory>/c2-live/` です。`-CollectJarm` は10回のactive TLS ClientHello probeを行い、TLS以外のprotocolでは無視されます。
+出力先は`<OutputDirectory>/c2-live/`です。`-CollectJarm`と`-JarmScript`は廃止済みの互換引数で、指定すると接触前に拒否します。JARM、port range scan、redirect追跡、候補endpointへの一斉送信は実行しません。
 
 ## 判定方法
 
-- `alive=true` は、選択したprobeに対してtransport／application endpointから十分な応答があったことを示します。
-- `c2_confirmed=true` はより厳格で、マルウェア固有protocolとの一致が必要です。
-- N520確認では暗号化endpoint check-inやhost telemetryの送信を行わず、server-first handshakeだけを検証します。
-- HTTP／TLSへ到達できることだけでは、C2の所有者を証明できません。
-- UDPの空データグラムに応答がない結果は判定不能です。応答またはICMPエラーを得た場合でも、固有protocolと一致しない限り `c2_confirmed=true` にはしません。
-- 全byteが0のJARMはfingerprintではなく、Shodan queryへ変換してはいけません。
-- custom protocolのbanner hashがShodanで有効なのは、Shodan側が互換probe payloadを使った場合だけです。
+- `alive=true`は、選択したNSEがtransportまたはapplication endpointから十分な応答を得たことを示します。
+- `c2_confirmed=true`は、review済みのmalware固有protocol応答が完全一致した場合だけ設定します。
+- TCP open、TLS確立、HTTP status、FTP banner、DNS解決だけではC2の所有者を証明できません。
+- timeout、部分応答、不正形式、上限超過、profile不一致、未登録protocolは判定不能または拒否であり、C2否定には使いません。
+- Nmap出力はallowlistへ再投影し、結果policyへ`network_execution_backend=nmap_nse_only`と`python_direct_probe_used=false`を固定します。
 - 結果にはtimestampを付け、過去のDNS／IP／証明書観測を上書きしません。
 
 ## 日次の継続監視
 
-daily解析で明示的に許可されたC2ライブチェックは、[`build_all_c2_monitoring_targets.py`](build_all_c2_monitoring_targets.py)で`analysis-results`全体のIOC履歴から対象を再生成し、[`run_c2_monitoring_pipeline.py`](run_c2_monitoring_pipeline.py)で観測する経路を標準とします。`.onion`は対象外とし、通常のglobal IP／FQDNは全件を計画へ含めます。既知portは完全一致endpointへ限定probeを1回だけ実行し、port不明hostはDNS解決だけを行ってC2稼働とは判定しません。直近の`active-targets.json`も統合します。
+daily解析で明示的に許可されたC2ライブチェックは、[`build_all_c2_monitoring_targets.py`](build_all_c2_monitoring_targets.py)で`analysis-results`全体のIOC履歴から対象を再生成し、[`run_c2_monitoring_pipeline.py`](run_c2_monitoring_pipeline.py)で観測します。`.onion`は対象外とし、通常のglobal IP／FQDNは計画へ含めます。既知portは完全一致endpointへ限定したNSEを1回だけ実行し、port不明hostはDNS観測だけを行ってC2稼働とは判定しません。
 
-既知のmalware固有protocolは[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)を正本とします。`targets.json`には`protocol_profile_id`だけを保持し、送信byte列、期待header、channel role、SNI、IP pinningはregistryから解決します。IDとhost/portが完全一致しない場合は接続前に拒否し、IP直指定hostはhost自体と単一pinが一致する場合だけ許可します。現在のレビュー済みprofileは、Winosの`control`／`stage_and_control`への固定C9 heartbeat 1 frame、vvaSへの固定3 byte check-in、N520のserver-first 44 byte handshakeです。Winosは最大64 byteだけを受信してstageを要求せず、N520ではcheck-inを送りません。いずれもvictim metadata、command polling、任意commandを送信しません。
+```powershell
+python .\analysis-framework\common\run_c2_monitoring_pipeline.py `
+  --targets .\analysis-results\research\c2-monitoring\YYYY-MM-DD\targets.json `
+  --output-directory .\analysis-results\research\c2-monitoring\YYYY-MM-DD `
+  --history-root .\analysis-results\research\c2-monitoring `
+  --maxmind-cache-dir C:\malware-lab\maxmind\current `
+  --nmap C:\Tools\Nmap\nmap.exe `
+  --allow-network
+```
 
-結果では`tcp_connect`成功を`transport_reachable_c2_not_confirmed`、固有protocolの完全一致だけを`c2_protocol_confirmed`として区別します。静的解析でprotocolを復元済みのendpointを、実装上の都合だけで`tcp_connect`へ降格させてはいけません。
+`targets.json`は`protocol_profile_id`だけを保持し、送信byte列、期待header、channel role、SNI、IP pinningはregistryから解決します。IDとhost／portが完全一致しない場合は接続前に拒否し、IP直指定hostはhost自体と単一pinが一致する場合だけ許可します。
 
-DNSのA／AAAA解決先は観測日時、ASN、organizationとともに履歴化します。Cloudflare、Akamai、Fastly等の同一共有CDN内でedge IPだけが変わった場合は、生のIP変化として残しつつC2インフラ変化件数から除外します。
+結果ではTCP到達を`transport_reachable_c2_not_confirmed`、固有protocolの完全一致だけを`c2_protocol_confirmed`として区別します。DNSのA／AAAA解決先は観測日時、ASN、organizationとともに履歴化します。共有CDNのedge IPはoriginではないため、CDN判定だけから防弾ホスティングや攻撃者インフラへ帰属させません。
 
-履歴の各IPにはAS番号・AS組織、国・地域・都市、インフラタグ、防弾ホスティング評価を付与します。IP集合が変化したeventは、旧IP集合と新IP集合の双方に同じ詳細を保持し、追加IPと消失IPも分けて記録します。共有CDNのedge IPはoriginではないため、CDN判定だけから防弾ホスティングや攻撃者インフラへ帰属させません。
+ONの対象、7日未満のOFF、proxy利用不可などの未観測対象は次回も監視します。最新観測がOFFで、最後のON以後または初回OFFから7日以上経過し、その間に2回以上のOFF実観測がある対象だけを停止履歴へ移します。停止済み対象に新しいON証拠が得られた場合は、再開eventを残して監視へ戻します。
 
-防弾ホスティング評価は根拠付きregistryで管理し、信頼できる情報源による明示評価がある場合だけ`防弾ホスティング`、複数の状況証拠はあるが運営意図を確認できない場合は`防弾ホスティング - 疑い`とします。単一IPの悪用観測やorganization名だけでは確定しません。
+成果物と再実行手順は[`RUN-C2-MONITORING-PIPELINE.md`](RUN-C2-MONITORING-PIPELINE.md)を参照してください。NSEとbindingの一覧、loopback harnessは[`nmap/README.md`](../nmap/README.md)を参照してください。
 
-ONの対象、7日未満のOFF、proxy利用不可等の未観測対象は次回も監視します。最新観測がOFFで、最後のON以後または初回OFFから7日以上経過し、その間に2回以上のOFF実観測がある対象だけを停止履歴へ移し、次回のactive対象から外します。停止済み対象に新しいON証拠が得られた場合は、再開eventを残して監視へ戻します。
+## emulatorとoffline解析の境界
 
-成果物と再実行手順は[`RUN-C2-MONITORING-PIPELINE.md`](RUN-C2-MONITORING-PIPELINE.md)を参照してください。
-## MX-Goのlocalhost限定protocol mode
+MX-Go、N520、Winos、vvaS、PureRAT、AsyncRAT、VenomRATなどのhost emulatorは、localhost限定の合成labです。emulatorのcheck-in、fake result、task取得、artifact保存はC2検知ではなく、Nmap監視pipelineへ混在させません。
 
-`mxgo` は封じ込めを優先したlab modeです。`preview` はDNSやnetwork activityなしで合成heartbeatの説明を生成します。`checkin` と `recipients` は `localhost`、`127.0.0.1`、`::1` だけを受け付け、`--mxgo-allow-loopback-network` を必須とします。recipient結果には件数とhashだけを含めます。詳細は [MX-Go emulator](../../emulators/unclassified/mx_go/README.md) を参照してください。
-
-このmodeから第三者の稼働中MX-Go serverへcheck-inしたり、実際のrecipient dataを取得したりすることは意図的にできません。
-
-## offlineのstealer候補mode
-
-`c2_candidate_detector.py` はconfig extractorのJSONを読み、DNS、TCP、HTTP、Shodanへ接続せずに受動的Shodan pivotを作成します。追加した5つのstealer familyは既定でこのoffline modeを使用します。active protocol behaviorは、[`emulators/stealers/`](../../emulators/stealers/README.md) のloopback限定synthetic labでだけ表現します。
+`c2_candidate_detector.py`はconfig extractorのJSONを読み、DNS、TCP、HTTP、Shodanへ接続せずに受動的pivotを作成します。静的config抽出、IOC生成、protocol復元も引き続きPythonで行いますが、抽出したendpointへ接触する段階だけをNmap NSEへ統一します。

@@ -7,9 +7,8 @@ import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
-from types import SimpleNamespace
 
-from c2_detector import probe
+from nmap_c2_detector import probe_target_with_nmap
 
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -103,37 +102,33 @@ def validate_manifest(value: dict) -> dict:
     return value
 
 
-def _probe_args(candidate: dict, sample_sha256s: list[str], allow_network: bool) -> SimpleNamespace:
-    return SimpleNamespace(
-        host=candidate["host"],
-        port=candidate["port"],
-        protocol=candidate.get("protocol", "tcp"),
-        timeout=float(candidate.get("timeout", 3.0)),
-        max_bytes=int(candidate.get("max_bytes", 64)),
-        send_hex=None,
-        expected_stage_size=0,
-        expected_header_size=0,
-        http_path=candidate.get("http_path", "/"),
-        http_host=candidate.get("http_host"),
-        sni=candidate.get("sni"),
-        mxgo_mode="preview",
-        mxgo_client_id="LAB-MXGO-000000000000",
-        mxgo_recipient_path="/fixture.txt",
-        n520_checkin=False,
-        n520_wait=1.0,
-        n520_max_bytes=64,
-        n520_max_frames=1,
-        artifact_zip=None,
-        archive_password="infected",
-        proxy_host="127.0.0.1" if candidate.get("transport") == "tor-socks5" else None,
-        proxy_port=candidate.get("proxy_port", 9050),
-        collect_jarm=False,
-        jarm_script=None,
-        allow_network=allow_network,
-        target_role=candidate.get("role", "c2"),
-        sample_sha256=sample_sha256s,
-        connect_only=True,
-    )
+def _nmap_target(candidate: dict, sample_sha256s: list[str]) -> dict:
+    protocol = candidate.get("protocol", "tcp")
+    method = {
+        "http": "tcp_connect",
+        "https": "tls_handshake",
+        "tcp": "tcp_connect",
+        "tls": "tls_handshake",
+    }.get(protocol)
+    if method is None:
+        raise ManifestError(f"Nmap transport NSEへ未対応のprotocolです: {protocol}")
+    return {
+        "target_id": "batch-c2-validation",
+        "family": "unknown",
+        "host": candidate["host"],
+        "port": candidate["port"],
+        "protocol": protocol,
+        "method": method,
+        "transport": "direct",
+        "timeout_seconds": float(candidate.get("timeout", 3.0)),
+        "maximum_request_bytes": 0,
+        "maximum_response_bytes": 0,
+        "sample_sha256s": sample_sha256s,
+        "associated_case_count": len(sample_sha256s),
+        "roles": [candidate.get("role", "c2")],
+        "sources": [candidate["source"]],
+        "selection_basis": "Nmap NSEによるtransport到達性観測のみ",
+    }
 
 
 def _connection_status(results: list[dict], allow_network: bool, empty_status: str) -> str:
@@ -166,6 +161,7 @@ def validate_candidates(
     *,
     allow_network: bool = False,
     include_non_c2: bool = False,
+    nmap_executable: str | Path | None = None,
 ) -> dict:
     """候補を1回だけprobeし、関連するSHA-256へ結果を割り当てる。"""
     manifest = validate_manifest(manifest)
@@ -201,8 +197,38 @@ def validate_candidates(
                 "transport": transport,
                 "sample_sha256s": linked,
             }
+        elif transport != "direct":
+            result = {
+                "status": "nmap_transport_unsupported",
+                "alive": False,
+                "c2_confirmed": False,
+                "network_contacted": False,
+                "target_contact_attempted": False,
+                "application_data_sent": False,
+                "target_role": role,
+                "transport": transport,
+                "sample_sha256s": linked,
+            }
+        elif candidate.get("protocol") == "udp":
+            result = {
+                "status": "nmap_udp_transport_unsupported",
+                "alive": False,
+                "c2_confirmed": False,
+                "network_contacted": False,
+                "target_contact_attempted": False,
+                "application_data_sent": False,
+                "target_role": role,
+                "transport": transport,
+                "sample_sha256s": linked,
+            }
         else:
-            result = probe(_probe_args(candidate, linked, allow_network))
+            result = probe_target_with_nmap(
+                _nmap_target(candidate, linked),
+                allow_network=allow_network,
+                nmap_executable=nmap_executable,
+            )
+            result["target_role"] = role
+            result["sample_sha256s"] = linked
             result["transport"] = transport
         result["candidate_source"] = candidate["source"]
         result["review_note"] = candidate.get("review_note")
@@ -245,6 +271,8 @@ def validate_candidates(
             "maximum_timeout_seconds": 5,
             "maximum_response_bytes": 0,
             "network_enabled": allow_network,
+            "network_execution_backend": "nmap_nse_only",
+            "python_direct_probe_used": False,
             "non_c2_roles_included": include_non_c2,
             "tcp_reachability_confirms_c2": False,
             "c2_roles": sorted(C2_ROLES),
@@ -263,6 +291,7 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--include-non-c2", action="store_true")
+    parser.add_argument("--nmap")
     args = parser.parse_args()
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -270,6 +299,7 @@ def main() -> int:
             manifest,
             allow_network=args.allow_network,
             include_non_c2=args.include_non_c2,
+            nmap_executable=args.nmap,
         )
     except (OSError, json.JSONDecodeError, ManifestError) as exc:
         parser.error(str(exc))

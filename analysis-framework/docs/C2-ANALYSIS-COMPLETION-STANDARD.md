@@ -34,14 +34,14 @@ daily解析で、一次dropper、provider label、文字列走査、TCP openだ�
 
 - endpointには値、役割、根拠を記録する。
 - config decoder、process帰属付き通信、malware protocol応答を相関する。
-- TCP open、HTTP status、TLS証明書、banner、JARMだけで確定しない。
+- TCP open、HTTP status、TLS証明書、bannerだけで確定しない。active C2接触はNmap NSEへ限定し、JARMは使用しない。
 - protocol確認では、実資格情報、被害端末情報、任意command、追加payload要求を送信しない。
 - reviewed profileがある場合だけ、限定した合成check-inまたは応答frame検証を使う。
 - 確認済みC2は全履歴監視対象へ登録し、その日の限定ライブ観測を記録する。
 
 ## 通常probeとRAT host emulator証跡
 
-通常のC2監視は、DNS、TCP、TLS、server-first応答、またはreview済みの1回限定application probeです。対話型RATの遠隔操作channelへ登録し、bounded時間だけcommandを待つ処理は通常probeへ混在させず、`analysis-framework/common/run_defensive_rat_emulator.py`による防御的host emulatorとして分離します。AgentTeslaのFTP exfiltration sink、StealC／Lumma／Remusのtask service、loader stage配布channelはこのhost emulatorの対象ではなく、各専用probeの証跡を使います。
+通常のC2監視は、Nmap NSEによるDNS、TCP、TLS、server-first応答、またはreview済みの1回限定application probeです。対話型RATの遠隔操作channelへ登録し、bounded時間だけcommandを待つ処理は通常probeへ混在させず、`analysis-framework/common/run_defensive_rat_emulator.py`による防御的host emulatorとして分離します。AgentTeslaのFTP exfiltration sink、StealC／Lumma／Remusのtask service、loader stage配布channelはhost emulatorとは分離し、NSEの専用modeで観測します。
 
 AsyncRAT／VenomRATでは、exact ILの`KeepAlivePacket`がactive window titleを`Ping.Message`へ格納します。host emulatorは実端末情報を送らないため`GetActiveWindowTitle`を呼ばず、合成`ClientInfo`の後に空`Message`へsanitizeした固定Ping requestを送り、`pong`／`Po_ng`またはtaskを最大1 frameだけ受信します。
 
