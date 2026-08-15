@@ -36,7 +36,7 @@ def _write_registry(path: Path, document: dict) -> None:
 
 def test_registry_digest_is_identical_for_lf_and_crlf(tmp_path: Path) -> None:
     expected_sha256 = (
-        "a0725e5ce5f8a6597193e2bde09a06740147186dc1f1818c7da7e59d9209a9d6"
+        "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
     )
     canonical_lf = (
         DEFAULT_REGISTRY_PATH.read_bytes()

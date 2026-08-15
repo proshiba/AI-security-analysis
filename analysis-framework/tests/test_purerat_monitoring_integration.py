@@ -21,8 +21,20 @@ import pytest
 
 
 COMMON = Path(__file__).parents[1] / "common"
-if str(COMMON) not in sys.path:
-    sys.path.insert(0, str(COMMON))
+if str(COMMON) in sys.path:
+    sys.path.remove(str(COMMON))
+sys.path.insert(0, str(COMMON))
+
+# `c2_detector` や `detect` のような名前は family ディレクトリにも同名で
+# 存在する。suite全体を走らせると先に走ったテストがそれらを sys.modules へ
+# 載せてしまい、common 側のmoduleが別物に解決されてimportが失敗する。
+# sys.path の順序では直らない(sys.modules のcacheが優先されるため)ので、
+# common 配下から来ていないcacheだけを落としてから読み込む。
+for _name in ("c2_detector", "detect", "emulator", "static_logic"):
+    _cached = sys.modules.get(_name)
+    _origin = getattr(getattr(_cached, "__spec__", None), "origin", None)
+    if _cached is not None and (_origin is None or COMMON not in Path(_origin).parents):
+        del sys.modules[_name]
 
 import monitor_recent_c2 as monitor  # noqa: E402
 from c2_protocol_probe_profiles import (  # noqa: E402
