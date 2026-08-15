@@ -106,6 +106,52 @@ class OneShotServer:
             raise RuntimeError(f"模擬C2 server失敗: {self.error}") from self.error
 
 
+class MultiShotServer(OneShotServer):
+    """port scan接続を除き、固定数のlocalhost接続だけを処理する試験server。"""
+
+    def __init__(self, handler: Handler, connection_count: int) -> None:
+        if not 1 <= connection_count <= 3:
+            raise ValueError("connection_countは1から3の範囲で指定します")
+        self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._listener.bind(("127.0.0.1", 0))
+        self._listener.listen(connection_count + 1)
+        self._listener.settimeout(15)
+        self.port = int(self._listener.getsockname()[1])
+        self._handler = handler
+        self._connection_count = connection_count
+        self.error: BaseException | None = None
+        self.thread = threading.Thread(target=self._serve, daemon=True)
+        self.thread.start()
+
+    def _serve(self) -> None:
+        completed = 0
+        last_scan_error: BaseException | None = None
+        try:
+            for _ in range(self._connection_count + 4):
+                connection, _ = self._listener.accept()
+                connection.settimeout(8)
+                try:
+                    with connection:
+                        self._handler(connection)
+                    completed += 1
+                    if completed == self._connection_count:
+                        return
+                except (
+                    ConnectionResetError,
+                    ConnectionAbortedError,
+                    BrokenPipeError,
+                    ConnectionError,
+                    ssl.SSLError,
+                ) as exc:
+                    last_scan_error = exc
+            self.error = last_scan_error or TimeoutError("NSEの固定数接続を受信できませんでした")
+        except Exception as exc:  # noqa: BLE001 - 試験threadの失敗をmain threadへ転送する
+            self.error = exc
+        finally:
+            self._listener.close()
+
+
 def _xor_winos(payload: bytes, header: bytes) -> bytes:
     return bytes(
         value ^ ((header[0 if index == 0 else (index - 1) % 10] + 0x36) & 0xFF)
@@ -354,6 +400,76 @@ def _redline_redirect_handler(connection: socket.socket) -> None:
     )
 
 
+_ROUTE_CONTROL_PATH = "/.well-known/asa-reviewed-route-negative-control-7f6d9e2b"
+_VIDAR_LOOPBACK_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win32) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Edg/147.0.0.0"
+)
+_AMOS_LOOPBACK_ID = "0123456789abcdef" * 4
+
+
+def _head_route_handler(
+    routes: dict[str, int],
+    *,
+    expected_host: str,
+    expected_user_agent: str,
+) -> Handler:
+    """固定HEAD経路だけを受け、bodyなしの経路別statusを返す。"""
+
+    reasons = {200: "OK", 404: "Not Found", 405: "Method Not Allowed"}
+
+    def handler(connection: socket.socket) -> None:
+        request = _recv_until(connection, b"\r\n\r\n", maximum=2048)
+        header, body = request.split(b"\r\n\r\n", 1)
+        if body:
+            raise ValueError("review済み経路probeがrequest bodyを送信しました")
+        lines = header.decode("ascii").split("\r\n")
+        method, path, version = lines[0].split(" ")
+        headers: dict[str, str] = {}
+        for line in lines[1:]:
+            name, value = line.split(":", 1)
+            headers[name.casefold()] = value.strip()
+        if (
+            method != "HEAD"
+            or version != "HTTP/1.1"
+            or path not in routes
+            or headers.get("host") != expected_host
+            or headers.get("user-agent") != expected_user_agent
+            or headers.get("connection") != "close"
+            or "content-length" in headers
+        ):
+            raise ValueError("review済み経路probeの要求形状が一致しません")
+        status = routes[path]
+        connection.sendall(
+            (
+                f"HTTP/1.1 {status} {reasons[status]}\r\n"
+                "Content-Length: 0\r\nConnection: close\r\n\r\n"
+            ).encode("ascii")
+        )
+
+    return handler
+
+
+def _vidar_route_handler(*, matched: bool) -> Handler:
+    return _head_route_handler(
+        {"/": 405 if matched else 404, _ROUTE_CONTROL_PATH: 404},
+        expected_host="loopback.test",
+        expected_user_agent=_VIDAR_LOOPBACK_USER_AGENT,
+    )
+
+
+def _amos_route_handler(*, matched: bool) -> Handler:
+    return _head_route_handler(
+        {
+            f"/ledger/{_AMOS_LOOPBACK_ID}": 405,
+            f"/ledger/live/{_AMOS_LOOPBACK_ID}": 405 if matched else 404,
+            _ROUTE_CONTROL_PATH: 404,
+        },
+        expected_host="loopback.test",
+        expected_user_agent="AI-security-analysis reviewed-route probe/1.0",
+    )
+
+
 def _transport_banner_handler(connection: socket.socket) -> None:
     """汎用server-first NSEへ公開可能な短い合成bannerだけを返す。"""
 
@@ -498,8 +614,29 @@ def _exercise(
     return result
 
 
+def _exercise_multi(
+    nmap_exe: Path,
+    handler: Handler,
+    connection_count: int,
+    script: str,
+    script_args: str,
+    expected: str,
+) -> dict[str, object]:
+    server = MultiShotServer(handler, connection_count)
+    try:
+        result = _run_nmap(nmap_exe, script, server.port, script_args, expected)
+    except Exception as primary:
+        try:
+            server.finish()
+        except Exception as fixture_error:  # noqa: BLE001 - primary失敗へfixture失敗を付記する
+            primary.add_note(f"fixture={script}: {fixture_error}")
+        raise
+    server.finish()
+    return result
+
+
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """31 caseで汎用transport、RedLine、XLoaderを含むNSEを外部networkなしで検証する。"""
+    """36 caseで経路差分probeを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -537,6 +674,7 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1", "STATE SERVICE"),
             (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1", "STATE SERVICE"),
             (_no_application_data_handler, "xloader-c2.nse", "xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "xloader_tcp_open_only"),
+            (_no_application_data_handler, "xloader-c2.nse", "xloader.variant=formbook,xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "formbook_terminal_profile_required_tcp_open_only"),
             (_no_application_data_handler, "c2-transport-observe.nse", "c2-transport.mode=tcp-open", "tcp_open_only"),
             (_transport_banner_handler, "c2-transport-observe.nse", "c2-transport.mode=server-first,c2-transport.max-response=64", "server_first_banner_observed"),
             (_transport_tls_handler(context), "c2-transport-observe.nse", "c2-transport.mode=tls", "tls_handshake_observed"),
@@ -549,6 +687,54 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
         ]
         for handler, script, script_args, expected in cases:
             records.append(_exercise(nmap_exe, handler, script, script_args, expected))
+        vidar_args = (
+            "stealer-route.mode=vidar,"
+            "stealer-route.profile-id=vidar-loopback-route-v1,"
+            "stealer-route.acknowledge-profile=vidar-loopback-route-v1,"
+            "stealer-route.expected-ip=127.0.0.1"
+        )
+        amos_args = (
+            "stealer-route.mode=amos,"
+            "stealer-route.profile-id=amos-loopback-ledger-route-v1,"
+            "stealer-route.acknowledge-profile=amos-loopback-ledger-route-v1,"
+            "stealer-route.expected-ip=127.0.0.1"
+        )
+        records.extend(
+            [
+                _exercise_multi(
+                    nmap_exe,
+                    _vidar_route_handler(matched=True),
+                    2,
+                    "stealer-route-c2.nse",
+                    vidar_args,
+                    "vidar_reviewed_route_pair_match",
+                ),
+                _exercise_multi(
+                    nmap_exe,
+                    _vidar_route_handler(matched=False),
+                    2,
+                    "stealer-route-c2.nse",
+                    vidar_args,
+                    "vidar_reviewed_route_pair_mismatch",
+                ),
+                _exercise_multi(
+                    nmap_exe,
+                    _amos_route_handler(matched=True),
+                    3,
+                    "stealer-route-c2.nse",
+                    amos_args,
+                    "amos_reviewed_ledger_pair_match",
+                ),
+                _exercise_multi(
+                    nmap_exe,
+                    _amos_route_handler(matched=False),
+                    3,
+                    "stealer-route-c2.nse",
+                    amos_args,
+                    "amos_reviewed_ledger_pair_mismatch",
+                ),
+            ]
+        )
         records.append(
             _run_nmap_host_script(
                 nmap_exe,

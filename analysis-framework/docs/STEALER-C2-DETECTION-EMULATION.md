@@ -9,9 +9,9 @@
 | StealC | 同一endpoint・同一path上の連続JSON POSTとfamily帰属 | review済みRC4鍵とbuildを使う合成登録1回だけ。token形状一致時のみ確認 | 固定lab鍵のRC4/Base64登録subset |
 | Lumma | 同一endpoint上の`uid/cid`登録から`uid/pid/hwid/file` uploadまでの順序 | review済みprofileの合成登録1回。`c2_confirmed=false` | 登録request形状まで |
 | Remus | 同一endpoint上の登録、debug、step、uploadの4段階順序 | review済みprofileの合成登録1回。`c2_confirmed=false` | 登録requestとopaque envelope形状まで |
-| Vidar | 静的復元URL、port、path、User-Agent hashとPCAPの完全一致 | application dataを送らないTCP観測だけ | profile照合後のpassive sink |
+| Vidar | 静的復元URL、port、path、User-Agent hashとPCAPの完全一致 | 固定profileのroot `HEAD`と陰性対照。最大0.60のprobable判定 | profile照合後のpassive sink |
 | FormBook | terminal wire signature未回収として明示的に低信頼・受動限定 | application dataを送らないtransport観測だけ | passive sink。XLoader v8のreview済みprofileは別emulator |
-| AMOS | 同一endpoint・同一64桁campaign IDの`/ledger/`から`/ledger/live/`への順序 | application dataを送らないTCP観測だけ | 対応する2経路のpassive sink |
+| AMOS | 同一endpoint・同一64桁campaign IDの`/ledger/`から`/ledger/live/`への順序 | ledger 2経路と陰性対照の`HEAD`差分。最大0.65のprobable判定 | 対応する2経路のpassive sink |
 
 StealCの`create`登録とRC4暗号化JSONは、Proofpointが公開したC2 protocol説明とローカルPCAP解析の双方に整合します。FormBookはMandiantがHTTP、RC4、変更Base64、`FBNG` command形状を公開していますが、このrepositoryの一般化対象ではterminal URIと鍵が揃わないため、古い汎用signatureを送信しません。Lummaの能動操作はMicrosoftが説明するMaaS/C2運用とローカルPCAPの完全一致profileに限定します。AMOSはvariant間のC2差が大きいため、SentinelOneのvariant研究も踏まえ、今回回収した`ledger` pair以外へ一般化しません。
 
@@ -55,9 +55,9 @@ py -3.13 .\analysis-framework\common\stealer_protocol_evidence.py `
 
 ## Nmapによる観測
 
-Nmap mappingは[`profiles.json`](../nmap/profiles.json)に集約しています。StealC、Lumma、Remusだけが[`stealer-http-c2.nse`](../nmap/scripts/stealer-http-c2.nse)のfamily別modeを持ちます。実行にはrepositoryのactive gate、exact profile、IP pin、timeout、request budgetが必要です。
+Nmap mappingは[`profiles.json`](../nmap/profiles.json)に集約しています。StealC、Lumma、Remusは[`stealer-http-c2.nse`](../nmap/scripts/stealer-http-c2.nse)のfamily別modeを持ち、Vidar／AMOSは[`stealer-route-c2.nse`](../nmap/scripts/stealer-route-c2.nse)の固定経路差分modeを使います。実行にはexact profile、同値acknowledgement、数値IP pin、timeout、request budgetが必要です。
 
-Vidar、FormBook、AMOSは`passive_only_families`として登録し、Nmapではapplication dataを送らないtransport観測だけを許可します。TCP openはC2確認ではありません。
+FormBookだけを`passive_only_families`へ残し、終端URI・鍵・応答契約が揃うまでtransport観測だけを許可します。Vidar／AMOSは`profile_limited_probable_families`へ移し、要求bodyなしの`HEAD`経路差分だけを許可します。詳しい安全境界と実行方法は[`STEALER-ROUTE-PROBES.md`](../nmap/STEALER-ROUTE-PROBES.md)を参照してください。TCP openや経路差だけで`c2_confirmed=true`にはなりません。
 
 loopbackでtransport境界だけを確認する例:
 
