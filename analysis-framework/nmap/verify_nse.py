@@ -405,6 +405,10 @@ _VIDAR_LOOPBACK_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win32) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Edg/147.0.0.0"
 )
+_FORMBOOK_LOOPBACK_USER_AGENT = (
+    "Mozilla/5.0 (Linux; U; Android 4.1.2; en-us; Xoom Build/JZO54M) "
+    "AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30"
+)
 _AMOS_LOOPBACK_ID = "0123456789abcdef" * 4
 
 
@@ -455,6 +459,14 @@ def _vidar_route_handler(*, matched: bool) -> Handler:
         {"/": 405 if matched else 404, _ROUTE_CONTROL_PATH: 404},
         expected_host="loopback.test",
         expected_user_agent=_VIDAR_LOOPBACK_USER_AGENT,
+    )
+
+
+def _formbook_route_handler(*, matched: bool) -> Handler:
+    return _head_route_handler(
+        {"/a1b2/": 405 if matched else 404, _ROUTE_CONTROL_PATH: 404},
+        expected_host="loopback.test",
+        expected_user_agent=_FORMBOOK_LOOPBACK_USER_AGENT,
     )
 
 
@@ -636,7 +648,7 @@ def _exercise_multi(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """36 caseで経路差分probeを含むNSEを外部networkなしで検証する。"""
+    """38 caseで経路差分probeを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -699,8 +711,30 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             "stealer-route.acknowledge-profile=amos-loopback-ledger-route-v1,"
             "stealer-route.expected-ip=127.0.0.1"
         )
+        formbook_args = (
+            "stealer-route.mode=formbook,"
+            "stealer-route.profile-id=formbook-loopback-route-v1,"
+            "stealer-route.acknowledge-profile=formbook-loopback-route-v1,"
+            "stealer-route.expected-ip=127.0.0.1"
+        )
         records.extend(
             [
+                _exercise_multi(
+                    nmap_exe,
+                    _formbook_route_handler(matched=True),
+                    2,
+                    "stealer-route-c2.nse",
+                    formbook_args,
+                    "formbook_reviewed_route_pair_match",
+                ),
+                _exercise_multi(
+                    nmap_exe,
+                    _formbook_route_handler(matched=False),
+                    2,
+                    "stealer-route-c2.nse",
+                    formbook_args,
+                    "formbook_reviewed_route_pair_mismatch",
+                ),
                 _exercise_multi(
                     nmap_exe,
                     _vidar_route_handler(matched=True),

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "tested_nmap_version": "7.99",
   "execution_backend": "nmap_nse_only",
-  "network_method_count": 20,
+  "network_method_count": 21,
   "method_bindings": [
     {
       "method": "dns_resolve",
@@ -123,6 +123,12 @@
       "script": "scripts/xloader-c2.nse",
       "mode": "transport-only",
       "confirmation_allowed": false
+    },
+    {
+      "method": "formbook_reviewed_route_head",
+      "script": "scripts/stealer-route-c2.nse",
+      "mode": "formbook",
+      "confirmation_allowed": false
     }
   ],
   "canonical_families": [
@@ -217,10 +223,10 @@
     {
       "family": "formbook",
       "aliases": ["formbook-stealer"],
-      "script": "scripts/xloader-c2.nse",
-      "modes": ["transport-only"],
-      "maximum_confidence": 0.15,
-      "confirmation": "terminal URIと鍵が未復元のためTCP到達性だけを記録し、c2_confirmedは常にfalse"
+      "script": "scripts/stealer-route-c2.nse",
+      "modes": ["formbook"],
+      "maximum_confidence": 0.6,
+      "confirmation": "完全一致profileと数値IP pinを明示したreview済みHEAD経路・陰性対照の差分。probable_c2に限定し、c2_confirmedは常にfalse"
     },
     {
       "family": "vidar",
@@ -247,6 +253,15 @@
     }
   ],
   "profile_limited_probable_families": [
+    {
+      "family": "formbook",
+      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
+      "active_probe": "scripts/stealer-route-c2.nse",
+      "maximum_request_count": 2,
+      "request_method": "HEAD",
+      "request_body_sent": false,
+      "confirmation_allowed": false
+    },
     {
       "family": "vidar",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",

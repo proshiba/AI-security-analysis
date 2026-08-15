@@ -6,7 +6,7 @@ C2検知で対象へ接触する処理は、すべてNmap NSEを実行backendと
 
 旧`c2_detector.py`はoffline plan生成との互換用です。`--allow-network`を指定しても`python_direct_c2_probe_disabled`を返し、外部targetへ接続しません。family別の旧socket helperは合成fixtureとloopback unit testの互換部品であり、標準active C2検知backendではありません。
 
-実行policyは`network_execution_backend=nmap_nse_only`と`python_direct_probe_used=false`を公開結果へ固定します。20 methodの完全対応は[`profiles.json`](profiles.json)を正本とし、Nmapが見つからない場合、中央profileに一致しない独自送信が要求された場合、またはNSE bindingが未登録の場合はPythonへfallbackせずfail-closedとします。Vidar／AMOSの経路差分方式は[`STEALER-ROUTE-PROBES.md`](STEALER-ROUTE-PROBES.md)を参照してください。
+実行policyは`network_execution_backend=nmap_nse_only`と`python_direct_probe_used=false`を公開結果へ固定します。21 methodの完全対応は[`profiles.json`](profiles.json)を正本とし、Nmapが見つからない場合、中央profileに一致しない独自送信が要求された場合、またはNSE bindingが未登録の場合はPythonへfallbackせずfail-closedとします。FormBook／Vidar／AMOSの経路差分方式は[`STEALER-ROUTE-PROBES.md`](STEALER-ROUTE-PROBES.md)を参照してください。
 
 ## 対応範囲
 
@@ -24,14 +24,14 @@ C2検知で対象へ接触する処理は、すべてNmap NSEを実行backendと
 | StealC v2 | `stealer-http-c2.nse`／`stealc` | RC4登録、復号済みaccess token形式 | 0.90 | task取得はしない |
 | Lumma v6 | `stealer-http-c2.nse`／`lumma` | uid登録、HTTP応答形状 | 0.78 | protocol固有確認ではなく推定 |
 | Remus | `stealer-http-c2.nse`／`remus` | tag／exp登録、HTTP 201、envelope長 | 0.78 | protocol固有確認ではなく推定 |
-| FormBook | `xloader-c2.nse`／`transport-only` | application dataなしのTCP到達性 | 0.15 | terminal URIと鍵が未復元のため`c2_confirmed=false`固定 |
+| FormBook | `stealer-route-c2.nse`／`formbook` | 固定profileのreview済み経路と陰性対照を`HEAD`で比較 | 0.60 | probable判定のみ。query／body／cookieを送らず`c2_confirmed=false`固定 |
 | Vidar | `stealer-route-c2.nse`／`vidar` | 固定profileのroot `HEAD`と陰性対照 | 0.60 | probable判定のみ。Telegram／Steam dead-dropへ接続しない |
 | AMOS | `stealer-route-c2.nse`／`amos` | 同一campaignのledger 2経路と陰性対照を`HEAD`で比較 | 0.65 | body／victim dataなし。`c2_confirmed=false`固定 |
 | DarkComet | `darkcomet-c2.nse` | RC4 server-first challengeの`IDTYPE`完全一致 | 0.98 | application dataは送信しない |
 | RedLine Stealer | `redline-c2.nse` | 固定SOAP 1.1 `CheckConnect`を1要求、厳密なboolean応答 | 0.98 | review済みprofileのIP・port以外には送信しない |
 | XLoader | `xloader-c2.nse`／`transport-only` | Nmap scanで確認済みのTCP到達性だけを明示的に記録 | 0.15 | `c2_confirmed=false`固定。登録requestや候補一斉送信はしない |
 
-機械可読の対応表は[`profiles.json`](profiles.json)にあります。`purerat-c2.nse`は`04000000` plaintext prelude後にTLSへ昇格する別variantのloopback回帰用として保持しますが、現行20 methodの正式bindingには含めません。`gh0strat`、`remcosrat`、`prometei`、`spyglace`、`purelogs`の現行実装は設定抽出・event照合・汎用transport確認が中心で、review済みのon-wire固有応答がありません。誤検知を避けるため、現時点ではNSEのマルウェア固有確認対象に含めていません。
+機械可読の対応表は[`profiles.json`](profiles.json)にあります。`purerat-c2.nse`は`04000000` plaintext prelude後にTLSへ昇格する別variantのloopback回帰用として保持しますが、現行21 methodの正式bindingには含めません。`gh0strat`、`remcosrat`、`prometei`、`spyglace`、`purelogs`の現行実装は設定抽出・event照合・汎用transport確認が中心で、review済みのon-wire固有応答がありません。誤検知を避けるため、現時点ではNSEのマルウェア固有確認対象に含めていません。
 
 ### DarkCometの受信専用判定
 
@@ -53,11 +53,11 @@ HTTP 2xx、単一の`Content-Length`、`text/xml; charset=utf-8`、SOAP 1.1の`E
 
 XLoaderは、64候補中の実C2選択とrequest／responseの多層暗号に検体固有のprivate materialが必要です。NSEへ鍵や復元済みendpoint群を埋め込まず、`xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true`を明示した場合だけ、Nmap本体が確認したTCP openを低確度の能力情報として返します。NSE自身は追加socketを開かず、application data、端末登録、candidate spray、task取得を一切送信しません。したがって結果の`c2_confirmed`と`probable_c2`は常に`false`です。review済みのNSE protocol実装が完成するまではtransport観測だけでfail-closedとし、private Python socket probeへfallbackしません。
 
-FormBookも同じno-send境界を使います。`xloader.variant=formbook`を追加すると、familyをFormBookとして記録し、`formbook_terminal_profile_required_tcp_open_only`を返します。公開PCAPと静的成果物では終端URI、鍵、応答契約を復元できておらず、404、root page、domain単独ではdecoyを区別できないため、confidence 0.15を超えて昇格しません。
+FormBookの完全な登録protocolは引き続きno-send境界です。`xloader.variant=formbook`はTCP到達性だけを0.15で記録します。一方、追加静的解析でreviewした単一bootstrap経路と4件の公開PCAPで確認したfan-out形状は、terminal鍵や登録値を使わない別の検出根拠です。`stealer-route-c2.nse`の`formbook` modeは固定経路と陰性対照へ2回だけ`HEAD`を送り、差が成立した場合も0.60のprobable判定に限定します。404、root page、domain単独、または陰性対照と同じ応答では昇格しません。
 
 ### Vidar／AMOSの経路差分判定
 
-`stealer-route-c2.nse`は、script内のreview済みprofileを引数で上書きできない形で固定し、同値acknowledgementと数値IP pinが揃った場合だけ通信します。Vidarはrootと陰性対照の2回、AMOSは二つのledger経路と陰性対照の3回だけ`HEAD`を送ります。要求body、端末情報、cookie、認証情報は送らず、redirectと応答bodyも追跡しません。経路差が成立した場合でもprotocol固有応答ではないため、Vidarは0.60、AMOSは0.65の`probable_c2=true`に限定し、`c2_confirmed=false`を維持します。profile ID、実行例、status条件は[`STEALER-ROUTE-PROBES.md`](STEALER-ROUTE-PROBES.md)に記載しています。
+`stealer-route-c2.nse`は、script内のreview済みprofileを引数で上書きできない形で固定し、同値acknowledgementと数値IP pinが揃った場合だけ通信します。FormBookとVidarはreview済み経路と陰性対照の2回、AMOSは二つのledger経路と陰性対照の3回だけ`HEAD`を送ります。要求body、query、端末情報、cookie、認証情報は送らず、redirectと応答bodyも追跡しません。経路差が成立した場合でもprotocol固有応答ではないため、FormBook／Vidarは0.60、AMOSは0.65の`probable_c2=true`に限定し、`c2_confirmed=false`を維持します。profile ID、実行例、status条件は[`STEALER-ROUTE-PROBES.md`](STEALER-ROUTE-PROBES.md)に記載しています。
 
 ## 実行例
 
@@ -76,11 +76,11 @@ NSEの直接起動は原則としてadapterの中央profile照合と追加許可
 
 ## 動作検証
 
-`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に36回呼び出して、汎用DNS／transportと全malware固有modeの正応答、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、StealCのredirect拒否、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoader／FormBookのno-send境界、Vidar／AMOSの経路一致・不一致を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
+`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に38回呼び出して、汎用DNS／transportと全malware固有modeの正応答、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、StealCのredirect拒否、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoader／FormBookのno-send境界、FormBook／Vidar／AMOSの経路一致・不一致を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
 
 ```powershell
 python .\analysis-framework\nmap\verify_nse.py --nmap C:\Tools\Nmap\nmap.exe
 python -m pytest .\analysis-framework\tests\test_nmap_c2_scripts.py -q
 ```
 
-統合試験では、Winos、vvaS、N520、AsyncRAT、VenomRAT、PureRAT、AgentTesla FTP、StealC、Lumma、Remus、DarkComet、RedLine、XLoader、FormBook、Vidar、AMOSの送受信または受信専用処理と最終statusを検証します。DarkCometとXLoader／FormBookのfixtureはクライアントからapplication dataを1 byteでも受信した場合に失敗するため、no-send境界も確認できます。Vidar／AMOS fixtureは要求数、method、Host、User-Agent、bodyなしを固定します。`profiles.json`と中央の`c2_protocol_probe_profiles.json`の対応漏れもunit testで検出します。
+統合試験では、Winos、vvaS、N520、AsyncRAT、VenomRAT、PureRAT、AgentTesla FTP、StealC、Lumma、Remus、DarkComet、RedLine、XLoader、FormBook、Vidar、AMOSの送受信または受信専用処理と最終statusを検証します。DarkCometとXLoader／FormBook transport fixtureはクライアントからapplication dataを1 byteでも受信した場合に失敗するため、no-send境界も確認できます。FormBook／Vidar／AMOS route fixtureは要求数、method、Host、User-Agent、bodyなしを固定します。`profiles.json`と中央の`c2_protocol_probe_profiles.json`の対応漏れもunit testで検出します。
