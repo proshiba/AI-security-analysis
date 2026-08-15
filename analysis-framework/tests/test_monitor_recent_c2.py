@@ -529,9 +529,44 @@ def test_venomrat_application_probe_requires_separate_flag(
             "target_connection_established": True,
             "application_data_sent": True,
             "protocol_response_received": True,
+            "request_count": 1,
+            "request_budget_used": 1,
+            "sent_bytes": 48,
+            "received_bytes": 42,
+            "response_packet": "Po_ng",
+            "response_field_count": 1,
+            "response_frame_size": 42,
+            "response_frame_sha256": "a" * 64,
+            "response_decoded_size": 15,
+            "response_decoded_sha256": "b" * 64,
+            "detector_status": "confirmed_tls_messagepack_c2",
+            "tls_version_exact": True,
+            "tls": {
+                "handshake": True,
+                "observed_version": "TLSv1.2",
+                "expected_version": "TLSv1.2",
+                "version_exact": True,
+                "certificate": {
+                    "state": "exact_match",
+                    "exact_match": True,
+                    "observed_sha256": (
+                        "4370b606ee51b67ab75611600406eb74762f5c134309358d042d696d789c5e22"
+                    ),
+                    "expected_sha256": (
+                        "4370b606ee51b67ab75611600406eb74762f5c134309358d042d696d789c5e22"
+                    ),
+                    "certificate_mismatch_excludes_c2": False,
+                },
+            },
+            "certificate_mismatch_excludes_c2": False,
             "victim_metadata_sent": False,
             "stage_requested": False,
             "operation_command_sent": False,
+            "command_polling_performed": False,
+            "raw_request_published": False,
+            "raw_response_published": False,
+            "raw_response_retained": False,
+            "synthetic_result_sent": False,
             "resolved_ips": ["93.184.216.34"],
         }
 

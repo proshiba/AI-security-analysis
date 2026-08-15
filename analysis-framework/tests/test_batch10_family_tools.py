@@ -144,7 +144,7 @@ def test_new_emulators_and_network_detector_are_nonexecuting() -> None:
     assert result["process_started"] is False
 
 
-def test_new_detectors_and_registry_entries_are_bounded() -> None:
+def test_new_detectors_and_registry_entries_are_bounded(monkeypatch) -> None:
     registry = json.loads(
         (FRAMEWORK / "registry" / "malware_types.json").read_text(encoding="utf-8")
     )["malware_types"]
@@ -157,9 +157,30 @@ def test_new_detectors_and_registry_entries_are_bounded() -> None:
     assert formbook.detect(generic, Path("generic.exe"))["matched"] is False
     synthetic = generic + b" resources/bartia.m4a"
     result = formbook.detect(synthetic, Path("synthetic.exe"))
-    assert result["matched"] is True
+    assert result["matched"] is False
     assert result["observations"]["reviewed_hash"] is False
     assert result["observations"]["dotnet_markers"]["reviewed_resource"] is True
+    assert result["observations"]["dotnet_structural_candidate"] is True
+    assert result["observations"]["dotnet_automatic_route_eligible"] is False
+
+    fe1e_profile = generic + b" CharactersGround.dll Warsaw_PM.sys wsftprm.sys"
+    fe1e_result = formbook.detect(fe1e_profile, Path("fe1e-profile.exe"))
+    assert fe1e_result["matched"] is False
+    assert fe1e_result["observations"]["dotnet_structural_candidate"] is False
+
+    class ReviewedDigest:
+        def hexdigest(self) -> str:
+            return formbook.DOTNET_REVIEWED_SHA256
+
+    monkeypatch.setattr(
+        formbook,
+        "hashlib",
+        SimpleNamespace(sha256=lambda _data: ReviewedDigest()),
+    )
+    reviewed = formbook.detect(synthetic, Path("reviewed.exe"))
+    assert reviewed["matched"] is True
+    assert reviewed["campaigns"][0]["reasons"] == ["reviewed_sha256"]
+    assert reviewed["observations"]["dotnet_automatic_route_eligible"] is True
 
 
 def test_batch10_yara_rules_compile() -> None:

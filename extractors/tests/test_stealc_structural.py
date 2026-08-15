@@ -28,7 +28,7 @@ def test_collection_and_c2_core_requires_independent_marker_groups(
     assert structural["version_confirmed"] is False
 
     monkeypatch.setattr(
-        "extractors.stealc.extract_v1",
+        "extractors.stealc.integrated.extract_v1",
         lambda _data, _name: {
             "config": {"profile": None, "static_config_recovered": False},
             "limitations": [],

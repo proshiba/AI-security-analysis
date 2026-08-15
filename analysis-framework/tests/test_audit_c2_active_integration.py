@@ -9,7 +9,7 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import audit_c2_active_integration as audit_module
+import audit_c2_active_integration as audit_module  # noqa: E402
 
 
 def _script(root: Path, name: str = "fixture-c2.nse") -> str:
@@ -18,7 +18,11 @@ def _script(root: Path, name: str = "fixture-c2.nse") -> str:
     path = scripts / name
     path.write_text(
         'categories = {"intrusive", "malware"}\n'
-        'action = function() return {c2_confirmed=false} end\n',
+        'action = function()\n'
+        '  local mode = stdnse.get_script_args("fixture.mode")\n'
+        '  if mode ~= "fixture" then return nil end\n'
+        '  return {c2_confirmed=false}\n'
+        'end\n',
         encoding="utf-8",
     )
     return f"scripts/{name}"
@@ -132,6 +136,28 @@ def test_nmap_script_path_escape_is_rejected(tmp_path: Path, script: str) -> Non
     report = audit_module.audit_integration_state(**state)
     assert report["status"] == "fail"
     assert any(error["code"] == "nmap_script_path_unsafe" for error in report["errors"])
+
+
+@pytest.mark.parametrize("modes", [None, [], ["fixture", "fixture"], ["bad mode"]])
+def test_nmap_modes_must_be_present_unique_and_canonical(
+    tmp_path: Path,
+    modes: object,
+) -> None:
+    state = _state(tmp_path)
+    state["nmap_mapping"]["canonical_families"][0]["modes"] = modes
+    report = audit_module.audit_integration_state(**state)
+    assert report["status"] == "fail"
+    assert any(error["code"] == "nmap_modes_invalid" for error in report["errors"])
+
+
+def test_nmap_declared_mode_must_match_script_dispatch(tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state["nmap_mapping"]["canonical_families"][0]["modes"] = ["missing"]
+    report = audit_module.audit_integration_state(**state)
+    codes = {error["code"] for error in report["errors"]}
+    assert report["status"] == "fail"
+    assert "nmap_mode_not_dispatched" in codes
+    assert "nmap_dispatch_not_registered" in codes
 
 
 def test_required_contract_detects_handler_and_nmap_drift(tmp_path: Path) -> None:

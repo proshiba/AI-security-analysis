@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import sys
@@ -11,22 +12,22 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import c2_protocol_probe_profiles as profile_module  # noqa: E402
-import remus_profile_evidence as evidence  # noqa: E402
-from build_all_c2_monitoring_targets import build_inventory  # noqa: E402
-from c2_protocol_probe_profiles import (  # noqa: E402
-    ProtocolProfileError,
-    apply_profiles,
-    load_profiles,
-    profile_registry_metadata,
-    remus_review_registry_metadata,
-    resolve_profile,
-)
+profile_module = importlib.import_module("c2_protocol_probe_profiles")
+evidence = importlib.import_module("remus_profile_evidence")
+build_inventory = importlib.import_module(
+    "build_all_c2_monitoring_targets"
+).build_inventory
+ProtocolProfileError = profile_module.ProtocolProfileError
+apply_profiles = profile_module.apply_profiles
+load_profiles = profile_module.load_profiles
+profile_registry_metadata = profile_module.profile_registry_metadata
+remus_review_registry_metadata = profile_module.remus_review_registry_metadata
+resolve_profile = profile_module.resolve_profile
 
 
 def test_registry_contains_reviewed_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 21
+    assert len(profiles) == 22
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",
@@ -40,6 +41,7 @@ def test_registry_contains_reviewed_protocols() -> None:
         "remus_registration_task",
         "darkcomet_server_first_idtype",
         "redline_checkconnect_soap11",
+        "purerat_direct_tls_certificate_pin",
     }
 
 
@@ -106,6 +108,101 @@ def test_winos_profile_mutation_fails_closed(
         load_profiles(source)
 
 
+def test_purerat_direct_tls_profile_is_exact_and_evidence_pinned() -> None:
+    profile = load_profiles()[
+        "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
+    ]
+    root_sha256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
+    terminal_sha256 = (
+        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+    )
+
+    assert profile["handler"] == "purerat_direct_tls"
+    assert profile["protocol"] == "purerat_direct_tls"
+    assert profile["method"] == "purerat_direct_tls_certificate_pin"
+    assert profile["variant"] == "managed_purerat_4_4_1_direct_tls"
+    assert profile["root_sample_sha256"] == root_sha256
+    assert profile["terminal_sample_sha256"] == terminal_sha256
+    assert profile["sample_sha256s"] == [root_sha256, terminal_sha256]
+    assert profile["host"] == "45.192.211.77"
+    assert profile["port"] == 56001
+    assert profile["pinned_ips"] == ["45.192.211.77"]
+    assert profile["wire_mode"] == "direct_tls"
+    assert profile["tls_version"] == "TLSv1.0"
+    assert profile["sni"] is None
+    assert profile["expected_certificate_sha256"] == (
+        "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
+    )
+    assert profile["send_hex"] == ""
+    assert profile["request_budget_bytes"] == 0
+    assert profile["maximum_request_bytes"] == 0
+    assert profile["maximum_response_bytes"] == 0
+    assert profile["timeout_seconds"] == 3.0
+    assert profile["allow_openssl_legacy_security_level"] is True
+    assert profile["source"] == (
+        "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+    )
+
+    repository = Path(__file__).resolve().parents[2]
+    evidence_source = repository / profile["source"]
+    assert evidence.canonical_lf_json_sha256(
+        evidence_source.read_bytes(),
+        label="PureRAT evidence",
+    ) == (
+        "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8"
+    )
+    assert profile_module.canonical_profile_object_sha256(profile) == (
+        "01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec"
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("handler", "agenttesla_ftp_authenticated"),
+        ("method", "tcp_connect"),
+        ("variant", "managed_purerat_4_4_1_tls_prelude"),
+        ("root_sample_sha256", "0" * 64),
+        ("terminal_sample_sha256", "1" * 64),
+        ("sample_sha256s", ["0" * 64, "1" * 64]),
+        ("host", "45.192.211.78"),
+        ("port", 56002),
+        ("pinned_ips", ["45.192.211.78"]),
+        ("wire_mode", "tls_after_prelude"),
+        ("send_hex", "04000000"),
+        ("sni", "purerat.invalid"),
+        ("tls_version", "TLSv1.2"),
+        ("expected_certificate_sha256", "2" * 64),
+        ("request_budget_bytes", 1),
+        ("maximum_request_bytes", 1),
+        ("maximum_response_bytes", 1),
+        ("allow_openssl_legacy_security_level", False),
+        ("timeout_seconds", 4.0),
+        ("client_certificate_path", "fixture.pfx"),
+    ],
+)
+def test_purerat_direct_tls_profile_mutation_fails_closed(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    document = json.loads(
+        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
+    )
+    profile = next(
+        item
+        for item in document["profiles"]
+        if item["profile_id"]
+        == "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
+    )
+    profile[field] = value
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProtocolProfileError):
+        load_profiles(source)
+
+
 
 def test_builder_adds_only_profiles_with_existing_repository_evidence(
     tmp_path: Path,
@@ -137,6 +234,62 @@ def test_asyncrat_and_venomrat_profiles_keep_distinct_packet_fields() -> None:
     assert len(venomrat["expected_certificate_sha256"]) == 64
     agenttesla = profiles["agenttesla-ftp-auth-3f091457-vilimorin"]
     assert agenttesla["maximum_response_bytes"] == 1024
+
+
+@pytest.mark.parametrize(
+    "http_path",
+    [
+        "/ce369e7324834845.php",
+        "/gate_v2-1.php",
+    ],
+)
+def test_stealc_profile_accepts_exact_bounded_php_gate(
+    tmp_path: Path,
+    http_path: str,
+) -> None:
+    """StealCだけは静的復元した単一階層PHP gateを完全一致で許可する。"""
+
+    document = json.loads(
+        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
+    )
+    profile = next(
+        item
+        for item in document["profiles"]
+        if item["handler"] == "stealc_v2_registration_task"
+    )
+    profile["http_path"] = http_path
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    loaded = load_profiles(source)
+    assert loaded[profile["profile_id"]]["http_path"] == http_path
+
+
+@pytest.mark.parametrize(
+    "http_path",
+    [
+        "/nested/gate.php",
+        "/gate.php?x=1",
+        "/.php",
+        "/gate.exe",
+    ],
+)
+def test_stealc_profile_rejects_unbounded_or_non_php_gate(
+    tmp_path: Path,
+    http_path: str,
+) -> None:
+    document = json.loads(
+        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
+    )
+    profile = next(
+        item
+        for item in document["profiles"]
+        if item["handler"] == "stealc_v2_registration_task"
+    )
+    profile["http_path"] = http_path
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(ProtocolProfileError, match="共通安全境界"):
+        load_profiles(source)
 
 
 def test_cross_sample_endpoint_is_kept_separate_from_reviewed_profile(
@@ -195,7 +348,7 @@ def test_all_repository_profiles_apply_except_rejected_remus() -> None:
 
     remus_profile_id = "remus-ba0044e8-onesdto-2535"
     applied = {target["protocol_profile_id"] for target in targets}
-    assert added == len(targets) == 20
+    assert added == len(targets) == 21
     assert applied == set(load_profiles()) - {remus_profile_id}
     assert all(target["method"] != "remus_registration_task" for target in targets)
     assert [

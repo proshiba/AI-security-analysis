@@ -1,16 +1,16 @@
 {
   "ai_used": false,
   "counts": {
-    "automated_analysis_completion_possible": 76,
+    "automated_analysis_completion_possible": 74,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 76,
-    "automatic_handler_blocked": 0,
-    "blocked_automatic_handlers": 0,
+    "automatic_family_selection_possible": 74,
+    "automatic_handler_blocked": 2,
+    "blocked_automatic_handlers": 2,
     "by_status": {
-      "automatic_handler_blocked": 0,
+      "automatic_handler_blocked": 2,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 76,
+      "fully_routable": 74,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
@@ -21,19 +21,19 @@
     "declared_script_only_handler_available": 84,
     "declared_script_only_handler_percent": 97.67,
     "detector_registered": 76,
-    "executed_preflight_count": 1059,
+    "executed_preflight_count": 1044,
     "families": 86,
-    "fully_routable": 76,
-    "fully_routable_percent": 88.37,
-    "planned_preflight_count": 1059,
+    "fully_routable": 74,
+    "fully_routable_percent": 86.05,
+    "planned_preflight_count": 1044,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 84,
+    "quality_gated_script_only_handler_available": 82,
     "quality_policy_declared": 84,
     "quality_policy_missing": 0,
-    "safe_automatic_handlers": 95,
-    "script_only_handler_available": 84,
-    "script_only_handler_percent": 97.67,
-    "structurally_routable": 76
+    "safe_automatic_handlers": 93,
+    "script_only_handler_available": 82,
+    "script_only_handler_percent": 95.35,
+    "structurally_routable": 74
   },
   "executed_sample": false,
   "families": [
@@ -157,8 +157,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 26,
-          "dependency_fingerprint_sha256": "addd8ec96cc3c9bde0a4089c3ffca866bf2a7c385c405e34c6f690adcaf871ef",
+          "dependency_file_count": 30,
+          "dependency_fingerprint_sha256": "925548193f5455ac160798e34234c6e9cd90a10bf91601dac8ceea48d22acbb5",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -1794,8 +1794,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 26,
-          "dependency_fingerprint_sha256": "1b2234daa97b941b2ead91a1eda54c798f06812971018b33c9a7d0fdceb5e3d8",
+          "dependency_file_count": 30,
+          "dependency_fingerprint_sha256": "1d7a06fe2c4048e5d2ef6a0dc3dc3c1c4d623f36542d89c52898bd7ceff61081",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -1890,8 +1890,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 24,
-          "dependency_fingerprint_sha256": "6097662f0f61a9d68c10b1a513f98041564a253df6ed5fa17067db4bc509fafb",
+          "dependency_file_count": 28,
+          "dependency_fingerprint_sha256": "97dce2ab7727f800615d5826c37d959d266aafd6f462627c322e75677fbe3546",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -1962,7 +1962,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "5c046d344a0054722a4015d16f19a8468fd0f3c87bb2460708f59558d08599a1",
+          "dependency_fingerprint_sha256": "f298fc39de0266a27579007c7ac59b8624f962da5e408b23d5434a3ca09db510",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2141,38 +2141,64 @@
       "structurally_routable": true
     },
     {
-      "accepted_formats": [
-        "pe"
-      ],
-      "automated_analysis_completion_possible": true,
+      "accepted_formats": [],
+      "automated_analysis_completion_possible": false,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
-          "blocked_formats": [],
-          "blockers": [],
+          "blocked_formats": [
+            {
+              "blockers": [
+                "reachable:_bundle_inventory:unapproved_object_method:inventory.setdefault"
+              ],
+              "eligible": false,
+              "format": "pe"
+            }
+          ],
+          "blockers": [
+            "reachable:_bundle_inventory:unapproved_object_method:inventory.setdefault"
+          ],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "efdab78c77926f8320e7aa7dcbdc615c5d9e08c2b66e7ae97ea1f9c687b8c5f4",
-          "eligible": true,
-          "eligible_formats": [
-            "pe"
-          ],
+          "dependency_fingerprint_sha256": "10c0c75d4aa457b294de23984f89ce6d01aa00f1ce2923951e88f234d447b7d2",
+          "eligible": false,
+          "eligible_formats": [],
           "handler_id": "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
         }
       ],
-      "automatic_handlers": [
-        "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
+      "automatic_handlers": [],
+      "automatic_selection_possible": false,
+      "blocked_automatic_handlers": [
+        {
+          "blocked_formats": [
+            {
+              "blockers": [
+                "reachable:_bundle_inventory:unapproved_object_method:inventory.setdefault"
+              ],
+              "eligible": false,
+              "format": "pe"
+            }
+          ],
+          "blockers": [
+            "reachable:_bundle_inventory:unapproved_object_method:inventory.setdefault"
+          ],
+          "declared_formats": [
+            "pe"
+          ],
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "10c0c75d4aa457b294de23984f89ce6d01aa00f1ce2923951e88f234d447b7d2",
+          "eligible": false,
+          "eligible_formats": [],
+          "handler_id": "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
+        }
       ],
-      "automatic_selection_possible": true,
-      "blocked_automatic_handlers": [],
-      "blocker": null,
-      "candidate_verification_possible": true,
+      "blocker": "automatic_handler_preflight_blocked",
+      "candidate_verification_possible": false,
       "completion_verification": {
         "blockers": [
-          "representative_fixture_completion_not_verified",
-          "required_output_contract_not_exercised"
+          "automatic_handler_preflight_blocked"
         ],
         "required_evidence": [
           "representative_fixture",
@@ -2191,9 +2217,10 @@
       "detector_registered": true,
       "family": "efimer",
       "manual_or_unsupported_handlers": [
+        "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config",
         "efimer:analysis.framework.malware.efimer.extract.config.py:extract_directory"
       ],
-      "next_action_ja": null,
+      "next_action_ja": "安全preflightの阻害理由を解消し、静的handlerを再監査する。",
       "quality_policy": {
         "category": "stealer",
         "config_required": true,
@@ -2201,12 +2228,10 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
-      "safe_automatic_handlers": [
-        "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
-      ],
-      "script_only_handler_available": true,
-      "status": "fully_routable",
-      "structurally_routable": true
+      "safe_automatic_handlers": [],
+      "script_only_handler_available": false,
+      "status": "automatic_handler_blocked",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -2503,8 +2528,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 22,
-          "dependency_fingerprint_sha256": "295f9812453424c58322becff723c27f1854ff227283d88cfa3115ae1b7eb206",
+          "dependency_file_count": 26,
+          "dependency_fingerprint_sha256": "298930b613140199185e1c8b2466d13a3322ad4176d4dbe844067f9581c26aa8",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3772,7 +3797,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "3e0613b9c68095503a5ca38d74bfa89fa0e6326510fab696e58c54ec361bdf10",
+          "dependency_fingerprint_sha256": "053907ba6fbd4eb29390dfa0a147fab853f4a7cf6349aee4170f4f0ca70f9538",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -6174,30 +6199,128 @@
       "structurally_routable": true
     },
     {
-      "accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
-      ],
-      "automated_analysis_completion_possible": true,
+      "accepted_formats": [],
+      "automated_analysis_completion_possible": false,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
-          "blocked_formats": [],
-          "blockers": [],
+          "blocked_formats": [
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "7z"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "apple-disk-image"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "asar"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "autoit-a3x"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "cab"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "data"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "elf"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "java-class"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "macho"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "ole"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "pe"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "png"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "rar"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "script"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "xz"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "zip"
+            }
+          ],
+          "blockers": [
+            "import_time:unapproved_external_call:ipaddress.ip_network"
+          ],
           "declared_formats": [
             "7z",
             "apple-disk-image",
@@ -6216,10 +6339,135 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "bb911effcd737fc0960a99fc656209c21fe686369da91aa40a9b4c126e94f0df",
-          "eligible": true,
-          "eligible_formats": [
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "cb90db31c3d633cceb56c9ff6156143743dbc53137deb049b965672273cb2540",
+          "eligible": false,
+          "eligible_formats": [],
+          "handler_id": "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
+        }
+      ],
+      "automatic_handlers": [],
+      "automatic_selection_possible": false,
+      "blocked_automatic_handlers": [
+        {
+          "blocked_formats": [
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "7z"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "apple-disk-image"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "asar"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "autoit-a3x"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "cab"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "data"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "elf"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "java-class"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "macho"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "ole"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "pe"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "png"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "rar"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "script"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "xz"
+            },
+            {
+              "blockers": [
+                "import_time:unapproved_external_call:ipaddress.ip_network"
+              ],
+              "eligible": false,
+              "format": "zip"
+            }
+          ],
+          "blockers": [
+            "import_time:unapproved_external_call:ipaddress.ip_network"
+          ],
+          "declared_formats": [
             "7z",
             "apple-disk-image",
             "asar",
@@ -6237,20 +6485,18 @@
             "xz",
             "zip"
           ],
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "cb90db31c3d633cceb56c9ff6156143743dbc53137deb049b965672273cb2540",
+          "eligible": false,
+          "eligible_formats": [],
           "handler_id": "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
         }
       ],
-      "automatic_handlers": [
-        "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
-      ],
-      "automatic_selection_possible": true,
-      "blocked_automatic_handlers": [],
-      "blocker": null,
-      "candidate_verification_possible": true,
+      "blocker": "automatic_handler_preflight_blocked",
+      "candidate_verification_possible": false,
       "completion_verification": {
         "blockers": [
-          "representative_fixture_completion_not_verified",
-          "required_output_contract_not_exercised"
+          "automatic_handler_preflight_blocked"
         ],
         "required_evidence": [
           "representative_fixture",
@@ -6283,8 +6529,10 @@
       "declared_script_only_handler_available": true,
       "detector_registered": true,
       "family": "prometei",
-      "manual_or_unsupported_handlers": [],
-      "next_action_ja": null,
+      "manual_or_unsupported_handlers": [
+        "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
+      ],
+      "next_action_ja": "安全preflightの阻害理由を解消し、静的handlerを再監査する。",
       "quality_policy": {
         "category": "bot",
         "config_required": true,
@@ -6292,12 +6540,10 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
-      "safe_automatic_handlers": [
-        "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
-      ],
-      "script_only_handler_available": true,
-      "status": "fully_routable",
-      "structurally_routable": true
+      "safe_automatic_handlers": [],
+      "script_only_handler_available": false,
+      "status": "automatic_handler_blocked",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -6705,8 +6951,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "d6a351ea6515d25b94ff09371b012ec53e0f5de71b9cfcbdd99794f7e428a66c",
+          "dependency_file_count": 7,
+          "dependency_fingerprint_sha256": "a0fc55961e5b7af14546d252891e79a060377d5eac7fa3391b510b13d2b6b52b",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8100,8 +8346,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 24,
-          "dependency_fingerprint_sha256": "746f160ca88a487c42e4362a032cfa9ed1eb96effce250541f65e2858c388785",
+          "dependency_file_count": 28,
+          "dependency_fingerprint_sha256": "a737a0a2a89a90e60801aa7ca1fc2d82660cdcb206d8f1095ede202ef1698d00",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8758,7 +9004,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "728f4bc826882d35308e12d7878ed8558de105641cc89cea8b367f9156035d8d",
+          "dependency_fingerprint_sha256": "b502363f5dd6bb83ee12f35b11de312247186110ea91eb3c2c4200254d5bcdba",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8772,8 +9018,8 @@
             "data",
             "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "9b2300be310aab49801a97e9e75a2e4017afe81fde5bc0a984f3c216ac3374fe",
+          "dependency_file_count": 9,
+          "dependency_fingerprint_sha256": "a727ea3be32f60c659f5c8f9b0fdb42cf49c36e749d358d3211408c23a88a5fb",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -8815,8 +9061,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "c86e8e49dfe3fb5d3ad00f4c57ce4c9c862868fcc9bbc53eca2614cce01dccd1",
+          "dependency_file_count": 7,
+          "dependency_fingerprint_sha256": "4ce2d8b94886251756ef1bd624f11a6f7e812990f780b4469f6726ac83372452",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8864,8 +9110,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "abc3835d80f401a8171f3e1a9cbb3055017a72497c37775f80730534b6e70f0e",
+          "dependency_file_count": 6,
+          "dependency_fingerprint_sha256": "37c3f0e05653d643eafb5f30b971717c2bbb57f6802d5b89c0763d6747539775",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8977,22 +9223,7 @@
     },
     {
       "accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
@@ -9001,43 +9232,13 @@
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
-          "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "3ac7c14ebaa0b99b0a8eda4f88d556eb20a55c8f71d0e93e283f24e24e4fcabd",
+          "dependency_file_count": 6,
+          "dependency_fingerprint_sha256": "0ff4477d44059e4e928488a4d61447941481d8d8308770cdf4a313d67a6b438e",
           "eligible": true,
           "eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "handler_id": "venomrat:extractors.venomrat.extractor.py:extract"
         }
@@ -9062,22 +9263,7 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "declared_automatic_handlers": [
         "venomrat:extractors.venomrat.extractor.py:extract"
@@ -9146,8 +9332,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 24,
-          "dependency_fingerprint_sha256": "850fc5350a4286b32d79bccb56a98d3c46afd85be9e202d3dd4aec24c7aa1ee9",
+          "dependency_file_count": 28,
+          "dependency_fingerprint_sha256": "36b2378cbe5a1c8e0b4a4c3acddf1d490a1545f188d4596866dc5085a2126d6f",
           "eligible": true,
           "eligible_formats": [
             "7z",

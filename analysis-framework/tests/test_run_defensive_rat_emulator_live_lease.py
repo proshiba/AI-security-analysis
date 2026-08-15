@@ -64,7 +64,7 @@ def test_preflight_publishes_active_lease_and_cli_has_no_time_override() -> None
     result = runner.preflight(PROFILE_ID, lease_now_utc=REVIEWED)
     assert result["network_used"] is False
     assert result["registry_sha256"] == (
-        "3f3d2afc8879a987ad0dde8abce200d371af452b94a4018d941cf62545d0c8b4"
+        "a0725e5ce5f8a6597193e2bde09a06740147186dc1f1818c7da7e59d9209a9d6"
     )
     assert result["live_lease"] == {
         "source": "analysis-framework/common/rat_emulator_live_leases.json",

@@ -38,11 +38,15 @@ REDLINE_ACTIVE_PROFILE_REGISTRY_SOURCE = (
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 SHA1_RE = re.compile(r"^[0-9a-f]{40}$")
 XLOADER_SYNTHETIC_TEMPLATE_ID = "xloader-v8-pkt2-synthetic-v1"
+PURERAT_ROOT_SAMPLE_SHA256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
+PURERAT_TERMINAL_SAMPLE_SHA256 = "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+PURERAT_CERTIFICATE_SHA256 = "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
 PROFILE_METHODS = {
     "valleyrat_winos_reviewed": ("winos", "winos_heartbeat"),
     "c2_detector_vvas": ("vvas", "vvas_checkin"),
     "c2_detector_n520_server_first": ("n520", "n520_server_first"),
     "agenttesla_ftp_authenticated": ("ftp", "ftp_authenticated"),
+    "purerat_direct_tls": ("purerat_direct_tls", "purerat_direct_tls_certificate_pin"),
     "asyncrat_tls_messagepack": ("asyncrat", "asyncrat_tls_messagepack"),
     "venomrat_tls_messagepack": ("venomrat", "venomrat_tls_messagepack"),
     "purerat_tls_prelude": ("purehvnc", "purerat_tls_prelude"),
@@ -359,16 +363,18 @@ def load_profiles(
             raise ProtocolProfileError(f"handlerとprotocol/methodが一致しません: {profile_id}")
         timeout = float(profile.get("timeout_seconds", 3.0))
         maximum = int(profile.get("maximum_response_bytes", 64))
+        minimum_response = 0 if handler == "purerat_direct_tls" else 1
         registration_handlers = {
             "stealc_v2_registration_task",
             "lumma_v6_registration_task",
             "remus_registration_task",
         }
         maximum_limit = {
+            "purerat_direct_tls": 0,
             "redline_checkconnect_soap11": 4096,
             "xloader_v8_get_registration": 8192,
         }.get(handler, 65536 if handler in registration_handlers else 1024)
-        if not 0.1 <= timeout <= 5.0 or not 1 <= maximum <= maximum_limit:
+        if not 0.1 <= timeout <= 5.0 or not minimum_response <= maximum <= maximum_limit:
             raise ProtocolProfileError(f"active probeの上限が不正です: {profile_id}")
         if handler == "valleyrat_winos_reviewed":
             pinned = profile.get("pinned_ips")
@@ -431,6 +437,41 @@ def load_profiles(
             reference = str(profile.get("credential_reference") or "")
             if not reference.startswith("agenttesla:") or maximum != 1024:
                 raise ProtocolProfileError("AgentTesla FTP profileの資格情報参照または応答上限が不正です")
+        elif handler == "purerat_direct_tls":
+            certificate = str(profile.get("expected_certificate_sha256") or "")
+            pinned = profile.get("pinned_ips")
+            if (
+                profile.get("variant") != "managed_purerat_4_4_1_direct_tls"
+                or profile.get("root_sample_sha256") != PURERAT_ROOT_SAMPLE_SHA256
+                or profile.get("terminal_sample_sha256") != PURERAT_TERMINAL_SAMPLE_SHA256
+                or profile.get("sample_sha256s")
+                != [PURERAT_ROOT_SAMPLE_SHA256, PURERAT_TERMINAL_SAMPLE_SHA256]
+                or pinned != ["45.192.211.77"]
+                or host != "45.192.211.77"
+                or port != 56001
+                or profile.get("wire_mode") != "direct_tls"
+                or profile.get("send_hex") != ""
+                or profile.get("sni") is not None
+                or profile.get("tls_version") != "TLSv1.0"
+                or certificate != PURERAT_CERTIFICATE_SHA256
+                or profile.get("request_budget_bytes") != 0
+                or profile.get("maximum_request_bytes") != 0
+                or maximum != 0
+                or profile.get("allow_openssl_legacy_security_level") is not True
+                or type(profile.get("timeout_seconds")) is not float
+                or timeout != 3.0
+                or any(
+                    key in profile
+                    for key in (
+                        "pfx",
+                        "pfx_base64",
+                        "private_key",
+                        "client_certificate",
+                        "client_certificate_path",
+                    )
+                )
+            ):
+                raise ProtocolProfileError("PureRAT direct-TLS profileの完全一致境界が不正です")
         elif handler in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
             expected_key = "Packet" if handler.startswith("asyncrat") else "Pac_ket"
             expected_reply = "pong" if handler.startswith("asyncrat") else "Po_ng"
@@ -586,10 +627,20 @@ def load_profiles(
                 )
         elif handler in registration_handlers:
             pinned = profile.get("pinned_ips")
+            http_path = profile.get("http_path")
+            stealc_path_valid = bool(
+                handler == "stealc_v2_registration_task"
+                and isinstance(http_path, str)
+                and (
+                    http_path == "/"
+                    or re.fullmatch(r"/[A-Za-z0-9_-]{1,128}\.php", http_path)
+                    is not None
+                )
+            )
             if (
                 not isinstance(pinned, list)
                 or len(pinned) != 1
-                or profile.get("http_path") != "/"
+                or (http_path != "/" and not stealc_path_valid)
                 or profile.get("request_budget") != 2
                 or not 64 <= int(profile.get("maximum_request_bytes", 0)) <= 4096
                 or not _is_canonical_global_ip(pinned[0])

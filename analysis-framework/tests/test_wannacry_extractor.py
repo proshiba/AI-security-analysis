@@ -44,6 +44,77 @@ def test_expected_pe_extent_uses_largest_section_end() -> None:
     )
     assert MODULE._pe_expected_extent(image) == 0xC00
 
+
+def test_embedded_worm_direct_requires_reviewed_resource_and_markers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = b"MZ" + b"T" * 30
+
+    def find_resource(_image: object, resource_type: str, resource_name: str) -> bytes | None:
+        return task if (resource_type, resource_name) == ("R", "1831") else None
+
+    monkeypatch.setattr(MODULE, "find_resource", find_resource)
+    data = b"MZ\0mssecsvc2.1\0tasksche.exe\0"
+    payload, declared, complete, source_shape = MODULE._select_embedded_worm(data, object())
+    assert payload == data
+    assert declared == len(data)
+    assert complete is True
+    assert source_shape == "embedded_worm_direct"
+    with pytest.raises(ValueError, match="review済みR/1831"):
+        MODULE._select_embedded_worm(b"MZ\0tasksche.exe\0", object())
+
+
+def test_outer_wrapper_has_stronger_recovered_artifact_lineage() -> None:
+    payload = b"worm"
+    task = b"task"
+    outer = MODULE._recovered_artifact_evidence("outer_wrapper_w_101", payload, task)
+    direct = MODULE._recovered_artifact_evidence("embedded_worm_direct", payload, task)
+    assert [item["artifact_role"] for item in outer] == [
+        "embedded_worm",
+        "embedded_task_image",
+    ]
+    assert [item["artifact_role"] for item in direct] == ["embedded_task_image"]
+
+
+def test_task_image_audit_fails_closed_on_high_entropy_importless_image() -> None:
+    data = bytes(range(256)) * 32
+    section = SimpleNamespace(
+        Name=b".text\0\0\0",
+        PointerToRawData=0,
+        SizeOfRawData=len(data),
+        VirtualAddress=0x1000,
+        Misc_VirtualSize=len(data),
+    )
+    image = SimpleNamespace(
+        OPTIONAL_HEADER=SimpleNamespace(AddressOfEntryPoint=0x1100),
+        sections=[section],
+        DIRECTORY_ENTRY_IMPORT=[],
+    )
+    result = MODULE._task_image_audit(data, image, None)
+    assert result["execution_viability"] == "not_statically_corroborated"
+    assert result["entrypoint_section"] == ".text"
+    assert result["entrypoint_section_entropy"] == 8.0
+    assert result["all_sections_high_entropy"] is True
+
+
+def test_task_image_audit_does_not_overstate_image_with_imports() -> None:
+    data = bytes(range(256)) * 32
+    section = SimpleNamespace(
+        Name=b".text\0\0\0",
+        PointerToRawData=0,
+        SizeOfRawData=len(data),
+        VirtualAddress=0x1000,
+        Misc_VirtualSize=len(data),
+    )
+    image = SimpleNamespace(
+        OPTIONAL_HEADER=SimpleNamespace(AddressOfEntryPoint=0x1100),
+        sections=[section],
+        DIRECTORY_ENTRY_IMPORT=[SimpleNamespace(imports=[object()])],
+    )
+    result = MODULE._task_image_audit(data, image, None)
+    assert result["execution_viability"] == "structurally_parseable"
+
+
 def _zipcrypto_encrypt(data: bytes, password: bytes) -> bytes:
     table: list[int] = []
     for value in range(256):

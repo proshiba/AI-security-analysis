@@ -31,7 +31,12 @@ from extractors.valleyrat.extractor import (
     extract as valley_extract,
     identify_variant,
 )
-from extractors.venomrat.extractor import extract as venom_extract, family_markers
+from extractors.venomrat import integrated as venom_integrated
+from extractors.venomrat.extractor import (
+    extract as venom_extract,
+    family_markers,
+    structural_evidence,
+)
 
 
 def test_common_functions() -> None:
@@ -111,11 +116,104 @@ def test_venom_functions() -> None:
         "reconnectdelay",
     ]
     result = venom_extract(b"Quasar.Client RECONNECTDELAY c2.example:4444")
-    assert result["findings"][0]["confidence"] == "inferred"
+    assert result["config"]["recovery_status"] == "not_attempted_structural_mismatch"
+    assert result["findings"] == []
     weak = venom_extract(b"mutex xmp.did:4307 http://ns.adobe.com/xap/1.0/")
     assert weak["config"]["endpoints"] == []
-    assert weak["config"]["urls"] == []
+    assert weak["config"]["dynamic_config_url"] is None
     assert weak["findings"] == []
+
+
+def _venom_structural_fixture() -> bytes:
+    fields = sorted(
+        {
+            "Key",
+            "Por_ts",
+            "Hos_ts",
+            "Ver_sion",
+            "In_stall",
+            "Paste_bin",
+            "An_ti",
+            "Group",
+            "Certifi_cate",
+            "Pac_ket",
+            "Po_ng",
+        }
+    )
+    return b"MZ" + b"\x00" * 64 + b"BSJB\x00" + "\x00".join(fields).encode()
+
+
+def test_venom_requires_strong_managed_structure_before_recovery(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def should_not_run(_data: bytes) -> dict:
+        nonlocal calls
+        calls += 1
+        raise AssertionError("構造不一致で復元器を呼んではならない")
+
+    monkeypatch.setattr(venom_integrated, "_validated_recovery", should_not_run)
+    result = venom_extract(
+        b"MZ BSJB Key Por_ts Hos_ts Paste_bin Certifi_cate c2.example:4444"
+    )
+    assert calls == 0
+    assert result["config"]["static_config_recovered"] is False
+    assert result["findings"] == []
+
+
+def test_venom_integrates_only_validated_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _venom_structural_fixture()
+    assert structural_evidence(fixture)["matched"] is True
+    monkeypatch.setattr(
+        venom_integrated,
+        "_validated_recovery",
+        lambda _data: {
+            "version": "Venom RAT v6.0.3",
+            "install": "true",
+            "group": "start",
+            "anti_analysis": "false",
+            "endpoints": [{"host": "c2.example.test", "port": 2794}],
+            "dynamic_config_url": "https://pastebin.com/raw/example",
+            "certificate": {
+                "sha256": "a" * 64,
+                "size": 573,
+                "certificate_mismatch_excludes_c2": False,
+            },
+        },
+    )
+    result = venom_extract(fixture)
+    assert result["config"]["static_config_recovered"] is True
+    assert result["config"]["version"] == "Venom RAT v6.0.3"
+    assert result["config"]["endpoints"] == [
+        {"host": "c2.example.test", "port": 2794}
+    ]
+    assert {item["role"] for item in result["findings"]} == {
+        "configured_c2",
+        "dynamic_config_resolver",
+        "tls_certificate_pin",
+    }
+    assert all(
+        item["confidence"] == "confirmed_static_config"
+        for item in result["findings"]
+    )
+
+
+def test_venom_fail_closed_when_authenticated_recovery_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _venom_structural_fixture() + b" c2.example.test:2794"
+
+    def reject(_data: bytes) -> dict:
+        raise ValueError("HMAC mismatch")
+
+    monkeypatch.setattr(venom_integrated, "_validated_recovery", reject)
+    result = venom_extract(fixture)
+    assert result["config"]["recovery_status"] == "rejected_or_not_recovered"
+    assert result["config"]["endpoints"] == []
+    assert result["findings"] == []
 
 
 def test_mx_go_functions() -> None:

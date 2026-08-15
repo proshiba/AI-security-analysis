@@ -941,6 +941,41 @@ def discover_cases() -> dict[str, dict]:
     return dict(catalog_cases)
 
 
+def _feature_object_records(
+    features: object,
+    field: str,
+    *,
+    sha256: str,
+    case_dir: Path,
+) -> list[dict]:
+    """features.jsonのobject配列を検証し、型違反をcase単位で明示する。"""
+
+    feature_path = (case_dir / "features.json").relative_to(REPO_ROOT).as_posix()
+    if not isinstance(features, dict):
+        raise ValueError(
+            "features.json schema違反: "
+            f"sha256={sha256}, path={feature_path}, expected=object, "
+            f"actual={type(features).__name__}"
+        )
+    records = features.get(field)
+    if records is None:
+        return []
+    if not isinstance(records, list):
+        raise ValueError(
+            "features.json schema違反: "
+            f"sha256={sha256}, path={feature_path}, field={field}, "
+            f"expected=array<object>, actual={type(records).__name__}"
+        )
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise ValueError(
+                "features.json schema違反: "
+                f"sha256={sha256}, path={feature_path}, field={field}[{index}], "
+                f"expected=object, actual={type(record).__name__}"
+            )
+    return list(records)
+
+
 def build() -> dict:
     cases_catalog = discover_cases()
     history = load_history()
@@ -958,7 +993,8 @@ def build() -> dict:
         case_dir = REPO_ROOT / rel_path
         family = cat.get("family") or "unclassified"
         metadata = read_json(case_dir / "metadata.json") or {}
-        features = read_json(case_dir / "features.json") or {}
+        loaded_features = read_json(case_dir / "features.json")
+        features = {} if loaded_features is None else loaded_features
         iocs_json = read_json(case_dir / "iocs.json") or {}
         ioc_md = read_text(case_dir / "IOC-LIST.md")
         ioc_entries = parse_ioc_list(ioc_md) if ioc_md else []
@@ -970,6 +1006,18 @@ def build() -> dict:
         attribution = metadata.get("attribution") or {}
         if not isinstance(attribution, dict):
             attribution = {}
+        behavior_records = _feature_object_records(
+            features,
+            "behaviors",
+            sha256=sha,
+            case_dir=case_dir,
+        )
+        characteristic_records = _feature_object_records(
+            features,
+            "sample_characteristics",
+            sha256=sha,
+            case_dir=case_dir,
+        )
         assessment = features.get("analysis_assessment") or {}
 
         behaviors = [
@@ -980,7 +1028,7 @@ def build() -> dict:
                 "confidence": b.get("confidence"),
                 "evidence": b.get("evidence"),
             }
-            for b in features.get("behaviors") or []
+            for b in behavior_records
         ]
         characteristics = [
             {
@@ -991,7 +1039,7 @@ def build() -> dict:
                 "evidence": c.get("evidence"),
                 "value": c.get("value"),
             }
-            for c in features.get("sample_characteristics") or []
+            for c in characteristic_records
         ]
 
         docs = {}

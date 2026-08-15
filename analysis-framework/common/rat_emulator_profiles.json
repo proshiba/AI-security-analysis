@@ -2,7 +2,7 @@
   "schema_version": 1,
   "protocol_profile_registry": {
     "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
-    "sha256": "1437c791ebf79b479a8c1745b236ebb2d74f4b570b671645618ce491f9987b21"
+    "sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117"
   },
   "profiles": [
     {
@@ -25,7 +25,7 @@
         "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
       ],
       "evidence_source": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/n520-live-summary.json",
-      "evidence_sha256": "530e1c4e96d6a61a237408182bc8a6e3a1ab5466d8489f513368639bdceef3e3",
+      "evidence_sha256": "2c91c9d80e685244b9b984cc511b24d48f9c4afc5ba76c1b8df31108f72531bc",
       "registration_mode": "empty_command_1",
       "station_id_sent": false,
       "unknown_task_action": "no_response",
@@ -43,7 +43,8 @@
         "maximum_frame_bytes": 65536,
         "maximum_commands": 16,
         "minimum_send_interval_seconds": 1.0
-      }
+      },
+      "live_scope": "leased_external"
     },
     {
       "profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
@@ -65,7 +66,7 @@
         "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3"
       ],
       "evidence_source": "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/asyncrat-protocol-evidence.json",
-      "evidence_sha256": "4c4f598aa861c1da660f513d419184b7b195994d322ed236684c7042ede31f81",
+      "evidence_sha256": "479f96e2d8c9179e1e982ee094a1f83b102d1803cfe83f00fb1b711b93810340",
       "registration_mode": "synthetic_client_info",
       "station_id_sent": false,
       "unknown_task_action": "no_response",
@@ -83,7 +84,8 @@
         "maximum_frame_bytes": 65536,
         "maximum_commands": 1,
         "minimum_send_interval_seconds": 0.0
-      }
+      },
+      "live_scope": "leased_external"
     },
     {
       "profile_id": "venomrat-603-6a24ba25-localto-6377",
@@ -105,7 +107,7 @@
         "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073"
       ],
       "evidence_source": "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/venomrat-protocol-evidence.json",
-      "evidence_sha256": "2db755d8ed49d1488d558da77171be8a7ff95a175f1322e65b359a368a8219b9",
+      "evidence_sha256": "f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8",
       "registration_mode": "synthetic_client_info",
       "station_id_sent": false,
       "unknown_task_action": "no_response",
@@ -119,6 +121,90 @@
         "maximum_outbound_bytes": 65536,
         "maximum_inbound_frames": 1,
         "maximum_inbound_read_calls": 256,
+        "maximum_inbound_bytes": 65536,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 1,
+        "minimum_send_interval_seconds": 0.0
+      },
+      "live_scope": "leased_external"
+    },
+    {
+      "profile_id": "valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "protocol_profile_object_sha256": "8b2f1604bcaf14f1e9fb1245e7fc911217c6d46d12ff325665c3edcabca68ff2",
+      "family": "valleyrat",
+      "adapter_id": "valleyrat_winos_v1",
+      "host": "ljdnxz.cc",
+      "port": 8868,
+      "pinned_ips": [
+        "121.127.253.206"
+      ],
+      "transport": "raw_tcp",
+      "tls_version": null,
+      "sni": null,
+      "expected_certificate_sha256": null,
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "evidence_source": "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/network-evidence.json",
+      "evidence_sha256": "a5aa744072c48e98f1765d4184e42f4a08b8363c322fde2fcf5dc6c6e8e45424",
+      "registration_mode": "fixed_c9_heartbeat",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "live_scope": "offline_or_loopback_only",
+      "limits": {
+        "duration_seconds": 3.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 15,
+        "maximum_inbound_frames": 1,
+        "maximum_inbound_read_calls": 16,
+        "maximum_inbound_bytes": 64,
+        "maximum_frame_bytes": 64,
+        "maximum_commands": 1,
+        "minimum_send_interval_seconds": 0.0
+      }
+    },
+    {
+      "profile_id": "purerat-441-d025a296-direct-tls10-empty-gclass4",
+      "protocol_profile_id": "purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "protocol_profile_object_sha256": "01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec",
+      "family": "purehvnc",
+      "adapter_id": "purerat_direct_tls_v1",
+      "host": "45.192.211.77",
+      "port": 56001,
+      "pinned_ips": [
+        "45.192.211.77"
+      ],
+      "transport": "tls",
+      "tls_version": "TLSv1.0",
+      "sni": null,
+      "expected_certificate_sha256": "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
+        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+      ],
+      "evidence_source": "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json",
+      "evidence_sha256": "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8",
+      "registration_mode": "fixed_empty_gclass4",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "live_scope": "offline_or_loopback_only",
+      "limits": {
+        "duration_seconds": 3.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 26,
+        "maximum_inbound_frames": 1,
+        "maximum_inbound_read_calls": 64,
         "maximum_inbound_bytes": 65536,
         "maximum_frame_bytes": 65536,
         "maximum_commands": 1,

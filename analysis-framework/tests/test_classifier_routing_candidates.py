@@ -485,6 +485,98 @@ def test_hint_manifest_rejects_invalid_documents(document: dict) -> None:
         classify_sample.normalize_family_hint_manifest(document)
 
 
+def test_artifact_lineage_hint_is_strict_and_remains_verification_only() -> None:
+    """Triage artifactの親hintはhash lineageを保持し、帰属には使わない。"""
+
+    lineage_hint = {
+        "family": "vidar",
+        "source": "triage",
+        "provenance": f"inherited-from-sha256:{ROOT_SHA}",
+        "confidence": "medium",
+        "artifact_sha256": CHILD_SHA,
+        "parent_sha256": ROOT_SHA,
+        "root_sha256": ROOT_SHA,
+        "artifact_kind": "memory_pe",
+        "source_id": "260810-spjflsbr8v",
+        "depth": 1,
+        "inherited_family": "vidar",
+        "family_hint_source": "parent_confirmed",
+    }
+    manifest = classify_sample.normalize_family_hint_manifest(
+        {"schema_version": 1, "samples": {CHILD_SHA: [lineage_hint]}}
+    )
+    hints = classify_sample.family_hints_for_sha256(manifest, CHILD_SHA)
+    result = classify_sample.build_family_routing_candidates(
+        [_layer(CHILD_SHA)],
+        metadata_hints=hints,
+        family_coverage=[
+            _coverage(
+                "vidar",
+                detector_registered=True,
+                automatic_handlers=["vidar.extract"],
+            )
+        ],
+    )
+
+    candidate = result["candidates"][0]
+    evidence = candidate["evidence"][0]
+    assert candidate["family"] == "vidar"
+    assert candidate["routing_mode"] == "candidate_verification"
+    assert candidate["metadata_only"] is True
+    assert result["metadata_hints_used_for_attribution"] is False
+    assert evidence["supports_attribution"] is False
+    assert evidence["artifact_lineage"]["artifact_sha256"] == CHILD_SHA
+    assert evidence["artifact_lineage"]["parent_sha256"] == ROOT_SHA
+
+
+def test_artifact_lineage_hint_rejects_partial_or_wrong_child_hash() -> None:
+    """lineage fieldの欠落とmanifest key不一致をfail closedで拒否する。"""
+
+    base = {
+        "family": "vidar",
+        "source": "triage",
+        "provenance": "parent candidate",
+        "confidence": "medium",
+        "artifact_sha256": CHILD_SHA,
+    }
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="incomplete artifact lineage"):
+        classify_sample.normalize_family_hint_manifest(
+            {"schema_version": 1, "samples": {CHILD_SHA: [base]}}
+        )
+
+    complete = {
+        **base,
+        "parent_sha256": ROOT_SHA,
+        "root_sha256": ROOT_SHA,
+        "artifact_kind": "memory_pe",
+        "source_id": "260810-spjflsbr8v",
+        "depth": 1,
+        "inherited_family": "vidar",
+        "family_hint_source": "parent_confirmed",
+    }
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="manifest key"):
+        classify_sample.normalize_family_hint_manifest(
+            {"schema_version": 1, "samples": {"f" * 64: [complete]}}
+        )
+
+    invalid_depth_lineage = {
+        **complete,
+        "parent_sha256": ROOT_SHA,
+        "root_sha256": ROOT_SHA,
+        "depth": 2,
+    }
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="must differ"):
+        classify_sample.normalize_family_hint_manifest(
+            {"schema_version": 1, "samples": {CHILD_SHA: [invalid_depth_lineage]}}
+        )
+
+    invalid_token_lineage = {**complete, "artifact_kind": "memory dump"}
+    with pytest.raises(classify_sample.FamilyHintManifestError, match="canonical token"):
+        classify_sample.normalize_family_hint_manifest(
+            {"schema_version": 1, "samples": {CHILD_SHA: [invalid_token_lineage]}}
+        )
+
+
 def test_routing_rejects_non_list_metadata_hints() -> None:
     """曖昧なmapping入力をhint列として黙って反復しない。"""
 

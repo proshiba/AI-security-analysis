@@ -107,6 +107,73 @@ def test_screenconnect_extractor_redacts_synthetic_tenant_key() -> None:
     assert result["relay"]["redacted_query"].endswith("&k=<redacted>")
 
 
+def test_screenconnect_file_detector_requires_extractor_compatible_query() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    key = "synthetic-test-key-0123456789-abcdefghijklmnop"
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00"
+        + f"?h=tenant-lab-relay.screenconnect.com&p=443&k={key}".encode()
+    )
+
+    result = detector.detect(data, Path("synthetic-screenconnect.exe"))
+
+    assert result["matched"] is True
+    assert result["observations"]["reviewed_hash"] is False
+    assert result["observations"]["extractor_compatible_query"] is True
+    assert result["campaigns"][0]["confidence"] == "medium"
+    assert result["campaigns"][0]["reasons"] == [
+        "screenconnect_product",
+        "installer_marker",
+        "relay_suffix",
+        "extractor_compatible_query",
+    ]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "?e=Access&y=Guest&h=tenant-lab-relay.screenconnect.com&p=443&k=" + "a" * 40,
+        "?h=tenant-lab-relay.screenconnect.com&amp;p=443&amp;k=" + "b" * 40,
+    ],
+    ids=["guest_launch", "xml_escaped"],
+)
+def test_screenconnect_file_detector_rejects_nonextractable_query(query: str) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = b"MZScreenConnect.WindowsInstaller\x00" + query.encode("ascii")
+
+    result = detector.detect(data, Path("synthetic-screenconnect.exe"))
+
+    assert result["matched"] is False
+    assert result["observations"] == {
+        "reviewed_hash": False,
+        "pe": True,
+        "screenconnect_product": True,
+        "installer_marker": True,
+        "relay_suffix": True,
+        "extractor_compatible_query": False,
+    }
+    assert result["campaigns"] == []
+    with pytest.raises(ValueError, match="埋め込みリレー照会"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_file_detector_preserves_exact_reviewed_hash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    data = b"MZreviewed-without-structural-query"
+    monkeypatch.setattr(detector, "REVIEWED", {hashlib.sha256(data).hexdigest()})
+
+    result = detector.detect(data, Path("reviewed-screenconnect.exe"))
+
+    assert result["matched"] is True
+    assert result["observations"]["reviewed_hash"] is True
+    assert result["observations"]["extractor_compatible_query"] is False
+    assert result["campaigns"][0]["confidence"] == "high"
+    assert result["campaigns"][0]["reasons"] == ["reviewed_sha256"]
+
+
 def test_screenconnect_detector_requires_product_and_authorization_context() -> None:
     detector = family_module("screenconnect_rmm", "network_detector.py")
     hostname_only = detector.detect_flow({

@@ -12,9 +12,9 @@ import pytest
 COMMON = Path(__file__).parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import analysis_contract
-import publish_one_shot_collection as publisher
-import static_logic
+import analysis_contract  # noqa: E402
+import publish_one_shot_collection as publisher  # noqa: E402
+import static_logic  # noqa: E402
 
 
 def report(selected_family: str | None = None) -> dict:
@@ -110,8 +110,8 @@ def valid_source_case(tmp_path: Path, digest: str = "a" * 64) -> tuple[Path, dic
         "knowledge_artifacts": dict(analysis_contract.REQUIRED_KNOWLEDGE_ARTIFACTS),
         "case_state": {
             "status": "triaged_unknown",
-            "complete": True,
-            "resumable": True,
+            "complete": False,
+            "resumable": False,
             "blockers": [],
             "detector_error_families": [],
             "static_layer_issues": [],
@@ -301,6 +301,22 @@ def test_choose_family_is_conservative_for_provider_labels() -> None:
         "unclassified",
         "unsupported_reported_signature",
     )
+
+
+def test_choose_family_keeps_triaged_unknown_unclassified() -> None:
+    """内部静的解析がunknownで閉じたcaseをprovider署名だけで再分類しない。"""
+    source_report = report()
+    source_report["case_state"] = {
+        "status": "triaged_unknown",
+        "complete": False,
+        "resumable": False,
+        "blockers": [],
+    }
+    assert publisher.choose_family(
+        {"signature": "Vidar", "tags": []},
+        source_report,
+        {"vidar", "unclassified"},
+    ) == ("unclassified", "internal_static_evidence_unresolved")
 
 
 def test_capability_notes_require_exact_imports() -> None:
@@ -648,8 +664,8 @@ def test_choose_family_rejects_ambiguous_recovered_layer_results() -> None:
     ) == ("unclassified", "no_supported_family_evidence")
 
 
-def test_validate_case_state_requires_complete_resumable_shape() -> None:
-    """legacy状態を拒否し、blockerなしの再開可能な完了状態だけを受理する。"""
+def test_validate_case_state_requires_status_specific_boolean_shape() -> None:
+    """legacy状態を拒否し、statusに対応するboolean状態だけを受理する。"""
 
     with pytest.raises(ValueError, match="公開可能な完了状態ではありません"):
         publisher.validate_case_state({}, "a" * 64)
@@ -658,8 +674,8 @@ def test_validate_case_state_requires_complete_resumable_shape() -> None:
             "assessment_only": False,
             "case_state": {
                 "status": "triaged_unknown",
-                "complete": True,
-                "resumable": True,
+                "complete": False,
+                "resumable": False,
                 "blockers": [],
             },
         },
@@ -667,15 +683,15 @@ def test_validate_case_state_requires_complete_resumable_shape() -> None:
     )
 
 
-def test_analysis_contract_accepts_resumable_partial_with_followup_blocker() -> None:
-    """追加解析queueを持つpartial caseはcompleteでなくても再開可能にできる。"""
+def test_analysis_contract_accepts_nonresumable_partial_with_followup_blocker() -> None:
+    """追加解析queueを持つpartial caseを未完了かつ再開不可として検証する。"""
 
     value = {
         "assessment_only": False,
         "case_state": {
             "status": "partial",
             "complete": False,
-            "resumable": True,
+            "resumable": False,
             "blockers": ["c2_protocol_confirmation_pending"],
             "detector_error_families": [],
             "static_layer_issues": [],
@@ -689,7 +705,8 @@ def test_analysis_contract_accepts_resumable_partial_with_followup_blocker() -> 
         "generic_triage": "complete",
     }
 
-    assert analysis_contract._case_state_errors(value, require_resumable=True) == []
+    assert analysis_contract._case_state_errors(value, require_resumable=False) == []
+    assert analysis_contract._case_state_errors(value, require_resumable=True) == ["case_state_not_resumable"]
 
 
 def test_validate_case_state_rejects_assessment_only_completion() -> None:
@@ -915,6 +932,8 @@ def test_source_case_requires_success_for_each_selected_family(tmp_path: Path) -
         }
     )
     report_value["case_state"]["status"] = "complete"
+    report_value["case_state"]["complete"] = True
+    report_value["case_state"]["resumable"] = True
     classification = publisher.load_json(source / "classification.json")
     classification["selected_families"] = ["family-a"]
     classification["root"]["one_shot_selection"] = {
@@ -986,6 +1005,8 @@ def test_source_case_accepts_strictly_documented_handler_no_evidence(tmp_path: P
         "attribution_effect": "provider_label_retained_but_not_upgraded_to_static_confirmation",
     }
     report_value["case_state"]["status"] = "complete"
+    report_value["case_state"]["complete"] = True
+    report_value["case_state"]["resumable"] = True
     classification = publisher.load_json(source / "classification.json")
     classification["selected_families"] = [family]
     classification["malware_type"] = family
@@ -1303,6 +1324,19 @@ def test_partial_staging_preserves_all_original_blockers(
         == "analysis_followup_pending"
     )
 
+    report_value["case_state"]["blockers"] = [publisher.ROOT_TO_TERMINAL_LINEAGE_BLOCKER]
+    analysis_contract.seal_report(report_value)
+    publisher.write_json(source / "report.json", report_value)
+    assert (
+        publisher.validate_source_case(
+            source,
+            report_value,
+            digest,
+            allow_function_staging=True,
+        )
+        == "analysis_followup_pending"
+    )
+
     report_value["case_state"]["blockers"] = [
         "handler_failed",
         publisher.FUNCTION_ANALYSIS_BLOCKER,
@@ -1327,6 +1361,7 @@ def test_partial_staging_preserves_all_original_blockers(
         "orchestration:config",
         "orchestration:function_analysis",
         "orchestration:network",
+        "orchestration:static_layers",
         "orchestration:terminal_payload",
         publisher.FUNCTION_ANALYSIS_BLOCKER,
         "selected_family_layer_incomplete",
@@ -1409,7 +1444,7 @@ def test_reseal_canonical_report_refreshes_generated_artifact_hash(
             source,
             refreshed,
             expected_digest=digest,
-            require_resumable=True,
+            require_resumable=False,
         )
         == []
     )
@@ -1487,6 +1522,8 @@ def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
         }
     )
     report_value["case_state"]["status"] = "complete"
+    report_value["case_state"]["complete"] = True
+    report_value["case_state"]["resumable"] = True
 
     classification = publisher.load_json(source / "classification.json")
     classification["selected_family"] = "efimer"

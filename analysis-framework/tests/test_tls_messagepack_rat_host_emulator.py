@@ -97,7 +97,7 @@ def test_exact_async_registration_is_fixed_and_has_no_unconfirmed_version(monkey
     assert "REAL-HOST" not in repr(values)
     assert "REAL-USER" not in repr(values)
     profile = HOST.resolve_profile(HOST.ASYNC_PROFILE_ID)
-    assert profile.evidence_sha256 == "4c4f598aa861c1da660f513d419184b7b195994d322ed236684c7042ede31f81"
+    assert profile.evidence_sha256 == "479f96e2d8c9179e1e982ee094a1f83b102d1803cfe83f00fb1b711b93810340"
 
 
 def test_exact_venom_registration_has_confirmed_version_and_map16() -> None:
@@ -110,7 +110,7 @@ def test_exact_venom_registration_has_confirmed_version_and_map16() -> None:
     assert raw[:3] == b"\xDE\x00\x16"
     assert _decode(HOST.encode_frame(values)) == values
     profile = HOST.resolve_profile(HOST.VENOM_PROFILE_ID)
-    assert profile.evidence_sha256 == "2db755d8ed49d1488d558da77171be8a7ff95a175f1322e65b359a368a8219b9"
+    assert profile.evidence_sha256 == "f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8"
 
 
 def test_messagepack_round_trip_supports_map16_strings_integers_and_binary() -> None:
@@ -314,8 +314,13 @@ def test_arbitrary_synthetic_result_has_no_live_wire_representation() -> None:
     )
     assert decision["send_allowed"] is False
     assert decision["fixture_only"] is True
-    assert decision["wire_schema_status"] == "unreviewed"
+    assert decision["wire_schema_status"] == "operation_result_serializer_unresolved"
     assert decision["wire_bytes"] is None
+    assert decision["family"] == "venomrat"
+    assert decision["direction"] == "client_to_server"
+    assert decision["operation_executed"] is False
+    assert decision["real_effect_performed"] is False
+    assert decision["arbitrary_fake_result_sent"] is False
     assert HOST.LIVE_ARBITRARY_RESULT_ALLOWED is False
 
 

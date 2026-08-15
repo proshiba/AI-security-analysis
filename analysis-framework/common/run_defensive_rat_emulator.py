@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from immutable_snapshot import ensure_new_output, read_bounded_snapshot, write_new_json
+from purerat_public_result import (
+    PureRatPublicResultError,
+    build_public_purerat_result,
+)
 from rat_emulator_live_leases import (
     LiveLease,
     LiveLeaseRegistrySnapshot,
@@ -56,8 +60,21 @@ ADAPTER_PATHS = {
         "valleyrat",
         "n520_host_emulator.py",
     ),
+    "valleyrat_winos_v1": (
+        "analysis-framework",
+        "malware",
+        "valleyrat",
+        "winos_host_emulator.py",
+    ),
+    "purerat_direct_tls_v1": (
+        "analysis-framework",
+        "malware",
+        "purehvnc",
+        "purerat_host_emulator.py",
+    ),
 }
 HOST_ADAPTER_CONTRACT_VERSION = 1
+OFFLINE_ONLY_LIVE_SCOPE = "offline_or_loopback_only"
 
 
 class RatHostAdapter(Protocol):
@@ -330,6 +347,18 @@ class GuardedStream:
         self.outbound_bytes = 0
         self.last_send: float | None = None
         self.requested_timeout_seconds: float | None = None
+        self.first_outbound_event_type = "reviewed_registration_frame"
+
+    def set_first_outbound_event_type(self, event_type: str) -> None:
+        """初回送信frameのreview済み意味をadapter dispatch時に固定する。"""
+
+        allowed = {
+            "reviewed_registration_frame",
+            "reviewed_fixed_heartbeat_request_frame",
+        }
+        if self.outbound_frames != 0 or event_type not in allowed:
+            raise RatEmulatorRunError("初回outbound event typeを設定できません")
+        self.first_outbound_event_type = event_type
 
     def _check(self) -> None:
         self.kill_switch.require_armed()
@@ -463,6 +492,85 @@ class GuardedStream:
             )
         return wire
 
+    def recv_total_length_application_frame(
+        self,
+        maximum_frame_bytes: int,
+        *,
+        minimum_total_bytes: int = 14,
+    ) -> bytes:
+        """LE32 total-length frameをread callとframe countを分離して1件読む。"""
+
+        self._refresh_timeout()
+        if self.inbound_frames >= int(self.limits["maximum_inbound_frames"]):
+            raise RatEmulatorRunError("inbound application-frame limit reached")
+        remaining = int(self.limits["maximum_inbound_bytes"]) - self.inbound_bytes
+        frame_limit = min(
+            int(maximum_frame_bytes),
+            int(self.limits["maximum_frame_bytes"]),
+            remaining,
+        )
+        if not 5 <= minimum_total_bytes <= frame_limit:
+            raise RatEmulatorRunError("total-length frame limitが不正です")
+
+        frame = bytearray()
+
+        def read_exact(total_size: int) -> bool:
+            while len(frame) < total_size:
+                self._refresh_timeout()
+                if self.inbound_read_calls >= int(
+                    self.limits["maximum_inbound_read_calls"]
+                ):
+                    raise RatEmulatorRunError("inbound read-call limit reached")
+                request = total_size - len(frame)
+                chunk = self.stream.recv(request)
+                self.inbound_read_calls += 1
+                if not isinstance(chunk, bytes):
+                    raise RatEmulatorRunError("stream.recv must return bytes")
+                if len(chunk) > request:
+                    raise RatEmulatorRunError(
+                        "stream.recv returned more bytes than requested"
+                    )
+                if not chunk:
+                    return False
+                frame.extend(chunk)
+                self.inbound_bytes += len(chunk)
+                if self.inbound_bytes > int(self.limits["maximum_inbound_bytes"]):
+                    raise RatEmulatorRunError("inbound byte limit reached")
+            return True
+
+        if not read_exact(4):
+            if frame:
+                raise RatEmulatorRunError("stream closed during total-length header")
+            return b""
+        declared_total = struct.unpack("<I", frame[:4])[0]
+        if not minimum_total_bytes <= declared_total <= frame_limit:
+            raise RatEmulatorRunError(
+                "declared total-length frame exceeds its reviewed limit"
+            )
+        if not read_exact(declared_total):
+            raise RatEmulatorRunError("stream closed during total-length frame")
+
+        self.inbound_frames += 1
+        wire = bytes(frame)
+        public_fields = {
+            "size": len(wire),
+            "sha256": hashlib.sha256(wire).hexdigest(),
+        }
+        if self.outbound_frames == 0:
+            self.transcript.append_event(
+                "inbound",
+                "transport_pre_registration_frame",
+                raw_frame=wire,
+                public_fields=public_fields,
+            )
+        else:
+            self.transcript.append_event(
+                "inbound",
+                "transport_post_registration_frame",
+                public_fields={**public_fields, "raw_retained": False},
+            )
+        return wire
+
     def sendall(self, data: bytes) -> None:
         self._refresh_timeout()
         if not isinstance(data, bytes):
@@ -483,7 +591,7 @@ class GuardedStream:
         self.outbound_bytes += len(data)
         self.last_send = now
         event_type = (
-            "reviewed_registration_frame"
+            self.first_outbound_event_type
             if self.outbound_frames == 1
             else "reviewed_fixed_heartbeat_request_frame"
         )
@@ -496,7 +604,8 @@ class GuardedStream:
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "real_identity_sent": False,
                 "synthetic": True,
-                "synthetic_request_sent": self.outbound_frames == 2,
+                "synthetic_request_sent": event_type
+                == "reviewed_fixed_heartbeat_request_frame",
             },
         )
 
@@ -526,6 +635,8 @@ def _load_adapter(adapter_id: str) -> Any:
 
 def _adapter_event_callback(
     transcript: SessionTranscriptWriter,
+    *,
+    adapter_id: str | None = None,
 ) -> Callable[[dict[str, Any]], None]:
     public_keys = {
         "command",
@@ -551,24 +662,55 @@ def _adapter_event_callback(
         "handshake_size",
         "opcode",
         "packet_kind",
+        "role",
         "frame_size",
         "frame_sha256",
+        "declared_length",
+        "complete",
+        "integrity_authenticated",
         "decoded_size",
         "decoded_sha256",
         "sent",
         "synthetic",
         "synthetic_request_sent",
+        "stage_requested",
+        "registration_sent",
+        "unknown_command_reply_sent",
     }
 
     def callback(event: dict[str, Any]) -> None:
         name = str(event.get("event") or "adapter_event")
-        public = {key: value for key, value in event.items() if key in public_keys}
+        active_public_keys = public_keys
+        if adapter_id == "purerat_direct_tls_v1":
+            active_public_keys = {
+                "classification",
+                "discriminator",
+                "message_type",
+                "action",
+                "should_respond",
+                "terminate_session",
+                "packet_size",
+                "packet_sha256",
+                "response_size",
+                "response_sha256",
+                "frame_count",
+                "real_identity_sent",
+                "status",
+                "synthetic",
+            }
+        public = {
+            key: value for key, value in event.items() if key in active_public_keys
+        }
         fingerprint = event.get("fingerprint")
         if isinstance(fingerprint, dict):
             for key in ("frame_size", "frame_sha256", "decoded_size", "decoded_sha256"):
                 if key in fingerprint:
                     public[key] = fingerprint[key]
-            private = {"fingerprint": fingerprint}
+            private = (
+                {}
+                if adapter_id == "purerat_direct_tls_v1"
+                else {"fingerprint": fingerprint}
+            )
         else:
             private = {}
         transcript.append_event(
@@ -588,7 +730,8 @@ def _run_adapter(
 ) -> dict[str, Any]:
     adapter = _load_adapter(str(profile["adapter_id"]))
     limits = profile["limits"]
-    if profile["adapter_id"] == "tls_messagepack_rat_host":
+    adapter_id = profile["adapter_id"]
+    if adapter_id == "tls_messagepack_rat_host":
         return adapter.run_host_session(
             stream,
             profile,
@@ -606,23 +749,180 @@ def _run_adapter(
             allow_heartbeat_request=True,
             transcript_callback=callback,
         )
-    return adapter.run_host_session(
-        stream,
-        session_limits={
-            "timeout_seconds": min(5.0, float(limits["duration_seconds"])),
-            "maximum_response_bytes": int(limits["maximum_inbound_bytes"]),
-            "maximum_frames": int(limits["maximum_commands"]),
-            "maximum_read_calls": int(limits["maximum_inbound_read_calls"]),
-            "read_chunk_bytes": int(limits["maximum_frame_bytes"]),
+    if adapter_id == "purerat_direct_tls_v1":
+        return adapter.run_host_session(
+            stream,
+            profile,
+            session_limits={
+                "timeout_seconds": min(3.0, float(limits["duration_seconds"])),
+                "maximum_response_bytes": int(limits["maximum_inbound_bytes"]),
+                "maximum_frames": int(limits["maximum_inbound_frames"]),
+                "maximum_read_calls": int(
+                    limits["maximum_inbound_read_calls"]
+                ),
+                "read_chunk_bytes": int(limits["maximum_frame_bytes"]),
+            },
+            allow_registration=True,
+            allow_heartbeat_request=False,
+            transcript_callback=callback,
+        )
+    if adapter_id == "valleyrat_winos_v1":
+        # total-length readerがtransport readとapplication frameを分離する。
+        stream.set_first_outbound_event_type(
+            "reviewed_fixed_heartbeat_request_frame"
+        )
+        return adapter.run_host_session(
+            stream,
+            session_limits={
+                "timeout_seconds": min(3.0, float(limits["duration_seconds"])),
+                "maximum_response_bytes": int(limits["maximum_inbound_bytes"]),
+                "maximum_frames": int(limits["maximum_inbound_frames"]),
+                "maximum_read_calls": int(limits["maximum_inbound_read_calls"]),
+                "read_chunk_bytes": int(limits["maximum_frame_bytes"]),
+            },
+            allow_c9_heartbeat=True,
+            transcript_callback=callback,
+        )
+    if adapter_id == "valleyrat_n520_v1":
+        return adapter.run_host_session(
+            stream,
+            session_limits={
+                "timeout_seconds": min(5.0, float(limits["duration_seconds"])),
+                "maximum_response_bytes": int(limits["maximum_inbound_bytes"]),
+                "maximum_frames": int(limits["maximum_commands"]),
+                "maximum_read_calls": int(limits["maximum_inbound_read_calls"]),
+                "read_chunk_bytes": int(limits["maximum_frame_bytes"]),
+            },
+            allow_registration=True,
+            transcript_callback=callback,
+        )
+    raise RatEmulatorRunError(f"adapter dispatchがありません: {adapter_id}")
+
+
+def _public_winos_adapter_result(
+    result: Mapping[str, Any],
+    profile: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Winos resultからraw payloadを含まないallowlist要約だけを返す。"""
+
+    heartbeat = result.get("heartbeat")
+    registration = result.get("registration")
+    collection = result.get("collection")
+    safety = result.get("safety")
+    decisions = result.get("decisions")
+    if not all(
+        isinstance(value, dict)
+        for value in (heartbeat, registration, collection, safety)
+    ) or not isinstance(decisions, list):
+        raise RatEmulatorRunError("Winos adapter resultの構造が不正です")
+    public_decisions: list[dict[str, Any]] = []
+    for decision in decisions:
+        if not isinstance(decision, dict):
+            raise RatEmulatorRunError("Winos decisionがobjectではありません")
+        fingerprint = decision.get("fingerprint")
+        if not isinstance(fingerprint, dict):
+            raise RatEmulatorRunError("Winos decision fingerprintがありません")
+        public_decisions.append(
+            {
+                key: decision.get(key)
+                for key in (
+                    "command",
+                    "role",
+                    "classification",
+                    "action",
+                    "should_respond",
+                    "terminate_session",
+                )
+            }
+            | {
+                "frame_size": fingerprint.get("frame_size"),
+                "frame_sha256": fingerprint.get("frame_sha256"),
+                "declared_length": fingerprint.get("declared_length"),
+                "complete": fingerprint.get("complete"),
+                "integrity_authenticated": fingerprint.get(
+                    "integrity_authenticated"
+                ),
+            }
+        )
+    return {
+        "schema_version": 1,
+        "family": result.get("family"),
+        "protocol": result.get("protocol"),
+        "status": result.get("status"),
+        "required_endpoint_role": result.get("required_endpoint_role"),
+        "certificate_mismatch_is_negative_evidence": profile[
+            "certificate_mismatch_is_negative_evidence"
+        ],
+        "heartbeat": {
+            key: heartbeat.get(key)
+            for key in (
+                "sent",
+                "command",
+                "payload_size",
+                "packet_size",
+                "packet_sha256",
+                "synthetic_header",
+                "real_identity_sent",
+            )
         },
-        allow_registration=True,
-        transcript_callback=callback,
-    )
+        "registration": {
+            key: registration.get(key) for key in ("sent", "supported")
+        },
+        "collection": {
+            key: collection.get(key)
+            for key in (
+                "response_size",
+                "response_sha256",
+                "frame_count",
+                "timed_out",
+                "peer_closed",
+            )
+        },
+        "decisions": public_decisions,
+        "safety": {
+            key: safety.get(key)
+            for key in (
+                "sample_executed",
+                "host_operation_executed",
+                "victim_metadata_sent",
+                "registration_sent",
+                "unknown_command_reply_sent",
+                "stage_requested",
+                "stage_retained",
+                "response_integrity_authenticated",
+                "fake_result_sent",
+                "application_send_count",
+                "session_continues",
+            )
+        },
+    }
+
+
+def _public_purerat_adapter_result(
+    result: Mapping[str, Any],
+    profile: Mapping[str, Any],
+) -> dict[str, Any]:
+    """PureRAT resultを専用のscalar allowlistへ写像する。"""
+
+    try:
+        return build_public_purerat_result(result, profile)
+    except PureRatPublicResultError as exc:
+        raise RatEmulatorRunError(str(exc)) from exc
 
 
 def _public_adapter_result(
     result: Mapping[str, Any], profile: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
+    if (
+        isinstance(profile, Mapping)
+        and profile.get("adapter_id") == "purerat_direct_tls_v1"
+    ):
+        return _public_purerat_adapter_result(result, profile)
+    if (
+        isinstance(profile, Mapping)
+        and profile.get("adapter_id") == "valleyrat_winos_v1"
+    ):
+        return _public_winos_adapter_result(result, profile)
     registration = result.get("registration") if isinstance(result.get("registration"), dict) else {}
     collection = result.get("collection") if isinstance(result.get("collection"), dict) else {}
     safety = result.get("safety") if isinstance(result.get("safety"), dict) else {}
@@ -787,12 +1087,34 @@ def preflight(
     *,
     lease_now_utc: datetime | None = None,
 ) -> dict[str, Any]:
-    """networkを使わずprofile証拠と現在有効な短期leaseを検証する。"""
+    """networkを使わずprofile証拠とlive適格性を検証する。"""
 
     registry = load_registry()
     profile = registry.profiles.get(profile_id)
     if profile is None:
         raise RatEmulatorRunError(f"未レビューのprofile IDです: {profile_id}")
+    result = {
+        "schema_version": 1,
+        "mode": "preflight",
+        "network_used": False,
+        "profile_id": profile["profile_id"],
+        "family": profile["family"],
+        "adapter_id": profile["adapter_id"],
+        "adapter_contract_version": HOST_ADAPTER_CONTRACT_VERSION,
+        "endpoint": {"host": profile["host"], "port": profile["port"]},
+        "pinned_ips": list(profile["pinned_ips"]),
+        "transport": profile["transport"],
+        "protocol_profile_id": profile["protocol_profile_id"],
+        "registry_sha256": registry.sha256,
+        "evidence_sha256": profile["evidence_sha256"],
+        "certificate_mismatch_is_negative_evidence": profile[
+            "certificate_mismatch_is_negative_evidence"
+        ],
+        "live_scope": profile["live_scope"],
+        "live_fake_result_allowed": False,
+    }
+    if profile["live_scope"] == OFFLINE_ONLY_LIVE_SCOPE:
+        return {**result, "live_enabled": False, "live_lease": None}
     effective_lease_time = _effective_lease_time(lease_now_utc)
     try:
         lease_registry, lease = resolve_active_live_lease(
@@ -803,25 +1125,10 @@ def preflight(
     except RatEmulatorLiveLeaseError as exc:
         raise RatEmulatorRunError(str(exc)) from exc
     return {
-        "schema_version": 1,
-        "mode": "preflight",
-        "network_used": False,
-        "profile_id": profile["profile_id"],
-        "family": profile["family"],
-        "adapter_id": profile["adapter_id"],
-        "adapter_contract_version": HOST_ADAPTER_CONTRACT_VERSION,
-        "endpoint": {"host": profile["host"], "port": profile["port"]},
-        "pinned_ips": list(profile["pinned_ips"]),
-        "protocol_profile_id": profile["protocol_profile_id"],
-        "registry_sha256": registry.sha256,
-        "evidence_sha256": profile["evidence_sha256"],
+        **result,
+        "live_enabled": True,
         "live_lease": _public_live_lease(lease_registry, lease),
-        "certificate_mismatch_is_negative_evidence": profile[
-            "certificate_mismatch_is_negative_evidence"
-        ],
-        "live_fake_result_allowed": False,
     }
-
 
 def _open_stream_with_certificate_record(
     profile: Mapping[str, Any],
@@ -880,6 +1187,10 @@ def run_live_session(
         )
     except RatEmulatorProfileError as exc:
         raise RatEmulatorRunError(str(exc)) from exc
+    if profile["live_scope"] == OFFLINE_ONLY_LIVE_SCOPE:
+        raise RatEmulatorRunError(
+            "offline／loopback専用profileは外部live sessionを開始できません"
+        )
     effective_lease_time = _effective_lease_time(lease_now_utc)
     try:
         lease_registry, lease = resolve_active_live_lease(
@@ -1000,7 +1311,14 @@ def run_live_session(
             monotonic=monotonic,
             lease_deadline_monotonic=lease_deadline_monotonic,
         )
-        result = adapter_runner(profile, guarded, _adapter_event_callback(transcript))
+        result = adapter_runner(
+            profile,
+            guarded,
+            _adapter_event_callback(
+                transcript,
+                adapter_id=str(profile["adapter_id"]),
+            ),
+        )
         public_adapter = _public_adapter_result(result, profile)
         transcript.finalize(
             status="completed",

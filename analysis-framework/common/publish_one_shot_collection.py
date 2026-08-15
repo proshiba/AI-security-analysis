@@ -43,9 +43,14 @@ from static_logic import render_static_logic_markdown  # noqa: E402
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 COLLECTION_RE = re.compile(r"[a-z0-9][a-z0-9-]{2,79}")
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
+ROOT_TO_TERMINAL_LINEAGE_BLOCKER = "root_to_terminal_byte_derivation_incomplete"
+ANALYSIS_FOLLOWUP_BLOCKERS = {
+    FUNCTION_ANALYSIS_BLOCKER,
+    ROOT_TO_TERMINAL_LINEAGE_BLOCKER,
+}
 POST_ANALYSIS_HARDENING_STATUS = "renderer_and_resource_coverage_fail_closed_hardening"
 PARTIAL_STAGING_ALLOWED_BLOCKERS = {
-    FUNCTION_ANALYSIS_BLOCKER,
+    *ANALYSIS_FOLLOWUP_BLOCKERS,
     "generic_triage_partial",
     "handler_ambiguous_evidence",
     "handler_failed",
@@ -59,6 +64,7 @@ PARTIAL_STAGING_ALLOWED_BLOCKERS = {
     "orchestration:config",
     "orchestration:function_analysis",
     "orchestration:network",
+    "orchestration:static_layers",
     "orchestration:terminal_payload",
 }
 PARTIAL_STAGING_FAMILY_BLOCKER = re.compile(
@@ -244,6 +250,10 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
                 ):
                     return candidate_public, "one_shot_recovered_layer_detector"
 
+    case_state = report.get("case_state")
+    if isinstance(case_state, dict) and case_state.get("status") == "triaged_unknown":
+        return "unclassified", "internal_static_evidence_unresolved"
+
     signature = normalize_reported_name(metadata.get("signature"))
     mapped = REPORTED_FAMILY_ALIASES.get(signature)
     if mapped in existing_families:
@@ -293,7 +303,7 @@ def collection_display_metadata(
 
 
 def is_partial_staging_case(report: dict[str, Any]) -> bool:
-    """代表関数解析待ちを含む既知blockerだけのpartialをstaging対象にする。"""
+    """代表関数解析待ちまたはroot-to-terminal lineage待ちを含む既知blockerだけをstaging対象にする。"""
 
     state = report.get("case_state")
     blockers = state.get("blockers") if isinstance(state, dict) else None
@@ -304,7 +314,7 @@ def is_partial_staging_case(report: dict[str, Any]) -> bool:
         or state.get("complete") is not False
         or state.get("resumable") is not False
         or not isinstance(blockers, list)
-        or FUNCTION_ANALYSIS_BLOCKER not in blockers
+        or not any(blocker in ANALYSIS_FOLLOWUP_BLOCKERS for blocker in blockers)
     ):
         return False
     return all(
@@ -329,11 +339,19 @@ def validate_case_state(
     state = report.get("case_state")
     status = state.get("status") if isinstance(state, dict) else "invalid"
     blockers = state.get("blockers") if isinstance(state, dict) else None
+    expected_flags = {
+        "complete": (True, True),
+        "triaged_unknown": (False, False),
+    }
+    expected_complete, expected_resumable = expected_flags.get(
+        status,
+        (None, None),
+    )
     if (
         not isinstance(state, dict)
-        or status not in {"complete", "triaged_unknown"}
-        or state.get("complete") is not True
-        or state.get("resumable") is not True
+        or status not in expected_flags
+        or state.get("complete") is not expected_complete
+        or state.get("resumable") is not expected_resumable
         or blockers != []
         or report.get("assessment_only") is not False
     ):
@@ -361,7 +379,8 @@ def validate_source_case(
         report,
         expected_digest=digest,
         expected_contract=expected_contract,
-        require_resumable=stage == "complete",
+        require_resumable=(report.get("case_state") or {}).get("status")
+        == "complete",
     )
     if errors:
         raise ValueError(f"one-shot解析caseの整合性検証に失敗しました: {digest} ({errors})")
@@ -407,7 +426,8 @@ def reseal_canonical_report(case_dir: Path, report: dict[str, Any]) -> None:
         case_dir,
         report,
         expected_digest=case_dir.name,
-        require_resumable=not is_partial_staging_case(report),
+        require_resumable=(report.get("case_state") or {}).get("status")
+        == "complete",
     )
     if errors:
         raise ValueError(f"正規caseの再封印後検証に失敗しました: {case_dir.name} ({errors})")

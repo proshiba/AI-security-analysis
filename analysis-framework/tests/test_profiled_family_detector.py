@@ -98,6 +98,26 @@ def test_detector_rejects_generic_pong_hwid_fixture(monkeypatch) -> None:
     assert result["observations"]["marker_hits"] == []
 
 
+def test_xworm_detector_rejects_go_pong_delimiter_fixture(monkeypatch) -> None:
+    """汎用の区切り文字とpongだけではXWormへ分類しない。"""
+
+    monkeypatch.setattr(detector, "known_hashes", lambda _family: set())
+    monkeypatch.setattr(
+        detector,
+        "extract_family",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("extractor should not run")),
+    )
+    result = detector.detect_family(
+        "xworm",
+        b"MZ <|> pong Host Port Key SPL Version USB https://go.dev/issue/66821",
+        Path("x.exe"),
+    )
+    assert result["matched"] is False
+    assert result["observations"]["marker_hits"] == ["<|>", "pong"]
+    assert result["observations"]["required_marker_hits"] == []
+    assert result["observations"]["required_marker_satisfied"] is False
+
+
 def test_detector_rejects_semantic_family_name_variants(monkeypatch) -> None:
     """同一family名の空白差だけでは抽出器を起動しない。"""
 

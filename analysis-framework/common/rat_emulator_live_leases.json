@@ -2,7 +2,7 @@
   "schema_version": 1,
   "profile_registry": {
     "source": "analysis-framework/common/rat_emulator_profiles.json",
-    "sha256": "3f3d2afc8879a987ad0dde8abce200d371af452b94a4018d941cf62545d0c8b4"
+    "sha256": "a0725e5ce5f8a6597193e2bde09a06740147186dc1f1818c7da7e59d9209a9d6"
   },
   "leases": [
     {

@@ -2,7 +2,7 @@
 
 ## 結論
 
-managed PureRAT／PureHVNC 4.x系は、単なるTCP port公開より強い能動判定が可能です。確認済み通信は、TCP接続直後の4 byte `04 00 00 00`、SNIなしTLS、設定へ埋め込まれた証明書との照合、GZip圧縮protobufによる端末登録・command受信の順に進みます。
+managed PureRAT／PureHVNC 4.x系は、単なるTCP port公開より強い能動判定が可能です。この節で2026-08-05に確認した`e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0`系の通信は、TCP接続直後の4 byte `04 00 00 00`、SNIなしTLS 1.2、設定へ埋め込まれた証明書との照合、GZip圧縮protobufによる端末登録・command受信の順に進みます。
 
 今回、次の3条件がすべて成立した場合だけ`c2_protocol_confirmed`相当とできる限定probeを実装しました。
 
@@ -12,7 +12,19 @@ managed PureRAT／PureHVNC 4.x系は、単なるTCP port公開より強い能動
 
 一般のTLS serverはTLS ClientHelloの前にこの4 byteを受理しないため、prelude後にTLSが成立すること自体がprotocol固有の証拠です。さらに検体固有のcertificate pinが一致すれば、単一IOCやport番号だけに依存しない高確度判定になります。
 
-## 通信フローと今回の到達範囲
+## 2026-08-11 direct-TLS 1.0系の更新
+
+別のPureRAT 4.4.1終端assembly `df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7`では、plaintext preludeを使わず、最初のwire byteからTLS 1.0を開始します。C2候補は`45.192.211[.]77:56001`、leaf certificate SHA-256は`b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57`です。`04000000` prelude／TLS 1.2系とは別profileとして扱い、相互に推測適用しません。
+
+direct-TLS probeでconfirmedとする条件は、handshake後のnegotiated TLS versionが`TLSv1`と完全一致することと、leaf certificate SHA-256が静的config由来のpinと完全一致することの両方です。どちらか一方でも不一致ならinconclusiveとし、当該完全一致build／endpointとの互換性は除外しても、PureRAT familyのC2ではないという否定根拠にはしません。
+
+同終端を静的再解析し、`GClass2`の`ProtoInclude(1, GClass4)`、`GClass4`の`ProtoMember(1..20)`、`Serialize<GClass2> -> GZip -> LE32 length -> body`のcall chainを確認しました。全memberをdefaultのままにした固定registrationはprotobuf `0a00`、framing後26 bytesです。根拠は[`purerat_441_emulator_evidence.json`](../../../../analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json)へ、型inventoryとmethod semantic SHA-256として保存しています。
+
+防御的host adapterはこの固定registrationをoffline fixtureまたは`127.0.0.1` loopbackへ1回だけ送り、応答を最大1 frame分類します。plugin／fileを保持せず、configurationを適用せず、commandを実行せず、heartbeat、task、未知messageのいずれにも返信しません。外部live registrationは共通runnerがDNS解決前に拒否し、PFX、秘密鍵、TLS client certificateを使用しません。
+
+この更新はdirect-TLS 1.0系のschema確証であり、次節のprelude／TLS 1.2系profileを置換しません。
+
+## prelude／TLS 1.2系の通信フローと到達範囲
 
 ```mermaid
 flowchart LR
@@ -32,7 +44,7 @@ flowchart LR
     class I,J pending;
 ```
 
-実線部分は実装済みです。破線部分は未実装です。端末登録に必要なnetwork側protobuf classのfield schemaとcommand envelopeを、現存する証拠だけでは完全復元できていません。
+実線部分は実装済みです。破線部分は`e554…` prelude／TLS 1.2系では未実装です。同系統の端末登録に必要なnetwork側protobuf classのfield schemaとcommand envelopeは、現存する証拠だけでは完全復元できていません。direct-TLS 1.0系`df0359…`のschema確証を、この系統へ継承しません。
 
 ## 根拠
 
@@ -50,9 +62,12 @@ flowchart LR
 | `04 00 00 00`後にTLS成立、certificate不一致 | PureRAT互換protocol候補。別build・rotationの可能性 | 最大0.60 |
 | `04 00 00 00`後にTLS成立、静的configのcertificate pin完全一致 | 検体対応PureRAT C2 protocol確認 | 0.95 |
 | `04 00 00 00`送信後に切断、またはTLS handshake不成立 | protocol固有の根拠なし。非PureRATの証明にもならない | 最大0.25 |
+| direct TLS成立、negotiated version不一致 | 完全一致profileとの互換性なし。family判定はinconclusive | 最大0.40 |
+| direct TLS成立、negotiated versionが`TLSv1`、certificate不一致 | PureRAT互換protocol候補。別build・rotationの可能性がありinconclusive | 最大0.60 |
+| direct TLS成立、negotiated versionが`TLSv1`、静的configのcertificate pin完全一致 | 検体対応PureRAT C2 protocol確認。application data未送信のためmethod上限を適用 | 0.92 |
 | 合成端末登録後に正規command envelopeを受信 | C2 tasking確認 | 将来0.98を想定 |
 
-certificate不一致だけでPureRATではないとは判定しません。builderによる証明書差し替え、別顧客build、server更新があり得ます。ただし、特定検体は埋め込みpinと合わないserver certificateを拒否するため、その検体と当該serverの互換性は失われています。
+TLS negotiated versionまたはcertificateの不一致だけでPureRATではないとは判定しません。別variant、builderによる証明書差し替え、別顧客build、server更新があり得ます。ただし、特定検体は期待versionや埋め込みpinと合わないserverを拒否するため、その検体と当該serverの互換性は失われています。
 
 到達しない、prelude送信後に切断される、TLS handshakeが成立しない、のいずれもPureRAT C2でないことの証明にはなりません。停止、filtering、port閉塞、build差異があり得ます。観測結果には `observation_excludes_purerat: false` を必ず含めています。
 
@@ -72,17 +87,24 @@ certificate不一致だけでPureRATではないとは判定しません。build
 
 ## 実装と安全境界
 
+prelude／TLS 1.2系:
+
 - 共通probe: `analysis-framework/common/purerat_tls_probe.py`
 - 固定profile CLI: `analysis-framework/malware/purehvnc/active_c2_detector.py`
 - profile registry: `analysis-framework/malware/purehvnc/active_profiles.json`（CLI用）、`analysis-framework/common/c2_protocol_probe_profiles.json`（日次監視用）
 - nmap NSE: `analysis-framework/nmap/scripts/purerat-c2.nse`
 - 単体テスト: `analysis-framework/tests/test_purerat_tls_probe.py`（境界）、`analysis-framework/tests/test_purerat_tls_probe_live_path.py`（実TLS経路）、`analysis-framework/tests/test_purerat_monitoring_integration.py`（監視パイプライン）、`analysis-framework/malware/purehvnc/tests/test_active_c2_detector.py`（CLI）
 
-network接続と4-byte prelude送信は別々の明示flagが必要です。任意host・port・送信byte列はCLIから指定できず、固定registryの完全一致profileだけを使用します。端末名、ユーザー名、HWID、OS情報、campaign以外のvictim metadata、登録protobuf、command poll、task実行、payload取得は行いません。certificate本体や秘密鍵も出力しません。
+direct-TLS 1.0系:
+
+- application dataを送らないTLS version＋証明書pin probe: `analysis-framework/common/purerat_direct_tls_probe.py`
+- 防御的host adapter: `analysis-framework/malware/purehvnc/purerat_host_emulator.py`
+- schema証拠: `analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json`
+- Nmap NSEスクリプト: `analysis-framework/nmap/scripts/purerat-direct-tls.nse`
 
 今回は設計・実装・offline testまでとし、C2への新規live接続は行っていません。実TLS経路の検証は、文書どおりに振る舞うloopbackの模擬C2に対して行っています。
 
-### 観測結果の status
+### 観測結果の status（prelude／TLS 1.2系）
 
 到達しない場合も含め、常に同じ形のJSONを返します。例外で打ち切ると監視履歴に何も残らないため、以下はすべて「観測結果」として記録されます。
 
@@ -98,14 +120,20 @@ network接続と4-byte prelude送信は別々の明示flagが必要です。任�
 
 A recordが複数ある場合も接続は1本に固定します。したがって「到達しなかった」は解決した全IPが落ちていることを意味しません。結果の `resolved_ips` と `connected_ip` の差を見てください。
 
-### 日次監視への組み込み
+### 日次監視への組み込み（prelude／TLS 1.2系）
 
 `purerat_tls_prelude` は `monitor_recent_c2.py` の `ACTIVE_PROFILE_METHODS` に登録済みです。日次監視は静的IOC由来の `tcp_connect` 対象を、`c2_protocol_probe_profiles.json` の完全一致profileでこのmethodへ昇格させます。他のactive methodと同じく、`--allow-network` と application probe の両gateが必要です。
 
-## command/task取得まで進めるために必要な追加解析
+prelude系probeでは、network接続と4-byte prelude送信に別々の明示flagが必要です。任意host・port・送信byte列はCLIから指定できず、固定registryの完全一致profileだけを使用します。direct-TLS系のTLS version＋証明書pin probeはapplication dataを送りません。防御的host adapterの固定registrationはoffline／loopback専用です。いずれもtask実行、payload取得、certificate本体、PFX、秘密鍵の公開を行いません。
 
-1. PureRAT 4.4.1終端assemblyを再取得し、network message classの`ProtoMember(n)`、送信順序、length framingを関数単位で復元する。
+両系統とも、この更新ではC2への新規live接続を行っていません。
+
+## prelude／TLS 1.2系でcommand／task取得まで進めるために必要な追加解析
+
+1. `e554…`系のPureRAT 4.4.1終端assemblyを再取得し、network message classの`ProtoMember(n)`、送信順序、length framingを関数単位で復元する。
 2. Triage等からmemory dumpまたはTLS復号済みPCAPを取得し、初回bot messageとserver acknowledgementをstatic class schemaへ対応付ける。
 3. 実端末値を含まない合成protobufをloopback emulatorで往復testする。
 4. 登録とtask取得を独立した明示gateにし、要求回数1回、応答上限、task本文非公開、task非実行、payload非取得でfail-closed実装する。
 5. versionごとにprofileを分離し、4.1.9のschemaを4.4.1以降へ推測適用しない。
+
+direct-TLS 1.0系`df0359…`は登録schemaの静的復元とloopback adapterまで完了しました。未完了なのは実C2応答によるserver側受理の確認であり、外部live registrationを自動で有効化する根拠にはしません。

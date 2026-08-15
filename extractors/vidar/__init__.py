@@ -1,5 +1,5 @@
 """Vidar configuration extractor."""
 
-from .extractor import extract
+from .integrated import extract
 
 __all__ = ["extract"]

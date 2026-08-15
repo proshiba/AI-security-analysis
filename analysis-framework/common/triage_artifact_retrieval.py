@@ -8,9 +8,11 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -32,8 +34,18 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 SAMPLE_ID_RE = re.compile(r"^\d{6}-[a-z0-9]{10}$")
 TASK_ID_RE = re.compile(r"^behavioral\d+$")
 MEMORY_RESOURCE_RE = re.compile(r"^(behavioral\d+)/memory/([^/]+)$")
+REPORT_MEMORY_NAME_RE = re.compile(
+    r"^memory/(?P<pid>[1-9]\d{0,9})-(?P<procid>\d{1,10})-"
+    r"0x(?P<start>[0-9a-fA-F]{8,16})-0x(?P<end>[0-9a-fA-F]{8,16})-"
+    r"memory\.dmp$"
+)
 DEFAULT_MAX_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_TOTAL_BYTES = 256 * 1024 * 1024
+DEFAULT_MAX_REPORT_TASKS = 2
+# discovery上限は、実際に取得する件数（--max-artifacts）から独立させる。
+# 公開PureRAT解析では2 task合計72 regionがあり、既定の取得上限20を
+# discoveryへ流用するとsample全体が拒否されるためである。
+DEFAULT_MAX_REPORT_MEMORY_CANDIDATES = 100
 DEFAULT_MAX_ROOT_TOTAL_BYTES = DEFAULT_MAX_SAMPLE_BYTES
 MAX_ROOT_TOTAL_BYTES = 1024 * 1024 * 1024
 MAX_JSON_BYTES = 25 * 1024 * 1024
@@ -89,6 +101,174 @@ def _overview_sha256(overview: dict[str, Any]) -> str:
     if not isinstance(sample, dict):
         raise ValueError("Triage overviewにsample情報がありません")
     return normalize_sha256(sample.get("sha256"))
+
+
+def reported_behavioral_tasks(
+    overview: dict[str, Any],
+    *,
+    sample_id: str,
+    max_tasks: int = DEFAULT_MAX_REPORT_TASKS,
+) -> list[str]:
+    """overviewからreported状態のbehavioral taskを最大件数まで列挙する。"""
+
+    if not SAMPLE_ID_RE.fullmatch(sample_id):
+        raise ValueError("Triage sample IDの形式が不正です")
+    if not 1 <= max_tasks <= DEFAULT_MAX_REPORT_TASKS:
+        raise ValueError("report task上限は1件または2件である必要があります")
+    sample = overview.get("sample")
+    if not isinstance(sample, dict):
+        raise ValueError("Triage overviewにsample情報がありません")
+    overview_sample_id = str(sample.get("id") or "")
+    if overview_sample_id and overview_sample_id != sample_id:
+        raise ValueError("Triage overviewのsample IDが要求値と一致しません")
+
+    tasks = overview.get("tasks")
+    if not isinstance(tasks, dict):
+        return []
+    reported: list[str] = []
+    for raw_task_id, task in tasks.items():
+        task_id = str(raw_task_id)
+        prefix = sample_id + "-"
+        if task_id.startswith(prefix):
+            task_id = task_id[len(prefix) :]
+        if (
+            not TASK_ID_RE.fullmatch(task_id)
+            or not isinstance(task, dict)
+            or task.get("kind") != "behavioral"
+            or task.get("status") != "reported"
+            or task_id in reported
+        ):
+            continue
+        reported.append(task_id)
+        if len(reported) == max_tasks:
+            break
+    return reported
+
+
+def _strict_positive_int(value: Any, *, field: str, maximum: int) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
+        raise ValueError(f"Triage reportの{field}が許可範囲外です")
+    return value
+
+
+def extract_report_memory_candidates(
+    report: dict[str, Any],
+    *,
+    expected_sha256: str,
+    sample_id: str,
+    task_id: str,
+    max_candidates: int = DEFAULT_MAX_REPORT_MEMORY_CANDIDATES,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    max_total_bytes: int = DEFAULT_MAX_TOTAL_BYTES,
+) -> list[dict[str, Any]]:
+    """task reportのregion dumpを、長さを検証したmemory取得候補へ変換する。"""
+
+    digest = normalize_sha256(expected_sha256)
+    if not SAMPLE_ID_RE.fullmatch(sample_id):
+        raise ValueError("Triage sample IDの形式が不正です")
+    if not TASK_ID_RE.fullmatch(task_id):
+        raise ValueError("Triage task IDの形式が不正です")
+    if not 1 <= max_candidates <= 100:
+        raise ValueError("report memory候補上限は1件から100件の範囲が必要です")
+    if not 1 <= max_bytes <= DEFAULT_MAX_BYTES:
+        raise ValueError("report memory単体上限は1 byteから64 MiBの範囲が必要です")
+    if not 1 <= max_total_bytes <= 1024 * 1024 * 1024:
+        raise ValueError("report memory合計上限は1 byteから1 GiBの範囲が必要です")
+
+    sample = report.get("sample")
+    if not isinstance(sample, dict):
+        raise ValueError("Triage task reportにsample情報がありません")
+    if str(sample.get("id") or "") != sample_id:
+        raise ValueError("Triage task reportのsample IDが要求値と一致しません")
+    if normalize_sha256(sample.get("sha256")) != digest:
+        raise ValueError("Triage task reportのSHA-256が要求値と一致しません")
+
+    task = report.get("task")
+    if not isinstance(task, dict):
+        raise ValueError("Triage task reportにtask情報がありません")
+    if normalize_sha256(task.get("sha256")) != digest:
+        raise ValueError("Triage task reportのtask SHA-256が要求値と一致しません")
+    report_task_id = str(task.get("id") or "")
+    if report_task_id:
+        if report_task_id.startswith(sample_id + "-"):
+            report_task_id = report_task_id[len(sample_id) + 1 :]
+        if report_task_id != task_id:
+            raise ValueError("Triage task reportのtask IDが要求値と一致しません")
+
+    dumped = report.get("dumped")
+    if dumped is None:
+        return []
+    if not isinstance(dumped, list):
+        raise ValueError("Triage task reportのdumpedは配列である必要があります")
+
+    candidates: list[dict[str, Any]] = []
+    total_bytes = 0
+    seen: set[str] = set()
+    for entry in dumped:
+        if not isinstance(entry, dict) or entry.get("kind") != "region":
+            continue
+        raw_name = entry.get("name")
+        if not isinstance(raw_name, str):
+            raise ValueError("Triage region dumpにnameがありません")
+        normalized_name = raw_name.replace("\\", "/")
+        match = REPORT_MEMORY_NAME_RE.fullmatch(normalized_name)
+        if match is None:
+            raise ValueError("Triage region dumpのmemory pathが不正です")
+        safe_name = safe_basename(normalized_name)
+        pid = _strict_positive_int(entry.get("pid"), field="pid", maximum=0xFFFFFFFF)
+        length = _strict_positive_int(
+            entry.get("length"), field="length", maximum=max_bytes
+        )
+        name_pid = int(match.group("pid"))
+        region_index = int(match.group("procid"))
+        start = int(match.group("start"), 16)
+        end = int(match.group("end"), 16)
+        if name_pid != pid:
+            raise ValueError("Triage region dumpのpidがmemory名と一致しません")
+        if end <= start or end - start != length:
+            raise ValueError("Triage region dumpのlengthがmemory範囲と一致しません")
+        entry_procid = _strict_positive_int(
+            entry.get("procid"), field="procid", maximum=0x7FFFFFFF
+        )
+        entry_address = entry.get("addr")
+        if entry_address is not None and (
+            isinstance(entry_address, bool)
+            or not isinstance(entry_address, int)
+            or entry_address != start
+        ):
+            raise ValueError("Triage region dumpのaddrがmemory名と一致しません")
+        total_bytes += length
+        if total_bytes > max_total_bytes:
+            raise ValueError("Triage region dumpの合計lengthが上限を超えています")
+        endpoint = (
+            f"/samples/{sample_id}/{task_id}/memory/"
+            f"{urllib.parse.quote(safe_name, safe='')}"
+        )
+        if endpoint in seen:
+            continue
+        seen.add(endpoint)
+        candidates.append(
+            {
+                "parent_sha256": digest,
+                "sample_id": sample_id,
+                "task_id": task_id,
+                "kind": "memory_image",
+                "name": safe_name,
+                "endpoint_path": endpoint,
+                "reference_sha256": hashlib.sha256(
+                    normalized_name.encode("utf-8")
+                ).hexdigest(),
+                "selection": "reported_region_memory",
+                "reported_pid": pid,
+                "reported_procid": entry_procid,
+                "reported_region_index": region_index,
+                "reported_address": start,
+                "reported_length": length,
+            }
+        )
+        if len(candidates) > max_candidates:
+            raise ValueError("Triage region dumpの候補件数が上限を超えています")
+    return candidates
 
 
 def extract_artifact_candidates(
@@ -288,6 +468,136 @@ def encrypted_zip_bytes(data: bytes, member_name: str, password: str) -> bytes:
     return buffer.getvalue()
 
 
+def verify_encrypted_archive_bytes(
+    archive_data: bytes,
+    *,
+    member_name: str,
+    password: str,
+    expected_size: int,
+    expected_sha256: str,
+) -> str:
+    """AES-256 ZIPの単一member、長さ、平文hashをmemory上で検証する。"""
+
+    safe_name = safe_basename(member_name)
+    digest = normalize_sha256(expected_sha256)
+    if (
+        isinstance(expected_size, bool)
+        or not isinstance(expected_size, int)
+        or not 0 <= expected_size <= DEFAULT_MAX_BYTES
+    ):
+        raise ValueError("暗号化archiveの期待平文sizeが不正です")
+    if not archive_data:
+        raise ValueError("暗号化archiveが空です")
+    try:
+        with pyzipper.AESZipFile(BytesIO(archive_data), "r") as archive:
+            infos = archive.infolist()
+            if len(infos) != 1 or infos[0].filename != safe_name:
+                raise ValueError("暗号化archiveのmemberが期待値と一致しません")
+            info = infos[0]
+            if info.is_dir() or info.file_size != expected_size:
+                raise ValueError("暗号化archiveの平文sizeが期待値と一致しません")
+            if not info.flag_bits & 0x1 or getattr(info, "wz_aes_strength", None) != 3:
+                raise ValueError("暗号化archiveがWinZip AES-256ではありません")
+            archive.setpassword(password.encode("utf-8"))
+            with archive.open(info, "r") as member:
+                plaintext = member.read(expected_size + 1)
+                if member.read(1):
+                    raise ValueError("暗号化archiveの平文が期待上限を超えています")
+    except (
+        pyzipper.zipfile.BadZipFile,
+        EOFError,
+        OSError,
+        RuntimeError,
+        NotImplementedError,
+    ) as error:
+        raise ValueError("暗号化archiveを安全に検証できません") from error
+    if len(plaintext) != expected_size:
+        raise ValueError("暗号化archiveの平文sizeが期待値と一致しません")
+    if hashlib.sha256(plaintext).hexdigest() != digest:
+        raise ValueError("暗号化archiveの平文SHA-256が期待値と一致しません")
+    return hashlib.sha256(archive_data).hexdigest()
+
+
+def persist_encrypted_archive(
+    archive_path: Path,
+    archive_data: bytes,
+    *,
+    member_name: str,
+    password: str,
+    expected_size: int,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    """既存archiveを厳密検証し、新規archiveは同一directoryからatomic replaceする。"""
+
+    generated_sha256 = verify_encrypted_archive_bytes(
+        archive_data,
+        member_name=member_name,
+        password=password,
+        expected_size=expected_size,
+        expected_sha256=expected_sha256,
+    )
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+    if archive_path.exists() or archive_path.is_symlink():
+        if archive_path.is_symlink() or not archive_path.is_file():
+            raise ValueError("既存の暗号化archiveが通常fileではありません")
+        maximum_existing_size = len(archive_data) + 1024 * 1024
+        size = archive_path.stat().st_size
+        if not 1 <= size <= maximum_existing_size:
+            raise ValueError("既存の暗号化archive sizeが許可範囲外です")
+        existing_data = archive_path.read_bytes()
+        existing_sha256 = verify_encrypted_archive_bytes(
+            existing_data,
+            member_name=member_name,
+            password=password,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        return {
+            "archive_sha256": existing_sha256,
+            "archive_reused": True,
+        }
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{archive_path.name}.",
+        suffix=".tmp",
+        dir=archive_path.parent,
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(archive_data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary_data = temporary_path.read_bytes()
+        if hashlib.sha256(temporary_data).hexdigest() != generated_sha256:
+            raise ValueError("一時暗号化archiveの内容が生成値と一致しません")
+        verify_encrypted_archive_bytes(
+            temporary_data,
+            member_name=member_name,
+            password=password,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        os.replace(temporary_path, archive_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+    persisted_data = archive_path.read_bytes()
+    persisted_sha256 = verify_encrypted_archive_bytes(
+        persisted_data,
+        member_name=member_name,
+        password=password,
+        expected_size=expected_size,
+        expected_sha256=expected_sha256,
+    )
+    if persisted_sha256 != generated_sha256:
+        raise ValueError("保存済み暗号化archiveが生成値と一致しません")
+    return {
+        "archive_sha256": persisted_sha256,
+        "archive_reused": False,
+    }
+
+
 def _manifest_hashes(path: Path) -> list[str]:
     document = json.loads(path.read_text(encoding="utf-8-sig"))
     values = document.get("selected_hashes") or []
@@ -395,7 +705,10 @@ def discover_candidates(
     timeout: float,
     include_memory: bool,
     root_sample_candidates: list[dict[str, Any]] | None = None,
-) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    report_memory_max_candidates: int = DEFAULT_MAX_REPORT_MEMORY_CANDIDATES,
+    report_memory_max_bytes: int = DEFAULT_MAX_BYTES,
+    report_memory_max_total_bytes: int = DEFAULT_MAX_TOTAL_BYTES,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """完全hash一致の公開解析から取得候補と失敗分類を列挙する。"""
 
     candidates: list[dict[str, Any]] = []
@@ -449,6 +762,41 @@ def discover_candidates(
                         include_memory=include_memory,
                     )
                 )
+                if include_memory:
+                    report_candidates: list[dict[str, Any]] = []
+                    for task_id in reported_behavioral_tasks(
+                        overview,
+                        sample_id=sample_id,
+                    ):
+                        report = api_json(
+                            f"/samples/{sample_id}/{task_id}/report_triage.json",
+                            api_key,
+                            opener=opener,
+                            timeout=timeout,
+                        )
+                        report_candidates.extend(
+                            extract_report_memory_candidates(
+                                report,
+                                expected_sha256=digest,
+                                sample_id=sample_id,
+                                task_id=task_id,
+                                max_candidates=report_memory_max_candidates,
+                                max_bytes=report_memory_max_bytes,
+                                max_total_bytes=report_memory_max_total_bytes,
+                            )
+                        )
+                    if len(report_candidates) > report_memory_max_candidates:
+                        raise ValueError(
+                            "Triage region dumpの候補件数がsample上限を超えています"
+                        )
+                    if (
+                        sum(item["reported_length"] for item in report_candidates)
+                        > report_memory_max_total_bytes
+                    ):
+                        raise ValueError(
+                            "Triage region dumpの合計lengthがsample上限を超えています"
+                        )
+                    candidates.extend(report_candidates)
             except Exception as error:  # network/API parserは異種例外を返す
                 errors.append(
                     {
@@ -651,6 +999,8 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--allow-networkなしではTriage APIへ接続しません")
     if not 1 <= args.max_artifacts <= 100:
         raise ValueError("max_artifactsは1から100の範囲が必要です")
+    if not 1 <= args.max_bytes <= DEFAULT_MAX_BYTES:
+        raise ValueError("max_bytesは1 byteから64 MiBの範囲が必要です")
     if not 1 <= args.max_total_bytes <= 1024 * 1024 * 1024:
         raise ValueError("max_total_bytesは1から1GiBの範囲が必要です")
     if not 1 <= args.max_root_samples <= 100:
@@ -685,6 +1035,8 @@ def main(argv: list[str] | None = None) -> int:
         root_sample_candidates=(
             root_sample_candidates if args.include_root_sample else None
         ),
+        report_memory_max_bytes=args.max_bytes,
+        report_memory_max_total_bytes=args.max_total_bytes,
     )
     if reviewed_candidates:
         verify_reviewed_candidates(
@@ -739,15 +1091,30 @@ def main(argv: list[str] | None = None) -> int:
                     api_key,
                     opener=opener,
                     timeout=args.timeout,
-                    max_bytes=min(args.max_bytes, remaining),
+                    max_bytes=min(
+                        args.max_bytes,
+                        remaining,
+                        int(candidate.get("reported_length") or args.max_bytes),
+                    ),
                 )
+                reported_length = candidate.get("reported_length")
+                if reported_length is not None and len(data) != reported_length:
+                    raise ValueError(
+                        "Triage region dumpの応答長がreportのlengthと一致しません"
+                    )
                 digest = hashlib.sha256(data).hexdigest()
                 archive_bytes = encrypted_zip_bytes(data, candidate["name"], args.password)
                 case_root = output_root / candidate["parent_sha256"] / candidate["sample_id"]
                 case_root.mkdir(parents=True, exist_ok=True)
                 archive_path = case_root / f"artifact-{digest[:16]}.zip"
-                if not archive_path.exists():
-                    archive_path.write_bytes(archive_bytes)
+                archive_result = persist_encrypted_archive(
+                    archive_path,
+                    archive_bytes,
+                    member_name=candidate["name"],
+                    password=args.password,
+                    expected_size=len(data),
+                    expected_sha256=digest,
+                )
                 total_bytes += len(data)
                 downloads.append(
                     {
@@ -756,7 +1123,8 @@ def main(argv: list[str] | None = None) -> int:
                         "artifact_sha256": digest,
                         "size": len(data),
                         "archive_path": str(archive_path),
-                        "archive_sha256": hashlib.sha256(archive_bytes).hexdigest(),
+                        "archive_sha256": archive_result["archive_sha256"],
+                        "archive_reused": archive_result["archive_reused"],
                         "archive_encryption": "AES-256",
                         "duplicate_of_parent": digest == candidate["parent_sha256"],
                         "executed": False,

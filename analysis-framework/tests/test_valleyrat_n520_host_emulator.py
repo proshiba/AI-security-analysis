@@ -207,11 +207,23 @@ def test_tampered_frame_is_never_classified_as_a_command() -> None:
 
 def test_synthetic_result_is_abstract_and_fixture_only() -> None:
     decision = N520.synthetic_result_decision(16, outcome="success").to_dict()
+    assert decision["command"] == 16
+    assert decision["outcome"] == "success"
+    assert decision["result_command"] == 2
+    assert decision["result_direction"] == "client_to_server"
     assert decision["fixture_only"] is True
     assert decision["send_allowed"] is False
-    assert decision["wire_schema_status"] == "unresolved"
+    assert decision["wire_schema_status"] == "result_command_confirmed_payload_schema_unresolved"
     assert decision["wire_bytes"] is None
+    assert decision["operation_executed"] is False
+    assert decision["payload_retained"] is False
     assert N520.LIVE_FAKE_RESULT_TRANSMISSION_ALLOWED is False
+
+
+@pytest.mark.parametrize("outcome", ["", "ok", "SUCCESS", None, True])
+def test_synthetic_result_outcome_is_exact(outcome: object) -> None:
+    with pytest.raises(ValueError):
+        N520.synthetic_result_decision(16, outcome=outcome)  # type: ignore[arg-type]
 
 
 def test_common_entry_returns_only_sanitized_metadata() -> None:

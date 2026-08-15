@@ -21,6 +21,7 @@ HINT_CONFIDENCE_VALUES = {"high", "medium", "low", "unknown", "unverified"}
 MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_FAMILY_HINT_SAMPLES = 10_000
 MAX_FAMILY_HINTS_PER_SAMPLE = 16
+MAX_FAMILY_HINT_LINEAGE_DEPTH = 64
 MAX_ROUTING_LAYERS = 512
 MAX_ROUTING_FAMILY_COVERAGE = 512
 MAX_ROUTING_CANDIDATE_FAMILIES = 128
@@ -72,7 +73,7 @@ class ValidatedFamilyHintManifest(_FrozenDict):
 
 
 def _freeze_manifest(
-    samples: dict[str, list[dict[str, str]]],
+    samples: dict[str, list[dict[str, Any]]],
 ) -> ValidatedFamilyHintManifest:
     """正規化済み値をJSON化可能な深い不変表現へ変換する。"""
 
@@ -255,12 +256,30 @@ def _bounded_hint_text(value: Any, field: str, maximum: int) -> str:
     return value
 
 
-def _normalize_family_hint(value: Any, location: str) -> dict[str, str]:
+def _normalize_family_hint(value: Any, location: str) -> dict[str, Any]:
     """1件の外部family hintを正規化し、未知fieldを拒否する。"""
 
     if not isinstance(value, dict):
         raise FamilyHintManifestError(f"{location} must be an object")
-    allowed = {"family", "source", "provenance", "confidence", "label", "observed_at"}
+    lineage_fields = {
+        "artifact_sha256",
+        "parent_sha256",
+        "root_sha256",
+        "artifact_kind",
+        "source_id",
+        "depth",
+        "inherited_family",
+        "family_hint_source",
+    }
+    allowed = {
+        "family",
+        "source",
+        "provenance",
+        "confidence",
+        "label",
+        "observed_at",
+        *lineage_fields,
+    }
     unknown = sorted(set(value) - allowed)
     if unknown:
         raise FamilyHintManifestError(f"{location} contains unknown fields: {', '.join(unknown)}")
@@ -276,7 +295,7 @@ def _normalize_family_hint(value: Any, location: str) -> dict[str, str]:
         allowed_values = ", ".join(sorted(HINT_CONFIDENCE_VALUES))
         raise FamilyHintManifestError(f"{location}.confidence must be one of: {allowed_values}")
 
-    normalized = {
+    normalized: dict[str, Any] = {
         "family": family,
         "source": _bounded_hint_text(value["source"], f"{location}.source", 128),
         "provenance": _bounded_hint_text(value["provenance"], f"{location}.provenance", 512),
@@ -286,6 +305,59 @@ def _normalize_family_hint(value: Any, location: str) -> dict[str, str]:
         normalized["label"] = _bounded_hint_text(value["label"], f"{location}.label", 128)
     if "observed_at" in value:
         normalized["observed_at"] = _bounded_hint_text(value["observed_at"], f"{location}.observed_at", 64)
+    supplied_lineage = lineage_fields & set(value)
+    if supplied_lineage:
+        missing_lineage = sorted(lineage_fields - supplied_lineage)
+        if missing_lineage:
+            raise FamilyHintManifestError(
+                f"{location} has incomplete artifact lineage: {', '.join(missing_lineage)}"
+            )
+        for field in ("artifact_sha256", "parent_sha256", "root_sha256"):
+            supplied_digest = value[field]
+            if not isinstance(supplied_digest, str) or SHA256_RE.fullmatch(supplied_digest) is None:
+                raise FamilyHintManifestError(f"{location}.{field} must be a SHA-256")
+            normalized[field] = supplied_digest.lower()
+        if normalized["artifact_sha256"] in {
+            normalized["parent_sha256"],
+            normalized["root_sha256"],
+        }:
+            raise FamilyHintManifestError(f"{location} artifact lineage must reference an ancestor")
+        depth = value["depth"]
+        if (
+            isinstance(depth, bool)
+            or not isinstance(depth, int)
+            or not 1 <= depth <= MAX_FAMILY_HINT_LINEAGE_DEPTH
+        ):
+            raise FamilyHintManifestError(
+                f"{location}.depth must be between 1 and {MAX_FAMILY_HINT_LINEAGE_DEPTH}"
+            )
+        normalized["depth"] = depth
+        if depth == 1 and normalized["root_sha256"] != normalized["parent_sha256"]:
+            raise FamilyHintManifestError(
+                f"{location}.root_sha256 must equal parent_sha256 at depth 1"
+            )
+        if depth > 1 and normalized["root_sha256"] == normalized["parent_sha256"]:
+            raise FamilyHintManifestError(
+                f"{location}.root_sha256 must differ from parent_sha256 after depth 1"
+            )
+        for field in ("artifact_kind", "family_hint_source"):
+            token = _bounded_hint_text(value[field], f"{location}.{field}", 64).lower()
+            if FAMILY_ID_RE.fullmatch(token) is None:
+                raise FamilyHintManifestError(f"{location}.{field} must be a canonical token")
+            normalized[field] = token
+        normalized["source_id"] = _bounded_hint_text(
+            value["source_id"],
+            f"{location}.source_id",
+            128,
+        )
+        inherited_family = _bounded_hint_text(
+            value["inherited_family"],
+            f"{location}.inherited_family",
+            64,
+        ).lower()
+        if inherited_family != family:
+            raise FamilyHintManifestError(f"{location}.inherited_family must match family")
+        normalized["inherited_family"] = inherited_family
     return normalized
 
 
@@ -323,15 +395,13 @@ def normalize_family_hint_manifest(document: Any) -> ValidatedFamilyHintManifest
         if len(raw_hints) > MAX_FAMILY_HINTS_PER_SAMPLE:
             raise FamilyHintManifestError(f"samples.{digest} exceeds the hint count limit")
         hints = [_normalize_family_hint(hint, f"samples.{digest}[{index}]") for index, hint in enumerate(raw_hints)]
+        for hint in hints:
+            if hint.get("artifact_sha256") not in {None, digest}:
+                raise FamilyHintManifestError(
+                    f"samples.{digest} artifact_sha256 must match its manifest key"
+                )
         fingerprints = {
-            (
-                hint["family"],
-                hint["source"],
-                hint["provenance"],
-                hint["confidence"],
-                hint.get("label"),
-                hint.get("observed_at"),
-            )
+            json.dumps(hint, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
             for hint in hints
         }
         if len(fingerprints) != len(hints):
@@ -344,6 +414,9 @@ def normalize_family_hint_manifest(document: Any) -> ValidatedFamilyHintManifest
                 item["provenance"],
                 item["confidence"],
                 item.get("label", ""),
+                item.get("artifact_sha256", ""),
+                item.get("parent_sha256", ""),
+                json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False),
             ),
         )
     return _freeze_manifest(normalized_samples)
@@ -449,7 +522,7 @@ def load_family_hint_manifest(
 def family_hints_for_sha256(
     manifest: Mapping[str, Any],
     digest: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """検証済みmanifestから完全一致SHA-256のhintだけをコピーして返す。"""
 
     if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
@@ -730,6 +803,24 @@ def build_family_routing_candidates(
                 "layer_index": 0 if records else None,
                 "layer_sha256": records[0]["sha256"] if records else None,
                 "supports_attribution": False,
+                "artifact_lineage": (
+                    {
+                        key: hint[key]
+                        for key in (
+                            "root_sha256",
+                            "parent_sha256",
+                            "artifact_sha256",
+                            "artifact_kind",
+                            "source",
+                            "source_id",
+                            "depth",
+                            "inherited_family",
+                            "family_hint_source",
+                        )
+                    }
+                    if "artifact_sha256" in hint
+                    else None
+                ),
             }
             for hint in family_hints
         ]

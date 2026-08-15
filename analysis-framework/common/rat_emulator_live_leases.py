@@ -170,8 +170,22 @@ def load_live_lease_registry(
         if lease.profile_id in leases:
             raise RatEmulatorLiveLeaseError("lease profile_idが重複しています")
         leases[lease.profile_id] = lease
-    expected_profile_ids = set(active_profiles.profiles)
+    expected_profile_ids = {
+        profile_id
+        for profile_id, profile in active_profiles.profiles.items()
+        if profile["live_scope"] == "leased_external"
+    }
+    offline_profile_ids = {
+        profile_id
+        for profile_id, profile in active_profiles.profiles.items()
+        if profile["live_scope"] == "offline_or_loopback_only"
+    }
     observed_profile_ids = set(leases)
+    offline_leases = sorted(observed_profile_ids & offline_profile_ids)
+    if offline_leases:
+        raise RatEmulatorLiveLeaseError(
+            f"offline-only profileへlive leaseを付与できません: {offline_leases}"
+        )
     unknown = sorted(observed_profile_ids - expected_profile_ids)
     missing = sorted(expected_profile_ids - observed_profile_ids)
     if unknown:
