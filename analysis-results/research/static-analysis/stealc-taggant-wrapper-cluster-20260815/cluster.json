@@ -1,0 +1,870 @@
+{
+  "schema_version": 1,
+  "analysis_type": "stealc_protected_wrapper_cluster_review",
+  "status": "protector_lineage_correlated_terminal_unresolved",
+  "family": "stealc",
+  "sample_count": 11,
+  "sample_sha256": [
+    "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+    "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+    "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+    "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+    "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+    "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+    "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+    "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+    "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+    "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+    "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12"
+  ],
+  "cluster": {
+    "id": "stealc-taggant-wrapper-466909e3ef5d175a",
+    "structural_fingerprint_sha256": "466909e3ef5d175acc1f3923245a3f8069248bfe78def549965adbee1522e331",
+    "topology": {
+      "architecture": "x86-32",
+      "section_roles": [
+        "anonymous_executable_high_entropy",
+        "resource",
+        "import",
+        "anonymous_executable_sparse",
+        "randomized_executable_high_entropy",
+        "randomized_executable_small",
+        "taggant_entrypoint"
+      ],
+      "import_libraries": [
+        "kernel32.dll"
+      ],
+      "import_count": 1,
+      "entrypoint_section": ".taggant",
+      "entrypoint_cfg": {
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "overlay_size": 0
+    },
+    "correlation_confidence": "high",
+    "protector_family_shape": "Themida_or_WinLicense_family",
+    "protector_exact_version_confirmed": false,
+    "terminal_family_confirmed_from_wrapper_alone": false
+  },
+  "cases": [
+    {
+      "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "size": 1837056,
+      "entropy": 7.946,
+      "randomized_section_names": [
+        "lculjkhe",
+        "ezzbfwjh"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 16,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 141312,
+          "virtual_size": 2469888,
+          "entropy": 7.9834,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2732032,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "lculjkhe",
+          "raw_size": 1680896,
+          "virtual_size": 1683456,
+          "entropy": 7.953,
+          "executable": true
+        },
+        {
+          "name": "ezzbfwjh",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.3222,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7245,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+      "size": 1783808,
+      "entropy": 7.9444,
+      "randomized_section_names": [
+        "oggjeoxe",
+        "bpbnhoje"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 21,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9692,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2744320,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "oggjeoxe",
+          "raw_size": 1688064,
+          "virtual_size": 1691648,
+          "entropy": 7.9537,
+          "executable": true
+        },
+        {
+          "name": "bpbnhoje",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.1234,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8156,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+      "size": 1798144,
+      "entropy": 7.9436,
+      "randomized_section_names": [
+        "ibsbbfsz",
+        "xnkbybmp"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 31,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9682,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "ibsbbfsz",
+          "raw_size": 1702400,
+          "virtual_size": 1703936,
+          "entropy": 7.9537,
+          "executable": true
+        },
+        {
+          "name": "xnkbybmp",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.2436,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.819,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+      "size": 1745408,
+      "entropy": 7.9442,
+      "randomized_section_names": [
+        "nsriuoot",
+        "fcgomrub"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 17,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9736,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2682880,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "nsriuoot",
+          "raw_size": 1649664,
+          "virtual_size": 1650688,
+          "entropy": 7.9541,
+          "executable": true
+        },
+        {
+          "name": "fcgomrub",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.7878,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8917,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+      "size": 1764864,
+      "entropy": 7.9458,
+      "randomized_section_names": [
+        "nvgmvkfs",
+        "mvlvetrb"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 27,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9647,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2740224,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "nvgmvkfs",
+          "raw_size": 1668608,
+          "virtual_size": 1671168,
+          "entropy": 7.9554,
+          "executable": true
+        },
+        {
+          "name": "mvlvetrb",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.8255,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.6938,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+      "size": 1756672,
+      "entropy": 7.9436,
+      "randomized_section_names": [
+        "dnbdzjvd",
+        "hwzrywcd"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 36,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.961,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2682880,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "dnbdzjvd",
+          "raw_size": 1660928,
+          "virtual_size": 1662976,
+          "entropy": 7.9532,
+          "executable": true
+        },
+        {
+          "name": "hwzrywcd",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.0548,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7952,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+      "size": 1811968,
+      "entropy": 7.943,
+      "randomized_section_names": [
+        "cpbdjvhh",
+        "btxydvwq"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 26,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9703,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2777088,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "cpbdjvhh",
+          "raw_size": 1715712,
+          "virtual_size": 1716224,
+          "entropy": 7.9531,
+          "executable": true
+        },
+        {
+          "name": "btxydvwq",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.8903,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.8805,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+      "size": 1795584,
+      "entropy": 7.9451,
+      "randomized_section_names": [
+        "cgmytlif",
+        "rvymqypd"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 21,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9702,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "cgmytlif",
+          "raw_size": 1699840,
+          "virtual_size": 1699840,
+          "entropy": 7.9543,
+          "executable": true
+        },
+        {
+          "name": "rvymqypd",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.97,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7589,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+      "size": 1822720,
+      "entropy": 7.9458,
+      "randomized_section_names": [
+        "slkfwdkq",
+        "tyqcqcio"
+      ],
+      "resource_count": 1,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 26,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 90624,
+          "virtual_size": 2396160,
+          "entropy": 7.9752,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 496,
+          "entropy": 5.0482,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.8647,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2801664,
+          "entropy": 0.2569,
+          "executable": true
+        },
+        {
+          "name": "slkfwdkq",
+          "raw_size": 1716736,
+          "virtual_size": 1720320,
+          "entropy": 7.9544,
+          "executable": true
+        },
+        {
+          "name": "tyqcqcio",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 6.4297,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7034,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+      "size": 1814528,
+      "entropy": 7.9423,
+      "randomized_section_names": [
+        "esdzurwm",
+        "gpsgltzd"
+      ],
+      "resource_count": 1,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 25,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 90624,
+          "virtual_size": 2396160,
+          "entropy": 7.9781,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 512,
+          "virtual_size": 496,
+          "entropy": 5.0482,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.8647,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2781184,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "esdzurwm",
+          "raw_size": 1708032,
+          "virtual_size": 1708032,
+          "entropy": 7.953,
+          "executable": true
+        },
+        {
+          "name": "gpsgltzd",
+          "raw_size": 1536,
+          "virtual_size": 4096,
+          "entropy": 4.7931,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.0196,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12",
+      "size": 1792000,
+      "entropy": 7.9441,
+      "randomized_section_names": [
+        "lxojhmjk",
+        "mdoopayt"
+      ],
+      "resource_count": 0,
+      "entrypoint": {
+        "section": ".taggant",
+        "instruction_count": 24,
+        "basic_blocks": 4,
+        "known_edges": 3,
+        "calls": 1,
+        "terminal_instruction": "int3"
+      },
+      "sections": [
+        {
+          "name": "",
+          "raw_size": 80896,
+          "virtual_size": 2347008,
+          "entropy": 7.9652,
+          "executable": true
+        },
+        {
+          "name": ".rsrc",
+          "raw_size": 0,
+          "virtual_size": 4096,
+          "entropy": 0.0,
+          "executable": false
+        },
+        {
+          "name": ".idata",
+          "raw_size": 512,
+          "virtual_size": 4096,
+          "entropy": 0.9064,
+          "executable": false
+        },
+        {
+          "name": "",
+          "raw_size": 512,
+          "virtual_size": 2772992,
+          "entropy": 0.2608,
+          "executable": true
+        },
+        {
+          "name": "lxojhmjk",
+          "raw_size": 1696256,
+          "virtual_size": 1699840,
+          "entropy": 7.9542,
+          "executable": true
+        },
+        {
+          "name": "mdoopayt",
+          "raw_size": 1024,
+          "virtual_size": 4096,
+          "entropy": 5.5417,
+          "executable": true
+        },
+        {
+          "name": ".taggant",
+          "raw_size": 8704,
+          "virtual_size": 12288,
+          "entropy": 0.7567,
+          "executable": true
+        }
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    }
+  ],
+  "assessment": {
+    "confirmed": [
+      "11件に共通する保護外層のsection topology",
+      "最小import surfaceと.taggant entrypoint",
+      "4 basic block・3 edge・1 call・INT3終端の入口CFG"
+    ],
+    "not_confirmed": [
+      "ThemidaまたはWinLicenseの正確な版",
+      "保護外層内部の終端StealC payload",
+      "検体固有の設定、C2、protocol世代"
+    ],
+    "remaining_blockers": [
+      "themida_winlicense_2x",
+      "terminal_config_not_recovered"
+    ]
+  },
+  "safety": {
+    "samples_executed": false,
+    "cpu_emulated": false,
+    "network_contacted": false,
+    "network_scope": "malware_or_c2_endpoints_not_contacted; provider_acquisition_outside_review",
+    "raw_artifacts_published": false,
+    "source": "bounded_deep_static_report"
+  }
+}

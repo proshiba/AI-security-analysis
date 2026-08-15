@@ -282,6 +282,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 - [analysis-framework/README.md](analysis-framework/README.md): 解析フレームワーク概要
 - [analysis-framework/docs/ANALYSIS-LIFECYCLE-AUTOMATION.md](analysis-framework/docs/ANALYSIS-LIFECYCLE-AUTOMATION.md): 識別から解析完了、公開、派生更新、S3保管までを接続する固定stage runner
+- [analysis-framework/docs/ANALYSIS-ORCHESTRATOR.md](analysis-framework/docs/ANALYSIS-ORCHESTRATOR.md): 複数の解析lifecycleを安全に計画、実行、検証、再開する全体オーケストレータ
 - [analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md](analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md): 関数ロジック記録、fingerprint、コード類似性索引
 - [analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md](analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md): 検体特徴、充足度監査、campaign相関、自動label
 - [analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md](analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md): 全C2候補の限定probe、MaxMind、DNS／停止履歴、RAT session sidecarの統合手順

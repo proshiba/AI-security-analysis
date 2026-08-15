@@ -13,6 +13,7 @@
 
 - [AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)
 - [識別・解析・公開・保管を接続する解析lifecycleの自動化](ANALYSIS-LIFECYCLE-AUTOMATION.md)
+- [複数の解析lifecycleを統括する解析全体オーケストレータ](ANALYSIS-ORCHESTRATOR.md)
 - [WebUI／ローカルAPI向け静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)
 - [dailyマルウェア解析の3系統取込](DAILY-NEWS-MALWARE-INTAKE.md)
 - [ClickFix／ClearFake 50件の収集・インフラ・Triage照合](../clickfix/README.md)

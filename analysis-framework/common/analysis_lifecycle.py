@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager, redirect_stdout
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -16,7 +17,6 @@ import re
 import stat
 import sys
 from typing import Any
-from contextlib import redirect_stdout
 
 import analysis_job_runner
 import archive_analysis_datastore
@@ -30,11 +30,27 @@ SCHEMA_VERSION = 1
 MAX_REQUEST_BYTES = 1024 * 1024
 MAX_STATE_BYTES = 8 * 1024 * 1024
 MAX_ATTEMPTS = 5
+MAX_PUBLIC_BLOCKERS = 256
 WORKFLOW_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$")
 COLLECTION_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 BLOCKER_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{0,159}$")
 FILE_ATTRIBUTE_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+STAGE_STATUSES = frozenset({"pending", "running", "succeeded", "blocked", "failed", "skipped"})
+WORKFLOW_STATUSES = frozenset({"pending", "partial", "complete", "failed"})
+STAGE_RECORD_KEYS = frozenset(
+    {
+        "status",
+        "enabled",
+        "dependencies",
+        "attempts",
+        "fingerprint",
+        "started_at_utc",
+        "finished_at_utc",
+        "blockers",
+        "result",
+    }
+)
 
 TOP_LEVEL_KEYS = frozenset(
     {
@@ -245,6 +261,60 @@ def _reject_existing_reparse_components(path: Path, *, label: str) -> None:
             raise LifecycleError("reparse_forbidden", f"{label}にreparse pointは使えません")
 
 
+@contextmanager
+def _execution_lock(root: Path):
+    """同じworkflowを複数processが同時更新しないようOS lockを保持する。"""
+
+    _reject_existing_reparse_components(root, label="workflow lock")
+    if not root.is_dir():
+        raise LifecycleError("workflow_missing", "workflow directoryがありません")
+    lock_path = root / "execution.lock"
+    if lock_path.exists() and _is_reparse(lock_path):
+        raise LifecycleError("workflow_lock_invalid", "workflow lockにreparse pointは使用できません")
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(lock_path, flags, 0o600)
+    except OSError as exc:
+        raise LifecycleError("workflow_lock_invalid", "workflow lockを安全に開けません") from exc
+    acquired = False
+    try:
+        information = os.fstat(descriptor)
+        if not stat.S_ISREG(information.st_mode) or information.st_nlink != 1:
+            raise LifecycleError("workflow_lock_invalid", "workflow lockは単一linkの通常fileに限定します")
+        if information.st_size == 0:
+            os.write(descriptor, b"\0")
+            os.fsync(descriptor)
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (ImportError, OSError) as exc:
+            raise LifecycleError("workflow_locked", "同じworkflowを別processが更新中です") from exc
+        acquired = True
+        yield
+    finally:
+        if acquired:
+            try:
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                if os.name == "nt":
+                    import msvcrt
+
+                    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            except (ImportError, OSError):
+                pass
+        os.close(descriptor)
+
+
 def _overlaps(left: Path, right: Path) -> bool:
     return left == right or left.is_relative_to(right) or right.is_relative_to(left)
 
@@ -360,6 +430,10 @@ def validate_request_object(value: Mapping[str, Any]) -> LifecycleRequest:
 def load_request(path: Path) -> LifecycleRequest:
     """UTF-8 strict JSONから検証済みworkflow要求を読み込む。"""
 
+    path = Path(os.path.abspath(os.fspath(path)))
+    _reject_existing_reparse_components(path, label="lifecycle request")
+    if not path.is_file() or _is_reparse(path):
+        raise LifecycleError("request_file_invalid", "lifecycle requestは通常fileで指定してください")
     return validate_request_object(_load_json(path, maximum_bytes=MAX_REQUEST_BYTES))
 
 
@@ -584,6 +658,70 @@ def _write_state(context: LifecycleContext, state: dict[str, Any]) -> None:
     _atomic_json(context.lifecycle_root / "state.json", state)
 
 
+def _valid_optional_timestamp(value: Any) -> bool:
+    return value is None or (isinstance(value, str) and 1 <= len(value) <= 64)
+
+
+def _stage_semantics_valid(record: Mapping[str, Any], *, enabled: bool) -> bool:
+    """stage statusと試行・時刻・blockerの意味的整合を返す。"""
+
+    status = record.get("status")
+    attempts = record.get("attempts")
+    started = record.get("started_at_utc")
+    finished = record.get("finished_at_utc")
+    blockers = record.get("blockers")
+    result = record.get("result")
+    if not enabled:
+        return (
+            status == "skipped"
+            and attempts == 0
+            and started is None
+            and isinstance(finished, str)
+            and blockers == []
+            and result == {"reason": "disabled_by_request"}
+        )
+    if status == "pending":
+        return started is None and finished is None and blockers == [] and result == {}
+    if status == "running":
+        return attempts >= 1 and isinstance(started, str) and finished is None and blockers == [] and result == {}
+    if status == "succeeded":
+        return attempts >= 1 and isinstance(started, str) and isinstance(finished, str) and blockers == []
+    if status in {"blocked", "failed"}:
+        return attempts >= 1 and isinstance(started, str) and isinstance(finished, str) and bool(blockers)
+    return (
+        status == "skipped"
+        and attempts == 0
+        and started is None
+        and isinstance(finished, str)
+        and bool(blockers)
+        and result == {"reason": "dependency_not_succeeded"}
+    )
+
+
+def _workflow_semantics_valid(state: Mapping[str, Any]) -> bool:
+    """final workflow statusと有効stage集合の整合を返す。"""
+
+    overall = state.get("status")
+    enabled_statuses = [record["status"] for record in state["stages"].values() if record["enabled"]]
+    if overall == "complete":
+        return all(status == "succeeded" for status in enabled_statuses)
+    if overall == "failed":
+        return "failed" in enabled_statuses and not any(status in {"pending", "running"} for status in enabled_statuses)
+    if overall == "partial":
+        return (
+            "failed" not in enabled_statuses
+            and not all(status == "succeeded" for status in enabled_statuses)
+            and not any(status in {"pending", "running"} for status in enabled_statuses)
+        )
+    return True
+
+
+def _safe_blocker(value: Any) -> str:
+    if isinstance(value, str) and BLOCKER_RE.fullmatch(value):
+        return value
+    return "analysis_blocked"
+
+
 def _load_state(context: LifecycleContext) -> dict[str, Any]:
     state = _load_json(context.lifecycle_root / "state.json", maximum_bytes=MAX_STATE_BYTES)
     required = {
@@ -599,27 +737,65 @@ def _load_state(context: LifecycleContext) -> dict[str, Any]:
     }
     if set(state) != required or state.get("schema_version") != SCHEMA_VERSION:
         raise LifecycleError("state_invalid", "lifecycle state schemaが不正です")
-    if state.get("workflow_id") != context.request.workflow_id:
-        raise LifecycleError("state_invalid", "workflow_idがrequestと一致しません")
-    if state.get("request_sha256") != _sha256_value(context.request.public()):
+    if (
+        state.get("workflow_id") != context.request.workflow_id
+        or state.get("status") not in WORKFLOW_STATUSES
+        or not _valid_optional_timestamp(state.get("created_at_utc"))
+        or not _valid_optional_timestamp(state.get("updated_at_utc"))
+    ):
+        raise LifecycleError("state_invalid", "workflowのstate fieldが不正です")
+    request_sha256 = state.get("request_sha256")
+    if (
+        not isinstance(request_sha256, str)
+        or SHA256_RE.fullmatch(request_sha256) is None
+        or request_sha256 != _sha256_value(context.request.public())
+    ):
         raise LifecycleError("request_changed", "保存済みrequest digestが一致しません")
-    if state.get("stage_order") != list(STAGE_ORDER) or not isinstance(state.get("stages"), dict):
+    if (
+        state.get("stage_order") != list(STAGE_ORDER)
+        or not isinstance(state.get("stages"), dict)
+        or set(state["stages"]) != set(STAGE_ORDER)
+        or state.get("safety") != build_plan(context.request)["safety"]
+    ):
         raise LifecycleError("state_invalid", "固定stage graphが一致しません")
     for stage in STAGE_ORDER:
         record = state["stages"].get(stage)
-        if not isinstance(record, dict) or record.get("fingerprint") != _stage_fingerprint(context, stage):
+        if not isinstance(record, dict) or set(record) != STAGE_RECORD_KEYS:
+            raise LifecycleError("state_invalid", f"{stage}のstate schemaが不正です")
+        enabled = _stage_enabled(context.request, stage)
+        attempts = record.get("attempts")
+        blockers = record.get("blockers")
+        fingerprint = record.get("fingerprint")
+        if (
+            record.get("status") not in STAGE_STATUSES
+            or record.get("enabled") is not enabled
+            or record.get("dependencies") != list(STAGE_DEPENDENCIES[stage])
+            or isinstance(attempts, bool)
+            or not isinstance(attempts, int)
+            or not 0 <= attempts <= MAX_ATTEMPTS
+            or not isinstance(fingerprint, str)
+            or SHA256_RE.fullmatch(fingerprint) is None
+            or not _valid_optional_timestamp(record.get("started_at_utc"))
+            or not _valid_optional_timestamp(record.get("finished_at_utc"))
+            or not isinstance(blockers, list)
+            or len(blockers) > MAX_PUBLIC_BLOCKERS
+            or blockers != sorted(set(blockers))
+            or any(not isinstance(item, str) or BLOCKER_RE.fullmatch(item) is None for item in blockers)
+            or not isinstance(record.get("result"), dict)
+            or (not enabled and record.get("status") != "skipped")
+            or (record.get("status") == "succeeded" and blockers)
+            or not _stage_semantics_valid(record, enabled=enabled)
+        ):
+            raise LifecycleError("state_invalid", f"{stage}のstate fieldが不正です")
+        if fingerprint != _stage_fingerprint(context, stage):
             raise LifecycleError("stage_contract_changed", f"{stage}の実装契約が保存時から変更されました")
+    if not _workflow_semantics_valid(state):
+        raise LifecycleError("state_invalid", "workflow statusとstage stateが一致しません")
     return state
 
 
-def _safe_blocker(value: Any) -> str:
-    if isinstance(value, str) and BLOCKER_RE.fullmatch(value):
-        return value
-    return "analysis_blocked"
-
-
 def _bounded_blockers(values: Sequence[Any]) -> list[str]:
-    return sorted({_safe_blocker(value) for value in values})[:256]
+    return sorted({_safe_blocker(value) for value in values})[:MAX_PUBLIC_BLOCKERS]
 
 
 def _stage_public_error(stage: str, exc: BaseException) -> tuple[str, str]:
@@ -655,7 +831,12 @@ def _verified_static_result(context: LifecycleContext) -> dict[str, Any] | None:
         return None
     snapshot = analysis_job_runner.read_job_snapshot(context.jobs_root, context.request.job.job_id)
     result = snapshot.get("result")
-    if not isinstance(result, dict) or result.get("accepted") is not True:
+    if (
+        not isinstance(result, dict)
+        or result.get("accepted") is not True
+        or result.get("job_id") != context.request.job.job_id
+        or result.get("request_sha256") != _sha256_value(context.request.job.public())
+    ):
         raise LifecycleError("existing_job_incomplete", "既存jobが検証済み完了状態ではありません")
     safety = result.get("safety")
     if not isinstance(safety, dict) or any(
@@ -663,6 +844,198 @@ def _verified_static_result(context: LifecycleContext) -> dict[str, Any] | None:
     ):
         raise LifecycleError("static_safety_invalid", "既存jobの安全flagが不正です")
     return result
+
+
+def _resolve_job_artifact(job_dir: Path, value: Any, *, label: str) -> Path:
+    relative = _normalize_relative_path(value, label=label)
+    path = job_dir.joinpath(*PurePosixPath(relative).parts)
+    _reject_existing_reparse_components(path, label=label)
+    try:
+        information = path.lstat()
+    except OSError as exc:
+        raise LifecycleError("static_artifact_missing", f"{label}がありません") from exc
+    if (
+        not path.is_file()
+        or _is_reparse(path)
+        or not stat.S_ISREG(information.st_mode)
+        or information.st_nlink != 1
+    ):
+        raise LifecycleError("static_artifact_invalid", f"{label}は単一linkの通常fileに限定します")
+    return path
+
+
+def _verify_input_snapshot_manifest(job_dir: Path, manifest_path: Path) -> None:
+    manifest = _load_json(manifest_path, maximum_bytes=analysis_job_runner.MAX_INPUT_SNAPSHOT_MANIFEST_BYTES)
+    if set(manifest) != {"schema_version", "archive_mode", "file_count", "total_bytes", "files"}:
+        raise LifecycleError("input_snapshot_changed", "入力snapshot manifest schemaが不正です")
+    files = manifest.get("files")
+    file_count = manifest.get("file_count")
+    total_bytes = manifest.get("total_bytes")
+    if (
+        manifest.get("schema_version") != SCHEMA_VERSION
+        or not isinstance(files, list)
+        or len(files) > analysis_job_runner.MAX_DISCOVERED_FILES
+        or isinstance(file_count, bool)
+        or not isinstance(file_count, int)
+        or file_count != len(files)
+        or isinstance(total_bytes, bool)
+        or not isinstance(total_bytes, int)
+        or not 0 <= total_bytes <= analysis_job_runner.MAX_TOTAL_INPUT_BYTES
+    ):
+        raise LifecycleError("input_snapshot_changed", "入力snapshot manifest fieldが不正です")
+    samples_root = job_dir / "contract-inputs" / "samples"
+    _reject_existing_reparse_components(samples_root, label="input snapshot root")
+    if not samples_root.is_dir() or _is_reparse(samples_root):
+        raise LifecycleError("input_snapshot_changed", "入力snapshot rootが不正です")
+    expected_entries: set[str] = set()
+    observed_bytes = 0
+    for index, item in enumerate(files):
+        if not isinstance(item, dict) or set(item) != {
+            "index",
+            "source_relative_path",
+            "snapshot_relative_path",
+            "source_name",
+            "size",
+            "sha256",
+        }:
+            raise LifecycleError("input_snapshot_changed", "入力snapshot record schemaが不正です")
+        size = item.get("size")
+        digest = item.get("sha256")
+        snapshot_relative = _normalize_relative_path(
+            item.get("snapshot_relative_path"),
+            label="input snapshot path",
+        )
+        _normalize_relative_path(item.get("source_relative_path"), label="input source path")
+        pure = PurePosixPath(snapshot_relative)
+        if (
+            item.get("index") != index
+            or len(pure.parts) < 4
+            or pure.parts[:2] != ("contract-inputs", "samples")
+            or item.get("source_name") != pure.name
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or not 0 <= size <= analysis_job_runner.MAX_TOTAL_INPUT_BYTES
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+        ):
+            raise LifecycleError("input_snapshot_changed", "入力snapshot record fieldが不正です")
+        path = _resolve_job_artifact(job_dir, snapshot_relative, label="input snapshot")
+        information = path.stat()
+        if information.st_size != size or _sha256_file(path) != digest:
+            raise LifecycleError("input_snapshot_changed", "入力snapshotのsizeまたはSHA-256が変化しました")
+        relative = path.relative_to(samples_root)
+        expected_entries.add(relative.as_posix())
+        expected_entries.update(parent.as_posix() for parent in relative.parents if parent != Path("."))
+        observed_bytes += size
+    if observed_bytes != total_bytes:
+        raise LifecycleError("input_snapshot_changed", "入力snapshot合計sizeが一致しません")
+    actual_entries: set[str] = set()
+    try:
+        for count, path in enumerate(samples_root.rglob("*"), start=1):
+            if count > analysis_job_runner.MAX_TREE_ENTRIES:
+                raise LifecycleError("input_snapshot_changed", "入力snapshot entry上限を超えています")
+            information = path.lstat()
+            if _is_reparse(path):
+                raise LifecycleError("input_snapshot_changed", "入力snapshotにreparse pointがあります")
+            if path.is_file() and (not stat.S_ISREG(information.st_mode) or information.st_nlink != 1):
+                raise LifecycleError("input_snapshot_changed", "入力snapshotに不正なfileがあります")
+            if not path.is_dir() and not path.is_file():
+                raise LifecycleError("input_snapshot_changed", "入力snapshotに通常file以外があります")
+            actual_entries.add(path.relative_to(samples_root).as_posix())
+    except OSError as exc:
+        raise LifecycleError("input_snapshot_changed", "入力snapshot treeを再列挙できません") from exc
+    if actual_entries != expected_entries:
+        raise LifecycleError("input_snapshot_changed", "入力snapshot treeのentry集合が変化しました")
+
+
+def _analysis_tree_sha256(path: Path) -> str:
+    """解析treeの全通常file内容と既存quota集計を決定的にsealする。"""
+
+    before = analysis_job_runner.validate_analysis_output_tree(path)
+    digest = hashlib.sha256()
+    digest.update(_canonical_bytes({"schema_version": SCHEMA_VERSION, "tree": before}))
+    digest.update(b"\n")
+    for item in sorted(path.rglob("*"), key=lambda value: value.relative_to(path).as_posix().casefold()):
+        if not item.is_file():
+            continue
+        relative = item.relative_to(path).as_posix()
+        information = item.lstat()
+        digest.update(
+            _canonical_bytes(
+                {
+                    "path": relative,
+                    "size": information.st_size,
+                    "sha256": _sha256_file(item),
+                }
+            )
+        )
+        digest.update(b"\n")
+    if analysis_job_runner.validate_analysis_output_tree(path) != before:
+        raise LifecycleError("static_output_tree_changed", "解析treeがseal計算中に変化しました")
+    return digest.hexdigest()
+
+
+def _static_artifact_errors(context: LifecycleContext, record: Mapping[str, Any]) -> list[str]:
+    errors: list[str] = []
+    try:
+        result = _verified_static_result(context)
+        if result is None:
+            return ["static_result_missing"]
+        job_dir = context.jobs_root / context.request.job.job_id
+        result_path = job_dir / "result.json"
+        summary_path = job_dir / "analysis" / "summary.json"
+        stored = record.get("result")
+        if not isinstance(stored, Mapping):
+            return ["static_state_invalid"]
+        if stored.get("result_sha256") != _sha256_file(result_path):
+            errors.append("static_result_hash_mismatch")
+        if not summary_path.is_file() or stored.get("summary_sha256") != _sha256_file(summary_path):
+            errors.append("static_summary_hash_mismatch")
+        if stored.get("analysis_tree_sha256") != _analysis_tree_sha256(job_dir / "analysis"):
+            errors.append("static_output_content_changed")
+        artifacts = result.get("artifacts")
+        if not isinstance(artifacts, dict):
+            errors.append("static_artifact_manifest_invalid")
+            return sorted(set(errors))
+        for path_key, digest_key in (
+            ("analysis_contract_bundle", "analysis_contract_bundle_sha256"),
+            ("input_snapshot_manifest", "input_snapshot_manifest_sha256"),
+        ):
+            if artifacts.get(path_key) is None or artifacts.get(digest_key) is None:
+                errors.append(f"{path_key}_missing")
+        tree = analysis_job_runner.validate_analysis_output_tree(job_dir / "analysis")
+        if artifacts.get("analysis_output") != tree:
+            errors.append("static_output_tree_changed")
+        pinned = (
+            ("analysis_contract_bundle", "analysis_contract_bundle_sha256", "analysis_contract_bundle_changed"),
+            ("input_snapshot_manifest", "input_snapshot_manifest_sha256", "input_snapshot_manifest_changed"),
+            ("family_hint_manifest", "family_hint_manifest_sha256", "family_hint_manifest_changed"),
+            (
+                "trusted_static_tools_manifest",
+                "trusted_static_tools_manifest_sha256",
+                "trusted_static_tools_manifest_changed",
+            ),
+        )
+        resolved: dict[str, Path] = {}
+        for path_key, digest_key, error_code in pinned:
+            relative = artifacts.get(path_key)
+            digest = artifacts.get(digest_key)
+            if relative is None and digest is None:
+                continue
+            if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+                errors.append(error_code)
+                continue
+            path = _resolve_job_artifact(job_dir, relative, label=path_key)
+            resolved[path_key] = path
+            if _sha256_file(path) != digest:
+                errors.append(error_code)
+        snapshot_manifest = resolved.get("input_snapshot_manifest")
+        if snapshot_manifest is not None and "input_snapshot_manifest_changed" not in errors:
+            _verify_input_snapshot_manifest(job_dir, snapshot_manifest)
+    except (LifecycleError, analysis_job_runner.JobContractError, OSError) as exc:
+        code = getattr(exc, "code", "static_artifact_verification_failed")
+        errors.append(code if isinstance(code, str) and BLOCKER_RE.fullmatch(code) else "static_artifact_verification_failed")
+    return sorted(set(errors))
 
 
 def _production_static(context: LifecycleContext, _: Mapping[str, Any]) -> StageOutcome:
@@ -690,6 +1063,7 @@ def _production_static(context: LifecycleContext, _: Mapping[str, Any]) -> Stage
             "follow_on_analysis": result["follow_on_analysis"],
             "result_sha256": _sha256_file(result_path),
             "summary_sha256": _sha256_file(summary_path),
+            "analysis_tree_sha256": _analysis_tree_sha256(summary_path.parent),
             "job_relative_path": f"jobs/{context.request.job.job_id}",
             "executed_sample": False,
             "network_contacted": False,
@@ -873,7 +1247,12 @@ def _production_refresh(context: LifecycleContext, _: Mapping[str, Any]) -> Stag
     )
 
 
-def _archive_sources(context: LifecycleContext) -> list[Path]:
+def _archive_sources(
+    context: LifecycleContext,
+    state: Mapping[str, Any] | None = None,
+) -> list[Path]:
+    if state is not None and (errors := _static_artifact_errors(context, state["stages"]["static_analysis"])):
+        raise LifecycleError("archive_source_changed", f"archive前の静的成果物検証に失敗しました: {errors[0]}")
     sources: list[Path] = []
     include = set(context.request.private_archive["include"])
     if "inputs" in include:
@@ -892,13 +1271,14 @@ def _archive_sources(context: LifecycleContext) -> list[Path]:
     return sources
 
 
-def _production_archive(context: LifecycleContext, _: Mapping[str, Any]) -> StageOutcome:
+def _production_archive(context: LifecycleContext, state: Mapping[str, Any]) -> StageOutcome:
+    sources = _archive_sources(context, state)
     report_path = context.lifecycle_root / "private-archive-report.json"
     if report_path.exists():
         report = _load_json(report_path, maximum_bytes=MAX_STATE_BYTES)
     else:
         argv = ["--target", context.request.private_archive["target"]]
-        for source in _archive_sources(context):
+        for source in sources:
             argv.extend(("--source", str(source)))
         argv.extend(("--report", str(report_path)))
         with redirect_stdout(io.StringIO()):
@@ -909,6 +1289,7 @@ def _production_archive(context: LifecycleContext, _: Mapping[str, Any]) -> Stag
     verification = report.get("s3_verification")
     if (
         report.get("status") != "verified"
+        or report.get("target") != context.request.private_archive["target"]
         or report.get("local_source_deleted") is not False
         or not isinstance(verification, dict)
         or verification.get("server_side_encryption") != "AES256"
@@ -1022,21 +1403,12 @@ def _execute(context: LifecycleContext, state: dict[str, Any], actions: _Actions
     return state
 
 
-def _finalize_state(context: LifecycleContext, state: dict[str, Any]) -> None:
-    enabled = [record for record in state["stages"].values() if record["enabled"]]
-    if any(record["status"] == "failed" for record in enabled):
-        overall = "failed"
-    elif any(record["status"] in {"blocked", "skipped", "pending", "running"} for record in enabled):
-        overall = "partial"
-    else:
-        overall = "complete"
-    state["status"] = overall
-    _write_state(context, state)
-    report = {
+def _public_report_from_state(context: LifecycleContext, state: Mapping[str, Any]) -> dict[str, Any]:
+    return {
         "schema_version": SCHEMA_VERSION,
         "workflow_id": context.request.workflow_id,
         "request_sha256": state["request_sha256"],
-        "status": overall,
+        "status": state["status"],
         "stages": {
             stage: {
                 "status": state["stages"][stage]["status"],
@@ -1056,7 +1428,19 @@ def _finalize_state(context: LifecycleContext, state: dict[str, Any]) -> None:
             "arbitrary_command_executed": False,
         },
     }
-    _atomic_json(context.lifecycle_root / "report.json", report)
+
+
+def _finalize_state(context: LifecycleContext, state: dict[str, Any]) -> None:
+    enabled = [record for record in state["stages"].values() if record["enabled"]]
+    if any(record["status"] == "failed" for record in enabled):
+        overall = "failed"
+    elif any(record["status"] in {"blocked", "skipped", "pending", "running"} for record in enabled):
+        overall = "partial"
+    else:
+        overall = "complete"
+    state["status"] = overall
+    _write_state(context, state)
+    _atomic_json(context.lifecycle_root / "report.json", _public_report_from_state(context, state))
 
 
 def _initialize_context(
@@ -1102,7 +1486,8 @@ def run_lifecycle(
         work_root=work_root,
         timeout_seconds=timeout_seconds,
     )
-    return _execute(context, state, PRODUCTION_ACTIONS)
+    with _execution_lock(context.lifecycle_root):
+        return _execute(context, state, PRODUCTION_ACTIONS)
 
 
 def _run_lifecycle_for_test(
@@ -1123,7 +1508,8 @@ def _run_lifecycle_for_test(
         work_root=work_root,
         timeout_seconds=timeout_seconds,
     )
-    return _execute(context, state, actions)
+    with _execution_lock(context.lifecycle_root):
+        return _execute(context, state, actions)
 
 
 def _existing_context(
@@ -1157,6 +1543,7 @@ def _resume_context(
     input_root: Path,
     work_root: Path,
     timeout_seconds: int,
+    verify_succeeded_artifacts: bool = True,
 ) -> tuple[LifecycleContext, dict[str, Any]]:
     context, state = _existing_context(
         workflow_id,
@@ -1165,15 +1552,38 @@ def _resume_context(
         work_root=work_root,
         timeout_seconds=timeout_seconds,
     )
+    if verify_succeeded_artifacts:
+        finalized = all(
+            not record["enabled"] or record["status"] not in {"pending", "running"}
+            for record in state["stages"].values()
+        )
+        errors = _verification_errors(
+            context,
+            state,
+            include_report=finalized,
+        )
+        if errors:
+            raise LifecycleError(
+                "succeeded_artifact_changed", f"成功済みstageの再検証に失敗しました: {errors[0]}"
+            )
+    reset = False
     for stage in STAGE_ORDER:
         record = state["stages"][stage]
-        if record["status"] == "running":
-            record["status"] = "pending"
-            record["blockers"] = ["interrupted_stage_recovered"]
-        elif record["status"] in {"failed", "blocked"}:
-            record["status"] = "pending"
-        elif record["status"] == "skipped" and record["enabled"]:
-            record["status"] = "pending"
+        if record["status"] in {"running", "failed", "blocked"} or (
+            record["status"] == "skipped" and record["enabled"]
+        ):
+            reset = True
+            record.update(
+                {
+                    "status": "pending",
+                    "started_at_utc": None,
+                    "finished_at_utc": None,
+                    "blockers": [],
+                    "result": {},
+                }
+            )
+    if reset:
+        state["status"] = "pending"
     _write_state(context, state)
     return context, state
 
@@ -1188,14 +1598,22 @@ def resume_lifecycle(
 ) -> dict[str, Any]:
     """保存済みrequestとstage fingerprintを検証して未完stageだけ再開する。"""
 
-    context, state = _resume_context(
+    existing, _ = _existing_context(
         workflow_id,
         repository=repository,
         input_root=input_root,
         work_root=work_root,
         timeout_seconds=timeout_seconds,
     )
-    return _execute(context, state, PRODUCTION_ACTIONS)
+    with _execution_lock(existing.lifecycle_root):
+        context, state = _resume_context(
+            workflow_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=timeout_seconds,
+        )
+        return _execute(context, state, PRODUCTION_ACTIONS)
 
 
 def read_status(work_root: Path, workflow_id: str) -> dict[str, Any]:
@@ -1206,6 +1624,82 @@ def read_status(work_root: Path, workflow_id: str) -> dict[str, Any]:
     root = Path(os.path.abspath(os.fspath(work_root))) / "lifecycles" / workflow_id
     _reject_existing_reparse_components(root, label="lifecycle state")
     return _load_json(root / "report.json", maximum_bytes=MAX_STATE_BYTES)
+
+
+def _verification_errors(
+    context: LifecycleContext,
+    state: Mapping[str, Any],
+    *,
+    include_report: bool,
+) -> list[str]:
+    errors: list[str] = []
+    static = state["stages"]["static_analysis"]
+    if static["status"] == "succeeded":
+        errors.extend(_static_artifact_errors(context, static))
+    publication = state["stages"]["publication"]
+    if publication["status"] == "succeeded":
+        try:
+            relative = _normalize_relative_path(publication["result"].get("collection"), label="collection")
+            collection = context.repository.joinpath(*PurePosixPath(relative).parts)
+            _reject_existing_reparse_components(collection, label="published collection")
+            if (
+                not collection.is_dir()
+                or _is_reparse(collection)
+                or not collection.resolve().is_relative_to(context.repository)
+            ):
+                errors.append("publication_collection_missing")
+            else:
+                function_result = validate_function_analysis.validate_collection(context.repository, collection)
+                function_record = state["stages"]["function_validation"]
+                if function_record["status"] in {"succeeded", "blocked"}:
+                    function_succeeded = function_record["status"] == "succeeded"
+                    if bool(function_result["complete"]) != function_succeeded:
+                        errors.append("function_validation_state_mismatch")
+                    for key in ("cases", "valid_cases", "invalid_cases", "complete"):
+                        if key in function_record["result"] and function_record["result"].get(key) != function_result.get(key):
+                            errors.append("function_validation_result_mismatch")
+                            break
+        except Exception:  # noqa: BLE001 - read-only publication検証境界でerrorを正規化する
+            errors.append("publication_verification_failed")
+    refresh = state["stages"]["derived_refresh"]
+    if refresh["status"] == "succeeded":
+        try:
+            refreshed = refresh_case_inventory.refresh(context.repository, write=False, check=True)
+            terminal = build_terminal_payload_gap_inventory.sync_outputs(
+                context.repository,
+                Path("intelligence/terminal-payload-recovery"),
+                write=False,
+            )
+            if refreshed["check_failed"] or terminal["mismatches"]:
+                errors.append("derived_refresh_stale")
+        except Exception:  # noqa: BLE001 - read-only generator検証境界でerrorを正規化する
+            errors.append("derived_refresh_verification_failed")
+    archive = state["stages"]["private_archive"]
+    if archive["status"] == "succeeded":
+        try:
+            report = _load_json(
+                context.lifecycle_root / "private-archive-report.json",
+                maximum_bytes=MAX_STATE_BYTES,
+            )
+            verification = report.get("s3_verification")
+            if (
+                report.get("status") != "verified"
+                or report.get("archive_sha256") != archive["result"].get("archive_sha256")
+                or report.get("manifest_sha256") != archive["result"].get("manifest_sha256")
+                or not isinstance(verification, dict)
+                or verification.get("server_side_encryption") != "AES256"
+            ):
+                errors.append("private_archive_report_mismatch")
+        except LifecycleError as exc:
+            errors.append(exc.code)
+    if include_report:
+        try:
+            report = _load_json(context.lifecycle_root / "report.json", maximum_bytes=MAX_STATE_BYTES)
+            if report != _public_report_from_state(context, state):
+                errors.append("lifecycle_report_state_mismatch")
+        except LifecycleError:
+            errors.append("lifecycle_report_missing")
+    return sorted(set(errors))
 
 
 def verify_lifecycle(
@@ -1225,61 +1719,7 @@ def verify_lifecycle(
         work_root=work_root,
         timeout_seconds=timeout_seconds,
     )
-    errors: list[str] = []
-    static = state["stages"]["static_analysis"]
-    if static["status"] == "succeeded":
-        try:
-            result = _verified_static_result(context)
-            if result is None:
-                errors.append("static_result_missing")
-            else:
-                path = context.jobs_root / context.request.job.job_id / "result.json"
-                if static["result"].get("result_sha256") != _sha256_file(path):
-                    errors.append("static_result_hash_mismatch")
-                summary = context.jobs_root / context.request.job.job_id / "analysis" / "summary.json"
-                if not summary.is_file() or static["result"].get("summary_sha256") != _sha256_file(summary):
-                    errors.append("static_summary_hash_mismatch")
-        except LifecycleError as exc:
-            errors.append(exc.code)
-    publication = state["stages"]["publication"]
-    if publication["status"] == "succeeded":
-        try:
-            relative = _normalize_relative_path(publication["result"].get("collection"), label="collection")
-            collection = context.repository.joinpath(*PurePosixPath(relative).parts)
-            if not collection.is_dir() or not collection.resolve().is_relative_to(context.repository):
-                errors.append("publication_collection_missing")
-            else:
-                function_result = validate_function_analysis.validate_collection(context.repository, collection)
-                function_succeeded = state["stages"]["function_validation"]["status"] == "succeeded"
-                if bool(function_result["complete"]) != function_succeeded:
-                    errors.append("function_validation_state_mismatch")
-        except LifecycleError as exc:
-            errors.append(exc.code)
-    refresh = state["stages"]["derived_refresh"]
-    if refresh["status"] == "succeeded":
-        refreshed = refresh_case_inventory.refresh(context.repository, write=False, check=True)
-        terminal = build_terminal_payload_gap_inventory.sync_outputs(
-            context.repository,
-            Path("intelligence/terminal-payload-recovery"),
-            write=False,
-        )
-        if refreshed["check_failed"] or terminal["mismatches"]:
-            errors.append("derived_refresh_stale")
-    archive = state["stages"]["private_archive"]
-    if archive["status"] == "succeeded":
-        try:
-            report = _load_json(context.lifecycle_root / "private-archive-report.json", maximum_bytes=MAX_STATE_BYTES)
-            verification = report.get("s3_verification")
-            if (
-                report.get("status") != "verified"
-                or report.get("archive_sha256") != archive["result"].get("archive_sha256")
-                or report.get("manifest_sha256") != archive["result"].get("manifest_sha256")
-                or not isinstance(verification, dict)
-                or verification.get("server_side_encryption") != "AES256"
-            ):
-                errors.append("private_archive_report_mismatch")
-        except LifecycleError as exc:
-            errors.append(exc.code)
+    errors = _verification_errors(context, state, include_report=True)
     return {
         "schema_version": SCHEMA_VERSION,
         "workflow_id": workflow_id,

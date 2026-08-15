@@ -28,7 +28,7 @@ Get-Content -Raw -Encoding UTF8 .\job.json | python `
 
 検体実行、ライブC2接続、外部サービスへの提出は行いません。判定だけを確認する場合は `--assessment-only` を指定します。`--resume` は解析コード・設定の契約指紋、ケース完了状態、入力由来情報、全必須成果物のSHA-256を検証できたケースだけを再利用します。AIを使わない正本フローと品質ゲートは[AI非依存の一括静的解析オーケストレーション](docs/AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)、出力、入力契約、証拠階層、完了状態、安全境界、旧CLIとの関係は[一括静的解析と解析器適用可否判定](docs/ONE-SHOT-ANALYSIS.md)、WebUI／ローカルAPIからAIなしで起動・監視する境界は[ローカル静的解析ジョブ契約](docs/LOCAL-ANALYSIS-JOB-CONTRACT.md)、関数ロジックと類似性判定は[静的ロジック記録とコード類似性](docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md)、特徴プロファイルとキャンペーン相関は[検体特徴と攻撃キャンペーン相関](docs/CASE-KNOWLEDGE-CAMPAIGNS.md)を参照してください。
 
-識別から静的解析、正規case公開、代表関数の完了確認、catalog／UI更新、非公開dataのS3保管までを単一の再開可能な固定stageへ接続する場合は、[解析lifecycleの自動化](docs/ANALYSIS-LIFECYCLE-AUTOMATION.md)を使用します。任意commandやlive C2を許可せず、未解決部分は機械可読blockerとして残します。
+識別から静的解析、正規case公開、代表関数の完了確認、catalog／UI更新、非公開dataのS3保管までを単一の再開可能な固定stageへ接続する場合は、[解析lifecycleの自動化](docs/ANALYSIS-LIFECYCLE-AUTOMATION.md)を使用します。複数のlifecycleを1つのmanifestから順番に計画、実行、検証、再開する場合は、[解析全体オーケストレータ](docs/ANALYSIS-ORCHESTRATOR.md)を使用します。どちらも任意commandやlive C2を許可せず、未解決部分は機械可読blockerとして残します。
 
 production jobの一時fileは`analysis/.private-temp/`へ隔離し、子processの`TEMP`、`TMP`、`TMPDIR`を同じjob内へ固定します。終了時に内容が空であることとdirectory identityを検証して削除し、残存file、hardlink、reparse、quota超過があれば成功として公開しません。
 
