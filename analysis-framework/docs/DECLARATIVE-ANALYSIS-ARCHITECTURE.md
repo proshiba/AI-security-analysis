@@ -44,7 +44,7 @@ YAML はバイナリ解析そのものを実装しない。YAML は「どの観�
 ### 2.3 外部ツールの不可視性
 
 - FLOSS と Ghidra はドキュメント/profileには現れるが、共通 runner が前提条件や版を管理しない。
-- JARM のパスや Python のパスがコードの既定値に含まれる。
+- 従来実装ではJARM pathやPython pathがコードの既定値に含まれていた。現在のactive C2標準経路はNmap NSE-onlyで、旧JARM引数は接触前に拒否する。
 - 必須ツール欠如と任意ツール欠如の扱い、timeout、出力契約が統一されていない。
 
 ### 2.4 安全制御の実装依存
@@ -102,12 +102,12 @@ analysis-framework/
         valleyrat_n520.py
         agenttesla_config.py
       enrichment/                  # sandbox evidence、VT、passive metadata
-      network/                     # 明示承認を要する bounded probe
+      network/                     # 明示承認とreview済みprofileを要するNmap NSE観測
       reporting/                   # normalize、report、Sigma/YARA material
     adapters/
       floss.py
       ghidra_mcp.py
-      jarm.py
+      nmap_nse.py
       yara.py
       sigma.py
   definitions/
@@ -117,7 +117,7 @@ analysis-framework/
     tools/
       floss.yaml
       ghidra-mcp.yaml
-      jarm.yaml
+      nmap.yaml
       yara.yaml
     workflows/
       discovery.yaml

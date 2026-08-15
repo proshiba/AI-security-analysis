@@ -281,6 +281,17 @@ def _stealc_handler(key: bytes) -> Handler:
     return handler
 
 
+def _stealer_redirect_handler(connection: socket.socket) -> None:
+    """stealer NSEが別endpointへのredirectを追跡しないことを確認する。"""
+
+    _http_request(connection)
+    connection.sendall(
+        b"HTTP/1.1 302 Found\r\n"
+        b"Location: http://198.51.100.1/should-not-follow\r\n"
+        b"Content-Length: 0\r\nConnection: close\r\n\r\n"
+    )
+
+
 def _lumma_handler(connection: socket.socket) -> None:
     _, body = _http_request(connection)
     if b"uid=" not in body:
@@ -340,6 +351,43 @@ def _redline_redirect_handler(connection: socket.socket) -> None:
         b"HTTP/1.1 302 Found\r\n"
         b"Location: http://127.0.0.1/should-not-follow\r\n"
         b"Content-Length: 0\r\nConnection: close\r\n\r\n"
+    )
+
+
+def _transport_banner_handler(connection: socket.socket) -> None:
+    """汎用server-first NSEへ公開可能な短い合成bannerだけを返す。"""
+
+    time.sleep(0.1)
+    connection.sendall(b"220 loopback banner\r\n")
+    time.sleep(0.2)
+
+
+def _transport_tls_handler(context: ssl.SSLContext) -> Handler:
+    """TLS handshake後にapplication dataを受信しないfixtureを返す。"""
+
+    def handler(connection: socket.socket) -> None:
+        with context.wrap_socket(connection, server_side=True) as tls:
+            tls.settimeout(1)
+            try:
+                unexpected = tls.recv(1)
+            except (TimeoutError, ConnectionResetError, ConnectionAbortedError):
+                return
+            if unexpected:
+                raise ValueError("TLS transport-only NSEがapplication dataを送信しました")
+
+    return handler
+
+
+def _transport_http_handler(connection: socket.socket) -> None:
+    """汎用HTTP NSEの単一GETとredirectなし境界を確認する。"""
+
+    request = _recv_until(connection, b"\r\n\r\n", maximum=2048)
+    if not request.startswith(b"GET /health HTTP/1.1\r\nHost: loopback.test\r\n"):
+        raise ValueError("汎用HTTP GETが固定fixtureと一致しません")
+    if request.count(b"GET ") != 1:
+        raise ValueError("汎用HTTP NSEが複数requestを送信しました")
+    connection.sendall(
+        b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     )
 
 
@@ -414,6 +462,22 @@ def _run_nmap(nmap_exe: Path, script: str, port: int, script_args: str, expected
     return {"script": script, "port": port, "expected_status": expected, "passed": True}
 
 
+def _run_nmap_host_script(nmap_exe: Path, script: str, expected: str) -> dict[str, object]:
+    command = [
+        str(nmap_exe), "-n", "-sn", "-Pn", "--host-timeout", "10s",
+        "--script-timeout", "7s", "--script", str((SCRIPTS / script).resolve()),
+        "127.0.0.1",
+    ]
+    completed = subprocess.run(command, capture_output=True, timeout=20, check=False)
+    output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace")
+    if completed.returncode != 0 or expected not in output:
+        raise AssertionError(
+            f"Nmap hostrule検証失敗: script={script}, expected={expected}, "
+            f"returncode={completed.returncode}\n{output}"
+        )
+    return {"script": script, "port": None, "expected_status": expected, "passed": True}
+
+
 def _exercise(
     nmap_exe: Path,
     handler: Handler,
@@ -435,7 +499,7 @@ def _exercise(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """25 caseでRedLine/XLoaderを含むNSEを外部networkなしで検証する。"""
+    """31 caseで汎用transport、RedLine、XLoaderを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -455,6 +519,7 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_purerat_handler(context), "purerat-c2.nse", f"purerat.expected-cert={certificate_sha256}", "purerat_prelude_tls_certificate_match"),
             (_ftp_handler, "agenttesla-ftp-c2.nse", "agenttesla.user=sample-user,agenttesla.pass=sample-pass", "sample_credential_ftp_login_succeeded"),
             (_stealc_handler(key), "stealer-http-c2.nse", f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'", "stealc_registration_token_match"),
+            (_stealer_redirect_handler, "stealer-http-c2.nse", f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'", "stealc_registration_mismatch"),
             (_lumma_handler, "stealer-http-c2.nse", "stealer.family=lumma,stealer.uid=0123456789abcdef0123456789abcdef", "lumma_registration_shape_match"),
             (_remus_handler, "stealer-http-c2.nse", "stealer.family=remus,stealer.tag=0123456789abcdef0123456789abcdef,stealer.exp=1785860014", "remus_registration_envelope_match"),
             (_darkcomet_handler(darkcomet_key), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
@@ -472,9 +537,25 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1", "STATE SERVICE"),
             (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1", "STATE SERVICE"),
             (_no_application_data_handler, "xloader-c2.nse", "xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "xloader_tcp_open_only"),
+            (_no_application_data_handler, "c2-transport-observe.nse", "c2-transport.mode=tcp-open", "tcp_open_only"),
+            (_transport_banner_handler, "c2-transport-observe.nse", "c2-transport.mode=server-first,c2-transport.max-response=64", "server_first_banner_observed"),
+            (_transport_tls_handler(context), "c2-transport-observe.nse", "c2-transport.mode=tls", "tls_handshake_observed"),
+            (
+                _transport_http_handler,
+                "c2-transport-observe.nse",
+                "c2-transport.mode=http-get,c2-transport.path=/health,c2-transport.host=loopback.test",
+                "http_response_observed",
+            ),
         ]
         for handler, script, script_args, expected in cases:
             records.append(_exercise(nmap_exe, handler, script, script_args, expected))
+        records.append(
+            _run_nmap_host_script(
+                nmap_exe,
+                "c2-dns-observe.nse",
+                "dns_resolved",
+            )
+        )
     return {
         "schema_version": 1,
         "nmap_executable": str(nmap_exe),
@@ -486,6 +567,7 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
 
 
 def main() -> int:
+    """全NSEをnumeric loopback fixtureで検証し、結果をJSONで出力する。"""
     parser = argparse.ArgumentParser(description="Nmap C2 NSEをlocalhost模擬C2で統合検証します")
     parser.add_argument("--nmap", help="nmap executable path")
     parser.add_argument("--output", type=Path, help="結果JSONの保存先")

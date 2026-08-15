@@ -39,18 +39,18 @@ LECEは配布層の構造であり、このmagicだけをPureRAT判定へ使っ�
 
 ## C2判定
 
-`analysis-framework/common/purerat_direct_tls_probe.py` は次の境界で動作します。
+標準のactive C2観測は`analysis-framework/nmap/scripts/purerat-direct-tls.nse`を`nmap_c2_detector.py`から呼び出します。旧`purerat_direct_tls_probe.py`はoffline fixtureと合成loopback回帰の互換部品であり、外部対象の標準backendではありません。
 
 実装済みのreview済みprofileは `purerat-441-d025a296-45-192-211-77-56001-direct-tls10` だけです。root SHA-256、terminal SHA-256、`45.192.211[.]77:56001`、TLS 1.0、leaf certificate SHA-256 `b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57`を完全固定し、1項目でも変更されたdictはDNS解決前に拒否します。`56002`と`56003`は静的設定候補として残しますが、同一証明書との対応を独立にreviewするまでこの能動profileへ追加しません。
 
-1. `allow_network`と`allow_legacy_tls`の両方を明示しない限り通信しない。
-2. review済みendpoint、期待するTLS negotiated version、証明書SHA-256 pinを必須にする。
-3. raw TCP socketへplaintext preludeを送らず、TLS 1.0 handshakeを最初に行う。
-4. handshake後のnegotiated TLS versionが`TLSv1`と完全一致し、かつleaf certificate SHA-256 pinも完全一致した場合だけ、当該設定に対するC2判定をconfirmedにする。片方だけの一致ではconfirmedにしない。
-5. TLS negotiated versionまたは証明書の不一致はinconclusiveとして扱い、レビュー済み完全一致build／endpointは除外するが、PureRAT familyのC2ではないという否定根拠にはしない。機械可読結果では`tls_version_mismatch_excludes_exact_build_endpoint=true`、`tls_version_mismatch_excludes_family_c2=false`、`tls_version_mismatch_excludes_c2=false`と、対応する`certificate_mismatch_*`の値を常に明示する。
-6. このapplication dataを送らないTLS version＋証明書pin probeでは、victim metadata、registration、task poll、plugin結果、command結果を送信しない。
+1. `allow_network`とPureRAT legacy TLS専用gateの両方を明示しない限りNmapを起動しない。
+2. review済みendpoint、証明書SHA-256 pin、中央profileの完全一致を必須にする。
+3. plaintext preludeを送らず、Nmap NSEがTLS接続を最初に行う。
+4. endpointとleaf certificate SHA-256 pinが一致しても、Nmapだけではnegotiated TLS versionを厳密保証できないため`c2_confirmed=false`のままconfidence上限0.92とする。
+5. TLSまたは証明書の不一致はinconclusiveとして扱い、レビュー済み完全一致build／endpointは除外できてもPureRAT familyのC2否定には使わない。
+6. application data、victim metadata、registration、task poll、plugin結果、command結果を送信しない。
 
-Nmap向けには `analysis-framework/nmap/scripts/purerat-direct-tls.nse` を分離しました。旧`purerat-c2.nse`はplaintext prelude variant専用のまま残します。新scriptはreview済み `45.192.211[.]77:56001`以外をscript側で接続せず、TLS接続後にleaf certificate SHA-256を読むだけで即切断します。Nmap socketではTLS 1.0を厳密に強制したことを保証しにくいため、証明書・endpoint完全一致でもconfidenceは0.92とし、Nmap結果だけを`c2_confirmed=true`へ昇格しません。Python probeはnegotiated TLS versionと証明書pinの両方が完全一致した場合だけ当該profileをconfirmedにできますが、application dataやtaskを確認しないため、共通monitorでのmethod confidence上限は同じく0.92です。
+`purerat-direct-tls.nse`はreview済み`45.192.211[.]77:56001`以外をscript側で接続せず、TLS接続後にleaf certificate SHA-256を読むだけで即切断します。旧`purerat-c2.nse`はplaintext prelude variant専用として分離します。Nmap socketではTLS 1.0を厳密に強制したことを保証しにくいため、証明書・endpoint完全一致でもconfidenceは0.92、`c2_confirmed=false`です。Python direct probeへfallbackしません。
 
 frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf-netを上限付きで展開し、既知ProtoInclude discriminatorを分類します。確認済み対応はregistration `1`、heartbeat `2`、status/error `3`、plugin result `4`、plugin request `5`、configuration update `38`、command `86`です。
 
@@ -60,7 +60,7 @@ frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf
 
 - static configまたはILから`SslStream.AuthenticateAsClient`が送信処理より先にあること、TLS enum値`192`、GZip/protobuf-net framingを確認した場合だけ`purerat_direct_tls`を選ぶ。
 - 旧`purerat_tls_prelude`はvariant固有profileとして残し、根拠がない検体へ継承しない。
-- active detectorはhandler単位で旧probeとdirect-TLS probeを分岐する。
+- active detectorはhandler単位で対応NSEを選び、Python direct probeへ分岐しない。
 - NSEはTLS 1.0や証明書pinを扱えない環境では、TCP openだけを低confidence観測として記録し、protocol-confirmedにしない。
 
 ## 防御的host emulator

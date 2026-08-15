@@ -4,9 +4,7 @@ import base64
 import json
 import subprocess
 from pathlib import Path
-import socket
 import sys
-import threading
 import time
 from types import SimpleNamespace
 import zlib
@@ -265,47 +263,40 @@ def test_cli_defaults_to_offline_preflight() -> None:
     assert result["http_request_preview"]["host"] == "203.0.113.10"
 
 
-def test_udp_probe_sends_only_empty_datagram_to_loopback() -> None:
-    received: list[bytes] = []
-    ready = threading.Event()
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
-        server.bind(("127.0.0.1", 0))
-        port = server.getsockname()[1]
-
-        def serve() -> None:
-            ready.set()
-            packet, peer = server.recvfrom(1)
-            received.append(packet)
-            server.sendto(b"OK", peer)
-
-        worker = threading.Thread(target=serve, daemon=True)
-        worker.start()
-        assert ready.wait(1)
-        result = c2_detector.probe(SimpleNamespace(
-            host="127.0.0.1",
-            port=port,
-            protocol="udp",
-            timeout=1.0,
-            max_bytes=16,
-            allow_network=True,
-            proxy_host=None,
-            collect_jarm=False,
-            send_hex=None,
-            target_role="c2",
-            sample_sha256=[],
-            http_host=None,
-            http_path="/",
-            sni=None,
-            mxgo_recipient_path="/fixture.txt",
-            mxgo_mode="preview",
-        ))
-        worker.join(1)
-    assert received == [b""]
-    assert result["status"] == "udp_response_received"
+def test_python_direct_probe_is_disabled_before_dns_or_socket(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        c2_detector.socket,
+        "getaddrinfo",
+        lambda *_args, **_kwargs: pytest.fail("legacy detector must not resolve DNS"),
+    )
+    monkeypatch.setattr(
+        c2_detector.socket,
+        "create_connection",
+        lambda *_args, **_kwargs: pytest.fail("legacy detector must not open a socket"),
+    )
+    result = c2_detector.probe(SimpleNamespace(
+        host="127.0.0.1",
+        port=4444,
+        protocol="udp",
+        timeout=1.0,
+        max_bytes=16,
+        allow_network=True,
+        proxy_host=None,
+        collect_jarm=False,
+        send_hex=None,
+        target_role="c2",
+        sample_sha256=[],
+        http_host=None,
+        http_path="/",
+        sni=None,
+        mxgo_recipient_path="/fixture.txt",
+        mxgo_mode="preview",
+    ))
+    assert result["status"] == "python_direct_c2_probe_disabled"
+    assert result["execution_engine"] == "nmap_nse_required"
+    assert result["network_contacted"] is False
     assert result["application_data_sent"] is False
-    assert result["datagram_payload_length"] == 0
     assert result["c2_confirmed"] is False
-    assert result["banner"]["length"] == 2
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,4 @@
-"""PureRAT profileが監視パイプラインに実際に載っていることを確認する。
+"""PureRAT prelude profileが監視パイプラインに実際に載っていることを確認する。
 
 以前は `purerat_tls_prelude` が `ACTIVE_PROFILE_METHODS` に無く、
 tirakian.com:56001-3 は `tcp_connect`(confidence上限0.25)として運用されていた。
@@ -140,15 +140,17 @@ def test_plan_validation_rejects_relaxed_limits() -> None:
 
 
 def observation(**overrides: Any) -> dict[str, Any]:
+    """NSE(purerat-c2.nse)経由の観測結果を模した形。"""
     base = {
-        "status": "purerat_prelude_rejected",
+        "status": "purerat_prelude_tls_failed",
         "alive": True,
         "c2_confirmed": False,
         "target_contact_attempted": True,
         "target_connection_established": True,
         "application_data_sent": True,
-        "protocol_prelude_sent": True,
-        "protocol_prelude_accepted": False,
+        "plaintext_prelude_sent": True,
+        "sent_bytes": 4,
+        "request_count": 1,
         "protocol_response_received": False,
         "tls": {"handshake": False},
     }
@@ -157,10 +159,8 @@ def observation(**overrides: Any) -> dict[str, Any]:
 
 
 CONFIRMED = observation(
-    status="confirmed_purerat_prelude_tls_certificate",
+    status="purerat_prelude_tls_certificate_match",
     c2_confirmed=True,
-    protocol_prelude_accepted=True,
-    protocol_prelude_length=4,
     tls={
         "handshake": True,
         "version": "TLSv1.2",
@@ -176,9 +176,7 @@ CONFIRMED = observation(
         (CONFIRMED, "c2_protocol_confirmed", 0.95),
         (
             observation(
-                status="purerat_prelude_tls_certificate_mismatch",
-                protocol_prelude_accepted=True,
-                protocol_prelude_length=4,
+                status="purerat_prelude_tls_observed",
                 tls={
                     "handshake": True,
                     "certificate": {"state": "mismatch_inconclusive", "exact_match": False},
@@ -189,11 +187,6 @@ CONFIRMED = observation(
         ),
         (observation(), "purerat_prelude_rejected_c2_not_confirmed", 0.0),
         (
-            observation(status="purerat_prelude_tls_handshake_failed"),
-            "purerat_handshake_failed_c2_not_confirmed",
-            0.0,
-        ),
-        (
             # 到達しなかった観測にtlsキーは付かない
             {
                 "status": "not_reachable_at_observation",
@@ -202,7 +195,7 @@ CONFIRMED = observation(
                 "target_contact_attempted": True,
                 "target_connection_established": False,
                 "application_data_sent": False,
-                "protocol_prelude_sent": False,
+                "plaintext_prelude_sent": False,
             },
             "not_reachable_at_observation",
             0.0,
@@ -231,8 +224,10 @@ def test_observations_are_classified(
         {"victim_metadata_sent": True},
         # 取得していないはずのtaskが立っている
         {"task_poll_attempted": True},
-        # preludeの長さが4 byteでない
-        {"protocol_prelude_length": 8},
+        # 送信byte数が4でない
+        {"sent_bytes": 8},
+        # 1接続1要求を超えている
+        {"request_count": 2},
     ],
 )
 def test_inconsistent_confirmation_is_refused(broken: dict[str, Any]) -> None:

@@ -59,9 +59,9 @@ python emulators/valleyrat/compare_results.py \
 
 `--json` を指定すると、機械可読な比較要約を出力します。
 
-## `analysis-framework/common/c2_detector.py`との関係
+## Nmap C2 detectorとの関係
 
-`analysis-framework/common/c2_detector.py` は、ワークフローへ統合した範囲限定C2生存確認ツールです。このディレクトリの単体エミュレーターは、プロファイル駆動のvvaSプロトコル再現、再現可能な証拠取得、時期またはポートが異なる観測の比較に使用します。
+`analysis-framework/nmap/nmap_c2_detector.py`は、review済みprofileをallowlist済みNmap NSEへ変換する正式なC2観測入口です。このディレクトリの単体エミュレーターはnumeric loopbackだけでvvaSプロトコルを再現し、外部C2観測やNmap NSEの代替には使用しません。外部targetへ接触する場合は本emulatorを直接使わず、明示許可と中央profileをNmap adapterへ渡します。
 
 ## オフラインテスト
 

@@ -220,7 +220,7 @@ python .\analysis-framework\common\analyze_sample.py `
 
 ## 旧ValleyRATワークフロー
 
-`ProfilePath`、`NetworkEvidence`、`AllowLiveC2Check`、`CollectJarm`、または `LegacyValleyWorkflow` を指定した `Invoke-Analysis.ps1` は、従来のValleyRATキャンペーン専用処理を使用します。ライブ通信は一括静的解析には含まれず、現在のタスクで明示的に許可された場合だけ実行してください。
+`ProfilePath`、`NetworkEvidence`、`AllowLiveC2Check`、`Nmap`、または`LegacyValleyWorkflow`を指定した`Invoke-Analysis.ps1`は、従来のValleyRATキャンペーン専用処理を使用します。ライブC2観測は一括静的解析には含まれず、現在のタスクで明示的に許可された場合だけNmap NSE経由で実行してください。廃止済みの`CollectJarm`を指定すると接触前に拒否します。
 
 ## 終了コード
 

@@ -8,6 +8,7 @@ param(
     [string] $VirusTotalApiKey = $env:VT_API_KEY,
     [switch] $AllowLiveC2Check,
     [switch] $CollectJarm,
+    [string] $Nmap,
     [ValidateSet('auto', 'raw', 'malwarebazaar')] [string] $ArchiveMode = 'auto',
     [switch] $AssessmentOnly,
     [switch] $LegacyValleyWorkflow,
@@ -18,6 +19,10 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $classification = Join-Path $OutputDirectory 'classification.json'
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+
+if ($CollectJarm) {
+    throw '-CollectJarmは廃止済みです。active C2観測はNmap NSE-onlyです。'
+}
 
 function Invoke-Python {
     param([Parameter(ValueFromRemainingArguments)] [string[]] $Arguments)
@@ -126,14 +131,14 @@ if ($AllowLiveC2Check) {
         $target = $targets[$index]
         $liveOutput = Join-Path $liveDirectory ("{0:D2}-{1}-{2}.json" -f ($index + 1), $target.host, $target.port)
         $liveArgs = @(
-            (Join-Path $root 'common\c2_detector.py'), $target.host, ([string]$target.port),
-            '--protocol', $target.protocol, '--timeout', '8', '--allow-network', '--output', $liveOutput
+            (Join-Path $root 'nmap\nmap_c2_detector.py'), $target.host, ([string]$target.port),
+            '--protocol', $target.protocol, '--sample-sha256', $caseProfile.case_id,
+            '--timeout', '8', '--allow-network', '--output', $liveOutput
         )
-        if ($target.send_hex) { $liveArgs += @('--send-hex', $target.send_hex) }
-        if ($target.expected_stage_size) { $liveArgs += @('--expected-stage-size', ([string]$target.expected_stage_size)) }
         if ($target.http_host) { $liveArgs += @('--http-host', $target.http_host) }
-        if ($target.sni) { $liveArgs += @('--sni', $target.sni) }
-        if ($CollectJarm -and $target.protocol -in @('https','tls','n520')) { $liveArgs += '--collect-jarm' }
+        if ($target.http_path) { $liveArgs += @('--http-path', $target.http_path) }
+        if ($target.protocol -eq 'vvas') { $liveArgs += '--allow-reviewed-application-probes' }
+        if ($Nmap) { $liveArgs += @('--nmap', $Nmap) }
         & $Python @liveArgs
         $probeExit = $LASTEXITCODE
         if ($probeExit -notin @(0,1)) { throw "C2 probe failed unexpectedly: $liveOutput" }

@@ -27,6 +27,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "analyze_sample",
         "analysis_contract",
         "analysis_job_runner",
+        "analysis_lifecycle",
         "bounded_process",
         "follow_on_commitment",
         "handler_catalog",
@@ -39,6 +40,9 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "detector_support",
         "scaffold_family_expansion",
         "c2_detector",
+        "nmap",
+        "nmap.nmap_c2_detector",
+        "nmap.verify_nse",
         "generate_family_expansion_reports",
         "validate_family_expansion",
         "analyze_unknown_set",
@@ -131,9 +135,11 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "extractors.unclassified.mx_go.extractor",
     ]
     repository = Path(__file__).parents[2]
-    common = repository / "analysis-framework" / "common"
-    if str(common) not in __import__("sys").path:
-        __import__("sys").path.insert(0, str(common))
+    framework = repository / "analysis-framework"
+    common = framework / "common"
+    for import_root in (common, framework):
+        if str(import_root) not in __import__("sys").path:
+            __import__("sys").path.insert(0, str(import_root))
     root = repository / "docs" / "pydoc"
     for module_name in modules:
         module = importlib.import_module(module_name)

@@ -266,7 +266,7 @@ domain、IP、endpoint、証明書、ASNなどの利用期間と同時出現を�
 
 **安全制約**
 
-既定は公開・受動情報と完全一致hash照会だけです。live C2接続、HTTP probe、JARM収集、stage取得は、現在のタスクでユーザーが明示的に許可した場合だけ別作業として行います。
+既定は公開・受動情報と完全一致hash照会だけです。live C2接続やHTTP probeは、現在のタスクでユーザーが明示的に許可した場合だけ、review済みprofileを`analysis-framework/nmap/nmap_c2_detector.py`からNmap NSEへ渡す別作業として行います。active JARM収集、Python direct probe、stage取得は標準経路で実行しません。
 
 **成果物**
 

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analysis_lifecycle</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analysis_lifecycle</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/analysis_lifecycle.py">analysis-framework/common/analysis_lifecycle.py</a></td></tr></table>
+    <p><span class="code">識別から公開・保管までを固定stageで安全に自動化する解析lifecycle&nbsp;runner。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="analysis_job_runner.html">analysis_job_runner</a><br>
+<a href="archive_analysis_datastore.html">archive_analysis_datastore</a><br>
+<a href="argparse.html">argparse</a><br>
+<a href="build_terminal_payload_gap_inventory.html">build_terminal_payload_gap_inventory</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="io.html">io</a><br>
+<a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="publish_one_shot_collection.html">publish_one_shot_collection</a><br>
+<a href="re.html">re</a><br>
+<a href="refresh_case_inventory.html">refresh_case_inventory</a><br>
+<a href="stat.html">stat</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="validate_function_analysis.html">validate_function_analysis</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>(<a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>, <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_lifecycle.html#JapaneseArgumentParser">JapaneseArgumentParser</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_lifecycle.html#LifecycleError">LifecycleError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_lifecycle.html#LifecycleContext">LifecycleContext</a>
+</dt><dt class="heading-text"><a href="analysis_lifecycle.html#LifecycleRequest">LifecycleRequest</a>
+</dt><dt class="heading-text"><a href="analysis_lifecycle.html#StageOutcome">StageOutcome</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JapaneseArgumentParser">class <strong>JapaneseArgumentParser</strong></a>(<a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JapaneseArgumentParser">JapaneseArgumentParser</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;usage=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;description=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epilog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;parents=[],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;formatter_class=&amp;lt;class&nbsp;'argparse.HelpFormatter'&amp;gt;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prefix_chars='-',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fromfile_prefix_chars=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;argument_default=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;conflict_handler='error',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;add_help=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow_abbrev=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit_on_error=True<br>
+)<br>
+&nbsp;<br>
+argparseの固定見出しを日本語へ置換する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_lifecycle.html#JapaneseArgumentParser">JapaneseArgumentParser</a></dd>
+<dd><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a></dd>
+<dd><a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a></dd>
+<dd><a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JapaneseArgumentParser-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__init__"><strong>__init__</strong></a>(
+    self,
+    prog=None,
+    usage=None,
+    description=None,
+    epilog=None,
+    parents=[],
+    formatter_class=&lt;class 'argparse.HelpFormatter'&gt;,
+    prefix_chars='-',
+    fromfile_prefix_chars=None,
+    argument_default=None,
+    conflict_handler='error',
+    add_help=True,
+    allow_abbrev=True,
+    exit_on_error=True
+)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_subparsers"><strong>add_subparsers</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-convert_arg_line_to_args"><strong>convert_arg_line_to_args</strong></a>(self, arg_line)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-error"><strong>error</strong></a>(self, message)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-error">error</a>(message:&nbsp;string)<br>
+&nbsp;<br>
+Prints&nbsp;a&nbsp;usage&nbsp;message&nbsp;incorporating&nbsp;the&nbsp;message&nbsp;to&nbsp;stderr&nbsp;and<br>
+exits.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;override&nbsp;this&nbsp;in&nbsp;a&nbsp;subclass,&nbsp;it&nbsp;should&nbsp;not&nbsp;return&nbsp;--&nbsp;it<br>
+should&nbsp;either&nbsp;exit&nbsp;or&nbsp;raise&nbsp;an&nbsp;exception.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-exit"><strong>exit</strong></a>(self, status=0, message=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-format_usage"><strong>format_usage</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_args"><strong>parse_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_intermixed_args"><strong>parse_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_args"><strong>parse_known_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_intermixed_args"><strong>parse_known_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_help"><strong>print_help</strong></a>(self, file=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_usage"><strong>print_usage</strong></a>(self, file=None)</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-add_argument"><strong>add_argument</strong></a>(self, *args, **kwargs)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-add_argument">add_argument</a>(dest,&nbsp;...,&nbsp;name=value,&nbsp;...)<br>
+<a href="#JapaneseArgumentParser-add_argument">add_argument</a>(option_string,&nbsp;option_string,&nbsp;...,&nbsp;name=value,&nbsp;...)</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_argument_group"><strong>add_argument_group</strong></a>(self, *args, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_mutually_exclusive_group"><strong>add_mutually_exclusive_group</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-get_default"><strong>get_default</strong></a>(self, dest)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-register"><strong>register</strong></a>(self, registry_name, value, object)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-set_defaults"><strong>set_defaults</strong></a>(self, **kwargs)</dt></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LifecycleContext">class <strong>LifecycleContext</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LifecycleContext">LifecycleContext</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;repository:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;input_root:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;work_root:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;jobs_root:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;lifecycle_root:&nbsp;'Path',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;request:&nbsp;'<a href="#LifecycleRequest">LifecycleRequest</a>',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;timeout_seconds:&nbsp;'int'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+固定stageへ渡す検証済みoperator境界。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LifecycleContext-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LifecycleContext-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LifecycleContext-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleContext-__init__"><strong>__init__</strong></a>(
+    self,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    jobs_root: 'Path',
+    lifecycle_root: 'Path',
+    request: 'LifecycleRequest',
+    timeout_seconds: 'int'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LifecycleContext-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="LifecycleContext-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleContext-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'input_root': 'Path', 'jobs_root': 'Path', 'lifecycle_root': 'Path', 'repository': 'Path', 'request': 'LifecycleRequest', 'timeout_seconds': 'int', 'work_root': 'Path'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'input_root': Field(name='input_root',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'jobs_root': Field(name='jobs_root',type='Path',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'lifecycle_root': Field(name='lifecycle_root',type='Path',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'repository': Field(name='repository',type='Path',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD), 'request': Field(name='request',type='LifecycleRequest',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'timeout_seconds': Field(name='timeout_seconds',type='int',default=...appingproxy({}),kw_only=False,_field_type=_FIELD), 'work_root': Field(name='work_root',type='Path',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('repository', 'input_root', 'work_root', 'jobs_root', 'lifecycle_root', 'request', 'timeout_seconds')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LifecycleError">class <strong>LifecycleError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LifecycleError">LifecycleError</a>(code:&nbsp;'str',&nbsp;message:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+lifecycle契約違反を機械可読code付きで表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_lifecycle.html#LifecycleError">LifecycleError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="LifecycleError-__init__"><strong>__init__</strong></a>(self, code: 'str', message: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="LifecycleError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="LifecycleError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LifecycleError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="LifecycleError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="LifecycleError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#LifecycleError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="LifecycleError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#LifecycleError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="LifecycleRequest">class <strong>LifecycleRequest</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#LifecycleRequest">LifecycleRequest</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;workflow_id:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;job:&nbsp;'analysis_job_runner.JobRequest',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;publication:&nbsp;'Mapping[str,&nbsp;Any]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maintenance:&nbsp;'Mapping[str,&nbsp;Any]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;private_archive:&nbsp;'Mapping[str,&nbsp;Any]'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+検証済みの正規化済みworkflow要求。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="LifecycleRequest-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-__init__"><strong>__init__</strong></a>(
+    self,
+    workflow_id: 'str',
+    job: 'analysis_job_runner.JobRequest',
+    publication: 'Mapping[str, Any]',
+    maintenance: 'Mapping[str, Any]',
+    private_archive: 'Mapping[str, Any]'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="LifecycleRequest-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="LifecycleRequest-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">絶対pathや秘密値を含まない正規化済みJSONを返す。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'job': 'analysis_job_runner.JobRequest', 'maintenance': 'Mapping[str, Any]', 'private_archive': 'Mapping[str, Any]', 'publication': 'Mapping[str, Any]', 'workflow_id': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'job': Field(name='job',type='analysis_job_runner.JobRe...appingproxy({}),kw_only=False,_field_type=_FIELD), 'maintenance': Field(name='maintenance',type='Mapping[str, Any]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'private_archive': Field(name='private_archive',type='Mapping[str, ...appingproxy({}),kw_only=False,_field_type=_FIELD), 'publication': Field(name='publication',type='Mapping[str, Any]...appingproxy({}),kw_only=False,_field_type=_FIELD), 'workflow_id': Field(name='workflow_id',type='str',default=&lt;dat...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('workflow_id', 'job', 'publication', 'maintenance', 'private_archive')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="StageOutcome">class <strong>StageOutcome</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#StageOutcome">StageOutcome</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;status:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;result:&nbsp;'Mapping[str,&nbsp;Any]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;blockers:&nbsp;'tuple[str,&nbsp;...]'&nbsp;=&nbsp;()<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+1&nbsp;stageのallowlist済み結果。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="StageOutcome-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="StageOutcome-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="StageOutcome-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="StageOutcome-__init__"><strong>__init__</strong></a>(
+    self,
+    status: 'str',
+    result: 'Mapping[str, Any]',
+    blockers: 'tuple[str, ...]' = ()
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="StageOutcome-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="StageOutcome-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="StageOutcome-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'blockers': 'tuple[str, ...]', 'result': 'Mapping[str, Any]', 'status': 'str'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'blockers': Field(name='blockers',type='tuple[str, ...]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'result': Field(name='result',type='Mapping[str, Any]',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'status': Field(name='status',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('status', 'result', 'blockers')</dl>
+
+<dl><dt><strong>blockers</strong> = ()</dl>
+
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">固定subcommandだけを持つCLI&nbsp;parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-build_plan"><strong>build_plan</strong></a>(request: 'LifecycleRequest') -&gt; 'dict[str, Any]'</dt><dd><span class="code">副作用なしで固定stage&nbsp;graphと安全境界を返す。</span></dd></dl>
+ <dl><dt><a name="-load_request"><strong>load_request</strong></a>(path: 'Path') -&gt; 'LifecycleRequest'</dt><dd><span class="code">UTF-8&nbsp;strict&nbsp;JSONから検証済みworkflow要求を読み込む。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLIを実行し、JSON結果と状態別終了codeを返す。</span></dd></dl>
+ <dl><dt><a name="-read_status"><strong>read_status</strong></a>(work_root: 'Path', workflow_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">repository外のworkflow&nbsp;reportを副作用なしで読み込む。</span></dd></dl>
+ <dl><dt><a name="-request_json_schema"><strong>request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">WebUIやoperator&nbsp;toolが共有できる厳格JSON&nbsp;Schemaを返す。</span></dd></dl>
+ <dl><dt><a name="-resume_lifecycle"><strong>resume_lifecycle</strong></a>(
+    workflow_id: 'str',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済みrequestとstage&nbsp;fingerprintを検証して未完stageだけ再開する。</span></dd></dl>
+ <dl><dt><a name="-run_lifecycle"><strong>run_lifecycle</strong></a>(
+    request: 'LifecycleRequest',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production固定stageだけで新規workflowを実行する。</span></dd></dl>
+ <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">UTC時刻を固定表現で返す。</span></dd></dl>
+ <dl><dt><a name="-validate_request_object"><strong>validate_request_object</strong></a>(value: 'Mapping[str, Any]') -&gt; 'LifecycleRequest'</dt><dd><span class="code">任意実行fieldを持たない固定schemaとしてworkflow要求を検証する。</span></dd></dl>
+ <dl><dt><a name="-verify_lifecycle"><strong>verify_lifecycle</strong></a>(
+    workflow_id: 'str',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">成果物を書かず、request、fingerprint、job安全契約、archive&nbsp;reportを再検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ARCHIVE_INCLUDE_VALUES</strong> = frozenset({'inputs', 'job_output'})<br>
+<strong>ARCHIVE_KEYS</strong> = frozenset({'enabled', 'include', 'target'})<br>
+<strong>BLOCKER_RE</strong> = re.compile('^[a-z0-9][a-z0-9._:-]{0,159}$')<br>
+<strong>COLLECTION_ID_RE</strong> = re.compile('^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$')<br>
+<strong>FILE_ATTRIBUTE_REPARSE_POINT</strong> = 1024<br>
+<strong>MAINTENANCE_KEYS</strong> = frozenset({'refresh_repository'})<br>
+<strong>MAX_ATTEMPTS</strong> = 5<br>
+<strong>MAX_REQUEST_BYTES</strong> = 1048576<br>
+<strong>MAX_STATE_BYTES</strong> = 8388608<br>
+<strong>PRODUCTION_ACTIONS</strong> = _Actions(preflight=&lt;function _production_preflig...ction _production_archive at 0x000001A7D662C720&gt;)<br>
+<strong>PUBLICATION_KEYS</strong> = frozenset({'allow_partial_staging', 'collection_id', 'enabled', 'expected_contract_sha256', 'manifest'})<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
+<strong>STAGE_CODE_FILES</strong> = {'completion_gate': ('analysis_lifecycle.py', 'analysis_job_runner.py'), 'derived_refresh': ('analysis_lifecycle.py', 'refresh_case_inventory.py', 'build_terminal_payload_gap_inventory.py'), 'function_validation': ('analysis_lifecycle.py', 'validate_function_analysis.py'), 'preflight': ('analysis_lifecycle.py', 'analysis_job_runner.py'), 'private_archive': ('analysis_lifecycle.py', 'archive_analysis_datastore.py'), 'publication': ('analysis_lifecycle.py', 'publish_one_shot_collection.py'), 'static_analysis': ('analysis_lifecycle.py', 'analysis_job_runner.py', 'analyze_sample.py')}<br>
+<strong>STAGE_DEPENDENCIES</strong> = {'completion_gate': ('static_analysis',), 'derived_refresh': ('publication',), 'function_validation': ('publication',), 'preflight': (), 'private_archive': ('static_analysis',), 'publication': ('static_analysis',), 'static_analysis': ('preflight',)}<br>
+<strong>STAGE_ORDER</strong> = ('preflight', 'static_analysis', 'publication', 'function_validation', 'completion_gate', 'derived_refresh', 'private_archive')<br>
+<strong>TOP_LEVEL_KEYS</strong> = frozenset({'job', 'maintenance', 'private_archive', 'publication', 'schema_version', 'workflow_id'})<br>
+<strong>WORKFLOW_ID_RE</strong> = re.compile('^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$')<br>
+<strong>__annotations__</strong> = {'STAGE_CODE_FILES': 'Mapping[str, tuple[str, ...]]', 'STAGE_DEPENDENCIES': 'Mapping[str, tuple[str, ...]]'}</td></tr></table>
+</body></html>

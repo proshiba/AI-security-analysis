@@ -15,10 +15,10 @@ import pytest
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(FRAMEWORK_ROOT), str(FRAMEWORK_ROOT / "common")]
 
-import import_ghidra_project
+import import_ghidra_project  # noqa: E402
 
-import invoke_analysis
-import invoke_family_batch
+import invoke_analysis  # noqa: E402
+import invoke_family_batch  # noqa: E402
 
 
 def test_resolve_python_uses_each_os_venv_then_falls_back(short_tmp: Path) -> None:
@@ -117,24 +117,32 @@ def test_legacy_msi_flow_writes_compatible_summary(
 
 
 def test_live_probe_accepts_documented_exit_one_and_sanitizes_filename(short_tmp: Path) -> None:
-    profile = {"live_c2_targets": [{"host": "2001:db8::1", "port": 443, "protocol": "https", "sni": "example.test"}]}
+    profile = {
+        "case_id": "a" * 64,
+        "live_c2_targets": [
+            {"host": "2001:db8::1", "port": 443, "protocol": "https", "http_host": "example.test"}
+        ],
+    }
 
     def fake_run(_python, command, **kwargs):
         assert kwargs["allowed_exit_codes"] == frozenset({0, 1})
-        assert command[command.index("--jarm-script") + 1] == jarm_script
+        assert Path(command[0]).name == "nmap_c2_detector.py"
+        assert command[command.index("--sample-sha256") + 1] == "a" * 64
+        assert command[command.index("--nmap") + 1] == nmap_executable
+        assert "--send-hex" not in command
+        assert "--jarm-script" not in command
         Path(command[command.index("--output") + 1]).write_text(json.dumps({"status": "unreachable"}), encoding="utf-8")
         return 1
 
-    jarm_script = short_tmp / "jarm.py"
-    jarm_script.write_text("# fixture\n", encoding="utf-8")
+    nmap_executable = short_tmp / "nmap.exe"
     with patch.object(invoke_analysis, "run_python", side_effect=fake_run):
         result = invoke_analysis.run_live_checks(
             profile,
-            True,
+            False,
             short_tmp,
             "python-command",
             short_tmp / "framework",
-            jarm_script=jarm_script,
+            nmap_executable=nmap_executable,
         )
     assert result == [{"status": "unreachable"}]
     assert (short_tmp / "c2-live" / "01-2001_db8_1-443.json").is_file()

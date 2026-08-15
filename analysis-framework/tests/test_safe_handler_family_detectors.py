@@ -84,6 +84,8 @@ POSITIVE_FIXTURES = {
         + b"keychain Login Data Cookies Electrum "
         + b"https://example.invalid/ledger/"
         + b"a" * 64
+        + b" https://example.invalid/ledger/live/"
+        + b"a" * 64
         + b" "
     ),
     "donutloader": _donut_fixture(),

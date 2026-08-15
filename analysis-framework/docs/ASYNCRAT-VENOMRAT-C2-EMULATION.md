@@ -21,7 +21,7 @@
 - heartbeat field以外を追加した応答
 - duplicate key、noncanonical MessagePack、GZip bomb、連結／trailing data、宣言長不一致
 
-公開結果にraw frame、応答値、command引数は含めず、sizeとSHA-256だけを記録します。外部通信を伴う既存monitorは、`--allow-network`に加えてapplication probe専用許可がない限りTLS handshakeで停止します。
+公開結果にraw frame、応答値、command引数は含めず、sizeとSHA-256だけを記録します。外部targetの標準観測は`analysis-framework/nmap/nmap_c2_detector.py`から`dotnet-rat-c2.nse`を起動します。`--allow-network`に加えて`--allow-reviewed-application-probes`がある場合だけ、中央profileが固定する空`Message`のPingを1 frame送信し、それ以外はapplication data送信前に拒否します。Python TLS／socket probeへfallbackしません。
 
 ## host emulatorの安全境界
 
@@ -70,7 +70,9 @@ $env:PYTHONPATH = (Resolve-Path analysis-framework/common).Path
 py -3.13 -B -m pytest -q `
   analysis-framework/tests/test_tls_messagepack_c2_detector.py `
   analysis-framework/tests/test_tls_messagepack_loopback_c2_emulator.py `
-  analysis-framework/tests/test_tls_messagepack_rat_host_emulator.py
+  analysis-framework/tests/test_tls_messagepack_rat_host_emulator.py `
+  analysis-framework/tests/test_nmap_c2_detector.py `
+  analysis-framework/tests/test_nmap_c2_scripts.py
 ```
 
 ## 未実装の境界

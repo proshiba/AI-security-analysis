@@ -61,7 +61,7 @@ pip install -r requirements.txt
 python .\classifiers\classify_sample.py --help
 python .\common\analyze_sample.py --help
 python .\common\analyze_submission.py --help
-python .\common\c2_detector.py --help
+python .\nmap\nmap_c2_detector.py --help
 ```
 
 `Invoke-Analysis.ps1` の既定Pythonパスはローカル環境向けに固定されているため、通常は `-Python` で作成した仮想環境の `python.exe` を明示してください。
@@ -144,11 +144,11 @@ MSI/CAB custom action 系のケース:
   -OutputDirectory C:\malware-lab\out\<sha256> `
   -ProfilePath .\analysis-framework\malware\valleyrat\config\profiles\<sha256>.json `
   -AllowLiveC2Check `
-  -CollectJarm `
+  -Nmap C:\Tools\Nmap\nmap.exe `
   -Python .\analysis-framework\.venv\Scripts\python.exe
 ```
 
-ライブC2確認は外部ホストへの通信を伴います。隔離環境、許可された調査範囲、送信データの最小化、ログ保存方針を確認したうえで実行してください。
+ライブC2確認は外部ホストへの通信を伴います。正式入口は`analysis-framework/nmap/nmap_c2_detector.py`で、review済みprofileの完全一致targetをNmap NSEだけで観測します。`-CollectJarm`は廃止済みで接触前に拒否され、Python direct probeへfallbackしません。隔離環境、許可された調査範囲、送信データの最小化、ログ保存方針を確認したうえで実行してください。
 
 ## 解析結果の見方
 
@@ -281,6 +281,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 ## 参考ドキュメント
 
 - [analysis-framework/README.md](analysis-framework/README.md): 解析フレームワーク概要
+- [analysis-framework/docs/ANALYSIS-LIFECYCLE-AUTOMATION.md](analysis-framework/docs/ANALYSIS-LIFECYCLE-AUTOMATION.md): 識別から解析完了、公開、派生更新、S3保管までを接続する固定stage runner
 - [analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md](analysis-framework/docs/STATIC-LOGIC-AND-CODE-SIMILARITY.md): 関数ロジック記録、fingerprint、コード類似性索引
 - [analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md](analysis-framework/docs/CASE-KNOWLEDGE-CAMPAIGNS.md): 検体特徴、充足度監査、campaign相関、自動label
 - [analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md](analysis-framework/common/RUN-C2-MONITORING-PIPELINE.md): 全C2候補の限定probe、MaxMind、DNS／停止履歴、RAT session sidecarの統合手順
@@ -306,7 +307,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 ## MX-Go未分類クラスタ（2026-07-15）
 
-Triage提出物1件を復元して静的解析しました。ペイロードはGo 1.26.1製の遠隔制御型一括メール送信スパムボットであり、汎用RATではありません。解析ツールは `analysis-framework/malware/unclassified/mx_go/`、正規化済み結果、C2／コンテンツ基盤、Sigma／YARA材料は `analysis-results/malware/unclassified/groups/mx-go/` 配下にあります。ループバック限定のC2／コンテンツサーバーとクライアントエミュレーターは `emulators/unclassified/mx_go/` 配下にあり、`c2_detector.py` の能動MX-Goモードもループバックだけを許可します。
+Triage提出物1件を復元して静的解析しました。ペイロードはGo 1.26.1製の遠隔制御型一括メール送信スパムボットであり、汎用RATではありません。解析ツールは `analysis-framework/malware/unclassified/mx_go/`、正規化済み結果、C2／コンテンツ基盤、Sigma／YARA材料は `analysis-results/malware/unclassified/groups/mx-go/` 配下にあります。ループバック限定のC2／コンテンツサーバーとクライアントエミュレーターは `emulators/unclassified/mx_go/` 配下にあり、共通`c2_detector.py`は現在offline planだけを返し、合成check-inと受信者取得は専用`emulators/unclassified/mx_go/client.py`がnumeric loopbackだけを許可します。
 
 ## 宣言型解析の設計
 

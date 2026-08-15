@@ -1,6 +1,8 @@
 # C2定期モニタリング手順
 
 `monitor_recent_c2.py` は、解析済み検体から人がレビューしたC2完全一致endpointを限定観測し、機械可読JSONと日本語一覧表を同時生成します。候補の自動抽出結果を無条件に接続対象へ昇格させないことが前提です。
+対象へのnetwork接触は[`nmap_c2_detector.py`](../nmap/nmap_c2_detector.py)がallowlist済みNSEを起動する経路だけです。Python側の直接DNS／socket／TLS／HTTP probeは標準monitorから呼び出さず、結果policyへ`network_execution_backend=nmap_nse_only`と`python_direct_probe_used=false`を固定します。
+
 
 ## 通常probeとRAT host emulatorの分離
 
@@ -22,7 +24,7 @@ AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`に続けて空`Messa
 - 配布先、decoy、正規update、local proxyはC2へ混同しない。
 - `.onion`は`transport: tor-socks5`とし、proxyはlocalhostだけを許可する。
 
-現在のmethodは次の14種類です。
+現在のmethodは次の19種類です。すべて[`nmap/profiles.json`](../nmap/profiles.json)のNSE bindingを持ち、未登録methodは実行前に拒否します。
 
 | method | 動作 | C2稼働confidence上限 |
 |---|---|---:|
@@ -40,6 +42,11 @@ AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`に続けて空`Messa
 | `stealc_v2_registration_task` | StealC v2へ合成端末を`create`し、tokenで`loader` taskを1回取得 | 0.95 |
 | `lumma_v6_registration_task` | Lumma v6へ`uid/cid`を送信し、合成hwidでtaskを1回取得 | 0.95 |
 | `remus_registration_task` | Remusへ合成端末を登録し、復号tokenで`step=1` taskを1回取得 | 0.95 |
+| `protocol_profile_required` | review済み固有profileがない対象はDNS観測だけで停止 | 0.05 |
+| `purerat_direct_tls_certificate_pin` | PureRAT direct TLSの証明書pinを観測。TLS version厳密保証がないため確定へ昇格しない | 0.92 |
+| `darkcomet_server_first_idtype` | DarkCometのserver-first `IDTYPE`をNSEで受信専用検証 | 0.98 |
+| `redline_checkconnect_soap11` | RedLineの固定SOAP `CheckConnect`をNSEで1要求だけ検証 | 0.98 |
+| `xloader_v8_get_registration` | private protocol未実装のためNSE transport-onlyで停止 | 0.15 |
 
 TCP open、一般TLS、HTTP status、FTP bannerはC2所有者やmalware固有applicationを証明しません。`c2_operational_confidence` と `reachability_confidence` は必ず分離して読みます。
 
@@ -50,6 +57,7 @@ TCP open、一般TLS、HTTP status、FTP bannerはC2所有者やmalware固有app
 ```powershell
 py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
   --targets .\analysis-results\research\c2-monitoring\2026-08-02\targets.json `
+  --nmap C:\Tools\Nmap\nmap.exe `
   --output-directory .\.work\c2-monitoring-preview
 ```
 
@@ -58,6 +66,7 @@ py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
 ```powershell
 py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
   --targets .\analysis-results\research\c2-monitoring\2026-08-02\targets.json `
+  --nmap C:\Tools\Nmap\nmap.exe `
   --output-directory .\analysis-results\research\c2-monitoring\2026-08-02 `
   --allow-network `
   --allow-malware-registration-tasking

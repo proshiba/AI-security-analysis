@@ -10,7 +10,7 @@
   "counts": {
     "catalog_cases": 2344,
     "profiled_cases": 1486,
-    "candidate_pairs_before_limit": 428306,
+    "candidate_pairs_before_limit": 428304,
     "retained_pairs": 6848,
     "levels": {
       "高": 4138,
@@ -71331,7 +71331,9 @@
           "pe--dotnet-resource-opaque-->data",
           "root:pe"
         ],
-        "module_stack": [],
+        "module_stack": [
+          "root_managed_pe_native_wrapper:x86:le:32:default"
+        ],
         "capabilities": [
           "analysis:status",
           "config:recovered",
@@ -71340,12 +71342,35 @@
           "unpack:artifacts",
           "unpack:status"
         ],
-        "function_roles": [],
-        "code_fingerprints": []
+        "function_roles": [
+          "dynamic_delegate_restoration",
+          "managed_entrypoint",
+          "manifest_resource_enumeration",
+          "protected_metadata_table_reader",
+          "protected_string_table",
+          "resource_resolve_registration",
+          "resource_resolver_transform",
+          "resource_stream_lookup",
+          "symmetric_resource_decrypt_helper"
+        ],
+        "code_fingerprints": [
+          "semantic:1261c63534fc5bc1882d0e03ffb06090b018bfc49f652108becfac375cb43967",
+          "semantic:2515464aff0bffd19bf0fce64d885d7353514c2bdaffa1af76baf5feaec9ca57",
+          "semantic:271f4ee005065f45ae5e693ccdc5ef07ea08f37ee74a06ebb5096e262a2b4f2b",
+          "semantic:6057430851064e5351afaf5da88a7d8695d91940e632e387fe16a8bdfa8b0276",
+          "semantic:668443e0a06aa9e42d664f80c8d507e19cac3321fda32cd8eb4edb917c73522b",
+          "semantic:6d2b4ff920a1ce731979777a4e79dd04e37579f8651859ac663c3b451db17ddb",
+          "semantic:b88a68ac01cb38f7dc53aee0d5be651aa357ad29abc982458cd9afde1d33bd90",
+          "semantic:c670ed6b6edff53da4ae1de0a8cd68c143e71e382d92fa1c4a16095fede57aed",
+          "semantic:daee631f8e8caca5b6e3f4766000c88f1c23929f20f43ab078a822ac4a5ecd29"
+        ]
       },
       "available_dimensions": [
         "layer_chain",
-        "capabilities"
+        "module_stack",
+        "capabilities",
+        "function_roles",
+        "code_fingerprints"
       ],
       "document_path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c/OVERALL-LOGIC.md"
     },
@@ -381050,41 +381075,6 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
-      "left_sha256": "5f2979cd7d8192bb50266546557be153907b952d73f911122655c79c9ba73591",
-      "right_sha256": "c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
-      "same_family": true,
-      "score": 1.0,
-      "level": "中",
-      "independent_evidence_axes": 2,
-      "evidence": [
-        {
-          "dimension": "layer_chain",
-          "label_ja": "感染・復元層",
-          "similarity": 1.0,
-          "shared": [
-            "pe--dotnet-resource-opaque-->data",
-            "root:pe"
-          ],
-          "shared_total": 2
-        },
-        {
-          "dimension": "capabilities",
-          "label_ja": "機能・挙動",
-          "similarity": 1.0,
-          "shared": [
-            "analysis:status",
-            "config:recovered",
-            "packing:suspected",
-            "runtime:dotnet",
-            "unpack:artifacts",
-            "unpack:status"
-          ],
-          "shared_total": 6
-        }
-      ],
-      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
-    },
-    {
       "left_sha256": "5fa116e699f23e230c6c17a47d499feae725069ec5186196df24a7346e0f77f5",
       "right_sha256": "beb62730a6b536f1305a09156b2bfec325eb243d1dcabc2c182cf5a4b54cc64e",
       "same_family": true,
@@ -438028,6 +438018,76 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
+      "left_sha256": "5f2979cd7d8192bb50266546557be153907b952d73f911122655c79c9ba73591",
+      "right_sha256": "a85a685e8753319479922d6098726906804dca6a518205ed70fd555c5289d743",
+      "same_family": false,
+      "score": 0.6326,
+      "level": "中",
+      "independent_evidence_axes": 5,
+      "evidence": [
+        {
+          "dimension": "execution_stages",
+          "label_ja": "実行段階",
+          "similarity": 0.6667,
+          "shared": [
+            "command_control",
+            "file_operations",
+            "payload_decoding",
+            "persistence"
+          ],
+          "shared_total": 4
+        },
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 1.0,
+          "shared": [
+            "pe--dotnet-resource-opaque-->data",
+            "root:pe"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "root_program:x86:le:32:default"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "runtime:dotnet",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 6
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.75,
+          "shared": [
+            "command_dispatch_or_handler",
+            "config_or_data_transform",
+            "cryptographic_transform",
+            "file_operation",
+            "network_communication",
+            "persistence"
+          ],
+          "shared_total": 6
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
       "left_sha256": "9fb63f6266dfbc7b3cb527d19134c13f51c2c3080c5242756296f2a7a090a200",
       "right_sha256": "a85a685e8753319479922d6098726906804dca6a518205ed70fd555c5289d743",
       "same_family": false,
@@ -444819,75 +444879,6 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
-      "left_sha256": "0ce366b7463e6b3c9d389d1c799c9b64219e71112f13568e5e16efbfbebf9da9",
-      "right_sha256": "a85a685e8753319479922d6098726906804dca6a518205ed70fd555c5289d743",
-      "same_family": true,
-      "score": 0.6061,
-      "level": "中",
-      "independent_evidence_axes": 5,
-      "evidence": [
-        {
-          "dimension": "execution_stages",
-          "label_ja": "実行段階",
-          "similarity": 0.6667,
-          "shared": [
-            "file_operations",
-            "loader_execution",
-            "payload_decoding",
-            "persistence"
-          ],
-          "shared_total": 4
-        },
-        {
-          "dimension": "layer_chain",
-          "label_ja": "感染・復元層",
-          "similarity": 1.0,
-          "shared": [
-            "pe--dotnet-resource-opaque-->data",
-            "root:pe"
-          ],
-          "shared_total": 2
-        },
-        {
-          "dimension": "module_stack",
-          "label_ja": "モジュール構成",
-          "similarity": 1.0,
-          "shared": [
-            "root_program:x86:le:32:default"
-          ],
-          "shared_total": 1
-        },
-        {
-          "dimension": "capabilities",
-          "label_ja": "機能・挙動",
-          "similarity": 1.0,
-          "shared": [
-            "analysis:status",
-            "config:recovered",
-            "packing:suspected",
-            "runtime:dotnet",
-            "unpack:artifacts",
-            "unpack:status"
-          ],
-          "shared_total": 6
-        },
-        {
-          "dimension": "function_roles",
-          "label_ja": "代表関数の役割",
-          "similarity": 0.5556,
-          "shared": [
-            "config_or_data_transform",
-            "cryptographic_transform",
-            "file_operation",
-            "persistence",
-            "process_or_memory_operation"
-          ],
-          "shared_total": 5
-        }
-      ],
-      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
-    },
-    {
       "left_sha256": "25787f5541566d193f35b220b4953a6057aabc05a54bf9b7cf903fb8fdf26912",
       "right_sha256": "78efb35e7b51882913109c68e386b0bd2941901a451a35022bf5e5a2f018dfcb",
       "same_family": true,
@@ -448021,6 +448012,72 @@
     {
       "left_sha256": "0ce366b7463e6b3c9d389d1c799c9b64219e71112f13568e5e16efbfbebf9da9",
       "right_sha256": "93acec7eeff046efa957c819fed3c98eddcee365c276c62555a3f5ccb8a96a41",
+      "same_family": true,
+      "score": 0.5909,
+      "level": "中",
+      "independent_evidence_axes": 5,
+      "evidence": [
+        {
+          "dimension": "execution_stages",
+          "label_ja": "実行段階",
+          "similarity": 0.5,
+          "shared": [
+            "loader_execution",
+            "payload_decoding"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 1.0,
+          "shared": [
+            "pe--dotnet-resource-opaque-->data",
+            "root:pe"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "root_program:x86:le:32:default"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "runtime:dotnet",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 6
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.6667,
+          "shared": [
+            "config_or_data_transform",
+            "cryptographic_transform",
+            "entrypoint",
+            "process_or_memory_operation"
+          ],
+          "shared_total": 4
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "0ce366b7463e6b3c9d389d1c799c9b64219e71112f13568e5e16efbfbebf9da9",
+      "right_sha256": "bd283bdea40a7edcccaa1abc62a4b4c187cb5ff156e357bfcf9f7fd5f07462c4",
       "same_family": true,
       "score": 0.5909,
       "level": "中",
@@ -475059,68 +475116,6 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
-      "left_sha256": "4cb26916939c17df0313646b6a286bf3a799814f77227cd83fa147560182d6a2",
-      "right_sha256": "bd283bdea40a7edcccaa1abc62a4b4c187cb5ff156e357bfcf9f7fd5f07462c4",
-      "same_family": true,
-      "score": 0.3788,
-      "level": "参考候補",
-      "independent_evidence_axes": 5,
-      "evidence": [
-        {
-          "dimension": "execution_stages",
-          "label_ja": "実行段階",
-          "similarity": 0.5,
-          "shared": [
-            "loader_execution",
-            "payload_decoding"
-          ],
-          "shared_total": 2
-        },
-        {
-          "dimension": "layer_chain",
-          "label_ja": "感染・復元層",
-          "similarity": 0.3333,
-          "shared": [
-            "root:pe"
-          ],
-          "shared_total": 1
-        },
-        {
-          "dimension": "module_stack",
-          "label_ja": "モジュール構成",
-          "similarity": 1.0,
-          "shared": [
-            "root_program:x86:le:32:default"
-          ],
-          "shared_total": 1
-        },
-        {
-          "dimension": "capabilities",
-          "label_ja": "機能・挙動",
-          "similarity": 0.5,
-          "shared": [
-            "analysis:status",
-            "config:recovered",
-            "packing:suspected",
-            "unpack:artifacts",
-            "unpack:status"
-          ],
-          "shared_total": 5
-        },
-        {
-          "dimension": "function_roles",
-          "label_ja": "代表関数の役割",
-          "similarity": 0.3333,
-          "shared": [
-            "config_or_data_transform",
-            "process_or_memory_operation"
-          ],
-          "shared_total": 2
-        }
-      ],
-      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
-    },
-    {
       "left_sha256": "220324be3422e4e57332df0a036f909705cb15d674f88aa45cc282b70a741c15",
       "right_sha256": "6167be94c33b2a86f9820cbc1b901700cf5d690193213cb14f44687dd4ed4e18",
       "same_family": true,
@@ -476269,6 +476264,61 @@
             "file_operation"
           ],
           "shared_total": 4
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "4cb26916939c17df0313646b6a286bf3a799814f77227cd83fa147560182d6a2",
+      "right_sha256": "b24fefefe8a95d6a765caff9b0ae40ed480dfdbfe2e5a46848b1a9d895ec83e3",
+      "same_family": true,
+      "score": 0.3494,
+      "level": "参考候補",
+      "independent_evidence_axes": 4,
+      "evidence": [
+        {
+          "dimension": "execution_stages",
+          "label_ja": "実行段階",
+          "similarity": 0.6,
+          "shared": [
+            "file_operations",
+            "payload_decoding",
+            "persistence"
+          ],
+          "shared_total": 3
+        },
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "root_program:x86:le:32:default"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 0.5,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 5
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.4286,
+          "shared": [
+            "config_or_data_transform",
+            "file_operation",
+            "persistence"
+          ],
+          "shared_total": 3
         }
       ],
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"

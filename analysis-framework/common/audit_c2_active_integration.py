@@ -208,8 +208,9 @@ def audit_integration_state(
         profiles_by_handler[handler] = profiles_by_handler.get(handler, 0) + 1
 
     canonical = nmap_mapping.get("canonical_families")
-    if nmap_mapping.get("schema_version") != 1 or not isinstance(canonical, list):
-        add_error("nmap_mapping_schema_invalid", "schema_version=1とcanonical_families listが必要です")
+    nmap_schema_version = nmap_mapping.get("schema_version")
+    if nmap_schema_version not in {1, 2} or not isinstance(canonical, list):
+        add_error("nmap_mapping_schema_invalid", "schema_version 1／2とcanonical_families listが必要です")
         canonical = []
 
     nmap_families: set[str] = set()
@@ -281,6 +282,84 @@ def audit_integration_state(
         record["families"].append(family)
         record["declared_modes"].update(normalized_modes)
 
+    method_binding_count = 0
+    if nmap_schema_version == 2:
+        if nmap_mapping.get("execution_backend") != "nmap_nse_only":
+            add_error(
+                "nmap_execution_backend_invalid",
+                repr(nmap_mapping.get("execution_backend")),
+            )
+        bindings = nmap_mapping.get("method_bindings")
+        if not isinstance(bindings, list) or not bindings:
+            add_error("nmap_method_bindings_invalid", "method_bindingsは空でないlistが必要です")
+            bindings = []
+        binding_methods: set[str] = set()
+        for index, raw in enumerate(bindings):
+            if not isinstance(raw, dict):
+                add_error("nmap_method_binding_invalid", f"index={index}")
+                continue
+            method = raw.get("method")
+            relative = raw.get("script")
+            mode = raw.get("mode")
+            confirmation = raw.get("confirmation_allowed")
+            if not isinstance(method, str) or not method or method in binding_methods:
+                add_error("nmap_method_binding_duplicate_or_missing", repr(method))
+                continue
+            binding_methods.add(method)
+            method_binding_count += 1
+            if method not in allowed_methods:
+                add_error("nmap_method_binding_unknown", method)
+            if not isinstance(mode, str) or NMAP_MODE_RE.fullmatch(mode) is None:
+                add_error("nmap_method_binding_mode_invalid", f"{method}: {mode!r}")
+                continue
+            if type(confirmation) is not bool:
+                add_error("nmap_method_confirmation_invalid", f"{method}: {confirmation!r}")
+            if not isinstance(relative, str) or not relative:
+                add_error("nmap_method_script_missing", method)
+                continue
+            lexical = Path(relative)
+            if lexical.is_absolute() or any(part in {"", ".", ".."} for part in lexical.parts):
+                add_error("nmap_method_script_path_unsafe", f"{method}: {relative}")
+                continue
+            candidate = nmap_root.joinpath(*lexical.parts)
+            try:
+                resolved = candidate.resolve(strict=True)
+                resolved.relative_to(root)
+                text = resolved.read_text(encoding="utf-8")
+            except (OSError, ValueError, UnicodeError) as exc:
+                add_error(
+                    "nmap_method_script_unreadable",
+                    f"{method}: {relative}: {type(exc).__name__}",
+                )
+                continue
+            if not resolved.is_file() or resolved.is_symlink():
+                add_error("nmap_method_script_not_regular", f"{method}: {relative}")
+                continue
+            if "categories" not in text or "c2_confirmed" not in text:
+                add_error("nmap_method_script_contract_marker_missing", f"{method}: {relative}")
+            record = script_records.setdefault(
+                relative,
+                {
+                    "path": str(resolved),
+                    "families": [],
+                    "declared_modes": set(),
+                    "dispatched_modes": _nse_dispatched_modes(text),
+                },
+            )
+            record["families"].append(f"method:{method}")
+            record["declared_modes"].add(mode)
+
+        for method in sorted(allowed_methods - binding_methods):
+            add_error("monitor_method_missing_from_nmap", method)
+        for method in sorted(binding_methods - allowed_methods):
+            add_error("nmap_method_missing_from_monitor", method)
+        declared_count = nmap_mapping.get("network_method_count")
+        if type(declared_count) is not int or declared_count != len(bindings):
+            add_error(
+                "nmap_method_count_mismatch",
+                f"declared={declared_count!r}, actual={len(bindings)}",
+            )
+
     for relative, record in sorted(script_records.items()):
         dispatched = record["dispatched_modes"]
         if dispatched is None:
@@ -324,6 +403,7 @@ def audit_integration_state(
             "reviewed_family_count": len(profile_families),
             "nmap_family_count": len(nmap_families),
             "nmap_script_count": len(script_records),
+            "nmap_method_binding_count": method_binding_count,
             "required_contract_count": len(required_rows),
             "error_count": len(errors),
             "warning_count": len(warnings),

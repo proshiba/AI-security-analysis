@@ -6,8 +6,8 @@
 
 - `server.py` はループバック以外のバインドアドレスを拒否します。
 - `client.py` はループバック以外の接続先URLを拒否します。
-- `c2_detector.py --protocol mxgo` は既定でオフラインの要求プレビューを生成します。
-- 能動的な検出器モードには、ループバックホストと `--mxgo-allow-loopback-network` の両方が必要です。
+- 共通`c2_detector.py`は互換用offline planだけを返し、MX-Goのnetwork動作を実行しません。
+- 合成check-inと受信者取得は本ディレクトリの`client.py`だけで行い、接続先をnumeric loopbackへ固定します。
 - ハートビートには合成IDと `LAB_ONLY` を使用し、ホスト名、MACアドレス、実端末の識別子を収集しません。
 - 受信者の合成データには予約済み `.invalid` TLDを使います。出力には件数／ハッシュだけを含め、アドレスは含めません。
 - 検証環境が返すコマンドフラグは空で、動作しません。メール送信やコマンド実行はできません。
@@ -36,41 +36,32 @@ python .\emulators\unclassified\mx_go\client.py `
   --output C:\malware-lab\mx-go-lab-client.json
 ```
 
-## `c2_detector`との連携
+## 専用loopback clientとの連携
 
-ネットワークへ接続せずにハートビートの説明を生成します。プレビューモードは名前解決も接続も行わないため、ホストにはレビュー済みIOCを指定できます。
+共通`analysis-framework/common/c2_detector.py`は、現在は互換用offline planを返すだけでnetworkへ接続しません。MX-Goはmalware固有NSEのreview済みwire signatureが未登録であり、外部targetへのactive C2検知対象ではありません。
 
-```powershell
-python .\analysis-framework\common\c2_detector.py 43.165.179.173 5000 `
-  --protocol mxgo `
-  --mxgo-mode preview
-```
-
-ローカルエミュレーターに対して合成チェックインを検証します。
+ローカルエミュレーターへ合成check-inだけを送る場合は、専用clientを使います。
 
 ```powershell
-python .\analysis-framework\common\c2_detector.py 127.0.0.1 5000 `
-  --protocol mxgo `
-  --mxgo-mode checkin `
-  --allow-network `
-  --mxgo-allow-loopback-network
+python .\emulators\unclassified\mx_go\client.py `
+  --base-url http://127.0.0.1:5000 `
+  --mode checkin `
+  --output C:\malware-lab\mx-go-checkin.json
 ```
 
-合成した受信者データを取得して要約します。
+合成受信者データだけを取得する場合は`recipients`、両方を順に確認する場合は`both`を指定します。
 
 ```powershell
-python .\analysis-framework\common\c2_detector.py 127.0.0.1 5000 `
-  --protocol mxgo `
-  --mxgo-mode recipients `
-  --mxgo-recipient-path /jp01.txt `
-  --allow-network `
-  --mxgo-allow-loopback-network
+python .\emulators\unclassified\mx_go\client.py `
+  --base-url http://127.0.0.1:5000 `
+  --mode recipients `
+  --output C:\malware-lab\mx-go-recipients.json
 ```
 
-ループバック以外の能動的接続先は、DNSまたはTCP処理より前の引数検証で失敗します。
+`client.py`はループバック以外のURLをHTTP処理より前に拒否します。実C2、実受信者、外部コンテンツserverへの接続には使用できません。
 
 ## テスト
 
 ```powershell
-python -m pytest .\analysis-framework\tests\test_c2_detector.py .\emulators\unclassified\mx_go\tests
+python -m pytest .\emulators\unclassified\mx_go\tests
 ```

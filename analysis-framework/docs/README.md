@@ -12,6 +12,7 @@
 ## 現行基盤
 
 - [AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)
+- [識別・解析・公開・保管を接続する解析lifecycleの自動化](ANALYSIS-LIFECYCLE-AUTOMATION.md)
 - [WebUI／ローカルAPI向け静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)
 - [dailyマルウェア解析の3系統取込](DAILY-NEWS-MALWARE-INTAKE.md)
 - [ClickFix／ClearFake 50件の収集・インフラ・Triage照合](../clickfix/README.md)
@@ -26,4 +27,7 @@
 - [プロファイル定義による10ファミリー拡張と構成要素の関係](PROFILED-FAMILY-EXPANSION.md)
 - [難解析検体の静的深掘り解析](DEEP-STATIC-ANALYSIS.md)
 - [ValleyRATワークフロー](../malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md)
-- [C2生存確認とShodanフィンガープリント収集](../common/C2-LIVENESS.md)
+- [Nmap NSEによるC2稼働確認](../common/C2-LIVENESS.md)
+- [Nmap C2 adapter、method対応、loopback検証](../nmap/README.md)
+- [Stealer 6系統のC2 detectorとloopback emulator](STEALER-C2-DETECTION-EMULATION.md)
+- [ValleyRAT／PureRATエミュレーターの実装状況](VALLEYRAT-PURERAT-EMULATOR-STATUS.md)

@@ -47,6 +47,8 @@ end
 local function options(host_header, content_type, user_agent)
   return {
     no_cache=true,
+    redirect_ok=false,
+    max_body_size=65536,
     timeout=math.max(100, math.min(tonumber(stdnse.get_script_args("stealer.timeout")) or 3000, 5000)),
     header={
       ["Host"]=host_header,
@@ -85,7 +87,11 @@ local function stealc(host, port)
     status=matched and "stealc_registration_token_match" or "stealc_registration_mismatch",
     http_status=response and response.status or nil, response_size=response and response.body and #response.body or 0,
     access_token_published=false, synthetic_identity_sent=true,
-    task_poll_attempted=false, payload_download_attempted=false
+    response_body_published=false, redirect_followed=false,
+    application_data_sent=true, request_count=1,
+    registration_attempted=true, task_poll_attempted=false,
+    task_executed=false, payload_download_attempted=false,
+    victim_metadata_sent=false
   }
 end
 
@@ -111,7 +117,11 @@ local function lumma(host, port)
     probable_c2=matched and true or false, confidence=matched and 0.78 or 0.35,
     status=matched and "lumma_registration_shape_match" or "lumma_registration_mismatch",
     http_status=response and response.status or nil, response_size=response and response.body and #response.body or 0,
-    synthetic_identity_sent=true, task_poll_attempted=false
+    synthetic_identity_sent=true, response_body_published=false,
+    redirect_followed=false, application_data_sent=true,
+    request_count=1, registration_attempted=true,
+    task_poll_attempted=false, task_executed=false,
+    payload_download_attempted=false, victim_metadata_sent=false
   }
 end
 
@@ -128,14 +138,21 @@ local function remus(host, port)
   opts.header["Cache-Control"] = "no-cache"
   opts.header["Pragma"] = "no-cache"
   local response = http.post(host, port, "/", opts, nil, body)
-  local matched = response and response.status == 201 and response.body and #response.body > 40
+  local content_type = response and response.header and response.header["content-type"] or ""
+  local matched = response and response.status == 201 and response.body and
+    #response.body >= 41 and #response.body <= 8192 and
+    content_type:match("application/octet%-stream")
   return {
     family="remusstealer", protocol="http_encrypted_registration", c2_confirmed=false,
     probable_c2=matched and true or false, confidence=matched and 0.78 or 0.35,
     status=matched and "remus_registration_envelope_match" or "remus_registration_mismatch",
     http_status=response and response.status or nil, response_size=response and response.body and #response.body or 0,
     synthetic_identity_sent=true, access_token_published=false,
-    task_poll_attempted=false, payload_download_attempted=false
+    response_body_published=false, redirect_followed=false,
+    application_data_sent=true, request_count=1,
+    registration_attempted=true, task_poll_attempted=false,
+    task_executed=false, payload_download_attempted=false,
+    victim_metadata_sent=false
   }
 end
 

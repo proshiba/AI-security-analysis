@@ -17,7 +17,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
-from c2_detector import probe
 from c2_protocol_probe_profiles import (
     PROFILE_METHODS,
     ProtocolProfileError,
@@ -32,6 +31,7 @@ from darkcomet_profile_evidence import (
     DarkCometEvidenceError,
     validate_darkcomet_profile_evidence,
 )
+from nmap_c2_detector import probe_target_with_nmap
 from darkcomet_server_first_probe import probe_reviewed_darkcomet_server_first
 from purerat_direct_tls_probe import (
     PureRatDirectTlsError,
@@ -40,7 +40,6 @@ from purerat_direct_tls_probe import (
 from purerat_direct_tls_probe import (
     reviewed_profile as reviewed_purerat_profile,
 )
-from purerat_tls_probe import probe_reviewed_purerat_tls
 from remus_profile_evidence import (
     RemusEvidenceError,
     validate_remus_profile_evidence,
@@ -868,25 +867,6 @@ def _tls_messagepack_observation(
     }
 
 
-def _purerat_prelude_observation(
-    target: dict,
-    allow_network: bool,
-    allow_application_probe: bool,
-) -> dict:
-    """PureRATの4 byte prelude＋TLS pin profileを限定観測する。
-
-    他のhandlerと違い、probe側が到達不能・prelude拒否・handshake失敗を
-    すべて `status` 付きの結果で返すので、ここでは例外を分類し直さない。
-    profile registryの不備だけがProtocolProfileErrorとして残る。
-    """
-
-    profile = resolve_profile(target["protocol_profile_id"], target["host"], target["port"])
-    return probe_reviewed_purerat_tls(
-        profile,
-        allow_network=allow_network,
-        allow_protocol_prelude=allow_application_probe,
-    )
-
 def _sanitize_tls_messagepack_observation(target: dict, observation: dict) -> dict:
     """AsyncRAT／VenomRAT観測を既知scalarとfingerprintだけへ制限する。"""
 
@@ -1040,6 +1020,8 @@ def _sanitize_purerat_observation(observation: dict) -> dict:
         "confirmed_purerat_direct_tls_certificate",
         "purerat_direct_tls_certificate_mismatch",
         "purerat_direct_tls_version_mismatch_inconclusive",
+        "purerat_nse_certificate_match_tls_version_unverified",
+        "purerat_direct_tls_certificate_mismatch_inconclusive",
     }
     status = observation.get("status")
     if status not in allowed_statuses:
@@ -1047,6 +1029,7 @@ def _sanitize_purerat_observation(observation: dict) -> dict:
     value = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "status": status,
+        "execution_engine": "nmap_nse" if observation.get("execution_engine") == "nmap_nse" else None,
         "profile_id": reviewed["profile_id"],
         "root_sample_sha256": reviewed["root_sample_sha256"],
         "terminal_sample_sha256": reviewed["terminal_sample_sha256"],
@@ -1915,9 +1898,121 @@ def _sanitize_observation(observation: dict) -> dict:
     value.pop("sent_hex", None)
     return value
 
+def _assess_nmap_observation(target: dict, observation: dict) -> dict:
+    """NSEのallowlist結果を、到達性とmalware固有確認へ保守的に分離する。"""
+
+    method = target.get("method", "tcp_connect")
+    ceiling = METHOD_CEILINGS[method]
+    status = str(observation.get("status", "unknown"))
+    reachable = bool(
+        observation.get("target_connection_established")
+        or observation.get("nmap_port_state") == "open"
+    )
+    if not observation.get("target_contact_attempted") and method not in {"dns_resolve", "protocol_profile_required"}:
+        return {
+            "state": "not_observed_safety_gate",
+            "reachability_confidence": 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": "Nmap NSEの安全gateが未充足、またはNmap実体を利用できないため観測していない",
+        }
+    if method in {"dns_resolve", "protocol_profile_required"}:
+        resolved = bool(observation.get("resolved_ips"))
+        return {
+            "state": (
+                "protocol_profile_required_c2_unverified"
+                if method == "protocol_profile_required"
+                else "dns_resolved_c2_service_not_confirmed" if resolved else "dns_not_resolved"
+            ),
+            "reachability_confidence": 0.15 if resolved else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0 if resolved else 0.5,
+            "reason": "Nmapのtarget解決だけを記録し、port接続やmalware固有protocol確認は行っていない",
+        }
+    if method == "purerat_direct_tls_certificate_pin":
+        certificate_match = status == "purerat_nse_certificate_match_tls_version_unverified"
+        return {
+            "state": (
+                "purerat_certificate_observed_tls_version_unverified"
+                if certificate_match
+                else "purerat_endpoint_not_confirmed"
+            ),
+            "reachability_confidence": 0.98 if reachable else 0.0,
+            "c2_operational_confidence": 0.0,
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": (
+                "NSEでleaf証明書pinは一致したがnegotiated TLS versionを厳密保証できないためC2確定へ昇格しない"
+                if certificate_match
+                else "NSEでPureRAT direct TLSの厳密なversion＋証明書pin契約を確認できない"
+            ),
+        }
+    prohibited_confirmation_methods = {
+        "tcp_connect",
+        "passive_banner",
+        "tls_handshake",
+        "http_get",
+        "lumma_v6_registration_task",
+        "remus_registration_task",
+        "xloader_v8_get_registration",
+    }
+    if observation.get("c2_confirmed"):
+        forbidden_side_effect = any(
+            bool(observation.get(field))
+            for field in (
+                "task_content_published",
+                "task_executed",
+                "payload_download_attempted",
+                "raw_request_published",
+                "raw_response_published",
+            )
+        )
+        if method in prohibited_confirmation_methods or forbidden_side_effect:
+            return {
+                "state": "nmap_confirmation_inconsistent_c2_not_confirmed",
+                "reachability_confidence": 0.98 if reachable else 0.0,
+                "c2_operational_confidence": 0.0,
+                "method_confidence_ceiling": ceiling,
+                "negative_observation_confidence": 0.0,
+                "reason": "NSE methodの確定許可または副作用flagと矛盾するためC2確定を拒否",
+            }
+        return {
+            "state": "c2_protocol_confirmed",
+            "reachability_confidence": 1.0,
+            "c2_operational_confidence": min(
+                float(observation.get("confidence") or ceiling), ceiling
+            ),
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": "allowlist済みNSEでreview済みmalware固有protocol応答が完全一致",
+        }
+    if observation.get("probable_c2") or observation.get("protocol_response_received"):
+        return {
+            "state": "application_endpoint_reachable_c2_not_confirmed",
+            "reachability_confidence": 0.98 if reachable else 0.8,
+            "c2_operational_confidence": min(
+                float(observation.get("confidence") or 0.0), 0.78, ceiling
+            ),
+            "method_confidence_ceiling": ceiling,
+            "negative_observation_confidence": 0.0,
+            "reason": "NSEでapplication応答を観測したがmalware固有C2確定条件は満たしていない",
+        }
+    return {
+        "state": "transport_reachable_c2_not_confirmed" if reachable else "not_reachable_at_observation",
+        "reachability_confidence": 0.9 if reachable else 0.0,
+        "c2_operational_confidence": min(0.25, ceiling) if reachable else 0.0,
+        "method_confidence_ceiling": ceiling,
+        "negative_observation_confidence": 0.0 if reachable else 0.4,
+        "reason": "Nmap transport到達性だけを確認し、malware固有C2応答は未確認",
+    }
+
 
 def assess_observation(target: dict, observation: dict) -> dict:
     """到達性とC2稼働確度を分離して評価する。"""
+    if observation.get("execution_engine") == "nmap_nse":
+        return _assess_nmap_observation(target, observation)
     method = target.get("method", "tcp_connect")
     ceiling = METHOD_CEILINGS[method]
     status = observation.get("status", "unknown")
@@ -2365,14 +2460,15 @@ def assess_observation(target: dict, observation: dict) -> dict:
             )
         )
         certificate = (observation.get("tls") or {}).get("certificate") or {}
-        exact_status = status == "confirmed_purerat_prelude_tls_certificate"
+        # 観測はNSE(purerat-c2.nse)経由。statusはNSEが返す名前になる。
+        exact_status = status == "purerat_prelude_tls_certificate_match"
         exact_flags = (
             observation.get("c2_confirmed") is True
             and observation.get("target_connection_established") is True
             and observation.get("application_data_sent") is True
-            and observation.get("protocol_prelude_sent") is True
-            and observation.get("protocol_prelude_accepted") is True
-            and observation.get("protocol_prelude_length") == 4
+            and observation.get("plaintext_prelude_sent") is True
+            and observation.get("sent_bytes") == 4
+            and observation.get("request_count") == 1
             and tls.get("handshake") is True
             and certificate.get("exact_match") is True
             and not forbidden_side_effect
@@ -2397,18 +2493,15 @@ def assess_observation(target: dict, observation: dict) -> dict:
                 "reason": "PureRAT確認statusとflagの組が整合しないためC2確定を禁止",
             }
         states = {
-            "purerat_prelude_tls_certificate_mismatch": (
+            "purerat_prelude_tls_observed": (
                 "purerat_certificate_mismatch_c2_not_confirmed",
                 # 別build・別顧客・証明書rotationがあり得るのでfamily否定には使わない
                 "preludeは受理されTLSも成立したが、検体内蔵証明書と一致しないためC2確定はしない",
             ),
-            "purerat_prelude_tls_handshake_failed": (
-                "purerat_handshake_failed_c2_not_confirmed",
-                "TCPは開いていたがTLS handshakeが成立しない。client証明書要求やversion差が該当し得る",
-            ),
-            "purerat_prelude_rejected": (
+            "purerat_prelude_tls_failed": (
                 "purerat_prelude_rejected_c2_not_confirmed",
-                "TCPは開いていたが4 byte prelude送信後に切断された。PureRAT protocolの応答ではない",
+                "TCPは開いていたがprelude後のTLS昇格が成立しない。"
+                "PureRAT protocolでないほか、client証明書要求やversion差も該当し得る",
             ),
         }
         if status in states:
@@ -2597,73 +2690,32 @@ def monitor(
     allow_xloader_registration: bool = False,
     private_credential_vault: Path | None = None,
     xloader_private_material: Path | None = None,
+    nmap_executable: str | Path | None = None,
     repository_root: Path | None = None,
 ) -> dict:
-    """レビュー済み対象を各1回だけ観測する。"""
+    """レビュー済み対象をallowlist済みNSEで各1回だけ観測する。"""
     plan = validate_plan(plan, repository_root=repository_root)
     redline_acknowledgements = frozenset(acknowledged_redline_profiles or ())
     results = []
     for target in plan["targets"]:
-        method = target.get("method", "tcp_connect")
-        if method == "dns_resolve" or method == "protocol_profile_required":
-            raw = _dns_observation(target, allow_network)
-        elif method == "winos_heartbeat":
-            raw = _winos_observation(target, allow_network)
-        elif method == "ftp_authenticated":
-            raw = _agenttesla_ftp_observation(
-                target,
-                allow_network,
-                allow_authentication,
-                private_credential_vault,
-            )
-        elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
-            raw = _tls_messagepack_observation(
-                target,
-                allow_network,
-                allow_application_probes,
-            )
-        elif method == "purerat_tls_prelude":
-            raw = _purerat_prelude_observation(
-                target,
-                allow_network,
-                allow_application_probes,
-            )
-        elif method == "purerat_direct_tls_certificate_pin":
-            raw = _purerat_direct_tls_observation(
-                target,
-                allow_network,
-                allow_purerat_legacy_tls,
-            )
-        elif method == "darkcomet_server_first_idtype":
-            raw = _darkcomet_server_first_observation(target, allow_network, repository_root)
-        elif method == "redline_checkconnect_soap11":
-            raw = _redline_checkconnect_observation(
-                target,
-                allow_network,
-                allow_reviewed_checkconnect,
-                redline_acknowledgements,
-            )
-        elif method == "xloader_v8_get_registration":
-            raw = _xloader_registration_observation(
-                target,
-                allow_network,
-                allow_xloader_registration,
-                xloader_private_material,
-                repository_root,
-            )
-        elif method in {
-            "stealc_v2_registration_task",
-            "lumma_v6_registration_task",
-            "remus_registration_task",
-        }:
-            raw = _stealer_registration_observation(target, allow_network, allow_malware_registration, repository_root)
-        else:
-            raw = probe(_probe_args(target, allow_network))
-        if method == "purerat_direct_tls_certificate_pin":
-            raw = _sanitize_purerat_observation(raw)
-        elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
-            raw = _sanitize_tls_messagepack_observation(target, raw)
-        observation = _sanitize_observation(raw)
+        raw = probe_target_with_nmap(
+            target,
+            allow_network=allow_network,
+            allow_application_probes=allow_application_probes,
+            allow_purerat_legacy_tls=allow_purerat_legacy_tls,
+            allow_authentication=allow_authentication,
+            allow_malware_registration=allow_malware_registration,
+            allow_reviewed_checkconnect=allow_reviewed_checkconnect,
+            acknowledged_redline_profiles=redline_acknowledgements,
+            allow_xloader_registration=allow_xloader_registration,
+            private_credential_vault=private_credential_vault,
+            nmap_executable=nmap_executable,
+        )
+        observation = (
+            _sanitize_purerat_observation(raw)
+            if target.get("method") == "purerat_direct_tls_certificate_pin"
+            else _sanitize_observation(raw)
+        )
         results.append(
             {
                 "target_id": target.get("target_id"),
@@ -2718,8 +2770,10 @@ def monitor(
         "inventory_summary": plan.get("inventory_summary", {}),
         "policy": {
             "exact_targets_only": True,
+            "network_execution_backend": "nmap_nse_only",
+            "python_direct_probe_used": False,
             "one_bounded_probe_per_target": True,
-            "maximum_application_requests_per_target": 2,
+            "maximum_application_requests_per_target": 3,
             "maximum_timeout_seconds": 5,
             "maximum_response_bytes": max(
                 (int(target.get("maximum_response_bytes", 256)) for target in plan["targets"]),
@@ -2766,7 +2820,7 @@ def monitor(
             "reviewed_malware_registration_enabled": allow_malware_registration,
             "reviewed_xloader_registration_enabled": allow_xloader_registration,
             "private_credential_vault_used": private_credential_vault is not None,
-            "xloader_private_material_used": xloader_private_material is not None,
+            "xloader_private_material_used": False,
             "authentication_attempted_count": sum(
                 bool(item["observation"].get("authentication_attempted")) for item in results
             ),
@@ -3152,7 +3206,12 @@ def main() -> int:
     parser.add_argument(
         "--xloader-private-material",
         type=Path,
-        help="リポジトリ外のXLoader検体固有鍵・合成PKT2 JSON。",
+        help="互換用。Nmap化後の監視経路では使用しません。",
+    )
+    parser.add_argument(
+        "--nmap",
+        type=Path,
+        help="Nmap executable。未指定時はNMAP_EXE、標準配置、PATHの順で解決します。",
     )
     args = parser.parse_args()
     try:
@@ -3173,6 +3232,7 @@ def main() -> int:
             allow_xloader_registration=args.allow_xloader_registration,
             private_credential_vault=args.private_credential_vault,
             xloader_private_material=args.xloader_private_material,
+            nmap_executable=args.nmap,
         )
     except (OSError, json.JSONDecodeError, PlanError, ValueError) as exc:
         parser.error(str(exc))
