@@ -74,6 +74,11 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
         assert "categories" in text
         assert "c2_confirmed" in text
 
+    valleyrat = (NMAP_ROOT / "scripts" / "valleyrat-c2.nse").read_text(encoding="utf-8")
+    assert "response:sub(1, #frame) == frame" in valleyrat
+    assert 'status="winos_request_reflected"' in valleyrat
+    assert "request_reflected=true" in valleyrat
+
     darkcomet = (NMAP_ROOT / "scripts" / "darkcomet-c2.nse").read_text(encoding="utf-8")
     assert "socket:send" not in darkcomet
     assert "quiet" not in darkcomet
@@ -206,5 +211,5 @@ def test_nmap_loopback_protocol_validation() -> None:
         pytest.skip("Nmap executableがないためloopback統合試験を省略します")
     report = _load_validator().verify_all(executable)
     assert report["external_network_used"] is False
-    assert report["case_count"] == 36
-    assert report["passed_count"] == 36
+    assert report["case_count"] == 37
+    assert report["passed_count"] == 37

@@ -12,7 +12,7 @@ C2検知で対象へ接触する処理は、すべてNmap NSEを実行backendと
 
 | family | script／mode | 送信・確認内容 | 最大confidence | 判定上の注意 |
 | --- | --- | --- | ---: | --- |
-| ValleyRAT／Winos | `valleyrat-c2.nse`／`winos` | 匿名heartbeat 1 frame、制御応答 `C9`／`CA`／`CB` | 0.95 | victim metadataは送らない |
+| ValleyRAT／Winos | `valleyrat-c2.nse`／`winos` | 匿名heartbeat 1 frame、制御応答 `C9`／`CA`／`CB` | 0.95 | victim metadataは送らず、送信frameの反射応答を除外する |
 | 汎用DNS | `c2-dns-observe.nse` | Nmapが解決したA／AAAAだけを記録 | 0.05 | serviceへ接続せず`c2_confirmed=false`固定 |
 | 汎用transport | `c2-transport-observe.nse` | TCP open、server-first、TLS、またはGET 1回 | 0.60 | 到達性だけでfamily C2へ昇格しない |
 | ValleyRAT／vvaS | `valleyrat-c2.nse`／`vvas` | `333200`、14-byte固定stage header | 0.95 | stage本体は取得しない |
@@ -76,7 +76,7 @@ NSEの直接起動は原則としてadapterの中央profile照合と追加許可
 
 ## 動作検証
 
-`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に36回呼び出して、汎用DNS／transportと全malware固有modeの正応答、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、StealCのredirect拒否、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoader／FormBookのno-send境界、Vidar／AMOSの経路一致・不一致を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
+`verify_nse.py` はloopback上で一時的な模擬C2を起動し、Nmap 7.99を実際に37回呼び出して、汎用DNS／transportと全malware固有modeの正応答、Winos送信frameのecho拒否、DarkCometのraw EOF、ASCII-hex 6+6遅延分割、12+1遅延超過、wrong key、malformed、partial、overlong、StealCのredirect拒否、RedLineのtrue／false／追加要素拒否／redirect拒否／acknowledgement拒否／production target不一致拒否、XLoader／FormBookのno-send境界、Vidar／AMOSの経路一致・不一致を確認します。外部networkには接続しません。TLS証明書とprivate keyは一時directoryだけに生成し、終了時に削除します。
 
 ```powershell
 python .\analysis-framework\nmap\verify_nse.py --nmap C:\Tools\Nmap\nmap.exe
