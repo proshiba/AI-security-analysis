@@ -103,7 +103,7 @@ def _extract_onyx_terminal(data: bytes, name: str) -> dict | None:
         return None
 
     endpoint = f"{terminal.host}:{terminal.port}"
-    return build_result(
+    result = build_result(
         "valleyrat",
         data,
         {
@@ -146,6 +146,12 @@ def _extract_onyx_terminal(data: bytes, name: str) -> dict | None:
             "endpointの現在の稼働状態と所有者は確認していません。",
         ],
     )
+    result["terminal_payload"] = {
+        "role": "terminal_payload",
+        "name": f"{recovery.payload_sha256}.bin",
+        "data": recovery.payload,
+    }
+    return result
 
 
 def _reviewed_pdfcore8_result(data: bytes, name: str) -> dict | None:
@@ -267,7 +273,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
         }
         for item in urls
     ]
-    return build_result(
+    result = build_result(
         "valleyrat",
         data,
         {
@@ -298,3 +304,10 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "NVML.DATは復号stageを実行せず、codemarkで構造検証できたslotだけを静的設定として採用します。",
         ],
     )
+    if nvml_recovery is not None:
+        result["terminal_payload"] = {
+            "role": "terminal_payload",
+            "name": f"{nvml_recovery.stage_sha256}.bin",
+            "data": nvml_recovery.stage,
+        }
+    return result

@@ -106,3 +106,39 @@ def test_input_and_secret_boundaries() -> None:
         extractor.analyze_chain(b"x" * (extractor.MAXIMUM_INPUT_SIZE + 1))
     with pytest.raises(extractor.SnakeStaticRecoveryError):
         extractor._decrypt_des_ecb("not-base64", "key")
+
+
+def test_verified_terminal_is_worker_private_and_public_chain_stays_raw_free(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """検証済みterminalだけを明示roleで渡し、公開chainへbytesを混入させない。"""
+
+    terminal = b"MZ" + b"PRIVATE-TERMINAL" * 4
+    chain = {
+        "status": "final_config_recovered",
+        "layers": [extractor._layer("submitted", b"fixture")],
+        "terminal_config": {
+            "recovery_status": "confirmed_static_config",
+            "config_endpoints": [],
+        },
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "credentials_published": False,
+            "recovered_bytes_published": False,
+        },
+    }
+    monkeypatch.setattr(
+        extractor,
+        "_analyze_chain_with_terminal",
+        lambda _data: (chain, terminal),
+    )
+
+    assert "PRIVATE-TERMINAL" not in repr(extractor.analyze_chain(b"fixture"))
+    result = extractor.extract(b"fixture", "fixture.js")
+    assert result["terminal_payload"] == {
+        "role": "terminal_payload",
+        "name": f"{hashlib.sha256(terminal).hexdigest()}.exe",
+        "data": terminal,
+    }
+    assert result["config"]["recovered_bytes_published"] is False

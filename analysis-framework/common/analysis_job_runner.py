@@ -36,6 +36,7 @@ from follow_on_commitment import canonical_multiset_commitment
 import job_artifact_schemas
 import orchestration_outcome
 import runtime_contract
+import terminal_payload_acquisition
 
 
 COMMON_ROOT = Path(__file__).resolve().parent
@@ -69,6 +70,8 @@ MAX_FOLLOW_ON_PAYLOAD_SIZE = 128 * 1024 * 1024
 MAX_FOLLOW_ON_WALL_SECONDS = 300
 MAX_FOLLOW_ON_CHILD_SECONDS = 120
 MAX_FOLLOW_ON_OMITTED_METADATA = 4_096
+MAX_FAMILY_HINTS_PER_SAMPLE = 16
+MAX_FAMILY_HINT_LINEAGE_DEPTH = 64
 DEFAULT_TIMEOUT_SECONDS = 6 * 60 * 60
 MAX_TIMEOUT_SECONDS = 24 * 60 * 60
 PIPE_DRAIN_CHUNK_BYTES = 64 * 1024
@@ -422,6 +425,7 @@ SUMMARY_KEYS = frozenset(
         "ai_used",
     }
 )
+SUMMARY_OPTIONAL_KEYS = frozenset({"terminal_payload_acquisition"})
 FOLLOW_ON_MINIMAL_DOCUMENT_KEYS = frozenset(
     {
         "schema_version",
@@ -458,15 +462,23 @@ FOLLOW_ON_DOCUMENT_KEYS_BY_STATUS = {
     "disabled_assessment_only": FOLLOW_ON_MINIMAL_DOCUMENT_KEYS,
     "failed": FOLLOW_ON_MINIMAL_DOCUMENT_KEYS,
 }
+FOLLOW_ON_FAMILY_HINT_NODE_KEYS = frozenset(
+    {"family_hint_count", "family_hint_root_sha256", "family_hint_lineage_depth"}
+)
 FOLLOW_ON_NODE_KEYS_BY_STATE = {
     "root": frozenset({"sha256", "depth", "state"}),
-    "queued": frozenset({"sha256", "depth", "size", "state"}),
-    "timeout": frozenset({"sha256", "depth", "size", "state"}),
-    "wall_clock_limit": frozenset({"sha256", "depth", "size", "state"}),
-    "analyzed": frozenset({"sha256", "depth", "size", "state", "case_state"}),
-    "resumed_complete": frozenset({"sha256", "depth", "size", "state", "case_state"}),
-    "incomplete_case_omitted": frozenset({"sha256", "depth", "size", "state", "case_state"}),
-    "failed": frozenset({"sha256", "depth", "size", "state", "error_type"}),
+    "queued": frozenset({"sha256", "depth", "size", "state"}) | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "timeout": frozenset({"sha256", "depth", "size", "state"}) | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "wall_clock_limit": frozenset({"sha256", "depth", "size", "state"})
+    | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "analyzed": frozenset({"sha256", "depth", "size", "state", "case_state"})
+    | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "resumed_complete": frozenset({"sha256", "depth", "size", "state", "case_state"})
+    | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "incomplete_case_omitted": frozenset({"sha256", "depth", "size", "state", "case_state"})
+    | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
+    "failed": frozenset({"sha256", "depth", "size", "state", "error_type"})
+    | FOLLOW_ON_FAMILY_HINT_NODE_KEYS,
 }
 
 
@@ -3225,8 +3237,31 @@ def _validated_follow_on_artifact(
         if depth == 0:
             if node["state"] != "root" or size is not None or case_state is not None:
                 raise JobContractError("summary_invalid", "follow-on root nodeが不正です")
-        elif isinstance(size, bool) or not isinstance(size, int) or not 0 <= size <= MAX_FOLLOW_ON_PAYLOAD_SIZE:
-            raise JobContractError("summary_invalid", "follow-on child node sizeが不正です")
+        else:
+            hint_count = node.get("family_hint_count")
+            hint_root = node.get("family_hint_root_sha256")
+            hint_depth = node.get("family_hint_lineage_depth")
+            if (
+                isinstance(size, bool)
+                or not isinstance(size, int)
+                or not 0 <= size <= MAX_FOLLOW_ON_PAYLOAD_SIZE
+                or isinstance(hint_count, bool)
+                or not isinstance(hint_count, int)
+                or not 0 <= hint_count <= MAX_FAMILY_HINTS_PER_SAMPLE
+            ):
+                raise JobContractError("summary_invalid", "follow-on child node fieldが不正です")
+            if hint_count == 0:
+                if hint_root is not None or hint_depth is not None:
+                    raise JobContractError("summary_invalid", "follow-on family hint lineageが不正です")
+            elif (
+                not isinstance(hint_root, str)
+                or SHA256_RE.fullmatch(hint_root) is None
+                or hint_root == node_digest
+                or isinstance(hint_depth, bool)
+                or not isinstance(hint_depth, int)
+                or not 1 <= hint_depth <= MAX_FAMILY_HINT_LINEAGE_DEPTH
+            ):
+                raise JobContractError("summary_invalid", "follow-on family hint lineageが不正です")
         if node_state == "failed" and not _is_safe_public_text(
             node.get("error_type"),
             maximum_characters=128,
@@ -3480,6 +3515,78 @@ def _validated_follow_on_artifact(
     document["_validated_node_depths"] = node_depths
     document["_validated_node_states"] = node_states
     document["_validated_node_case_states"] = node_case_states
+    return document
+
+
+def _validated_terminal_payload_acquisition(
+    summary_path: Path,
+    summary: Mapping[str, Any],
+    follow_on: Mapping[str, Any],
+) -> dict[str, Any]:
+    """終端payload取得artifactをgraphから再計算して完全一致で検証する。"""
+
+    reference = summary.get("terminal_payload_acquisition")
+    reference_keys = {
+        "artifact",
+        "sha256",
+        "status",
+        "frontier_count",
+        "selected_count",
+        "pending_count",
+    }
+    if not isinstance(reference, dict) or set(reference) != reference_keys:
+        raise JobContractError(
+            "summary_invalid",
+            "terminal_payload_acquisition参照schemaが不正です",
+        )
+    digest = reference.get("sha256")
+    if (
+        reference.get("artifact") != "terminal-payload-acquisition.json"
+        or not isinstance(digest, str)
+        or SHA256_RE.fullmatch(digest) is None
+    ):
+        raise JobContractError(
+            "summary_invalid",
+            "terminal_payload_acquisition参照fieldが不正です",
+        )
+    for key in ("frontier_count", "selected_count", "pending_count"):
+        value = reference.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise JobContractError(
+                "summary_invalid",
+                f"terminal_payload_acquisition.{key}が不正です",
+            )
+
+    artifact_path = summary_path.parent / "terminal-payload-acquisition.json"
+    raw = _read_regular_file_once(artifact_path, max_bytes=MAX_SUMMARY_BYTES)
+    if not hmac.compare_digest(hashlib.sha256(raw).hexdigest(), digest):
+        raise JobContractError(
+            "summary_invalid",
+            "terminal payload acquisition artifactのSHA-256が一致しません",
+        )
+    document = _decode_json_object_strict(raw)
+    try:
+        expected = terminal_payload_acquisition.build_terminal_payload_acquisition(follow_on)
+    except terminal_payload_acquisition.TerminalPayloadAcquisitionError as exc:
+        raise JobContractError(
+            "summary_invalid",
+            "follow-on graphから終端payload取得状態を再計算できません",
+        ) from exc
+    if document != expected:
+        raise JobContractError(
+            "summary_invalid",
+            "terminal payload acquisition artifactがfollow-on graphと一致しません",
+        )
+    if (
+        reference.get("status") != document["status"]
+        or reference["frontier_count"] != len(document["frontier"])
+        or reference["selected_count"] != len(document["selected_sha256"])
+        or reference["pending_count"] != len(document["pending_sha256"])
+    ):
+        raise JobContractError(
+            "summary_count_mismatch",
+            "terminal payload acquisition参照件数が一致しません",
+        )
     return document
 
 
@@ -4412,7 +4519,10 @@ def _validated_summary(
 ) -> tuple[dict[str, Any], dict[str, int]]:
     validation_deadline = time.monotonic() + MAX_FOLLOW_ON_WALL_SECONDS if verify_root_cases else None
     summary = load_json_object_strict(path, max_bytes=MAX_SUMMARY_BYTES)
-    if set(summary) != SUMMARY_KEYS:
+    summary_keys = set(summary)
+    if summary_keys != SUMMARY_KEYS and summary_keys != (
+        SUMMARY_KEYS | SUMMARY_OPTIONAL_KEYS
+    ):
         raise JobContractError("summary_invalid", "summary.jsonのtop-level schemaが不正です")
     if summary.get("schema_version") != SCHEMA_VERSION:
         raise JobContractError("summary_invalid", "summary.jsonのschema_versionが一致しません")
@@ -4438,6 +4548,8 @@ def _validated_summary(
         if not isinstance(summary.get(key), expected_type):
             raise JobContractError("summary_invalid", f"summary.{key}はarrayである必要があります")
     follow_on = _validated_follow_on_artifact(path, summary)
+    if "terminal_payload_acquisition" in summary:
+        _validated_terminal_payload_acquisition(path, summary, follow_on)
     follow_on_contract = summary.get("follow_on_analysis_contract")
     if (
         not isinstance(follow_on_contract, dict)

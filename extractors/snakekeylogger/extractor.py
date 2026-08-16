@@ -383,7 +383,9 @@ def _bounded_artifacts(
     return artifacts
 
 
-def analyze_chain(data: bytes) -> dict[str, object]:
+def _analyze_chain_with_terminal(
+    data: bytes,
+) -> tuple[dict[str, object], bytes | None]:
     """JS→LuaJIT→Donut→managed terminalを実行せず静的に追跡する。"""
 
     if len(data) > MAXIMUM_INPUT_SIZE:
@@ -423,7 +425,7 @@ def analyze_chain(data: bytes) -> dict[str, object]:
             continue
     if len(recovered) > 1:
         raise SnakeStaticRecoveryError("複数のVIPKeylogger terminal設定が一致しました")
-    return {
+    report = {
         "schema_version": 1,
         "family": "snakekeylogger",
         "variant": "vipkeylogger",
@@ -444,14 +446,23 @@ def analyze_chain(data: bytes) -> dict[str, object]:
             "recovered_bytes_published": False,
         },
     }
+    return report, recovered[0][0] if recovered else None
+
+
+def analyze_chain(data: bytes) -> dict[str, object]:
+    """JS→LuaJIT→Donut→managed terminalを実行せず静的に追跡する。"""
+
+    report, _terminal = _analyze_chain_with_terminal(data)
+    return report
 
 
 def extract(data: bytes, name: str = "sample") -> dict[str, object]:
     """共通handler向けに公開可能な設定・hash・構造だけを返す。"""
 
     try:
-        chain = analyze_chain(data)
+        chain, terminal = _analyze_chain_with_terminal(data)
     except (SnakeStaticRecoveryError, ValueError):
+        terminal = None
         chain = {
             "status": "rejected_or_not_recovered",
             "layers": [_layer("submitted", data)],
@@ -490,7 +501,7 @@ def extract(data: bytes, name: str = "sample") -> dict[str, object]:
         for item in config.get("config_endpoints", [])
         if isinstance(item, dict)
     ]
-    return build_result(
+    result = build_result(
         "snakekeylogger",
         data,
         config,
@@ -501,6 +512,14 @@ def extract(data: bytes, name: str = "sample") -> dict[str, object]:
             "復元layerとmanaged payloadは実行せず、外部hostへ接続していません。",
         ],
     )
+    if terminal is not None:
+        digest = _sha256(terminal)
+        result["terminal_payload"] = {
+            "role": "terminal_payload",
+            "name": f"{digest}.exe",
+            "data": terminal,
+        }
+    return result
 
 
 __all__ = [

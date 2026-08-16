@@ -67,7 +67,8 @@ def _handler_spec():
 def test_handler_confirms_full_chain_and_static_config() -> None:
     """外層から4反復slotまで一致した場合だけtier 3の静的設定を返す。"""
 
-    result = ANALYZER.analyze(_source_with_terminal_config(), "offline-fixture.exe")
+    shellcode, _config = FIXTURES._terminal_config_fixture()
+    result = ANALYZER.analyze(FIXTURES._fixture(shellcode), "offline-fixture.exe")
 
     assert result["matched"] is True
     assert result["config"]["static_config_recovered"] is True
@@ -80,6 +81,11 @@ def test_handler_confirms_full_chain_and_static_config() -> None:
     assert result["attribution"]["independent_onyx_family"]["status"] == "unresolved"
     assert result["executed"] is False
     assert result["network_contacted"] is False
+    assert result["terminal_payload"] == {
+        "role": "terminal_payload",
+        "name": f"{hashlib.sha256(shellcode).hexdigest()}.bin",
+        "data": shellcode,
+    }
     assert handler_result_quality(result)["tier"] == 3
 
 
@@ -101,6 +107,7 @@ def test_handler_fails_closed_before_and_after_outer_recovery() -> None:
         assert result["config"]["static_config_recovered"] is False
         assert result["config"]["endpoints"] == []
         assert result["representative_functions"] == []
+        assert "terminal_payload" not in result
         assert handler_result_quality(result)["sufficient"] is False
 
 

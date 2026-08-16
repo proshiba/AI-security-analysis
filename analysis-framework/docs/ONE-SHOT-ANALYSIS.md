@@ -111,6 +111,7 @@ HANDLER_CONTRACT = {
 <output>/
   summary.json
   follow-on-analysis.json
+  terminal-payload-acquisition.json
   cases/<sha256>/
     report.json
     static-layers.json
@@ -133,7 +134,10 @@ HANDLER_CONTRACT = {
 
 - `summary.json`: root入力の件数・状態、後段payloadの`derived_cases`／`derived_counts`、解析器の証拠状態、汎用解析の網羅状態、再開件数、解析契約
 - `follow-on-analysis.json`: rootから保持payloadを辿ったnode／edge、深さ、除外理由、上限、子解析契約SHA-256
+- `terminal-payload-acquisition.json`: graph終端の検証済みpayload SHA-256、保留候補、停止理由。raw bytesや外部取得結果は含めない
 - `static-layers.json`: 静的復元の親子関係、方法、上限適用状況。復元本文は含まない
+
+検証済みfamily handlerが復元したterminal bytesは、worker内部の`terminal_payload` recordから親processへだけ渡します。親processがsizeとSHA-256を再計算して一致した場合に限り`p/<sha256>.<kind別拡張子>`へ保持し、root reportの`retained_artifact_paths`と`artifact_sha256`へ結合します。公開handler JSONは`content_exported=false`のmetadataだけで、bytes、復号key、秘密値を含みません。自己再出力は`cycle_detected`付きの保留frontierになり、`complete`として扱いません。
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
 - `family-routing.json`: 全レイヤーの候補、証拠tier、一意性、候補handler実行可否
 - `candidate-handler-assessment.json`: external hint候補の隔離検証結果。候補観測とfamily確定を分離する

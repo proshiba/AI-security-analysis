@@ -313,6 +313,9 @@ def test_derived_summary_is_validated_separately(
                 "state": "analyzed",
                 "case_state": "complete",
                 "size": 10,
+                "family_hint_count": 0,
+                "family_hint_root_sha256": None,
+                "family_hint_lineage_depth": None,
             },
         ],
         "edges": [
@@ -400,6 +403,36 @@ def test_derived_summary_is_validated_separately(
 
     assert counts["analyzed"] == 1
     assert len(validated["derived_cases"]) == 1
+
+    hinted = deepcopy(follow_on)
+    hinted["nodes"][1].update(
+        {
+            "family_hint_count": 1,
+            "family_hint_root_sha256": root_sha256,
+            "family_hint_lineage_depth": 1,
+        }
+    )
+    replace_follow_on(output, hinted)
+    validated, counts = runner._validated_summary(
+        output / "summary.json",
+        expected_input_files=1,
+    )
+    for field, invalid in (
+        ("family_hint_count", True),
+        ("family_hint_root_sha256", child_sha256),
+        ("family_hint_lineage_depth", runner.MAX_FAMILY_HINT_LINEAGE_DEPTH + 1),
+    ):
+        forged_hint = deepcopy(hinted)
+        forged_hint["nodes"][1][field] = invalid
+        replace_follow_on(output, forged_hint)
+        with pytest.raises(runner.JobContractError) as caught:
+            runner._validated_summary(output / "summary.json", expected_input_files=1)
+        assert caught.value.code == "summary_invalid"
+    replace_follow_on(output, hinted)
+    validated, counts = runner._validated_summary(
+        output / "summary.json",
+        expected_input_files=1,
+    )
 
     omitted = json.loads(json.dumps(validated))
     omitted["derived_cases"] = []
@@ -775,6 +808,9 @@ def test_follow_on_total_queue_bytes_over_hard_limit_is_rejected(tmp_path: Path)
                         "depth": 1,
                         "state": "timeout",
                         "size": size,
+                        "family_hint_count": 0,
+                        "family_hint_root_sha256": None,
+                        "family_hint_lineage_depth": None,
                     }
                     for digest in children
                 ],
@@ -816,7 +852,16 @@ def test_complete_edge_cannot_point_to_failed_node(tmp_path: Path) -> None:
             "status": "partial",
             "nodes": [
                 {"sha256": root, "depth": 0, "state": "root"},
-                {"sha256": child, "depth": 1, "state": "failed", "size": 10},
+                {
+                    "sha256": child,
+                    "depth": 1,
+                    "state": "failed",
+                    "size": 10,
+                    "error_type": "ValueError",
+                    "family_hint_count": 0,
+                    "family_hint_root_sha256": None,
+                    "family_hint_lineage_depth": None,
+                },
             ],
             "edges": [
                 {

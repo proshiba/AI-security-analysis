@@ -16,6 +16,9 @@ from typing import Any
 
 PIPELINE_CONTRACT_VERSION = 2
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+RETAINED_ARTIFACT_RE = re.compile(
+    r"p/(?P<sha256>[0-9a-f]{64})\.(?:archive|bin|elf|exe|macho|txt)\Z"
+)
 REPORT_SEMANTIC_HASH_FIELD = "report_semantic_sha256"
 MAX_ARTIFACT_COUNT = 4_096
 MAX_ARTIFACT_PATH_LENGTH = 1_024
@@ -856,6 +859,39 @@ def _required_artifact_paths(report: Mapping[str, Any]) -> tuple[set[str], list[
                 required.add(normalize_artifact_path(relative))
             except ValueError:
                 errors.append(f"unsafe_knowledge_artifact_path:{key}")
+
+    retained = report.get("retained_artifact_paths")
+    if retained is not None:
+        if (
+            not isinstance(retained, list)
+            or len(retained) > MAX_ARTIFACT_COUNT
+            or any(not isinstance(relative, str) for relative in retained)
+        ):
+            errors.append("retained_artifact_paths_invalid")
+        elif retained != sorted(set(retained)):
+            errors.append("retained_artifact_paths_not_canonical")
+        else:
+            manifest = report.get("artifact_sha256")
+            for index, relative in enumerate(retained):
+                match = RETAINED_ARTIFACT_RE.fullmatch(relative)
+                if match is None:
+                    errors.append(f"retained_artifact_path_invalid:{index}")
+                    continue
+                try:
+                    normalized = normalize_artifact_path(relative)
+                except ValueError:
+                    errors.append(f"retained_artifact_path_unsafe:{index}")
+                    continue
+                if normalized != relative:
+                    errors.append(f"retained_artifact_path_not_normalized:{index}")
+                    continue
+                if (
+                    not isinstance(manifest, Mapping)
+                    or manifest.get(relative) != match.group("sha256")
+                ):
+                    errors.append(f"retained_artifact_hash_mismatch:{index}")
+                    continue
+                required.add(relative)
 
     executions = report.get("handler_executions")
     if not isinstance(executions, list) or len(executions) > MAX_ARTIFACT_COUNT:

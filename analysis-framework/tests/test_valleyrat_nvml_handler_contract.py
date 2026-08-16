@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 from pathlib import Path
 import sys
@@ -16,9 +17,11 @@ for import_root in (REPOSITORY_ROOT, COMMON):
 from analysis_contract import handler_result_quality  # noqa: E402
 from handler_catalog import (  # noqa: E402
     discover_handlers,
+    execute_handler_bounded_for_assessment,
     preflight_handler_for_assessment,
 )
 from extractors.valleyrat.extractor import extract  # noqa: E402
+from extractors.valleyrat.nvml_dat import recover_nvml_dat  # noqa: E402
 
 
 def _load_module(name: str, path: Path):
@@ -91,6 +94,7 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
 
     dat = FIXTURE._nvml_dat()
     expected = ["192.0.2.10:6666", "198.51.100.20:7777"]
+    recovered = recover_nvml_dat(dat)
 
     generic = extract(dat, "NVML.DAT")
     signed = SIGNED_ANALYZER.analyze(dat, "NVML.DAT")
@@ -102,6 +106,11 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
         assert result["config"]["static_config_recovered"] is True
         assert result["config"]["endpoints"] == expected
         assert result["network_contacted"] is False
+        assert result["terminal_payload"] == {
+            "role": "terminal_payload",
+            "name": f"{recovered.stage_sha256}.bin",
+            "data": recovered.stage,
+        }
     assert signed["matched_patterns"] == ["nvml_dat_static_stage_codemark"]
     assert signed["config"]["nvml_dat"]["safety"] == {
         "sample_executed": False,
@@ -110,6 +119,54 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
         "raw_stage_included": False,
         "raw_key_included": False,
     }
+
+
+def test_nvml_worker_rehashes_and_retains_terminal_for_follow_on(
+    tmp_path: Path,
+) -> None:
+    """worker-private stageを親で再検証し、公開結果へraw bytesを残さない。"""
+
+    dat = FIXTURE._nvml_dat()
+    recovered = recover_nvml_dat(dat)
+    handler = next(
+        item
+        for item in _handlers()
+        if item.relative_path == "extractors/valleyrat/extractor.py"
+    )
+    retained_directory = (tmp_path / "retained").resolve()
+    retained_directory.mkdir()
+
+    bounded = execute_handler_bounded_for_assessment(
+        handler,
+        dat,
+        "NVML.DAT",
+        actual_format="data",
+        artifact_directory=retained_directory,
+        artifact_path_prefix="p",
+    )
+
+    assert bounded["status"] == "completed"
+    execution = bounded["execution"]
+    digest = hashlib.sha256(recovered.stage).hexdigest()
+    assert (retained_directory / f"{digest}.bin").read_bytes() == recovered.stage
+    assert execution["verified_binary_outputs"] == [
+        {
+            "role": "terminal_payload",
+            "kind": "binary",
+            "path": f"p/{digest}.bin",
+            "sha256": digest,
+            "size": len(recovered.stage),
+            "verification": {
+                "status": "artifact_hash_verified",
+                "sha256_matches": True,
+                "size_matches": True,
+            },
+        }
+    ]
+    audit = execution["verified_binary_output_audit"]
+    assert audit["retained_for_follow_on_analysis"] is True
+    assert audit["observation_scope"] == "parent_rehashed_case_artifact"
+    assert execution["result"]["terminal_payload"]["data"]["content_exported"] is False
 
 
 def test_nvml_bundle_needs_correlated_loader_structure() -> None:
