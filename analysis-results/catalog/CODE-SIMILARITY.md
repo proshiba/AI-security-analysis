@@ -7,8 +7,8 @@
 
 | 項目 | 件数 |
 |---|---:|
-| static-logic.json | 2343 |
-| fingerprint対象関数 | 32167 |
+| static-logic.json | 2344 |
+| fingerprint対象関数 | 32170 |
 | 完全一致group | 3214 |
 | SimHash完全一致group | 1785 |
 | 評価した非一致候補pair | 9934999 |

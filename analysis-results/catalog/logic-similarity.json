@@ -8,14 +8,14 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 2344,
-    "profiled_cases": 1486,
-    "candidate_pairs_before_limit": 428304,
-    "retained_pairs": 6848,
+    "catalog_cases": 2345,
+    "profiled_cases": 1487,
+    "candidate_pairs_before_limit": 428343,
+    "retained_pairs": 6852,
     "levels": {
       "高": 4138,
-      "中": 2517,
-      "参考候補": 193
+      "中": 2520,
+      "参考候補": 194
     }
   },
   "profiles": {
@@ -20499,6 +20499,48 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/wannacry/versions/unknown/cases/3b4607b7a1a0b179b4f33e798fe7c2cd2c758ae39c22627680299782c18d195e/OVERALL-LOGIC.md"
+    },
+    "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86": {
+      "case_id": "sha256:3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "family": "vidar",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [
+          "root:pe"
+        ],
+        "module_stack": [
+          "submitted_root_pe:x86:le:64:default"
+        ],
+        "capabilities": [
+          "analysis:status",
+          "config:recovered",
+          "obfuscation:xor",
+          "packing:suspected",
+          "unpack:artifacts",
+          "unpack:status"
+        ],
+        "function_roles": [
+          "bounded_config_record_parser",
+          "config_parser_entry",
+          "repeating_xor_string_decoder"
+        ],
+        "code_fingerprints": [
+          "semantic:2209c508baa9db38b1082ae6465fd420904b66855a77591c1fab79a326dfa888",
+          "semantic:408c44558175f8ad8179f1fe219884f895e9e7a9693f70591d73425fbfdab90d",
+          "semantic:8c89685841689344e900d8897be1e887d5093e4af200aed3bb19ab389cee920d"
+        ]
+      },
+      "available_dimensions": [
+        "layer_chain",
+        "module_stack",
+        "capabilities",
+        "function_roles",
+        "code_fingerprints"
+      ],
+      "document_path": "analysis-results/malware/vidar/versions/unknown/cases/3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86/OVERALL-LOGIC.md"
     },
     "3ba5b660d4b77aafbcb28f027a8ec60735eaf98511b9f566ae0a6447bce836a4": {
       "case_id": "sha256:3ba5b660d4b77aafbcb28f027a8ec60735eaf98511b9f566ae0a6447bce836a4",
@@ -444195,6 +444237,72 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
+      "left_sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "right_sha256": "5c81219c7f169c9df974ae86e9169edf9b154efaae91c305199ef76ef7af2e32",
+      "same_family": true,
+      "score": 0.6111,
+      "level": "中",
+      "independent_evidence_axes": 2,
+      "evidence": [
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 0.5,
+          "shared": [
+            "root:pe"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 0.8333,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 5
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "right_sha256": "fffea311df81dd89343d57638195770e48cb37492ed953c652fabc7716aaebbb",
+      "same_family": true,
+      "score": 0.6111,
+      "level": "中",
+      "independent_evidence_axes": 2,
+      "evidence": [
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 0.5,
+          "shared": [
+            "root:pe"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 0.8333,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 5
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
       "left_sha256": "4dadfe0d60ca295ca0a3865cccf3d47c09ffbd05f2e2d76a578e8d645ab72f6b",
       "right_sha256": "5c113804b804fb934afe84965e69a2bd912cef31203b2e4f367d8986b8783c93",
       "same_family": true,
@@ -459666,6 +459774,39 @@
     {
       "left_sha256": "2722e3fa2347b1a5c39b44773baa719a3bf1414b82814b780a5872e21cd3c9ca",
       "right_sha256": "652f91bcf60dc148e7af64bf509cd4f7e4ffac685030bc260c59c7b869585ac9",
+      "same_family": true,
+      "score": 0.5417,
+      "level": "中",
+      "independent_evidence_axes": 2,
+      "evidence": [
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 0.5,
+          "shared": [
+            "root:pe"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 0.625,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 5
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "right_sha256": "63eedb85b370d3d55a6023987dc1ca36c49074b364804b3187aa9db9eac2dd33",
       "same_family": true,
       "score": 0.5417,
       "level": "中",
@@ -475790,6 +475931,39 @@
             "semantic:3f3829877ca718b323c7f6e37a45ff06211613903ce754324da67af84f9d1be0"
           ],
           "shared_total": 1
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "right_sha256": "dc6149638981cc66314286fc00c75a16e54aac19811425f5bf0ab56256115dc5",
+      "same_family": true,
+      "score": 0.3611,
+      "level": "参考候補",
+      "independent_evidence_axes": 2,
+      "evidence": [
+        {
+          "dimension": "layer_chain",
+          "label_ja": "感染・復元層",
+          "similarity": 0.5,
+          "shared": [
+            "root:pe"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 0.625,
+          "shared": [
+            "analysis:status",
+            "config:recovered",
+            "packing:suspected",
+            "unpack:artifacts",
+            "unpack:status"
+          ],
+          "shared_total": 5
         }
       ],
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
