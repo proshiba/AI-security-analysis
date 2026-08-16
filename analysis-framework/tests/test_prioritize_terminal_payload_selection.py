@@ -56,6 +56,36 @@ def test_priority_merge_replaces_oldest_and_preserves_count() -> None:
     assert updated["complete"] is False
 
 
+def test_priority_merge_never_replaces_already_selected_priority_candidate() -> None:
+    base_rows = [
+        _row("a", "2026-08-11 03:00:00"),
+        _row("b", "2026-08-11 02:00:00"),
+        _row("c", "2026-08-11 01:00:00"),
+    ]
+    base = {
+        "selection_mode": "windows_pe_newest",
+        "requested": 3,
+        "selected_hashes": [row["sha256_hash"] for row in base_rows],
+        "selected_metadata": base_rows,
+    }
+
+    updated, plan = MODULE.build_priority_plan(
+        base,
+        [
+            _priority("Vidar", base_rows[2]),
+            _priority("StealC", _row("d", "2026-08-10 23:00:00")),
+        ],
+    )
+
+    assert updated["selected_hashes"] == ["a" * 64, "c" * 64, "d" * 64]
+    assert plan["terminal_payload_priority"]["already_selected"] == [
+        {"family": "Vidar", "sha256": "c" * 64}
+    ]
+    assert plan["terminal_payload_priority"]["replaced"] == [
+        {"sha256": "b" * 64, "first_seen": "2026-08-11 02:00:00"}
+    ]
+
+
 def test_priority_merge_rejects_mismatched_metadata() -> None:
     base_row = _row("a", "2026-08-11 03:00:00")
     base = {
