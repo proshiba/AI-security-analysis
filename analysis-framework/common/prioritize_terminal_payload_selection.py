@@ -67,7 +67,12 @@ def build_priority_plan(
         row["terminal_payload_priority_family"] = family.lower()
         additions.append(row)
 
-    removable = sorted(metadata, key=_timestamp)
+    removable = sorted(
+        (row for row in metadata if _digest(row.get("sha256_hash")) not in seen_priority),
+        key=_timestamp,
+    )
+    if len(removable) < len(additions):
+        raise ValueError("base selection does not contain enough non-priority candidates")
     removed = removable[: len(additions)]
     removed_hashes = {_digest(row.get("sha256_hash")) for row in removed}
     retained = [row for row in metadata if _digest(row.get("sha256_hash")) not in removed_hashes]
