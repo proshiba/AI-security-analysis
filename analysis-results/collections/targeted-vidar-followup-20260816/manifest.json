@@ -1,0 +1,61 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": "AMD64",
+        "file_format": "PE",
+        "file_name": "file",
+        "file_size": 1172992,
+        "file_type": "exe",
+        "first_seen": "2026-08-15 08:59:38",
+        "imphash": "",
+        "last_seen": null,
+        "md5_hash": "8d6a64f6d182ed18bec2b930aa5fd34b",
+        "sha1_hash": "c6312fe79928195b88a8cff0ee0bc91026ced2f4",
+        "sha256_hash": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+        "signature": "Vidar",
+        "ssdeep": "12288:2ebDqFvs5yoWkkq2mimqz5T8e1VJD3B1LXJw:2e3XpEm2",
+        "tags": [
+          "exe",
+          "upx-dec",
+          "vidar"
+        ],
+        "tlsh": "T13645618ED4821374B393FB33965AD7225DF6350681B28A36CF867D355F02E21A41AECD"
+      },
+      "sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "zip_sha256": "4aa92411782e8ae4cfeb6466ca9c7c485d6e7fc20dda1353464af7242a019b97",
+      "zip_size": 403920
+    }
+  ],
+  "analysis_complete": false,
+  "analysis_contract_sha256": "9573bb1947967e0dbc05d8815a21851ee9316550534fcecb41e99c9c0c24514a",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86"
+    }
+  ],
+  "collection_id": "targeted-vidar-followup-20260816",
+  "complete": false,
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "vidar",
+      "path": "sources/vidar"
+    }
+  ],
+  "file_types": null,
+  "first_seen_newest": "2026-08-15 08:59:38",
+  "first_seen_oldest": "2026-08-15 08:59:38",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "analysis_followup_pending",
+  "query_limit": 50,
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": "2026-08-16T00:06:05.673372+00:00",
+  "selection_mode": "signature_newest",
+  "source": "MalwareBazaar Community API"
+}

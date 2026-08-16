@@ -17683,7 +17683,7 @@
   },
   "schema_version": 1,
   "scope": {
-    "catalog_case_count": 2344,
+    "catalog_case_count": 2345,
     "curated_active_count": 72,
     "curated_source_absent_count": 5,
     "family_count": 39,
@@ -17695,7 +17695,7 @@
       "source_material_absent": 5
     },
     "structured_report_match_count": 17,
-    "structured_terminal_completion_count": 22
+    "structured_terminal_completion_count": 23
   },
   "source_paths": [
     "analysis-framework/inventories/static-hard-cases.yaml",

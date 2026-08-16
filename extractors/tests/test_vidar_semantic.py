@@ -8,12 +8,14 @@ def test_social_urls_are_dead_drops_not_final_c2() -> None:
         {
             "c2_urls": [
                 "https://t.me/gk6p2s",
+                "https://www.pinterest.com/m1duus",
                 "https://steamcommunity.com/profiles/76561198667588759",
             ]
         }
     )
     assert result["dead_drop_urls"] == [
         "https://t.me/gk6p2s",
+        "https://www.pinterest.com/m1duus",
         "https://steamcommunity.com/profiles/76561198667588759",
     ]
     assert result["final_c2_candidates"] == []
@@ -21,6 +23,7 @@ def test_social_urls_are_dead_drops_not_final_c2() -> None:
     assert result["requires_dead_drop_resolution"] is True
     assert [item["role"] for item in result["endpoints"]] == [
         "dead_drop.telegram",
+        "dead_drop.pinterest_profile",
         "dead_drop.steam_profile",
     ]
 

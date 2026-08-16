@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import re
 
 from extractors.common import build_result, extract_strings
 from extractors.stealer_common import extract_stealer, feature_hits, infrastructure_urls, url_role
 from unpackers.container_recovery import recover_inflated_pe
+
+from extractors.vidar.semantic import classify_recovered_config
 
 KEY_LENGTH = 16
 MAX_CONFIG_SCAN = 64 * 1024 * 1024
@@ -74,7 +77,7 @@ def _try_config(data: bytes, offset: int) -> dict | None:
         "build_id": build.decode("ascii"),
         "records": records,
         "c2_urls": [item["url"] for item in records],
-        "xor_key_hex": key.hex(),
+        "xor_key_sha256": hashlib.sha256(key).hexdigest(),
         "profile": "vidar_repeated_xor_v1_5_plus",
     }
 
@@ -144,22 +147,39 @@ def extract(data: bytes, name: str = "sample") -> dict:
         result["config"]["original_size"] = len(data)
         return result
     strings = extract_strings(string_source)
-    urls = sorted(set(recovered["c2_urls"]) | set(infrastructure_urls(strings)))
-    findings = [
-        {
-            "kind": "network.url",
-            "value": value,
-            "role": "c2" if value in recovered["c2_urls"] else url_role(value),
-            "confidence": "confirmed" if value in recovered["c2_urls"] else "candidate",
-            "source": "vidar_xor_config" if value in recovered["c2_urls"] else "embedded_literal",
-        }
-        for value in urls
+    config_record_urls = [
+        value for value in recovered["c2_urls"] if isinstance(value, str)
     ]
+    semantics = classify_recovered_config(recovered)
+    semantics_by_url = {item["url"]: item for item in semantics["endpoints"]}
+    urls = sorted(set(config_record_urls) | set(infrastructure_urls(strings)))
+    findings = []
+    for value in urls:
+        endpoint = semantics_by_url.get(value)
+        findings.append(
+            {
+                "kind": "network.url",
+                "value": value,
+                "role": endpoint["role"] if endpoint else url_role(value),
+                "confidence": endpoint["confidence"] if endpoint else "candidate",
+                "source": "vidar_xor_config" if endpoint else "embedded_literal",
+                **({"semantic_reason": endpoint["reason"]} if endpoint else {}),
+            }
+        )
+    decoded_features = feature_hits(strings, features)
+    if any(item["role"] == "dead_drop.telegram" for item in semantics["endpoints"]):
+        decoded_features["telegram_dead_drop"] = True
     config = {
         "source_name": name,
         **recovered,
+        "config_record_urls": config_record_urls,
+        "c2_urls": list(semantics["final_c2_candidates"]),
+        "dead_drop_urls": list(semantics["dead_drop_urls"]),
+        "endpoint_semantics": semantics["endpoints"],
+        "final_c2_recovered": semantics["final_c2_recovered"],
+        "requires_dead_drop_resolution": semantics["requires_dead_drop_resolution"],
         "static_config_recovered": True,
-        "features": feature_hits(strings, features),
+        "features": decoded_features,
     }
     return build_result(
         "vidar",
@@ -167,8 +187,8 @@ def extract(data: bytes, name: str = "sample") -> dict:
         config,
         findings,
         [
-            "XOR config validation requires a version and at least one printable HTTP record.",
-            "Dead-drop URLs can resolve infrastructure indirectly and are reported separately from decoded server records.",
-            "No recovered endpoint or social profile was contacted.",
+            "XOR設定はversionと1件以上の印字可能なHTTP recordを必須条件として検証しました。",
+            "dead-drop URLは最終C2と分離し、間接的なinfrastructure解決候補として記録しました。",
+            "回収したendpointやsocial profileへの接続は行っていません。",
         ],
     )

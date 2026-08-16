@@ -3985,6 +3985,13 @@
       "provisional_cluster_id": "booking-clickfix-nativeaot",
       "version_key": "unknown"
     },
+    "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "case_id": "sha256:3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "3ba5b660d4b77aafbcb28f027a8ec60735eaf98511b9f566ae0a6447bce836a4": {
       "canonical_path": "analysis-results/malware/asyncrat/versions/unknown/cases/3ba5b660d4b77aafbcb28f027a8ec60735eaf98511b9f566ae0a6447bce836a4",
       "case_id": "sha256:3ba5b660d4b77aafbcb28f027a8ec60735eaf98511b9f566ae0a6447bce836a4",

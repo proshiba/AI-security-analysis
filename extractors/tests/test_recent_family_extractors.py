@@ -1,4 +1,4 @@
-"""Tests for Amadey, Latrodectus, and current Vidar config profiles."""
+"""Amadey、Latrodectus、現行Vidar設定profileの回帰テスト。"""
 
 from __future__ import annotations
 
@@ -44,10 +44,10 @@ def _encrypt_latro_legacy(seed: int, plain: bytes) -> bytes:
     return header + encoded_length + bytes(output)
 
 
-def _vidar_blob() -> bytes:
-    """Build one validated repeated-XOR Vidar config fixture."""
+def _vidar_blob(urls: tuple[bytes, ...] = (b"http://198.51.100.4/gate",)) -> bytes:
+    """検証済みの反復XOR Vidar設定fixtureを構築する。"""
     key = b"0123456789abcdef"
-    blob = bytearray(0x072 + 0x243 * 2)
+    blob = bytearray(0x072 + 0x243 * (len(urls) + 1))
     blob[:16] = key
 
     def store(base: int, value_offset: int, length_offset: int, value: bytes) -> None:
@@ -58,9 +58,11 @@ def _vidar_blob() -> bytes:
 
     store(0, 0x010, 0x030, b"1.8")
     store(0, 0x031, 0x071, b"fixture")
-    store(0x072, 0, 0x100, b"http://198.51.100.4/gate")
-    store(0x072, 0x101, 0x141, b"tag")
-    store(0x072, 0x142, 0x242, b"FixtureAgent/1")
+    for index, url in enumerate(urls):
+        base = 0x072 + 0x243 * index
+        store(base, 0, 0x100, url)
+        store(base, 0x101, 0x141, b"tag")
+        store(base, 0x142, 0x242, b"FixtureAgent/1")
     return bytes(blob)
 
 
@@ -86,14 +88,39 @@ def test_latrodectus_legacy_primitives_and_dispatch() -> None:
 
 
 def test_vidar_xor_config_and_extractor() -> None:
-    """Recover a current Vidar XOR profile and its confirmed C2 evidence."""
+    """現行Vidar XOR profileを回収し、未確証endpointとして保持する。"""
     blob = _vidar_blob()
     config = recover_xor_config(blob)
     assert config["version"] == "1.8" and config["build_id"] == "fixture"
     assert config["scan_source"] == "complete_input"
     assert config["c2_urls"] == ["http://198.51.100.4/gate"]
+    assert "xor_key_hex" not in config
+    assert len(config["xor_key_sha256"]) == 64
     result = extract_vidar(blob, "fixture.bin")
-    assert result["findings"][0]["confidence"] == "confirmed"
+    assert result["findings"][0]["confidence"] == "requires_protocol_or_response_corroboration"
+    assert result["config"]["final_c2_recovered"] is False
+
+
+def test_vidar_social_profiles_remain_dead_drops_in_base_extractor() -> None:
+    """共通handlerがsocial profileを確定C2へ昇格しないことを検証する。"""
+
+    urls = (
+        b"https://telegram.me/m1duus",
+        b"https://www.pinterest.com/m1duus",
+        b"https://steamcommunity.com/profiles/76561198657426610",
+    )
+    result = extract_vidar(_vidar_blob(urls), "fixture.bin")
+    config = result["config"]
+    assert config["config_record_urls"] == [value.decode("ascii") for value in urls]
+    assert config["c2_urls"] == []
+    assert config["dead_drop_urls"] == config["config_record_urls"]
+    assert config["final_c2_recovered"] is False
+    roles_by_url = {item["value"]: item["role"] for item in result["findings"]}
+    assert roles_by_url == {
+        urls[0].decode("ascii"): "dead_drop.telegram",
+        urls[1].decode("ascii"): "dead_drop.pinterest_profile",
+        urls[2].decode("ascii"): "dead_drop.steam_profile",
+    }
 
 
 def test_vidar_uses_compact_inflated_pe_for_large_input(monkeypatch) -> None:

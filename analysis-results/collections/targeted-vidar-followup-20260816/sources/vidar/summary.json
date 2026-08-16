@@ -1,0 +1,27 @@
+{
+  "cases": [
+    {
+      "attribution_basis": "one_shot_static_detector",
+      "c2_analysis_complete": false,
+      "c2_analysis_finding_count": 3,
+      "c2_analysis_outcome": "unresolved",
+      "case_path": "analysis-results/malware/vidar/versions/unknown/cases/3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "confirmed_static_c2_observations": 0,
+      "family": "vidar",
+      "file_type": "exe",
+      "first_seen": "2026-08-15 08:59:38",
+      "handler_failures": 0,
+      "handler_successes": 1,
+      "publication_stage": "analysis_followup_pending",
+      "reported_signature": "Vidar",
+      "sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "static_config_recovered": true,
+      "static_logic_status": "reviewed_function_logic"
+    }
+  ],
+  "count": 1,
+  "family": "vidar",
+  "network_contacted": false,
+  "sample_executed": false,
+  "schema_version": 1
+}

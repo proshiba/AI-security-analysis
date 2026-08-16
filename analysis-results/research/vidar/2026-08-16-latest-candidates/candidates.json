@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-08-16",
+  "provider": "MalwareBazaar Community API",
+  "provider_signature": "Vidar",
+  "sample_execution": false,
+  "network_contacted_for_analysis": false,
+  "candidates": [
+    {
+      "sha256": "79399d2ccde8a358e1f62b9422e4ba4d337d14b293f0d351b5f611549188cf19",
+      "size": 3612680,
+      "first_seen": "2026-08-15 16:26:22",
+      "signer_subject": "NexaPulse Solutions",
+      "static_format": "signed_obfuscated_go_x86_64_pe",
+      "vidar_specific_config_recovered": false,
+      "child_recovered": false,
+      "attribution": "unconfirmed_provider_label_only"
+    },
+    {
+      "sha256": "c713bb386cb58f4e69960add340c8597fad9989cfb00a6bcfe2f4767dbf1cfc4",
+      "size": 3767304,
+      "first_seen": "2026-08-15 16:15:11",
+      "signer_subject": "NexaForge Solutions",
+      "static_format": "signed_obfuscated_go_x86_64_pe",
+      "vidar_specific_config_recovered": false,
+      "child_recovered": false,
+      "attribution": "unconfirmed_provider_label_only"
+    },
+    {
+      "sha256": "574b25e2d65712a885dd877d89d73e446104db074c63ec5d8c8af3583bf83956",
+      "size": 3383824,
+      "first_seen": "2026-08-15 11:48:04",
+      "signer_subject": "NexusBridge Technologies",
+      "static_format": "signed_obfuscated_go_x86_64_pe",
+      "vidar_specific_config_recovered": false,
+      "child_recovered": false,
+      "attribution": "unconfirmed_provider_label_only"
+    },
+    {
+      "sha256": "4395c75e4e288387972513b9760f6c868e6b2c2da417c723c24bcf32f11d69fd",
+      "size": 3808848,
+      "first_seen": "2026-08-15 09:02:36",
+      "signer_subject": "NexaForge Solutions",
+      "static_format": "signed_obfuscated_go_x86_64_pe",
+      "vidar_specific_config_recovered": false,
+      "child_recovered": false,
+      "attribution": "unconfirmed_provider_label_only"
+    },
+    {
+      "sha256": "3b8e7ffdd1469728a242a7b86bb168486dc2b7258b03aa15c52df604e1105e86",
+      "size": 1172992,
+      "first_seen": "2026-08-15 08:59:38",
+      "signer_subject": null,
+      "static_format": "x86_64_pe",
+      "vidar_specific_config_recovered": true,
+      "config_version": "3.0",
+      "dead_drop_count": 3,
+      "final_c2_recovered": false,
+      "attribution": "confirmed_internal_static_evidence"
+    }
+  ]
+}

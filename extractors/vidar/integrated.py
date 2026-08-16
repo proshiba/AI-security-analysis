@@ -1,4 +1,4 @@
-"""Vidar extractorへDDR/final-C2 semanticsを適用する互換adapter。"""
+"""Vidar extractorへdead-drop／最終C2の意味論を適用する互換adapter。"""
 
 from __future__ import annotations
 
@@ -7,11 +7,15 @@ from .semantic import classify_recovered_config
 
 
 def extract(data: bytes, name: str = "sample") -> dict:
-    """既存静的復元結果を維持しつつ、設定URLの役割を保守的に修正する。"""
+    """既存抽出結果を維持しつつ、設定URLの役割を保守的に補正する。"""
 
     result = _extract_base(data, name)
     config = result.get("config")
     if not isinstance(config, dict) or not config.get("static_config_recovered"):
+        return result
+    if isinstance(config.get("endpoint_semantics"), list) and isinstance(
+        config.get("config_record_urls"), list
+    ):
         return result
     semantics = classify_recovered_config(config)
     original_urls = [
