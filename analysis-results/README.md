@@ -114,6 +114,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [共有インフラ・子要素によるcampaign候補27群](research/campaigns/correlated-20260723/README.md)
 - [過去の未完了・未スクリプト化項目の監査（2026-07-17時点）](research/audits/static-analysis-audit-20260717/README.md)
 - [難解析80件／静的解析155 layer](research/audits/static-hard-cases/README.md)
+- [StealC保護外層11件のcluster追加静的解析](research/static-analysis/stealc-taggant-wrapper-cluster-20260815/README.md)
 - [unpacking再評価](research/audits/unpacking-reassessment-20260715.md)
 - [SpyGlace／APT-C-60攻撃キャンペーン](research/campaigns/spyglace/apt-c60-2026/README.md)
 - [AtlasCross／Silver Fox偽VPNキャンペーン](research/campaigns/atlascross/silver-fox-vpn-2026/README.md)

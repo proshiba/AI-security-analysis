@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "orchestration_id": "daily-20260815-static",
+  "workflows": [
+    {
+      "schema_version": 1,
+      "workflow_id": "daily-20260815-sample-001",
+      "job": {
+        "schema_version": 1,
+        "job_id": "daily-20260815-sample-001",
+        "inputs": [
+          "sample-001/target.zip"
+        ],
+        "options": {}
+      },
+      "publication": {
+        "enabled": false,
+        "manifest": null,
+        "collection_id": null,
+        "expected_contract_sha256": null,
+        "allow_partial_staging": false
+      },
+      "maintenance": {
+        "refresh_repository": false
+      },
+      "private_archive": {
+        "enabled": false,
+        "target": null,
+        "include": []
+      }
+    },
+    {
+      "schema_version": 1,
+      "workflow_id": "daily-20260815-sample-002",
+      "job": {
+        "schema_version": 1,
+        "job_id": "daily-20260815-sample-002",
+        "inputs": [
+          "sample-002/target.bin"
+        ],
+        "options": {}
+      },
+      "publication": {
+        "enabled": false,
+        "manifest": null,
+        "collection_id": null,
+        "expected_contract_sha256": null,
+        "allow_partial_staging": false
+      },
+      "maintenance": {
+        "refresh_repository": false
+      },
+      "private_archive": {
+        "enabled": true,
+        "target": "daily-20260815-sample-002",
+        "include": [
+          "inputs",
+          "job_output"
+        ]
+      }
+    }
+  ],
+  "policy": {
+    "continue_after_partial": true,
+    "continue_after_failure": false
+  }
+}

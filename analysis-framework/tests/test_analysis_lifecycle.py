@@ -263,6 +263,7 @@ def test_partial_completion_is_resumable_without_repeating_succeeded_stages(tmp_
         input_root=input_root,
         work_root=work_root,
         timeout_seconds=60,
+        verify_succeeded_artifacts=False,
     )
     second_actions = fake_actions(calls, analysis_state="complete", completion="succeeded")
     finished = lifecycle._execute(context, resumed, second_actions)
@@ -298,6 +299,221 @@ def test_stage_fingerprint_tamper_is_rejected(tmp_path: Path) -> None:
             timeout_seconds=60,
         )
     assert caught.value.code == "stage_contract_changed"
+
+
+def test_state_record_schema_tamper_is_rejected(tmp_path: Path) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("state-schema-001"))
+    lifecycle._run_lifecycle_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=fake_actions([]),
+    )
+    state_path = work_root / "lifecycles" / request.workflow_id / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["stages"]["static_analysis"]["attempts"] = "1"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._existing_context(
+            request.workflow_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+    assert caught.value.code == "state_invalid"
+
+
+def test_final_workflow_status_must_match_stage_states(tmp_path: Path) -> None:
+    """全stage成功と矛盾するfinal statusやstage改ざんを拒否する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("state-semantics-001"))
+    lifecycle._run_lifecycle_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=fake_actions([]),
+    )
+    state_path = work_root / "lifecycles" / request.workflow_id / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    static = state["stages"]["static_analysis"]
+    static.update(
+        {
+            "status": "pending",
+            "started_at_utc": None,
+            "finished_at_utc": None,
+            "blockers": [],
+            "result": {},
+        }
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._existing_context(
+            request.workflow_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+    assert caught.value.code == "state_invalid"
+
+
+def test_resume_pending_state_remains_valid_after_interruption(tmp_path: Path) -> None:
+    """再試行予約直後に中断しても正規化済みstateを再読込できる。"""
+
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("resume-durable-001"))
+    lifecycle._run_lifecycle_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=fake_actions([], completion="blocked"),
+    )
+
+    _, reset = lifecycle._resume_context(
+        request.workflow_id,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        verify_succeeded_artifacts=False,
+    )
+    assert reset["status"] == "pending"
+    completion = reset["stages"]["completion_gate"]
+    assert completion["status"] == "pending"
+    assert completion["started_at_utc"] is None
+    assert completion["finished_at_utc"] is None
+    assert completion["blockers"] == []
+    assert completion["result"] == {}
+
+    _, reloaded = lifecycle._existing_context(
+        request.workflow_id,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+    )
+    assert reloaded == reset
+
+
+def test_static_artifact_hash_change_is_detected_before_resume(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("artifact-pin-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    contract_inputs = job_dir / "contract-inputs"
+    samples = contract_inputs / "samples"
+    samples.mkdir(parents=True)
+    bundle_path = contract_inputs / "analysis-contract-bundle.json"
+    snapshot_manifest_path = contract_inputs / "input-snapshot-manifest.json"
+    bundle_path.write_text("{}\n", encoding="utf-8")
+    snapshot_manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "archive_mode": "raw",
+                "file_count": 0,
+                "total_bytes": 0,
+                "files": [],
+            }
+        ) + "\n",
+        encoding="utf-8",
+    )
+    result_path = job_dir / "result.json"
+    summary_path = analysis / "summary.json"
+    result_path.write_text("{}\n", encoding="utf-8")
+    summary_path.write_text('{"state":"before"}\n', encoding="utf-8")
+    fake_result = {
+        "artifacts": {
+            "analysis_output": lifecycle.analysis_job_runner.validate_analysis_output_tree(analysis),
+            "analysis_contract_bundle": "contract-inputs/analysis-contract-bundle.json",
+            "analysis_contract_bundle_sha256": lifecycle._sha256_file(bundle_path),
+            "input_snapshot_manifest": "contract-inputs/input-snapshot-manifest.json",
+            "input_snapshot_manifest_sha256": lifecycle._sha256_file(snapshot_manifest_path),
+            "family_hint_manifest": None,
+            "family_hint_manifest_sha256": None,
+            "trusted_static_tools_manifest": None,
+            "trusted_static_tools_manifest_sha256": None,
+        }
+    }
+    monkeypatch.setattr(lifecycle, "_verified_static_result", lambda _context: fake_result)
+    record = {
+        "result": {
+            "result_sha256": lifecycle._sha256_file(result_path),
+            "summary_sha256": lifecycle._sha256_file(summary_path),
+            "analysis_tree_sha256": lifecycle._analysis_tree_sha256(analysis),
+        }
+    }
+
+    assert lifecycle._static_artifact_errors(context, record) == []
+    summary_path.write_text('{"state":"after"}\n', encoding="utf-8")
+
+    assert "static_summary_hash_mismatch" in lifecycle._static_artifact_errors(context, record)
+
+
+def test_resume_fails_closed_when_succeeded_artifact_verification_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("resume-pin-001"))
+    lifecycle._run_lifecycle_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=fake_actions([], analysis_state="partial", completion="blocked"),
+    )
+    monkeypatch.setattr(
+        lifecycle,
+        "_verification_errors",
+        lambda *_args, **_kwargs: ["static_summary_hash_mismatch"],
+    )
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._resume_context(
+            request.workflow_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+    assert caught.value.code == "succeeded_artifact_changed"
+
+
+def test_execution_lock_rejects_parallel_writer(tmp_path: Path) -> None:
+    root = tmp_path / "workflow"
+    root.mkdir()
+
+    with lifecycle._execution_lock(root):
+        with pytest.raises(lifecycle.LifecycleError) as caught:
+            with lifecycle._execution_lock(root):
+                pytest.fail("同じworkflowの二重lockを取得してはいけません")
+
+    assert caught.value.code == "workflow_locked"
 
 
 def test_verify_is_read_only_even_when_static_fixture_has_no_real_job(tmp_path: Path) -> None:

@@ -4,6 +4,8 @@
 
 このrunnerが自動化する対象は、証拠を機械的に再検証できる工程です。未復元payload、family帰属、代表関数、設定、C2などに証拠不足がある場合、推測で`complete`へ昇格しません。`partial`、blocker code、次に必要な静的解析種別をJSONへ残して停止します。
 
+複数の独立したlifecycleを1つのmanifestで統括する場合は、[解析全体オーケストレータ](ANALYSIS-ORCHESTRATOR.md)を使用します。各lifecycleの安全境界は維持したまま、全体の停止方針、進捗、再開、子workflow検証を追加します。
+
 ## 固定stage
 
 ```mermaid
@@ -185,7 +187,7 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py status `
   --workflow-id daily-20260815-sample-001
 ```
 
-`verify`はstateを書き換えず、保存request、全stage fingerprint、job安全契約、result hash、S3 reportを再検証します。
+`verify`はstateを書き換えず、保存request、全stage fingerprint、job安全契約、result／summary、入力snapshot、解析tree全体、公開report、S3 reportを再検証します。
 
 ```powershell
 py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py verify `
@@ -195,7 +197,7 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py verify `
   --work-root C:\analysis-work\jobs
 ```
 
-中断や一時的なpublication／generator／S3失敗は`resume`で未完stageだけを再試行できます。成功済みstageは再実行しません。
+中断や一時的なpublication／generator／S3失敗は`resume`で未完stageだけを再試行できます。成功済みstageは再実行前に同じ検証を受け、保存成果物が変化していれば`stage_artifact_changed`などのblockerで停止します。
 
 ```powershell
 py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py resume `
@@ -206,7 +208,9 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py resume `
   --timeout-seconds 3600
 ```
 
-再開時はrequest SHA-256と各stage実装fileのSHA-256を再計算します。解析器、publisher、完了validator、generator、archiver、lifecycle runnerのいずれかが変更された場合、古い成功状態を新しい契約へ流用せず`stage_contract_changed`で停止します。その場合は新しい`workflow_id`で再解析してください。
+再開時はrequest SHA-256と各stage実装fileのSHA-256を再計算します。解析器、publisher、完了validator、generator、archiver、lifecycle runnerのいずれかが変更された場合、古い成功状態を新しい契約へ流用せず`stage_contract_changed`で停止します。その場合は新しい`workflow_id`で再解析してください。解析tree、入力snapshot、公開reportの内容が変わった場合も、成功済みstageを信頼せず停止します。
+
+`run`、`test-run`、`resume`はworkflow単位のOS file lockを取得します。同じ`workflow_id`へ複数processが同時に書き込むことはできません。
 
 ## partialから解析完了へ進める
 
