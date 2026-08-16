@@ -546,6 +546,23 @@ def test_unmatched_forced_family_does_not_execute_handler(tmp_path: Path) -> Non
     report = json.loads((output / case["report"]).read_text(encoding="utf-8"))
     assert report["classification"]["selection_basis"] == "explicit_family_detector_unmatched"
     assert report["handler_executions"] == []
+    case_dir = (output / case["report"]).parent
+    patterns = json.loads(
+        (case_dir / "communication-patterns.json").read_text(encoding="utf-8")
+    )
+    c2_analysis = json.loads((case_dir / "c2-analysis.json").read_text(encoding="utf-8"))
+    assert patterns["status"] == "unresolved"
+    assert patterns["family"] == "unclassified"
+    assert c2_analysis["family"] == "unclassified"
+    assert patterns["communication"]["protocol_confirmed"] is False
+    assert patterns["communication"]["liveness_confirmed"] is False
+    assert c2_analysis["c2"]["outcome"] == "unresolved"
+    assert report["knowledge_artifacts"]["communication_patterns"] == (
+        "communication-patterns.json"
+    )
+    assert report["knowledge_artifacts"]["c2_analysis"] == "c2-analysis.json"
+    assert "communication-patterns.json" in report["artifact_sha256"]
+    assert "c2-analysis.json" in report["artifact_sha256"]
 
 
 def test_handler_never_runs_on_unrelated_sibling_layer(

@@ -68,6 +68,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
         sys.path.insert(0, value)
 
 import analyze_family_sample  # noqa: E402
+import automated_case_analysis  # noqa: E402
 import classify_sample  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
@@ -1916,6 +1917,7 @@ def analyze_unit(
     )
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
 
+
     report = {
         "schema_version": 1,
         "sample": {
@@ -2008,6 +2010,32 @@ def analyze_unit(
         outcome_candidates,
         outcome_handler_records,
     )
+
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for execution in executions:
+        relative = execution.get("result")
+        if not isinstance(relative, str):
+            continue
+        handler_results.append(
+            (
+                execution,
+                load_json_object_strict(resolve_case_artifact(case_dir, relative)),
+            )
+        )
+    automation_family = family_resolution.get("family")
+    if not isinstance(automation_family, str) or not automation_family:
+        automation_family = "unclassified"
+    communication_patterns, c2_analysis = (
+        automated_case_analysis.build_case_automation_artifacts(
+            sha256=digest,
+            family=automation_family,
+            layer_report=layer_report,
+            handler_results=handler_results,
+        )
+    )
+    write_json(case_dir / "communication-patterns.json", communication_patterns)
+    write_json(case_dir / "c2-analysis.json", c2_analysis)
+
     outcome = orchestration_outcome.build_outcome(
         sample_sha256=digest,
         generic_status=generic_status,
@@ -2057,6 +2085,8 @@ def analyze_unit(
         "campaign_labels": "campaign-labels.json",
         "static_logic": "static-logic.json",
         "static_logic_markdown": "STATIC-LOGIC.md",
+        "communication_patterns": "communication-patterns.json",
+        "c2_analysis": "c2-analysis.json",
     }
     report["case_state"] = completion
     report["classification"]["automation_family"] = family_resolution.get("family")
@@ -2082,6 +2112,8 @@ def analyze_unit(
         "campaign-labels.json",
         "static-logic.json",
         "STATIC-LOGIC.md",
+        "communication-patterns.json",
+        "c2-analysis.json",
     ]
     if not assessment_only:
         artifact_paths.append("generic-triage.json")
