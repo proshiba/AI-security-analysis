@@ -1360,10 +1360,13 @@ def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatc
                     'status': 'child_incomplete',
                 }
             ],
+            'omitted_metadata': [],
+            'omitted_metadata_commitments': [],
             'errors': [],
             'executed_sample': False,
             'network_contacted': False,
             'ai_used': False,
+            'wall_clock_exhausted': False,
         },
     )
     loaded: list[str] = []
@@ -1387,6 +1390,12 @@ def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatc
     assert summary['derived_cases'] == []
     assert summary['derived_counts']['analyzed'] == 0
     assert summary['follow_on_analysis']['status'] == 'partial'
+    assert summary['terminal_payload_acquisition']['status'] == 'pending'
+    acquisition = json.loads(
+        (output / 'terminal-payload-acquisition.json').read_text(encoding='utf-8')
+    )
+    assert acquisition['pending_sha256'] == [child]
+    assert acquisition['frontier'][0]['reason'] == 'child_timeout'
 
 
 def test_follow_on_contract_describes_actual_raw_child_settings() -> None:

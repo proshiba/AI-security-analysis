@@ -19,6 +19,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
     if value not in sys.path:
         sys.path.insert(0, value)
 
+import analysis_contract as contract  # noqa: E402
 import analyze_sample as one_shot  # noqa: E402
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
@@ -745,6 +746,26 @@ def test_selected_family_retained_output_stays_pending_end_to_end(
     assert outcome["outputs"]["terminal_payload_sha256"] == []
     assert "terminal_payload" in outcome["blockers"]
     assert "f" * 64 not in outcome["outputs"]["terminal_payload_sha256"]
+    retained_path = f"p/{terminal_sha256}.exe"
+    assert report["retained_artifact_paths"] == [retained_path]
+    required, errors = contract._required_artifact_paths(report)
+    assert retained_path in required
+    assert not [error for error in errors if error.startswith("retained_artifact_")]
+
+    unsafe = json.loads(json.dumps(report))
+    unsafe["retained_artifact_paths"] = [f"p/../{terminal_sha256}.exe"]
+    _required, unsafe_errors = contract._required_artifact_paths(unsafe)
+    assert "retained_artifact_path_invalid:0" in unsafe_errors
+
+    mismatched = json.loads(json.dumps(report))
+    mismatched["artifact_sha256"][retained_path] = "0" * 64
+    _required, mismatch_errors = contract._required_artifact_paths(mismatched)
+    assert "retained_artifact_hash_mismatch:0" in mismatch_errors
+
+    noncanonical = json.loads(json.dumps(report))
+    noncanonical["retained_artifact_paths"] = [retained_path, retained_path]
+    _required, canonical_errors = contract._required_artifact_paths(noncanonical)
+    assert "retained_artifact_paths_not_canonical" in canonical_errors
 
 
 def test_selected_family_timeout_keeps_legacy_failure_schema(tmp_path: Path, monkeypatch) -> None:

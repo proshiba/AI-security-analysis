@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -46,6 +47,11 @@ def test_common_extractor_recovers_confirmed_onyx_endpoint() -> None:
     )
     assert result["executed"] is False
     assert result["network_contacted"] is False
+    payload = result["terminal_payload"]
+    assert payload["role"] == "terminal_payload"
+    assert payload["data"] == shellcode
+    assert payload["name"] == f"{hashlib.sha256(shellcode).hexdigest()}.bin"
+    assert result["config"]["onyx_qt_loader"]["raw_payload_included"] is False
     assert handler_result_quality(result)["tier"] == 3
 
 
@@ -57,4 +63,5 @@ def test_common_extractor_rejects_outer_only_onyx_shape() -> None:
     assert result["config"]["variant"] == "unresolved_variant"
     assert result["config"]["static_config_recovered"] is False
     assert result["config"]["endpoints"] == []
+    assert "terminal_payload" not in result
     assert handler_result_quality(result)["sufficient"] is False

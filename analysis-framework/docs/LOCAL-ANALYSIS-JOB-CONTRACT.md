@@ -510,6 +510,8 @@ request JSON
 
 `family_hint_manifest`を指定した場合、`analyze_sample.py`は`--family-hint-manifest`を受け取り、exact root SHA-256に対応する候補だけをassessment対象へ追加します。manifestが未指定なら通常の自動routingです。保持payloadは`analyze_sample.py`自身が専用の子解析契約と有界fixed-point queueで処理し、runnerは完成済み成果物だけを検証・公開します。case単位progressを将来配線する場合はstdoutへ混在させず、job runnerが専用file descriptorまたはJSON Lines event fileで受け取れる任意interfaceを追加します。現在の統合に必須ではありません。
 
+family handlerは公開resultへraw bytesを入れません。検証済みbytesはworker内部の明示的な`terminal_payload` recordだけで返し、親processが一時fileを単一handleで再読込してsizeとSHA-256を再計算します。保持に成功したroot reportは`retained_artifact_paths`をsorted uniqueで持ち、許可される形は`p/<64桁の小文字SHA-256>.<archive|bin|elf|exe|macho|txt>`だけです。path中のdigestと`artifact_sha256`が一致しない、重複、未知path、path traversalはcase integrity違反です。follow-on child nodeの`family_hint_count`は0から16、lineageを持つ場合のroot SHA-256とdepth 1から64もrunnerが再検証します。
+
 ## 検証
 
 ```powershell
@@ -523,3 +525,5 @@ py -3.13 -m ruff check .\analysis-framework\common\analysis_job_runner.py `
 ## 防御上の補足
 
 runnerはnetwork optionを公開せず、信頼済みのオフライン静的解析scriptだけを起動します。ただしPython process自体へOSレベルの通信遮断を付与するものではありません。本番serviceでは専用低権限accountとoutbound denyを併用してください。`summary.network_contacted=false`は解析契約の事後確認であり、OSのegress policyを置き換えません。同様に、runnerが固定する`ai_used=false`はこのscript-only経路の契約値であり、serviceが別processや別APIでAIを呼び出さないことはservice側の監査対象です。runtime preflightは同じ`sys.executable`のisolated modeと最小環境を使い、user-site依存を許可しません。全handlerを毎jobで一括importして起動を遅延させず、catalog全体を短時間で構築したうえで、選択されたhandlerの再帰依存監査とimportを実行直前に行います。handler本体とrepository-local Python依存は、監査時に単一handleから取得したSHA-256付きbytes snapshotだけを専用loaderで実行します。監査後のpath再import、manifest外local import、差し替え、hardlink、reparseはfail-closedです。data fileは別の成果物・path契約で検証します。Windows、REMnux、containerのいずれでも、serviceを起動するsystem siteまたは専用venvへrequirementsを導入してください。
+
+producerが`terminal_payload_acquisition`参照を持つ場合、runnerは`terminal-payload-acquisition.json`を単一handleで読み、SHA-256と件数を確認した後、検証済みfollow-on graphから終端frontierを再計算します。`selected_sha256`は厳格completeの最深leafだけ、timeout・上限・cycle・omissionは`pending_sha256`とblockerへ写像され、外部取得・検体実行・通信の安全フラグは常にfalseでなければなりません。graphと一致しない取得済み主張はjob結果へ公開しません。

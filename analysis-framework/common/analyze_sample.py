@@ -68,10 +68,12 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
         sys.path.insert(0, value)
 
 import analyze_family_sample  # noqa: E402
+import automated_case_analysis  # noqa: E402
 import classify_sample  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
+import terminal_payload_acquisition  # noqa: E402
 from follow_on_commitment import (  # noqa: E402
     canonical_multiset_commitment,
     metadata_identity,
@@ -1916,6 +1918,7 @@ def analyze_unit(
     )
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
 
+
     report = {
         "schema_version": 1,
         "sample": {
@@ -2008,6 +2011,32 @@ def analyze_unit(
         outcome_candidates,
         outcome_handler_records,
     )
+
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for execution in executions:
+        relative = execution.get("result")
+        if not isinstance(relative, str):
+            continue
+        handler_results.append(
+            (
+                execution,
+                load_json_object_strict(resolve_case_artifact(case_dir, relative)),
+            )
+        )
+    automation_family = family_resolution.get("family")
+    if not isinstance(automation_family, str) or not automation_family:
+        automation_family = "unclassified"
+    communication_patterns, c2_analysis = (
+        automated_case_analysis.build_case_automation_artifacts(
+            sha256=digest,
+            family=automation_family,
+            layer_report=layer_report,
+            handler_results=handler_results,
+        )
+    )
+    write_json(case_dir / "communication-patterns.json", communication_patterns)
+    write_json(case_dir / "c2-analysis.json", c2_analysis)
+
     outcome = orchestration_outcome.build_outcome(
         sample_sha256=digest,
         generic_status=generic_status,
@@ -2057,6 +2086,8 @@ def analyze_unit(
         "campaign_labels": "campaign-labels.json",
         "static_logic": "static-logic.json",
         "static_logic_markdown": "STATIC-LOGIC.md",
+        "communication_patterns": "communication-patterns.json",
+        "c2_analysis": "c2-analysis.json",
     }
     report["case_state"] = completion
     report["classification"]["automation_family"] = family_resolution.get("family")
@@ -2082,6 +2113,8 @@ def analyze_unit(
         "campaign-labels.json",
         "static-logic.json",
         "STATIC-LOGIC.md",
+        "communication-patterns.json",
+        "c2-analysis.json",
     ]
     if not assessment_only:
         artifact_paths.append("generic-triage.json")
@@ -2090,10 +2123,12 @@ def analyze_unit(
     artifact_paths.extend(["family-routing.json", "candidate-handler-assessment.json", "orchestration.json"])
     retained_outputs = (outcome.get("outputs") or {}).get("retained_binary_outputs")
     if isinstance(retained_outputs, list):
-        retained_paths = {
+        retained_paths = sorted({
             item["path"] for item in retained_outputs if isinstance(item, dict) and isinstance(item.get("path"), str)
-        }
-        artifact_paths.extend(path for path in sorted(retained_paths) if path not in artifact_paths)
+        })
+        if retained_paths:
+            report["retained_artifact_paths"] = retained_paths
+            artifact_paths.extend(path for path in retained_paths if path not in artifact_paths)
     report["artifact_sha256"] = artifact_hashes(case_dir, artifact_paths)
     seal_report(report)
     write_json(case_dir / "report.json", report)
@@ -4458,6 +4493,11 @@ def run_batch(
         "failed": sum(item["case_state"] == "failed" for item in derived_cases),
         "resumed": sum(bool(item.get("resumed")) for item in derived_cases),
     }
+    acquisition = terminal_payload_acquisition.build_terminal_payload_acquisition(follow_on)
+    _atomic_replace_json(output / "terminal-payload-acquisition.json", acquisition)
+    acquisition_digest = hashlib.sha256(
+        (output / "terminal-payload-acquisition.json").read_bytes()
+    ).hexdigest()
     _atomic_replace_json(output / "follow-on-analysis.json", follow_on)
     follow_on_digest = hashlib.sha256((output / "follow-on-analysis.json").read_bytes()).hexdigest()
     summary = {
@@ -4497,6 +4537,14 @@ def run_batch(
             "node_count": len(follow_on.get("nodes") or []),
             "edge_count": len(follow_on.get("edges") or []),
             "error_count": len(follow_on.get("errors") or []),
+        },
+        "terminal_payload_acquisition": {
+            "artifact": "terminal-payload-acquisition.json",
+            "sha256": acquisition_digest,
+            "status": acquisition["status"],
+            "frontier_count": len(acquisition["frontier"]),
+            "selected_count": len(acquisition["selected_sha256"]),
+            "pending_count": len(acquisition["pending_sha256"]),
         },
         "cases": cases,
         "derived_cases": derived_cases,

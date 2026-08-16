@@ -50,7 +50,9 @@ WebUI／ローカルAPIからは`analysis_job_runner.py`を正本入口として
 10. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化ハッシュとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
 11. 挙動・検体特徴プロファイルを作り、登録済みの強いキャンペーン指紋と一致する場合だけ自動ラベルを付ける。
 
-この処理順には、全レイヤーのdetector証拠をまとめる`family-routing.json`、exact root SHA-256に束縛した外部hintを安全handlerで補強する`candidate-handler-assessment.json`、family・config・network・終端payload・関数ロジックを判定する`orchestration.json`の品質ゲートが含まれます。外部label単独、空のhandler成功、別familyの結果だけでfamilyや完了状態を昇格しません。
+この処理順には、全レイヤーのdetector証拠をまとめる`family-routing.json`、exact root SHA-256に束縛した外部hintを安全handlerで補強する`candidate-handler-assessment.json`、family・config・network・終端payload・関数ロジックを判定する`orchestration.json`の品質ゲートが含まれます。さらに、十分な静的証拠を持つhandlerだけから設定回収状態と通信候補を`communication-patterns.json`へ正規化し、同じ証拠を10 phaseの`c2-analysis.json`へ反映します。外部label単独、空のhandler成功、別familyの結果だけでfamilyや完了状態を昇格しません。
+
+通信候補は候補のまま保持し、静的設定endpointと分離します。静的設定endpointが得られても稼働確認にはせず、family固有frame、serializer、通信関数などの証拠がない限りprotocol確認にも昇格しません。未完phaseにはblockerと次の最小手順を残すため、自動処理後も追加解析が必要な位置を機械的に判断できます。
 
 handlerがraw payloadを復元した場合は、isolated workerの一時成果物を親processが再hashしてcaseへ保持します。保持監査が完全なpayloadだけを、最大64件・128 edge・深さ4・合計256 MiB・300秒の有界fixed-point queueで同じ解析へ再投入します。子caseにはrootとは別の解析契約を使い、timeout途中、seal不一致、成果物hash不一致、cycle、共有payload、上限到達を`partial`として残します。別rootと同じSHA-256はroot nodeを共有しますが、root契約caseをchild契約の親昇格proofには使いません。
 
@@ -109,6 +111,7 @@ HANDLER_CONTRACT = {
 <output>/
   summary.json
   follow-on-analysis.json
+  terminal-payload-acquisition.json
   cases/<sha256>/
     report.json
     static-layers.json
@@ -116,6 +119,8 @@ HANDLER_CONTRACT = {
     family-routing.json
     candidate-handler-assessment.json
     orchestration.json
+    communication-patterns.json
+    c2-analysis.json
     applicability.json
     generic-triage.json
     features.json
@@ -129,11 +134,16 @@ HANDLER_CONTRACT = {
 
 - `summary.json`: root入力の件数・状態、後段payloadの`derived_cases`／`derived_counts`、解析器の証拠状態、汎用解析の網羅状態、再開件数、解析契約
 - `follow-on-analysis.json`: rootから保持payloadを辿ったnode／edge、深さ、除外理由、上限、子解析契約SHA-256
+- `terminal-payload-acquisition.json`: graph終端の検証済みpayload SHA-256、保留候補、停止理由。raw bytesや外部取得結果は含めない
 - `static-layers.json`: 静的復元の親子関係、方法、上限適用状況。復元本文は含まない
+
+検証済みfamily handlerが復元したterminal bytesは、worker内部の`terminal_payload` recordから親processへだけ渡します。親processがsizeとSHA-256を再計算して一致した場合に限り`p/<sha256>.<kind別拡張子>`へ保持し、root reportの`retained_artifact_paths`と`artifact_sha256`へ結合します。公開handler JSONは`content_exported=false`のmetadataだけで、bytes、復号key、秘密値を含みません。自己再出力は`cycle_detected`付きの保留frontierになり、`complete`として扱いません。
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
 - `family-routing.json`: 全レイヤーの候補、証拠tier、一意性、候補handler実行可否
 - `candidate-handler-assessment.json`: external hint候補の隔離検証結果。候補観測とfamily確定を分離する
 - `orchestration.json`: family、config、network、終端payload、関数ロジックの品質gateとblocker
+- `communication-patterns.json`: 信頼済みhandlerから得た静的設定endpoint、未確定候補、protocol hintを分離した公開可能な通信パターン
+- `c2-analysis.json`: root解析からprotocol確認までの10 phase、blocker、次の最小手順を記録するfail-closedのC2解析契約
 - `applicability.json`: 全既存解析器の対応状況とインポート前検証結果
 - `generic-triage.json`: ルートと全復元層の形式、ハッシュ、エントロピー、PE／ELF／スクリプト構造、未確認の静的IOC候補、層別状態、集約した `analysis_coverage`
 - `features.json`／`FEATURES.md`: IOC値や検知ルールを除いた、機械可読／人向けの挙動・検体特徴

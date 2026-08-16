@@ -75,6 +75,8 @@ familyによってconfigやC2を持たない場合もあるため、単純に全
 
 family handlerがraw bytesを復元した場合、隔離workerは上限付き一時領域へ保存します。親processはその通常ファイルを再読込し、worker申告値に依存せずSHA-256とsizeを再計算して、case配下の安全な相対pathへ保持します。観測したbinary数と保持数が一致しない、走査が打ち切られた、再hashできない、hardlink／reparse／境界外pathを検出した場合は後段解析へ渡しません。
 
+family handlerが返す公開結果と復元bytesは分離します。format、size、hash、config等のfamily固有検証を完了した場合だけ、worker内部の`terminal_payload` recordへbytesを置けます。親processはそのrecordを一時fileへ保存して再hashし、一致した通常fileだけを`p/<sha256>.<kind別拡張子>`へ保持します。公開JSONにはbytesを複製せず`content_exported=false`を残し、root reportの`retained_artifact_paths`はsorted uniqueな保持pathだけを列挙します。各pathに埋め込んだSHA-256と`artifact_sha256`が一致しない、重複する、許可外拡張子または任意pathを含むreportは拒否します。
+
 保持できたpayloadは、rootとは別の解析契約で同じ静的解析器へ再投入します。子契約は`archive_mode=raw`、family強制なし、外部family hintなし、通常解析、個別payload上限128 MiBに固定します。秘密のarchive passwordはargvや環境変数へ出さず、所有者限定の一時request fileからworkerへ渡し、payload本体は標準入力で渡します。
 
 固定点queueには次のhard limitがあります。
@@ -86,6 +88,10 @@ family handlerがraw bytesを復元した場合、隔離workerは上限付き一
 - timeout、上限到達、途中生成case、契約不一致、seal不一致は`partial`として記録
 
 `follow-on-analysis.json`はroot、node、edge、除外理由、解析契約SHA-256を持つ機械可読グラフです。terminal stateへ到達した子caseだけを`summary.json`の`derived_cases`へ公開し、rootの`cases`／`counts`とは別に`derived_counts`へ集計します。edge上限、再読込byte上限、期限、成果物検証失敗で走査できなかった保持metadataは、先頭4,096件を親・子SHA-256、size、path、role、kind、理由付きで`omitted_metadata`へ残します。上限を超えた残余は、親ごとの件数と多重集合canonical SHA-256を`omitted_metadata_commitments`へ残します。WebUI runnerはroot／child契約を現在コードと要求から再計算し、seal済みroot caseから全countsを再計算したうえで、グラフ本体のSHA-256、安全フラグ、hard counter、DAGの深さ、edgeとnode状態、子reportのsemantic seal、成果物hash、lineage、summaryとの完全一致を再検証します。さらに親wrapperから残余`Counter`を独立再計算し、`edge + omitted_metadata + commitment`が全保持metadataを多重度込みで完全分割することを照合します。omissionまたはcommitmentが1件でもあれば必ず`partial`です。commitmentがあるgraphでは親昇格を禁止し、保持file本体の再SHA-256は引き続き有界・期限付きで実施します。
+
+`terminal-payload-acquisition.json`は、この検証済みグラフから最深の終端frontierを決定的に抽出します。厳格な`complete`子だけを`selected_sha256`へ採用し、timeout、解析途中、深さ・size・件数・合計byte上限、cycle、omissionは`pending_sha256`と機械可読`blockers`へ分離します。公開するのはSHA-256、size、深さ、role、kind、親SHA-256、解析状態だけで、payload本文や秘密値は含めません。外部取得は自動実行せず、`external_retrieval_attempted=false`、`network_contacted=false`を固定します。job runnerはこの成果物を`follow-on-analysis.json`から再計算し、artifact SHA-256、件数、状態が完全一致しない結果を拒否します。
+
+子handlerが同じSHA-256を再出力した場合は、自己edgeを`cycle_excluded`として記録します。そのSHA-256はfrontierから消去せず、`cycle_detected`理由を持つ`pending_sha256`へ残します。したがって取得済みbytesを失わず、同時に自己cycleを解析完了へ誤昇格させません。
 
 保持済みと解析済みは同義ではありません。子caseが厳格な`complete`へ到達すると、子解析契約SHA-256、子reportのsemantic hash、成果物hash検証、当該親からの通常／shared edgeをproofとして親wrapperへ結び付け、深いstageから順に親の`orchestration.json`と`report.json`を再計算・再sealします。`depth_limit`やcycle等の除外edge、別rootのroot契約caseは親昇格へ流用しません。全品質gateが満たされた親だけを`complete`へ昇格し、他のblocker、timeout、途中case、proof不一致があれば`partial`のまま残します。昇格した親SHA-256は`follow-on-analysis.json`の`promoted_parent_sha256`へ記録し、全reportのproof保持case集合と完全一致させます。runnerはresolved familyのwrapperから必要な保持payloadとoutcomeを再計算し、wrapper内部proof、親proof、親子双方のstrict complete、子semantic hashを完全一致で検証します。
 
@@ -100,6 +106,7 @@ family handlerがraw bytesを復元した場合、隔離workerは上限付き一
 - `orchestration.json`: family、config、network、終端payload、関数ロジックの品質ゲート
 - `report.json`: 上記を含むcase状態、blocker、解析契約、成果物hash
 - `follow-on-analysis.json`: 保持payloadを辿った固定点解析グラフ、上限、除外理由、子解析契約SHA-256
+- `terminal-payload-acquisition.json`: 終端frontier、採用SHA-256、保留SHA-256、未取得理由、安全フラグ
 
 `summary.json`は、検出器が選択したfamilyと、候補handlerだけが観測したfamilyを分離して集計します。候補検証の試行数をfamily確定数へ混入させません。root入力の`cases`／`counts`と後段payloadの`derived_cases`／`derived_counts`も分離します。
 

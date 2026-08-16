@@ -28,6 +28,8 @@ flowchart LR
 | `derived_refresh` | catalog、IOC、類似性、checksum、UI、終端payload台帳を公式generatorで更新・再検証 | 無効 | あり | なし |
 | `private_archive` | 入力／job成果物を対象別AES-256 ZIPにし、S3側size・SSE・SHA-256を検証 | 無効 | なし | S3のみ |
 
+`static_analysis`は分類、復元層評価、適用可能handlerの設定抽出に加え、`communication-patterns.json`と`c2-analysis.json`を自動生成します。前者は静的設定endpointと未確定候補を分離し、後者は10 phaseの進捗とblockerを固定します。候補の存在だけでprotocol確認や稼働確認へ昇格しないため、`completion_gate`は自動化できた範囲と追加解析が必要な範囲を同じ証拠から判断できます。
+
 `publication`、`derived_refresh`、`private_archive`はrequestで明示した場合だけ有効になります。通常解析にlive C2、外部sandbox、VirusTotal、MalwareBazaar downloadなどを混在させません。
 
 ## 安全境界

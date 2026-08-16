@@ -6,7 +6,7 @@
 
 解析engineの正本は`common/analyze_sample.py`です。WebUI、ローカルAPI、batch serviceから検体を受け付けるproduction入口は`common/analysis_job_runner.py`とし、family別scriptやengineを直接起動しません。runnerは固定request schema、job専用入力snapshot、runtime preflight、process封じ込め、成果物の独立再検証、atomicなstatus／resultを追加します。信頼済みの解析者がengineだけを直接試す場合を除き、runner経路を使用してください。
 
-engineは、ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、入力形式契約付きの既存解析関数棚卸し、全復元層の汎用トリアージ、選択層とその外装祖先だけを対象にした設定抽出、証拠階層による結果選択、特徴的な関数／スクリプトのロジック記録、全体フロー文書、指紋生成、挙動・検体特徴プロファイル、キャンペーン自動ラベル、SHA-256単位の統合レポート作成までを一括で行います。無関係な兄弟層や形式不一致層へファミリー固有解析器を総当たりしません。
+engineは、ファイルまたはディレクトリを渡すと、上限付きのメモリ内静的アンパック、ルートと復元層に対する全登録検出器の評価、入力形式契約付きの既存解析関数棚卸し、全復元層の汎用トリアージ、選択層とその外装祖先だけを対象にした設定抽出、証拠階層による結果選択、特徴的な関数／スクリプトのロジック記録、全体フロー文書、指紋生成、挙動・検体特徴プロファイル、キャンペーン自動ラベル、SHA-256単位の統合レポート作成までを一括で行います。信頼済みhandlerの設定実値から通信候補を自動正規化し、`communication-patterns.json`と10 phaseの`c2-analysis.json`も生成します。無関係な兄弟層や形式不一致層へファミリー固有解析器を総当たりせず、候補、静的設定endpoint、protocol確認、稼働確認を別の状態として保持します。
 
 ```powershell
 python .\common\analyze_sample.py `

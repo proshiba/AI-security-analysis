@@ -31,7 +31,11 @@ from c2_analysis_contract import (  # noqa: E402
     build_unresolved_contract,
     validate_contract as validate_c2_contract,
 )
-from ioc_markdown import normalize_confirmed_network_iocs, render_submitted_iocs  # noqa: E402
+from handler_evidence import (  # noqa: E402
+    confirmed_static_handler_iocs,
+    static_config_recovered,
+)
+from ioc_markdown import render_submitted_iocs  # noqa: E402
 from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
 from result_layout import canonical_malware_case_path  # noqa: E402
 from result_publication import (  # noqa: E402
@@ -509,98 +513,6 @@ def capability_notes(pe: dict[str, Any]) -> list[dict[str, str]]:
         if hits:
             notes.append({"capability": capability, "basis": description, "imports": ", ".join(hits)})
     return notes
-
-
-def _trusted_handler_result(
-    execution: dict[str, Any],
-    artifact: dict[str, Any],
-) -> bool:
-    """reportと一致する成功handlerの正規化済み静的証拠だけを受理する。"""
-
-    if (
-        execution.get("status") != "succeeded"
-        or artifact.get("executed_sample") is not False
-        or artifact.get("network_contacted") is not False
-    ):
-        return False
-    execution_evidence = execution.get("selected_evidence")
-    artifact_evidence = artifact.get("selected_evidence")
-    if (
-        not isinstance(execution_evidence, dict)
-        or execution_evidence.get("sufficient") is not True
-        or not isinstance(artifact_evidence, dict)
-        or artifact_evidence.get("sufficient") is not True
-    ):
-        return False
-    execution_id = str(execution.get("handler_id") or "")
-    handler = artifact.get("handler")
-    artifact_id = str(handler.get("id") or "") if isinstance(handler, dict) else ""
-    return bool(execution_id and artifact_id and execution_id == artifact_id)
-
-
-def confirmed_static_handler_iocs(
-    handler_results: list[tuple[dict[str, Any], dict[str, Any]]],
-) -> list[dict[str, Any]]:
-    """確認済み静的設定のC2だけを公開用network IOCへ正規化する。"""
-
-    candidates_for_normalization: list[dict[str, Any]] = []
-    for execution, artifact in handler_results:
-        if not _trusted_handler_result(execution, artifact):
-            continue
-        result = artifact.get("result")
-        candidates = result.get("c2") if isinstance(result, dict) else None
-        config_endpoint_mode = False
-        if isinstance(result, dict) and not isinstance(candidates, list):
-            candidates = result.get("config_endpoints")
-            config_endpoint_mode = isinstance(candidates, list)
-        if not isinstance(candidates, list):
-            continue
-        static_evidence = result.get("static_evidence") if isinstance(result, dict) else None
-        if config_endpoint_mode and (
-            not isinstance(static_evidence, dict)
-            or static_evidence.get("all_expected_fields_validated") is not True
-        ):
-            continue
-        handler = artifact.get("handler") or {}
-        source = f"handler:{handler.get('id')}"
-        for candidate in candidates:
-            if not isinstance(candidate, dict):
-                continue
-            record = dict(candidate)
-            if config_endpoint_mode and not isinstance(record.get("evidence"), dict):
-                record["evidence"] = {
-                    "kind": "position_independent_static_config",
-                    "resolved_from": record.get("resolved_from"),
-                    "all_expected_fields_validated": True,
-                }
-            record["source"] = source
-            candidates_for_normalization.append(record)
-    return normalize_confirmed_network_iocs(candidates_for_normalization)
-
-
-def static_config_recovered(
-    handler_results: list[tuple[dict[str, Any], dict[str, Any]]],
-    network_iocs: list[dict[str, Any]],
-) -> bool:
-    """信頼済みconfig flagまたは確認済みC2があれば静的設定回収済みとする。"""
-
-    if network_iocs:
-        return True
-    for execution, artifact in handler_results:
-        if not _trusted_handler_result(execution, artifact):
-            continue
-        result = artifact.get("result")
-        if not isinstance(result, dict):
-            continue
-        if (
-            result.get("static_config_recovered") is True
-            or result.get("decoded_config_recovered") is True
-        ):
-            return True
-        config = result.get("config")
-        if isinstance(config, dict) and config.get("static_config_recovered") is True:
-            return True
-    return False
 
 
 def render_iocs(
