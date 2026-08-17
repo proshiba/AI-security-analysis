@@ -49,6 +49,40 @@
     "protector_exact_version_confirmed": false,
     "terminal_family_confirmed_from_wrapper_alone": false
   },
+  "entrypoint_extended_analysis": {
+    "status": "correlated_across_reviewed_corpus",
+    "instruction_count_range": [
+      16,
+      36
+    ],
+    "stable_branch_profile": {
+      "branch_instructions": 3,
+      "conditional_branches": 0,
+      "unconditional_branches": 3,
+      "indirect_branches": 0,
+      "cyclomatic_complexity": 1
+    },
+    "common_mnemonics": [
+      "call",
+      "int3",
+      "jmp",
+      "mov",
+      "push",
+      "sub"
+    ],
+    "variable_mnemonics": [
+      "add",
+      "and",
+      "dec",
+      "inc",
+      "not",
+      "pop",
+      "shl",
+      "shr",
+      "xchg",
+      "xor"
+    ]
+  },
   "cases": [
     {
       "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
@@ -65,7 +99,20 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 8,
+          "push": 2,
+          "sub": 1
+        }
       },
       "sections": [
         {
@@ -137,7 +184,23 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 1,
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 9,
+          "pop": 1,
+          "push": 3,
+          "sub": 1,
+          "xchg": 1
+        }
       },
       "sections": [
         {
@@ -209,7 +272,29 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 1,
+          "and": 1,
+          "call": 1,
+          "inc": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 7,
+          "not": 1,
+          "pop": 2,
+          "push": 4,
+          "shl": 1,
+          "shr": 2,
+          "sub": 2,
+          "xchg": 1,
+          "xor": 3
+        }
       },
       "sections": [
         {
@@ -281,7 +366,20 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 9,
+          "push": 2,
+          "sub": 1
+        }
       },
       "sections": [
         {
@@ -353,7 +451,23 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 2,
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 6,
+          "pop": 5,
+          "push": 5,
+          "sub": 3,
+          "xchg": 1
+        }
       },
       "sections": [
         {
@@ -425,7 +539,28 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 3,
+          "and": 1,
+          "call": 1,
+          "inc": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 9,
+          "not": 1,
+          "pop": 3,
+          "push": 4,
+          "shl": 1,
+          "sub": 4,
+          "xchg": 3,
+          "xor": 1
+        }
       },
       "sections": [
         {
@@ -497,7 +632,25 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 1,
+          "call": 1,
+          "dec": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 8,
+          "pop": 2,
+          "push": 4,
+          "shl": 2,
+          "sub": 2,
+          "xchg": 1
+        }
       },
       "sections": [
         {
@@ -569,7 +722,23 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 2,
+          "call": 1,
+          "dec": 1,
+          "inc": 3,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 6,
+          "push": 3,
+          "sub": 1
+        }
       },
       "sections": [
         {
@@ -641,7 +810,25 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 2,
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 9,
+          "pop": 2,
+          "push": 3,
+          "shl": 1,
+          "sub": 2,
+          "xchg": 1,
+          "xor": 1
+        }
       },
       "sections": [
         {
@@ -713,7 +900,23 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 2,
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 9,
+          "pop": 2,
+          "push": 2,
+          "sub": 3,
+          "xchg": 2
+        }
       },
       "sections": [
         {
@@ -785,7 +988,24 @@
         "basic_blocks": 4,
         "known_edges": 3,
         "calls": 1,
-        "terminal_instruction": "int3"
+        "terminal_instruction": "int3",
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+        "top_mnemonics": {
+          "add": 2,
+          "call": 1,
+          "int3": 1,
+          "jmp": 3,
+          "mov": 8,
+          "not": 1,
+          "pop": 1,
+          "push": 3,
+          "sub": 3,
+          "xchg": 1
+        }
       },
       "sections": [
         {
@@ -847,7 +1067,8 @@
     "confirmed": [
       "11件に共通する保護外層のsection topology",
       "最小import surfaceと.taggant entrypoint",
-      "4 basic block・3 edge・1 call・INT3終端の入口CFG"
+      "4 basic block・3 edge・1 call・INT3終端の入口CFG",
+      "3本の無条件branch・条件/間接branchなし・循環的複雑度1のstub形状"
     ],
     "not_confirmed": [
       "ThemidaまたはWinLicenseの正確な版",
