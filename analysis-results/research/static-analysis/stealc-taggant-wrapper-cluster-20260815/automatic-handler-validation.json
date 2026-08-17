@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "analysis_type": "stealc_protected_wrapper_handler_validation",
+  "status": "structural_evidence_automated_terminal_unresolved",
+  "family": "stealc",
+  "cluster_id": "stealc-taggant-wrapper-466909e3ef5d175a",
+  "sample_count": 11,
+  "handler": {
+    "id": "stealc:extractors.stealc.extractor.py:extract",
+    "source_sha256": "82aef189fcdb6c22f2ba0fba4b4754f20090c4cdf774199b940b766eeb48d48d",
+    "evidence_tier": 2,
+    "evidence_tier_name": "structural_corroboration"
+  },
+  "cases": [
+    {
+      "sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "lculjkhe",
+        "ezzbfwjh"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "oggjeoxe",
+        "bpbnhoje"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "ibsbbfsz",
+        "xnkbybmp"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "nsriuoot",
+        "fcgomrub"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "nvgmvkfs",
+        "mvlvetrb"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "dnbdzjvd",
+        "hwzrywcd"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "cpbdjvhh",
+        "btxydvwq"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "cgmytlif",
+        "rvymqypd"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "slkfwdkq",
+        "tyqcqcio"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "esdzurwm",
+        "gpsgltzd"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    },
+    {
+      "sha256": "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12",
+      "handler_tier": 2,
+      "handler_score": 20205,
+      "randomized_section_names": [
+        "lxojhmjk",
+        "mdoopayt"
+      ],
+      "terminal_payload_recovered": false,
+      "static_config_recovered": false,
+      "c2_recovered": false
+    }
+  ],
+  "assessment": {
+    "automated": [
+      "review済みexact SHA-256と7 section構造の同時照合",
+      "保護外層clusterのtier 2構造証拠化"
+    ],
+    "not_automated": [
+      "ThemidaまたはWinLicenseの解除",
+      "終端payload、設定、C2の復元"
+    ],
+    "remaining_blockers": [
+      "themida_winlicense_2x",
+      "terminal_config_not_recovered"
+    ]
+  },
+  "safety": {
+    "samples_executed": false,
+    "network_contacted": false,
+    "binary_outputs_published": false,
+    "credentials_published": false
+  }
+}

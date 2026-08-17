@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import math
 import re
 import struct
 import urllib.parse
@@ -17,7 +18,7 @@ from dataclasses import dataclass
 
 import pefile
 
-from extractors.common import build_result
+from extractors.common import build_result, sha256_bytes
 
 ASCII_RUN = re.compile(rb"[\x20-\x7e]{4,}")
 BASE64_VALUE = re.compile(rb"[A-Za-z0-9+/]+={0,2}")
@@ -35,6 +36,27 @@ MAX_ENCODED_VALUES = 4096
 MAX_ENCODED_LENGTH = 4096
 MAX_PROBE_VALUES = 64
 MAX_FINAL_KEYS = 4
+IMAGE_SCN_MEM_EXECUTE = 0x20000000
+PROTECTED_WRAPPER_CLUSTER_ID = "stealc-taggant-wrapper-466909e3ef5d175a"
+PROTECTED_WRAPPER_FINGERPRINT_SHA256 = (
+    "466909e3ef5d175acc1f3923245a3f8069248bfe78def549965adbee1522e331"
+)
+REVIEWED_PROTECTED_WRAPPER_SHA256 = frozenset(
+    {
+        "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+        "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+        "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+        "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+        "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+        "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+        "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+        "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+        "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+        "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+        "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12",
+    }
+)
+RANDOMIZED_SECTION_NAME = re.compile(r"[a-z]{8}\Z")
 
 
 @dataclass(frozen=True)
@@ -96,6 +118,213 @@ def _pe(data: bytes) -> pefile.PE | None:
         return pefile.PE(data=data, fast_load=True)
     except pefile.PEFormatError:
         return None
+
+
+def _strict_int(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _section_name(section: object) -> str | None:
+    try:
+        raw = section.Name
+    except AttributeError:
+        return None
+    if not isinstance(raw, bytes):
+        return None
+    try:
+        return raw.split(b"\0", 1)[0].decode("ascii").strip()
+    except UnicodeDecodeError:
+        return None
+
+
+def _section_entropy(data: bytes, start: int, size: int) -> float | None:
+    if start < 0 or size < 0 or start + size > len(data):
+        return None
+    if size == 0:
+        return 0.0
+    counts = [0] * 256
+    for value in memoryview(data)[start : start + size]:
+        counts[value] += 1
+    entropy = 0.0
+    for count in counts:
+        if count:
+            probability = count / size
+            entropy -= probability * math.log2(probability)
+    return round(entropy, 4)
+
+
+def _section_record(data: bytes, section: object) -> dict | None:
+    name = _section_name(section)
+    try:
+        raw_size = _strict_int(section.SizeOfRawData)
+        virtual_size = _strict_int(section.Misc_VirtualSize)
+        virtual_address = _strict_int(section.VirtualAddress)
+        raw_offset = _strict_int(section.PointerToRawData)
+        characteristics = _strict_int(section.Characteristics)
+    except AttributeError:
+        return None
+    if (
+        name is None
+        or raw_size is None
+        or virtual_size is None
+        or virtual_address is None
+        or raw_offset is None
+        or characteristics is None
+    ):
+        return None
+    entropy = _section_entropy(data, raw_offset, raw_size)
+    if entropy is None:
+        return None
+    return {
+        "name": name,
+        "raw_size": raw_size,
+        "virtual_size": virtual_size,
+        "virtual_address": virtual_address,
+        "raw_offset": raw_offset,
+        "entropy": entropy,
+        "executable": bool(characteristics & IMAGE_SCN_MEM_EXECUTE),
+    }
+
+
+def _protected_wrapper_profile(
+    data: bytes,
+    image: pefile.PE,
+    sample_sha256: str,
+) -> dict | None:
+    """Bind reviewed wrapper hashes to the exact byte-level PE topology.
+
+    The wrapper alone is not treated as recovered StealC configuration or a
+    terminal-family proof. A structural result is returned only when both the
+    reviewed exact hash and the reviewed seven-section shape match.
+    """
+
+    if sample_sha256 not in REVIEWED_PROTECTED_WRAPPER_SHA256:
+        return None
+    if not 1_700_000 <= len(data) <= 1_900_000:
+        return None
+    try:
+        file_header = image.FILE_HEADER
+        optional_header = image.OPTIONAL_HEADER
+        machine = file_header.Machine
+        magic = optional_header.Magic
+        directories = optional_header.DATA_DIRECTORY
+        raw_sections = image.sections
+    except AttributeError:
+        return None
+    if machine != 0x14C or magic != 0x10B:
+        return None
+    if not isinstance(directories, list) or len(directories) <= 14:
+        return None
+    if directories[14].VirtualAddress != 0:
+        return None
+
+    if not isinstance(raw_sections, list) or len(raw_sections) != 7:
+        return None
+    sections = [_section_record(data, section) for section in raw_sections]
+    if any(section is None for section in sections):
+        return None
+    records = [section for section in sections if section is not None]
+    names = [section["name"] for section in records]
+    if names[:4] != ["", ".rsrc", ".idata", ""]:
+        return None
+    if not RANDOMIZED_SECTION_NAME.fullmatch(names[4]) or not RANDOMIZED_SECTION_NAME.fullmatch(
+        names[5]
+    ):
+        return None
+    if names[4] == names[5] or names[6] != ".taggant":
+        return None
+
+    if not records[0]["executable"] or records[0]["entropy"] < 7.8:
+        return None
+    if not 64 * 1024 <= records[0]["raw_size"] <= 160 * 1024:
+        return None
+    if records[1]["executable"] or records[1]["raw_size"] not in {0, 512}:
+        return None
+    if records[2]["executable"] or records[2]["raw_size"] != 512:
+        return None
+    if (
+        not records[3]["executable"]
+        or records[3]["raw_size"] != 512
+        or records[3]["entropy"] >= 1.0
+    ):
+        return None
+    if not records[4]["executable"] or records[4]["entropy"] < 7.8:
+        return None
+    if not 1_600_000 <= records[4]["raw_size"] <= 1_750_000:
+        return None
+    if not records[5]["executable"] or records[5]["raw_size"] not in {1024, 1536}:
+        return None
+    if (
+        not records[6]["executable"]
+        or records[6]["raw_size"] != 8704
+        or records[6]["entropy"] >= 1.0
+    ):
+        return None
+
+    entrypoint = _strict_int(optional_header.AddressOfEntryPoint)
+    if entrypoint is None:
+        return None
+    taggant = records[6]
+    taggant_span = max(taggant["virtual_size"], taggant["raw_size"])
+    if not taggant["virtual_address"] <= entrypoint < taggant["virtual_address"] + taggant_span:
+        return None
+    size_of_headers = _strict_int(optional_header.SizeOfHeaders)
+    if size_of_headers is None or not 0 < size_of_headers <= len(data):
+        return None
+    raw_end = max(
+        size_of_headers,
+        *(section["raw_offset"] + section["raw_size"] for section in records),
+    )
+    if raw_end != len(data):
+        return None
+
+    return {
+        "artifact_role": "reviewed_protected_wrapper",
+        "reviewed_hash": True,
+        "cluster_id": PROTECTED_WRAPPER_CLUSTER_ID,
+        "structural_fingerprint_sha256": PROTECTED_WRAPPER_FINGERPRINT_SHA256,
+        "protector_family_shape": "Themida_or_WinLicense_family",
+        "matched_patterns": [
+            "reviewed_exact_sha256",
+            "x86_pe32_seven_section_layout",
+            "randomized_dual_executable_sections",
+            "taggant_entrypoint_section",
+            "no_overlay",
+        ],
+        "observed": {
+            "architecture": "x86-32",
+            "section_count": 7,
+            "randomized_section_names": names[4:6],
+            "entrypoint_section": ".taggant",
+            "overlay_size": 0,
+        },
+        "reviewed_cluster_observations": {
+            "import_libraries": ["kernel32.dll"],
+            "import_count": 1,
+            "entrypoint_cfg": {
+                "basic_blocks": 4,
+                "known_edges": 3,
+                "calls": 1,
+                "terminal_instruction": "int3",
+            },
+        },
+        "protector_exact_version_confirmed": False,
+        "terminal_family_confirmed_from_wrapper_alone": False,
+        "terminal_payload_recovered": False,
+        "static_config_recovered": False,
+        "c2_recovered": False,
+    }
+
+
+def extract_protected_wrapper_profile(data: bytes) -> dict | None:
+    """Return reviewed protected-wrapper evidence without unpacking it."""
+
+    image = _pe(data)
+    if image is None:
+        return None
+    return _protected_wrapper_profile(data, image, sha256_bytes(data))
 
 
 def _candidate_strings(data: bytes, image: pefile.PE) -> list[bytes]:
@@ -271,19 +500,28 @@ def extract_xor_profile(data: bytes) -> DecodedProfile | None:
 def extract(data: bytes, source_name: str = "sample.bin") -> dict:
     """Return publish-safe StealC configuration and IOC findings."""
     profile = extract_rc4_profile(data) or extract_xor_profile(data)
+    protected_wrapper = None if profile is not None else extract_protected_wrapper_profile(data)
     config: dict = {
         "source_name": source_name,
         "profile": None,
         "static_config_recovered": profile is not None,
+        "protected_wrapper": protected_wrapper,
     }
     findings: list[dict] = []
     limitations = [
         "Static extraction only; the sample was not executed.",
         "No recovered endpoint was contacted or assigned a liveness state.",
     ]
-    if profile is None:
+    if profile is None and protected_wrapper is None:
         limitations.append(
             "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+        )
+    elif protected_wrapper is not None:
+        limitations.extend(
+            [
+                "The exact sample and reviewed .taggant wrapper topology match the protected-wrapper cluster.",
+                "The wrapper does not identify the exact protector version or recover the terminal payload, configuration, or C2.",
+            ]
         )
     else:
         config["profile"] = {

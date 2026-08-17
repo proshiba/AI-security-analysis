@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -58,11 +59,25 @@ def _case(sha256: str, names: tuple[str, str], *, resource: bool = False) -> dic
                 "basic_blocks": 4,
                 "known_edges": 3,
                 "instructions": 21,
+                "branch_instructions": 3,
+                "conditional_branches": 0,
+                "unconditional_branches": 3,
+                "indirect_branches": 0,
                 "calls": 1,
                 "returns": 0,
                 "unresolved_successors": 0,
                 "decode_failures": 0,
+                "cyclomatic_complexity": 1,
                 "stop_mnemonics": {"int3": 1},
+                "top_mnemonics": {
+                    "mov": 9,
+                    "jmp": 3,
+                    "push": 3,
+                    "sub": 3,
+                    "add": 1,
+                    "call": 1,
+                    "int3": 1,
+                },
             },
         },
     }
@@ -113,6 +128,94 @@ def _report() -> dict:
     }
 
 
+def _handler_document(
+    sha256: str,
+    names: tuple[str, str],
+    *,
+    source_sha256: str = "3" * 64,
+) -> dict:
+    wrapper = {
+        "artifact_role": "reviewed_protected_wrapper",
+        "reviewed_hash": True,
+        "cluster_id": "stealc-taggant-wrapper-466909e3ef5d175a",
+        "structural_fingerprint_sha256": (
+            "466909e3ef5d175acc1f3923245a3f8069248bfe78def549965adbee1522e331"
+        ),
+        "matched_patterns": [
+            "reviewed_exact_sha256",
+            "x86_pe32_seven_section_layout",
+            "randomized_dual_executable_sections",
+            "taggant_entrypoint_section",
+            "no_overlay",
+        ],
+        "observed": {
+            "randomized_section_names": list(names),
+        },
+        "protector_exact_version_confirmed": False,
+        "terminal_family_confirmed_from_wrapper_alone": False,
+        "terminal_payload_recovered": False,
+        "static_config_recovered": False,
+        "c2_recovered": False,
+    }
+    evidence = {
+        "tier": 2,
+        "tier_name": "structural_corroboration",
+        "score": 20_205,
+        "minimum_score": 1,
+        "sufficient": True,
+        "structural_groups": ["artifact_role", "matched_patterns"],
+        "candidate_groups": [],
+    }
+    return {
+        "handler": {"id": reviewer.HANDLER_ID},
+        "selected_layer": {"sha256": sha256, "format": "pe"},
+        "selected_evidence": evidence,
+        "attempts": [
+            {
+                "status": "succeeded",
+                "evidence_status": "sufficient",
+                "preflight": {
+                    "eligible": True,
+                    "blockers": [],
+                    "source_sha256": source_sha256,
+                },
+            }
+        ],
+        "result": {
+            "family": "stealc",
+            "sample_sha256": sha256,
+            "config": {
+                "profile": None,
+                "static_config_recovered": False,
+                "protected_wrapper": wrapper,
+            },
+            "findings": [],
+            "executed": False,
+            "network_contacted": False,
+            "credentials_published": False,
+        },
+        "result_quota": {"truncated": False, "reasons": []},
+        "verified_binary_outputs": [],
+        "observed_binary_outputs": [],
+    }
+
+
+def _write_handler_root(root: Path, *, second_source_sha256: str = "3" * 64) -> None:
+    for sha256, names, source_sha256 in (
+        (SHA_A, ("abcdefgh", "ijklmnop"), "3" * 64),
+        (SHA_B, ("qrstuvwx", "yzabcdef"), second_source_sha256),
+    ):
+        handler_dir = root / sha256 / "cases" / sha256 / "handlers"
+        handler_dir.mkdir(parents=True)
+        (handler_dir / "stealc.json").write_text(
+            json.dumps(
+                _handler_document(sha256, names, source_sha256=source_sha256),
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+
 def test_build_review_correlates_randomized_wrappers_without_promoting_terminal() -> None:
     review = reviewer.build_review(_report())
     assert review["sample_count"] == 2
@@ -123,6 +226,13 @@ def test_build_review_correlates_randomized_wrappers_without_promoting_terminal(
     assert review["cases"][0]["terminal_payload_recovered"] is False
     assert review["cases"][0]["static_config_recovered"] is False
     assert review["cases"][0]["c2_recovered"] is False
+    assert review["entrypoint_extended_analysis"]["stable_branch_profile"] == {
+        "branch_instructions": 3,
+        "conditional_branches": 0,
+        "unconditional_branches": 3,
+        "indirect_branches": 0,
+        "cyclomatic_complexity": 1,
+    }
     assert review["safety"] == {
         "samples_executed": False,
         "cpu_emulated": False,
@@ -159,6 +269,10 @@ def test_cluster_fingerprint_ignores_randomized_names_and_resource_variant() -> 
             lambda value: value["cases"][0]["nodes"][0]["unpack"]["pe"]["control_flow_triage"]["metrics"].__setitem__("calls", 2),
             "CFG calls",
         ),
+        (
+            lambda value: value["cases"][0]["nodes"][0]["unpack"]["pe"]["control_flow_triage"]["metrics"].__setitem__("conditional_branches", 1),
+            "CFG conditional_branches",
+        ),
     ],
 )
 def test_build_review_rejects_contract_mutations(mutation, message: str) -> None:
@@ -180,3 +294,43 @@ def test_render_markdown_is_japanese_and_keeps_terminal_limit() -> None:
     assert "StealC保護外層clusterの追加静的解析" in text
     assert "内側のStealC payload" in text
     assert "CPU emulation：なし" in text
+
+
+def test_handler_validation_automates_tier_two_without_terminal_promotion(
+    short_tmp: Path,
+) -> None:
+    _write_handler_root(short_tmp)
+    review = reviewer.build_review(_report())
+    validation = reviewer.build_handler_validation(review, short_tmp)
+    assert validation["status"] == "structural_evidence_automated_terminal_unresolved"
+    assert validation["sample_count"] == 2
+    assert validation["handler"]["evidence_tier"] == 2
+    assert validation["cases"][0]["terminal_payload_recovered"] is False
+    assert validation["cases"][0]["static_config_recovered"] is False
+    assert validation["cases"][0]["c2_recovered"] is False
+    assert validation["safety"] == {
+        "samples_executed": False,
+        "network_contacted": False,
+        "binary_outputs_published": False,
+        "credentials_published": False,
+    }
+    text = reviewer.render_markdown(review, validation)
+    assert "自動handlerへの接続" in text
+    assert "全件でtier 2" in text
+    assert "設定、C2は未復元" in text
+
+
+def test_handler_validation_rejects_terminal_overpromotion(short_tmp: Path) -> None:
+    _write_handler_root(short_tmp)
+    path = short_tmp / SHA_A / "cases" / SHA_A / "handlers" / "stealc.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["result"]["config"]["protected_wrapper"]["c2_recovered"] = True
+    path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(reviewer.ProtectedWrapperReviewError, match="過剰昇格"):
+        reviewer.build_handler_validation(reviewer.build_review(_report()), short_tmp)
+
+
+def test_handler_validation_requires_one_handler_source_hash(short_tmp: Path) -> None:
+    _write_handler_root(short_tmp, second_source_sha256="4" * 64)
+    with pytest.raises(reviewer.ProtectedWrapperReviewError, match="source SHA-256"):
+        reviewer.build_handler_validation(reviewer.build_review(_report()), short_tmp)
