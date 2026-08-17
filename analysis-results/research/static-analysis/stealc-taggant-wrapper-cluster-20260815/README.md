@@ -49,6 +49,12 @@ review済み11件を共通one-shot経路で再解析し、全件でexact SHA-256
 - 検体実行：なし
 - 外部通信：なし
 
+## 2026年8月17日の追加復元
+
+11件すべてで検体固有のXOR加算pageを復号し、aPLib領域を有界展開した。約2.68～2.79 MiBのruntime mutation loaderまで到達したが、strict embedded PEと有効なC2候補は0件だった。
+
+復元手順、検体別SHA-256／RVA／size、残blockerは[StealC保護外層のaPLib追加静的解析](APLIB-RECOVERY.md)と[機械可読結果](aplib-recovery.json)に分離して記録した。
+
 ## 残る制約
 
 - `.taggant`とsection topologyはprotector lineageの証拠であり、StealC終端payloadの独立確認ではない。
