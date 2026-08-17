@@ -1,0 +1,501 @@
+{
+  "schema_version": 1,
+  "analysis_type": "stealc_taggant_aplib_cluster_static_recovery",
+  "status": "aplib_layer_recovered_terminal_protector_unresolved",
+  "family": "stealc",
+  "sample_count": 11,
+  "sample_sha256": [
+    "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+    "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+    "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+    "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+    "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+    "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+    "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+    "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+    "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+    "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+    "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12"
+  ],
+  "recovery_contract": {
+    "reviewed_exact_sha256_required": true,
+    "outer_transform": "little_endian_dword_xor_then_add_mod_2_32",
+    "decrypted_page_size": 4096,
+    "aplib_source_offset": 530,
+    "maximum_expanded_size": 8388608,
+    "compressed_consumed_size_range": [
+      1648805,
+      1716201
+    ],
+    "expanded_size_range": [
+      2677127,
+      2793553
+    ]
+  },
+  "cases": [
+    {
+      "sample_sha256": "09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5214208,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x37469bac",
+        "add_key": "0x16b2fd00",
+        "encrypted_page_sha256": "04aa1448e74fa09c26035450a61c9789c6f1b2413690ecd36008243e3f2e8cf3",
+        "decrypted_page_sha256": "f7dd1824c3ef14e2dab90d7e0cf31bf4a38b0e0158ca693e08d7c097d27c9783"
+      },
+      "aplib": {
+        "source_rva": 5214738,
+        "compressed_available_size": 1680366,
+        "compressed_consumed_size": 1680252,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2727170,
+        "expanded_sha256": "eae43e3190aefa8265056049a8156b8944f07b5dc38f4789d2dd6d567cd59cfa"
+      },
+      "expanded_region": {
+        "destination_rva": 2482196,
+        "entry_rva": 2488173,
+        "entry_window_size": 512,
+        "entry_window_sha256": "657157ef4d81c95a4acb6cb3299d02baf9335f98bb07cce93b03c90eb9254b1e",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 4393,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5103616,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x36302241",
+        "add_key": "0x24cef06a",
+        "encrypted_page_sha256": "0318e6a793327ceb96a2af1e34828221b279d668ad2eac34eb89f3a127d11e95",
+        "decrypted_page_sha256": "6a736d6e3e0ed080df41f826b870cc28ed438fcd79c0edc46c7b30f62e657c8e"
+      },
+      "aplib": {
+        "source_rva": 5104146,
+        "compressed_available_size": 1687534,
+        "compressed_consumed_size": 1687418,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2739082,
+        "expanded_sha256": "8a57513d81f2f3c57e066ec9c99520f9409a1a25270f97078afe2d5a2ea701bb"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365285,
+        "entry_window_size": 512,
+        "entry_window_sha256": "482ebf76aaf1e170c13d55933c90b3be142d875a496c7650d5acc4bbddd6d157",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 2297,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5132288,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x5489f913",
+        "add_key": "0x65f2b223",
+        "encrypted_page_sha256": "c35d43a2b29dac01819d90ea27f2e444e2114903828f20392596b801c8a2d330",
+        "decrypted_page_sha256": "092614b67b98996774998b9f609b53a9eec87ccc15b96b9a5fc8951e485c6c57"
+      },
+      "aplib": {
+        "source_rva": 5132818,
+        "compressed_available_size": 1701870,
+        "compressed_consumed_size": 1701412,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2767292,
+        "expanded_sha256": "403534c867aee6c99945e67644edc35b1c36d615cfbfe6f61369eba71cfc2bdc"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365261,
+        "entry_window_size": 512,
+        "entry_window_sha256": "1255fc7bc95a653a232cc2a7827785f4e2becc21b97c7efcecd53f1fef6a47c9",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 5277,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5042176,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x39fa6b2c",
+        "add_key": "0x7066b91c",
+        "encrypted_page_sha256": "79b2935363b1ec35d1ca544e7eb5240965d4241d1cce58d6608d976524679447",
+        "decrypted_page_sha256": "e4c12c912536ba46f3c21ad585711434c7e72274e9e164f46f4db42b104ee666"
+      },
+      "aplib": {
+        "source_rva": 5042706,
+        "compressed_available_size": 1649134,
+        "compressed_consumed_size": 1648805,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2677127,
+        "expanded_sha256": "94897fc3faf81140c122b72e24e50f5b3b3dbca8d709dff47b4705d66778071a"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365269,
+        "entry_window_size": 512,
+        "entry_window_sha256": "5ef7bfa80b0c84842068e7f8a29a9390cccbc931f19aaece1e9129d7cbec8367",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 2413,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5099520,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x41763299",
+        "add_key": "0x13e02c4f",
+        "encrypted_page_sha256": "f4d1e93f8e41c02e537f468964a84bfe951ab6dc583261396f06fd069eb42f62",
+        "decrypted_page_sha256": "be559b92bd19c02dbc894f5eecdd364c606622ed825c28fd9f274ebf5244d80d"
+      },
+      "aplib": {
+        "source_rva": 5100050,
+        "compressed_available_size": 1668078,
+        "compressed_consumed_size": 1667884,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2732626,
+        "expanded_sha256": "ec2b47ef41f03244c3654ad123146c99fad1b80c26112ba31583c7e7fa90a4e7"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365217,
+        "entry_window_size": 512,
+        "entry_window_sha256": "d5201af4056e85bffa06adba8463f826eb94df6b40121a074cae67903a110e98",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 2169,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5042176,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x398d0a20",
+        "add_key": "0x40adcddd",
+        "encrypted_page_sha256": "d54e06515d41c71f64c01923aba06ec59f993bf2cb1e71aa009ebb7fc64c481e",
+        "decrypted_page_sha256": "c2bd8bede5bd41db8b88e455579bbc978ea6f3971d35d20668796df523acd3cc"
+      },
+      "aplib": {
+        "source_rva": 5042706,
+        "compressed_available_size": 1660398,
+        "compressed_consumed_size": 1660167,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2677224,
+        "expanded_sha256": "d415be9f620e0f575f9d712557e809e699766e586b043f6faa8693bb6c045260"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365313,
+        "entry_window_size": 512,
+        "entry_window_sha256": "70ac0bc350f1a3f2c1bede6ccc8a3dca93d46d1c522ace4614462ffccf150b23",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 2045,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "b42f055a7a568843360e4b8b46d514de26931303b039b700d15a336b5c53dc0b",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5136384,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x59f323ef",
+        "add_key": "0x66ae58fe",
+        "encrypted_page_sha256": "33dfe22eb1acf12eaf4e30a842207fa5158dd45b0312edb77303da02b1a82f28",
+        "decrypted_page_sha256": "2bdc53bed735844cda88b364ca2e96e57f3fe9c1e6e53160d9255c0fc59bc29f"
+      },
+      "aplib": {
+        "source_rva": 5136914,
+        "compressed_available_size": 1715182,
+        "compressed_consumed_size": 1714872,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2772031,
+        "expanded_sha256": "9fbe7413c25ccf6204869860a22ef4edf33e174175ec4ee7f7dd9df46ce6ffbb"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365269,
+        "entry_window_size": 512,
+        "entry_window_sha256": "f024769051d4d0675c66e5f9406ae6289c53efe0bce842b1b5fad414231b583f",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 905,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "e08a69c8611950c16a0d273800acc6083cce9078358a8ff41b4639e02a7b18b0",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5132288,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x74391db3",
+        "add_key": "0x546110b3",
+        "encrypted_page_sha256": "3a8b7c63fc6271ac92cda4bf94a094c7b7273cd7c348115c8205044c32f7f9e6",
+        "decrypted_page_sha256": "64a191b0d7f5397af3cc7b2f9c738c9e45289f685aaa8d622d00bdd18fb9ddc6"
+      },
+      "aplib": {
+        "source_rva": 5132818,
+        "compressed_available_size": 1699310,
+        "compressed_consumed_size": 1698868,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2768355,
+        "expanded_sha256": "27213b27aa5726e781cb92672f63448b2edb43810f55f3f2b456328ef9181260"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365285,
+        "entry_window_size": 512,
+        "entry_window_sha256": "03595e1985cdec306eb1a4c3034b00e350fbb5f973cef8109d68bfd548f4a467",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 4605,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "e1bdbadb3c03238af26c510775bb0aa63f7221dd43eb6f02a16332e091718779",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5210112,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x5bb61b4a",
+        "add_key": "0x272b2bb3",
+        "encrypted_page_sha256": "7d6cf12c0b1a084bb556238b116a5401440e17ad551f9240f62f088e0deef67d",
+        "decrypted_page_sha256": "6151cc4b2c196946f1842ce8006a259ff940a1309720ef3daa300697b664a4ad"
+      },
+      "aplib": {
+        "source_rva": 5210642,
+        "compressed_available_size": 1716206,
+        "compressed_consumed_size": 1716201,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2793553,
+        "expanded_sha256": "61a990961427be945e13b7594918ffc513e3dc2013e42f4e8ea446df8dd9fa37"
+      },
+      "expanded_region": {
+        "destination_rva": 2408468,
+        "entry_rva": 2414469,
+        "entry_window_size": 512,
+        "entry_window_sha256": "2237dadea325b66c50d2013239bef08f2c2a79774c7e4eae53c3d6ba37783da2",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 3173,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "eb433e78acbf8dc7dfd0817a7699ebef2b44c5de873aa3cb9e950d7df895d49a",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5189632,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x29212c44",
+        "add_key": "0x4ace4ea1",
+        "encrypted_page_sha256": "10eb51da8500fb194b93917c0f8e1866ac503d68edc12fc3ed792b0d1d342a3d",
+        "decrypted_page_sha256": "5386d420e61ac8e70f11e691ed2142d420c95ec1d49dfd366a5fe5ecf01802e4"
+      },
+      "aplib": {
+        "source_rva": 5190162,
+        "compressed_available_size": 1707502,
+        "compressed_consumed_size": 1707403,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2773148,
+        "expanded_sha256": "b2008f5e0fd19e693f24a86eeb8a60048c758911b07e09ad2a43db05ce217e22"
+      },
+      "expanded_region": {
+        "destination_rva": 2408468,
+        "entry_rva": 2414401,
+        "entry_window_size": 512,
+        "entry_window_sha256": "e8e29b79c41b6c1d587fe732309bd5c8ef4fe0a1ccb6998700c1ca617aaed098",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 4137,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    },
+    {
+      "sample_sha256": "f0947eaff9837140af164952d5ff422e3f9e35cea5c85a67709fb97638d03f12",
+      "status": "aplib_layer_recovered_terminal_protector_unresolved",
+      "outer_page": {
+        "section_rva": 5132288,
+        "page_size": 4096,
+        "transform": "little_endian_dword_xor_then_add_mod_2_32",
+        "xor_key": "0x0fb56dd4",
+        "add_key": "0x18156431",
+        "encrypted_page_sha256": "a850a25f6f5b154a2e57b73763976fe4faa3511e201054bc7896a0aeba0383ed",
+        "decrypted_page_sha256": "f465081cf949a211d1f08106155dcc6001adb7f56ca6be942653f27a2f89b713"
+      },
+      "aplib": {
+        "source_rva": 5132818,
+        "compressed_available_size": 1695726,
+        "compressed_consumed_size": 1695707,
+        "maximum_output_size": 8388608,
+        "expanded_size": 2766792,
+        "expanded_sha256": "40fe76fa2b5647dc69a2c25ba7e617bc27f3552e0de4a9f2ae9a75e78921b4c9"
+      },
+      "expanded_region": {
+        "destination_rva": 2359316,
+        "entry_rva": 2365305,
+        "entry_window_size": 512,
+        "entry_window_sha256": "17ce7a7a0958b85ba5e13d27d390b067319aa205b7388c1229bc5c47f8c700a5",
+        "persistence_marker": "%userappdata%\\RestartApp.exe",
+        "persistence_marker_offset": 113,
+        "embedded_pe_count": 0,
+        "raw_bytes_published": false
+      },
+      "assessment": {
+        "protector_loader_region_recovered": true,
+        "terminal_payload_recovered": false,
+        "static_config_recovered": false,
+        "c2_recovered": false,
+        "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+      }
+    }
+  ],
+  "cross_corpus_static_review": {
+    "common_entry_mnemonics": [
+      "mov",
+      "mov",
+      "pushal",
+      "call",
+      "pop",
+      "sub",
+      "mov",
+      "mov",
+      "mov",
+      "mov",
+      "mov",
+      "mov",
+      "test",
+      "je",
+      "mov",
+      "add"
+    ],
+    "runtime_mutation_loop_count_per_case": 1,
+    "runtime_mutation_loop_size": 28672,
+    "plaintext_url_or_domain_candidate_count": 0,
+    "strict_embedded_pe_count": 0
+  },
+  "assessment": {
+    "confirmed": [
+      "11件すべてでXOR加算page復号を確認",
+      "11件すべてでaPLib領域展開を確認",
+      "共通するnear jump entryとruntime mutation構造",
+      "共通する%userappdata%\\RestartApp.exe marker",
+      "展開領域のstrict embedded PEは0件"
+    ],
+    "not_confirmed": [
+      "展開後runtime mutation以降の終端StealC PE",
+      "10件の終端configとC2",
+      "現在のC2稼働状況"
+    ],
+    "remaining_blocker": "expanded_themida_runtime_mutation_layer_unresolved"
+  },
+  "safety": {
+    "samples_executed": false,
+    "cpu_emulated": false,
+    "network_contacted": false,
+    "raw_artifacts_written": false,
+    "raw_artifacts_published": false
+  }
+}
