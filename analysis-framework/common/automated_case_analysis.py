@@ -82,12 +82,39 @@ def build_case_automation_artifacts(
             "not_applicable",
             "構造検証を通過する追加埋め込み層は得られなかった。",
         )
+    terminal_managed_client = patterns["config"].get("terminal_managed_client") is True
+    protocols = patterns["communication"].get("protocol_evidence", [])
+    protocol_confirmed = bool(protocols)
     _set_phase(
         contract,
         "external_payload_retrieval",
-        "blocked",
-        "外部stage取得は安全境界により実行せず、必要な場合は追加解析queueへ残した。",
+        "not_applicable" if terminal_managed_client else "blocked",
+        (
+            "root自体を終端managed clientと検証したため外部stage取得は不要です。"
+            if terminal_managed_client
+            else "外部stage取得は安全境界により実行せず、必要な場合は追加解析queueへ残した。"
+        ),
     )
+    for phase, evidence in (
+        ("sandbox_artifact_review", "静的証拠で終端clientを確定したため追加sandbox成果物は必須ではありません。"),
+        ("memory_artifact_review", "静的証拠で終端clientと設定を回収したためmemory成果物は必須ではありません。"),
+    ):
+        if terminal_managed_client:
+            _set_phase(contract, phase, "not_applicable", evidence)
+    if terminal_managed_client:
+        _set_phase(
+            contract,
+            "terminal_payload_analysis",
+            "completed",
+            "root managed clientを終端payloadとして静的に確認しました。",
+        )
+        contract["terminal_payload"] = {
+            "reached": True,
+            "status": "no_additional_payload_verified",
+            "family": family,
+            "blockers": [],
+            "next_actions": ["必要に応じて限定live観測を別履歴として実施します。"],
+        }
     _set_phase(
         contract,
         "family_config_extraction",
@@ -113,8 +140,12 @@ def build_case_automation_artifacts(
     _set_phase(
         contract,
         "c2_protocol_analysis",
-        "blocked",
-        "通信候補だけではprotocol確認へ昇格せず、family固有frameまたは通信関数の追加解析を要求する。",
+        "completed" if protocol_confirmed else "blocked",
+        (
+            "family固有の登録、frame、dispatcherを静的method証拠で確認しました。"
+            if protocol_confirmed
+            else "通信候補だけではprotocol確認へ昇格せず、family固有frameまたは通信関数の追加解析を要求する。"
+        ),
     )
     contract["c2"]["endpoints"] = [
         {
@@ -132,19 +163,19 @@ def build_case_automation_artifacts(
         else "汎用文字列候補をC2へ昇格せず、静的handlerによる抽出不足を記録した。"
     ]
     hints = patterns["communication"]["protocol_hints"]
+    selected_protocol = protocols[0] if protocol_confirmed else {}
     contract["c2"]["protocol"] = {
-        "status": "unresolved",
-        "method": None,
-        "confidence": "none",
+        "status": ("static_confirmed_live_unverified" if protocol_confirmed else "unresolved"),
+        "method": selected_protocol.get("method") if protocol_confirmed else None,
+        "confidence": selected_protocol.get("confidence", "none"),
         "tcp_open_only": False,
         "static_hints": hints,
+        "live_verified": False,
     }
     contract["automation"].update(
         {
             "status": (
-                "static_patterns_extracted"
-                if confirmed or candidates
-                else "followup_required"
+                "static_patterns_extracted" if confirmed or candidates or protocol_confirmed else "followup_required"
             ),
             "handlers": [
                 "analysis-framework/common/handler_evidence.py",
@@ -159,10 +190,17 @@ def build_case_automation_artifacts(
         "family分類とhandler適用可否判定",
         "静的config抽出",
         "通信pattern正規化",
+        "family固有protocol methodの静的検証",
     ]
-    contract["deep_analysis"]["next_minimum_step"] = (
-        "終端payloadの通信関数またはfamily固有frameを静的に復元し、protocol evidenceを追加する。"
-        if confirmed or candidates
-        else "追加の復元層、memory、公開sandbox成果物、またはfamily固有config decoderを1つ追加する。"
-    )
+    if protocol_confirmed:
+        contract["deep_analysis"]["blockers"] = ["静的protocolは確認済みですが限定live観測は未実施です。"]
+        contract["deep_analysis"]["next_minimum_step"] = (
+            "必要な場合だけ、安全gate下で限定live観測を別履歴として実施する。"
+        )
+    else:
+        contract["deep_analysis"]["next_minimum_step"] = (
+            "終端payloadの通信関数またはfamily固有frameを静的に復元し、protocol evidenceを追加する。"
+            if confirmed or candidates
+            else "追加の復元層、memory、公開sandbox成果物、またはfamily固有config decoderを1つ追加する。"
+        )
     return patterns, contract

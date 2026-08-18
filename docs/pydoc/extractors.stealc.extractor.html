@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.stealc.html" class="white">stealc</a>.extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cstealc%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\stealc\extractor.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../extractors/stealc/extractor.py">extractors/stealc/extractor.py</a></td></tr></table>
     <p><span class="code">Offline&nbsp;StealC&nbsp;v1&nbsp;string&nbsp;and&nbsp;configuration&nbsp;extractor.<br>
 &nbsp;<br>
 The&nbsp;module&nbsp;supports&nbsp;the&nbsp;two&nbsp;statically&nbsp;recoverable&nbsp;v1&nbsp;layouts&nbsp;observed&nbsp;in&nbsp;the<br>
@@ -23,11 +23,12 @@ only;&nbsp;it&nbsp;never&nbsp;loads&nbsp;the&nbsp;PE,&nbsp;executes&nbsp;code,&n
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
 <a href="binascii.html">binascii</a><br>
-</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="struct.html">struct</a><br>
-<a href="urllib.html">urllib</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="math.html">math</a><br>
+<a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="struct.html">struct</a><br>
+</td><td class="multicolumn"><a href="urllib.html">urllib</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -47,7 +48,15 @@ only;&nbsp;it&nbsp;never&nbsp;loads&nbsp;the&nbsp;PE,&nbsp;executes&nbsp;code,&n
 <td class="section-title" colspan=3>&nbsp;<br><a name="DecodedProfile">class <strong>DecodedProfile</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
 
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#DecodedProfile">DecodedProfile</a>(method:&nbsp;'str',&nbsp;base_url:&nbsp;'str',&nbsp;gate_path:&nbsp;'str',&nbsp;dll_path:&nbsp;'str',&nbsp;build_id:&nbsp;'str&nbsp;|&nbsp;None',&nbsp;decoded_count:&nbsp;'int',&nbsp;string_key:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None)&nbsp;-&amp;gt;&nbsp;None<br>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#DecodedProfile">DecodedProfile</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;method:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;base_url:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;gate_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dll_path:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;build_id:&nbsp;'str&nbsp;|&nbsp;None',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;decoded_count:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string_key:&nbsp;'str&nbsp;|&nbsp;None'&nbsp;=&nbsp;None<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
 &nbsp;<br>
 Normalized&nbsp;StealC&nbsp;configuration&nbsp;recovered&nbsp;from&nbsp;one&nbsp;string&nbsp;scheme.<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
@@ -58,7 +67,18 @@ Normalized&nbsp;StealC&nbsp;configuration&nbsp;recovered&nbsp;from&nbsp;one&nbsp
 
 <dl><dt><a name="DecodedProfile-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
 
-<dl><dt><a name="DecodedProfile-__init__"><strong>__init__</strong></a>(self, method: 'str', base_url: 'str', gate_path: 'str', dll_path: 'str', build_id: 'str | None', decoded_count: 'int', string_key: 'str | None' = None) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+<dl><dt><a name="DecodedProfile-__init__"><strong>__init__</strong></a>(
+    self,
+    method: 'str',
+    base_url: 'str',
+    gate_path: 'str',
+    dll_path: 'str',
+    build_id: 'str | None',
+    decoded_count: 'int',
+    string_key: 'str | None' = None
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="DecodedProfile-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
 
 <dl><dt><a name="DecodedProfile-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
@@ -99,6 +119,7 @@ Data and other attributes defined here:<br>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', source_name: 'str' = 'sample.bin') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;publish-safe&nbsp;StealC&nbsp;configuration&nbsp;and&nbsp;IOC&nbsp;findings.</span></dd></dl>
+ <dl><dt><a name="-extract_protected_wrapper_profile"><strong>extract_protected_wrapper_profile</strong></a>(data: 'bytes') -&gt; 'dict | None'</dt><dd><span class="code">Return&nbsp;reviewed&nbsp;protected-wrapper&nbsp;evidence&nbsp;without&nbsp;unpacking&nbsp;it.</span></dd></dl>
  <dl><dt><a name="-extract_rc4_profile"><strong>extract_rc4_profile</strong></a>(data: 'bytes') -&gt; 'DecodedProfile | None'</dt><dd><span class="code">Recover&nbsp;a&nbsp;Base64/RC4&nbsp;skip-key&nbsp;StealC&nbsp;profile&nbsp;from&nbsp;PE&nbsp;data.</span></dd></dl>
  <dl><dt><a name="-extract_xor_profile"><strong>extract_xor_profile</strong></a>(data: 'bytes') -&gt; 'DecodedProfile | None'</dt><dd><span class="code">Recover&nbsp;a&nbsp;paired-buffer&nbsp;XOR&nbsp;StealC&nbsp;profile&nbsp;from&nbsp;x86&nbsp;PE&nbsp;call&nbsp;sites.</span></dd></dl>
  <dl><dt><a name="-rc4_skip"><strong>rc4_skip</strong></a>(data: 'bytes', key: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">Decrypt&nbsp;StealC's&nbsp;RC4&nbsp;skip-key&nbsp;variant.<br>
@@ -114,11 +135,16 @@ while&nbsp;still&nbsp;advancing&nbsp;the&nbsp;RC4&nbsp;state.</span></dd></dl>
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>ASCII_RUN</strong> = re.compile(b'[\\x20-\\x7e]{4,}')<br>
 <strong>BASE64_VALUE</strong> = re.compile(b'[A-Za-z0-9+/]+={0,2}')<br>
+<strong>IMAGE_SCN_MEM_EXECUTE</strong> = 536870912<br>
 <strong>KNOWN_MARKERS</strong> = (b'getprocaddress', b'content-type: multipart/form-data', b'select origin_url', b'sqlite3.dll', b'hwid', b'build')<br>
 <strong>MAX_ENCODED_LENGTH</strong> = 4096<br>
 <strong>MAX_ENCODED_VALUES</strong> = 4096<br>
 <strong>MAX_FINAL_KEYS</strong> = 4<br>
 <strong>MAX_KEY_CANDIDATES</strong> = 512<br>
 <strong>MAX_PROBE_VALUES</strong> = 64<br>
+<strong>PROTECTED_WRAPPER_CLUSTER_ID</strong> = 'stealc-taggant-wrapper-466909e3ef5d175a'<br>
+<strong>PROTECTED_WRAPPER_FINGERPRINT_SHA256</strong> = '466909e3ef5d175acc1f3923245a3f8069248bfe78def549965adbee1522e331'<br>
+<strong>RANDOMIZED_SECTION_NAME</strong> = re.compile('[a-z]{8}\\Z')<br>
+<strong>REVIEWED_PROTECTED_WRAPPER_SHA256</strong> = frozenset({'09034743ead73365c3077a85036d69c4ef0b0c19bba669db7cd53814b9308889', '125382411e94398dd47ef364807868a3d2a6a4d4821d1513897278e77ef005b1', '299c378868c76048c26d0e279655c08305f0ce42e5582fe5005aae776d525a1b', '99e3eaac03d77c6b24ebd5a17326ba051788d58f1f1d4aa6871310419a85d8af', '9b8e5b5f2e62640327fdd1616c62a29ec27eaddad731d66ed331b3a1135fd6cb', 'ab5f78eaccc4a0f86106c547f828c2da8bd554a855deda50074c8a3cd003513a', ...})<br>
 <strong>XOR_CALL</strong> = re.compile(b'\\x6a(.)\\x68(.{4})\\x68(.{4}).{0,5}\\xe8', re.DOTALL)</td></tr></table>
 </body></html>

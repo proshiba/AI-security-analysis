@@ -1111,6 +1111,35 @@ def _handler_static_logic_records(
     return records[:512]
 
 
+def _handler_static_logic_program_evidence(
+    case_dir: Path,
+    executions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """成功handlerが公開したprogram inventoryを標準ロジックへ集約する。"""
+
+    programs: list[dict[str, Any]] = []
+    root = case_dir.resolve()
+    for execution in executions:
+        if execution.get("status") != "succeeded":
+            continue
+        relative = execution.get("result")
+        if not isinstance(relative, str):
+            continue
+        candidate = (case_dir / relative).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if not candidate.is_file():
+            continue
+        artifact = load_json_object_strict(candidate)
+        payload = artifact.get("result")
+        supplied = payload.get("program_evidence") if isinstance(payload, dict) else None
+        if isinstance(supplied, list):
+            programs.extend(item for item in supplied[:16] if isinstance(item, dict))
+    return programs[:64]
+
+
 def _verified_outputs_from_wrapper(value: Any) -> list[dict[str, Any]]:
     """handler wrapperが生成した検証済みbinary metadataだけを返す。"""
 
@@ -1959,12 +1988,14 @@ def analyze_unit(
     if follow_on_lineage is not None:
         report["follow_on_lineage"] = sanitize_public_value(follow_on_lineage)
     handler_logic_records = _handler_static_logic_records(case_dir, executions)
+    handler_program_evidence = _handler_static_logic_program_evidence(case_dir, executions)
     logic_report = build_static_logic_report(
         sha256=digest,
         family=root_selection["selected_family"] or root_classification.get("malware_type"),
         source_name=unit.source_name,
         data=None if assessment_only or handler_logic_records else unit.data,
         records=handler_logic_records,
+        program_evidence=handler_program_evidence,
         analysis_source=(
             "campaign_handler_representative_functions" if handler_logic_records else "one_shot_static_analysis"
         ),

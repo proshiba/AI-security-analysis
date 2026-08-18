@@ -60,9 +60,7 @@ def _trusted_results(
     handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
 ) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
     return [
-        (execution, artifact)
-        for execution, artifact in handler_results
-        if trusted_handler_result(execution, artifact)
+        (execution, artifact) for execution, artifact in handler_results if trusted_handler_result(execution, artifact)
     ]
 
 
@@ -83,8 +81,7 @@ def confirmed_static_handler_iocs(
             continue
         static_evidence = result.get("static_evidence") if isinstance(result, Mapping) else None
         if config_endpoint_mode and (
-            not isinstance(static_evidence, Mapping)
-            or static_evidence.get("all_expected_fields_validated") is not True
+            not isinstance(static_evidence, Mapping) or static_evidence.get("all_expected_fields_validated") is not True
         ):
             continue
         handler = artifact.get("handler") or {}
@@ -124,6 +121,109 @@ def static_config_recovered(
     return False
 
 
+def confirmed_static_protocol_evidence(
+    handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
+) -> list[dict[str, Any]]:
+    """完全なfamily固有method証拠だけを静的protocol確証へ正規化する。"""
+
+    summaries: dict[str, dict[str, Any]] = {}
+    for _execution, artifact in _trusted_results(handler_results):
+        result = artifact.get("result")
+        if not isinstance(result, Mapping):
+            continue
+        protocol = result.get("protocol_evidence")
+        profile = result.get("static_protocol")
+        if not isinstance(protocol, Mapping) or not isinstance(profile, Mapping):
+            continue
+        registration = protocol.get("registration")
+        dispatcher = protocol.get("dispatcher")
+        heartbeat = dispatcher.get("heartbeat_request") if isinstance(dispatcher, Mapping) else None
+        readiness = protocol.get("emulator_readiness")
+        safety = protocol.get("safety")
+        family = protocol.get("family")
+        sample_sha256 = protocol.get("sample_sha256")
+        heartbeat_required = readiness.get("heartbeat_required", True) if isinstance(readiness, Mapping) else True
+        if not isinstance(heartbeat_required, bool):
+            continue
+        heartbeat_valid = (
+            isinstance(heartbeat, Mapping)
+            and heartbeat.get("schema_confirmed") is True
+            and isinstance(readiness, Mapping)
+            and readiness.get("heartbeat_request_response_confirmed") is True
+            if heartbeat_required
+            else heartbeat is None
+            and isinstance(readiness, Mapping)
+            and readiness.get("heartbeat_request_response_confirmed") is False
+            and dispatcher.get("heartbeat_response_markers") == []
+        )
+        if (
+            protocol.get("analysis_status") != "complete"
+            or not isinstance(family, str)
+            or family != result.get("family")
+            or not isinstance(sample_sha256, str)
+            or sample_sha256 != result.get("sample_sha256")
+            or not isinstance(registration, Mapping)
+            or registration.get("missing_required_fields") != []
+            or not isinstance(dispatcher, Mapping)
+            or dispatcher.get("missing_command_markers") != []
+            or not heartbeat_valid
+            or not isinstance(readiness, Mapping)
+            or readiness.get("registration_schema_confirmed") is not True
+            or readiness.get("command_dispatcher_confirmed") is not True
+            or readiness.get("live_operation_fake_result_allowed") is not False
+            or not isinstance(safety, Mapping)
+            or safety.get("sample_executed") is not False
+            or safety.get("network_contacted") is not False
+            or safety.get("raw_cil_published") is not False
+            or safety.get("unreviewed_literals_published") is not False
+            or profile.get("status") != "confirmed"
+            or profile.get("confidence") not in {"medium", "high"}
+            or profile.get("tcp_open_only") is not False
+            or profile.get("live_verified") is not False
+        ):
+            continue
+        scalar_fields = ("method", "transport", "framing", "serialization")
+        if any(not isinstance(profile.get(key), str) or not str(profile[key]).strip() for key in scalar_fields):
+            continue
+        record = {
+            "family": family,
+            "sample_sha256": sample_sha256,
+            **{key: str(profile[key]) for key in scalar_fields},
+            "confidence": str(profile["confidence"]),
+            "registration_method": str(registration.get("method") or ""),
+            "dispatcher_method": str(dispatcher.get("method") or ""),
+            "heartbeat_required": heartbeat_required,
+            "heartbeat_method": str(heartbeat.get("method") or "") if isinstance(heartbeat, Mapping) else "",
+            "command_markers": [
+                str(item) for item in dispatcher.get("observed_command_markers", []) if isinstance(item, str)
+            ],
+            "transfer_markers": [
+                str(item) for item in dispatcher.get("file_or_plugin_transfer_markers", []) if isinstance(item, str)
+            ],
+            "heartbeat_response_markers": [
+                str(item) for item in dispatcher.get("heartbeat_response_markers", []) if isinstance(item, str)
+            ],
+            "live_operation_fake_result_allowed": False,
+            "live_verified": False,
+        }
+        identity = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        summaries[identity] = record
+    return [summaries[key] for key in sorted(summaries)]
+
+
+def terminal_managed_client_confirmed(
+    handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
+) -> bool:
+    """信頼済みhandlerがrootを終端managed clientと検証した場合だけtrueを返す。"""
+
+    for _execution, artifact in _trusted_results(handler_results):
+        result = artifact.get("result")
+        config = result.get("config") if isinstance(result, Mapping) else None
+        if isinstance(config, Mapping) and config.get("terminal_managed_client") is True:
+            return True
+    return False
+
+
 def _candidate_record(value: object, *, source: str, field: str) -> dict[str, Any] | None:
     sanitized = sanitize_public_value(value)
     if isinstance(sanitized, str):
@@ -139,11 +239,7 @@ def _candidate_record(value: object, *, source: str, field: str) -> dict[str, An
         return None
     if sanitized.get("confidence") == CONFIRMED_STATIC_CONFIGURATION:
         return None
-    record = {
-        key: sanitized[key]
-        for key in (*PUBLIC_C2_FIELDS, "value")
-        if key in sanitized
-    }
+    record = {key: sanitized[key] for key in (*PUBLIC_C2_FIELDS, "value") if key in sanitized}
     if not any(
         isinstance(record.get(key), str) and bool(str(record[key]).strip())
         for key in ("url", "host", "domain", "ip", "address", "endpoint", "value")
@@ -172,10 +268,7 @@ def candidate_communication_patterns(
         ]
         config = result.get("config")
         if isinstance(config, Mapping):
-            containers.extend(
-                (f"result.config.{field}", config.get(field))
-                for field in CONFIG_NETWORK_FIELDS
-            )
+            containers.extend((f"result.config.{field}", config.get(field)) for field in CONFIG_NETWORK_FIELDS)
         for field, values in containers:
             if not isinstance(values, list):
                 continue
@@ -209,6 +302,8 @@ def build_communication_pattern_document(
     confirmed = confirmed_static_handler_iocs(trusted)
     candidates = candidate_communication_patterns(trusted)
     recovered = static_config_recovered(trusted, confirmed)
+    protocols = confirmed_static_protocol_evidence(trusted)
+    terminal_managed_client = terminal_managed_client_confirmed(trusted)
     handler_ids = sorted(
         {
             str(execution.get("handler_id"))
@@ -225,7 +320,7 @@ def build_communication_pattern_document(
     protocol_hints = sorted(
         {
             str(record[key])
-            for record in [*confirmed, *candidates]
+            for record in [*confirmed, *candidates, *protocols]
             for key in ("transport", "protocol", "method")
             if isinstance(record.get(key), str) and str(record[key]).strip()
         }
@@ -238,17 +333,20 @@ def build_communication_pattern_document(
         "config": {
             "static_config_recovered": recovered,
             "trusted_handler_ids": handler_ids,
+            "terminal_managed_client": terminal_managed_client,
         },
         "communication": {
             "confirmed_static_endpoints": confirmed,
             "candidate_patterns": candidates,
             "protocol_hints": protocol_hints,
-            "protocol_confirmed": False,
+            "protocol_confirmed": bool(protocols),
+            "protocol_evidence": protocols,
             "liveness_confirmed": False,
         },
         "evidence_boundary": {
             "candidate_patterns_are_c2_confirmation": False,
             "static_endpoint_is_liveness_confirmation": False,
+            "static_protocol_is_liveness_confirmation": False,
             "protocol_confirmation_requires_family_specific_evidence": True,
         },
         "safety": {

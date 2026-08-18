@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AsyncRAT／VenomRATのSettings静的初期化から公開可能な設定を復元する。"""
+"""AsyncRAT／VenomRAT／DCRatのSettings静的初期化から公開可能な設定を復元する。"""
 
 from __future__ import annotations
 
@@ -36,6 +36,21 @@ PROFILES = {
     "venomrat": {
         "settings_type": "Client.Settings",
         "salt": b"VenomRATByVenom",
+        "fields": {
+            "ports": "Por_ts",
+            "hosts": "Hos_ts",
+            "version": "Ver_sion",
+            "install": "In_stall",
+            "pastebin": "Paste_bin",
+            "anti": "An_ti",
+            "group": "Group",
+            "certificate": "Certifi_cate",
+        },
+    },
+    "dcrat": {
+        "settings_type": "Client.Settings",
+        "salt": None,
+        "salt_initializer_type": "Client.Algorithm.Aes256",
         "fields": {
             "ports": "Por_ts",
             "hosts": "Hos_ts",
@@ -109,6 +124,95 @@ def settings_literals(data: bytes, settings_type: str = "Client.Settings") -> di
     return values
 
 
+def _member_name(pe: dnfile.dnPE, token: int, owners: dict[int, str]) -> str:
+    """MethodDef／MemberRef tokenを比較用の限定名へ解決する。"""
+
+    table_id = (token >> 24) & 0xFF
+    row_id = token & 0xFFFFFF
+    if table_id == 0x06:
+        table = pe.net.mdtables.MethodDef
+        if table is not None and 1 <= row_id <= len(table.rows):
+            return f"{owners.get(row_id, '')}.{table.rows[row_id - 1].Name}".strip(".")
+    if table_id == 0x0A:
+        table = pe.net.mdtables.MemberRef
+        if table is not None and 1 <= row_id <= len(table.rows):
+            return str(table.rows[row_id - 1].Name)
+    return ""
+
+
+def static_salt(data: bytes, initializer_type: str) -> bytes:
+    """暗号classのcctorにあるASCII salt代入だけをfail-closedで復元する。"""
+
+    pe = dnfile.dnPE(data=data)
+    if pe.net is None or pe.net.mdtables is None:
+        raise ConfigRecoveryError("CLR metadataがありません")
+    method_owners = {
+        method.row_index: ".".join(
+            value for value in (str(row.TypeNamespace), str(row.TypeName)) if value
+        )
+        for row in pe.net.mdtables.TypeDef.rows
+        for method in row.MethodList
+    }
+    field_owners = _field_owners(pe)
+    candidates: list[bytes] = []
+    initializer_count = 0
+    for index, row in enumerate(pe.net.mdtables.MethodDef.rows, 1):
+        if str(row.Name) != ".cctor" or method_owners.get(index) != initializer_type:
+            continue
+        initializer_count += 1
+        body = read_method_body_from_bytes(data[pe.get_offset_from_rva(row.Rva) :])
+        literal: str | None = None
+        ascii_encoding = False
+        encoded_literal: str | None = None
+        for instruction in body.instructions:
+            opcode = instruction.opcode.name
+            operand = getattr(instruction.operand, "value", instruction.operand)
+            if opcode == "ldstr" and isinstance(operand, int):
+                literal = str(pe.net.user_strings.get(operand & 0xFFFFFF).value)
+                encoded_literal = None
+                continue
+            if opcode in {"call", "callvirt"} and isinstance(operand, int):
+                name = _member_name(pe, operand, method_owners).rsplit(".", 1)[-1]
+                if name == "get_ASCII":
+                    ascii_encoding = True
+                    continue
+                if name == "GetBytes" and literal is not None and ascii_encoding:
+                    encoded_literal = literal
+                    continue
+                literal = None
+                ascii_encoding = False
+                encoded_literal = None
+                continue
+            if opcode == "stsfld" and isinstance(operand, int):
+                table_id = (operand >> 24) & 0xFF
+                row_id = operand & 0xFFFFFF
+                if (
+                    table_id == 0x04
+                    and 1 <= row_id <= len(pe.net.mdtables.Field.rows)
+                    and field_owners.get(row_id) == initializer_type
+                    and str(pe.net.mdtables.Field.rows[row_id - 1].Name) == "Salt"
+                    and encoded_literal is not None
+                ):
+                    try:
+                        candidate = encoded_literal.encode("ascii")
+                    except UnicodeEncodeError as exc:
+                        raise ConfigRecoveryError("salt literalがASCIIではありません") from exc
+                    if not 8 <= len(candidate) <= 128:
+                        raise ConfigRecoveryError("salt literalの長さが範囲外です")
+                    candidates.append(candidate)
+                literal = None
+                ascii_encoding = False
+                encoded_literal = None
+                continue
+            if opcode != "nop":
+                literal = None
+                ascii_encoding = False
+                encoded_literal = None
+    if initializer_count != 1 or len(candidates) != 1:
+        raise ConfigRecoveryError("暗号classのsalt初期化を一意に復元できません")
+    return candidates[0]
+
+
 def _derive(master_key: str, salt: bytes) -> tuple[bytes, bytes]:
     material = hashlib.pbkdf2_hmac("sha1", master_key.encode("utf-8"), salt, 50_000, 96)
     return material[:32], material[32:]
@@ -154,12 +258,22 @@ def recover(data: bytes, family: str) -> dict[str, Any]:
         master_key = base64.b64decode(encoded_key, validate=True).decode("utf-8")
     except (ValueError, UnicodeDecodeError) as exc:
         raise ConfigRecoveryError("Settings.Keyを復元できません") from exc
+    configured_salt = profile.get("salt")
+    if isinstance(configured_salt, bytes):
+        salt = configured_salt
+        salt_source = "reviewed_family_profile"
+    else:
+        initializer_type = profile.get("salt_initializer_type")
+        if not isinstance(initializer_type, str):
+            raise ConfigRecoveryError("salt復元profileが不正です")
+        salt = static_salt(data, initializer_type)
+        salt_source = "reviewed_static_initializer"
     decrypted: dict[str, str] = {}
     for public_name, field_name in profile["fields"].items():
         value = literals.get(field_name)
         if value is None:
             continue
-        decrypted[public_name] = decrypt_setting(value, master_key, profile["salt"])
+        decrypted[public_name] = decrypt_setting(value, master_key, salt)
     hosts = _split_values(decrypted.get("hosts", ""))
     ports = [int(value) for value in _split_values(decrypted.get("ports", "")) if value.isdigit() and 1 <= int(value) <= 65535]
     endpoints = [
@@ -185,10 +299,10 @@ def recover(data: bytes, family: str) -> dict[str, Any]:
         "sha256": hashlib.sha256(data).hexdigest(),
         "terminal_managed_client": True,
         "static_config_recovered": True,
-        "version": decrypted.get("version"),
-        "install": decrypted.get("install"),
-        "group": decrypted.get("group"),
-        "anti_analysis": decrypted.get("anti"),
+        "version": decrypted.get("version", "").strip() or None,
+        "install": decrypted.get("install", "").strip() or None,
+        "group": decrypted.get("group", "").strip() or None,
+        "anti_analysis": decrypted.get("anti", "").strip() or None,
         "config_endpoints": endpoints,
         "dynamic_config_url": dynamic_url,
         "certificate": {
@@ -197,6 +311,14 @@ def recover(data: bytes, family: str) -> dict[str, Any]:
             "certificate_mismatch_excludes_c2": False,
         },
         "secret_fields_published": False,
+        "crypto_profile": {
+            "key_derivation": "PBKDF2-HMAC-SHA1",
+            "iterations": 50_000,
+            "authentication": "HMAC-SHA256",
+            "cipher": "AES-256-CBC-PKCS7",
+            "salt_source": salt_source,
+            "salt_published": False,
+        },
         "executed": False,
         "network_contacted": False,
         "limitations": [

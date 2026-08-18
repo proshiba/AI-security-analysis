@@ -388,6 +388,37 @@ def test_render_readme_separates_chain_iocs_and_detection_materials() -> None:
     assert "単一importだけでは判定せず" in rendered
 
 
+def test_render_readme_replaces_unreadable_provider_filename() -> None:
+    """連続疑問符のprovider名は文字化け監査へ影響しない日本語説明へ置換する。"""
+
+    rendered = publisher.render_readme(
+        "a" * 64,
+        "unclassified",
+        "no_supported_family_evidence",
+        {
+            "file_name": "?????.exe",
+            "file_type": "exe",
+            "file_size": 4096,
+        },
+        {
+            "type": "pe",
+            "size": 4096,
+            "entropy": 7.1,
+            "is_dotnet": False,
+            "section_count": 5,
+            "import_library_count": 1,
+            "import_count": 1,
+        },
+        [],
+        {"status": "function_analysis_required"},
+        0,
+        0,
+    )
+
+    assert "providerで判読不能な名前（拡張子 .exe）" in rendered
+    assert "???" not in rendered
+
+
 def test_confirmed_static_handler_iocs_are_sanitized_deduplicated_and_traceable() -> None:
     """確認済み設定だけを採用し、秘密値を除去してrole・evidenceを保持する。"""
 
@@ -1481,6 +1512,72 @@ def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
     analysis = publisher.load_json(destination / "analysis.json")
     assert analysis["artifacts"]["overall_logic"] == "OVERALL-LOGIC.md"
     assert "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" in (destination / "README.md").read_text(encoding="utf-8")
+
+
+def test_publish_case_reuses_catalog_versioned_path_and_metadata_version(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """追加解析の再公開ではcatalogのversion付き正規pathと既存version根拠を維持する。"""
+
+    digest = "d" * 64
+    monkeypatch.setattr(publisher, "choose_family", lambda *_args: ("efimer", "fixture"))
+    source, report_value = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="efimer",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, report_value)
+    repository = tmp_path / "repository"
+    results = repository / "analysis-results"
+    destination = results / "malware" / "efimer" / "versions" / "v2" / "cases" / digest
+    destination.mkdir(parents=True)
+    version = {
+        "status": "confirmed",
+        "reported": "2.0",
+        "normalized_key": "v2",
+        "confidence": "high",
+        "reason": "sample_specific_static_version",
+        "evidence": ["fixture"],
+    }
+    publisher.write_json(
+        destination / "metadata.json",
+        {
+            "schema_version": 1,
+            "sha256": digest,
+            "family": "efimer",
+            "malware_version": version,
+        },
+    )
+    publisher.write_json(
+        results / "catalog" / "cases.json",
+        {
+            "schema_version": 1,
+            "cases": {
+                digest: {
+                    "family": "efimer",
+                    "canonical_path": destination.relative_to(repository).as_posix(),
+                }
+            },
+        },
+    )
+
+    family, published, _ = publisher.publish_case(
+        repository,
+        results,
+        "followup-test",
+        source,
+        {"sha256": digest, "metadata": {"signature": "Efimer"}},
+        {"efimer", "unclassified"},
+    )
+
+    assert family == "efimer"
+    assert published == destination
+    assert publisher.load_json(destination / "metadata.json")["malware_version"] == version
 
 
 def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(

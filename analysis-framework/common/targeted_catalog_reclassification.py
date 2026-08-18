@@ -228,6 +228,103 @@ def _validate_collections(
     return sorted(actual), bindings
 
 
+def _normalise_family_label(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
+def _validate_classified_family_correction(
+    case_root: Path,
+    digest: str,
+    old_family: str,
+    new_family: str,
+    metadata: dict[str, Any],
+    report: dict[str, Any],
+) -> dict[str, Any]:
+    """内部静的証拠で裏付けた既知family間の訂正だけを許可する。"""
+
+    attribution = metadata.get("attribution")
+    basis = attribution.get("basis") if isinstance(attribution, dict) else None
+    reported_signature = (
+        attribution.get("reported_signature") if isinstance(attribution, dict) else None
+    )
+    if (
+        not isinstance(basis, str)
+        or not basis.startswith("internal_")
+        or _normalise_family_label(reported_signature)
+        != _normalise_family_label(old_family)
+    ):
+        raise TargetedCatalogError(
+            f"classified family correction lacks internal attribution proof for {digest}"
+        )
+
+    report_classification = report.get("classification")
+    if (
+        not isinstance(report_classification, dict)
+        or report_classification.get("family") != new_family
+        or report_classification.get("selected_family") != new_family
+        or report_classification.get("selected_families") != [new_family]
+        or report_classification.get("selection_basis") != "type_detector_structure"
+        or report_classification.get("classification_conflicts") != []
+    ):
+        raise TargetedCatalogError(
+            f"classified family correction report proof is incomplete for {digest}"
+        )
+
+    classification, classification_raw = _load_json_object(
+        case_root / "classification.json", "classification artifact"
+    )
+    detections = classification.get("all_type_detections")
+    reviewed_detections = [
+        item
+        for item in detections or []
+        if isinstance(item, dict)
+        and item.get("malware_type") == new_family
+        and item.get("attribution_basis") == "type_detector_structure"
+        and item.get("malware_type_confidence") in {"medium", "high"}
+        and isinstance(item.get("detection"), dict)
+        and item["detection"].get("matched") is True
+    ]
+    if (
+        classification.get("selected_families") != [new_family]
+        or classification.get("attribution_basis") != "type_detector_structure"
+        or classification.get("classification_conflicts") != []
+        or len(reviewed_detections) != 1
+    ):
+        raise TargetedCatalogError(
+            f"classified family correction detector proof is incomplete for {digest}"
+        )
+
+    handlers = report.get("handler_executions")
+    reviewed_handlers = [
+        item
+        for item in handlers or []
+        if isinstance(item, dict)
+        and item.get("status") == "succeeded"
+        and isinstance(item.get("handler_id"), str)
+        and item["handler_id"].startswith(f"{new_family}:")
+        and item.get("selected_layer_sha256") == digest
+        and isinstance(item.get("selected_evidence"), dict)
+        and item["selected_evidence"].get("sufficient") is True
+        and isinstance(item["selected_evidence"].get("tier"), int)
+        and not isinstance(item["selected_evidence"].get("tier"), bool)
+        and item["selected_evidence"]["tier"] >= 3
+    ]
+    if len(reviewed_handlers) != 1:
+        raise TargetedCatalogError(
+            f"classified family correction handler proof is incomplete for {digest}"
+        )
+    handler = reviewed_handlers[0]
+    return {
+        "attribution_basis": basis,
+        "classification_sha256": hashlib.sha256(classification_raw).hexdigest(),
+        "handler_id": handler["handler_id"],
+        "handler_tier": handler["selected_evidence"]["tier"],
+        "reported_signature": reported_signature,
+    }
+
+
 def _validate_target_state(
     repository: Path,
     digest: str,
@@ -288,7 +385,15 @@ def _validate_target_state(
 
     old_family, _old_version, _old_kind, old_path = catalog_identity(old, "old")
     family, version, case_kind, new_path = catalog_identity(new, "desired")
-    if (old_family == "unclassified") == (family == "unclassified"):
+    classified_family_correction = (
+        old_family != "unclassified"
+        and family != "unclassified"
+        and old_family != family
+    )
+    if (
+        (old_family == "unclassified") == (family == "unclassified")
+        and not classified_family_correction
+    ):
         raise TargetedCatalogError(
             f"unsupported reclassification direction for {digest}"
         )
@@ -332,6 +437,21 @@ def _validate_target_state(
         )
     ):
         raise TargetedCatalogError(f"new case metadata identity mismatch for {digest}")
+    correction_evidence = None
+    if classified_family_correction:
+        try:
+            correction_evidence = _validate_classified_family_correction(
+                case_root,
+                digest,
+                old_family,
+                family,
+                metadata,
+                report,
+            )
+        except TargetedCatalogError as error:
+            raise TargetedCatalogError(
+                f"unsupported reclassification direction for {digest}: {error}"
+            ) from error
     memberships, manifest_bindings = _validate_collections(
         repository,
         digest,
@@ -352,6 +472,12 @@ def _validate_target_state(
         "case_tree_fingerprint": _case_tree_fingerprint(case_root),
         "collections": memberships,
         "collection_manifest_sha256s": manifest_bindings,
+        "reclassification_kind": (
+            "classified_family_correction"
+            if classified_family_correction
+            else "attribution_boundary_change"
+        ),
+        "correction_evidence": correction_evidence,
     }
 
 
@@ -473,6 +599,8 @@ def _revalidate_update(repository: Path, update: dict[str, Any]) -> None:
         "case_tree_fingerprint",
         "collections",
         "collection_manifest_sha256s",
+        "reclassification_kind",
+        "correction_evidence",
     }
     if any(current[key] != update.get(key) for key in immutable):
         raise TargetedCatalogError(f"target inputs changed after planning: {digest}")
