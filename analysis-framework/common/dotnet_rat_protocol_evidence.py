@@ -38,12 +38,8 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
             "Group",
         ),
         "optional_registration_fields": ("Version",),
-        "command_markers": (
-            "winUpdate",
-            "pong",
-            "plugin",
-            "savePlugin",
-        ),
+        "command_markers": ("pong", "plugin", "savePlugin"),
+        "optional_command_markers": ("winUpdate",),
         "heartbeat_request_packet": "Ping",
         "heartbeat_request_message": "",
         "heartbeat_response_markers": ("pong",),
@@ -96,6 +92,35 @@ FAMILY_PROFILES: dict[str, dict[str, Any]] = {
         "heartbeat_response_markers": ("Po_ng",),
         "transfer_markers": ("plu_gin", "save_Plugin", "loadofflinelog"),
     },
+    "dcrat": {
+        "registration_method": ("Client.Helper.IdSender", "SendInfo"),
+        "dispatcher_method": ("Client.Connection.ClientSocket", "Read"),
+        "heartbeat_method": ("Client.Connection.ClientSocket", "KeepAlivePacket"),
+        "packet_key": "Pac_ket",
+        "client_info_value": "ClientInfo",
+        "required_registration_fields": (
+            "Pac_ket",
+            "HWID",
+            "User",
+            "OS",
+            "Camera",
+            "Path",
+            "Version",
+            "Admin",
+            "Perfor_mance",
+            "Paste_bin",
+            "Anti_virus",
+            "Install_ed",
+            "Po_ng",
+            "Group",
+        ),
+        "optional_registration_fields": (),
+        "command_markers": ("Po_ng", "plu_gin", "save_Plugin"),
+        "heartbeat_request_packet": "Ping",
+        "heartbeat_request_message": "",
+        "heartbeat_response_markers": ("Po_ng",),
+        "transfer_markers": ("plu_gin", "save_Plugin"),
+    },
 }
 
 
@@ -107,9 +132,7 @@ def _method_owners(pe: dnfile.dnPE) -> dict[int, str]:
     owners: dict[int, str] = {}
     typedef = getattr(getattr(pe.net, "mdtables", None), "TypeDef", None)
     for row in getattr(typedef, "rows", []) or []:
-        owner = ".".join(
-            value for value in (str(row.TypeNamespace), str(row.TypeName)) if value
-        )
+        owner = ".".join(value for value in (str(row.TypeNamespace), str(row.TypeName)) if value)
         for method in row.MethodList:
             owners[method.row_index] = owner
     return owners
@@ -119,11 +142,11 @@ def _token_name(pe: dnfile.dnPE, token: int, owners: dict[int, str]) -> str:
     table_id = (token >> 24) & 0xFF
     row_id = token & 0xFFFFFF
     if table_id == 0x06:
-        table = getattr(pe.net.mdtables, "MethodDef", None)
+        table = pe.net.mdtables.MethodDef
         if table is not None and 1 <= row_id <= len(table.rows):
             return f"{owners.get(row_id, '')}.{table.rows[row_id - 1].Name}".strip(".")
     if table_id == 0x0A:
-        table = getattr(pe.net.mdtables, "MemberRef", None)
+        table = pe.net.mdtables.MemberRef
         if table is not None and 1 <= row_id <= len(table.rows):
             return str(table.rows[row_id - 1].Name)
     if table_id == 0x2B:
@@ -205,20 +228,14 @@ def _unique(values: list[str]) -> list[str]:
     return list(dict.fromkeys(values))
 
 
-def _select_record(
-    records: list[dict[str, Any]], owner: str, name: str
-) -> dict[str, Any]:
-    candidates = [
-        item for item in records if item.get("owner") == owner and item.get("name") == name
-    ]
+def _select_record(records: list[dict[str, Any]], owner: str, name: str) -> dict[str, Any]:
+    candidates = [item for item in records if item.get("owner") == owner and item.get("name") == name]
     if not candidates:
         raise ProtocolEvidenceError(f"review対象methodがありません: {owner}.{name}")
     return max(candidates, key=lambda item: len(item.get("path_keys") or []))
 
 
-def summarize_records(
-    records: list[dict[str, Any]], family: str, sample_sha256: str
-) -> dict[str, Any]:
+def summarize_records(records: list[dict[str, Any]], family: str, sample_sha256: str) -> dict[str, Any]:
     """method recordをfamily別の公開可能なprotocol証拠へ正規化する。"""
 
     if family not in FAMILY_PROFILES:
@@ -235,23 +252,17 @@ def summarize_records(
     required = list(profile["required_registration_fields"])
     optional = list(profile["optional_registration_fields"])
     commands = list(profile["command_markers"])
+    optional_commands = list(profile.get("optional_command_markers", ()))
     observed_required = [value for value in required if value in registration_keys]
     observed_optional = [value for value in optional if value in registration_keys]
     observed_commands = [value for value in commands if value in dispatcher_literals]
+    observed_optional_commands = [value for value in optional_commands if value in dispatcher_literals]
     missing_required = [value for value in required if value not in registration_keys]
     missing_commands = [value for value in commands if value not in dispatcher_literals]
-    heartbeat = [
-        value
-        for value in profile["heartbeat_response_markers"]
-        if value in dispatcher_literals
-    ]
-    transfers = [
-        value for value in profile["transfer_markers"] if value in dispatcher_literals
-    ]
+    heartbeat = [value for value in profile["heartbeat_response_markers"] if value in dispatcher_literals]
+    transfers = [value for value in profile["transfer_markers"] if value in dispatcher_literals]
     keepalive_literals = {str(value) for value in keepalive["literals"]}
-    keepalive_calls = {
-        str(value).rsplit(".", 1)[-1] for value in keepalive["calls"]
-    }
+    keepalive_calls = {str(value).rsplit(".", 1)[-1] for value in keepalive["calls"]}
     required_heartbeat_literals = {
         str(profile["packet_key"]),
         str(profile["heartbeat_request_packet"]),
@@ -259,15 +270,9 @@ def summarize_records(
     }
     required_heartbeat_calls = {"GetActiveWindowTitle", "Encode2Bytes", "Send"}
     heartbeat_request_confirmed = (
-        required_heartbeat_literals <= keepalive_literals
-        and required_heartbeat_calls <= keepalive_calls
+        required_heartbeat_literals <= keepalive_literals and required_heartbeat_calls <= keepalive_calls
     )
-    complete = (
-        not missing_required
-        and not missing_commands
-        and heartbeat_request_confirmed
-        and bool(heartbeat)
-    )
+    complete = not missing_required and not missing_commands and heartbeat_request_confirmed and bool(heartbeat)
     return {
         "schema_version": 1,
         "family": family,
@@ -290,6 +295,7 @@ def summarize_records(
             "method_token": dispatcher["token"],
             "cil_semantic_sha256": dispatcher["cil_semantic_sha256"],
             "observed_command_markers": observed_commands,
+            "observed_optional_command_markers": observed_optional_commands,
             "missing_command_markers": missing_commands,
             "heartbeat_request": {
                 "method": f"{keepalive['owner']}.{keepalive['name']}",
@@ -309,9 +315,7 @@ def summarize_records(
         "emulator_readiness": {
             "registration_schema_confirmed": not missing_required,
             "command_dispatcher_confirmed": not missing_commands,
-            "heartbeat_request_response_confirmed": (
-                heartbeat_request_confirmed and bool(heartbeat)
-            ),
+            "heartbeat_request_response_confirmed": (heartbeat_request_confirmed and bool(heartbeat)),
             "operation_result_serializer_confirmed": False,
             "live_operation_fake_result_allowed": False,
             "unknown_command_reply_allowed": False,
@@ -330,9 +334,7 @@ def recover(data: bytes, family: str, expected_sha256: str) -> dict[str, Any]:
 
     actual = hashlib.sha256(data).hexdigest()
     if actual != expected_sha256.casefold():
-        raise ProtocolEvidenceError(
-            f"sample SHA-256が一致しません: expected={expected_sha256}, actual={actual}"
-        )
+        raise ProtocolEvidenceError(f"sample SHA-256が一致しません: expected={expected_sha256}, actual={actual}")
     return summarize_records(extract_method_records(data), family, actual)
 
 
@@ -350,9 +352,7 @@ def main() -> int:
     except (OSError, ProtocolEvidenceError) as exc:
         parser.error(str(exc))
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(
         json.dumps(
             {

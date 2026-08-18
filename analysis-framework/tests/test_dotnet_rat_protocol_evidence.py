@@ -6,9 +6,7 @@ from pathlib import Path
 
 import pytest
 
-MODULE_PATH = (
-    Path(__file__).resolve().parents[1] / "common" / "dotnet_rat_protocol_evidence.py"
-)
+MODULE_PATH = Path(__file__).resolve().parents[1] / "common" / "dotnet_rat_protocol_evidence.py"
 SPEC = importlib.util.spec_from_file_location("dotnet_rat_protocol_evidence", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
@@ -23,11 +21,7 @@ def _records(
     missing_heartbeat_literal: str | None = None,
 ) -> list[dict]:
     profile = MODULE.FAMILY_PROFILES[family]
-    fields = [
-        value
-        for value in profile["required_registration_fields"]
-        if value != missing_field
-    ]
+    fields = [value for value in profile["required_registration_fields"] if value != missing_field]
     return [
         {
             "token": "0x06000001",
@@ -52,9 +46,7 @@ def _records(
             "owner": profile["heartbeat_method"][0],
             "name": profile["heartbeat_method"][1],
             "literals": [
-                value
-                for value in (profile["packet_key"], "Ping", "Message")
-                if value != missing_heartbeat_literal
+                value for value in (profile["packet_key"], "Ping", "Message") if value != missing_heartbeat_literal
             ],
             "path_keys": [],
             "calls": ["GetActiveWindowTitle", "Encode2Bytes", "Send"],
@@ -92,9 +84,7 @@ def test_complete_exact_schema_without_unreviewed_literal_leak(family: str) -> N
 
 
 def test_missing_registration_field_is_partial_and_fail_closed() -> None:
-    result = MODULE.summarize_records(
-        _records("asyncrat", missing_field="HWID"), "asyncrat", "b" * 64
-    )
+    result = MODULE.summarize_records(_records("asyncrat", missing_field="HWID"), "asyncrat", "b" * 64)
     assert result["analysis_status"] == "partial"
     assert result["registration"]["missing_required_fields"] == ["HWID"]
     assert result["emulator_readiness"]["registration_schema_confirmed"] is False
@@ -109,6 +99,25 @@ def test_missing_keepalive_marker_is_partial_and_fail_closed() -> None:
     assert result["analysis_status"] == "partial"
     assert result["dispatcher"]["heartbeat_request"]["schema_confirmed"] is False
     assert result["emulator_readiness"]["heartbeat_request_response_confirmed"] is False
+
+
+def test_asyncrat_optional_winupdate_is_not_required_for_dispatcher() -> None:
+    records = _records("asyncrat")
+    dispatcher = records[1]
+    dispatcher["literals"] = [value for value in dispatcher["literals"] if value != "winUpdate"]
+    result = MODULE.summarize_records(records, "asyncrat", "b" * 64)
+    assert result["analysis_status"] == "complete"
+    assert result["dispatcher"]["missing_command_markers"] == []
+    assert result["dispatcher"]["observed_optional_command_markers"] == []
+
+
+def test_asyncrat_missing_required_plugin_marker_is_partial() -> None:
+    records = _records("asyncrat")
+    dispatcher = records[1]
+    dispatcher["literals"] = [value for value in dispatcher["literals"] if value != "savePlugin"]
+    result = MODULE.summarize_records(records, "asyncrat", "b" * 64)
+    assert result["analysis_status"] == "partial"
+    assert result["dispatcher"]["missing_command_markers"] == ["savePlugin"]
 
 
 def test_missing_review_method_is_rejected() -> None:

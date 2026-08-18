@@ -276,6 +276,57 @@ def test_classified_to_classified_reclassification_is_rejected(tmp_path: Path) -
         )
 
 
+def test_classified_family_correction_requires_reviewed_internal_proof(
+    tmp_path: Path,
+) -> None:
+    case_path = tmp_path / "case"
+    classification = {
+        "selected_families": ["newfamily"],
+        "attribution_basis": "type_detector_structure",
+        "classification_conflicts": [],
+        "all_type_detections": [
+            {
+                "attribution_basis": "type_detector_structure",
+                "malware_type": "newfamily",
+                "malware_type_confidence": "high",
+                "detection": {"matched": True},
+            }
+        ],
+    }
+    _write_json(case_path / "classification.json", classification)
+    metadata = {
+        "attribution": {
+            "basis": "internal_reviewed_static_structure",
+            "reported_signature": "OldFamily",
+        }
+    }
+    report = {
+        "classification": {
+            "family": "newfamily",
+            "selected_family": "newfamily",
+            "selected_families": ["newfamily"],
+            "selection_basis": "type_detector_structure",
+            "classification_conflicts": [],
+        },
+        "handler_executions": [
+            {
+                "handler_id": "newfamily:extractors.test:extract",
+                "status": "succeeded",
+                "selected_layer_sha256": DIGEST,
+                "selected_evidence": {"sufficient": True, "tier": 3},
+            }
+        ],
+    }
+
+    evidence = targeted._validate_classified_family_correction(
+        case_path, DIGEST, "oldfamily", "newfamily", metadata, report
+    )
+
+    assert evidence["handler_id"] == "newfamily:extractors.test:extract"
+    assert evidence["handler_tier"] == 3
+    assert evidence["reported_signature"] == "OldFamily"
+
+
 def test_stale_plan_is_rejected(tmp_path: Path) -> None:
     layout, catalog_path, _case_path = _fixture_repository(tmp_path)
     plan = targeted.build_targeted_reclassification_plan(

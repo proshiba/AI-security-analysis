@@ -37,7 +37,9 @@ from handler_evidence import (  # noqa: E402
 )
 from ioc_markdown import render_submitted_iocs  # noqa: E402
 from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
-from result_layout import canonical_malware_case_path  # noqa: E402
+from result_layout import (  # noqa: E402
+    resolve_catalog_case_path,
+)
 from result_publication import (  # noqa: E402
     detect_publication_context,
     register_publication_cases,
@@ -524,6 +526,18 @@ def render_iocs(
     return render_submitted_iocs(digest, network_iocs or [])
 
 
+def _human_readable_provider_filename(value: Any) -> str:
+    """Provider側で文字化けした名前を人間向け文書へそのまま出さない。"""
+
+    name = str(value or "").strip()
+    if not name:
+        return "不明"
+    if re.search(r"\?{3,}", name):
+        suffix = Path(name).suffix
+        return f"providerで判読不能な名前（拡張子 {suffix}）" if suffix else "providerで判読不能な名前"
+    return name
+
+
 def render_readme(
     digest: str,
     family: str,
@@ -547,7 +561,7 @@ def render_readme(
         f"- MalwareBazaar報告signature: `{signature}`",
         f"- MalwareBazaarタグ: `{tags}`",
         f"- 初回観測: `{metadata.get('first_seen') or '不明'}`",
-        f"- 元ファイル名: `{metadata.get('file_name') or '不明'}`",
+        f"- 元ファイル名: `{_human_readable_provider_filename(metadata.get('file_name'))}`",
         f"- SHA-256: `{digest}`",
         f"- 形式: `{pe.get('type') or metadata.get('file_type') or '不明'}`",
         f"- サイズ: `{pe.get('size') or metadata.get('file_size') or '不明'}` bytes",
@@ -657,7 +671,19 @@ def publish_case(
     )
     metadata = safe_metadata(item)
     family, attribution_basis = choose_family(metadata, report, existing_families)
-    destination = canonical_malware_case_path(results, family, digest, "unknown")
+    destination = resolve_catalog_case_path(results, digest, family=family)
+    existing_metadata_path = destination / "metadata.json"
+    existing_version = None
+    if existing_metadata_path.is_file():
+        existing_metadata = load_json(existing_metadata_path)
+        if existing_metadata.get("sha256") != digest:
+            raise ValueError(f"既存metadataのSHA-256が一致しません: {digest}")
+        if existing_metadata.get("family") != family:
+            raise ValueError(f"既存metadataのfamilyが一致しません: {digest}")
+        candidate_version = existing_metadata.get("malware_version")
+        if not isinstance(candidate_version, dict):
+            raise ValueError(f"既存metadataのmalware_versionが不正です: {digest}")
+        existing_version = dict(candidate_version)
     destination.mkdir(parents=True, exist_ok=True)
 
     documents = {}
@@ -704,7 +730,7 @@ def publish_case(
     generic = documents["generic-triage.json"]
     pe = pe_summary(generic)
     capabilities = capability_notes(pe)
-    version = {
+    version = existing_version or {
         "status": "unknown",
         "reported": None,
         "normalized_key": "unknown",
