@@ -100,6 +100,13 @@ METHOD_BINDINGS: dict[str, NmapBinding] = {
     "darkcomet_server_first_idtype": NmapBinding("darkcomet-c2.nse"),
     "redline_checkconnect_soap11": NmapBinding("redline-c2.nse", sends_application_data=True),
     "xloader_v8_get_registration": NmapBinding("xloader-c2.nse", confirmation_allowed=False),
+    "formbook_reviewed_route_head": NmapBinding(
+        "stealer-route-c2.nse",
+        "stealer-route.mode",
+        "formbook",
+        sends_application_data=True,
+        confirmation_allowed=False,
+    ),
 }
 
 BOOLEAN_FIELDS = {
@@ -506,7 +513,11 @@ def _gate_status(
 ) -> str | None:
     if not allow_network:
         return "network_disabled"
-    if method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"} and not allow_application_probes:
+    if method in {
+        "asyncrat_tls_messagepack",
+        "formbook_reviewed_route_head",
+        "venomrat_tls_messagepack",
+    } and not allow_application_probes:
         return "tls_handshake_only_application_probe_disabled"
     if method == "purerat_direct_tls_certificate_pin" and not allow_purerat_legacy_tls:
         return "legacy_tls_disabled"

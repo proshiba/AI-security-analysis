@@ -52,7 +52,7 @@ def test_method_coverage_matches_machine_readable_registry() -> None:
     declared = {entry["method"]: entry for entry in profile_map["method_bindings"]}
     runtime = detector.nmap_method_coverage()
     assert runtime["execution_backend"] == "nmap_nse_only"
-    assert runtime["method_count"] == 20
+    assert runtime["method_count"] == 21
     assert set(runtime["methods"]) == set(declared)
     for method, binding in runtime["methods"].items():
         assert f"scripts/{binding['script']}" == declared[method]["script"]
@@ -85,6 +85,26 @@ def test_network_gate_returns_without_resolving_nmap() -> None:
     assert result["status"] == "network_disabled"
     assert result["execution_engine"] == "nmap_nse"
     assert result["target_contact_attempted"] is False
+    assert called is False
+
+
+def test_formbook_reviewed_route_requires_application_probe_gate() -> None:
+    called = False
+
+    def forbidden(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("executor must not run")
+
+    result = detector.probe_target_with_nmap(
+        _target("formbook_reviewed_route_head"),
+        allow_network=True,
+        allow_application_probes=False,
+        executor=forbidden,
+    )
+    assert result["status"] == "tls_handshake_only_application_probe_disabled"
+    assert result["target_contact_attempted"] is False
+    assert result["application_data_sent"] is False
     assert called is False
 
 
