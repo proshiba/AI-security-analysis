@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module analysis_resume_planner</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">analysis_resume_planner</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/analysis_resume_planner.py">analysis-framework/common/analysis_resume_planner.py</a></td></tr></table>
+    <p><span class="code">保存済み解析stateから、副作用のない決定的な再開計画を構築する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="analysis_job_runner.html">analysis_job_runner</a><br>
+<a href="analysis_lifecycle.html">analysis_lifecycle</a><br>
+<a href="analysis_orchestrator.html">analysis_orchestrator</a><br>
+</td><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="re.html">re</a><br>
+<a href="sys.html">sys</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>(<a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>, <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_resume_planner.html#JapaneseArgumentParser">JapaneseArgumentParser</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="analysis_resume_planner.html#ResumePlannerError">ResumePlannerError</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="JapaneseArgumentParser">class <strong>JapaneseArgumentParser</strong></a>(<a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#JapaneseArgumentParser">JapaneseArgumentParser</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;usage=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;description=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epilog=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;parents=[],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;formatter_class=&amp;lt;class&nbsp;'argparse.HelpFormatter'&amp;gt;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prefix_chars='-',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fromfile_prefix_chars=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;argument_default=None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;conflict_handler='error',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;add_help=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow_abbrev=True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit_on_error=True<br>
+)<br>
+&nbsp;<br>
+argparseの固定見出しを日本語へ置換する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_resume_planner.html#JapaneseArgumentParser">JapaneseArgumentParser</a></dd>
+<dd><a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a></dd>
+<dd><a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a></dd>
+<dd><a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="JapaneseArgumentParser-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#ArgumentParser">argparse.ArgumentParser</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__init__"><strong>__init__</strong></a>(
+    self,
+    prog=None,
+    usage=None,
+    description=None,
+    epilog=None,
+    parents=[],
+    formatter_class=&lt;class 'argparse.HelpFormatter'&gt;,
+    prefix_chars='-',
+    fromfile_prefix_chars=None,
+    argument_default=None,
+    conflict_handler='error',
+    add_help=True,
+    allow_abbrev=True,
+    exit_on_error=True
+)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_subparsers"><strong>add_subparsers</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-convert_arg_line_to_args"><strong>convert_arg_line_to_args</strong></a>(self, arg_line)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-error"><strong>error</strong></a>(self, message)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-error">error</a>(message:&nbsp;string)<br>
+&nbsp;<br>
+Prints&nbsp;a&nbsp;usage&nbsp;message&nbsp;incorporating&nbsp;the&nbsp;message&nbsp;to&nbsp;stderr&nbsp;and<br>
+exits.<br>
+&nbsp;<br>
+If&nbsp;you&nbsp;override&nbsp;this&nbsp;in&nbsp;a&nbsp;subclass,&nbsp;it&nbsp;should&nbsp;not&nbsp;return&nbsp;--&nbsp;it<br>
+should&nbsp;either&nbsp;exit&nbsp;or&nbsp;raise&nbsp;an&nbsp;exception.</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-exit"><strong>exit</strong></a>(self, status=0, message=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-format_usage"><strong>format_usage</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_args"><strong>parse_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_intermixed_args"><strong>parse_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_args"><strong>parse_known_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-parse_known_intermixed_args"><strong>parse_known_intermixed_args</strong></a>(self, args=None, namespace=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_help"><strong>print_help</strong></a>(self, file=None)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-print_usage"><strong>print_usage</strong></a>(self, file=None)</dt></dl>
+
+<hr>
+Methods inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="argparse.html#_AttributeHolder">argparse._AttributeHolder</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="argparse.html#_ActionsContainer">argparse._ActionsContainer</a>:<br>
+<dl><dt><a name="JapaneseArgumentParser-add_argument"><strong>add_argument</strong></a>(self, *args, **kwargs)</dt><dd><span class="code"><a href="#JapaneseArgumentParser-add_argument">add_argument</a>(dest,&nbsp;...,&nbsp;name=value,&nbsp;...)<br>
+<a href="#JapaneseArgumentParser-add_argument">add_argument</a>(option_string,&nbsp;option_string,&nbsp;...,&nbsp;name=value,&nbsp;...)</span></dd></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_argument_group"><strong>add_argument_group</strong></a>(self, *args, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-add_mutually_exclusive_group"><strong>add_mutually_exclusive_group</strong></a>(self, **kwargs)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-get_default"><strong>get_default</strong></a>(self, dest)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-register"><strong>register</strong></a>(self, registry_name, value, object)</dt></dl>
+
+<dl><dt><a name="JapaneseArgumentParser-set_defaults"><strong>set_defaults</strong></a>(self, **kwargs)</dt></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ResumePlannerError">class <strong>ResumePlannerError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ResumePlannerError">ResumePlannerError</a>(code:&nbsp;'str',&nbsp;message:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+公開可能な固定error&nbsp;codeを持つplanner例外。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="analysis_resume_planner.html#ResumePlannerError">ResumePlannerError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ResumePlannerError-__init__"><strong>__init__</strong></a>(self, code: 'str', message: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="ResumePlannerError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;object.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ResumePlannerError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ResumePlannerError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ResumePlannerError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ResumePlannerError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="ResumePlannerError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ResumePlannerError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ResumePlannerError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ResumePlannerError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ResumePlannerError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">read-only再開計画CLIの引数parserを構築する。</span></dd></dl>
+ <dl><dt><a name="-build_resume_plan"><strong>build_resume_plan</strong></a>(
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    orchestration_id: 'str'
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済み成果物だけを読み、machine-readableな次動作を返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">再開計画をJSONで出力し、状態に応じた固定終了codeを返す。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_SNAPSHOT_FILES</strong> = 771<br>
+<strong>SCHEMA_VERSION</strong> = 1<br>
+<strong>__annotations__</strong> = {'_EXACT_BLOCKER_POLICIES': 'Mapping[str, _BlockerPolicy]', '_PREFIX_BLOCKER_POLICIES': 'tuple[tuple[str, _BlockerPolicy], ...]'}</td></tr></table>
+</body></html>

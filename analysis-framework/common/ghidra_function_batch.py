@@ -36,6 +36,9 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from unpackers.managed_il_triage import _contain_parser_diagnostics  # noqa: E402
 
 from analysis_contract import (  # noqa: E402
+    MAX_JSON_OBJECT_SIZE,
+    _decode_json_object_strict,
+    _read_regular_file_snapshot,
     artifact_hashes,
     case_integrity_errors,
     load_json_object_strict,
@@ -60,7 +63,10 @@ from static_logic import (  # noqa: E402
     extract_script_function_records,
     redact_static_text,
 )
-from validate_function_analysis import validate_collection  # noqa: E402
+from validate_function_analysis import (  # noqa: E402
+    validate_case as validate_function_case,
+    validate_collection,
+)
 
 
 SCHEMA_VERSION = 1
@@ -74,6 +80,9 @@ DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
+ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
+FUNCTION_ANALYSIS_NEXT_ACTION_JA = "特徴関数と全体ロジックの静的解析を追加してください。"
+ORCHESTRATION_SCHEMA_VERSION = 2
 
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -211,6 +220,92 @@ def _json_dump(path: Path, value: Any) -> None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+@dataclass(frozen=True)
+class _JsonFileSnapshot:
+    """単一handleから取得したbounded JSON fileの固定snapshot。"""
+
+    path: Path
+    data: bytes
+    sha256: str
+    document: dict[str, Any]
+
+
+def _json_bytes(value: Any) -> bytes:
+    """決定的JSONをatomic writeへ渡せるUTF-8 bytesにする。"""
+
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
+
+
+def _bounded_json_snapshot(path: Path) -> _JsonFileSnapshot:
+    """通常file JSONを64MiB上限内の同一handle snapshotとして取得する。"""
+
+    data = _read_regular_file_snapshot(path, max_bytes=MAX_JSON_OBJECT_SIZE)
+    return _JsonFileSnapshot(
+        path=path,
+        data=data,
+        sha256=hashlib.sha256(data).hexdigest(),
+        document=_decode_json_object_strict(data, path=path),
+    )
+
+
+def _assert_snapshot_unchanged(
+    snapshot: _JsonFileSnapshot,
+    *,
+    context: str,
+) -> None:
+    """固定snapshot以後のpath/identity/size/bytes変更をfail-closedに拒否する。"""
+
+    current = _read_regular_file_snapshot(
+        snapshot.path,
+        max_bytes=MAX_JSON_OBJECT_SIZE,
+    )
+    current_sha256 = hashlib.sha256(current).hexdigest()
+    if current_sha256 != snapshot.sha256 or current != snapshot.data:
+        raise ValueError(
+            f"{context}で競合変更を検出しました: {snapshot.path.name}"
+        )
+
+
+def _atomic_replace_bytes(
+    path: Path,
+    data: bytes,
+    *,
+    expected_snapshot: _JsonFileSnapshot | None = None,
+) -> None:
+    """同一directoryの一時fileから通常fileをatomicに置換する。"""
+
+    if len(data) > MAX_JSON_OBJECT_SIZE:
+        raise ValueError(
+            f"atomic write対象が{MAX_JSON_OBJECT_SIZE} bytes上限を超えています: {path}"
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(
+        f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp"
+    )
+    try:
+        with temporary.open("xb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if expected_snapshot is not None:
+            if path != expected_snapshot.path:
+                raise ValueError(
+                    f"atomic write対象とsnapshot pathが一致しません: {path}"
+                )
+            _assert_snapshot_unchanged(
+                expected_snapshot,
+                context="atomic commit直前",
+            )
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _sha256_file(path: Path) -> str:
@@ -2864,17 +2959,282 @@ def _ghidra_documents_exhaustive_handler_no_evidence(
     }
 
 
+def _load_verified_case_report(
+    case_dir: Path,
+) -> tuple[dict[str, Any], _JsonFileSnapshot]:
+    """report sealと既存manifestの全成果物hashを検証してsnapshotを返す。"""
+
+    report_path = resolve_case_artifact(case_dir, "report.json")
+    report_snapshot = _bounded_json_snapshot(report_path)
+    report = report_snapshot.document
+    semantic_errors = verify_report_semantics(report)
+    if semantic_errors:
+        raise ValueError(
+            f"更新前のreport seal検証に失敗しました: {case_dir.name}: {semantic_errors}"
+        )
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or not manifest:
+        raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
+    hash_errors = verify_artifact_hashes(case_dir, manifest)
+    if hash_errors:
+        raise ValueError(
+            f"更新前の全成果物hash検証に失敗しました: {case_dir.name}: {hash_errors}"
+        )
+    _assert_snapshot_unchanged(
+        report_snapshot,
+        context="全成果物hash検証後",
+    )
+    return report, report_snapshot
+
+
+def _refresh_preverified_case_manifest(
+    case_dir: Path,
+    report: dict[str, Any],
+    report_snapshot: _JsonFileSnapshot,
+) -> None:
+    """Ghidra公開成果物更新後のhashをpreflight済みreportへ反映する。"""
+
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, dict) or not manifest:
+        raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
+    report["artifact_sha256"] = artifact_hashes(case_dir, manifest)
+    seal_report(report)
+    _atomic_replace_bytes(
+        report_snapshot.path,
+        _json_bytes(report),
+        expected_snapshot=report_snapshot,
+    )
+
+
+def _rollback_case_files(
+    versions: Iterable[tuple[_JsonFileSnapshot, bytes]],
+    original_error: BaseException,
+) -> None:
+    """自分がcommitしたfileだけを元snapshotへatomicに戻す。"""
+
+    failures: list[str] = []
+    for original, committed in versions:
+        try:
+            current = _bounded_json_snapshot(original.path)
+        except (OSError, TypeError, ValueError) as exc:
+            failures.append(f"{original.path.name}:rollback競合:{exc}")
+            continue
+        if current.data == original.data and current.sha256 == original.sha256:
+            continue
+        committed_sha256 = hashlib.sha256(committed).hexdigest()
+        if current.data != committed or current.sha256 != committed_sha256:
+            failures.append(f"{original.path.name}:第三者変更を保持")
+            continue
+        try:
+            _atomic_replace_bytes(
+                original.path,
+                original.data,
+                expected_snapshot=current,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            failures.append(f"{original.path.name}:{exc}")
+    if failures:
+        raise RuntimeError(
+            f"Ghidra反映transactionのrollbackに失敗しました: {failures}"
+        ) from original_error
+
+
+def _prepare_orchestration_function_reconciliation(
+    case_dir: Path,
+    report: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """検証済み関数解析だけをorchestrationのfunction gateへ反映する。"""
+
+    manifest = report.get("artifact_sha256")
+    orchestration_ref = report.get("orchestration")
+    manifest_has_orchestration = (
+        isinstance(manifest, Mapping) and "orchestration.json" in manifest
+    )
+    if orchestration_ref is None and not manifest_has_orchestration:
+        return None
+    if orchestration_ref != "orchestration.json" or not manifest_has_orchestration:
+        raise ValueError(
+            f"orchestration参照と成果物manifestが一致しません: {case_dir.name}"
+        )
+
+    orchestration_path = resolve_case_artifact(case_dir, orchestration_ref)
+    orchestration_snapshot = _bounded_json_snapshot(orchestration_path)
+    outcome = orchestration_snapshot.document
+    if (
+        type(outcome.get("schema_version")) is not int
+        or outcome.get("schema_version") != ORCHESTRATION_SCHEMA_VERSION
+        or outcome.get("sample_sha256") != case_dir.name
+    ):
+        raise ValueError(f"orchestrationのschemaまたは検体境界が不正です: {case_dir.name}")
+
+    resolution = outcome.get("family_resolution")
+    requirements = resolution.get("requirements") if isinstance(resolution, Mapping) else None
+    family = resolution.get("family") if isinstance(resolution, Mapping) else None
+    if (
+        not isinstance(resolution, Mapping)
+        or resolution.get("status") != "resolved"
+        or not isinstance(family, str)
+        or not family
+        or not isinstance(requirements, Mapping)
+        or requirements.get("function_analysis_required") is not True
+    ):
+        raise ValueError(
+            f"解決済みfamilyのfunction_analysis要件を確認できません: {case_dir.name}"
+        )
+    classification = report.get("classification")
+    selected = (
+        classification.get("selected_families")
+        if isinstance(classification, Mapping)
+        else None
+    )
+    if not isinstance(selected, list) or family not in selected:
+        raise ValueError(
+            f"reportとorchestrationのfamily resolutionが一致しません: {case_dir.name}"
+        )
+
+    automation = outcome.get("automation")
+    if not isinstance(automation, Mapping) or any(
+        automation.get(name) is not False
+        for name in ("ai_used", "sample_executed", "network_contacted")
+    ):
+        raise ValueError(f"orchestrationの安全境界が不正です: {case_dir.name}")
+
+    gates = outcome.get("quality_gates")
+    if not isinstance(gates, dict) or not gates:
+        raise ValueError(f"orchestration.quality_gatesが不正です: {case_dir.name}")
+    required_missing: list[str] = []
+    for name, gate in gates.items():
+        if not isinstance(name, str) or not isinstance(gate, Mapping):
+            raise TypeError(f"orchestration gateが不正です: {case_dir.name}")
+        required = gate.get("required")
+        satisfied = gate.get("satisfied")
+        observed = gate.get("observed")
+        if (
+            required is not None
+            and type(required) is not bool
+            or type(satisfied) is not bool
+            or observed is not None
+            and type(observed) is not bool
+        ):
+            raise ValueError(f"orchestration gateの型が不正です: {case_dir.name}: {name}")
+        expected_status = (
+            "not_applicable"
+            if required is False
+            else "satisfied"
+            if satisfied
+            else "required_missing"
+            if required is True
+            else "not_declared"
+        )
+        if gate.get("status") != expected_status:
+            raise ValueError(
+                f"orchestration gateの状態が不整合です: {case_dir.name}: {name}"
+            )
+        if expected_status == "required_missing":
+            required_missing.append(name)
+
+    blockers = outcome.get("blockers")
+    next_actions = outcome.get("next_actions_ja")
+    if (
+        not isinstance(blockers, list)
+        or any(not isinstance(value, str) or not value for value in blockers)
+        or blockers != sorted(set(blockers))
+        or blockers != sorted(required_missing)
+        or not isinstance(next_actions, list)
+        or len(next_actions) != len(blockers)
+        or any(not isinstance(value, str) or not value for value in next_actions)
+    ):
+        raise ValueError(
+            f"orchestration blockerとnext actionが不整合です: {case_dir.name}"
+        )
+    expected_outcome_status = "partial" if blockers else "complete"
+    if outcome.get("status") != expected_outcome_status:
+        raise ValueError(f"orchestration statusがblockerと不整合です: {case_dir.name}")
+
+    function_gate = gates.get("function_analysis")
+    if (
+        not isinstance(function_gate, dict)
+        or function_gate.get("required") is not True
+        or function_gate.get("observed") is not None
+        or function_gate.get("status") not in {"required_missing", "satisfied"}
+    ):
+        raise ValueError(f"function_analysis gateが不正です: {case_dir.name}")
+    function_missing = function_gate["status"] == "required_missing"
+    if function_missing:
+        function_index = blockers.index("function_analysis")
+        if next_actions[function_index] != FUNCTION_ANALYSIS_NEXT_ACTION_JA:
+            raise ValueError(
+                f"function_analysisのnext actionが不正です: {case_dir.name}"
+            )
+    elif (
+        "function_analysis" in blockers
+        or FUNCTION_ANALYSIS_NEXT_ACTION_JA in next_actions
+    ):
+        raise ValueError(f"解消済みfunction_analysis gateに残余があります: {case_dir.name}")
+
+    validation = validate_function_case(case_dir, case_dir.name)
+    if not validation.valid:
+        raise ValueError(
+            f"代表関数解析の完了検証に失敗しました: {case_dir.name}: "
+            f"{validation.findings}"
+        )
+
+    previous_blockers = list(blockers)
+    if function_missing:
+        function_gate["satisfied"] = True
+        function_gate["status"] = "satisfied"
+        blockers.pop(function_index)
+        next_actions.pop(function_index)
+        outcome["status"] = "partial" if blockers else "complete"
+    return {
+        "document": outcome,
+        "path": orchestration_path,
+        "snapshot": orchestration_snapshot,
+        "updated": function_missing,
+        "previous_blockers": previous_blockers,
+        "blockers": list(blockers),
+        "status": str(outcome["status"]),
+    }
+
+
 def finalize_case_report(case_dir: Path) -> str:
     """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
 
-    report = load_json_object_strict(case_dir / "report.json")
+    report, report_snapshot = _load_verified_case_report(case_dir)
     state = report.get("case_state")
     if not isinstance(state, dict):
-        raise ValueError(f"case_stateがありません: {case_dir.name}")
+        raise TypeError(f"case_stateがありません: {case_dir.name}")
     blockers = state.get("blockers")
-    if not isinstance(blockers, list):
+    if (
+        not isinstance(blockers, list)
+        or any(not isinstance(value, str) or not value for value in blockers)
+        or len(blockers) != len(set(blockers))
+    ):
         raise ValueError(f"case_state.blockersが配列ではありません: {case_dir.name}")
     status = state.get("status")
+    if status not in {"partial", "complete", "triaged_unknown"}:
+        raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
+    orchestration = _prepare_orchestration_function_reconciliation(case_dir, report)
+    if orchestration is not None:
+        reported_orchestration = {
+            value for value in blockers if value.startswith("orchestration:")
+        }
+        before = {
+            f"orchestration:{value}" for value in orchestration["previous_blockers"]
+        }
+        after = {f"orchestration:{value}" for value in orchestration["blockers"]}
+        allowed = {frozenset(before)}
+        if not orchestration["updated"]:
+            allowed.update(
+                {
+                    frozenset(after),
+                    frozenset(after | {ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER}),
+                }
+            )
+        if frozenset(reported_orchestration) not in allowed:
+            raise ValueError(
+                f"reportとorchestrationのblockerが一致しません: {case_dir.name}"
+            )
     generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
     documented_static_issues = _ghidra_documents_known_static_limits(case_dir, state)
     documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
@@ -2882,7 +3242,12 @@ def finalize_case_report(case_dir: Path) -> str:
         case_dir, report, state
     )
     if status == "partial":
-        remaining = [value for value in blockers if value != FUNCTION_ANALYSIS_BLOCKER]
+        resolved_function_blockers = {FUNCTION_ANALYSIS_BLOCKER}
+        if orchestration is not None:
+            resolved_function_blockers.add(ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER)
+        remaining = [
+            value for value in blockers if value not in resolved_function_blockers
+        ]
         if "generic_triage_partial" in remaining and (generic_limit_superseded or documented_generic_limits):
             remaining.remove("generic_triage_partial")
         if "static_layer_incomplete" in remaining and documented_static_issues:
@@ -2925,18 +3290,31 @@ def finalize_case_report(case_dir: Path) -> str:
                 }
             )
         else:
-            classification = report.get("classification")
-            selected = classification.get("selected_families") if isinstance(classification, Mapping) else None
-            if not isinstance(selected, list):
-                raise ValueError(f"selected_familiesがありません: {case_dir.name}")
-            state.update(
-                {
-                    "status": "complete" if selected else "triaged_unknown",
-                    "complete": bool(selected),
-                    "resumable": bool(selected),
-                    "blockers": [],
-                }
-            )
+            if orchestration is not None:
+                if orchestration["status"] != "complete":
+                    raise ValueError(
+                        f"未解決orchestration blockerをreportから除去できません: {case_dir.name}"
+                    )
+                state.update(
+                    {"status": "complete", "complete": True, "resumable": True, "blockers": []}
+                )
+            else:
+                classification = report.get("classification")
+                selected = (
+                    classification.get("selected_families")
+                    if isinstance(classification, Mapping)
+                    else None
+                )
+                if not isinstance(selected, list):
+                    raise ValueError(f"selected_familiesがありません: {case_dir.name}")
+                state.update(
+                    {
+                        "status": "complete" if selected else "triaged_unknown",
+                        "complete": bool(selected),
+                        "resumable": bool(selected),
+                        "blockers": [],
+                    }
+                )
     elif not (
         status in {"complete", "triaged_unknown"}
         and state.get("complete") is (status == "complete")
@@ -2944,6 +3322,10 @@ def finalize_case_report(case_dir: Path) -> str:
         and blockers == []
     ):
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
+    elif orchestration is not None and (
+        status != "complete" or orchestration["status"] != "complete"
+    ):
+        raise ValueError(f"reportとorchestrationの完了状態が一致しません: {case_dir.name}")
     if report.get("generic_triage") == "partial" and (generic_limit_superseded or documented_generic_limits):
         report["generic_triage"] = "complete"
         report["generic_triage_completion"] = {
@@ -2972,18 +3354,53 @@ def finalize_case_report(case_dir: Path) -> str:
     manifest = report.get("artifact_sha256")
     if not isinstance(manifest, dict) or not manifest:
         raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
-    report["artifact_sha256"] = artifact_hashes(case_dir, manifest)
+    report["artifact_sha256"] = dict(manifest)
+    orchestration_bytes: bytes | None = None
+    if orchestration is not None and orchestration["updated"]:
+        orchestration_bytes = _json_bytes(orchestration["document"])
+        report["artifact_sha256"]["orchestration.json"] = hashlib.sha256(
+            orchestration_bytes
+        ).hexdigest()
     seal_report(report)
-    _json_dump(case_dir / "report.json", report)
-    resumable = state.get("status") == "complete"
-    errors = case_integrity_errors(
-        case_dir,
-        report,
-        expected_digest=case_dir.name,
-        require_resumable=resumable,
-    )
-    if errors:
-        raise ValueError(f"Ghidra反映後のcase整合性検証に失敗しました: {case_dir.name}: {errors}")
+    finalized_report_bytes = _json_bytes(report)
+    transaction_versions: list[tuple[_JsonFileSnapshot, bytes]] = [
+        (report_snapshot, finalized_report_bytes)
+    ]
+    _assert_snapshot_unchanged(report_snapshot, context="transaction commit直前")
+    if orchestration_bytes is not None:
+        orchestration_snapshot = orchestration["snapshot"]
+        _assert_snapshot_unchanged(
+            orchestration_snapshot,
+            context="transaction commit直前",
+        )
+        transaction_versions.insert(0, (orchestration_snapshot, orchestration_bytes))
+    try:
+        if orchestration_bytes is not None:
+            _atomic_replace_bytes(
+                orchestration["path"],
+                orchestration_bytes,
+                expected_snapshot=orchestration["snapshot"],
+            )
+        _atomic_replace_bytes(
+            report_snapshot.path,
+            finalized_report_bytes,
+            expected_snapshot=report_snapshot,
+        )
+        resumable = state.get("status") == "complete"
+        errors = case_integrity_errors(
+            case_dir,
+            report,
+            expected_digest=case_dir.name,
+            require_resumable=resumable,
+        )
+        if errors:
+            raise ValueError(
+                f"Ghidra反映後のcase整合性検証に失敗しました: "
+                f"{case_dir.name}: {errors}"
+            )
+    except BaseException as exc:
+        _rollback_case_files(transaction_versions, exc)
+        raise
     return str(state["status"])
 
 
@@ -3587,6 +4004,9 @@ def publish_cases(
             raise ValueError(f"発見済み関数から代表関数を選定できないcaseです: {case_sha}")
         structure_only = not records
         case_dir = case_paths[case_sha]
+        preverified_case_report, preverified_report_snapshot = (
+            _load_verified_case_report(case_dir)
+        )
         metadata = json.loads((case_dir / "metadata.json").read_text(encoding="utf-8-sig"))
         report = build_static_logic_report(
             sha256=case_sha,
@@ -3754,6 +4174,11 @@ def publish_cases(
         if "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" not in readme:
             readme = readme.rstrip() + "\n\n" + detail_line + "\n"
         readme_path.write_text(readme, encoding="utf-8")
+        _refresh_preverified_case_manifest(
+            case_dir,
+            preverified_case_report,
+            preverified_report_snapshot,
+        )
         finalized_case_state = finalize_case_report(case_dir)
 
         status_counts[report["status"]] += 1

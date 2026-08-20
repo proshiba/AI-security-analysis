@@ -28,6 +28,7 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "analysis_contract",
         "analysis_job_runner",
         "analysis_lifecycle",
+        "analysis_resume_planner",
         "bounded_process",
         "follow_on_commitment",
         "handler_catalog",

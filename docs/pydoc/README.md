@@ -20,7 +20,7 @@ $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-frame
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle bounded_process `
+  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle analysis_resume_planner bounded_process `
   c2_detector nmap nmap.nmap_c2_detector nmap.verify_nse `
   follow_on_commitment handler_catalog job_artifact_schemas runtime_contract classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
@@ -45,6 +45,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
 - `analysis_job_runner.html`：WebUI／ローカルAPI向けの要求検証、入力snapshot、job状態、成果物再検証
 - `analysis_lifecycle.html`：識別、静的解析、公開、完了判定、派生更新、S3保管を接続する固定stage runner
+- `analysis_resume_planner.html`：保存済みstateを検証し、同一証拠の無益な再試行を止めるread-only再開計画
 - `bounded_process.html`：timeout、process／memory上限、子孫cleanupを担うOS別の共通process境界
 - `follow_on_commitment.html`：保持metadata残余の親別canonical多重集合commitment
 - `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
