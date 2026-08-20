@@ -119,6 +119,7 @@ def _function_reviews(path: Path | None) -> dict[str, dict[str, Any]]:
         if item.get("sha256")
     }
 
+
 def build_summary(
     case_root: Path,
     ioc_csv: Path,
@@ -143,6 +144,14 @@ def build_summary(
         source = labels.get(digest) or aliases.get(digest, {})
         review = reviews.get(digest, {})
         reviewed_functions = review.get("functions") or []
+        static_logic_status = static_logic.get("status")
+        limitations = static_logic.get("limitations", [])
+        if reviewed_functions:
+            static_logic_status = review.get(
+                "status",
+                "characteristic_function_static_analysis_complete_with_documented_limits",
+            )
+            limitations = review.get("limitations", limitations)
         pe = triage.get("pe") or {}
         elf = triage.get("elf") or {}
         sample_type = str(triage.get("type") or "unknown")
@@ -173,13 +182,18 @@ def build_summary(
             "is_dotnet": pe.get("is_dotnet"),
             "capabilities": infer_capabilities(triage),
             "analysis_coverage": triage.get("analysis_coverage"),
-            "static_logic_status": static_logic.get("status"),
-            "function_count": max(static_logic.get("coverage", {}).get("function_count", 0), len(reviewed_functions)),
+            "static_logic_status": static_logic_status,
+            "function_count": max(
+                static_logic.get("coverage", {}).get("function_count", 0),
+                review.get("function_inventory_count", 0),
+                len(reviewed_functions),
+            ),
+            "user_function_count": review.get("user_function_count"),
             "call_edge_count": static_logic.get("coverage", {}).get("call_edge_count", 0),
             "function_bodies_reviewed": bool(reviewed_functions) or static_logic.get("coverage", {}).get("function_bodies_reviewed", False),
             "reviewed_functions": reviewed_functions,
             "function_review_source": review.get("source"),
-            "limitations": static_logic.get("limitations", []),
+            "limitations": limitations,
             "sample_executed": False,
             "network_contacted_by_sample": False,
         }
@@ -284,9 +298,15 @@ def render_markdown(summary: dict[str, Any]) -> str:
                 role = str(function.get("role") or "-").replace("|", "\\|")
                 evidence = str(function.get("evidence") or "-").replace("|", "\\|")
                 lines.append(f"| `{address}` | `{name}` | {role} | {evidence} |")
+            if item.get("limitations"):
+                lines.extend(["", "#### レビュー上の制約", ""])
+                lines.extend(f"- {limitation}" for limitation in item["limitations"])
+    lines.extend(["", "## 制約", ""])
+    if counts["function_analysis_required"]:
+        lines.append(
+            "- 関数本体レビュー未完了のバイナリは、追加の逆コンパイルとコールグラフ整理が必要。"
+        )
     lines.extend([
-        "", "## 制約", "",
-        "- 関数本体レビュー未完了のバイナリは、追加の逆コンパイルとコールグラフ整理が必要。",
         "- プロバイダのファミリ名は帰属の補助情報であり、独自に復元した設定・通信・コード類似性と分けて扱う。",
         "- 検体の通信は発生させていない。公開結果には検体本体と逆コンパイル全文を含めない。", "",
     ])

@@ -108,7 +108,16 @@ def test_sha1_provider_alias_labels_elf_case(tmp_path: Path) -> None:
 
     reviews = tmp_path / "reviews.json"
     reviews.write_text(
-        __import__("json").dumps({"samples": [{"sha256": sha256, "source": "ghidra_mcp", "functions": [{"address": "0x1000", "name": "main"}]}]}),
+        __import__("json").dumps({
+            "samples": [{
+                "sha256": sha256,
+                "source": "ghidra_mcp",
+                "functions": [{"address": "0x1000", "name": "main"}],
+                "limitations": ["難読化により局所変数名は不完全である。"],
+                "function_inventory_count": 5996,
+                "user_function_count": 100,
+            }]
+        }),
         encoding="utf-8",
     )
     summary = target.build_summary(
@@ -121,6 +130,14 @@ def test_sha1_provider_alias_labels_elf_case(tmp_path: Path) -> None:
     assert summary["counts"]["function_analysis_complete"] == 1
     assert summary["counts"]["function_analysis_required"] == 0
     assert summary["samples"][0]["function_review_source"] == "ghidra_mcp"
+    assert summary["samples"][0]["static_logic_status"] == (
+        "characteristic_function_static_analysis_complete_with_documented_limits"
+    )
+    assert summary["samples"][0]["limitations"] == [
+        "難読化により局所変数名は不完全である。"
+    ]
+    assert summary["samples"][0]["function_count"] == 5996
+    assert summary["samples"][0]["user_function_count"] == 100
     markdown = target.render_markdown(summary)
     assert "Dysphoria" in markdown
     assert "NukeSped" not in markdown
