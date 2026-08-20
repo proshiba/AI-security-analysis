@@ -53,6 +53,19 @@ py -3.13 .\analysis-framework\common\stealer_protocol_evidence.py `
   --output C:\isolated\vidar-protocol-evidence.json
 ```
 
+### Vidar dead-drop snapshotの相関
+
+[`dead_drop_snapshot.py`](../malware/vidar/dead_drop_snapshot.py)はlive接続を行わず、別工程で保存済みのTelegram、Pinterest、Steam profile本文だけを解析します。manifestは検体SHA-256、静的configに存在する元URL、取得日時、本文SHA-256へ完全に束縛し、本文sizeは読込時に上限内で計測します。1サービスにつきsnapshotは1件に限定し、異なる2サービス以上が同じpublic IPv4:portを示した場合だけ`probable_c2=true`とします。
+
+```powershell
+py -3.13 .\analysis-framework\malware\vidar\dead_drop_snapshot.py `
+  --config C:\isolated\vidar-config.json `
+  --manifest C:\isolated\snapshots\manifest.json `
+  --output C:\isolated\vidar-dead-drop-result.json
+```
+
+この結果は共有サービスそのものをC2とせず、相関endpointも`c2_confirmed=false`、confidence `0.85`の候補に固定します。snapshotが1サービスだけ、本文に複数endpointがある、source URLやSHA-256が不一致、private／loopback IPだけの場合はfail-closedです。tool自身にはHTTP client、redirect、認証、live probe、検体実行機能がありません。
+
 ## Nmapによる観測
 
 Nmap mappingは[`profiles.json`](../nmap/profiles.json)に集約しています。StealC、Lumma、Remusは[`stealer-http-c2.nse`](../nmap/scripts/stealer-http-c2.nse)のfamily別modeを持ち、FormBook／Vidar／AMOSは[`stealer-route-c2.nse`](../nmap/scripts/stealer-route-c2.nse)の固定経路差分modeを使います。実行にはexact profile、同値acknowledgement、数値IP pin、timeout、request budgetが必要です。
@@ -88,11 +101,24 @@ py -3.13 .\emulators\stealers\lab.py client --family amosstealer --base-url http
 - FormBook、Vidar、AMOSのroute responseはwire互換C2 responseではありません。
 - すべてのclient結果で`c2_confirmed=false`を固定します。
 
+保存済みsnapshot parserだけを検証するときは、[`dead_drop_loopback_emulator.py`](../malware/vidar/dead_drop_loopback_emulator.py)を使えます。numeric loopbackへ1接続だけbindし、`GET /profile`へ合成本文を1回返します。本文へ指定できるendpointはRFC 5737 documentation networkだけであり、実在するpublic IPは拒否します。
+
+```powershell
+py -3.13 .\analysis-framework\malware\vidar\dead_drop_loopback_emulator.py `
+  --service telegram `
+  --endpoint 192.0.2.10:443 `
+  --bind 127.0.0.1 `
+  --port 18081
+```
+
+このfacadeはVidarの最終C2 protocolを再現しません。task、command、payload、victim metadataを送らず、raw request／responseも保持しません。
+
 ## 精度境界
 
 - RemusとLummaはfieldが別endpointに分散した場合や順序が逆の場合に一致しません。
 - StealCは単独のJSON POST、異なるpath、family帰属なしでは一致しません。
 - Vidarは静的profileなし、endpoint不一致、User-Agent hash不一致では一致しません。
+- Vidar dead-drop snapshot相関は独立2サービス未満、同じendpointへの合意なし、保存本文の完全性不一致では候補を返しません。snapshot本文だけでprotocol確認へ昇格しません。
 - AMOSは片方のrouteだけ、campaign ID不一致、別endpointでは一致しません。
 - FormBookは単一HTTP requestやstatusからterminal C2を推測せず、受動側は6 endpoint以上のfan-out、能動側は完全一致profileと陰性対照差を要求します。
 
