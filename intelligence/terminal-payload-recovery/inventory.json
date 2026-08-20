@@ -17144,6 +17144,30 @@
     },
     {
       "blockers": [
+        "terminal_wire_protocol_variant_confirmation_pending"
+      ],
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "evidence": [
+        {
+          "locator": "classification.terminal_family_confirmed / case_state.blockers",
+          "path": "analysis-results/malware/valleyrat/versions/unknown/cases/c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86/report.json",
+          "source": "structured_case_report",
+          "summary": "terminal_wire_protocol_variant_confirmation_pending"
+        }
+      ],
+      "family": "valleyrat",
+      "gap_types": [
+        "static_recovery_incomplete"
+      ],
+      "observation_date": null,
+      "priority": "P1",
+      "requires_latest_sample": true,
+      "sha256": "c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "state": "explicit_unrecovered",
+      "version_key": "unknown"
+    },
+    {
+      "blockers": [
         "human_documented_terminal_gap"
       ],
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c33bf27dc5e7c57f95cc10e6480e54faea225df318ae994117d60a231149347b",
@@ -18115,8 +18139,8 @@
       ]
     },
     {
-      "case_count": 36,
-      "explicit_unrecovered_count": 33,
+      "case_count": 37,
+      "explicit_unrecovered_count": 34,
       "family": "valleyrat",
       "latest_local_observation": "2026-08-12",
       "latest_local_sha256": "be7d04f3bbca91674206a22fdedc0d4874a62ffe0dd164e98de6d3cb065a57bf",
@@ -18931,18 +18955,18 @@
   },
   "schema_version": 1,
   "scope": {
-    "catalog_case_count": 2545,
+    "catalog_case_count": 2549,
     "curated_active_count": 72,
     "curated_source_absent_count": 5,
     "family_count": 39,
-    "gap_case_count": 731,
+    "gap_case_count": 732,
     "human_document_match_count": 664,
     "state_counts": {
       "curated_recovery_backlog": 55,
-      "explicit_unrecovered": 671,
+      "explicit_unrecovered": 672,
       "source_material_absent": 5
     },
-    "structured_report_match_count": 22,
+    "structured_report_match_count": 23,
     "structured_terminal_completion_count": 28
   },
   "source_paths": [

@@ -293,6 +293,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "044685870eaff33a097bde51dfc03438b5cba936d3472be33737b6c0983e0fbc": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/044685870eaff33a097bde51dfc03438b5cba936d3472be33737b6c0983e0fbc",
+      "case_id": "sha256:044685870eaff33a097bde51dfc03438b5cba936d3472be33737b6c0983e0fbc",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f": {
       "canonical_path": "analysis-results/malware/chud-bot/versions/unknown/cases/0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f",
       "case_id": "sha256:0447b20576efb9b14cabc98ee5ea2a6ea9ef417dac962c2e3722ac364cd7245f",
@@ -10017,6 +10024,13 @@
       "family": "eclipse-ddos-bot",
       "version_key": "unknown"
     },
+    "87a853cf460ecb71120e8321853531038f7855d340f188db3ee475c3758a9745": {
+      "canonical_path": "analysis-results/malware/manageengine-endpoint-central-abuse/versions/v11.3.2400.33.W/cases/87a853cf460ecb71120e8321853531038f7855d340f188db3ee475c3758a9745",
+      "case_id": "sha256:87a853cf460ecb71120e8321853531038f7855d340f188db3ee475c3758a9745",
+      "case_kind": "malware",
+      "family": "manageengine-endpoint-central-abuse",
+      "version_key": "v11.3.2400.33.W"
+    },
     "87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6",
       "case_id": "sha256:87b92fcd04f69f9c132c9f350dbb3686888a5e388b1f787f6a658f09582c0da6",
@@ -11734,6 +11748,13 @@
       "case_id": "sha256:9da90d850c78ef90b4964813b0239864fe0e9e051b118ac0542f6cc6ecb62671",
       "case_kind": "malware",
       "family": "vidar",
+      "version_key": "unknown"
+    },
+    "9df49e6b296765cb537245097634a9da0aa6f04fd2df118018d8b440b71cf3b9": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/9df49e6b296765cb537245097634a9da0aa6f04fd2df118018d8b440b71cf3b9",
+      "case_id": "sha256:9df49e6b296765cb537245097634a9da0aa6f04fd2df118018d8b440b71cf3b9",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "9e00b52b02d6e760b7cee84151b4b229e8b8f0b07f014d30f3db41d0b67feb44": {
@@ -14473,6 +14494,13 @@
       "case_id": "sha256:c23cb82c4e48e91f71b389cb16d419510a15bd1ebd9b3e53a7fd8f38960745a5",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "case_id": "sha256:c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "c24479ca1dc4160372beed905cd7837cbb244bc98aa47caf591c6a9285aa00ba": {

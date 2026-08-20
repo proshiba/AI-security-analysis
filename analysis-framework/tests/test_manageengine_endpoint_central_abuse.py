@@ -106,6 +106,44 @@ def _bundle_zip() -> bytes:
     return stream.getvalue()
 
 
+def _array_assignment(name: str, value: str) -> str:
+    encoded = ",".join(str(ord(character)) for character in value)
+    return f"{name}: {name} = Array({encoded})"
+
+
+def _array_vbs(*, include_second_vm_marker: bool = True) -> bytes:
+    assignments = {
+        "U_SHELL": "WScript.Shell",
+        "U_FSO": "Scripting.FileSystemObject",
+        "U_XML": "MSXML2.XMLHTTP",
+        "U_GET": "GET",
+        "U_BITS": "bitsadmin /transfer",
+        "U_VM1": r"C:\Windows\System32\vm3dgl.dll",
+        "U_CURL": r"C:\Windows\System32\curl.exe",
+        "U_RENAMED": "wininit.exe",
+        "U_URL": "https://example.invalid/sys/payload.jpg",
+    }
+    if include_second_vm_marker:
+        assignments["U_VM2"] = r"C:\Windows\System32\vboxusbmon.dll"
+    body = [
+        "Function DecArr(arr)",
+        '  value = ""',
+        "  For i = 0 To UBound(arr)",
+        "    value = value & Chr(arr(i))",
+        "  Next",
+        "  DecArr = value",
+        "End Function",
+        *(_array_assignment(name, value) for name, value in assignments.items()),
+        "Set shell = CreateObject(DecArr(U_SHELL))",
+        "p1 = Chr(69) & Chr(120)",
+        "p2 = Chr(101) & Chr(99)",
+        'p3 = "u"',
+        'p4 = "te"',
+        'Execute p1 & p2 & p3 & p4 & " code"',
+    ]
+    return ("\n".join(body) + "\n").encode("ascii")
+
+
 def test_numeric_xor_vbs_is_decoded_without_execution() -> None:
     payload = 'Set x = CreateObject("WScript.Shell")\nurl = "https://example.invalid/payload.zip"\nEnd If\n'
     result = EXTRACTOR.extract_config(_numeric_vbs(payload))
@@ -140,6 +178,49 @@ def test_chr_xor_chains_are_folded_without_execution() -> None:
         "chain_count": 1,
         "unresolved_count": 0,
     }
+
+
+def test_array_obfuscated_vbs_is_decoded_and_detected_without_execution() -> None:
+    data = _array_vbs()
+    extracted = EXTRACTOR.extract_config(data)
+    analysis = extracted["analysis"]
+    detected = DETECTOR.detect(data, Path("loader.vbs"))
+    assert analysis["artifact_type"] == "array_obfuscated_vbscript_loader"
+    assert analysis["urls"] == ["https://example.invalid/sys/payload.jpg"]
+    assert analysis["download_methods"] == [
+        "synchronous MSXML2.XMLHTTP",
+        "renamed system curl",
+        "bitsadmin",
+    ]
+    assert analysis["static_deobfuscation"]["sample_executed"] is False
+    assert analysis["network_contacted_by_extractor"] is False
+    assert detected["matched"] is True
+    assert detected["observations"]["array_obfuscated_vbscript"] is True
+
+
+def test_utf16_array_obfuscated_vbs_is_decoded_without_execution() -> None:
+    data = _array_vbs().decode("ascii").encode("utf-16")
+    extracted = EXTRACTOR.extract_config(data)
+    detected = DETECTOR.detect(data, Path("loader.vbs"))
+    assert extracted["analysis"]["urls"] == ["https://example.invalid/sys/payload.jpg"]
+    assert extracted["safety"]["sample_executed"] is False
+    assert extracted["safety"]["network_contacted"] is False
+    assert detected["observations"]["array_obfuscated_vbscript"] is True
+
+
+def test_array_obfuscated_vbs_requires_both_anti_sandbox_markers() -> None:
+    data = _array_vbs(include_second_vm_marker=False)
+    with pytest.raises(ValueError, match="必須構造"):
+        EXTRACTOR.extract_config(data)
+    assert DETECTOR.detect(data, Path("loader.vbs"))["matched"] is False
+
+
+def test_array_obfuscated_vbs_rejects_duplicate_array_names() -> None:
+    duplicate = (_array_assignment("U_URL", "https://example.invalid/second") + "\n").encode("ascii")
+    data = _array_vbs() + duplicate
+    with pytest.raises(ValueError, match="重複"):
+        EXTRACTOR.extract_config(data)
+    assert DETECTOR.detect(data, Path("loader.vbs"))["matched"] is False
 
 
 def test_server_config_extracts_endpoint_and_redacts_secrets() -> None:

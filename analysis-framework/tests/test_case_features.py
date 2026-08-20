@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -11,9 +12,12 @@ import pytest
 COMMON = Path(__file__).parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import generate_case_features as feature_generator
-from case_features import build_case_profile, render_features_markdown
-from generate_case_features import build_parser, generate
+feature_generator = importlib.import_module("generate_case_features")
+case_features = importlib.import_module("case_features")
+build_case_profile = case_features.build_case_profile
+render_features_markdown = case_features.render_features_markdown
+build_parser = feature_generator.build_parser
+generate = feature_generator.generate
 
 SHA256 = "a" * 64
 
@@ -100,6 +104,34 @@ def test_profile_contains_only_positive_documented_behavior(tmp_path: Path) -> N
     rendered = render_features_markdown(profile)
     assert "YARA、Sigma" in rendered
     assert "通信は未確認" not in rendered
+
+
+def test_profile_records_in_memory_processing_behavior(tmp_path: Path) -> None:
+    """network機能がない計算programも実挙動を空欄にしない。"""
+
+    case = _case(tmp_path)
+    (case / "README.md").write_text(
+        """# fixture
+
+## 静的な処理能力の手掛かり
+
+- 固定整数表をGo runtime mapへ集計します。
+- 値を並べ替え、consoleへ集計reportを出力します。
+
+## 制約
+
+- 外部通信は行っていません。
+""",
+        encoding="utf-8",
+    )
+
+    profile = build_case_profile(case)
+    behavior_ids = {item["id"] for item in profile["behaviors"]}
+    assert behavior_ids >= {
+        "processing:map_aggregation",
+        "processing:sorting",
+        "output:console_report",
+    }
 
 
 def test_generator_is_reproducible_and_checkable(tmp_path: Path) -> None:
