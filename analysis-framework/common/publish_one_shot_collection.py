@@ -36,6 +36,10 @@ from handler_evidence import (  # noqa: E402
     static_config_recovered,
 )
 from ioc_markdown import render_submitted_iocs  # noqa: E402
+from malwarebazaar_family_labels import (  # noqa: E402
+    REPORTED_FAMILY_ALIASES,
+    normalize_reported_name,
+)
 from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
 from result_layout import (  # noqa: E402
     resolve_catalog_case_path,
@@ -77,30 +81,6 @@ PARTIAL_STAGING_FAMILY_BLOCKER = re.compile(
     r"selected_family_has_no_(?:automatic_handler|valid_handler_evidence):[a-z0-9_-]+"
 )
 
-# MalwareBazaarの報告名を、既にリポジトリで管理しているIDだけへ対応させる。
-REPORTED_FAMILY_ALIASES = {
-    "acrstealer": "acrstealer",
-    "agenttesla": "agenttesla",
-    "amadey": "amadey",
-    "asyncrat": "asyncrat",
-    "efimer": "efimer",
-    "formbook": "formbook",
-    "guloader": "guloader",
-    "hijackloader": "hijackloader",
-    "maskgramstealer": "maskgram-stealer",
-    "mirai": "mirai",
-    "nanocore": "nanocore",
-    "prometei": "prometei",
-    "purerat": "purehvnc",
-    "purelogsstealer": "purelogs",
-    "remcosrat": "remcosrat",
-    "remusstealer": "remusstealer",
-    "snakekeylogger": "snakekeylogger",
-    "stealc": "stealc",
-    "valleyrat": "valleyrat",
-    "vidar": "vidar",
-    "wannacry": "wannacry",
-}
 INTERNAL_FAMILY_TO_PUBLIC = {
     "dotnet_resource_loader": "dotnet-resource-loader",
     "formbook_loader": "formbook",
@@ -180,10 +160,6 @@ def build_post_analysis_publication_record(
             "analysis_contract SHA-256は解析実行時のsnapshotとして保持する。"
         ),
     }
-
-
-def normalize_reported_name(value: object) -> str:
-    return re.sub(r"[^a-z0-9]", "", str(value or "").casefold())
 
 
 def public_family_id(internal_family: str) -> str:

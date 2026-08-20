@@ -46,7 +46,24 @@ familyは証拠の強さを分けて扱います。
 3. 候補hintだけではfamilyを確定しません。対応形式の安全なhandlerを検証用に実行し、別系統の静的証拠で補強できた場合だけ昇格します。
 4. 複数familyが競合する場合、都合のよい1件を選ばず、競合とblockerを残します。
 
-公開用collectionのsummaryから候補manifestを作る例です。
+MalwareBazaarのWindows検体を通常取得するときは、`malwarebazaar_batch.py --windows`が取得用のprivate rootへ`manifest.json`と同じ階層の`family-hints.json`を自動生成します。private rootはrepository外へ置き、生成されたhint manifestを解析ジョブの入力snapshotへ含めます。
+
+```powershell
+python .\analysis-framework\common\malwarebazaar_batch.py `
+  --windows `
+  --limit 50 `
+  --root C:\malware-lab\private\malwarebazaar\windows-20260820
+```
+
+既存の取得manifestから手動で再生成する場合は、`acquisition_items`を持つ公開collection manifestまたは`items`を持つprivate取得manifestを`--collection-manifest`へ渡します。
+
+```powershell
+python .\analysis-framework\common\build_family_hint_manifest.py `
+  --collection-manifest C:\malware-lab\private\malwarebazaar\windows-20260820\manifest.json `
+  --output C:\malware-lab\private\malwarebazaar\windows-20260820\family-hints.json
+```
+
+公開済みcollectionのsummaryを入力にする従来経路も利用できます。
 
 ```powershell
 python .\analysis-framework\common\build_family_hint_manifest.py `
@@ -54,7 +71,7 @@ python .\analysis-framework\common\build_family_hint_manifest.py `
   --output C:\malware-lab\intake\hints\family-hints.json
 ```
 
-manifestは検体の完全一致SHA-256をkeyとし、入力root内の独立ファイルとしてジョブ要求から参照します。URL、ファイル名、曖昧なtagだけを検体へ結び付けることはできません。
+変換対象はallowlistで正規化できるMalwareBazaarの`signature`または直接tagだけです。各候補は取得metadata内の完全一致SHA-256へ束縛し、`verification-only`として扱います。providerのsignature／tagは候補handlerを試すための外部由来情報であり、family帰属の根拠ではありません。URL、ファイル名、曖昧なtag、SHA-256と矛盾するmetadataから候補を結び付けることはできず、候補を昇格するには別系統の静的証拠が必要です。
 
 ## 完了判定
 
@@ -70,6 +87,35 @@ manifestは検体の完全一致SHA-256をkeyとし、入力root内の独立フ�
 文字列として自己申告されたhashだけでは、終端payload取得済みとしません。取得済みとして扱う成果物は、wrapperが実際に読み取った通常ファイルから計算したSHA-256とsizeが一致し、安全な相対pathを持つ必要があります。
 
 familyによってconfigやC2を持たない場合もあるため、単純に全項目の存在を強制しません。family profileが要求する能力、観測できなかった理由、解析上限を区別し、未解決なら`blockers`へ残します。
+
+## 再開計画と後継workflow
+
+保存済みorchestrationを再実行する前に、`analysis_resume_planner.py plan-resume`でread-onlyの再開計画を作成できます。plannerは保存済みrequest、親子state、report、解析実装commitment、phaseごとの結果とblockerを単一snapshotとして検証し、検体を実行せず、成果物を書き換えず、解析用network通信も行いません。
+
+```powershell
+python .\analysis-framework\common\analysis_resume_planner.py plan-resume `
+  --orchestration-id <orchestration-id> `
+  --repository C:\work\AI-security-analysis `
+  --input-root C:\malware-lab\intake `
+  --work-root C:\malware-lab\work
+```
+
+標準出力の`status`とprocess終了コードは次の契約です。
+
+- `complete`: 全workflowが完了済みです。終了コードは`0`です。
+- `actionable`: 保存済み証拠とretry budgetの範囲で再開候補があります。終了コードは`20`です。
+- `blocked`: 自動再開できません。終了コードは`20`です。`20`はplannerの失敗ではないため、`status`と各workflowの`decision`を確認します。
+- 入力、state、report、hash、親子整合性の検証エラー: 機械可読errorを標準エラーへ出し、終了コードは`2`です。
+
+plannerはblockerの完全一致またはレビュー済みprefix policyと、phase証拠のfingerprintを使って判定します。workflow attemptが複数あり再試行履歴が保存されていない場合も、現在のstage fingerprintと実装commitmentが変わっていなければ同一証拠のno-progressとして保守的に停止し、retry budgetを超えたblind retryも抑止します。policyにない未知のblocker、混在している未知のblocker、証拠commitmentの不整合はfail-closedで`blocked`とし、文字列の部分一致から実行可能と推測しません。
+
+`resume`はprocess中断など、同じrequest・実装・証拠を使う中断回復だけに使用します。静的証拠の追加、Ghidra解析の追加、detector／handlerの実装変更、入力やpolicyの変更が必要な場合は、公開済みstateを同じworkflowとして再開せず、新しいIDとrequest commitmentを持つsuccessor workflowを作成します。plannerは計画を返すだけであり、再開やsuccessor作成を自動実行しません。
+
+## Ghidra関数解析後の品質ゲート再整合
+
+`ghidra_function_batch.py`がcaseの関数解析をfinalizeするときは、代表関数解析成果物を独立validatorで検証した後、既存`orchestration.json`の`function_analysis` gateだけを自動再整合します。gateが`required_missing`で検証済み関数解析が揃った場合は`required_missing`から`satisfied`へ変更し、対応する`function_analysis` blockerと同じ位置のnext actionだけを除去して、残余blockerからorchestration状態を再計算します。
+
+family、config、network、terminal payloadなど他のgate、blocker、next actionは保持します。したがって関数解析が完了しても、終端payload等が未解決ならcaseは`partial`のままです。既に満たされたfunction gateへの再実行は冪等に扱い、参照、artifact hash、schema、reportとのblocker対応、関数解析validationのいずれかが不正なら更新せずfail-closedにします。成功時は更新した`orchestration.json`のartifact hashとreportの状態を再計算し、`report.json`を再封印します。
 
 ## 終端payloadの保持と固定点解析
 

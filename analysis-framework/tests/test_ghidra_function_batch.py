@@ -6,6 +6,7 @@ import hashlib
 import logging
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -1134,6 +1135,489 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
     }
     assert analysis_contract.verify_report_semantics(refreshed) == []
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
+
+
+def _write_finalize_orchestration_fixture(
+    case_dir: Path,
+    *,
+    family: str,
+    terminal_payload_missing: bool,
+) -> dict[str, object]:
+    """Ghidra後reconciliation用のschema 2 orchestrationを作成する。"""
+
+    if terminal_payload_missing:
+        requirements = {
+            "config_required": False,
+            "network_required": False,
+            "terminal_payload_required": True,
+            "function_analysis_required": True,
+        }
+        config_gate = {
+            "required": False,
+            "satisfied": False,
+            "observed": None,
+            "status": "not_applicable",
+        }
+        network_gate = {
+            "required": False,
+            "satisfied": False,
+            "observed": False,
+            "status": "not_applicable",
+        }
+        terminal_gate = {
+            "required": True,
+            "satisfied": False,
+            "observed": None,
+            "status": "required_missing",
+        }
+        blockers = ["function_analysis", "terminal_payload"]
+        next_actions = [
+            target.FUNCTION_ANALYSIS_NEXT_ACTION_JA,
+            "後段payloadの静的復元処理を追加してください。",
+        ]
+    else:
+        requirements = {
+            "config_required": True,
+            "network_required": True,
+            "terminal_payload_required": False,
+            "function_analysis_required": True,
+        }
+        config_gate = {
+            "required": True,
+            "satisfied": True,
+            "observed": None,
+            "status": "satisfied",
+        }
+        network_gate = {
+            "required": True,
+            "satisfied": True,
+            "observed": True,
+            "status": "satisfied",
+        }
+        terminal_gate = {
+            "required": False,
+            "satisfied": False,
+            "observed": None,
+            "status": "not_applicable",
+        }
+        blockers = ["function_analysis"]
+        next_actions = [target.FUNCTION_ANALYSIS_NEXT_ACTION_JA]
+    satisfied_gate = {
+        "required": True,
+        "satisfied": True,
+        "observed": None,
+        "status": "satisfied",
+    }
+    outcome: dict[str, object] = {
+        "schema_version": target.ORCHESTRATION_SCHEMA_VERSION,
+        "sample_sha256": case_dir.name,
+        "status": "partial",
+        "family_resolution": {
+            "status": "resolved",
+            "family": family,
+            "requirements": requirements,
+            "candidates": [{"family": family, "sentinel": "preserve-resolution"}],
+        },
+        "outputs": {"sentinel": "preserve-outputs"},
+        "candidate_outputs": {"sentinel": "preserve-candidate-outputs"},
+        "handler_evidence": {"sentinel": "preserve-handler-evidence"},
+        "quality_gates": {
+            "generic_triage": dict(satisfied_gate),
+            "static_layers": dict(satisfied_gate),
+            "family_resolution": dict(satisfied_gate),
+            "handler_evidence": dict(satisfied_gate),
+            "config": config_gate,
+            "network": network_gate,
+            "terminal_payload": terminal_gate,
+            "function_analysis": {
+                "required": True,
+                "satisfied": False,
+                "observed": None,
+                "status": "required_missing",
+            },
+            "requirements_policy": {
+                "required": True,
+                "satisfied": True,
+                "observed": True,
+                "status": "satisfied",
+            },
+        },
+        "blockers": blockers,
+        "next_actions_ja": next_actions,
+        "automation": {
+            "ai_used": False,
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+        "extension": {"sentinel": "preserve-extension"},
+    }
+    target._json_dump(case_dir / "orchestration.json", outcome)
+    return outcome
+
+
+def _write_orchestration_finalize_report(
+    case_dir: Path,
+    *,
+    family: str,
+    blockers: list[str],
+) -> None:
+    """orchestration参照とhashを持つpartial reportを作成する。"""
+
+    target._json_dump(case_dir / "static-logic.json", {"status": "complete"})
+    report = {
+        "classification": {"selected_families": [family]},
+        "orchestration": "orchestration.json",
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": blockers,
+        },
+        "artifact_sha256": {
+            name: hashlib.sha256((case_dir / name).read_bytes()).hexdigest()
+            for name in ("static-logic.json", "orchestration.json")
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+
+
+def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """functionだけが不足する解決済みNJRat形は全gate完了へ遷移する。"""
+
+    digest = "a" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    outcome = _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    original_hash = hashlib.sha256((case_dir / "orchestration.json").read_bytes()).hexdigest()
+    preserved = {
+        name: outcome[name]
+        for name in (
+            "family_resolution",
+            "outputs",
+            "candidate_outputs",
+            "handler_evidence",
+            "extension",
+        )
+    }
+    preserved_gates = {
+        name: gate
+        for name, gate in outcome["quality_gates"].items()
+        if name != "function_analysis"
+    }
+    validation_calls: list[tuple[Path, str]] = []
+    integrity_calls: list[dict[str, object]] = []
+
+    def valid_function_analysis(path: Path, sha256: str) -> SimpleNamespace:
+        validation_calls.append((path, sha256))
+        return SimpleNamespace(valid=True, findings=[])
+
+    def no_integrity_errors(*args: object, **kwargs: object) -> list[str]:
+        integrity_calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(target, "validate_function_case", valid_function_analysis)
+    monkeypatch.setattr(target, "case_integrity_errors", no_integrity_errors)
+
+    assert target.finalize_case_report(case_dir) == "complete"
+    refreshed_outcome = target.load_json_object_strict(case_dir / "orchestration.json")
+    refreshed_report = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed_outcome["quality_gates"]["function_analysis"] == {
+        "required": True,
+        "satisfied": True,
+        "observed": None,
+        "status": "satisfied",
+    }
+    assert refreshed_outcome["status"] == "complete"
+    assert refreshed_outcome["blockers"] == []
+    assert refreshed_outcome["next_actions_ja"] == []
+    assert {name: refreshed_outcome[name] for name in preserved} == preserved
+    assert {
+        name: gate
+        for name, gate in refreshed_outcome["quality_gates"].items()
+        if name != "function_analysis"
+    } == preserved_gates
+    assert refreshed_report["case_state"] == {
+        "status": "complete",
+        "complete": True,
+        "resumable": True,
+        "blockers": [],
+    }
+    refreshed_hash = hashlib.sha256((case_dir / "orchestration.json").read_bytes()).hexdigest()
+    assert refreshed_hash != original_hash
+    assert refreshed_report["artifact_sha256"]["orchestration.json"] == refreshed_hash
+    assert analysis_contract.verify_report_semantics(refreshed_report) == []
+    assert validation_calls == [(case_dir, digest)]
+    assert integrity_calls == [{"expected_digest": digest, "require_resumable": True}]
+
+
+def test_finalize_case_report_preserves_dotnet_terminal_payload_blocker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """dotnet loader形はfunctionだけを閉じ、terminal payload不足を保持する。"""
+
+    digest = "b" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    outcome = _write_finalize_orchestration_fixture(
+        case_dir,
+        family="dotnet_resource_loader",
+        terminal_payload_missing=True,
+    )
+    preserved_gates = {
+        name: gate
+        for name, gate in outcome["quality_gates"].items()
+        if name != "function_analysis"
+    }
+    preserved_outputs = outcome["outputs"]
+    preserved_resolution = outcome["family_resolution"]
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="dotnet_resource_loader",
+        blockers=[
+            target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER,
+            "orchestration:terminal_payload",
+        ],
+    )
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    assert target.finalize_case_report(case_dir) == "partial"
+    refreshed_outcome = target.load_json_object_strict(case_dir / "orchestration.json")
+    refreshed_report = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed_outcome["status"] == "partial"
+    assert refreshed_outcome["blockers"] == ["terminal_payload"]
+    assert refreshed_outcome["next_actions_ja"] == [
+        "後段payloadの静的復元処理を追加してください。"
+    ]
+    assert {
+        name: gate
+        for name, gate in refreshed_outcome["quality_gates"].items()
+        if name != "function_analysis"
+    } == preserved_gates
+    assert refreshed_outcome["outputs"] == preserved_outputs
+    assert refreshed_outcome["family_resolution"] == preserved_resolution
+    assert refreshed_report["case_state"] == {
+        "status": "partial",
+        "complete": False,
+        "resumable": False,
+        "blockers": ["orchestration:terminal_payload"],
+    }
+    assert refreshed_report["artifact_sha256"]["orchestration.json"] == hashlib.sha256(
+        (case_dir / "orchestration.json").read_bytes()
+    ).hexdigest()
+    assert analysis_contract.verify_report_semantics(refreshed_report) == []
+
+
+def test_finalize_case_report_rejects_invalid_function_analysis_without_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """function成果物の完了検証失敗時はorchestration/reportを変更しない。"""
+
+    digest = "c" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    orchestration_before = (case_dir / "orchestration.json").read_bytes()
+    report_before = (case_dir / "report.json").read_bytes()
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=False, findings=["coverage不足"]),
+    )
+
+    with pytest.raises(ValueError, match="代表関数解析の完了検証に失敗"):
+        target.finalize_case_report(case_dir)
+    assert (case_dir / "orchestration.json").read_bytes() == orchestration_before
+    assert (case_dir / "report.json").read_bytes() == report_before
+
+
+def test_finalize_case_report_rolls_back_both_files_after_integrity_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """後段integrity失敗時はorchestration/reportを元bytesへatomicに戻す。"""
+
+    digest = "d" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    orchestration_before = (case_dir / "orchestration.json").read_bytes()
+    report_before = (case_dir / "report.json").read_bytes()
+    observed_updated_bytes: list[tuple[bytes, bytes]] = []
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+
+    def injected_integrity_failure(*_args: object, **_kwargs: object) -> list[str]:
+        observed_updated_bytes.append(
+            (
+                (case_dir / "orchestration.json").read_bytes(),
+                (case_dir / "report.json").read_bytes(),
+            )
+        )
+        return ["injected_integrity_failure"]
+
+    monkeypatch.setattr(target, "case_integrity_errors", injected_integrity_failure)
+
+    with pytest.raises(ValueError, match="injected_integrity_failure"):
+        target.finalize_case_report(case_dir)
+    assert len(observed_updated_bytes) == 1
+    assert observed_updated_bytes[0][0] != orchestration_before
+    assert observed_updated_bytes[0][1] != report_before
+    assert (case_dir / "orchestration.json").read_bytes() == orchestration_before
+    assert (case_dir / "report.json").read_bytes() == report_before
+    assert list(case_dir.glob(".*.tmp")) == []
+
+
+def test_finalize_case_report_verifies_entire_manifest_before_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """orchestration以外の既存成果物hash不一致も更新前に拒否する。"""
+
+    digest = "e" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    orchestration_before = (case_dir / "orchestration.json").read_bytes()
+    report_before = (case_dir / "report.json").read_bytes()
+    target._json_dump(case_dir / "static-logic.json", {"status": "tampered"})
+    validation_called = False
+
+    def unexpected_validation(*_args: object) -> SimpleNamespace:
+        nonlocal validation_called
+        validation_called = True
+        return SimpleNamespace(valid=True, findings=[])
+
+    monkeypatch.setattr(target, "validate_function_case", unexpected_validation)
+
+    with pytest.raises(ValueError, match="更新前の全成果物hash検証に失敗"):
+        target.finalize_case_report(case_dir)
+    assert validation_called is False
+    assert (case_dir / "orchestration.json").read_bytes() == orchestration_before
+    assert (case_dir / "report.json").read_bytes() == report_before
+
+
+def test_finalize_case_report_preserves_competing_orchestration_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """prepare後の第三者変更を拒否し、そのbytesをrollbackで上書きしない。"""
+
+    digest = "f" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    orchestration_before = (case_dir / "orchestration.json").read_bytes()
+    report_before = (case_dir / "report.json").read_bytes()
+    competing_bytes: list[bytes] = []
+
+    def mutate_after_prepare(*_args: object) -> SimpleNamespace:
+        path = case_dir / "orchestration.json"
+        competing = target.load_json_object_strict(path)
+        competing["extension"]["competing_writer"] = "preserve-these-bytes"
+        target._json_dump(path, competing)
+        competing_bytes.append(path.read_bytes())
+        return SimpleNamespace(valid=True, findings=[])
+
+    def unexpected_integrity(*_args: object, **_kwargs: object) -> list[str]:
+        pytest.fail("競合変更時にcase integrityへ進んではならない")
+
+    monkeypatch.setattr(target, "validate_function_case", mutate_after_prepare)
+    monkeypatch.setattr(target, "case_integrity_errors", unexpected_integrity)
+
+    with pytest.raises(ValueError, match="transaction commit直前で競合変更"):
+        target.finalize_case_report(case_dir)
+    assert len(competing_bytes) == 1
+    assert competing_bytes[0] != orchestration_before
+    assert (case_dir / "orchestration.json").read_bytes() == competing_bytes[0]
+    assert (case_dir / "report.json").read_bytes() == report_before
+    assert list(case_dir.glob(".*.tmp")) == []
+
+
+@pytest.mark.parametrize("name", ["report.json", "orchestration.json"])
+def test_bounded_json_snapshot_rejects_oversize(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    name: str,
+) -> None:
+    """transaction対象JSONは読取前に64MiB超を拒否する。"""
+
+    path = tmp_path / name
+    observed: list[tuple[Path, int]] = []
+
+    def reject_oversize(candidate: Path, *, max_bytes: int) -> bytes:
+        observed.append((candidate, max_bytes))
+        raise ValueError(
+            f"成果物が{max_bytes} bytes上限を超えています: {candidate}"
+        )
+
+    monkeypatch.setattr(
+        target,
+        "_read_regular_file_snapshot",
+        reject_oversize,
+    )
+
+    with pytest.raises(ValueError, match="bytes上限を超えています"):
+        target._bounded_json_snapshot(path)
+    assert observed == [(path, 64 * 1024 * 1024)]
 
 
 def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
