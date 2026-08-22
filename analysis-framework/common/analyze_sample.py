@@ -1508,6 +1508,18 @@ def _prepare_case_directory(output: Path, digest: str) -> Path:
     return case_dir
 
 
+def _routing_classifications(layer_selections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """公開quotaで省略する前の分類器評価を内部routing入力へ変換する。"""
+
+    return [
+        {
+            "layer": selection["layer"].public(),
+            "classification": selection["classification"],
+        }
+        for selection in layer_selections
+    ]
+
+
 def analyze_unit(
     unit: InputUnit,
     *,
@@ -1652,7 +1664,7 @@ def analyze_unit(
     classification_document["family_hint_lineage"] = family_hint_lineage
     classification_document["classification_conflicts"] = family_hint_conflicts
     routing = classify_sample.build_family_routing_candidates(
-        public_classifications,
+        _routing_classifications(layer_selections),
         metadata_hints=metadata_hints,
         family_coverage=routing_family_coverage,
     )
