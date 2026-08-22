@@ -150,6 +150,59 @@ def test_verification_candidates_are_fail_closed() -> None:
     assert one_shot._verification_candidates(routing) == [eligible]
 
 
+def test_routing_uses_complete_internal_evaluations_after_public_quota() -> None:
+    """公開分類の省略markerをrouting入力にせず、後方detectorの証拠を保持する。"""
+
+    evaluations = []
+    for index in range(80):
+        evaluations.append(
+            {
+                "malware_type": f"fixture-family-{index:03d}",
+                "known_outer_sha256": False,
+                "known_inner_sha256": False,
+                "detector_matched": index == 79,
+                "automatic_route_eligible": index == 79,
+                "error": None,
+                "bounded_details": {f"field-{field:03d}": field for field in range(60)},
+            }
+        )
+    classification = {
+        "malware_type": "unknown",
+        "malware_type_confidence": "low",
+        "attribution_basis": "no_detection",
+        "observations": {},
+        "detector_evaluations": evaluations,
+    }
+    data = b"routing quota regression fixture"
+    layer = one_shot.StaticLayer(
+        name="fixture.bin",
+        data=data,
+        sha256=hashlib.sha256(data).hexdigest(),
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    public = one_shot.sanitize_public_value(classification)
+    assert len(public["detector_evaluations"]) < len(evaluations)
+    assert "maximum_total_entries" in json.dumps(public, sort_keys=True)
+
+    routing = one_shot.classify_sample.build_family_routing_candidates(
+        one_shot._routing_classifications(
+            [
+                {
+                    "layer": layer,
+                    "classification": classification,
+                    "selected_family": None,
+                    "selection_basis": "no_unique_detection_above_threshold",
+                }
+            ]
+        )
+    )
+
+    assert [item["family"] for item in routing["candidates"]] == ["fixture-family-079"]
+    assert routing["candidates"][0]["layer_support"][0]["detector_matched"] is True
+
+
 def test_candidate_status_and_binary_requirement_are_preserved() -> None:
     """corroboratedを弱めず、binaryの未実施関数解析を必須gateにする。"""
 
