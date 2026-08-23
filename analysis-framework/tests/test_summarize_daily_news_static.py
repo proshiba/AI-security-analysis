@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -14,6 +15,93 @@ assert SPEC and SPEC.loader
 target = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = target
 SPEC.loader.exec_module(target)
+
+
+class _SyntheticDirEntry:
+    def __init__(self, name: str, root: Path) -> None:
+        self.name = name
+        self.path = str(root / name)
+
+    def is_dir(self, *, follow_symlinks: bool) -> bool:
+        assert follow_symlinks is False
+        return False
+
+
+class _SyntheticScandir:
+    def __init__(self, entries: list[_SyntheticDirEntry]) -> None:
+        self._entries = entries
+
+    def __enter__(self):
+        return iter(self._entries)
+
+    def __exit__(self, *_args) -> None:
+        return None
+
+
+def test_legacy_case_enumeration_is_bounded_before_sort(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    case_root = tmp_path / "cases"
+    case_root.mkdir()
+    ioc_csv = tmp_path / "iocs.csv"
+    ioc_csv.write_text("ioc_type,ioc_value\n", encoding="utf-8")
+    monkeypatch.setattr(target, "MAX_SUMMARY_CASES", 2)
+    entries = [_SyntheticDirEntry(str(index), case_root) for index in range(3)]
+    monkeypatch.setattr(target.os, "scandir", lambda _path: _SyntheticScandir(entries))
+
+    try:
+        target.build_summary(case_root, ioc_csv, "2026-08-23")
+    except ValueError as error:
+        assert "件数" in str(error)
+        assert str(tmp_path) not in str(error)
+    else:
+        raise AssertionError("case上限+1件目が拒否されませんでした")
+
+
+def test_legacy_case_enumeration_accepts_exact_limit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    case_root = tmp_path / "cases"
+    case_root.mkdir()
+    ioc_csv = tmp_path / "iocs.csv"
+    ioc_csv.write_text("ioc_type,ioc_value\n", encoding="utf-8")
+    monkeypatch.setattr(target, "MAX_SUMMARY_CASES", 2)
+    entries = [_SyntheticDirEntry(str(index), case_root) for index in range(2)]
+    monkeypatch.setattr(target.os, "scandir", lambda _path: _SyntheticScandir(entries))
+
+    assert target.build_summary(case_root, ioc_csv, "2026-08-23")["sample_count"] == 0
+
+
+def test_legacy_case_root_reparse_or_identity_change_is_redacted(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    case_root = tmp_path / "cases"
+    case_root.mkdir()
+    ioc_csv = tmp_path / "iocs.csv"
+    ioc_csv.write_text("ioc_type,ioc_value\n", encoding="utf-8")
+    monkeypatch.setattr(target.analysis_contract, "_same_file_identity", lambda *_args: False)
+
+    try:
+        target.build_summary(case_root, ioc_csv, "2026-08-23")
+    except ValueError as error:
+        assert str(tmp_path) not in str(error)
+    else:
+        raise AssertionError("case root identity変更が拒否されませんでした")
+
+    link = tmp_path / "case-link"
+    try:
+        os.symlink(case_root, link, target_is_directory=True)
+    except OSError:
+        return
+    try:
+        target.build_summary(link, ioc_csv, "2026-08-23")
+    except ValueError as error:
+        assert str(tmp_path) not in str(error)
+    else:
+        raise AssertionError("case root reparse pointが拒否されませんでした")
 
 
 def test_capability_requires_observed_import() -> None:

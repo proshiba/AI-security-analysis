@@ -25,19 +25,18 @@ from functools import cache
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+import job_artifact_schemas
+import orchestration_outcome
+import runtime_contract
+import terminal_payload_acquisition
 from analysis_contract import (
     case_integrity_errors,
     ensure_no_reparse_components,
     ensure_tree_without_reparse,
     resolve_case_artifact,
 )
-from bounded_process import ProcessContainment, TERMINATION_WAIT_SECONDS, run_bounded
+from bounded_process import TERMINATION_WAIT_SECONDS, ProcessContainment, run_bounded
 from follow_on_commitment import canonical_multiset_commitment
-import job_artifact_schemas
-import orchestration_outcome
-import runtime_contract
-import terminal_payload_acquisition
-
 
 COMMON_ROOT = Path(__file__).resolve().parent
 FRAMEWORK_ROOT = COMMON_ROOT.parent
@@ -50,6 +49,8 @@ MAX_REQUEST_BYTES = 64 * 1024
 MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REGISTRY_BYTES = 8 * 1024 * 1024
 MAX_SUMMARY_BYTES = 64 * 1024 * 1024
+MAX_DAILY_STATIC_CAPTURE_FILE_BYTES = 8 * 1024 * 1024
+MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES = 128 * 1024 * 1024
 MAX_LOG_BYTES = 1024 * 1024
 MAX_ANALYSIS_OUTPUT_ENTRIES = 100_000
 MAX_ANALYSIS_OUTPUT_BYTES = 1024 * 1024 * 1024
@@ -713,6 +714,33 @@ class ExpectedInputUnit:
             "sha256": self.sha256,
             "read_succeeded": self.read_succeeded,
         }
+
+
+@dataclass(frozen=True)
+class VerifiedDailyStaticCase:
+    """日次公開要約へ渡せる、case pathを含まない検証済みartifact snapshot。"""
+
+    sha256: str
+    generic_triage_sha256: str
+    static_logic_sha256: str
+    generic_triage: bytes = field(repr=False, compare=False)
+    static_logic: bytes = field(repr=False, compare=False)
+
+
+@dataclass(frozen=True)
+class VerifiedDailyStaticBundle:
+    """summary検証と同じsingle-handle bytesへ固定した日次要約入力。"""
+
+    summary: Mapping[str, Any] = field(repr=False, compare=False)
+    counts: Mapping[str, int]
+    cases: tuple[VerifiedDailyStaticCase, ...] = field(repr=False, compare=False)
+    case_artifact_commitment_sha256: str
+
+
+@dataclass
+class _DailyStaticCaptureState:
+    cases: dict[str, dict[str, bytes]] = field(default_factory=dict)
+    total_bytes: int = 0
 
 
 def utc_now() -> str:
@@ -3611,6 +3639,7 @@ def _validated_derived_case_report(
     node_state: str,
     node_case_state: str | None,
     derived: bool = True,
+    daily_static_capture: _DailyStaticCaptureState | None = None,
 ) -> dict[str, Any]:
     """子ケースのseal・成果物・契約・lineageとsummary内容を再検証する。"""
 
@@ -3632,6 +3661,7 @@ def _validated_derived_case_report(
     contract = report.get("analysis_contract")
     if not isinstance(contract, dict) or contract != dict(analysis_contract):
         raise JobContractError("summary_invalid", "derived case解析契約が一致しません")
+    daily_artifacts: dict[str, bytes] = {}
     try:
         integrity_errors = case_integrity_errors(
             case_dir,
@@ -3639,6 +3669,22 @@ def _validated_derived_case_report(
             expected_digest=digest,
             expected_contract=analysis_contract,
             require_resumable=False,
+            capture_paths=(
+                frozenset({"generic-triage.json", "static-logic.json"})
+                if daily_static_capture is not None
+                else frozenset()
+            ),
+            capture_max_bytes=(
+                MAX_DAILY_STATIC_CAPTURE_FILE_BYTES
+                if daily_static_capture is not None
+                else None
+            ),
+            capture_total_max_bytes=(
+                MAX_DAILY_STATIC_CAPTURE_FILE_BYTES * 4
+                if daily_static_capture is not None
+                else None
+            ),
+            captured_artifacts=(daily_artifacts if daily_static_capture is not None else None),
         )
     except (OSError, TypeError, ValueError) as exc:
         raise JobContractError("summary_invalid", "derived case整合性を検証できません") from exc
@@ -3718,6 +3764,17 @@ def _validated_derived_case_report(
     }
     if any(item.get(key) != value for key, value in expected.items()):
         raise JobContractError("summary_invalid", "derived case summaryがreport内容と一致しません")
+    if daily_static_capture is not None:
+        if set(daily_artifacts) != {"generic-triage.json", "static-logic.json"}:
+            raise JobContractError("summary_invalid", "日次要約artifact captureが不足しています")
+        additional_bytes = sum(len(value) for value in daily_artifacts.values())
+        if (
+            digest in daily_static_capture.cases
+            or additional_bytes > MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES - daily_static_capture.total_bytes
+        ):
+            raise JobContractError("summary_invalid", "日次要約artifact captureが合計上限を超えています")
+        daily_static_capture.cases[digest] = daily_artifacts
+        daily_static_capture.total_bytes += additional_bytes
     return report
 
 
@@ -4516,7 +4573,13 @@ def _validated_summary(
     expected_options: Mapping[str, Any] | None = None,
     expected_input_manifest: Sequence[ExpectedInputUnit] | None = None,
     verify_root_cases: bool = False,
+    _daily_static_capture: _DailyStaticCaptureState | None = None,
 ) -> tuple[dict[str, Any], dict[str, int]]:
+    if _daily_static_capture is not None and not verify_root_cases:
+        raise JobContractError(
+            "summary_invalid",
+            "日次要約artifact captureにはroot case seal検証が必要です",
+        )
     validation_deadline = time.monotonic() + MAX_FOLLOW_ON_WALL_SECONDS if verify_root_cases else None
     summary = load_json_object_strict(path, max_bytes=MAX_SUMMARY_BYTES)
     summary_keys = set(summary)
@@ -4677,6 +4740,7 @@ def _validated_summary(
                 node_state="",
                 node_case_state=None,
                 derived=False,
+                daily_static_capture=_daily_static_capture,
             )
         observed_root = _observed_root_counts(summary["cases"])
         if any(counts[key] != value for key, value in observed_root.items()):
@@ -4750,6 +4814,7 @@ def _validated_summary(
             analysis_contract=follow_on_contract,
             node_state=node_states.get(digest, ""),
             node_case_state=node_case_states.get(digest),
+            daily_static_capture=_daily_static_capture,
         )
         derived_hashes.add(digest)
     expected_derived_hashes = {
@@ -4842,6 +4907,89 @@ def _validated_summary(
     if len(summary["duplicates"]) != counts["duplicates"] or len(summary["errors"]) != counts["errors"]:
         raise JobContractError("summary_count_mismatch", "duplicates／errors配列件数がcountsと一致しません")
     return summary, counts
+
+
+def validated_daily_static_bundle(
+    path: Path,
+    *,
+    expected_input_files: int,
+    expected_analysis_contract: Mapping[str, Any],
+    expected_follow_on_contract: Mapping[str, Any],
+    expected_options: Mapping[str, Any],
+    expected_input_manifest: Sequence[ExpectedInputUnit],
+) -> VerifiedDailyStaticBundle:
+    """case seal検証と同じhandleで日次要約用JSON bytesをcaptureする。"""
+
+    capture = _DailyStaticCaptureState()
+    summary, counts = _validated_summary(
+        path,
+        expected_input_files=expected_input_files,
+        expected_analysis_contract=expected_analysis_contract,
+        expected_follow_on_contract=expected_follow_on_contract,
+        expected_options=expected_options,
+        expected_input_manifest=expected_input_manifest,
+        verify_root_cases=True,
+        _daily_static_capture=capture,
+    )
+    expected_hashes = {
+        item["sha256"]
+        for collection in (summary["cases"], summary["derived_cases"])
+        for item in collection
+    }
+    if (
+        len(expected_hashes) > MAX_DISCOVERED_FILES
+        or set(capture.cases) != expected_hashes
+        or capture.total_bytes > MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES
+    ):
+        raise JobContractError(
+            "summary_invalid",
+            "日次要約artifact snapshot集合が検証済みcase集合と一致しません",
+        )
+    records: list[VerifiedDailyStaticCase] = []
+    commitment_rows: list[dict[str, Any]] = []
+    for digest in sorted(capture.cases):
+        artifacts = capture.cases[digest]
+        generic_triage = artifacts["generic-triage.json"]
+        static_logic = artifacts["static-logic.json"]
+        generic_digest = hashlib.sha256(generic_triage).hexdigest()
+        static_digest = hashlib.sha256(static_logic).hexdigest()
+        records.append(
+            VerifiedDailyStaticCase(
+                sha256=digest,
+                generic_triage_sha256=generic_digest,
+                static_logic_sha256=static_digest,
+                generic_triage=generic_triage,
+                static_logic=static_logic,
+            )
+        )
+        commitment_rows.append(
+            {
+                "sha256": digest,
+                "generic_triage": {
+                    "size": len(generic_triage),
+                    "sha256": generic_digest,
+                },
+                "static_logic": {
+                    "size": len(static_logic),
+                    "sha256": static_digest,
+                },
+            }
+        )
+    commitment = hashlib.sha256(
+        json.dumps(
+            commitment_rows,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return VerifiedDailyStaticBundle(
+        summary=summary,
+        counts=counts,
+        cases=tuple(records),
+        case_artifact_commitment_sha256=commitment,
+    )
 
 
 def _write_failure(

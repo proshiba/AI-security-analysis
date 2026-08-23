@@ -20,7 +20,6 @@ from typing import Any
 
 import pytest
 
-
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
@@ -231,6 +230,88 @@ def write_summary(
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_validated_daily_static_bundle_is_path_free_and_deterministic(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "a" * 64
+
+    def validate(_path: Path, **kwargs: Any) -> tuple[dict[str, Any], dict[str, int]]:
+        capture = kwargs["_daily_static_capture"]
+        capture.cases[digest] = {
+            "generic-triage.json": b'{"schema_version":1}\n',
+            "static-logic.json": b'{"schema_version":1}\n',
+        }
+        capture.total_bytes = sum(len(value) for value in capture.cases[digest].values())
+        return {"cases": [{"sha256": digest}], "derived_cases": []}, {"analyzed": 1}
+
+    monkeypatch.setattr(runner, "_validated_summary", validate)
+    bundle = runner.validated_daily_static_bundle(
+        tmp_path / "summary.json",
+        expected_input_files=1,
+        expected_analysis_contract={},
+        expected_follow_on_contract={},
+        expected_options={},
+        expected_input_manifest=(),
+    )
+
+    assert bundle.counts == {"analyzed": 1}
+    assert tuple(case.sha256 for case in bundle.cases) == (digest,)
+    assert "path" not in repr(bundle)
+    assert bundle.case_artifact_commitment_sha256 == runner.hashlib.sha256(
+        runner.json.dumps(
+            [
+                {
+                    "sha256": digest,
+                    "generic_triage": {
+                        "size": len(bundle.cases[0].generic_triage),
+                        "sha256": bundle.cases[0].generic_triage_sha256,
+                    },
+                    "static_logic": {
+                        "size": len(bundle.cases[0].static_logic),
+                        "sha256": bundle.cases[0].static_logic_sha256,
+                    },
+                }
+            ],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def test_validated_daily_static_bundle_rejects_capture_aggregate_over_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    digest = "a" * 64
+
+    def validate(_path: Path, **kwargs: Any) -> tuple[dict[str, Any], dict[str, int]]:
+        capture = kwargs["_daily_static_capture"]
+        capture.cases[digest] = {
+            "generic-triage.json": b"{}",
+            "static-logic.json": b"{}",
+        }
+        capture.total_bytes = 2
+        return {"cases": [{"sha256": digest}], "derived_cases": []}, {}
+
+    monkeypatch.setattr(runner, "_validated_summary", validate)
+    monkeypatch.setattr(runner, "MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES", 1)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.validated_daily_static_bundle(
+            tmp_path / "summary.json",
+            expected_input_files=1,
+            expected_analysis_contract={},
+            expected_follow_on_contract={},
+            expected_options={},
+            expected_input_manifest=(),
+        )
+
+    assert caught.value.code == "summary_invalid"
 
 
 def replace_follow_on(output: Path, value: dict[str, Any]) -> None:

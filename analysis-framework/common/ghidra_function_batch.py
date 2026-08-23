@@ -10,37 +10,53 @@ Ghidra操作はlocalhostのMCP endpointだけを使用し、program単位の全r
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
 import hashlib
+import io
+import ipaddress
 import json
 import os
-from pathlib import Path
 import re
+import shutil
+import stat
 import sys
 import time
-from typing import Any, Iterable, Mapping
+from collections import Counter, defaultdict
+from collections.abc import Callable, Iterable, Mapping
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import (
+    HTTPRedirectHandler,
+    OpenerDirector,
+    ProxyHandler,
+    Request,
+    build_opener,
+)
 
 import dnfile
-from dncil.cil.body.reader import read_method_body_from_bytes
 import pefile
+from dncil.cil.body.reader import read_method_body_from_bytes
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from unpackers.managed_il_triage import _contain_parser_diagnostics  # noqa: E402
-
 from analysis_contract import (  # noqa: E402
     MAX_JSON_OBJECT_SIZE,
     _decode_json_object_strict,
+    _ensure_json_depth,
     _read_regular_file_snapshot,
+    _reject_non_finite,
+    _strict_json_float,
+    _strict_json_int,
+    _strict_object_pairs,
     artifact_hashes,
     case_integrity_errors,
+    ensure_no_reparse_components,
     load_json_object_strict,
     resolve_case_artifact,
     seal_report,
@@ -63,17 +79,19 @@ from static_logic import (  # noqa: E402
     extract_script_function_records,
     redact_static_text,
 )
+from unpackers.managed_il_triage import _contain_parser_diagnostics  # noqa: E402
 from validate_function_analysis import (  # noqa: E402
     validate_case as validate_function_case,
+)
+from validate_function_analysis import (  # noqa: E402
     validate_collection,
 )
-
 
 SCHEMA_VERSION = 1
 DEFAULT_COLLECTION_ID = "malwarebazaar-windows-20260723-0100"
 DEFAULT_MCP_URL = "http://127.0.0.1:8089"
 DEFAULT_PROJECT_ROOT = "/Malware/MalwareBazaarWindows/20260723"
-LOCAL_MCP_HOSTS = {"127.0.0.1", "localhost", "::1"}
+MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024
 FUNCTION_PAGE_SIZE = 500
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
@@ -83,6 +101,17 @@ FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
 FUNCTION_ANALYSIS_NEXT_ACTION_JA = "特徴関数と全体ロジックの静的解析を追加してください。"
 ORCHESTRATION_SCHEMA_VERSION = 2
+LEGACY_RUN_PROGRESS_SCHEMA_VERSION = 1
+RUN_PROGRESS_SCHEMA_VERSION = 2
+DEFAULT_MINIMUM_FREE_BYTES = 8 * 1024 * 1024 * 1024
+MINIMUM_CONFIGURABLE_FREE_BYTES = 256 * 1024 * 1024
+MAX_PREPARED_INPUT_BYTES = 512 * 1024 * 1024
+MAX_PRIVATE_RAW_BYTES = 64 * 1024 * 1024
+MAX_PRIVATE_RAW_RECORDS = 100_000
+MAX_PRIVATE_RAW_LINE_BYTES = 8 * 1024 * 1024
+MAX_PRIVATE_RAW_JSON_DEPTH = 64
+PRIVATE_RAW_STREAM_CHUNK_BYTES = 64 * 1024
+RETRYABLE_INCOMPLETE_EXIT_CODE = 20
 
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -223,6 +252,25 @@ def _json_dump(path: Path, value: Any) -> None:
 
 
 @dataclass(frozen=True)
+class _RegularFileSnapshot:
+    """単一handleから取得した通常fileのcontent／identity binding。"""
+
+    path: Path
+    sha256: str
+    size: int
+    metadata: os.stat_result
+
+
+@dataclass(frozen=True)
+class _JsonlFileSnapshot(_RegularFileSnapshot):
+    """全bytesを保持しないprivate JSONLの固定snapshot。"""
+
+    record_count: int
+    line_count: int
+    ends_with_newline: bool
+
+
+@dataclass(frozen=True)
 class _JsonFileSnapshot:
     """単一handleから取得したbounded JSON fileの固定snapshot。"""
 
@@ -230,6 +278,44 @@ class _JsonFileSnapshot:
     data: bytes
     sha256: str
     document: dict[str, Any]
+    binding: _RegularFileSnapshot
+
+
+@dataclass(frozen=True)
+class _SnapshotFileStat:
+    """read_input_unitへ渡すmemory snapshotの最小stat契約。"""
+
+    st_size: int
+
+
+@dataclass(frozen=True)
+class _SnapshotInputPath:
+    """検証済みarchive bytesだけをread_input_unitへ公開するpath互換object。"""
+
+    name: str
+    data: bytes = field(repr=False)
+
+    def stat(self) -> _SnapshotFileStat:
+        """固定snapshotのsizeだけを返す。"""
+
+        return _SnapshotFileStat(st_size=len(self.data))
+
+    def open(self, mode: str = "rb") -> io.BytesIO:
+        """固定snapshotをread-only binary handleとして返す。"""
+
+        if mode != "rb":
+            raise ValueError("archive snapshotはread-only binary modeに限定します")
+        return io.BytesIO(self.data)
+
+
+@dataclass(frozen=True)
+class _ArchiveManifestEntry:
+    """acquisition manifestで認証した1 archiveの公開しない入力契約。"""
+
+    sha256: str
+    path: Path
+    expected_zip_sha256: str | None
+    expected_zip_size: int | None
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -240,15 +326,94 @@ def _json_bytes(value: Any) -> bytes:
     )
 
 
+def _regular_file_metadata(path: Path) -> os.stat_result:
+    """通常fileかつ単一linkであるpathのmetadataをfail-closedに取得する。"""
+
+    ensure_no_reparse_components(path)
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise ValueError(f"通常fileを安全に確認できません: {path.name}") from exc
+    if _stat_is_reparse(metadata) or not stat.S_ISREG(metadata.st_mode):
+        raise ValueError(f"通常file以外は使用できません: {path.name}")
+    if int(metadata.st_nlink) != 1:
+        raise ValueError(f"hardlinkされたfileは使用できません: {path.name}")
+    return metadata
+
+
+def _same_regular_file_binding(first: os.stat_result, second: os.stat_result) -> bool:
+    """通常file snapshotのidentity、size、時刻、link数が同じか返す。"""
+
+    return (
+        _same_path_identity(first, second)
+        and int(first.st_size) == int(second.st_size)
+        and int(first.st_mtime_ns) == int(second.st_mtime_ns)
+        and int(first.st_ctime_ns) == int(second.st_ctime_ns)
+        and int(first.st_nlink) == int(second.st_nlink) == 1
+    )
+
+
+def _bounded_regular_file_snapshot(
+    path: Path,
+    *,
+    max_bytes: int,
+) -> tuple[bytes, _RegularFileSnapshot]:
+    """通常fileを単一handleで読み、読取前後のpath bindingも固定する。"""
+
+    path = Path(os.path.abspath(os.fspath(path)))
+    before = _regular_file_metadata(path)
+    data = _read_regular_file_snapshot(path, max_bytes=max_bytes)
+    after = _regular_file_metadata(path)
+    if len(data) != int(after.st_size) or not _same_regular_file_binding(before, after):
+        raise ValueError(f"読取中にfile identityが変更されました: {path.name}")
+    snapshot = _RegularFileSnapshot(
+        path=path,
+        sha256=hashlib.sha256(data).hexdigest(),
+        size=len(data),
+        metadata=after,
+    )
+    return data, snapshot
+
+
+def _assert_regular_snapshot_unchanged(
+    snapshot: _RegularFileSnapshot,
+    *,
+    context: str,
+) -> None:
+    """contentとidentityの両方が固定snapshotから変化していないか確認する。"""
+
+    try:
+        _, current = _bounded_regular_file_snapshot(
+            snapshot.path,
+            max_bytes=max(snapshot.size, MAX_JSON_OBJECT_SIZE),
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"{context}で競合変更を検出しました: {snapshot.path.name}"
+        ) from exc
+    if (
+        current.sha256 != snapshot.sha256
+        or current.size != snapshot.size
+        or not _same_regular_file_binding(snapshot.metadata, current.metadata)
+    ):
+        raise ValueError(
+            f"{context}で競合変更を検出しました: {snapshot.path.name}"
+        )
+
+
 def _bounded_json_snapshot(path: Path) -> _JsonFileSnapshot:
     """通常file JSONを64MiB上限内の同一handle snapshotとして取得する。"""
 
-    data = _read_regular_file_snapshot(path, max_bytes=MAX_JSON_OBJECT_SIZE)
+    data, binding = _bounded_regular_file_snapshot(
+        path,
+        max_bytes=MAX_JSON_OBJECT_SIZE,
+    )
     return _JsonFileSnapshot(
-        path=path,
+        path=binding.path,
         data=data,
-        sha256=hashlib.sha256(data).hexdigest(),
-        document=_decode_json_object_strict(data, path=path),
+        sha256=binding.sha256,
+        document=_decode_json_object_strict(data, path=binding.path),
+        binding=binding,
     )
 
 
@@ -259,12 +424,23 @@ def _assert_snapshot_unchanged(
 ) -> None:
     """固定snapshot以後のpath/identity/size/bytes変更をfail-closedに拒否する。"""
 
-    current = _read_regular_file_snapshot(
-        snapshot.path,
-        max_bytes=MAX_JSON_OBJECT_SIZE,
-    )
-    current_sha256 = hashlib.sha256(current).hexdigest()
-    if current_sha256 != snapshot.sha256 or current != snapshot.data:
+    try:
+        current_data, current_binding = _bounded_regular_file_snapshot(
+            snapshot.path,
+            max_bytes=MAX_JSON_OBJECT_SIZE,
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"{context}で競合変更を検出しました: {snapshot.path.name}"
+        ) from exc
+    if (
+        current_binding.sha256 != snapshot.sha256
+        or current_data != snapshot.data
+        or not _same_regular_file_binding(
+            snapshot.binding.metadata,
+            current_binding.metadata,
+        )
+    ):
         raise ValueError(
             f"{context}で競合変更を検出しました: {snapshot.path.name}"
         )
@@ -274,38 +450,112 @@ def _atomic_replace_bytes(
     path: Path,
     data: bytes,
     *,
-    expected_snapshot: _JsonFileSnapshot | None = None,
+    expected_snapshot: _JsonFileSnapshot | _RegularFileSnapshot | None = None,
+    maximum_bytes: int = MAX_JSON_OBJECT_SIZE,
+    require_absent: bool = False,
 ) -> None:
     """同一directoryの一時fileから通常fileをatomicに置換する。"""
 
-    if len(data) > MAX_JSON_OBJECT_SIZE:
+    if type(maximum_bytes) is not int or maximum_bytes < 0:
+        raise ValueError("atomic write上限が不正です")
+    if type(require_absent) is not bool:
+        raise ValueError("atomic writeの既存file契約が不正です")
+    if len(data) > maximum_bytes:
         raise ValueError(
-            f"atomic write対象が{MAX_JSON_OBJECT_SIZE} bytes上限を超えています: {path}"
+            f"atomic write対象が{maximum_bytes} bytes上限を超えています: {path.name}"
         )
+    ensure_no_reparse_components(path.parent)
     path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(path.parent)
+    try:
+        parent_before = path.parent.lstat()
+    except OSError as exc:
+        raise ValueError("atomic write先directoryを確認できません") from exc
+    if _stat_is_reparse(parent_before) or not stat.S_ISDIR(parent_before.st_mode):
+        raise ValueError("atomic write先は通常directoryに限定します")
     temporary = path.with_name(
-        f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp"
+        f".atomic-{os.getpid():x}-{time.time_ns():x}.tmp"
     )
+    temporary_identity: os.stat_result | None = None
     try:
         with temporary.open("xb") as handle:
+            temporary_identity = os.fstat(handle.fileno())
+            if not stat.S_ISREG(temporary_identity.st_mode):
+                raise ValueError("atomic write用一時pathが通常fileではありません")
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
+        ensure_no_reparse_components(temporary)
+        temporary_at_path = temporary.lstat()
+        if (
+            _stat_is_reparse(temporary_at_path)
+            or not stat.S_ISREG(temporary_at_path.st_mode)
+            or not _same_path_identity(temporary_identity, temporary_at_path)
+        ):
+            raise ValueError("atomic write用一時fileのidentityが変更されました")
+        ensure_no_reparse_components(path.parent)
+        parent_before_replace = path.parent.lstat()
+        if (
+            _stat_is_reparse(parent_before_replace)
+            or not stat.S_ISDIR(parent_before_replace.st_mode)
+            or not _same_path_identity(parent_before, parent_before_replace)
+        ):
+            raise ValueError("atomic write前に出力directoryのidentityが変更されました")
+        try:
+            target_before = path.lstat()
+        except FileNotFoundError:
+            target_before = None
+        if target_before is not None and (
+            _stat_is_reparse(target_before)
+            or not stat.S_ISREG(target_before.st_mode)
+        ):
+            raise ValueError("atomic write対象は通常fileに限定します")
+        if require_absent and target_before is not None:
+            raise FileExistsError(f"atomic write対象が既に存在します: {path.name}")
         if expected_snapshot is not None:
             if path != expected_snapshot.path:
                 raise ValueError(
                     f"atomic write対象とsnapshot pathが一致しません: {path}"
                 )
-            _assert_snapshot_unchanged(
-                expected_snapshot,
-                context="atomic commit直前",
-            )
+            if isinstance(expected_snapshot, _JsonFileSnapshot):
+                _assert_snapshot_unchanged(
+                    expected_snapshot,
+                    context="atomic commit直前",
+                )
+            else:
+                _assert_regular_snapshot_unchanged(
+                    expected_snapshot,
+                    context="atomic commit直前",
+                )
         os.replace(temporary, path)
+        ensure_no_reparse_components(path)
+        target_after = path.lstat()
+        parent_after = path.parent.lstat()
+        if (
+            _stat_is_reparse(target_after)
+            or not stat.S_ISREG(target_after.st_mode)
+            or not _same_path_identity(temporary_identity, target_after)
+            or _stat_is_reparse(parent_after)
+            or not stat.S_ISDIR(parent_after.st_mode)
+            or not _same_path_identity(parent_before, parent_after)
+        ):
+            raise ValueError("atomic write後のfileまたはdirectory identityが一致しません")
     finally:
         try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
+            remaining = temporary.lstat()
+        except OSError:
+            remaining = None
+        if (
+            remaining is not None
+            and temporary_identity is not None
+            and not _stat_is_reparse(remaining)
+            and stat.S_ISREG(remaining.st_mode)
+            and _same_path_identity(temporary_identity, remaining)
+        ):
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
 
 
 def _sha256_file(path: Path) -> str:
@@ -314,6 +564,824 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _disk_usage_anchor(path: Path) -> Path:
+    """未作成pathを含め、disk usageを照会できる最寄りの親directoryを返す。"""
+
+    candidate = Path(os.path.abspath(os.fspath(path)))
+    ensure_no_reparse_components(candidate)
+    while True:
+        try:
+            metadata = candidate.lstat()
+        except FileNotFoundError:
+            metadata = None
+        except OSError as exc:
+            raise OSError("disk usage照会先を安全に確認できません") from exc
+        if metadata is not None:
+            break
+        parent = candidate.parent
+        if parent == candidate:
+            raise OSError("disk usageを照会できる既存directoryがありません")
+        candidate = parent
+    ensure_no_reparse_components(candidate)
+    if _stat_is_reparse(metadata):
+        raise OSError("disk usage照会先にreparse pointは使用できません")
+    if stat.S_ISREG(metadata.st_mode):
+        candidate = candidate.parent
+        ensure_no_reparse_components(candidate)
+        try:
+            metadata = candidate.lstat()
+        except OSError as exc:
+            raise OSError("disk usage照会先の親directoryを確認できません") from exc
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise OSError("disk usage照会先がdirectoryではありません")
+    return candidate
+
+
+def _stat_is_reparse(metadata: os.stat_result) -> bool:
+    """stat metadataがWindows reparse pointを表すか返す。"""
+
+    reparse_flag = int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+    return bool(int(getattr(metadata, "st_file_attributes", 0)) & reparse_flag)
+
+
+def _same_path_identity(first: os.stat_result, second: os.stat_result) -> bool:
+    """disk usage照会前後のdirectory identityが同一か確認する。"""
+
+    if int(first.st_ino) == 0 or int(second.st_ino) == 0:
+        return False
+    try:
+        return os.path.samestat(first, second)
+    except (AttributeError, OSError):
+        return (
+            int(first.st_dev),
+            int(first.st_ino),
+        ) == (
+            int(second.st_dev),
+            int(second.st_ino),
+        )
+
+
+def _filesystem_key(anchor: Path, metadata: os.stat_result) -> tuple[int, str]:
+    """同一filesystemをpath非公開でdeduplicateする内部keyを返す。"""
+
+    volume_anchor = os.path.normcase(os.path.normpath(os.fspath(Path(anchor.anchor))))
+    return int(metadata.st_dev), volume_anchor
+
+
+def _observe_filesystem(anchor: Path) -> tuple[tuple[int, str], int]:
+    """reparse／identity変更を拒否してfilesystemの空き容量を1回取得する。"""
+
+    ensure_no_reparse_components(anchor)
+    try:
+        before = anchor.lstat()
+    except OSError as exc:
+        raise OSError("disk usage照会先を確認できません") from exc
+    if _stat_is_reparse(before) or not stat.S_ISDIR(before.st_mode):
+        raise OSError("disk usage照会先は通常directoryに限定します")
+    free_bytes = int(shutil.disk_usage(anchor).free)
+    ensure_no_reparse_components(anchor)
+    try:
+        after = anchor.lstat()
+    except OSError as exc:
+        raise OSError("disk usage照会後のdirectoryを確認できません") from exc
+    if (
+        _stat_is_reparse(after)
+        or not stat.S_ISDIR(after.st_mode)
+        or not _same_path_identity(before, after)
+        or int(before.st_dev) != int(after.st_dev)
+    ):
+        raise OSError("disk usage照会中にdirectory identityが変更されました")
+    return _filesystem_key(anchor, after), free_bytes
+
+
+def _storage_budget_observation(
+    paths: Iterable[tuple[str, Path]],
+    *,
+    minimum_free_bytes: int,
+    phase: str,
+) -> dict[str, Any]:
+    """書込み先ごとの空き容量をpath非公開の機械可読記録へまとめる。"""
+
+    observations: list[dict[str, Any]] = []
+    by_filesystem: dict[tuple[int, str], dict[str, Any]] = {}
+    for role, path in paths:
+        try:
+            filesystem_key, free_bytes = _observe_filesystem(_disk_usage_anchor(path))
+        except (OSError, ValueError):
+            observations.append(
+                {
+                    "filesystem_id": f"filesystem_{len(observations) + 1}",
+                    "roles": [role],
+                    "free_bytes": None,
+                    "sufficient": False,
+                    "error": "disk_usage_unavailable",
+                }
+            )
+            continue
+        existing = by_filesystem.get(filesystem_key)
+        if existing is not None:
+            existing["roles"].append(role)
+            continue
+        observation = {
+            "filesystem_id": f"filesystem_{len(observations) + 1}",
+            "roles": [role],
+            "free_bytes": free_bytes,
+            "sufficient": free_bytes >= minimum_free_bytes,
+            "error": None,
+        }
+        by_filesystem[filesystem_key] = observation
+        observations.append(observation)
+    return {
+        "phase": phase,
+        "minimum_free_bytes": minimum_free_bytes,
+        "sufficient": bool(observations)
+        and all(item["sufficient"] is True for item in observations),
+        "filesystems": observations,
+    }
+
+
+def _apply_planned_write_reserve(
+    observation: Mapping[str, Any],
+    *,
+    role: str,
+    planned_write_bytes: int,
+) -> dict[str, Any]:
+    """予定write後もreserveを維持できるかpath非公開の容量記録へ反映する。"""
+
+    if type(planned_write_bytes) is not int or planned_write_bytes < 0:
+        raise ValueError("予定write byte数が不正です")
+    minimum_free_bytes = observation.get("minimum_free_bytes")
+    if type(minimum_free_bytes) is not int or minimum_free_bytes < 0:
+        raise ValueError("容量記録のminimum free byte数が不正です")
+    raw_filesystems = observation.get("filesystems")
+    if not isinstance(raw_filesystems, list):
+        raise TypeError("容量記録のfilesystem一覧が不正です")
+    filesystems: list[dict[str, Any]] = []
+    matching_filesystems = 0
+    planned_write_sufficient = False
+    for raw in raw_filesystems:
+        if not isinstance(raw, Mapping):
+            raise TypeError("容量記録に非object filesystemがあります")
+        item = dict(raw)
+        roles = item.get("roles")
+        if isinstance(roles, list) and role in roles:
+            matching_filesystems += 1
+            free_bytes = item.get("free_bytes")
+            planned_write_sufficient = bool(
+                type(free_bytes) is int
+                and free_bytes - planned_write_bytes >= minimum_free_bytes
+                and item.get("error") is None
+            )
+            item["planned_write_bytes"] = planned_write_bytes
+            item["planned_write_sufficient"] = planned_write_sufficient
+        filesystems.append(item)
+    if matching_filesystems != 1:
+        planned_write_sufficient = False
+    output = dict(observation)
+    output["filesystems"] = filesystems
+    output["planned_write_role"] = role
+    output["planned_write_bytes"] = planned_write_bytes
+    output["planned_write_sufficient"] = planned_write_sufficient
+    output["sufficient"] = bool(
+        observation.get("sufficient") is True and planned_write_sufficient
+    )
+    return output
+
+
+class _InputPreparationStopped(RuntimeError):
+    """容量reserveを守るため入力準備をcheckpoint付きで中断したことを示す。"""
+
+    def __init__(self, progress: Mapping[str, Any]) -> None:
+        super().__init__("入力準備中に容量reserveへ到達しました")
+        self.progress = dict(progress)
+
+
+def _write_run_progress(private_output: Path, progress: Mapping[str, Any]) -> None:
+    """再開用進捗を同一directory内の一時fileからatomicに保存する。"""
+
+    _atomic_replace_bytes(
+        private_output / "run-progress.json",
+        _json_bytes(dict(progress)),
+    )
+
+
+def _validate_resume_inventory(
+    private_output: Path,
+    *,
+    collection_id: str,
+    unique_pe_programs: int,
+    expected_sha256: str | None,
+) -> _JsonFileSnapshot:
+    """自動再開前にprepared input inventoryのbindingとPE件数を検証する。"""
+
+    path = private_output / "input-relationships.json"
+    snapshot = _bounded_json_snapshot(path)
+    if expected_sha256 is not None and (
+        not isinstance(expected_sha256, str)
+        or SHA256_RE.fullmatch(expected_sha256) is None
+        or snapshot.sha256 != expected_sha256
+    ):
+        raise ValueError("prepared input inventoryのbinding SHA-256が一致しません")
+    document = snapshot.document
+    if document.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("prepared input inventoryのschema versionが一致しません")
+    if document.get("collection_id") != collection_id:
+        raise ValueError("prepared input inventoryのcollection IDが一致しません")
+    if document.get("sample_executed") is not False:
+        raise ValueError("prepared input inventoryの非実行安全値が一致しません")
+    if document.get("network_contacted") is not False:
+        raise ValueError("prepared input inventoryの非接続安全値が一致しません")
+    relationships = document.get("relationships")
+    if not isinstance(relationships, list) or not relationships:
+        raise ValueError("prepared input inventoryのrelationship一覧が不正です")
+    pe_digests: set[str] = set()
+    for relation in relationships:
+        if not isinstance(relation, Mapping):
+            raise ValueError("prepared input inventoryに非object relationshipがあります")
+        digest = relation.get("layer_sha256")
+        is_pe = relation.get("is_pe")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise ValueError("prepared input inventoryのlayer SHA-256が不正です")
+        if type(is_pe) is not bool:
+            raise ValueError("prepared input inventoryのPE判定が不正です")
+        if is_pe:
+            pe_digests.add(digest)
+    recorded_count = document.get("unique_pe_objects")
+    if (
+        type(recorded_count) is not int
+        or recorded_count != unique_pe_programs
+        or len(pe_digests) != unique_pe_programs
+    ):
+        raise ValueError("prepared input inventoryのPE program数が一致しません")
+    _assert_snapshot_unchanged(
+        snapshot,
+        context="prepared input inventory検証後",
+    )
+    return snapshot
+
+
+def _run_progress_document(
+    *,
+    collection_id: str,
+    status: str,
+    stop_reason: str | None,
+    retryable: bool,
+    inventory_prepared: bool,
+    prepared_inventory_sha256: str | None,
+    unique_pe_programs: int | None,
+    complete_programs: int,
+    cached_programs: int,
+    newly_analyzed_programs: int,
+    pending_programs: Iterable[str],
+    postprocessing_pending: bool,
+    prepared_inputs_reused: bool,
+    resume_mode: str,
+    disk_space: Mapping[str, Any],
+) -> dict[str, Any]:
+    """全停止段階でfield集合が同じrun-progress文書を構築する。"""
+
+    pending = list(pending_programs)
+    if any(
+        not isinstance(value, str) or SHA256_RE.fullmatch(value) is None
+        for value in pending
+    ):
+        raise ValueError("run-progressのpending SHA-256が不正です")
+    if len(set(pending)) != len(pending):
+        raise ValueError("run-progressのpending SHA-256が重複しています")
+    if not isinstance(collection_id, str) or not collection_id:
+        raise ValueError("run-progressのcollection IDが不正です")
+    if (
+        not isinstance(resume_mode, str)
+        or resume_mode not in {"fresh", "prepared_inputs", "postprocessing_only"}
+    ):
+        raise ValueError("run-progressのresume modeが不正です")
+    if not isinstance(status, str) or status not in {"ghidra_chunk_pending", "complete"}:
+        raise ValueError("run-progressのstatusが不正です")
+    if not isinstance(disk_space, Mapping):
+        raise ValueError("run-progressのdisk space記録が不正です")
+    if type(retryable) is not bool or type(inventory_prepared) is not bool:
+        raise ValueError("run-progressのboolean fieldが不正です")
+    if type(postprocessing_pending) is not bool or type(prepared_inputs_reused) is not bool:
+        raise ValueError("run-progressの再開boolean fieldが不正です")
+    counts = (
+        complete_programs,
+        cached_programs,
+        newly_analyzed_programs,
+    )
+    if any(type(value) is not int or value < 0 for value in counts):
+        raise ValueError("run-progressのprogram countが不正です")
+    if inventory_prepared:
+        if (
+            not isinstance(prepared_inventory_sha256, str)
+            or SHA256_RE.fullmatch(prepared_inventory_sha256) is None
+        ):
+            raise ValueError("run-progressのprepared inventory SHA-256が不正です")
+        if type(unique_pe_programs) is not int or unique_pe_programs <= 0:
+            raise ValueError("run-progressのprogram総数が不正です")
+        if complete_programs > unique_pe_programs:
+            raise ValueError("run-progressの完了program数が総数を超えています")
+    elif unique_pe_programs is not None or prepared_inventory_sha256 is not None:
+        raise ValueError("未準備inventoryへprogram総数またはbindingを記録できません")
+    if cached_programs + newly_analyzed_programs != complete_programs:
+        raise ValueError("run-progressの完了program内訳が一致しません")
+    if postprocessing_pending and pending:
+        raise ValueError("後処理待ちと未解析programを同時に記録できません")
+    if postprocessing_pending and resume_mode != "postprocessing_only":
+        raise ValueError("後処理待ちのresume modeが一致しません")
+    if not inventory_prepared and (
+        unique_pe_programs is not None or pending or postprocessing_pending
+    ):
+        raise ValueError("未準備inventoryへprogram進捗を記録できません")
+    if inventory_prepared and complete_programs + len(pending) != unique_pe_programs:
+        raise ValueError("run-progressの完了・pending program数が総数と一致しません")
+    if status == "complete" and (
+        retryable or stop_reason is not None or pending or postprocessing_pending
+    ):
+        raise ValueError("complete run-progressに未完了状態があります")
+    if status == "ghidra_chunk_pending" and (
+        not retryable
+        or not isinstance(stop_reason, str)
+        or stop_reason
+        not in {
+            "minimum_free_space_not_met",
+            "max_new_programs_reached",
+            "postprocessing_in_progress",
+        }
+    ):
+        raise ValueError("pending run-progressの停止理由が不正です")
+    return {
+        "schema_version": RUN_PROGRESS_SCHEMA_VERSION,
+        "collection_id": collection_id,
+        "status": status,
+        "stop_reason": stop_reason,
+        "retryable": retryable,
+        "inventory_prepared": inventory_prepared,
+        "prepared_inventory_sha256": prepared_inventory_sha256,
+        "unique_pe_programs": unique_pe_programs,
+        "complete_programs": complete_programs,
+        "cached_programs": cached_programs,
+        "newly_analyzed_programs": newly_analyzed_programs,
+        "pending_programs": pending,
+        "postprocessing_pending": postprocessing_pending,
+        "prepared_inputs_reused": prepared_inputs_reused,
+        "resume_mode": resume_mode,
+        "disk_space": dict(disk_space),
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "arbitrary_ghidra_scripts_enabled": False,
+            "mcp_localhost_only": True,
+        },
+    }
+
+
+def _load_resume_checkpoint(
+    private_output: Path,
+    *,
+    collection_id: str,
+) -> dict[str, Any] | None:
+    """厳格なpending checkpointだけを自動再開の根拠として読む。"""
+
+    path = private_output / "run-progress.json"
+    try:
+        present = path.is_file()
+    except OSError as exc:
+        raise ValueError("run-progressの存在を安全に確認できません") from exc
+    if not present:
+        return None
+    checkpoint_snapshot = _bounded_json_snapshot(path)
+    document = checkpoint_snapshot.document
+    if document.get("schema_version") == LEGACY_RUN_PROGRESS_SCHEMA_VERSION:
+        legacy_keys = {
+            "schema_version",
+            "collection_id",
+            "status",
+            "unique_pe_programs",
+            "complete_programs",
+            "cached_programs",
+            "newly_analyzed_programs",
+            "pending_programs",
+            "prepared_inputs_reused",
+            "safety",
+        }
+        if set(document) != legacy_keys:
+            raise ValueError("legacy run-progressのfield集合が一致しません")
+        if document.get("collection_id") != collection_id:
+            raise ValueError("legacy run-progressのcollection IDが一致しません")
+        if document.get("status") != "ghidra_chunk_pending":
+            raise ValueError("legacy run-progressのstatusが不正です")
+        expected_safety = {
+            "sample_executed": False,
+            "network_contacted": False,
+            "arbitrary_ghidra_scripts_enabled": False,
+            "mcp_localhost_only": True,
+        }
+        if document.get("safety") != expected_safety:
+            raise ValueError("legacy run-progressの固定安全値が一致しません")
+        pending = document.get("pending_programs")
+        if not isinstance(pending, list) or not pending:
+            raise ValueError("legacy run-progressのpending program一覧が不正です")
+        try:
+            inventory_snapshot = _validate_resume_inventory(
+                private_output,
+                collection_id=collection_id,
+                unique_pe_programs=document["unique_pe_programs"],
+                expected_sha256=None,
+            )
+            normalized_legacy = _run_progress_document(
+                collection_id=collection_id,
+                status="ghidra_chunk_pending",
+                stop_reason="max_new_programs_reached",
+                retryable=True,
+                inventory_prepared=True,
+                prepared_inventory_sha256=inventory_snapshot.sha256,
+                unique_pe_programs=document["unique_pe_programs"],
+                complete_programs=document["complete_programs"],
+                cached_programs=document["cached_programs"],
+                newly_analyzed_programs=document["newly_analyzed_programs"],
+                pending_programs=pending,
+                postprocessing_pending=False,
+                prepared_inputs_reused=document["prepared_inputs_reused"],
+                resume_mode="prepared_inputs",
+                disk_space={
+                    "phase": "legacy_checkpoint",
+                    "minimum_free_bytes": None,
+                    "sufficient": None,
+                    "filesystems": [],
+                },
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("legacy run-progressの再開契約が不正です") from exc
+        _assert_snapshot_unchanged(
+            checkpoint_snapshot,
+            context="legacy run-progress検証後",
+        )
+        return normalized_legacy
+    if document.get("schema_version") != RUN_PROGRESS_SCHEMA_VERSION:
+        raise ValueError("run-progressのschema versionが一致しません")
+    if document.get("collection_id") != collection_id:
+        raise ValueError("run-progressのcollection IDが一致しません")
+    status = document.get("status")
+    if status not in {"ghidra_chunk_pending", "complete"}:
+        raise ValueError("run-progressのstatusが不正です")
+    inventory_prepared = document.get("inventory_prepared")
+    postprocessing_pending = document.get("postprocessing_pending")
+    if type(inventory_prepared) is not bool or type(postprocessing_pending) is not bool:
+        raise ValueError("run-progressの再開状態が不正です")
+    unique_pe_programs = document.get("unique_pe_programs")
+    if inventory_prepared:
+        if type(unique_pe_programs) is not int or unique_pe_programs <= 0:
+            raise ValueError("run-progressのprogram総数が不正です")
+    elif unique_pe_programs is not None:
+        raise ValueError("未準備run-progressにprogram総数があります")
+    pending = document.get("pending_programs")
+    if (
+        not isinstance(pending, list)
+        or any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in pending)
+        or len(set(pending)) != len(pending)
+    ):
+        raise ValueError("run-progressのpending program一覧が不正です")
+    if postprocessing_pending and (not inventory_prepared or pending):
+        raise ValueError("run-progressの後処理待ち状態が不正です")
+    for field_name in (
+        "complete_programs",
+        "cached_programs",
+        "newly_analyzed_programs",
+    ):
+        value = document.get(field_name)
+        if type(value) is not int or value < 0:
+            raise ValueError(f"run-progressの{field_name}が不正です")
+    if not isinstance(document.get("disk_space"), Mapping):
+        raise ValueError("run-progressのdisk_spaceが不正です")
+    try:
+        normalized = _run_progress_document(
+            collection_id=collection_id,
+            status=status,
+            stop_reason=document.get("stop_reason"),
+            retryable=document.get("retryable"),
+            inventory_prepared=inventory_prepared,
+            prepared_inventory_sha256=document.get("prepared_inventory_sha256"),
+            unique_pe_programs=unique_pe_programs,
+            complete_programs=document["complete_programs"],
+            cached_programs=document["cached_programs"],
+            newly_analyzed_programs=document["newly_analyzed_programs"],
+            pending_programs=pending,
+            postprocessing_pending=postprocessing_pending,
+            prepared_inputs_reused=document.get("prepared_inputs_reused"),
+            resume_mode=document.get("resume_mode"),
+            disk_space=document["disk_space"],
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("run-progressの再開契約が不正です") from exc
+    if document != normalized:
+        raise ValueError("run-progressのfield集合または固定安全値が一致しません")
+    if status == "complete":
+        _assert_snapshot_unchanged(
+            checkpoint_snapshot,
+            context="complete run-progress検証後",
+        )
+        return None
+    if inventory_prepared:
+        _validate_resume_inventory(
+            private_output,
+            collection_id=collection_id,
+            unique_pe_programs=normalized["unique_pe_programs"],
+            expected_sha256=normalized["prepared_inventory_sha256"],
+        )
+    _assert_snapshot_unchanged(
+        checkpoint_snapshot,
+        context="run-progress検証後",
+    )
+    return document
+
+
+def _storage_guard_paths(
+    args: argparse.Namespace,
+    repository: Path,
+    sample_root: Path,
+    private_output: Path,
+) -> list[tuple[str, Path]]:
+    """全書込み先を空き容量監視対象へ固定する。"""
+
+    paths = [
+        ("repository", repository),
+        ("sample_root", sample_root),
+        ("private_output", private_output),
+    ]
+    for index, raw_path in enumerate(args.disk_guard_path, start=1):
+        path = Path(os.path.abspath(os.fspath(raw_path)))
+        ensure_no_reparse_components(path)
+        if not path.is_dir():
+            raise FileNotFoundError(f"追加disk guard pathがdirectoryではありません: {raw_path}")
+        paths.append((f"additional_{index}", path))
+    return paths
+
+
+def _same_or_nested(path: Path, root: Path) -> bool:
+    """pathがroot自身またはその配下か返す。"""
+
+    return path == root or root in path.parents
+
+
+def _require_existing_regular_directory(path: Path, *, role: str) -> None:
+    """既存run rootがreparseでない通常directoryか確認する。"""
+
+    ensure_no_reparse_components(path)
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise FileNotFoundError(f"{role} directoryが見つかりません") from exc
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError(f"{role}は通常directoryに限定します")
+
+
+def _validate_run_roots(
+    repository: Path,
+    collection_dir: Path,
+    sample_root: Path,
+    private_output: Path,
+) -> None:
+    """collectionだけをrepository内に許し、全write rootの包含を拒否する。"""
+
+    _require_existing_regular_directory(repository, role="repository")
+    _require_existing_regular_directory(collection_dir, role="collection")
+    _require_existing_regular_directory(sample_root, role="sample root")
+    try:
+        private_exists = private_output.exists()
+    except OSError as exc:
+        raise ValueError("private outputの存在を安全に確認できません") from exc
+    if private_exists:
+        _require_existing_regular_directory(private_output, role="private output")
+    if collection_dir == repository or repository not in collection_dir.parents:
+        raise ValueError("collectionはrepository内の通常directoryに限定します")
+
+    roots = {
+        "repository": repository,
+        "collection": collection_dir,
+        "sample root": sample_root,
+        "private output": private_output,
+    }
+    names = list(roots)
+    for index, first_name in enumerate(names):
+        for second_name in names[index + 1 :]:
+            if {first_name, second_name} == {"repository", "collection"}:
+                continue
+            first = roots[first_name]
+            second = roots[second_name]
+            if _same_or_nested(first, second) or _same_or_nested(second, first):
+                raise ValueError(
+                    f"{first_name}と{second_name}は相互に包含しないdirectoryへ分離してください"
+                )
+
+
+def _resolve_without_reparse(path: Path) -> Path:
+    """resolve前後の既存componentにreparse pointがない絶対pathを返す。"""
+
+    lexical = Path(os.path.abspath(os.fspath(path)))
+    ensure_no_reparse_components(lexical)
+    resolved = lexical.resolve(strict=False)
+    ensure_no_reparse_components(resolved)
+    return resolved
+
+
+def _manifest_archive_path(sample_root: Path, value: Any) -> Path:
+    """manifestのarchive pathをsample root直下の通常fileへ限定する。"""
+
+    if not isinstance(value, str) or not value or len(value) > 32_768 or "\x00" in value:
+        raise ValueError("acquisition manifestのzip_pathが不正です")
+    raw = Path(value)
+    if any(part == ".." for part in raw.parts):
+        raise ValueError("acquisition manifestのzip_pathに親directory参照は使用できません")
+    root = _resolve_without_reparse(sample_root)
+    _require_existing_regular_directory(root, role="sample root")
+    candidate = raw if raw.is_absolute() else root / raw
+    lexical = Path(os.path.abspath(os.fspath(candidate)))
+    try:
+        lexical.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("acquisition manifestのzip_pathがsample root外を指しています") from exc
+    resolved = _resolve_without_reparse(lexical)
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("acquisition manifestのzip_pathがsample root外へ解決されました") from exc
+    _regular_file_metadata(resolved)
+    return resolved
+
+
+def _archive_manifest_index(
+    sample_root: Path,
+    document: Mapping[str, Any],
+) -> dict[str, _ArchiveManifestEntry]:
+    """acquisition manifestを重複のないroot-contained archive索引へ変換する。"""
+
+    raw_items = document.get("items")
+    if not isinstance(raw_items, list):
+        raise ValueError("acquisition manifestのitemsがlistではありません")
+    output: dict[str, _ArchiveManifestEntry] = {}
+    observed_paths: set[str] = set()
+    for index, raw_item in enumerate(raw_items):
+        if not isinstance(raw_item, Mapping):
+            raise ValueError(f"acquisition manifestのitemがobjectではありません: {index}")
+        digest = raw_item.get("sha256")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise ValueError(f"acquisition manifestのSHA-256が不正です: {index}")
+        if digest in output:
+            raise ValueError(f"acquisition manifestのSHA-256が重複しています: {digest}")
+        archive = _manifest_archive_path(sample_root, raw_item.get("zip_path"))
+        path_key = os.path.normcase(os.path.normpath(os.fspath(archive)))
+        if path_key in observed_paths:
+            raise ValueError("acquisition manifestで同一archive pathが重複しています")
+        observed_paths.add(path_key)
+
+        expected_zip_sha256 = raw_item.get("zip_sha256")
+        if expected_zip_sha256 is not None and (
+            not isinstance(expected_zip_sha256, str)
+            or SHA256_RE.fullmatch(expected_zip_sha256) is None
+        ):
+            raise ValueError(f"acquisition manifestのZIP SHA-256が不正です: {digest}")
+        expected_zip_size = raw_item.get("zip_size")
+        if expected_zip_size is not None and (
+            type(expected_zip_size) is not int
+            or expected_zip_size <= 0
+            or expected_zip_size > MAX_PREPARED_INPUT_BYTES
+        ):
+            raise ValueError(f"acquisition manifestのZIP sizeが不正です: {digest}")
+        output[digest] = _ArchiveManifestEntry(
+            sha256=digest,
+            path=archive,
+            expected_zip_sha256=expected_zip_sha256,
+            expected_zip_size=expected_zip_size,
+        )
+    return output
+
+
+def _read_manifest_archive(
+    entry: _ArchiveManifestEntry,
+) -> tuple[Any, _RegularFileSnapshot]:
+    """archiveを単一handle snapshot化し、同じbytesだけを既存readerへ渡す。"""
+
+    archive_data, snapshot = _bounded_regular_file_snapshot(
+        entry.path,
+        max_bytes=MAX_PREPARED_INPUT_BYTES,
+    )
+    if entry.expected_zip_sha256 is not None and snapshot.sha256 != entry.expected_zip_sha256:
+        raise ValueError(f"acquisition manifestのZIP SHA-256が一致しません: {entry.sha256}")
+    if entry.expected_zip_size is not None and snapshot.size != entry.expected_zip_size:
+        raise ValueError(f"acquisition manifestのZIP sizeが一致しません: {entry.sha256}")
+    unit = read_input_unit(
+        _SnapshotInputPath(name=entry.path.name, data=archive_data),  # type: ignore[arg-type]
+        password="infected",
+        archive_mode="malwarebazaar",
+        max_file_size=MAX_PREPARED_INPUT_BYTES,
+    )
+    if (
+        getattr(unit, "outer_sha256", None) != snapshot.sha256
+        or getattr(unit, "outer_size", None) != snapshot.size
+    ):
+        raise ValueError(f"archive snapshotと入力readerのouter identityが一致しません: {entry.sha256}")
+    _assert_regular_snapshot_unchanged(
+        snapshot,
+        context="archive snapshot読取後",
+    )
+    return unit, snapshot
+
+
+def _immutable_staging_snapshot(
+    private_output: Path,
+    digest: str,
+    data: bytes,
+) -> _RegularFileSnapshot:
+    """検証済みbytesをprivate rootのO_EXCL staging fileへ一度だけ固定する。"""
+
+    if SHA256_RE.fullmatch(digest) is None or hashlib.sha256(data).hexdigest() != digest:
+        raise ValueError("Ghidra staging dataのSHA-256が一致しません")
+    root = Path(os.path.abspath(os.fspath(private_output)))
+    ensure_no_reparse_components(root)
+    staging = root / "import-staging" / f"{digest}.quarantine.bin"
+    if not _same_or_nested(staging, root):
+        raise ValueError("Ghidra staging pathがprivate output外です")
+    staging.parent.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(staging.parent)
+    try:
+        existing = staging.lstat()
+    except FileNotFoundError:
+        existing = None
+    if existing is None:
+        with staging.open("xb") as handle:
+            opened = os.fstat(handle.fileno())
+            if _stat_is_reparse(opened) or not stat.S_ISREG(opened.st_mode):
+                raise ValueError("Ghidra staging作成先が通常fileではありません")
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+    try:
+        _, snapshot = _bounded_regular_file_snapshot(
+            staging,
+            max_bytes=len(data),
+        )
+    except ValueError as exc:
+        raise ValueError("既存Ghidra staging fileのSHA-256が一致しません") from exc
+    if snapshot.sha256 != digest or snapshot.size != len(data):
+        raise ValueError("既存Ghidra staging fileのSHA-256が一致しません（size不一致を含む）")
+    return snapshot
+
+
+@contextmanager
+def _hold_staging_read_lock(snapshot: _RegularFileSnapshot) -> Iterable[None]:
+    """import中のstagingをWindowsではdeny-write/delete、他OSではopen固定する。"""
+
+    descriptor: int | None = None
+    if os.name == "nt":
+        import ctypes
+        import msvcrt
+
+        create_file = ctypes.windll.kernel32.CreateFileW
+        create_file.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+        ]
+        create_file.restype = ctypes.c_void_p
+        handle = create_file(
+            str(snapshot.path),
+            0x80000000,
+            0x00000001,
+            None,
+            3,
+            0x00000080,
+            None,
+        )
+        invalid = ctypes.c_void_p(-1).value
+        if handle in {None, invalid}:
+            raise ValueError("Ghidra staging deny-write handleを取得できません")
+        descriptor = msvcrt.open_osfhandle(int(handle), os.O_RDONLY)
+    else:
+        flags = os.O_RDONLY | int(getattr(os, "O_CLOEXEC", 0)) | int(getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(snapshot.path, flags)
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode) or int(opened.st_nlink) != 1:
+            raise ValueError("Ghidra staging lockは単一linkの通常fileに限定します")
+        digest = hashlib.sha256()
+        total = 0
+        while chunk := os.read(descriptor, 1024 * 1024):
+            total += len(chunk)
+            if total > snapshot.size:
+                raise ValueError("Ghidra staging lockのsizeが一致しません")
+            digest.update(chunk)
+        if total != snapshot.size or digest.hexdigest() != snapshot.sha256:
+            raise ValueError("Ghidra staging lockのSHA-256またはsizeが一致しません")
+        yield
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
 
 
 def _safe_project_path(value: str) -> str:
@@ -325,17 +1393,59 @@ def _safe_project_path(value: str) -> str:
     return rendered
 
 
+def _is_numeric_loopback(hostname: str | None) -> bool:
+    """DNS解決を伴わないnumeric loopback literalだけを許可する。"""
+
+    if not hostname or "%" in hostname:
+        return False
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return False
+    return address.is_loopback
+
+
+class _RejectMcpRedirectHandler(HTTPRedirectHandler):
+    """Ghidra MCPの全redirectをdestination request作成前に拒否する。"""
+
+    def redirect_request(
+        self,
+        req: Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> None:
+        del req, fp, msg, headers, newurl
+        raise GhidraMcpError(f"Ghidra MCP redirectを拒否しました: HTTP {code}")
+
+
+def _build_ghidra_mcp_opener() -> OpenerDirector:
+    """環境proxyと自動redirectを無効にした専用openerを作る。"""
+
+    return build_opener(
+        ProxyHandler({}),
+        _RejectMcpRedirectHandler(),
+    )
+
+
 class GhidraMcpClient:
-    """localhost限定Ghidra MCP HTTP client。"""
+    """numeric loopback限定Ghidra MCP HTTP client。"""
 
     def __init__(self, base_url: str, *, timeout: int = 180) -> None:
         parsed = urlparse(base_url)
-        if parsed.scheme != "http" or parsed.hostname not in LOCAL_MCP_HOSTS:
-            raise ValueError("Ghidra MCP URLはlocalhostのHTTP endpointに限定します")
+        try:
+            parsed.port
+        except ValueError as exc:
+            raise ValueError("Ghidra MCP URLのportが不正です") from exc
+        if parsed.scheme != "http" or not _is_numeric_loopback(parsed.hostname):
+            raise ValueError("Ghidra MCP URLはnumeric loopbackのHTTP endpointに限定します")
         if parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError("Ghidra MCP URLへ資格情報、query、fragmentは指定できません")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self._opener = _build_ghidra_mcp_opener()
 
     def _request(
         self,
@@ -357,13 +1467,20 @@ class GhidraMcpClient:
             headers["Content-Type"] = "application/json"
         request = Request(url, data=data, headers=headers, method=method)
         try:
-            with urlopen(request, timeout=timeout or self.timeout) as response:
-                raw = response.read()
+            effective_timeout = self.timeout if timeout is None else timeout
+            with self._opener.open(request, timeout=effective_timeout) as response:
+                raw = response.read(MAX_MCP_RESPONSE_BYTES + 1)
         except HTTPError as error:
-            detail = error.read().decode("utf-8", errors="replace")
+            detail = error.read(1001).decode("utf-8", errors="replace")
             raise GhidraMcpError(f"{method} {path} failed: HTTP {error.code}: {detail[:1000]}") from error
+        except GhidraMcpError:
+            raise
         except (OSError, URLError) as error:
             raise GhidraMcpError(f"{method} {path} failed: {type(error).__name__}") from error
+        if len(raw) > MAX_MCP_RESPONSE_BYTES:
+            raise GhidraMcpError(
+                f"{method} {path} failed: MCP responseがbytes上限を超えています"
+            )
         if not raw:
             return None
         text = raw.decode("utf-8", errors="replace")
@@ -395,6 +1512,11 @@ class ProgramObject:
     input_path: Path
     size: int
     relationships: list[dict[str, Any]] = field(default_factory=list)
+    input_snapshot: _RegularFileSnapshot | None = field(
+        default=None,
+        repr=False,
+        compare=False,
+    )
 
     @property
     def primary(self) -> dict[str, Any]:
@@ -574,6 +1696,7 @@ def prepare_inputs(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    storage_guard: Callable[[str, str, int], None] | None = None,
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。"""
 
@@ -585,11 +1708,26 @@ def prepare_inputs(
         "sevenzip": _static_tool_identity(sevenzip),
         "diec": _static_tool_identity(diec),
     }
-    collection = json.loads((collection_dir / "manifest.json").read_text(encoding="utf-8-sig"))
-    acquisition = json.loads((sample_root / "manifest.json").read_text(encoding="utf-8-sig"))
-    archive_by_sha = {str(item["sha256"]).casefold(): Path(item["zip_path"]) for item in acquisition.get("items", [])}
+    collection_snapshot = _bounded_json_snapshot(collection_dir / "manifest.json")
+    acquisition_snapshot = _bounded_json_snapshot(sample_root / "manifest.json")
+    collection = collection_snapshot.document
+    acquisition = acquisition_snapshot.document
+    archive_by_sha = _archive_manifest_index(sample_root, acquisition)
     case_paths = _case_index(repository)
-    requested = [str(item["case_id"]).removeprefix("sha256:").casefold() for item in collection.get("cases", [])]
+    raw_cases = collection.get("cases")
+    if not isinstance(raw_cases, list):
+        raise ValueError("collection manifestのcasesがlistではありません")
+    requested: list[str] = []
+    for index, raw_case in enumerate(raw_cases):
+        if not isinstance(raw_case, Mapping):
+            raise ValueError(f"collection manifestのcaseがobjectではありません: {index}")
+        case_id = raw_case.get("case_id")
+        if not isinstance(case_id, str) or not case_id.startswith("sha256:"):
+            raise ValueError(f"collection manifestのcase_idが不正です: {index}")
+        digest = case_id.removeprefix("sha256:")
+        if SHA256_RE.fullmatch(digest) is None:
+            raise ValueError(f"collection manifestのcase SHA-256が不正です: {index}")
+        requested.append(digest)
     if not requested or len(set(requested)) != len(requested):
         raise ValueError("collectionには1件以上の重複しないSHA-256が必要です")
     objects: dict[str, ProgramObject] = {}
@@ -597,8 +1735,8 @@ def prepare_inputs(
     relationships: list[dict[str, Any]] = []
 
     for case_number, case_sha in enumerate(requested, start=1):
-        archive = archive_by_sha.get(case_sha)
-        if archive is None or not archive.is_file():
+        archive_entry = archive_by_sha.get(case_sha)
+        if archive_entry is None:
             raise FileNotFoundError(f"archiveが見つかりません: {case_sha}")
         case_dir = case_paths.get(case_sha)
         if case_dir is None:
@@ -610,12 +1748,7 @@ def prepare_inputs(
         if not isinstance(settings, Mapping):
             raise ValueError(f"解析契約settingsがありません: {case_sha}")
         public_layers, expected = _load_authenticated_public_layers(case_dir)
-        unit = read_input_unit(
-            archive,
-            password="infected",
-            archive_mode="malwarebazaar",
-            max_file_size=512 * 1024 * 1024,
-        )
+        unit, archive_snapshot = _read_manifest_archive(archive_entry)
         if hashlib.sha256(unit.data).hexdigest() != case_sha:
             raise ValueError(f"root検体hashが一致しません: {case_sha}")
         authenticated_root = (
@@ -663,12 +1796,37 @@ def prepare_inputs(
                 destination = sample_root / case_sha / "ghidra-input" / f"{layer.sha256}.quarantine.bin"
             else:
                 destination = sample_root / case_sha / "ghidra-input" / "layers" / f"{layer.sha256}.quarantine.bin"
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            if destination.is_file():
-                if _sha256_file(destination) != layer.sha256:
-                    raise ValueError(f"既存の隔離input hashが一致しません: {destination}")
-            else:
-                destination.write_bytes(layer.data)
+            try:
+                destination.lstat()
+                destination_present = True
+            except FileNotFoundError:
+                destination_present = False
+            except OSError as exc:
+                raise ValueError("隔離input pathを安全に確認できません") from exc
+            planned_write_bytes = 0 if destination_present else len(layer.data)
+            if storage_guard is not None:
+                storage_guard(
+                    "before_input_copy",
+                    "sample_root",
+                    planned_write_bytes,
+                )
+            if not destination_present:
+                _atomic_replace_bytes(
+                    destination,
+                    layer.data,
+                    maximum_bytes=MAX_PREPARED_INPUT_BYTES,
+                    require_absent=True,
+                )
+            cached_data, input_snapshot = _bounded_regular_file_snapshot(
+                destination,
+                max_bytes=len(layer.data),
+            )
+            if len(cached_data) != len(layer.data) or input_snapshot.sha256 != layer.sha256:
+                raise ValueError(
+                    f"既存の隔離input sizeまたはhashが一致しません: {layer.sha256}"
+                )
+            if storage_guard is not None:
+                storage_guard("after_input_copy", "sample_root", 0)
             relation = {
                 "case_sha256": case_sha,
                 "layer_sha256": layer.sha256,
@@ -678,12 +1836,43 @@ def prepare_inputs(
                 "size": len(layer.data),
                 "is_pe": _is_pe(layer.data),
                 "reconstruction_mode": reconstruction_mode,
+                "source_archive_sha256": archive_snapshot.sha256,
+                "source_archive_size": archive_snapshot.size,
             }
             relationships.append(relation)
             if relation["is_pe"]:
+                staging_path = (
+                    private_output
+                    / "import-staging"
+                    / f"{layer.sha256}.quarantine.bin"
+                )
+                try:
+                    staging_present = staging_path.lstat() is not None
+                except FileNotFoundError:
+                    staging_present = False
+                except OSError as exc:
+                    raise ValueError("Ghidra staging pathを安全に確認できません") from exc
+                if storage_guard is not None:
+                    storage_guard(
+                        "before_ghidra_staging_write",
+                        "private_output",
+                        0 if staging_present else len(layer.data),
+                    )
+                staging_snapshot = _immutable_staging_snapshot(
+                    private_output,
+                    layer.sha256,
+                    layer.data,
+                )
+                if storage_guard is not None:
+                    storage_guard("after_ghidra_staging_write", "private_output", 0)
                 item = objects.setdefault(
                     layer.sha256,
-                    ProgramObject(layer.sha256, destination, len(layer.data)),
+                    ProgramObject(
+                        layer.sha256,
+                        staging_snapshot.path,
+                        len(layer.data),
+                        input_snapshot=staging_snapshot,
+                    ),
                 )
                 item.relationships.append(relation)
             else:
@@ -713,8 +1902,7 @@ def prepare_inputs(
             flush=True,
         )
 
-    _json_dump(
-        private_output / "input-relationships.json",
+    inventory_bytes = _json_bytes(
         {
             "schema_version": SCHEMA_VERSION,
             "collection_id": collection_dir.name,
@@ -723,7 +1911,25 @@ def prepare_inputs(
             "static_tools": static_tools,
             "sample_executed": False,
             "network_contacted": False,
-        },
+        }
+    )
+    if storage_guard is not None:
+        storage_guard(
+            "before_prepared_inventory_write",
+            "private_output",
+            len(inventory_bytes),
+        )
+    _atomic_replace_bytes(
+        private_output / "input-relationships.json",
+        inventory_bytes,
+    )
+    _assert_snapshot_unchanged(
+        collection_snapshot,
+        context="collection manifest使用後",
+    )
+    _assert_snapshot_unchanged(
+        acquisition_snapshot,
+        context="acquisition manifest使用後",
     )
     return objects, non_pe
 
@@ -744,57 +1950,121 @@ def _parse_metadata(value: Any) -> dict[str, str]:
 def load_prepared_inputs(
     sample_root: Path,
     private_output: Path,
+    *,
+    inventory_snapshot: _JsonFileSnapshot | None = None,
+    expected_inventory_sha256: str | None = None,
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """SHA-256検証済みcacheから再展開せずprogram inventoryを復元する。"""
 
-    relationship_path = private_output / "input-relationships.json"
-    document = json.loads(relationship_path.read_text(encoding="utf-8-sig"))
+    relationship_path = Path(
+        os.path.abspath(os.fspath(private_output / "input-relationships.json"))
+    )
+    snapshot = inventory_snapshot or _bounded_json_snapshot(relationship_path)
+    if snapshot.path != relationship_path:
+        raise ValueError("prepared input inventoryのsnapshot pathが一致しません")
+    if expected_inventory_sha256 is not None and (
+        not isinstance(expected_inventory_sha256, str)
+        or SHA256_RE.fullmatch(expected_inventory_sha256) is None
+        or snapshot.sha256 != expected_inventory_sha256
+    ):
+        raise ValueError("prepared input inventoryのbinding SHA-256が一致しません")
+    document = snapshot.document
     relationships = document.get("relationships", [])
+    if not isinstance(relationships, list):
+        raise TypeError("input relationship一覧が不正です")
     objects: dict[str, ProgramObject] = {}
     non_pe: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for raw in relationships:
         if not isinstance(raw, Mapping):
-            raise ValueError("input relationshipがJSON objectではありません")
+            raise TypeError("input relationshipがJSON objectではありません")
         relation = dict(raw)
         digest = str(relation.get("layer_sha256") or "").casefold()
         case_sha = str(relation.get("case_sha256") or "").casefold()
         if not SHA256_RE.fullmatch(digest) or not SHA256_RE.fullmatch(case_sha):
             raise ValueError("input relationshipのSHA-256が不正です")
-        if not bool(relation.get("is_pe")):
+        is_pe = relation.get("is_pe")
+        if type(is_pe) is not bool:
+            raise ValueError("input relationshipのPE判定が不正です")
+        if not is_pe:
             non_pe[case_sha].append(relation)
             continue
+        depth = relation.get("depth")
+        expected_size = relation.get("size")
+        if type(depth) is not int or depth < 0:
+            raise ValueError("input relationshipのdepthが不正です")
+        if (
+            type(expected_size) is not int
+            or expected_size <= 0
+            or expected_size > MAX_PREPARED_INPUT_BYTES
+        ):
+            raise ValueError("input relationshipのsizeが不正です")
         input_root = sample_root / case_sha / "ghidra-input"
         input_path = (
             input_root / f"{digest}.quarantine.bin"
-            if int(relation.get("depth") or 0) == 0
+            if depth == 0
             else input_root / "layers" / f"{digest}.quarantine.bin"
         )
-        expected_size = int(relation.get("size") or -1)
-        cache_present = input_path.is_file()
+        try:
+            input_path.lstat()
+            cache_present = True
+        except FileNotFoundError:
+            cache_present = False
+        except OSError as exc:
+            raise ValueError(f"再開用PE cacheを安全に確認できません: {digest}") from exc
+        input_snapshot: _RegularFileSnapshot | None = None
+        program_input_path = private_output / "import-staging" / f"{digest}.quarantine.bin"
         if cache_present:
-            if input_path.stat().st_size != expected_size:
+            cached_data, _ = _bounded_regular_file_snapshot(
+                input_path,
+                max_bytes=expected_size,
+            )
+            if len(cached_data) != expected_size:
                 raise ValueError(f"再開用PE cacheのsizeが一致しません: {digest}")
-            hasher = hashlib.sha256()
-            with input_path.open("rb") as handle:
-                while chunk := handle.read(1024 * 1024):
-                    hasher.update(chunk)
-            if hasher.hexdigest() != digest:
+            if hashlib.sha256(cached_data).hexdigest() != digest:
                 raise ValueError(f"再開用PE cacheのSHA-256が一致しません: {digest}")
+            input_snapshot = _immutable_staging_snapshot(
+                private_output,
+                digest,
+                cached_data,
+            )
+            program_input_path = input_snapshot.path
         else:
             result_path = private_output / "objects" / digest / "program-result.json"
-            cached = load_json_object_strict(result_path) if result_path.is_file() else {}
-            if not (cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True):
-                raise FileNotFoundError(f"再開用PE cacheがありません: {input_path}")
+            try:
+                result_path.lstat()
+                result_present = True
+            except FileNotFoundError:
+                result_present = False
+            except OSError as exc:
+                raise ValueError(f"完了cacheを安全に確認できません: {digest}") from exc
+            result_snapshot = (
+                _bounded_json_snapshot(result_path) if result_present else None
+            )
+            cached = result_snapshot.document if result_snapshot is not None else {}
+            if result_snapshot is None or not (
+                cached.get("status") == "complete"
+                and cached.get("mcp_responses_valid") is True
+            ):
+                raise FileNotFoundError(f"再開用PE cacheがありません: {digest}")
+            _assert_snapshot_unchanged(
+                result_snapshot,
+                context="完了program cache検証後",
+            )
         if digest not in objects:
             objects[digest] = ProgramObject(
                 sha256=digest,
-                input_path=input_path,
+                input_path=program_input_path,
                 size=expected_size,
+                input_snapshot=input_snapshot,
             )
         objects[digest].relationships.append(relation)
-    expected = int(document.get("unique_pe_objects") or 0)
-    if expected <= 0 or len(objects) != expected:
+    expected = document.get("unique_pe_objects")
+    if type(expected) is not int or expected <= 0 or len(objects) != expected:
         raise ValueError(f"再開用PE program数が一致しません: {len(objects)} != {expected}")
+    _assert_snapshot_unchanged(
+        snapshot,
+        context="prepared input読取後",
+    )
     print(
         json.dumps(
             {
@@ -813,16 +2083,25 @@ def load_prepared_inputs(
 def validate_prepared_scope(
     collection_dir: Path,
     private_output: Path,
+    *,
+    inventory_snapshot: _JsonFileSnapshot | None = None,
 ) -> None:
     """再開cacheのcollection IDとcase集合が対象manifestに完全一致するか確認する。"""
 
-    collection = json.loads((collection_dir / "manifest.json").read_text(encoding="utf-8-sig"))
+    collection_snapshot = _bounded_json_snapshot(collection_dir / "manifest.json")
+    collection = collection_snapshot.document
     expected = {
         str(item.get("case_id") or "").removeprefix("sha256:").casefold()
         for item in collection.get("cases", [])
         if isinstance(item, Mapping)
     }
-    document = json.loads((private_output / "input-relationships.json").read_text(encoding="utf-8-sig"))
+    relationship_path = Path(
+        os.path.abspath(os.fspath(private_output / "input-relationships.json"))
+    )
+    snapshot = inventory_snapshot or _bounded_json_snapshot(relationship_path)
+    if snapshot.path != relationship_path:
+        raise ValueError("prepared input inventoryのsnapshot pathが一致しません")
+    document = snapshot.document
     if str(document.get("collection_id") or "") != collection_dir.name:
         raise ValueError("再開cacheのcollection IDが対象directoryと一致しません")
     observed = {
@@ -832,6 +2111,14 @@ def validate_prepared_scope(
     }
     if not expected or observed != expected:
         raise ValueError(f"再開cacheのcase集合が対象collectionと一致しません: {len(observed)} != {len(expected)}")
+    _assert_snapshot_unchanged(
+        snapshot,
+        context="prepared input scope検証後",
+    )
+    _assert_snapshot_unchanged(
+        collection_snapshot,
+        context="collection scope検証後",
+    )
 
 
 def _all_functions(client: GhidraMcpClient, program: str) -> list[dict[str, Any]]:
@@ -1279,28 +2566,545 @@ def _decompile_status(pseudocode: str) -> tuple[str, list[str]]:
     return "succeeded", warnings
 
 
+def _private_jsonl_limits() -> tuple[int, int, int, int]:
+    """private JSONLの現在の上限を検証して返す。"""
+
+    maximum_bytes = MAX_PRIVATE_RAW_BYTES
+    maximum_records = MAX_PRIVATE_RAW_RECORDS
+    maximum_line_bytes = MAX_PRIVATE_RAW_LINE_BYTES
+    maximum_depth = MAX_PRIVATE_RAW_JSON_DEPTH
+    if (
+        type(maximum_bytes) is not int
+        or maximum_bytes <= 0
+        or maximum_bytes > 64 * 1024 * 1024
+    ):
+        raise ValueError("private JSONLの総bytes上限が不正です")
+    if type(maximum_records) is not int or maximum_records <= 0:
+        raise ValueError("private JSONLのrecord数上限が不正です")
+    if type(maximum_line_bytes) is not int or maximum_line_bytes <= 0:
+        raise ValueError("private JSONLの1行bytes上限が不正です")
+    if type(maximum_depth) is not int or maximum_depth < 0:
+        raise ValueError("private JSONLのJSON深度上限が不正です")
+    return (
+        maximum_bytes,
+        maximum_records,
+        min(maximum_line_bytes, maximum_bytes),
+        maximum_depth,
+    )
+
+
+def _checked_private_raw_add(current: int, additional: int, *, maximum: int) -> int:
+    """加算前にprivate raw累積bytes上限を検証する。"""
+
+    if current < 0 or additional < 0 or current > maximum - additional:
+        raise ValueError("private JSONLが総bytes上限を超えています")
+    return current + additional
+
+
+def _private_raw_open_flags() -> int:
+    """private rawをfollowせずread-onlyで開くflagを返す。"""
+
+    flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0))
+    flags |= int(getattr(os, "O_CLOEXEC", 0))
+    flags |= int(getattr(os, "O_NOINHERIT", 0))
+    flags |= int(getattr(os, "O_NOFOLLOW", 0))
+    return flags
+
+
+def _validate_opened_private_raw(
+    before: os.stat_result,
+    opened: os.stat_result,
+) -> None:
+    """path確認時とopen handleが同じ単一link通常fileであることを確認する。"""
+
+    if (
+        _stat_is_reparse(opened)
+        or not stat.S_ISREG(opened.st_mode)
+        or int(opened.st_nlink) != 1
+        or int(opened.st_size) != int(before.st_size)
+        or not _same_path_identity(before, opened)
+    ):
+        raise ValueError("private JSONLのopen時identityが一致しません")
+
+
+def _validate_private_raw_after_read(
+    path: Path,
+    before: os.stat_result,
+    opened_before: os.stat_result,
+    opened_after: os.stat_result,
+    *,
+    observed_size: int,
+) -> os.stat_result:
+    """stream読取後のhandleとpath bindingを固定する。"""
+
+    after = _regular_file_metadata(path)
+    if (
+        observed_size != int(opened_after.st_size)
+        or observed_size != int(after.st_size)
+        or not _same_regular_file_binding(opened_before, opened_after)
+        or not _same_regular_file_binding(before, after)
+        or not _same_path_identity(opened_after, after)
+    ):
+        raise ValueError("private JSONLの読取中にidentityが変更されました")
+    return after
+
+
+def _decode_private_jsonl_record(
+    raw_line: bytes,
+    *,
+    path: Path,
+    line_number: int,
+    maximum_depth: int,
+) -> dict[str, Any]:
+    """1行をduplicate key／非有限数を拒否するstrict JSON objectとして読む。"""
+
+    payload = raw_line
+    if line_number == 1 and payload.startswith(b"\xef\xbb\xbf"):
+        payload = payload[3:]
+    try:
+        text = payload.decode("utf-8", errors="strict")
+        value = json.loads(
+            text,
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=_reject_non_finite,
+            parse_int=_strict_json_int,
+            parse_float=_strict_json_float,
+        )
+        if not isinstance(value, dict):
+            raise TypeError("JSON objectが必要です")
+        _ensure_json_depth(value, maximum_depth=maximum_depth)
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        raise ValueError(
+            f"private JSONLが不正です: {path.name}:{line_number}: {exc}"
+        ) from exc
+    return value
+
+
+def _stream_private_jsonl(
+    path: Path,
+    consume: Callable[[dict[str, Any], int], None],
+) -> _JsonlFileSnapshot:
+    """single handleからprivate JSONLをstreaming strict parse/hashする。"""
+
+    maximum_bytes, maximum_records, maximum_line_bytes, maximum_depth = (
+        _private_jsonl_limits()
+    )
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    before = _regular_file_metadata(absolute)
+    if int(before.st_size) > maximum_bytes:
+        raise ValueError("private JSONLが総bytes上限を超えています")
+    descriptor: int | None = None
+    digest = hashlib.sha256()
+    total = 0
+    record_count = 0
+    line_count = 0
+    last_byte = b""
+    try:
+        descriptor = os.open(absolute, _private_raw_open_flags())
+        opened_before = os.fstat(descriptor)
+        _validate_opened_private_raw(before, opened_before)
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            descriptor = None
+            while True:
+                raw_line = handle.readline(maximum_line_bytes + 1)
+                if not raw_line:
+                    break
+                line_count += 1
+                if line_count > maximum_records * 2:
+                    raise ValueError("private JSONLがline数上限を超えています")
+                if len(raw_line) > maximum_line_bytes:
+                    raise ValueError("private JSONLが1行bytes上限を超えています")
+                total = _checked_private_raw_add(
+                    total,
+                    len(raw_line),
+                    maximum=maximum_bytes,
+                )
+                digest.update(raw_line)
+                last_byte = raw_line[-1:]
+                if not raw_line.strip():
+                    continue
+                record_count += 1
+                if record_count > maximum_records:
+                    raise ValueError("private JSONLがrecord数上限を超えています")
+                consume(
+                    _decode_private_jsonl_record(
+                        raw_line,
+                        path=absolute,
+                        line_number=line_count,
+                        maximum_depth=maximum_depth,
+                    ),
+                    line_count,
+                )
+            opened_after = os.fstat(handle.fileno())
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    after = _validate_private_raw_after_read(
+        absolute,
+        before,
+        opened_before,
+        opened_after,
+        observed_size=total,
+    )
+    snapshot = _JsonlFileSnapshot(
+        path=absolute,
+        sha256=digest.hexdigest(),
+        size=total,
+        metadata=after,
+        record_count=record_count,
+        line_count=line_count,
+        ends_with_newline=last_byte == b"\n",
+    )
+    _assert_jsonl_snapshot_unchanged(snapshot)
+    return snapshot
+
+
+def _stream_private_raw_digest(
+    path: Path,
+    *,
+    maximum_bytes: int,
+    destination: io.BufferedWriter | None = None,
+) -> _RegularFileSnapshot:
+    """全bytesを保持せず固定chunkでhashし、必要なら同時にcopyする。"""
+
+    if type(maximum_bytes) is not int or maximum_bytes <= 0:
+        raise ValueError("private rawのstream上限が不正です")
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    before = _regular_file_metadata(absolute)
+    if int(before.st_size) > maximum_bytes:
+        raise ValueError("private JSONLが総bytes上限を超えています")
+    descriptor: int | None = None
+    digest = hashlib.sha256()
+    total = 0
+    try:
+        descriptor = os.open(absolute, _private_raw_open_flags())
+        opened_before = os.fstat(descriptor)
+        _validate_opened_private_raw(before, opened_before)
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            descriptor = None
+            while chunk := handle.read(
+                min(PRIVATE_RAW_STREAM_CHUNK_BYTES, maximum_bytes + 1)
+            ):
+                total = _checked_private_raw_add(
+                    total,
+                    len(chunk),
+                    maximum=maximum_bytes,
+                )
+                digest.update(chunk)
+                if destination is not None and destination.write(chunk) != len(chunk):
+                    raise OSError("private JSONLのstream copyが完了しませんでした")
+            opened_after = os.fstat(handle.fileno())
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    after = _validate_private_raw_after_read(
+        absolute,
+        before,
+        opened_before,
+        opened_after,
+        observed_size=total,
+    )
+    return _RegularFileSnapshot(
+        path=absolute,
+        sha256=digest.hexdigest(),
+        size=total,
+        metadata=after,
+    )
+
+
+def _assert_jsonl_snapshot_unchanged(snapshot: _JsonlFileSnapshot) -> None:
+    """JSONL snapshotを固定chunk hashとidentityで再検証する。"""
+
+    maximum_bytes, _, _, _ = _private_jsonl_limits()
+    try:
+        current = _stream_private_raw_digest(
+            snapshot.path,
+            maximum_bytes=maximum_bytes,
+        )
+    except (OSError, ValueError) as exc:
+        raise ValueError(
+            f"private JSONLで競合変更を検出しました: {snapshot.path.name}"
+        ) from exc
+    if (
+        current.sha256 != snapshot.sha256
+        or current.size != snapshot.size
+        or not _same_regular_file_binding(snapshot.metadata, current.metadata)
+    ):
+        raise ValueError(
+            f"private JSONLで競合変更を検出しました: {snapshot.path.name}"
+        )
+
+
 def _load_jsonl(path: Path) -> dict[str, dict[str, Any]]:
+    """private JSONLをstreaming strict single-handle snapshotとして読む。"""
+
     output: dict[str, dict[str, Any]] = {}
-    if not path.is_file():
+    try:
+        present = path.lstat() is not None
+    except FileNotFoundError:
+        present = False
+    if not present:
         return output
-    for line in path.read_text(encoding="utf-8-sig").splitlines():
-        if not line.strip():
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(item, dict) and item.get("address"):
-            output[str(item["address"])] = item
+
+    def collect(item: dict[str, Any], line_number: int) -> None:
+        if not isinstance(item, dict) or not item.get("address"):
+            raise ValueError(f"private JSONL recordが不正です: {path.name}:{line_number}")
+        address = str(item["address"])
+        if address in output:
+            raise ValueError(f"private JSONL addressが重複しています: {address}")
+        output[address] = item
+
+    _stream_private_jsonl(path, collect)
     return output
 
 
+def _encode_private_jsonl_record(
+    value: Mapping[str, Any],
+    *,
+    path: Path,
+    line_number: int,
+) -> bytes:
+    """1 recordを上限確認済みのstrict JSONL bytesへする。"""
+
+    _, _, maximum_line_bytes, maximum_depth = _private_jsonl_limits()
+    try:
+        record = dict(value)
+        _ensure_json_depth(record, maximum_depth=maximum_depth)
+        encoded = (
+            json.dumps(
+                record,
+                ensure_ascii=False,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    except (OverflowError, RecursionError, TypeError, ValueError) as exc:
+        raise ValueError(
+            f"private JSONL recordをencodeできません: {path.name}:{line_number}"
+        ) from exc
+    if len(encoded) > maximum_line_bytes:
+        raise ValueError("private JSONLが1行bytes上限を超えています")
+    _decode_private_jsonl_record(
+        encoded,
+        path=path,
+        line_number=line_number,
+        maximum_depth=maximum_depth,
+    )
+    return encoded
+
+
+def _write_private_raw(handle: io.BufferedWriter, data: bytes) -> None:
+    """一時fileへbytes全体を書き、short writeを拒否する。"""
+
+    if handle.write(data) != len(data):
+        raise OSError("private JSONLのatomic writeが完了しませんでした")
+
+
+def _atomic_rewrite_jsonl(
+    path: Path,
+    values: Iterable[Mapping[str, Any]],
+    *,
+    append: bool,
+) -> None:
+    """同一directoryの一時fileへstreaming生成しJSONLをatomic置換する。"""
+
+    maximum_bytes, maximum_records, _, _ = _private_jsonl_limits()
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    try:
+        present = absolute.lstat() is not None
+    except FileNotFoundError:
+        present = False
+    except OSError as exc:
+        raise ValueError("private JSONL pathを安全に確認できません") from exc
+    expected = _validate_jsonl_snapshot(absolute) if present else None
+
+    ensure_no_reparse_components(absolute.parent)
+    absolute.parent.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(absolute.parent)
+    try:
+        parent_before = absolute.parent.lstat()
+    except OSError as exc:
+        raise ValueError("private JSONL出力directoryを確認できません") from exc
+    if _stat_is_reparse(parent_before) or not stat.S_ISDIR(parent_before.st_mode):
+        raise ValueError("private JSONL出力先は通常directoryに限定します")
+
+    temporary = absolute.with_name(
+        f".jsonl-{os.getpid():x}-{time.time_ns():x}.tmp"
+    )
+    temporary_identity: os.stat_result | None = None
+    total = 0
+    record_count = 0
+    line_count = 0
+    try:
+        with temporary.open("xb") as handle:
+            temporary_identity = os.fstat(handle.fileno())
+            if (
+                _stat_is_reparse(temporary_identity)
+                or not stat.S_ISREG(temporary_identity.st_mode)
+                or int(temporary_identity.st_nlink) != 1
+            ):
+                raise ValueError("private JSONL一時pathが通常fileではありません")
+            if append and expected is not None:
+                copied = _stream_private_raw_digest(
+                    expected.path,
+                    maximum_bytes=maximum_bytes,
+                    destination=handle,
+                )
+                if (
+                    copied.sha256 != expected.sha256
+                    or copied.size != expected.size
+                    or not _same_regular_file_binding(
+                        copied.metadata,
+                        expected.metadata,
+                    )
+                ):
+                    raise ValueError("private JSONL copy元で競合変更を検出しました")
+                total = copied.size
+                record_count = expected.record_count
+                line_count = expected.line_count
+                if total and not expected.ends_with_newline:
+                    total = _checked_private_raw_add(
+                        total,
+                        1,
+                        maximum=maximum_bytes,
+                    )
+                    _write_private_raw(handle, b"\n")
+            for value in values:
+                if record_count >= maximum_records:
+                    raise ValueError("private JSONLがrecord数上限を超えています")
+                if line_count >= maximum_records * 2:
+                    raise ValueError("private JSONLがline数上限を超えています")
+                encoded = _encode_private_jsonl_record(
+                    value,
+                    path=absolute,
+                    line_number=line_count + 1,
+                )
+                total = _checked_private_raw_add(
+                    total,
+                    len(encoded),
+                    maximum=maximum_bytes,
+                )
+                _write_private_raw(handle, encoded)
+                record_count += 1
+                line_count += 1
+            handle.flush()
+            os.fsync(handle.fileno())
+        ensure_no_reparse_components(temporary)
+        temporary_at_path = temporary.lstat()
+        if (
+            _stat_is_reparse(temporary_at_path)
+            or not stat.S_ISREG(temporary_at_path.st_mode)
+            or int(temporary_at_path.st_nlink) != 1
+            or int(temporary_at_path.st_size) != total
+            or not _same_path_identity(temporary_identity, temporary_at_path)
+        ):
+            raise ValueError("private JSONL一時fileのidentityが変更されました")
+        ensure_no_reparse_components(absolute.parent)
+        parent_before_replace = absolute.parent.lstat()
+        if (
+            _stat_is_reparse(parent_before_replace)
+            or not stat.S_ISDIR(parent_before_replace.st_mode)
+            or not _same_path_identity(parent_before, parent_before_replace)
+        ):
+            raise ValueError("private JSONL置換前にdirectory identityが変更されました")
+        if expected is None:
+            try:
+                target_before = absolute.lstat()
+            except FileNotFoundError:
+                target_before = None
+            if target_before is not None:
+                raise FileExistsError("private JSONLがatomic commit前に作成されました")
+        else:
+            _assert_jsonl_snapshot_unchanged(expected)
+            target_before = _regular_file_metadata(absolute)
+            if not _same_regular_file_binding(expected.metadata, target_before):
+                raise ValueError("private JSONLで競合変更を検出しました")
+        os.replace(temporary, absolute)
+        ensure_no_reparse_components(absolute)
+        target_after = absolute.lstat()
+        parent_after = absolute.parent.lstat()
+        if (
+            _stat_is_reparse(target_after)
+            or not stat.S_ISREG(target_after.st_mode)
+            or int(target_after.st_nlink) != 1
+            or int(target_after.st_size) != total
+            or not _same_path_identity(temporary_identity, target_after)
+            or _stat_is_reparse(parent_after)
+            or not stat.S_ISDIR(parent_after.st_mode)
+            or not _same_path_identity(parent_before, parent_after)
+        ):
+            raise ValueError("private JSONL置換後のidentityが一致しません")
+    finally:
+        try:
+            remaining = temporary.lstat()
+        except OSError:
+            remaining = None
+        if (
+            remaining is not None
+            and temporary_identity is not None
+            and not _stat_is_reparse(remaining)
+            and stat.S_ISREG(remaining.st_mode)
+            and _same_path_identity(temporary_identity, remaining)
+        ):
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
 def _append_jsonl(path: Path, values: Iterable[Mapping[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8", newline="\n") as handle:
-        for value in values:
-            handle.write(json.dumps(dict(value), ensure_ascii=False, sort_keys=True) + "\n")
-        handle.flush()
+    """private JSONLをstreaming atomic rewriteで追記する。"""
+
+    _atomic_rewrite_jsonl(path, values, append=True)
+
+
+def _validate_jsonl_snapshot(path: Path) -> _JsonlFileSnapshot:
+    """recordを保持せずprivate JSONL全体をstrict検証する。"""
+
+    return _stream_private_jsonl(path, lambda _item, _line_number: None)
+
+
+def _bounded_jsonl_snapshot(
+    path: Path,
+) -> tuple[list[dict[str, Any]], _JsonlFileSnapshot]:
+    """private JSONLをstreaming parseし、必要なrecordだけ保持する。"""
+
+    rows: list[dict[str, Any]] = []
+    snapshot = _stream_private_jsonl(
+        path,
+        lambda item, _line_number: rows.append(item),
+    )
+    return rows, snapshot
+
+
+def _replace_jsonl(path: Path, values: Iterable[Mapping[str, Any]]) -> None:
+    """private JSONL全体をstreaming atomic rewriteで置換する。"""
+
+    _atomic_rewrite_jsonl(path, values, append=False)
+
+
+def _atomic_private_json(path: Path, value: Mapping[str, Any]) -> None:
+    """private JSON cacheをbounded snapshotへ束縛してatomicに保存する。"""
+
+    try:
+        present = path.lstat() is not None
+    except FileNotFoundError:
+        present = False
+    snapshot = _bounded_json_snapshot(path) if present else None
+    _atomic_replace_bytes(
+        path,
+        _json_bytes(dict(value)),
+        expected_snapshot=snapshot,
+        maximum_bytes=MAX_JSON_OBJECT_SIZE,
+        require_absent=snapshot is None,
+    )
 
 
 def _decompile_chunk(
@@ -1578,8 +3382,7 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
                 "emulated": False,
             }
         )
-    raw_path.unlink(missing_ok=True)
-    _append_jsonl(raw_path, raw_rows)
+    _replace_jsonl(raw_path, raw_rows)
     return records
 
 
@@ -1774,14 +3577,38 @@ def analyze_program(
 
     output_dir = private_output / "objects" / item.sha256
     result_path = output_dir / "program-result.json"
-    if result_path.is_file():
-        cached = json.loads(result_path.read_text(encoding="utf-8-sig"))
+    try:
+        result_present = result_path.lstat() is not None
+    except FileNotFoundError:
+        result_present = False
+    if result_present:
+        result_snapshot = _bounded_json_snapshot(result_path)
+        cached = result_snapshot.document
         if cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True:
             ensure_characteristic_selection(cached)
-            _json_dump(result_path, cached)
+            _atomic_replace_bytes(
+                result_path,
+                _json_bytes(cached),
+                expected_snapshot=result_snapshot,
+            )
             return cached
-    data = item.input_path.read_bytes()
-    if hashlib.sha256(data).hexdigest() != item.sha256:
+    staging_root = private_output / "import-staging"
+    if not _same_or_nested(item.input_path, staging_root):
+        raise ValueError("Ghidra MCP importはprivate staging pathに限定します")
+    data, staging_snapshot = _bounded_regular_file_snapshot(
+        item.input_path,
+        max_bytes=item.size,
+    )
+    if (
+        hashlib.sha256(data).hexdigest() != item.sha256
+        or len(data) != item.size
+        or item.input_snapshot is None
+        or staging_snapshot.sha256 != item.input_snapshot.sha256
+        or not _same_regular_file_binding(
+            staging_snapshot.metadata,
+            item.input_snapshot.metadata,
+        )
+    ):
         raise ValueError(f"Ghidra input hashが解析直前に一致しません: {item.sha256}")
     managed_cil_primary = _is_managed_pe(data)
     primary = item.primary
@@ -1811,27 +3638,51 @@ def analyze_program(
                 "auto_analyze": not managed_cil_primary and not skip_auto_analysis,
             }
             try:
-                imported = client.post("/import_file", import_body)
+                with _hold_staging_read_lock(staging_snapshot):
+                    imported = client.post("/import_file", import_body)
                 import_mode = "automatic_loader"
             except GhidraMcpError as automatic_error:
                 # import処理は応答タイムアウト後もGhidra側で完了し得る。ここで
                 # raw importへ切り替えると、同じ検体が「.0」付きで重複登録される。
                 # 通信タイムアウトは再実行時の既存program検出に委ねる。
                 if _request_timed_out(automatic_error):
+                    _assert_regular_snapshot_unchanged(
+                        staging_snapshot,
+                        context="Ghidra MCP import失敗後",
+                    )
                     raise
                 raw_parameters = _raw_pe_import_parameters(data)
                 if raw_parameters is None:
+                    _assert_regular_snapshot_unchanged(
+                        staging_snapshot,
+                        context="Ghidra MCP import失敗後",
+                    )
                     raise automatic_error
-                imported = client.post(
-                    "/import_file",
-                    {**import_body, **raw_parameters},
-                )
+                try:
+                    with _hold_staging_read_lock(staging_snapshot):
+                        imported = client.post(
+                            "/import_file",
+                            {**import_body, **raw_parameters},
+                        )
+                finally:
+                    _assert_regular_snapshot_unchanged(
+                        staging_snapshot,
+                        context="Ghidra MCP raw import後",
+                    )
                 import_mode = "raw_pe_fallback"
+            _assert_regular_snapshot_unchanged(
+                staging_snapshot,
+                context="Ghidra MCP import応答後",
+            )
             if not isinstance(imported, Mapping) or not imported.get("path"):
                 raise GhidraMcpError(f"import responseにprogram pathがありません: {item.sha256}")
             program = _safe_project_path(str(imported["path"]))
     if program != expected_program:
         raise GhidraMcpError(f"program selectorが予期したpathと一致しません: {program} != {expected_program}")
+    _assert_regular_snapshot_unchanged(
+        staging_snapshot,
+        context="Ghidra MCP import直後",
+    )
 
     def _program_get(endpoint: str, **query: Any) -> Any:
         if managed_cil_primary:
@@ -1994,7 +3845,7 @@ def analyze_program(
         "sample_executed": False,
         "network_contacted": False,
     }
-    _json_dump(output_dir / "ghidra-raw-index.json", raw_index)
+    _atomic_private_json(output_dir / "ghidra-raw-index.json", raw_index)
     result = {
         "schema_version": SCHEMA_VERSION,
         "status": "complete",
@@ -2028,7 +3879,7 @@ def analyze_program(
         },
     }
     ensure_characteristic_selection(result)
-    _json_dump(result_path, result)
+    _atomic_private_json(result_path, result)
     try:
         if not managed_cil_primary:
             client.get("/save_program", program=program)
@@ -2062,7 +3913,7 @@ def refresh_complete_program_artifacts(
         program = _safe_project_path(str(result.get("program_selector") or ""))
         object_dir = private_output / "objects" / digest
         raw_index_path = object_dir / "ghidra-raw-index.json"
-        raw_index = json.loads(raw_index_path.read_text(encoding="utf-8-sig"))
+        raw_index = _bounded_json_snapshot(raw_index_path).document
         opened_program: str | None = None
         open_error: GhidraMcpError | None = None
         initial_cache_terminal = all(
@@ -2139,8 +3990,8 @@ def refresh_complete_program_artifacts(
         result["segments"] = retrieved["segments"]
         result["retrieval_coverage"] = coverage
         result["all_static_analysis_content_retained"] = True
-        _json_dump(raw_index_path, raw_index)
-        _json_dump(object_dir / "program-result.json", result)
+        _atomic_private_json(raw_index_path, raw_index)
+        _atomic_private_json(object_dir / "program-result.json", result)
         if opened_program is not None:
             try:
                 client.post("/close_program", {"name": opened_program})
@@ -2168,37 +4019,13 @@ def refresh_complete_program_artifacts(
 
 
 def _read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
-    """JSONLを欠損行も検出できる形で読み込む。"""
+    """private JSONLをbounded strict snapshotとして読み込む。"""
 
-    rows: list[dict[str, Any]] = []
-    if not path.is_file():
-        return rows
-    for line_number, line in enumerate(
-        path.read_text(encoding="utf-8-sig").splitlines(),
-        start=1,
-    ):
-        if not line.strip():
-            continue
-        try:
-            value = json.loads(line)
-        except json.JSONDecodeError as error:
-            rows.append(
-                {
-                    "_invalid_json_line": line_number,
-                    "_error": str(error),
-                }
-            )
-            continue
-        if isinstance(value, dict):
-            rows.append(value)
-        else:
-            rows.append(
-                {
-                    "_invalid_json_line": line_number,
-                    "_error": "JSON objectではありません",
-                }
-            )
-    return rows
+    try:
+        present = path.lstat() is not None
+    except FileNotFoundError:
+        present = False
+    return _bounded_jsonl_snapshot(path)[0] if present else []
 
 
 CALL_EXPRESSION_RE = re.compile(r"(?<![\w])([A-Za-z_?$][A-Za-z0-9_.$@?<>:-]*)\s*\(")
@@ -2350,7 +4177,7 @@ def augment_private_call_graphs(
         totals["characteristic_functions"] += len(selected_ids)
         object_dir = private_output / "objects" / digest
         raw_index_path = object_dir / "ghidra-raw-index.json"
-        raw_index = json.loads(raw_index_path.read_text(encoding="utf-8-sig"))
+        raw_index = _bounded_json_snapshot(raw_index_path).document
         if "ghidra_call_graph" not in raw_index:
             raw_index["ghidra_call_graph"] = raw_index.get("call_graph", {"edges": []})
         raw_index["call_graph"] = result["call_graph"]
@@ -2368,8 +4195,8 @@ def augment_private_call_graphs(
             for item in result.get("functions", [])
             if isinstance(item, Mapping) and item.get("selected_for_characteristic_analysis") is True
         ]
-        _json_dump(raw_index_path, raw_index)
-        _json_dump(object_dir / "program-result.json", result)
+        _atomic_private_json(raw_index_path, raw_index)
+        _atomic_private_json(object_dir / "program-result.json", result)
         totals["programs"] += 1
     return dict(totals)
 
@@ -2419,8 +4246,8 @@ def validate_private_artifacts(
         if not result_path.is_file():
             errors.append("program-result.jsonがありません")
         try:
-            raw_index = json.loads(raw_index_path.read_text(encoding="utf-8-sig"))
-        except (OSError, json.JSONDecodeError) as error:
+            raw_index = _bounded_json_snapshot(raw_index_path).document
+        except (OSError, TypeError, ValueError) as error:
             raw_index = {}
             errors.append(f"ghidra-raw-index.jsonを読めません: {type(error).__name__}")
         if isinstance(raw_index, Mapping):
@@ -2616,7 +4443,7 @@ def validate_private_artifacts(
         "totals": dict(totals),
         "programs": programs,
     }
-    _json_dump(private_output / "private-artifact-validation.json", output)
+    _atomic_private_json(private_output / "private-artifact-validation.json", output)
     return output
 
 
@@ -4272,14 +6099,22 @@ def publish_cases(
 def run(args: argparse.Namespace) -> dict[str, Any]:
     """全入力を準備・解析・公開し、collection集計を返す。"""
 
-    repository = args.repository.resolve()
-    collection_dir = args.collection.resolve()
-    sample_root = args.sample_root.resolve()
-    private_output = args.private_output.resolve()
-    if repository in private_output.parents or private_output == repository:
-        raise ValueError("private outputはrepository外に置く必要があります")
-    if not sample_root.is_dir() or not collection_dir.is_dir():
-        raise FileNotFoundError("sample rootまたはcollection directoryが見つかりません")
+    repository = _resolve_without_reparse(args.repository)
+    collection_dir = _resolve_without_reparse(args.collection)
+    sample_root = _resolve_without_reparse(args.sample_root)
+    private_output = _resolve_without_reparse(args.private_output)
+    if (
+        isinstance(args.minimum_free_bytes, bool)
+        or not isinstance(args.minimum_free_bytes, int)
+        or args.minimum_free_bytes < MINIMUM_CONFIGURABLE_FREE_BYTES
+    ):
+        raise ValueError("minimum_free_bytesが安全な下限を満たしていません")
+    _validate_run_roots(
+        repository,
+        collection_dir,
+        sample_root,
+        private_output,
+    )
     if os.environ.get("GHIDRA_MCP_ALLOW_SCRIPTS", "").strip().casefold() in {
         "1",
         "true",
@@ -4287,33 +6122,216 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "on",
     }:
         raise RuntimeError("任意Ghidra script実行が有効な環境では処理を開始しません")
-    client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
-    if args.reuse_prepared_inputs:
-        objects, non_pe = load_prepared_inputs(sample_root, private_output)
-    else:
-        objects, non_pe = prepare_inputs(
-            repository,
-            collection_dir,
+    checkpoint = _load_resume_checkpoint(
+        private_output,
+        collection_id=collection_dir.name,
+    )
+    checkpoint_prepared = bool(
+        checkpoint is not None and checkpoint.get("inventory_prepared") is True
+    )
+    checkpoint_inventory_sha256 = (
+        str(checkpoint["prepared_inventory_sha256"])
+        if checkpoint_prepared and checkpoint is not None
+        else None
+    )
+    postprocessing_only = bool(
+        checkpoint_prepared
+        and checkpoint is not None
+        and checkpoint.get("postprocessing_pending") is True
+    )
+    effective_reuse = bool(args.reuse_prepared_inputs or checkpoint_prepared)
+    resume_mode = (
+        "postprocessing_only"
+        if postprocessing_only
+        else "prepared_inputs"
+        if effective_reuse
+        else "fresh"
+    )
+    storage_paths = _storage_guard_paths(
+        args,
+        repository,
+        sample_root,
+        private_output,
+    )
+    storage_observation = _storage_budget_observation(
+        storage_paths,
+        minimum_free_bytes=args.minimum_free_bytes,
+        phase="before_input_preparation",
+    )
+    if storage_observation["sufficient"] is not True:
+        progress = _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason="minimum_free_space_not_met",
+            retryable=True,
+            inventory_prepared=checkpoint_prepared,
+            prepared_inventory_sha256=checkpoint_inventory_sha256,
+            unique_pe_programs=(
+                int(checkpoint["unique_pe_programs"])
+                if checkpoint_prepared and checkpoint is not None
+                else None
+            ),
+            complete_programs=(
+                int(checkpoint["complete_programs"])
+                if checkpoint_prepared and checkpoint is not None
+                else 0
+            ),
+            cached_programs=(
+                int(checkpoint["cached_programs"])
+                if checkpoint_prepared and checkpoint is not None
+                else 0
+            ),
+            newly_analyzed_programs=(
+                int(checkpoint["newly_analyzed_programs"])
+                if checkpoint_prepared and checkpoint is not None
+                else 0
+            ),
+            pending_programs=(
+                list(checkpoint["pending_programs"])
+                if checkpoint_prepared and checkpoint is not None
+                else []
+            ),
+            postprocessing_pending=postprocessing_only,
+            prepared_inputs_reused=False,
+            resume_mode=resume_mode,
+            disk_space=storage_observation,
+        )
+        _write_run_progress(private_output, progress)
+        return progress
+    inventory_snapshot: _JsonFileSnapshot
+    if effective_reuse:
+        inventory_snapshot = _bounded_json_snapshot(
+            private_output / "input-relationships.json"
+        )
+        objects, non_pe = load_prepared_inputs(
             sample_root,
             private_output,
-            upx=args.upx,
-            sevenzip=args.sevenzip,
-            diec=args.diec,
+            inventory_snapshot=inventory_snapshot,
+            expected_inventory_sha256=checkpoint_inventory_sha256,
         )
-    validate_prepared_scope(collection_dir, private_output)
+    else:
+        def preparation_storage_guard(
+            phase: str,
+            role: str,
+            planned_write_bytes: int,
+        ) -> None:
+            observation = _storage_budget_observation(
+                storage_paths,
+                minimum_free_bytes=args.minimum_free_bytes,
+                phase=phase,
+            )
+            observation = _apply_planned_write_reserve(
+                observation,
+                role=role,
+                planned_write_bytes=planned_write_bytes,
+            )
+            if observation["sufficient"] is True:
+                return
+            progress = _run_progress_document(
+                collection_id=collection_dir.name,
+                status="ghidra_chunk_pending",
+                stop_reason="minimum_free_space_not_met",
+                retryable=True,
+                inventory_prepared=False,
+                prepared_inventory_sha256=None,
+                unique_pe_programs=None,
+                complete_programs=0,
+                cached_programs=0,
+                newly_analyzed_programs=0,
+                pending_programs=[],
+                postprocessing_pending=False,
+                prepared_inputs_reused=False,
+                resume_mode="fresh",
+                disk_space=observation,
+            )
+            _write_run_progress(private_output, progress)
+            raise _InputPreparationStopped(progress)
+
+        try:
+            objects, non_pe = prepare_inputs(
+                repository,
+                collection_dir,
+                sample_root,
+                private_output,
+                upx=args.upx,
+                sevenzip=args.sevenzip,
+                diec=args.diec,
+                storage_guard=preparation_storage_guard,
+            )
+        except _InputPreparationStopped as exc:
+            return exc.progress
+        inventory_snapshot = _bounded_json_snapshot(
+            private_output / "input-relationships.json"
+        )
+    validate_prepared_scope(
+        collection_dir,
+        private_output,
+        inventory_snapshot=inventory_snapshot,
+    )
+    _assert_snapshot_unchanged(
+        inventory_snapshot,
+        context="Ghidra batch開始前",
+    )
+    prepared_inventory_sha256 = inventory_snapshot.sha256
+    client: GhidraMcpClient | None = None
     results: dict[str, dict[str, Any]] = {}
     ordered = sorted(objects.values(), key=lambda item: (item.size, item.sha256))
     max_new_programs = args.max_new_programs
     newly_analyzed = 0
     cached_programs = 0
     pending_programs: list[str] = []
+    storage_blocked = False
+    storage_observation = _storage_budget_observation(
+        storage_paths,
+        minimum_free_bytes=args.minimum_free_bytes,
+        phase="after_input_preparation",
+    )
+    if storage_observation["sufficient"] is not True:
+        storage_blocked = True
     for index, item in enumerate(ordered, start=1):
         result_path = private_output / "objects" / item.sha256 / "program-result.json"
         cached_complete = False
+        cached: dict[str, Any] | None = None
+        cached_snapshot: _JsonFileSnapshot | None = None
         if result_path.is_file():
-            cached = load_json_object_strict(result_path)
+            cached_snapshot = _bounded_json_snapshot(result_path)
+            cached = cached_snapshot.document
             cached_complete = cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
-        if not cached_complete and max_new_programs is not None and newly_analyzed >= max_new_programs:
+        if postprocessing_only and not cached_complete:
+            raise ValueError(
+                "postprocessing-only checkpointに未完了program cacheがあります"
+            )
+        if cached_complete:
+            if (
+                cached is None
+                or cached_snapshot is None
+            ):  # pragma: no cover - 直前の代入契約の最終防御
+                raise RuntimeError("完了cacheを読み込めませんでした")
+            selection_before = _json_bytes(cached)
+            ensure_characteristic_selection(cached)
+            results[item.sha256] = cached
+            selection_after = _json_bytes(cached)
+            if not storage_blocked and selection_after != selection_before:
+                _atomic_replace_bytes(
+                    result_path,
+                    selection_after,
+                    expected_snapshot=cached_snapshot,
+                )
+            cached_programs += 1
+            continue
+        if storage_blocked:
+            pending_programs.append(item.sha256)
+            continue
+        if max_new_programs is not None and newly_analyzed >= max_new_programs:
+            pending_programs.append(item.sha256)
+            continue
+        storage_observation = _storage_budget_observation(
+            storage_paths,
+            minimum_free_bytes=args.minimum_free_bytes,
+            phase="before_program",
+        )
+        if storage_observation["sufficient"] is not True:
+            storage_blocked = True
             pending_programs.append(item.sha256)
             continue
         print(
@@ -4329,6 +6347,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
             flush=True,
         )
+        if item.input_snapshot is not None:
+            _assert_regular_snapshot_unchanged(
+                item.input_snapshot,
+                context="Ghidra import直前",
+            )
+        if client is None:
+            client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
         results[item.sha256] = analyze_program(
             client,
             item,
@@ -4337,30 +6362,85 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             analysis_timeout=args.analysis_timeout,
             skip_auto_analysis=item.sha256 in args.skip_auto_analysis_sha256,
         )
-        if cached_complete:
-            cached_programs += 1
-        else:
-            newly_analyzed += 1
+        newly_analyzed += 1
+        storage_observation = _storage_budget_observation(
+            storage_paths,
+            minimum_free_bytes=args.minimum_free_bytes,
+            phase="after_program",
+        )
+        if storage_observation["sufficient"] is not True:
+            storage_blocked = True
     if pending_programs:
-        progress = {
-            "schema_version": SCHEMA_VERSION,
-            "collection_id": collection_dir.name,
-            "status": "ghidra_chunk_pending",
-            "unique_pe_programs": len(ordered),
-            "complete_programs": len(results),
-            "cached_programs": cached_programs,
-            "newly_analyzed_programs": newly_analyzed,
-            "pending_programs": pending_programs,
-            "prepared_inputs_reused": bool(args.reuse_prepared_inputs),
-            "safety": {
-                "sample_executed": False,
-                "network_contacted": False,
-                "arbitrary_ghidra_scripts_enabled": False,
-                "mcp_localhost_only": True,
-            },
-        }
-        _json_dump(private_output / "run-progress.json", progress)
+        progress = _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason=(
+                "minimum_free_space_not_met"
+                if storage_blocked
+                else "max_new_programs_reached"
+            ),
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results),
+            cached_programs=cached_programs,
+            newly_analyzed_programs=newly_analyzed,
+            pending_programs=pending_programs,
+            postprocessing_pending=False,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode=resume_mode,
+            disk_space=storage_observation,
+        )
+        _write_run_progress(private_output, progress)
         return progress
+    storage_observation = _storage_budget_observation(
+        storage_paths,
+        minimum_free_bytes=args.minimum_free_bytes,
+        phase="before_postprocessing",
+    )
+    if storage_observation["sufficient"] is not True:
+        progress = _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason="minimum_free_space_not_met",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results),
+            cached_programs=cached_programs,
+            newly_analyzed_programs=newly_analyzed,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode="postprocessing_only",
+            disk_space=storage_observation,
+        )
+        _write_run_progress(private_output, progress)
+        return progress
+    _write_run_progress(
+        private_output,
+        _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason="postprocessing_in_progress",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results),
+            cached_programs=cached_programs,
+            newly_analyzed_programs=newly_analyzed,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode="postprocessing_only",
+            disk_space=storage_observation,
+        ),
+    )
+    if client is None:
+        client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
     complete_artifact_refresh = refresh_complete_program_artifacts(
         client,
         results,
@@ -4382,6 +6462,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     run_summary = {
         "schema_version": SCHEMA_VERSION,
         "collection_id": collection_dir.name,
+        "status": "complete",
         "unique_pe_programs": len(results),
         "publication": publication,
         "private_artifact_validation": {
@@ -4393,6 +6474,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "complete_artifact_refresh": complete_artifact_refresh,
         "call_graph_augmentation": call_graph_augmentation,
         "final_publication": final_publication,
+        "disk_space": storage_observation,
         "validation": {
             "complete": validation["complete"],
             "valid_cases": validation["valid_cases"],
@@ -4405,7 +6487,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "mcp_localhost_only": True,
         },
     }
-    _json_dump(private_output / "run-summary.json", run_summary)
+    _atomic_replace_bytes(
+        private_output / "run-summary.json",
+        _json_bytes(run_summary),
+    )
+    _write_run_progress(
+        private_output,
+        _run_progress_document(
+            collection_id=collection_dir.name,
+            status="complete",
+            stop_reason=None,
+            retryable=False,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results),
+            cached_programs=cached_programs,
+            newly_analyzed_programs=newly_analyzed,
+            pending_programs=[],
+            postprocessing_pending=False,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode=resume_mode,
+            disk_space=storage_observation,
+        ),
+    )
     return run_summary
 
 
@@ -4450,6 +6555,22 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         type=Path,
         help="生の逆コンパイル成果物を保持するrepository外directoryを指定します",
+    )
+    parser.add_argument(
+        "--minimum-free-bytes",
+        type=int,
+        default=DEFAULT_MINIMUM_FREE_BYTES,
+        help=(
+            "各解析programの開始前後に確保する空き容量。"
+            f"既定は{DEFAULT_MINIMUM_FREE_BYTES} bytesです"
+        ),
+    )
+    parser.add_argument(
+        "--disk-guard-path",
+        action="append",
+        default=[],
+        type=Path,
+        help="Ghidra projectなど追加で監視する既存storage rootを指定します",
     )
     parser.add_argument(
         "--mcp-url",
@@ -4515,12 +6636,19 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.max_new_programs is not None and args.max_new_programs < 0:
         raise ValueError("--max-new-programsは0以上で指定してください")
+    if args.minimum_free_bytes < MINIMUM_CONFIGURABLE_FREE_BYTES:
+        raise ValueError(
+            "--minimum-free-bytesは"
+            f"{MINIMUM_CONFIGURABLE_FREE_BYTES}以上で指定してください"
+        )
     invalid_hashes = [value for value in args.skip_auto_analysis_sha256 if not SHA256_RE.fullmatch(value)]
     if invalid_hashes:
         raise ValueError("--skip-auto-analysis-sha256は64文字のSHA-256で指定してください")
     result = run(args)
     print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
-    return 0
+    if result.get("status") == "complete":
+        return 0
+    return RETRYABLE_INCOMPLETE_EXIT_CODE
 
 
 if __name__ == "__main__":

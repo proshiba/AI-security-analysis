@@ -275,3 +275,57 @@ def test_captured_semantic_bytes_are_the_verified_hash_snapshot(tmp_path: Path) 
         snapshots["classification.json"],
         path=path,
     ) == {"selected_families": ["fixture"]}
+
+
+def test_capture_rejects_unknown_path_before_read(tmp_path: Path) -> None:
+    case_dir = tmp_path / "case"
+    case_dir.mkdir()
+    payload = b'{}'
+    (case_dir / "unknown.json").write_bytes(payload)
+
+    errors, snapshots = contract._verify_artifact_hashes_with_snapshots(
+        case_dir,
+        {"unknown.json": hashlib.sha256(payload).hexdigest()},
+        capture_paths=frozenset({"unknown.json"}),
+    )
+
+    assert errors == ["artifact_capture_paths_invalid"]
+    assert snapshots == {}
+
+
+def test_capture_per_file_and_aggregate_limits_fail_before_retention(tmp_path: Path) -> None:
+    case_dir = tmp_path / "case"
+    case_dir.mkdir()
+    first = b'{"a":1}'
+    second = b'{"b":2}'
+    (case_dir / "classification.json").write_bytes(first)
+    (case_dir / "applicability.json").write_bytes(second)
+    expected = {
+        "classification.json": hashlib.sha256(first).hexdigest(),
+        "applicability.json": hashlib.sha256(second).hexdigest(),
+    }
+
+    errors, snapshots = contract._verify_artifact_hashes_with_snapshots(
+        case_dir,
+        expected,
+        capture_paths=frozenset(expected),
+        capture_max_bytes=len(first) - 1,
+    )
+    assert any("size_out_of_bounds" in value for value in errors)
+    assert snapshots == {}
+
+    errors, snapshots = contract._verify_artifact_hashes_with_snapshots(
+        case_dir,
+        expected,
+        capture_paths=frozenset(expected),
+        capture_max_bytes=len(first),
+        capture_total_max_bytes=len(first) + len(second) - 1,
+    )
+    assert any("size_out_of_bounds" in value for value in errors)
+    assert len(snapshots) == 1
+
+
+def test_strict_decode_defensively_rechecks_byte_length(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(contract, "MAX_JSON_OBJECT_SIZE", 2)
+    with pytest.raises(ValueError, match="容量上限"):
+        contract._decode_json_object_strict(b'{"a":1}', path=tmp_path / "a.json")

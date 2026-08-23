@@ -4,17 +4,17 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+import hashlib
 import json
 import os
-from pathlib import Path
 import sys
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import analysis_job_runner
 import analysis_lifecycle
-
 
 SCHEMA_VERSION = 1
 MAX_REQUEST_BYTES = 8 * 1024 * 1024
@@ -86,6 +86,7 @@ class _LifecycleActions:
     run: Callable[..., Mapping[str, Any]]
     resume: Callable[..., Mapping[str, Any]]
     verify: Callable[..., Mapping[str, Any]]
+    snapshot: Callable[..., Mapping[str, Any]]
 
 
 def _exact_keys(value: Any, expected: frozenset[str], *, label: str) -> dict[str, Any]:
@@ -325,11 +326,27 @@ def _valid_timestamp(value: Any) -> bool:
     return value is None or (isinstance(value, str) and 1 <= len(value) <= 64)
 
 
+def _canonical_public_codes(value: Any, *, maximum: int) -> bool:
+    """公開code配列が有界・文字列限定・整列済みuniqueかを返す。"""
+
+    return bool(
+        isinstance(value, list)
+        and len(value) <= maximum
+        and all(
+            isinstance(item, str) and analysis_lifecycle.BLOCKER_RE.fullmatch(item) is not None
+            for item in value
+        )
+        and value == sorted(set(value))
+    )
+
+
 def _completed_result_valid(record: Mapping[str, Any]) -> bool:
     """完了またはpartial childの公開resultが固定形かを返す。"""
 
     result = record.get("result")
     stage_status = result.get("stage_status") if isinstance(result, Mapping) else None
+    next_actions = result.get("next_actions") if isinstance(result, Mapping) else None
+    plan_sha256 = result.get("remediation_plan_sha256") if isinstance(result, Mapping) else None
     return bool(
         isinstance(result, dict)
         and set(result)
@@ -338,6 +355,11 @@ def _completed_result_valid(record: Mapping[str, Any]) -> bool:
             "stage_status",
             "sample_executed",
             "analysis_network_contacted",
+            "next_actions",
+            "remediation_plan_sha256",
+            "same_workflow_resume_allowed",
+            "lifecycle_state_sha256",
+            "lifecycle_implementation_sha256",
         }
         and result.get("lifecycle_status") == record.get("status")
         and isinstance(stage_status, dict)
@@ -345,6 +367,14 @@ def _completed_result_valid(record: Mapping[str, Any]) -> bool:
         and all(value in analysis_lifecycle.STAGE_STATUSES for value in stage_status.values())
         and result.get("sample_executed") is False
         and result.get("analysis_network_contacted") is False
+        and _canonical_public_codes(next_actions, maximum=analysis_lifecycle.MAX_REMEDIATION_ACTIONS)
+        and isinstance(plan_sha256, str)
+        and analysis_lifecycle.SHA256_RE.fullmatch(plan_sha256)
+        and result.get("same_workflow_resume_allowed") is False
+        and isinstance(result.get("lifecycle_state_sha256"), str)
+        and analysis_lifecycle.SHA256_RE.fullmatch(result["lifecycle_state_sha256"]) is not None
+        and isinstance(result.get("lifecycle_implementation_sha256"), str)
+        and analysis_lifecycle.SHA256_RE.fullmatch(result["lifecycle_implementation_sha256"]) is not None
     )
 
 
@@ -487,6 +517,173 @@ def _lifecycle_report_path(context: OrchestrationContext, workflow_id: str) -> P
     return context.work_root / "lifecycles" / workflow_id / "report.json"
 
 
+def _remediation_summary(lifecycle_state: Mapping[str, Any]) -> tuple[list[str], str]:
+    """child completionの構造化planを検証し、公開用の最小要約を返す。"""
+
+    stages = lifecycle_state.get("stages")
+    completion = stages.get("completion_gate") if isinstance(stages, Mapping) else None
+    result = completion.get("result") if isinstance(completion, Mapping) else None
+    fields = ("remediation_actions", "remediation_plan_sha256", "next_actions")
+    if isinstance(completion, Mapping) and "result" in completion and not isinstance(result, Mapping):
+        raise OrchestrationError("lifecycle_remediation_invalid", "child remediation planが不正です")
+    present = tuple(isinstance(result, Mapping) and field in result for field in fields)
+    if not any(present):
+        actions = analysis_lifecycle._remediation_actions([], _record_blockers(lifecycle_state))
+        return analysis_lifecycle._next_actions(actions), analysis_lifecycle._sha256_value(
+            {"actions": actions}
+        )
+    if not all(present):
+        raise OrchestrationError("lifecycle_remediation_invalid", "child remediation planが不正です")
+    if not isinstance(result, Mapping):
+        raise OrchestrationError("lifecycle_remediation_invalid", "child remediation planが不正です")
+    cases = result.get("cases")
+    workflow_blockers = result.get("blockers")
+    valid = bool(
+        isinstance(cases, list)
+        and len(cases) <= analysis_lifecycle.MAX_PUBLIC_CASES
+        and _canonical_public_codes(
+            workflow_blockers,
+            maximum=analysis_lifecycle.MAX_PUBLIC_BLOCKERS,
+        )
+    )
+    case_digests: set[str] = set()
+    if valid:
+        allowed_statuses = {
+            "assessment_only_complete",
+            "complete",
+            "failed",
+            "invalid",
+            "partial",
+            "triaged_unknown",
+        }
+        for case in cases:
+            digest = case.get("sha256") if isinstance(case, Mapping) else None
+            report_blockers = case.get("report_blockers") if isinstance(case, Mapping) else None
+            orchestration_blockers = (
+                case.get("orchestration_blockers") if isinstance(case, Mapping) else None
+            )
+            if (
+                not isinstance(case, dict)
+                or set(case) != {"sha256", "status", "report_blockers", "orchestration_blockers"}
+                or not isinstance(digest, str)
+                or analysis_lifecycle.SHA256_RE.fullmatch(digest) is None
+                or case.get("status") not in allowed_statuses
+                or not _canonical_public_codes(
+                    report_blockers,
+                    maximum=analysis_lifecycle.MAX_PUBLIC_BLOCKERS,
+                )
+                or not _canonical_public_codes(
+                    orchestration_blockers,
+                    maximum=analysis_lifecycle.MAX_PUBLIC_BLOCKERS,
+                )
+            ):
+                valid = False
+                break
+            case_digests.add(digest)
+        if valid and len(case_digests) != len(cases):
+            valid = False
+    actions = result["remediation_actions"]
+    plan_sha256 = result["remediation_plan_sha256"]
+    next_actions = result["next_actions"]
+    required = {
+        "case_sha256",
+        "blocker_code",
+        "action_id",
+        "target_phase",
+        "executor",
+        "automatic",
+        "requires_changed_evidence",
+        "prerequisites",
+    }
+    valid = bool(
+        valid
+        and isinstance(actions, list)
+        and len(actions) <= analysis_lifecycle.MAX_REMEDIATION_ACTIONS
+    )
+    if valid:
+        for action in actions:
+            prerequisites = action.get("prerequisites") if isinstance(action, Mapping) else None
+            digest = action.get("case_sha256") if isinstance(action, Mapping) else None
+            if (
+                not isinstance(action, dict)
+                or set(action) != required
+                or (
+                    digest is not None
+                    and (not isinstance(digest, str) or analysis_lifecycle.SHA256_RE.fullmatch(digest) is None)
+                )
+                or (digest is not None and digest not in case_digests)
+                or any(
+                    not isinstance(action.get(key), str)
+                    or analysis_lifecycle.BLOCKER_RE.fullmatch(action[key]) is None
+                    for key in ("blocker_code", "action_id", "target_phase", "executor")
+                )
+                or not isinstance(action.get("automatic"), bool)
+                or not isinstance(action.get("requires_changed_evidence"), bool)
+                or not _canonical_public_codes(prerequisites, maximum=16)
+            ):
+                valid = False
+                break
+            expected = analysis_lifecycle._remediation_action(action["blocker_code"], case_sha256=digest)
+            if action != expected:
+                valid = False
+                break
+    if valid:
+        keys = [(action["case_sha256"] or "", action["blocker_code"], action["action_id"]) for action in actions]
+        valid = keys == sorted(keys) and len(keys) == len(set(keys))
+    if valid:
+        expected_actions = analysis_lifecycle._remediation_actions(cases, workflow_blockers)
+        valid = actions == expected_actions
+    expected_next = analysis_lifecycle._next_actions(actions) if valid else None
+    expected_sha256 = analysis_lifecycle._sha256_value({"actions": actions}) if valid else None
+    if (
+        not valid
+        or not _canonical_public_codes(next_actions, maximum=analysis_lifecycle.MAX_REMEDIATION_ACTIONS)
+        or next_actions != expected_next
+        or not isinstance(plan_sha256, str)
+        or analysis_lifecycle.SHA256_RE.fullmatch(plan_sha256) is None
+        or plan_sha256 != expected_sha256
+    ):
+        raise OrchestrationError("lifecycle_remediation_invalid", "child remediation planが不正です")
+    return expected_next, expected_sha256
+
+
+def _lifecycle_attempts(lifecycle_state: Mapping[str, Any]) -> int:
+    """enabled child stageの最大attemptを親workflow attemptとして再導出する。"""
+
+    stages = lifecycle_state.get("stages")
+    if not isinstance(stages, Mapping) or set(stages) != set(analysis_lifecycle.STAGE_ORDER):
+        raise OrchestrationError("lifecycle_state_invalid", "child lifecycle stageが不正です")
+    attempts: list[int] = []
+    for stage in analysis_lifecycle.STAGE_ORDER:
+        record = stages.get(stage)
+        if not isinstance(record, Mapping) or not isinstance(record.get("enabled"), bool):
+            raise OrchestrationError("lifecycle_state_invalid", "child lifecycle stageが不正です")
+        value = record.get("attempts")
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= analysis_lifecycle.MAX_ATTEMPTS:
+            raise OrchestrationError("lifecycle_state_invalid", "child lifecycle attemptが不正です")
+        if record["enabled"]:
+            attempts.append(value)
+    if not attempts or max(attempts) < 1:
+        raise OrchestrationError("lifecycle_state_invalid", "terminal child lifecycleにattemptがありません")
+    return max(attempts)
+
+
+def _lifecycle_implementation_sha256(lifecycle_state: Mapping[str, Any]) -> str:
+    """保存child stage fingerprint集合をcanonical digestへ固定する。"""
+
+    stages = lifecycle_state.get("stages")
+    if not isinstance(stages, Mapping) or set(stages) != set(analysis_lifecycle.STAGE_ORDER):
+        raise OrchestrationError("lifecycle_state_invalid", "child lifecycle stageが不正です")
+    fingerprints: dict[str, str] = {}
+    for stage in analysis_lifecycle.STAGE_ORDER:
+        record = stages.get(stage)
+        fingerprint = record.get("fingerprint") if isinstance(record, Mapping) else None
+        if not isinstance(fingerprint, str) or analysis_lifecycle.SHA256_RE.fullmatch(fingerprint) is None:
+            raise OrchestrationError("lifecycle_state_invalid", "child lifecycle fingerprintが不正です")
+        fingerprints[stage] = fingerprint
+    return analysis_lifecycle._sha256_value({"stage_fingerprints": fingerprints})
+
+
 def _record_result(lifecycle_state: Mapping[str, Any]) -> dict[str, Any]:
     stages = lifecycle_state.get("stages")
     if not isinstance(stages, Mapping):
@@ -495,11 +692,18 @@ def _record_result(lifecycle_state: Mapping[str, Any]) -> dict[str, Any]:
         stage: stages.get(stage, {}).get("status") if isinstance(stages.get(stage), Mapping) else None
         for stage in analysis_lifecycle.STAGE_ORDER
     }
+    next_actions, plan_sha256 = _remediation_summary(lifecycle_state)
+    lifecycle_status = lifecycle_state.get("status")
     return {
-        "lifecycle_status": lifecycle_state.get("status"),
+        "lifecycle_status": lifecycle_status,
         "stage_status": stage_status,
         "sample_executed": False,
         "analysis_network_contacted": False,
+        "next_actions": next_actions,
+        "remediation_plan_sha256": plan_sha256,
+        "same_workflow_resume_allowed": lifecycle_status == "failed",
+        "lifecycle_state_sha256": analysis_lifecycle._sha256_value(lifecycle_state),
+        "lifecycle_implementation_sha256": _lifecycle_implementation_sha256(lifecycle_state),
     }
 
 
@@ -507,17 +711,18 @@ def _record_blockers(lifecycle_state: Mapping[str, Any]) -> list[str]:
     stages = lifecycle_state.get("stages")
     if not isinstance(stages, Mapping):
         return ["lifecycle_state_invalid"]
-    return analysis_lifecycle._bounded_blockers(
-        [
-            blocker
-            for stage in analysis_lifecycle.STAGE_ORDER
-            for blocker in (
-                stages.get(stage, {}).get("blockers", [])
-                if isinstance(stages.get(stage), Mapping)
-                else ["lifecycle_state_invalid"]
-            )
-        ]
-    )
+    blockers: list[Any] = []
+    for stage in analysis_lifecycle.STAGE_ORDER:
+        record = stages.get(stage)
+        if not isinstance(record, Mapping):
+            blockers.append("lifecycle_state_invalid")
+            continue
+        values = record.get("blockers", [])
+        if not isinstance(values, list):
+            blockers.append("analysis_blocked")
+            continue
+        blockers.extend(values)
+    return analysis_lifecycle._bounded_blockers(blockers)
 
 
 def _mark_deferred(state: dict[str, Any], start: int) -> None:
@@ -586,26 +791,215 @@ def _finalize(context: OrchestrationContext, state: dict[str, Any]) -> dict[str,
     return state
 
 
+def _production_lifecycle_snapshot(
+    workflow_id: str,
+    *,
+    repository: Path,
+    input_root: Path,
+    work_root: Path,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    """validated child stateと、それにexact一致するreport digestを同時に返す。"""
+
+    child_context, child_state = analysis_lifecycle._existing_context(
+        workflow_id,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=timeout_seconds,
+    )
+    try:
+        raw_report = analysis_job_runner._read_regular_file_once(
+            child_context.lifecycle_root / "report.json",
+            max_bytes=analysis_lifecycle.MAX_STATE_BYTES,
+        )
+        report = analysis_job_runner._decode_json_object_strict(raw_report)
+    except (analysis_job_runner.JobContractError, OSError) as exc:
+        raise OrchestrationError("lifecycle_report_mismatch", "child lifecycle reportを検証できません") from exc
+    if report != analysis_lifecycle._public_report_from_state(child_context, child_state):
+        raise OrchestrationError("lifecycle_report_mismatch", "child lifecycle reportとstateが一致しません")
+    return {
+        "state": child_state,
+        "report_sha256": hashlib.sha256(raw_report).hexdigest(),
+    }
+
+
+def _terminal_record_values(
+    context: OrchestrationContext,
+    workflow_id: str,
+    actions: _LifecycleActions,
+) -> dict[str, Any]:
+    """childの保存state/reportからterminal親record fieldを再導出する。"""
+
+    try:
+        snapshot = actions.snapshot(workflow_id, **_lifecycle_kwargs(context))
+    except OrchestrationError:
+        raise
+    except Exception as exc:
+        raise OrchestrationError("lifecycle_snapshot_invalid", "child lifecycle snapshotが不正です") from exc
+    if not isinstance(snapshot, dict) or set(snapshot) != {"state", "report_sha256"}:
+        raise OrchestrationError("lifecycle_snapshot_invalid", "child lifecycle snapshot schemaが不正です")
+    child_state = snapshot.get("state")
+    report_sha256 = snapshot.get("report_sha256")
+    if (
+        not isinstance(child_state, dict)
+        or child_state.get("workflow_id") != workflow_id
+        or child_state.get("status") not in {"complete", "partial"}
+        or not isinstance(report_sha256, str)
+        or analysis_lifecycle.SHA256_RE.fullmatch(report_sha256) is None
+    ):
+        raise OrchestrationError("lifecycle_snapshot_invalid", "child lifecycle snapshot fieldが不正です")
+    child_request = next(item for item in context.request.workflows if item.workflow_id == workflow_id)
+    expected_request_sha256 = analysis_lifecycle._sha256_value(child_request.public())
+    if child_state.get("request_sha256") != expected_request_sha256:
+        raise OrchestrationError("lifecycle_snapshot_invalid", "child lifecycle request digestが一致しません")
+    return {
+        "status": child_state["status"],
+        "attempts": _lifecycle_attempts(child_state),
+        "blockers": _record_blockers(child_state),
+        "lifecycle_report_sha256": report_sha256,
+        "result": _record_result(child_state),
+    }
+
+
+def _verification_envelope_matches(
+    verification: Any,
+    *,
+    workflow_id: str,
+    request_sha256: str,
+    stage_status: Mapping[str, Any],
+) -> bool:
+    """verify_lifecycleの公開envelopeをexact schema・child snapshotへ束縛する。"""
+
+    errors = verification.get("errors") if isinstance(verification, Mapping) else None
+    return bool(
+        isinstance(verification, dict)
+        and set(verification)
+        == {
+            "schema_version",
+            "workflow_id",
+            "valid",
+            "errors",
+            "request_sha256",
+            "stage_status",
+            "sample_executed",
+            "analysis_network_contacted",
+        }
+        and verification.get("schema_version") == analysis_lifecycle.SCHEMA_VERSION
+        and verification.get("workflow_id") == workflow_id
+        and verification.get("valid") is True
+        and _canonical_public_codes(errors, maximum=analysis_lifecycle.MAX_PUBLIC_BLOCKERS)
+        and errors == []
+        and verification.get("request_sha256") == request_sha256
+        and verification.get("stage_status") == dict(stage_status)
+        and verification.get("sample_executed") is False
+        and verification.get("analysis_network_contacted") is False
+    )
+
+
+def _terminal_record_mismatch(
+    context: OrchestrationContext,
+    record: Mapping[str, Any],
+    actions: _LifecycleActions,
+) -> str | None:
+    """terminal親recordと再導出したchild state/reportの不一致種別を返す。"""
+
+    try:
+        verification = actions.verify(record["workflow_id"], **_lifecycle_kwargs(context))
+    except Exception:  # noqa: BLE001 - read-only child検証境界でerrorを正規化する
+        return "lifecycle_verification_failed"
+    try:
+        values = _terminal_record_values(context, record["workflow_id"], actions)
+    except OrchestrationError as exc:
+        if exc.code == "lifecycle_report_mismatch":
+            return "lifecycle_report_mismatch"
+        return "lifecycle_verification_failed"
+    if record.get("lifecycle_report_sha256") != values["lifecycle_report_sha256"]:
+        return "lifecycle_report_mismatch"
+    stage_status = values["result"]["stage_status"]
+    if not _verification_envelope_matches(
+        verification,
+        workflow_id=record["workflow_id"],
+        request_sha256=record["request_sha256"],
+        stage_status=stage_status,
+    ):
+        return "lifecycle_invalid"
+    if any(
+        record.get(key) != values[key]
+        for key in ("status", "attempts", "blockers", "result")
+    ):
+        return "lifecycle_parent_mismatch"
+    return None
+
+
 def _verify_completed_record(
     context: OrchestrationContext,
     record: Mapping[str, Any],
     actions: _LifecycleActions,
 ) -> None:
-    verification = actions.verify(record["workflow_id"], **_lifecycle_kwargs(context))
-    if verification.get("valid") is not True:
+    mismatch = _terminal_record_mismatch(context, record, actions)
+    if mismatch is not None:
         raise OrchestrationError(
             "completed_workflow_changed",
-            f"成功済みworkflowの再検証に失敗しました: {record['workflow_id']}",
+            f"成功済みworkflowの再検証に失敗しました: {record['workflow_id']} ({mismatch})",
         )
-    report_path = _lifecycle_report_path(context, record["workflow_id"])
-    if (
-        not report_path.is_file()
-        or analysis_lifecycle._sha256_file(report_path) != record.get("lifecycle_report_sha256")
+
+
+def _verify_saved_parent_report(
+    context: OrchestrationContext,
+    state: Mapping[str, Any],
+) -> None:
+    """terminal recordをskipする前に親reportも保存stateへexact束縛する。"""
+
+    try:
+        report = analysis_lifecycle._load_json(
+            context.orchestration_root / "report.json",
+            maximum_bytes=MAX_STATE_BYTES,
+        )
+    except analysis_lifecycle.LifecycleError as exc:
+        raise OrchestrationError("completed_workflow_changed", "保存済みorchestration reportがありません") from exc
+    if report != _public_report_from_state(context, state):
+        raise OrchestrationError("completed_workflow_changed", "保存済みorchestration reportとstateが一致しません")
+
+
+def _mark_foreign_unstarted_workflow(
+    context: OrchestrationContext,
+    state: dict[str, Any],
+    *,
+    start: int,
+) -> bool:
+    """未開始recordに外部lifecycleがあればfail-closedで記録する。"""
+
+    found = False
+    for record, request in zip(
+        state["workflows"][start:],
+        context.request.workflows[start:],
+        strict=True,
     ):
-        raise OrchestrationError(
-            "completed_workflow_changed",
-            f"成功済みworkflow reportが変化しました: {record['workflow_id']}",
+        lifecycle_root = context.work_root / "lifecycles" / request.workflow_id
+        if record["status"] not in {"pending", "deferred"} or not lifecycle_root.exists():
+            continue
+        now = analysis_lifecycle.utc_now()
+        record.update(
+            {
+                "status": "failed",
+                "attempts": max(1, record["attempts"]),
+                "started_at_utc": now,
+                "finished_at_utc": now,
+                "blockers": ["unexpected_lifecycle_state"],
+                "lifecycle_report_sha256": None,
+                "result": {
+                    "error": {
+                        "code": "unexpected_lifecycle_state",
+                        "message": "未開始workflowに既存lifecycle stateがあります",
+                    }
+                },
+            }
         )
+        found = True
+    if found:
+        _mark_deferred(state, start)
+    return found
 
 
 def _execute(
@@ -613,15 +1007,34 @@ def _execute(
     state: dict[str, Any],
     actions: _LifecycleActions,
 ) -> dict[str, Any]:
-    for record in state["workflows"]:
-        if record["status"] == "complete":
-            _verify_completed_record(context, record, actions)
+    terminal_records = [
+        record
+        for record in state["workflows"]
+        if record["status"] == "complete"
+        or (
+            record["status"] == "partial"
+            and record["result"].get("same_workflow_resume_allowed") is False
+        )
+    ]
+    if terminal_records:
+        _verify_saved_parent_report(context, state)
+    for record in terminal_records:
+        _verify_completed_record(context, record, actions)
     state["status"] = "running"
     _write_state(context, state)
     for index, (record, request) in enumerate(
         zip(state["workflows"], context.request.workflows, strict=True)
     ):
         if record["status"] == "complete":
+            continue
+        if record["status"] == "partial" and record["result"].get("same_workflow_resume_allowed") is False:
+            if not context.request.policy["continue_after_partial"]:
+                if _mark_foreign_unstarted_workflow(context, state, start=index + 1):
+                    _write_state(context, state)
+                    return _finalize(context, state)
+                _mark_deferred(state, index + 1)
+                _write_state(context, state)
+                break
             continue
         if record["attempts"] >= MAX_ATTEMPTS:
             record.update(
@@ -668,18 +1081,33 @@ def _execute(
             status = child_state.get("status")
             if status not in {"complete", "partial", "failed"}:
                 raise OrchestrationError("lifecycle_state_invalid", "child lifecycle statusが不正です")
-            report_path = _lifecycle_report_path(context, request.workflow_id)
-            if not report_path.is_file():
-                raise OrchestrationError("lifecycle_report_missing", "child lifecycle reportがありません")
-            record.update(
-                {
-                    "status": status,
-                    "finished_at_utc": analysis_lifecycle.utc_now(),
-                    "blockers": _record_blockers(child_state),
-                    "lifecycle_report_sha256": analysis_lifecycle._sha256_file(report_path),
-                    "result": _record_result(child_state),
-                }
-            )
+            if status in {"complete", "partial"}:
+                values = _terminal_record_values(context, request.workflow_id, actions)
+                returned_state_sha256 = analysis_lifecycle._sha256_value(child_state)
+                if (
+                    values["status"] != status
+                    or values["attempts"] != record["attempts"]
+                    or values["result"]["lifecycle_state_sha256"] != returned_state_sha256
+                ):
+                    raise OrchestrationError(
+                        "lifecycle_snapshot_invalid",
+                        "返却child stateと保存snapshotが一致しません",
+                    )
+                record.update(values)
+                record["finished_at_utc"] = analysis_lifecycle.utc_now()
+            else:
+                report_path = _lifecycle_report_path(context, request.workflow_id)
+                if not report_path.is_file():
+                    raise OrchestrationError("lifecycle_report_missing", "child lifecycle reportがありません")
+                record.update(
+                    {
+                        "status": status,
+                        "finished_at_utc": analysis_lifecycle.utc_now(),
+                        "blockers": _record_blockers(child_state),
+                        "lifecycle_report_sha256": analysis_lifecycle._sha256_file(report_path),
+                        "result": _record_result(child_state),
+                    }
+                )
         except Exception as exc:  # noqa: BLE001 - child lifecycle境界で公開errorへ正規化する
             code = getattr(exc, "code", "workflow_execution_failed")
             if not isinstance(code, str) or analysis_lifecycle.BLOCKER_RE.fullmatch(code) is None:
@@ -711,6 +1139,7 @@ PRODUCTION_ACTIONS = _LifecycleActions(
     run=analysis_lifecycle.run_lifecycle,
     resume=analysis_lifecycle.resume_lifecycle,
     verify=analysis_lifecycle.verify_lifecycle,
+    snapshot=_production_lifecycle_snapshot,
 )
 
 
@@ -863,6 +1292,11 @@ def _verification_errors(
             continue
         if not lifecycle_root.is_dir():
             errors.append(f"lifecycle_missing:{record['workflow_id']}")
+            continue
+        if record["status"] in {"complete", "partial"}:
+            mismatch = _terminal_record_mismatch(context, record, actions)
+            if mismatch is not None:
+                errors.append(f"{mismatch}:{record['workflow_id']}")
             continue
         try:
             verification = actions.verify(record["workflow_id"], **_lifecycle_kwargs(context))

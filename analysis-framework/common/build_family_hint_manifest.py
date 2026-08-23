@@ -74,12 +74,16 @@ def _exact_item_sha256(item: dict[str, Any], metadata: dict[str, Any], *, locati
     return values[0]
 
 
-def build_collection_manifest(path: Path, *, source: str) -> dict[str, Any]:
-    """取得metadataを、帰属に使わないexact-SHA検証候補へ変換する。"""
+def build_collection_manifest_document(
+    document: dict[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    """検証済み取得metadataを、帰属に使わないexact-SHA検証候補へ変換する。"""
 
-    document = load_json_object_strict(path)
     field, items = _collection_items(document)
     samples: dict[str, list[dict[str, str]]] = {}
+    fingerprints: dict[str, set[str]] = {}
     for index, raw_item in enumerate(items):
         location = f"{field}[{index}]"
         if not isinstance(raw_item, dict):
@@ -106,9 +110,39 @@ def build_collection_manifest(path: Path, *, source: str) -> dict[str, Any]:
             observed_at = metadata.get("first_seen")
             if isinstance(observed_at, str) and observed_at:
                 hint["observed_at"] = observed_at
+            fingerprint = json.dumps(
+                hint,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            observed = fingerprints.setdefault(digest, set())
+            if fingerprint in observed:
+                continue
+            observed.add(fingerprint)
             samples.setdefault(digest, []).append(hint)
+    for hints in samples.values():
+        hints.sort(
+            key=lambda value: json.dumps(
+                value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+        )
     return classify_sample.normalize_family_hint_manifest(
         {"schema_version": 1, "samples": samples}
+    )
+
+
+def build_collection_manifest(path: Path, *, source: str) -> dict[str, Any]:
+    """取得metadataをstrict読込し、pureなdocument変換へ渡す互換入口。"""
+
+    return build_collection_manifest_document(
+        load_json_object_strict(path),
+        source=source,
     )
 
 

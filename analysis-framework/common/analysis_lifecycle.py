@@ -4,18 +4,18 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable, Mapping, Sequence
-from contextlib import contextmanager, redirect_stdout
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import io
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import stat
 import sys
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager, redirect_stdout
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import analysis_job_runner
@@ -25,12 +25,13 @@ import publish_one_shot_collection
 import refresh_case_inventory
 import validate_function_analysis
 
-
 SCHEMA_VERSION = 1
 MAX_REQUEST_BYTES = 1024 * 1024
 MAX_STATE_BYTES = 8 * 1024 * 1024
 MAX_ATTEMPTS = 5
 MAX_PUBLIC_BLOCKERS = 256
+MAX_PUBLIC_CASES = 256
+MAX_REMEDIATION_ACTIONS = 256
 WORKFLOW_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$")
 COLLECTION_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -106,6 +107,136 @@ STAGE_CODE_FILES: Mapping[str, tuple[str, ...]] = {
     "private_archive": ("analysis_lifecycle.py", "archive_analysis_datastore.py"),
 }
 
+# blockerは部分文字列で分類しない。未登録値は必ずmanual reviewへ落とす。
+_ACTION_SPECS: Mapping[
+    str,
+    tuple[str, str, str, bool, bool, tuple[str, ...]],
+] = {
+    "family": (
+        "family_attribution_review",
+        "family_resolution",
+        "classifier_verification",
+        False,
+        True,
+        ("independent_static_family_evidence",),
+    ),
+    "function": (
+        "representative_function_static_review",
+        "function_analysis",
+        "ghidra_function_batch",
+        False,
+        True,
+        ("reviewed_program_available",),
+    ),
+    "static": (
+        "deeper_static_layer_analysis",
+        "static_analysis",
+        "analysis_job_runner",
+        False,
+        True,
+        ("new_static_evidence_or_implementation",),
+    ),
+    "static_limit": (
+        "start_successor_with_extended_static_layer_limit",
+        "static_analysis",
+        "analysis_job_runner",
+        True,
+        True,
+        ("reviewed_higher_static_layer_limit", "successor_workflow"),
+    ),
+    "terminal": (
+        "terminal_payload_static_recovery",
+        "terminal_payload_recovery",
+        "terminal_payload_acquisition",
+        False,
+        True,
+        ("new_terminal_evidence_or_implementation",),
+    ),
+    "config": (
+        "configuration_and_c2_static_recovery",
+        "configuration_recovery",
+        "family_config_extractor",
+        False,
+        True,
+        ("verified_family_or_terminal_payload",),
+    ),
+    "protocol": (
+        "offline_protocol_evidence_review",
+        "protocol_analysis",
+        "c2_profile_review",
+        False,
+        True,
+        ("offline_protocol_evidence",),
+    ),
+    "handler": (
+        "handler_evidence_review",
+        "handler_execution",
+        "family_handler",
+        False,
+        True,
+        ("handler_fix_or_new_evidence",),
+    ),
+    "publication": (
+        "complete_case_or_enable_reviewed_partial_staging",
+        "publication",
+        "publish_one_shot_collection",
+        False,
+        True,
+        ("reviewed_partial_staging_contract",),
+    ),
+    "manual": (
+        "review_machine_readable_blocker",
+        "manual_review",
+        "human_review",
+        False,
+        True,
+        ("new_verified_evidence_or_implementation",),
+    ),
+}
+_BLOCKER_ACTION_KEYS: Mapping[str, str] = {
+    "canonical_reclassification_move_pending": "family",
+    "config": "config",
+    "config_and_c2_not_recovered": "config",
+    "detector_error_present": "handler",
+    "family_attribution_unresolved": "family",
+    "family_resolution": "family",
+    "final_c2_endpoint_unresolved": "config",
+    "function_analysis": "function",
+    "function_analysis_pending": "function",
+    "generic_triage": "static",
+    "generic_triage_failed": "static",
+    "generic_triage_partial": "static",
+    "handler_ambiguous_evidence": "handler",
+    "handler_failed": "handler",
+    "handler_incompatible_input_format": "handler",
+    "handler_no_evidence": "handler",
+    "handler_preflight_failed": "handler",
+    "live_c2_unverified": "protocol",
+    "live_protocol_confirmation_pending": "protocol",
+    "network": "protocol",
+    "operational_c2_not_recovered": "config",
+    "publication_requires_complete_or_partial_staging_opt_in": "publication",
+    "representative_function_analysis_required": "function",
+    "root_to_terminal_byte_derivation_incomplete": "terminal",
+    "selected_family_layer_incomplete": "static",
+    "static_c2_config_unresolved": "config",
+    "static_layer_incomplete": "static",
+    "static_layer_limit_reached": "static_limit",
+    "static_layers": "static",
+    "terminal_family_unresolved": "family",
+    "terminal_payload": "terminal",
+    "terminal_payload_not_recovered": "terminal",
+    "virtualized_terminal_payload_not_recovered": "terminal",
+}
+_ORCHESTRATION_GATE_ACTION_KEYS: Mapping[str, str] = {
+    key: _BLOCKER_ACTION_KEYS[key]
+    for key in ("config", "family_resolution", "function_analysis", "network", "static_layers", "terminal_payload")
+}
+_HANDLER_EVIDENCE_BLOCKER_RE = re.compile(
+    r"^selected_family_has_no_(?:automatic_handler|valid_handler_evidence):"
+    r"[a-z0-9][a-z0-9_-]{0,63}$"
+)
+
 
 class LifecycleError(RuntimeError):
     """lifecycle契約違反を機械可読code付きで表す。"""
@@ -180,7 +311,7 @@ class _Actions:
 def utc_now() -> str:
     """UTC時刻を固定表現で返す。"""
 
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -795,6 +926,8 @@ def _load_state(context: LifecycleContext) -> dict[str, Any]:
 
 
 def _bounded_blockers(values: Sequence[Any]) -> list[str]:
+    if isinstance(values, (str, bytes, bytearray)) or not isinstance(values, Sequence):
+        return ["analysis_blocked"]
     return sorted({_safe_blocker(value) for value in values})[:MAX_PUBLIC_BLOCKERS]
 
 
@@ -1145,48 +1278,139 @@ def _production_function_validation(context: LifecycleContext, state: Mapping[st
 
 
 def _case_blockers(context: LifecycleContext) -> tuple[list[dict[str, Any]], list[str]]:
+    """case別の根拠を保持したまま公開可能blockerを集約する。"""
+
     summary = _analysis_summary(context)
     analysis_root = context.jobs_root / context.request.job.job_id / "analysis"
     cases: list[dict[str, Any]] = []
     blockers: list[str] = []
-    for item in [*summary.get("cases", []), *summary.get("derived_cases", [])]:
+    items: list[Any] = []
+    for field in ("cases", "derived_cases"):
+        values = summary.get(field)
+        if not isinstance(values, list):
+            blockers.append("analysis_blocked")
+            continue
+        items.extend(values)
+    for item in items:
         if not isinstance(item, dict):
+            blockers.append("analysis_blocked")
             continue
         digest = item.get("sha256")
         status = item.get("case_state")
         if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            blockers.append("analysis_blocked")
             continue
-        cases.append({"sha256": digest, "status": status})
+        if status not in {
+            "assessment_only_complete",
+            "complete",
+            "failed",
+            "partial",
+            "triaged_unknown",
+        }:
+            status = "invalid"
+            blockers.append("analysis_blocked")
         report_path = analysis_root / "cases" / digest / "report.json"
         orchestration_path = analysis_root / "cases" / digest / "orchestration.json"
+        report_blockers: list[str] = []
+        orchestration_blockers: list[str] = []
         if report_path.is_file():
             report = _load_json(report_path, maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES)
             state = report.get("case_state")
             if isinstance(state, dict):
-                blockers.extend(state.get("blockers") or [])
+                report_blockers = _bounded_blockers(state.get("blockers") or [])
         if orchestration_path.is_file():
             orchestration = _load_json(orchestration_path, maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES)
-            blockers.extend(orchestration.get("blockers") or [])
+            orchestration_blockers = _bounded_blockers(orchestration.get("blockers") or [])
+        cases.append(
+            {
+                "sha256": digest,
+                "status": status,
+                "report_blockers": report_blockers,
+                "orchestration_blockers": orchestration_blockers,
+            }
+        )
+        blockers.extend(report_blockers)
+        blockers.extend(orchestration_blockers)
     return cases, _bounded_blockers(blockers)
 
 
-def _next_actions(blockers: Sequence[str]) -> list[str]:
-    actions: set[str] = set()
-    for blocker in blockers:
-        lowered = blocker.casefold()
-        if "function" in lowered:
-            actions.add("representative_function_static_review")
-        elif "terminal" in lowered or "payload" in lowered:
-            actions.add("terminal_payload_static_recovery")
-        elif "config" in lowered or "c2" in lowered or "network" in lowered:
-            actions.add("configuration_and_c2_static_recovery")
-        elif "family" in lowered or "classification" in lowered:
-            actions.add("family_attribution_review")
-        elif "publication" in lowered:
-            actions.add("complete_case_or_enable_reviewed_partial_staging")
-        else:
-            actions.add("review_machine_readable_blocker")
-    return sorted(actions)
+def _remediation_action(blocker: str, *, case_sha256: str | None) -> dict[str, Any]:
+    """厳格なblocker registryから1件のfail-closed actionを返す。"""
+
+    normalized = _safe_blocker(blocker)
+    key = _BLOCKER_ACTION_KEYS.get(normalized)
+    if normalized.startswith("orchestration:"):
+        gate = normalized.removeprefix("orchestration:")
+        key = _ORCHESTRATION_GATE_ACTION_KEYS.get(gate)
+    elif _HANDLER_EVIDENCE_BLOCKER_RE.fullmatch(normalized):
+        key = "handler"
+    if key is None:
+        key = "manual"
+    action_id, target_phase, executor, automatic, changed, prerequisites = _ACTION_SPECS[key]
+    return {
+        "case_sha256": case_sha256,
+        "blocker_code": normalized,
+        "action_id": action_id,
+        "target_phase": target_phase,
+        "executor": executor,
+        "automatic": automatic,
+        "requires_changed_evidence": changed,
+        "prerequisites": list(prerequisites),
+    }
+
+
+def _remediation_actions(
+    cases: Sequence[Mapping[str, Any]],
+    workflow_blockers: Sequence[str],
+) -> list[dict[str, Any]]:
+    """case attributionを失わず、決定論的な次工程を返す。"""
+
+    actions: list[dict[str, Any]] = []
+    case_blockers: set[str] = set()
+    for case in cases:
+        digest = case.get("sha256")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            continue
+        for field in ("report_blockers", "orchestration_blockers"):
+            values = case.get(field)
+            if not isinstance(values, list):
+                continue
+            for blocker in values:
+                normalized = _safe_blocker(blocker)
+                case_blockers.add(normalized)
+                actions.append(_remediation_action(normalized, case_sha256=digest))
+    for blocker in _bounded_blockers(workflow_blockers):
+        if blocker not in case_blockers:
+            actions.append(_remediation_action(blocker, case_sha256=None))
+    unique = {
+        (
+            action["case_sha256"] or "",
+            action["blocker_code"],
+            action["action_id"],
+        ): action
+        for action in actions
+    }
+    return [unique[key] for key in sorted(unique)][:MAX_REMEDIATION_ACTIONS]
+
+
+def _next_actions(actions: Sequence[Mapping[str, Any]]) -> list[str]:
+    return sorted(
+        {
+            action["action_id"]
+            for action in actions
+            if isinstance(action.get("action_id"), str)
+        }
+    )
+
+
+def _public_remediation_plan(
+    cases: Sequence[Mapping[str, Any]],
+    workflow_blockers: Sequence[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """公開case上限とaction attributionを同じcase集合へ固定する。"""
+
+    public_cases = [dict(case) for case in cases[:MAX_PUBLIC_CASES]]
+    return public_cases, _remediation_actions(public_cases, workflow_blockers)
 
 
 def _production_completion(context: LifecycleContext, state: Mapping[str, Any]) -> StageOutcome:
@@ -1199,12 +1423,16 @@ def _production_completion(context: LifecycleContext, state: Mapping[str, Any]) 
         if record["enabled"] and record["status"] in {"blocked", "failed"}:
             blockers.extend(record.get("blockers") or [f"{stage}_incomplete"])
     blockers = _bounded_blockers(blockers)
+    public_cases, actions = _public_remediation_plan(cases, blockers)
     result = {
         "complete": not blockers and static.get("analysis_state") == "complete",
         "case_count": len(cases),
-        "cases": cases[:256],
+        "cases": public_cases,
         "blockers": blockers,
-        "next_actions": _next_actions(blockers),
+        "next_actions": _next_actions(actions),
+        "remediation_actions": actions,
+        "remediation_plan_sha256": _sha256_value({"actions": actions}),
+        "same_workflow_resume_allowed": False,
         "executed_sample": False,
         "network_contacted": False,
     }
@@ -1566,6 +1794,11 @@ def _resume_context(
             raise LifecycleError(
                 "succeeded_artifact_changed", f"成功済みstageの再検証に失敗しました: {errors[0]}"
             )
+    if state["status"] == "partial":
+        raise LifecycleError(
+            "successor_workflow_required",
+            "partial workflowは同じ証拠を再試行せず、新しいworkflow_idで後続解析を開始してください",
+        )
     reset = False
     for stage in STAGE_ORDER:
         record = state["stages"][stage]

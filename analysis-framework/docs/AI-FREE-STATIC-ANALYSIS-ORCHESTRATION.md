@@ -37,6 +37,26 @@ flowchart LR
 
 WebUIからfamily別scriptを直接呼び分けたり、任意のcommand lineを組み立てたりしません。これによりCLIとWebUIの結果差、引数注入、未検証handlerの迂回を防ぎます。
 
+### daily解析の標準受付
+
+[`daily_news_malware_intake.py`](../common/daily_news_malware_intake.py)の`--run-static-analysis`も、`analyze_sample.py`を直接起動しません。解析対象fileを日付別private rootの`archives`配下に限定する固定requestを構築し、64 KiB以下のJSONを標準入力から[`analysis_job_runner.py`](../common/analysis_job_runner.py)の`run --request -`へ渡します。出力先は解析repositoryと相互包含しないrepository外の専用`static-analysis-jobs` rootです。requestへ任意command、環境変数、password、実行file path、network optionを追加できません。
+
+同じ日付rootに`malwarebazaar-lookups.json`がある場合、既存のfamily hint builderでprovider metadataを完全一致SHA-256へ束縛し、`family-hints.json`を生成してrunnerへ渡します。このhintは候補handlerの検証にだけ使用し、providerのsignatureやtagだけでfamilyを確定しません。
+
+`malwarebazaar-lookups.json`と`virustotal-lookups.json`はschema version 2のstrict cacheとして扱います。cache全体を容量上限付きの単一handleから読み、重複JSON key、未知schema、reparse point、hardlink、読込中のidentity／size変更を拒否します。provider、source date、照合対象hash集合、itemごとのrequest、結果全体のcommitmentが一致する場合だけ再利用し、旧schemaや不一致cacheから外部再照会へ自動fallbackしません。旧cacheを更新する場合は別場所へ退避してから、operatorがprovider照合を明示的に再実行します。`archives`は直下の小文字SHA-256名`<sha256>.zip`だけを上限+1件で列挙し、root containment、通常file、link数1、size、単一handle SHA-256を確認します。既存ZIPの再利用と新規取得後の配置はいずれも同じ検証を通り、絶対local pathはdownload manifestへ記録しません。
+
+provider照合hashは外部照合loopへ入る前に最大4,096件へ制限します。MalwareBazaarの`found`結果は、SHA-256照合なら`metadata.sha256_hash`、SHA-1／MD5照合なら対応する`metadata.sha1_hash`／`metadata.md5_hash`がrequest digestと完全一致し、取得用`metadata.sha256_hash`もcanonicalな場合だけcache保存・再利用・downloadへ使用します。cacheはpretty JSONへencodeした後、64 MiB以下であることを確認してからatomic保存するため、上限超過cacheを途中生成しません。family hintは検証済みのin-memory cache documentからpure変換し、変換中にlookup cache pathを再openしません。
+
+MalwareBazaar応答は先頭rowへ依存せず、上限内の全rowを照合hashへ束縛して一意なSHA-256だけを`found`とします。複数SHA-256へ曖昧に一致する応答は取得へ使用しません。VirusTotalの`found`結果はHTTP status、file object種別、`data.id`、`attributes.sha256`、照合hashを一致させ、公開要約へ出す外部文字列は長さ、control文字、local path、credential付きURL、query／fragmentを検査します。sandbox behaviourはfileへの帰属を証明できないためcontext-only件数としてだけ扱います。両providerのAPI clientは環境proxyを使用せず公式HTTPS originへ固定し、同一originを含む全HTTP redirectを拒否して、`Auth-Key`や`x-apikey`を後続requestへ転送しません。
+
+静的解析対象は、検証済みprovider文書から導出した取得SHA-256集合、`archives`直下のcanonical filename集合、runnerが認証した単一memberの内部SHA-256集合を完全一致させます。外装`<sha256>.zip`名と内部member SHA-256の不一致、複数member、raw／unsupported入力、読込失敗、余分な旧archive、欠落archiveは公開集計前に拒否します。runnerはcase seal検証で読んだ同一handleの`generic-triage.json`と`static-logic.json`だけを件数・個別・合計容量上限付きbundleへcaptureし、daily入口はそのin-memory bundleと検証済みIOC／provider文書からpure要約を生成します。子summarizerや検証後のcase／provider path再openは行わず、入力commitmentを公開要約へ記録します。疎通確認cacheもschema version 2、source date、target集合、結果commitmentへ束縛し、同じ上限付き単一handle境界で再利用します。
+
+daily入口はrunnerと同じ入力snapshot manifestをread-onlyで再構成し、archiveごとのsize／SHA-256、family-hint manifestのSHA-256、`job_id`を除く正規化request、解析器が列挙するproduction component／handler catalog／runtime dependency versionを単一cache keyへ束縛して決定的job IDを生成します。既存jobを再利用するのは、同じjob IDが終端`complete`または`partial`で、request SHA-256、入力snapshot manifest SHA-256、family-hintのpath／SHA-256、summary、全case seal、成果物tree、安全flagが現在値と完全一致する場合だけです。未終端または不整合な既存jobはfail-closedにし、入力、hint、request option、解析実装が変われば別job IDになります。cache判定から成果物受理まで実装fileのidentityも再確認します。
+
+runner子processはsanitized environmentで起動し、launcherは標準出力／標準エラーを保持しません。runner自身が上限付きlogと機械可読成果物を管理するため、daily入口が子process出力を無制限に蓄積することはありません。
+
+daily入口はrunnerが検証した`status.json`、`progress.json`、`result.json`のsnapshotと成果物sealを再読込し、job ID、終端状態、process終了コード、summary安全契約を照合します。`executed_sample`、`network_contacted`、`ai_used`を含む安全flagはすべて非実行・非接続を示す必要があります。終了コード`0`は`complete`、`20`は処理済みだが未完了の`partial`としてそのまま上位へ返し、request、snapshot、seal、安全flagの不一致は`2`でfail-closedにします。それ以外のrunner失敗コードも成功へ変換せず伝播します。従来互換の`--sevenzip`へ任意pathを指定した実行は`2`で拒否し、外部toolが必要な場合はoperator管理のmanifestとSHA-256 pinを標準runner側で固定します。
+
 ## family選択と候補検証
 
 familyは証拠の強さを分けて扱います。
@@ -88,6 +108,12 @@ python .\analysis-framework\common\build_family_hint_manifest.py `
 
 familyによってconfigやC2を持たない場合もあるため、単純に全項目の存在を強制しません。family profileが要求する能力、観測できなかった理由、解析上限を区別し、未解決なら`blockers`へ残します。
 
+### case別blockerと修復計画
+
+[`analysis_lifecycle.py`](../common/analysis_lifecycle.py)のcompletion結果は、各caseのSHA-256、状態、`report_blockers`、`orchestration_blockers`を対応付けたまま返します。平坦化したworkflow全体の`blockers`も互換性のため残しますが、自動化側はcaseとの対応を失わない`remediation_actions`を使用します。各actionは少なくとも`case_sha256`、`blocker_code`、`action_id`、`target_phase`、`executor`、`automatic`、`requires_changed_evidence`、`prerequisites`を持ち、全actionのcanonical JSONは`remediation_plan_sha256`へcommitします。orchestratorはaction集合、`next_actions`、plan SHA-256の一致を独立に再計算してから要約を保存します。
+
+blockerからactionへの変換は完全一致のregistryと、明示的にレビューした少数のprefix形式だけを使います。部分文字列では分類しません。registryにない未知のblockerは`review_machine_readable_blocker`、`executor=human_review`、`automatic=false`へfail-closedにし、証拠または実装が変わるまで同じ解析を自動反復しません。
+
 ## 再開計画と後継workflow
 
 保存済みorchestrationを再実行する前に、`analysis_resume_planner.py plan-resume`でread-onlyの再開計画を作成できます。plannerは保存済みrequest、親子state、report、解析実装commitment、phaseごとの結果とblockerを単一snapshotとして検証し、検体を実行せず、成果物を書き換えず、解析用network通信も行いません。
@@ -107,9 +133,19 @@ python .\analysis-framework\common\analysis_resume_planner.py plan-resume `
 - `blocked`: 自動再開できません。終了コードは`20`です。`20`はplannerの失敗ではないため、`status`と各workflowの`decision`を確認します。
 - 入力、state、report、hash、親子整合性の検証エラー: 機械可読errorを標準エラーへ出し、終了コードは`2`です。
 
-plannerはblockerの完全一致またはレビュー済みprefix policyと、phase証拠のfingerprintを使って判定します。workflow attemptが複数あり再試行履歴が保存されていない場合も、現在のstage fingerprintと実装commitmentが変わっていなければ同一証拠のno-progressとして保守的に停止し、retry budgetを超えたblind retryも抑止します。policyにない未知のblocker、混在している未知のblocker、証拠commitmentの不整合はfail-closedで`blocked`とし、文字列の部分一致から実行可能と推測しません。
+plannerはblockerの完全一致またはレビュー済みprefix policyと、phase証拠のfingerprintを使って判定します。現行stateはattemptごとの証拠履歴を保持しないため、attemptが複数でも同一証拠のno-progressとは断定せず、`no_progress.detected=false`と`retry_history_not_preserved`を返します。blind retryは明示的なworkflow／phase retry budgetで抑止します。stage fingerprintの範囲は宣言済みstage sourceとanchored input、orchestrator実装commitmentはorchestrator source単体であり、transitive dependencyは保存済みcommitmentの対象外です。policyにない未知のblocker、混在している未知のblocker、証拠commitmentの不整合はfail-closedで`blocked`とし、文字列の部分一致から実行可能と推測しません。
 
-`resume`はprocess中断など、同じrequest・実装・証拠を使う中断回復だけに使用します。静的証拠の追加、Ghidra解析の追加、detector／handlerの実装変更、入力やpolicyの変更が必要な場合は、公開済みstateを同じworkflowとして再開せず、新しいIDとrequest commitmentを持つsuccessor workflowを作成します。plannerは計画を返すだけであり、再開やsuccessor作成を自動実行しません。
+request、state、report、実装sourceのsnapshotはfile別上限に加え、1計画全体で合計64 MiB、最大`MAX_SNAPSHOT_FILES`件へ制限します。件数または合計sizeの超過は、実local pathを含まない固定error `snapshot_count_exceeded`または`snapshot_total_bytes_exceeded`でfail-closedにします。計画確定時は各snapshotを固定64 KiB chunkで再読込し、SHA-256、size、file identityを再照合します。再検証では全raw bytesをメモリへ再保持しません。
+
+`resume`はprocess中断など、同じrequest・実装・証拠を使う中断回復だけに使用します。静的証拠の追加、Ghidra解析の追加、detector／handlerの実装変更、入力やpolicyの変更が必要な場合は、公開済みstateを同じworkflowとして再開せず、新しいIDとrequest commitmentを持つsuccessor workflowを作成します。`analysis_lifecycle.py resume`も、成功済み成果物を再検証した後に保存stateが`partial`なら`successor_workflow_required`で拒否し、stageをresetしません。plannerは計画を返すだけであり、再開やsuccessor作成を自動実行しません。
+
+completionが`partial`のworkflowは`same_workflow_resume_allowed=false`で保存されるため、[`analysis_orchestrator.py`](../common/analysis_orchestrator.py)は同じchildをblind resumeせず、attemptを消費しません。追加証拠または実装変更が必要なactionはsuccessor workflowへ引き継ぐ必要があり、orchestratorはsuccessorを自動作成しません。この変更はpartial recordの再実行だけを抑止し、`continue_after_partial=true`なら後続childを処理し、`false`なら従来どおり後続childを`deferred`にします。完了childの再検証、failed childのattempt上限、`continue_after_failure`も従来のpolicyを維持します。
+
+## Ghidra大規模batchの容量保護と再開
+
+[`ghidra_function_batch.py`](../common/ghidra_function_batch.py)は既定で8 GiBの空き容量をreserveし、repository、入力copy先の`sample-root`、private出力、`--disk-guard-path`で追加したGhidra保存先を、入力準備前、各input copyの直前と直後、各programの開始前後、後処理前に確認します。copy直前は予定write byte数を差し引き、write後にreserveを割るcopyを開始しません。同一filesystemのroleは重複計上せず、別filesystemはそれぞれ下限を満たす必要があります。設定可能な下限は256 MiBであり、reserveを無効化できません。
+
+容量不足時は完了済み成果物を保持し、`ghidra_chunk_pending`としてatomicな`run-progress.json`を保存して停止します。checkpointはcollection ID、準備済みinventory、program件数、`pending_programs`、`postprocessing_pending`、固定安全値を検証し、実local pathは記録しません。準備済みcheckpointは`prepared_inventory_sha256`で`input-relationships.json`の正確なbytesへ束縛します。inventoryとPE cacheは上限付き単一handle snapshotで読み、reparse point、hardlink、identity／size／時刻／SHA-256の不一致を拒否します。同じcommandを再実行すると検証済みの準備済みinputを自動利用し、program解析後のcheckpointからは`postprocessing_only`としてprogramを再実行せず後処理を再開します。checkpointがない既存cacheを利用するときだけ`--reuse-prepared-inputs`を明示します。symlink、junction、reparse point、directory identityの途中変更、schema不一致は再開へ使用せずfail-closedにします。CLIは全工程完了時だけ終了code`0`を返し、`ghidra_chunk_pending`では再実行可能な未完了を示す`20`を返します。詳細なcommandと成果物契約は[静的関数ロジックとコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
 
 ## Ghidra関数解析後の品質ゲート再整合
 
