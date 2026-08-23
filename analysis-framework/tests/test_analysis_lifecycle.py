@@ -5,12 +5,11 @@ from __future__ import annotations
 import importlib
 import inspect
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 import pytest
-
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
@@ -241,12 +240,12 @@ def test_complete_lifecycle_runs_enabled_stages_and_writes_public_report(tmp_pat
     assert str(tmp_path) not in report_path.read_text(encoding="utf-8")
 
 
-def test_partial_completion_is_resumable_without_repeating_succeeded_stages(tmp_path: Path) -> None:
+def test_partial_completion_requires_successor_without_repeating_succeeded_stages(tmp_path: Path) -> None:
     repository, input_root, work_root = make_roots(tmp_path)
     request = lifecycle.validate_request_object(request_value("resume-001"))
     calls: list[str] = []
     first_actions = fake_actions(calls, analysis_state="partial", completion="blocked")
-    state = lifecycle._run_lifecycle_for_test(
+    lifecycle._run_lifecycle_for_test(
         request,
         repository=repository,
         input_root=input_root,
@@ -254,24 +253,21 @@ def test_partial_completion_is_resumable_without_repeating_succeeded_stages(tmp_
         timeout_seconds=60,
         actions=first_actions,
     )
-    assert state["status"] == "partial"
-    assert state["stages"]["completion_gate"]["blockers"] == ["terminal_payload_not_recovered"]
 
-    context, resumed = lifecycle._resume_context(
-        request.workflow_id,
-        repository=repository,
-        input_root=input_root,
-        work_root=work_root,
-        timeout_seconds=60,
-        verify_succeeded_artifacts=False,
-    )
-    second_actions = fake_actions(calls, analysis_state="complete", completion="succeeded")
-    finished = lifecycle._execute(context, resumed, second_actions)
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._resume_context(
+            request.workflow_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+            verify_succeeded_artifacts=False,
+        )
 
-    assert finished["status"] == "complete"
+    assert caught.value.code == "successor_workflow_required"
     assert calls.count("preflight") == 1
     assert calls.count("static_analysis") == 1
-    assert calls.count("completion_gate") == 2
+    assert calls.count("completion_gate") == 1
 
 
 def test_stage_fingerprint_tamper_is_rejected(tmp_path: Path) -> None:
@@ -367,18 +363,26 @@ def test_final_workflow_status_must_match_stage_states(tmp_path: Path) -> None:
 
 
 def test_resume_pending_state_remains_valid_after_interruption(tmp_path: Path) -> None:
-    """再試行予約直後に中断しても正規化済みstateを再読込できる。"""
+    """stage実行中に中断しても正規化済みstateを再読込できる。"""
 
     repository, input_root, work_root = make_roots(tmp_path)
     request = lifecycle.validate_request_object(request_value("resume-durable-001"))
-    lifecycle._run_lifecycle_for_test(
+    context, state = lifecycle._initialize_context(
         request,
         repository=repository,
         input_root=input_root,
         work_root=work_root,
         timeout_seconds=60,
-        actions=fake_actions([], completion="blocked"),
     )
+    preflight = state["stages"]["preflight"]
+    preflight.update(
+        {
+            "status": "running",
+            "attempts": 1,
+            "started_at_utc": lifecycle.utc_now(),
+        }
+    )
+    lifecycle._write_state(context, state)
 
     _, reset = lifecycle._resume_context(
         request.workflow_id,
@@ -389,12 +393,12 @@ def test_resume_pending_state_remains_valid_after_interruption(tmp_path: Path) -
         verify_succeeded_artifacts=False,
     )
     assert reset["status"] == "pending"
-    completion = reset["stages"]["completion_gate"]
-    assert completion["status"] == "pending"
-    assert completion["started_at_utc"] is None
-    assert completion["finished_at_utc"] is None
-    assert completion["blockers"] == []
-    assert completion["result"] == {}
+    reset_preflight = reset["stages"]["preflight"]
+    assert reset_preflight["status"] == "pending"
+    assert reset_preflight["started_at_utc"] is None
+    assert reset_preflight["finished_at_utc"] is None
+    assert reset_preflight["blockers"] == []
+    assert reset_preflight["result"] == {}
 
     _, reloaded = lifecycle._existing_context(
         request.workflow_id,
@@ -508,10 +512,12 @@ def test_execution_lock_rejects_parallel_writer(tmp_path: Path) -> None:
     root = tmp_path / "workflow"
     root.mkdir()
 
-    with lifecycle._execution_lock(root):
-        with pytest.raises(lifecycle.LifecycleError) as caught:
-            with lifecycle._execution_lock(root):
-                pytest.fail("同じworkflowの二重lockを取得してはいけません")
+    with (
+        lifecycle._execution_lock(root),
+        pytest.raises(lifecycle.LifecycleError) as caught,
+        lifecycle._execution_lock(root),
+    ):
+        pytest.fail("同じworkflowの二重lockを取得してはいけません")
 
     assert caught.value.code == "workflow_locked"
 
@@ -620,6 +626,14 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
     outcome = lifecycle._production_completion(context, state)
 
     assert outcome.status == "blocked"
+    assert outcome.result["cases"] == [
+        {
+            "sha256": digest,
+            "status": "partial",
+            "report_blockers": ["representative_function_analysis_required"],
+            "orchestration_blockers": ["terminal_payload_not_recovered"],
+        }
+    ]
     assert outcome.result["blockers"] == [
         "representative_function_analysis_required",
         "terminal_payload_not_recovered",
@@ -627,6 +641,112 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
     assert outcome.result["next_actions"] == [
         "representative_function_static_review",
         "terminal_payload_static_recovery",
+    ]
+    assert [item["case_sha256"] for item in outcome.result["remediation_actions"]] == [
+        digest,
+        digest,
+    ]
+    assert outcome.result["remediation_actions"][0] == {
+        "case_sha256": digest,
+        "blocker_code": "representative_function_analysis_required",
+        "action_id": "representative_function_static_review",
+        "target_phase": "function_analysis",
+        "executor": "ghidra_function_batch",
+        "automatic": False,
+        "requires_changed_evidence": True,
+        "prerequisites": ["reviewed_program_available"],
+    }
+    assert lifecycle.SHA256_RE.fullmatch(outcome.result["remediation_plan_sha256"])
+    assert outcome.result["same_workflow_resume_allowed"] is False
+
+
+def test_remediation_registry_is_exact_and_unknown_values_fail_closed() -> None:
+    known = lifecycle._remediation_action(
+        "orchestration:config",
+        case_sha256="b" * 64,
+    )
+    assert known["action_id"] == "configuration_and_c2_static_recovery"
+    assert known["executor"] == "family_config_extractor"
+
+    unknown = lifecycle._remediation_action(
+        "configuration_like_but_unregistered",
+        case_sha256="b" * 64,
+    )
+    assert unknown == {
+        "case_sha256": "b" * 64,
+        "blocker_code": "configuration_like_but_unregistered",
+        "action_id": "review_machine_readable_blocker",
+        "target_phase": "manual_review",
+        "executor": "human_review",
+        "automatic": False,
+        "requires_changed_evidence": True,
+        "prerequisites": ["new_verified_evidence_or_implementation"],
+    }
+
+    malformed_family = lifecycle._remediation_action(
+        "selected_family_has_no_valid_handler_evidence:Bad/Family",
+        case_sha256="b" * 64,
+    )
+    assert malformed_family["blocker_code"] == "analysis_blocked"
+    assert malformed_family["automatic"] is False
+    assert malformed_family["executor"] == "human_review"
+
+@pytest.mark.parametrize(
+    "blocker",
+    [
+        "handler_ambiguous_evidence",
+        "handler_incompatible_input_format",
+        "handler_preflight_failed",
+        "selected_family_has_no_automatic_handler:valleyrat",
+    ],
+)
+def test_known_handler_blockers_use_exact_handler_action(blocker: str) -> None:
+    action = lifecycle._remediation_action(blocker, case_sha256="d" * 64)
+
+    assert action["action_id"] == "handler_evidence_review"
+    assert action["executor"] == "family_handler"
+    assert action["automatic"] is False
+
+
+def test_generic_triage_failure_uses_static_action_and_string_blockers_fail_closed() -> None:
+    action = lifecycle._remediation_action("generic_triage_failed", case_sha256="e" * 64)
+
+    assert action["action_id"] == "deeper_static_layer_analysis"
+    assert lifecycle._bounded_blockers("terminal_payload_not_recovered") == ["analysis_blocked"]
+
+
+def test_public_remediation_actions_only_reference_public_cases_at_capacity() -> None:
+    digests = [format(index, "064x") for index in range(256, -1, -1)]
+    cases = [
+        {
+            "sha256": digest,
+            "status": "partial",
+            "report_blockers": ["terminal_payload_not_recovered"],
+            "orchestration_blockers": [],
+        }
+        for digest in digests
+    ]
+
+    public_cases, actions = lifecycle._public_remediation_plan(cases, ["terminal_payload_not_recovered"])
+
+    public_digests = {case["sha256"] for case in public_cases}
+    action_digests = {action["case_sha256"] for action in actions if action["case_sha256"] is not None}
+    assert len(public_cases) == lifecycle.MAX_PUBLIC_CASES
+    assert len(actions) == lifecycle.MAX_REMEDIATION_ACTIONS
+    assert action_digests <= public_digests
+    assert digests[-1] not in public_digests
+
+
+def test_static_layer_limit_is_the_only_directly_automatable_case_action() -> None:
+    action = lifecycle._remediation_action(
+        "static_layer_limit_reached",
+        case_sha256="c" * 64,
+    )
+    assert action["automatic"] is True
+    assert action["action_id"] == "start_successor_with_extended_static_layer_limit"
+    assert action["prerequisites"] == [
+        "reviewed_higher_static_layer_limit",
+        "successor_workflow",
     ]
 
 

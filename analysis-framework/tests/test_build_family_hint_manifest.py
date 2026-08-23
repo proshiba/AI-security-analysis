@@ -13,10 +13,33 @@ if str(COMMON) not in sys.path:
 
 manifest_module = importlib.import_module("build_family_hint_manifest")
 build_collection_manifest = manifest_module.build_collection_manifest
+build_collection_manifest_document = manifest_module.build_collection_manifest_document
 build_manifest = manifest_module.build_manifest
 write_manifest = manifest_module.write_manifest
 
 SHA256 = "a" * 64
+
+
+def test_collection_document_api_is_pure_and_path_independent() -> None:
+    manifest = build_collection_manifest_document(
+        {
+            "items": [
+                {
+                    "found": True,
+                    "sha256": SHA256,
+                    "metadata": {
+                        "sha256_hash": SHA256,
+                        "signature": "AsyncRAT",
+                    },
+                }
+            ]
+        },
+        source="in_memory_fixture",
+    )
+
+    assert list(manifest["samples"]) == [SHA256]
+    assert manifest["samples"][SHA256][0]["family"] == "asyncrat"
+    assert manifest["samples"][SHA256][0]["source"] == "in_memory_fixture"
 
 
 def test_build_and_write_manifest(short_tmp: Path) -> None:
@@ -188,3 +211,53 @@ def test_collection_metadata_rejects_ambiguous_item_fields(short_tmp: Path) -> N
         assert "exactly one item list" in str(exc)
     else:
         raise AssertionError("ambiguous item fields were accepted")
+
+
+def test_same_sample_multi_hash_queries_deduplicate_exact_hint() -> None:
+    metadata = {
+        "sha256_hash": SHA256,
+        "signature": "NanoCore",
+        "tags": ["nanocore"],
+    }
+    document = {
+        "items": [
+            {"found": True, "sha256": SHA256, "metadata": dict(metadata)},
+            {"found": True, "sha1": "b" * 40, "metadata": dict(metadata)},
+            {"found": True, "md5": "c" * 32, "metadata": dict(metadata)},
+        ]
+    }
+
+    manifest = manifest_module.build_collection_manifest_document(
+        document,
+        source="fixture_multi_hash",
+    )
+
+    assert len(manifest["samples"][SHA256]) == 1
+    assert manifest["samples"][SHA256][0]["family"] == "nanocore"
+
+
+def test_distinct_family_evidence_is_retained_deterministically() -> None:
+    document = {
+        "items": [
+            {
+                "found": True,
+                "metadata": {"sha256_hash": SHA256, "signature": "ValleyRAT", "tags": []},
+            },
+            {
+                "found": True,
+                "metadata": {"sha256_hash": SHA256, "signature": "NanoCore", "tags": []},
+            },
+        ]
+    }
+
+    first = manifest_module.build_collection_manifest_document(document, source="fixture")
+    second = manifest_module.build_collection_manifest_document(
+        {"items": list(reversed(document["items"]))},
+        source="fixture",
+    )
+
+    assert first == second
+    assert {value["family"] for value in first["samples"][SHA256]} == {
+        "nanocore",
+        "valleyrat",
+    }

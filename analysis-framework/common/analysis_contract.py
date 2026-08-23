@@ -24,6 +24,16 @@ MAX_ARTIFACT_COUNT = 4_096
 MAX_ARTIFACT_PATH_LENGTH = 1_024
 MAX_CASE_ARTIFACT_SIZE = 1024 * 1024 * 1024
 MAX_JSON_OBJECT_SIZE = 64 * 1024 * 1024
+MAX_CAPTURED_JSON_ARTIFACTS = 4
+MAX_CAPTURED_JSON_TOTAL_BYTES = 128 * 1024 * 1024
+CAPTURED_JSON_ARTIFACT_ALLOWLIST = frozenset(
+    {
+        "applicability.json",
+        "classification.json",
+        "generic-triage.json",
+        "static-logic.json",
+    }
+)
 SNAPSHOT_READ_CHUNK_SIZE = 1024 * 1024
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
 REQUIRED_KNOWLEDGE_ARTIFACTS = {
@@ -690,6 +700,8 @@ def _ensure_json_depth(value: Any, *, maximum_depth: int = 128) -> None:
 def _decode_json_object_strict(data: bytes, *, path: Path) -> dict[str, Any]:
     """検証済みbytesをBOMなしUTF-8の厳密なJSON objectとして解釈する。"""
 
+    if len(data) > MAX_JSON_OBJECT_SIZE:
+        raise ValueError(f"JSON成果物が容量上限を超えています: {path}")
     try:
         value = json.loads(
             data.decode("utf-8", errors="strict"),
@@ -782,6 +794,8 @@ def _verify_artifact_hashes_with_snapshots(
     expected: Mapping[str, Any],
     *,
     capture_paths: frozenset[str] = frozenset(),
+    capture_max_bytes: int | None = None,
+    capture_total_max_bytes: int | None = None,
 ) -> tuple[list[str], dict[str, bytes]]:
     """hash検証と、指定成果物の同一snapshot bytes取得を一度に行う。"""
 
@@ -789,8 +803,30 @@ def _verify_artifact_hashes_with_snapshots(
         return ["artifact_hash_manifest_missing"], {}
     if len(expected) > MAX_ARTIFACT_COUNT:
         return ["artifact_hash_manifest_too_large"], {}
+    if (
+        not isinstance(capture_paths, frozenset)
+        or len(capture_paths) > MAX_CAPTURED_JSON_ARTIFACTS
+        or not capture_paths.issubset(CAPTURED_JSON_ARTIFACT_ALLOWLIST)
+    ):
+        return ["artifact_capture_paths_invalid"], {}
+    per_capture_limit = MAX_JSON_OBJECT_SIZE if capture_max_bytes is None else capture_max_bytes
+    aggregate_limit = (
+        MAX_CAPTURED_JSON_TOTAL_BYTES
+        if capture_total_max_bytes is None
+        else capture_total_max_bytes
+    )
+    if (
+        isinstance(per_capture_limit, bool)
+        or not isinstance(per_capture_limit, int)
+        or not 1 <= per_capture_limit <= MAX_JSON_OBJECT_SIZE
+        or isinstance(aggregate_limit, bool)
+        or not isinstance(aggregate_limit, int)
+        or not 1 <= aggregate_limit <= MAX_CAPTURED_JSON_TOTAL_BYTES
+    ):
+        return ["artifact_capture_limits_invalid"], {}
     errors: list[str] = []
     snapshots: dict[str, bytes] = {}
+    captured_bytes = 0
     if any(not isinstance(relative, str) for relative in expected):
         return ["artifact_hash_manifest_non_string_path"], {}
     for relative in sorted(expected):
@@ -814,7 +850,15 @@ def _verify_artifact_hashes_with_snapshots(
                 errors.append(f"missing_or_outside:{relative}")
             continue
         try:
-            data = _read_regular_file_snapshot(path, max_bytes=MAX_CASE_ARTIFACT_SIZE)
+            if relative in capture_paths:
+                remaining = aggregate_limit - captured_bytes
+                if remaining <= 0:
+                    errors.append(f"artifact_capture_total_size_out_of_bounds:{relative}")
+                    continue
+                maximum_bytes = min(per_capture_limit, remaining)
+            else:
+                maximum_bytes = MAX_CASE_ARTIFACT_SIZE
+            data = _read_regular_file_snapshot(path, max_bytes=maximum_bytes)
         except _SnapshotReadError as exc:
             prefix = {
                 "reparse_point": "reparse_point",
@@ -831,6 +875,7 @@ def _verify_artifact_hashes_with_snapshots(
             errors.append(f"sha256_mismatch:{relative}")
         elif relative in capture_paths:
             snapshots[relative] = data
+            captured_bytes += len(data)
     return errors, snapshots
 
 
@@ -1163,6 +1208,10 @@ def case_integrity_errors(
     expected_digest: str | None = None,
     expected_contract: Mapping[str, Any] | None = None,
     require_resumable: bool = True,
+    capture_paths: frozenset[str] = frozenset(),
+    capture_max_bytes: int | None = None,
+    capture_total_max_bytes: int | None = None,
+    captured_artifacts: dict[str, bytes] | None = None,
 ) -> list[str]:
     """再開・公開に必要なreport意味整合性と全成果物を検証する。"""
 
@@ -1228,10 +1277,13 @@ def case_integrity_errors(
         unexpected = sorted(manifest_paths - required)
         errors.extend(f"artifact_manifest_missing:{path}" for path in missing)
         errors.extend(f"artifact_manifest_unexpected:{path}" for path in unexpected)
+        requested_snapshots = frozenset({"classification.json", "applicability.json"}) | capture_paths
         artifact_errors, verified_semantic_artifacts = _verify_artifact_hashes_with_snapshots(
             case_dir,
             manifest,
-            capture_paths=frozenset({"classification.json", "applicability.json"}),
+            capture_paths=requested_snapshots,
+            capture_max_bytes=capture_max_bytes,
+            capture_total_max_bytes=capture_total_max_bytes,
         )
         errors.extend(artifact_errors)
 
@@ -1306,4 +1358,12 @@ def case_integrity_errors(
                     errors.append("applicability_executed_sample_flag_invalid")
                 if applicability_document.get("network_contacted") is not False:
                     errors.append("applicability_network_contacted_flag_invalid")
-    return sorted(set(errors))
+    result = sorted(set(errors))
+    if captured_artifacts is not None and not result:
+        if any(relative not in verified_semantic_artifacts for relative in capture_paths):
+            return ["artifact_capture_missing"]
+        captured_artifacts.update(
+            (relative, verified_semantic_artifacts[relative])
+            for relative in sorted(capture_paths)
+        )
+    return result

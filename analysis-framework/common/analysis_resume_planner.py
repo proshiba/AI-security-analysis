@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ import analysis_orchestrator
 
 SCHEMA_VERSION = 1
 MAX_SNAPSHOT_FILES = analysis_orchestrator.MAX_WORKFLOWS * 4 + 32
+MAX_TOTAL_SNAPSHOT_BYTES = 64 * 1024 * 1024
+SNAPSHOT_HASH_CHUNK_BYTES = 64 * 1024
 MAX_CODE_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_ANCHORED_INPUT_BYTES = analysis_job_runner.MAX_SUMMARY_BYTES
 _FAMILY_SUFFIX_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$")
@@ -52,9 +55,26 @@ class _Snapshot(_FileSnapshot):
 
 
 class _SnapshotReader:
-    """複数JSONを有界に読み、計画確定前の置換も検出する。"""
+    """複数fileを件数・合計bytesとも有界に読み、置換も検出する。"""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        maximum_files: int = MAX_SNAPSHOT_FILES,
+        maximum_total_bytes: int = MAX_TOTAL_SNAPSHOT_BYTES,
+    ) -> None:
+        if (
+            isinstance(maximum_files, bool)
+            or not isinstance(maximum_files, int)
+            or maximum_files <= 0
+            or isinstance(maximum_total_bytes, bool)
+            or not isinstance(maximum_total_bytes, int)
+            or maximum_total_bytes <= 0
+        ):
+            raise ResumePlannerError("snapshot_contract_invalid", "snapshot上限が不正です")
+        self._maximum_files = maximum_files
+        self._maximum_total_bytes = maximum_total_bytes
+        self._total_bytes = 0
         self._snapshots: dict[Path, _FileSnapshot] = {}
 
     @staticmethod
@@ -78,6 +98,37 @@ class _SnapshotReader:
             )
         return raw, after
 
+    def _new_snapshot_read_limit(
+        self,
+        path: Path,
+        *,
+        maximum_bytes: int,
+        label: str,
+    ) -> int:
+        if len(self._snapshots) >= self._maximum_files:
+            raise ResumePlannerError("snapshot_count_exceeded", "検証対象file件数が上限を超えています")
+        try:
+            size = path.lstat().st_size
+        except OSError as exc:
+            raise ResumePlannerError(f"{label}_invalid", f"{label}を安全に読み取れません") from exc
+        remaining = self._maximum_total_bytes - self._total_bytes
+        if size > remaining:
+            raise ResumePlannerError(
+                "snapshot_total_bytes_exceeded",
+                "検証対象fileの合計sizeが上限を超えています",
+            )
+        return min(maximum_bytes, remaining)
+
+    def _commit(self, snapshot: _FileSnapshot) -> None:
+        remaining = self._maximum_total_bytes - self._total_bytes
+        if snapshot.size > remaining:
+            raise ResumePlannerError(
+                "snapshot_total_bytes_exceeded",
+                "検証対象fileの合計sizeが上限を超えています",
+            )
+        self._snapshots[snapshot.path] = snapshot
+        self._total_bytes += snapshot.size
+
     def read(self, path: Path, *, maximum_bytes: int, label: str) -> _Snapshot:
         resolved = Path(os.path.abspath(os.fspath(path)))
         existing = self._snapshots.get(resolved)
@@ -85,12 +136,15 @@ class _SnapshotReader:
             if existing.maximum_bytes != maximum_bytes or not isinstance(existing, _Snapshot):
                 raise ResumePlannerError("snapshot_contract_invalid", "JSON読込上限が一致しません")
             return existing
-        if len(self._snapshots) >= MAX_SNAPSHOT_FILES:
-            raise ResumePlannerError("snapshot_count_exceeded", "検証対象JSON件数が上限を超えています")
+        read_limit = self._new_snapshot_read_limit(
+            resolved,
+            maximum_bytes=maximum_bytes,
+            label=label,
+        )
         try:
             raw, identity = self._read_committed_file(
                 resolved,
-                maximum_bytes=maximum_bytes,
+                maximum_bytes=read_limit,
             )
             document = analysis_job_runner._decode_json_object_strict(raw)
         except (analysis_job_runner.JobContractError, OSError) as exc:
@@ -103,7 +157,7 @@ class _SnapshotReader:
             identity=identity,
             size=len(raw),
         )
-        self._snapshots[resolved] = snapshot
+        self._commit(snapshot)
         return snapshot
 
     def read_file(self, path: Path, *, maximum_bytes: int, label: str) -> _FileSnapshot:
@@ -115,12 +169,15 @@ class _SnapshotReader:
             if existing.maximum_bytes != maximum_bytes:
                 raise ResumePlannerError("snapshot_contract_invalid", "file読込上限が一致しません")
             return existing
-        if len(self._snapshots) >= MAX_SNAPSHOT_FILES:
-            raise ResumePlannerError("snapshot_count_exceeded", "検証対象file件数が上限を超えています")
+        read_limit = self._new_snapshot_read_limit(
+            resolved,
+            maximum_bytes=maximum_bytes,
+            label=label,
+        )
         try:
             raw, identity = self._read_committed_file(
                 resolved,
-                maximum_bytes=maximum_bytes,
+                maximum_bytes=read_limit,
             )
         except (analysis_job_runner.JobContractError, OSError) as exc:
             raise ResumePlannerError(f"{label}_invalid", f"{label}を安全に読み取れません") from exc
@@ -131,18 +188,80 @@ class _SnapshotReader:
             identity=identity,
             size=len(raw),
         )
-        self._snapshots[resolved] = snapshot
+        self._commit(snapshot)
         return snapshot
+
+    @staticmethod
+    def _hash_committed_file(snapshot: _FileSnapshot) -> tuple[str, os.stat_result, int]:
+        """再検証時はraw全体を保持せず、固定chunkでhashとidentityを再照合する。"""
+
+        analysis_job_runner._ensure_no_reparse(
+            snapshot.path,
+            code="snapshot_changed_during_plan",
+            message="source fileのpathが変更されました",
+        )
+        before = snapshot.path.lstat()
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or analysis_job_runner._stat_has_reparse_attribute(before)
+            or before.st_nlink != 1
+            or before.st_size != snapshot.size
+        ):
+            raise analysis_job_runner.JobContractError(
+                "snapshot_changed_during_plan",
+                "source fileが変更されました",
+            )
+        flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0)) | int(getattr(os, "O_CLOEXEC", 0))
+        flags |= int(getattr(os, "O_NOINHERIT", 0)) | int(getattr(os, "O_NOFOLLOW", 0))
+        descriptor = os.open(snapshot.path, flags)
+        digest = hashlib.sha256()
+        total = 0
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            opened = os.fstat(handle.fileno())
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or analysis_job_runner._stat_has_reparse_attribute(opened)
+                or opened.st_nlink != 1
+                or not analysis_job_runner._same_file_identity(before, opened)
+            ):
+                raise analysis_job_runner.JobContractError(
+                    "snapshot_changed_during_plan",
+                    "source fileが変更されました",
+                )
+            while chunk := handle.read(SNAPSHOT_HASH_CHUNK_BYTES):
+                total += len(chunk)
+                if total > snapshot.size:
+                    raise analysis_job_runner.JobContractError(
+                        "snapshot_changed_during_plan",
+                        "source fileのsizeが変更されました",
+                    )
+                digest.update(chunk)
+            after_handle = os.fstat(handle.fileno())
+        after_path = snapshot.path.lstat()
+        if (
+            total != snapshot.size
+            or opened.st_size != total
+            or after_handle.st_size != total
+            or before.st_mtime_ns != after_path.st_mtime_ns
+            or opened.st_mtime_ns != after_handle.st_mtime_ns
+            or before.st_ctime_ns != after_path.st_ctime_ns
+            or opened.st_ctime_ns != after_handle.st_ctime_ns
+            or not analysis_job_runner._same_file_identity(opened, after_path)
+            or after_path.st_nlink != 1
+            or analysis_job_runner._stat_has_reparse_attribute(after_path)
+        ):
+            raise analysis_job_runner.JobContractError(
+                "snapshot_changed_during_plan",
+                "source fileが変更されました",
+            )
+        return digest.hexdigest(), after_path, total
 
     def verify_unchanged(self) -> None:
         """計画構築中にsource snapshotが変わっていないことを再確認する。"""
 
         for snapshot in self._snapshots.values():
             try:
-                raw, identity = self._read_committed_file(
-                    snapshot.path,
-                    maximum_bytes=snapshot.maximum_bytes,
-                )
+                digest, identity, size = self._hash_committed_file(snapshot)
             except (analysis_job_runner.JobContractError, OSError) as exc:
                 raise ResumePlannerError(
                     "snapshot_changed_during_plan",
@@ -150,9 +269,8 @@ class _SnapshotReader:
                 ) from exc
             if (
                 not analysis_job_runner._same_file_identity(snapshot.identity, identity)
-                or identity.st_size != snapshot.size
-                or len(raw) != snapshot.size
-                or hashlib.sha256(raw).hexdigest() != snapshot.sha256
+                or size != snapshot.size
+                or digest != snapshot.sha256
             ):
                 raise ResumePlannerError(
                     "snapshot_changed_during_plan",
@@ -375,18 +493,53 @@ _EXACT_BLOCKER_POLICIES: Mapping[str, _BlockerPolicy] = {
         10,
         (),
     ),
+    "preflight_failed": _BlockerPolicy(
+        "resume_workflow",
+        "preflight",
+        True,
+        10,
+        (),
+    ),
+    "publication_failed": _BlockerPolicy(
+        "resume_workflow",
+        "publication",
+        True,
+        10,
+        (),
+    ),
+    "function_validation_failed": _BlockerPolicy(
+        "resume_workflow",
+        "function_validation",
+        True,
+        10,
+        (),
+    ),
+    "completion_gate_failed": _BlockerPolicy(
+        "resume_workflow",
+        "completion_gate",
+        True,
+        10,
+        (),
+    ),
+    "derived_refresh_failed": _BlockerPolicy(
+        "resume_workflow",
+        "derived_refresh",
+        True,
+        10,
+        (),
+    ),
+    "private_archive_failed": _BlockerPolicy(
+        "resume_workflow",
+        "private_archive",
+        True,
+        10,
+        (),
+    ),
     "workflow_execution_failed": _BlockerPolicy(
         "resume_workflow",
         None,
         True,
         10,
-        (),
-    ),
-    "dependency_not_succeeded": _BlockerPolicy(
-        "resume_upstream_phase",
-        None,
-        True,
-        15,
         (),
     ),
     "stage_contract_changed": _BlockerPolicy(
@@ -442,12 +595,31 @@ _PREFIX_BLOCKER_POLICIES: tuple[tuple[str, _BlockerPolicy], ...] = (
     ),
 )
 
+# lifecycleのremediation registryをplannerの実stageへ変換する。blocker自体の
+# 分類は共通registryだけを正とし、この表は抽象phaseから保存stateのstageへの
+# 明示的な変換と優先度だけを担う。未知のaction keyはmanualへfail-closedする。
+_LIFECYCLE_POLICY_TRANSLATIONS: Mapping[str, tuple[str, str | None, int]] = {
+    "family": ("family_resolution", "static_analysis", 40),
+    "function": ("function_analysis", "function_validation", 70),
+    "static": ("static_analysis", "static_analysis", 30),
+    "static_limit": ("static_analysis", "static_analysis", 31),
+    "terminal": ("terminal_payload_recovery", "static_analysis", 50),
+    "config": ("configuration_recovery", "static_analysis", 60),
+    "protocol": ("protocol_analysis", "static_analysis", 61),
+    "handler": ("handler_execution", "static_analysis", 42),
+    "publication": ("publication", "publication", 80),
+    "manual": ("manual_review", None, 0),
+}
+
 _BUDGET_BLOCKERS = frozenset(
     {
         "maximum_workflow_attempts_exceeded",
         "maximum_stage_attempts_exceeded",
     }
 )
+
+# downstream stageのskip理由であり、再開根拠として単独利用できない。
+_DERIVED_BLOCKERS = frozenset({"dependency_not_succeeded"})
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -456,6 +628,24 @@ def _canonical_sha256(value: Any) -> str:
 
 def _valid_timestamp(value: Any) -> bool:
     return value is None or (isinstance(value, str) and 1 <= len(value) <= 64)
+
+
+def _failure_code(record: Mapping[str, Any]) -> str | None:
+    """runnerが生成した固定failure envelopeから安全なcodeだけを返す。"""
+
+    result = record.get("result")
+    error = result.get("error") if isinstance(result, Mapping) else None
+    if (
+        record.get("status") != "failed"
+        or not isinstance(error, dict)
+        or set(error) != {"code", "message"}
+        or not isinstance(error.get("code"), str)
+        or analysis_lifecycle.BLOCKER_RE.fullmatch(error["code"]) is None
+        or not isinstance(error.get("message"), str)
+        or not 1 <= len(error["message"]) <= 512
+    ):
+        return None
+    return error["code"]
 
 
 def _validate_orchestration_state(
@@ -517,8 +707,7 @@ def _validate_orchestration_state(
             or (
                 report_sha256 is not None
                 and (
-                    not isinstance(report_sha256, str)
-                    or analysis_lifecycle.SHA256_RE.fullmatch(report_sha256) is None
+                    not isinstance(report_sha256, str) or analysis_lifecycle.SHA256_RE.fullmatch(report_sha256) is None
                 )
             )
             or not analysis_orchestrator._record_semantics_valid(record)
@@ -659,9 +848,12 @@ def _validate_lifecycle_state(
                 "stored_fingerprint_sha256": fingerprint,
                 "current_fingerprint_sha256": current_fingerprint,
                 "fingerprint_matches_current": current_fingerprint == fingerprint,
+                "fingerprint_scope": "declared_stage_sources_and_anchored_inputs",
+                "transitive_implementation_status": "not_committed_by_saved_stage_state",
                 "result_sha256": _canonical_sha256(record["result"]),
                 "blocker_snapshot_sha256": _canonical_sha256(blockers),
                 "blockers": list(blockers),
+                "failure_code": _failure_code(record),
             }
         )
     if not analysis_lifecycle._workflow_semantics_valid(state):
@@ -677,18 +869,51 @@ def _policy_for_blocker(blocker: str) -> _BlockerPolicy | None:
         if blocker.startswith(prefix):
             suffix = blocker.removeprefix(prefix)
             return prefix_policy if _FAMILY_SUFFIX_RE.fullmatch(suffix) is not None else None
-    return None
+
+    action_key = analysis_lifecycle._BLOCKER_ACTION_KEYS.get(blocker)
+    if blocker.startswith("orchestration:"):
+        gate = blocker.removeprefix("orchestration:")
+        action_key = analysis_lifecycle._ORCHESTRATION_GATE_ACTION_KEYS.get(gate)
+    elif analysis_lifecycle._HANDLER_EVIDENCE_BLOCKER_RE.fullmatch(blocker):
+        action_key = "handler"
+    if action_key is None:
+        return None
+    translation = _LIFECYCLE_POLICY_TRANSLATIONS.get(action_key)
+    spec = analysis_lifecycle._ACTION_SPECS.get(action_key)
+    if translation is None or not isinstance(spec, tuple) or len(spec) != 6:
+        return None
+    expected_target, target_phase, priority = translation
+    action_id, abstract_target, executor, automatic, changed, prerequisites = spec
+    if (
+        not isinstance(action_id, str)
+        or analysis_lifecycle.BLOCKER_RE.fullmatch(action_id) is None
+        or abstract_target != expected_target
+        or not isinstance(executor, str)
+        or analysis_lifecycle.BLOCKER_RE.fullmatch(executor) is None
+        or not isinstance(automatic, bool)
+        or not isinstance(changed, bool)
+        or not isinstance(prerequisites, tuple)
+        or not prerequisites
+        or any(
+            not isinstance(item, str) or analysis_lifecycle.BLOCKER_RE.fullmatch(item) is None
+            for item in prerequisites
+        )
+    ):
+        return None
+    return _BlockerPolicy(
+        action_id=action_id,
+        target_phase=target_phase,
+        retryable=False,
+        priority=priority,
+        changed_evidence=prerequisites if changed else (),
+    )
 
 
 def _phase_by_id(phases: list[dict[str, Any]], phase: str | None) -> dict[str, Any] | None:
     if phase is not None:
         return next((item for item in phases if item["phase"] == phase), None)
     return next(
-        (
-            item
-            for item in phases
-            if item["enabled"] and item["status"] not in {"succeeded", "skipped"}
-        ),
+        (item for item in phases if item["enabled"] and item["status"] not in {"succeeded", "skipped"}),
         None,
     )
 
@@ -700,6 +925,61 @@ def _budget(used: int, limit: int, *, history_complete: bool) -> dict[str, Any]:
         "remaining": max(0, limit - used),
         "history_complete": history_complete,
     }
+
+
+def _select_root_policy(blockers: list[str]) -> tuple[str | None, _BlockerPolicy | None]:
+    """派生markerを除き、blind retryを避ける最優先root policyを返す。"""
+
+    candidates = [
+        (blocker, policy)
+        for blocker in blockers
+        if blocker not in _BUDGET_BLOCKERS and blocker not in _DERIVED_BLOCKERS
+        for policy in [_policy_for_blocker(blocker)]
+        if policy is not None
+    ]
+    if not candidates:
+        return None, None
+    non_retryable = [item for item in candidates if not item[1].retryable]
+    selected = min(
+        non_retryable or candidates,
+        key=lambda item: (
+            item[1].priority,
+            item[1].action_id,
+            item[1].target_phase or "",
+            item[0],
+        ),
+    )
+    return selected
+
+
+def _retry_evidence_is_bound(
+    record: Mapping[str, Any],
+    *,
+    phases: list[dict[str, Any]],
+    blocker: str | None,
+    policy: _BlockerPolicy | None,
+) -> bool:
+    """retryable codeが実際のfailed stage envelopeへ完全一致するか返す。"""
+
+    if blocker is None or policy is None or not policy.retryable:
+        return True
+    if blocker == "workflow_execution_failed":
+        return bool(
+            not phases
+            and record.get("status") == "failed"
+            and record.get("lifecycle_report_sha256") is None
+            and record.get("blockers") == [blocker]
+            and _failure_code(record) == blocker
+        )
+    if policy.target_phase is None:
+        return False
+    phase = _phase_by_id(phases, policy.target_phase)
+    return bool(
+        phase is not None
+        and phase["status"] == "failed"
+        and phase["blockers"] == [blocker]
+        and phase["failure_code"] == blocker
+    )
 
 
 def _decision_for_record(
@@ -729,57 +1009,14 @@ def _decision_for_record(
     }
     evidence_sha256 = _canonical_sha256(evidence_value)
     status = record["status"]
-    if status == "complete":
-        decision = {
-            "action_id": "no_op_complete",
-            "target_phase": None,
-            "eligible": False,
-            "retryable": False,
-            "successor_required": False,
-            "blocked_action_id": None,
-            "requires_changed_evidence": [],
-            "reason_codes": [],
-        }
-        return decision, {"workflow": workflow_budget, "phase": None}, {
-            "detected": False,
-            "evidence_sha256": evidence_sha256,
-            "basis": [],
-        }
-    if status == "deferred":
-        decision = {
-            "action_id": "wait_for_predecessor",
-            "target_phase": None,
-            "eligible": False,
-            "retryable": False,
-            "successor_required": False,
-            "blocked_action_id": None,
-            "requires_changed_evidence": ["predecessor_workflow_completion"],
-            "reason_codes": blockers,
-        }
-        return decision, {"workflow": workflow_budget, "phase": None}, {
-            "detected": False,
-            "evidence_sha256": evidence_sha256,
-            "basis": [],
-        }
-
-    unknown = [blocker for blocker in blockers if blocker not in _BUDGET_BLOCKERS and _policy_for_blocker(blocker) is None]
+    unknown = [
+        blocker
+        for blocker in blockers
+        if blocker not in _BUDGET_BLOCKERS and blocker not in _DERIVED_BLOCKERS and _policy_for_blocker(blocker) is None
+    ]
     fingerprints_current = all(item["fingerprint_matches_current"] for item in phases)
-    target_phase: str | None = None
-    selected_policy: _BlockerPolicy | None = None
-    if blockers and not unknown:
-        known = [
-            policy
-            for blocker in blockers
-            if blocker not in _BUDGET_BLOCKERS
-            for policy in [_policy_for_blocker(blocker)]
-            if policy is not None
-        ]
-        if known:
-            selected_policy = min(
-                known,
-                key=lambda item: (item.priority, item.action_id, item.target_phase or ""),
-            )
-            target_phase = selected_policy.target_phase
+    selected_blocker, selected_policy = _select_root_policy(blockers)
+    target_phase = selected_policy.target_phase if selected_policy is not None else None
     phase = _phase_by_id(phases, target_phase)
     phase_budget = (
         _budget(
@@ -795,18 +1032,72 @@ def _decision_for_record(
         or (phase_budget is not None and phase_budget["remaining"] == 0)
         or bool(set(blockers) & _BUDGET_BLOCKERS)
     )
-    if budget_exhausted:
+    contract_drift = not orchestrator_implementation_matches_current or not fingerprints_current
+    changed_phase = next(
+        (item["phase"] for item in phases if not item["fingerprint_matches_current"]),
+        target_phase,
+    )
+    retry_evidence_bound = _retry_evidence_is_bound(
+        record,
+        phases=phases,
+        blocker=selected_blocker,
+        policy=selected_policy,
+    )
+
+    if status == "complete" and not contract_drift:
         decision = {
-            "action_id": "stop_budget_exhausted",
-            "target_phase": phase["phase"] if phase is not None else target_phase,
+            "action_id": "no_op_complete",
+            "target_phase": None,
             "eligible": False,
             "retryable": False,
             "successor_required": False,
             "blocked_action_id": None,
             "requires_changed_evidence": [],
+            "reason_codes": [],
+        }
+    elif status == "deferred" and not contract_drift:
+        decision = {
+            "action_id": "wait_for_predecessor",
+            "target_phase": None,
+            "eligible": False,
+            "retryable": False,
+            "successor_required": False,
+            "blocked_action_id": None,
+            "requires_changed_evidence": ["predecessor_workflow_completion"],
             "reason_codes": blockers,
         }
-    elif unknown or selected_policy is None:
+    elif status == "partial":
+        underlying_action = selected_policy.action_id if selected_policy is not None else "manual_review_required"
+        if contract_drift:
+            partial_target = changed_phase
+            changed_evidence = [
+                "new_orchestration_id",
+                "new_workflow_id",
+                "updated_request_sha256",
+            ]
+        else:
+            partial_target = phase["phase"] if phase is not None else target_phase
+            changed_evidence = [
+                "new_orchestration_id",
+                "new_workflow_id",
+                "updated_request_sha256",
+            ]
+            changed_evidence.extend(
+                selected_policy.changed_evidence if selected_policy is not None else ("operator_review",)
+            )
+        decision = {
+            "action_id": "start_successor_workflow",
+            "target_phase": partial_target,
+            "eligible": False,
+            "retryable": False,
+            "successor_required": True,
+            "blocked_action_id": underlying_action,
+            "requires_changed_evidence": list(dict.fromkeys(changed_evidence)),
+            "reason_codes": blockers,
+        }
+    elif status not in {"complete", "deferred"} and (
+        unknown or (selected_policy is not None and not retry_evidence_bound)
+    ):
         decision = {
             "action_id": "manual_review_required",
             "target_phase": None,
@@ -817,23 +1108,41 @@ def _decision_for_record(
             "requires_changed_evidence": ["operator_review"],
             "reason_codes": blockers,
         }
-    elif not orchestrator_implementation_matches_current or not fingerprints_current:
-        changed_phase = next(
-            (item["phase"] for item in phases if not item["fingerprint_matches_current"]),
-            target_phase,
-        )
+    elif contract_drift:
         decision = {
             "action_id": "start_successor_workflow",
             "target_phase": changed_phase,
             "eligible": False,
             "retryable": False,
             "successor_required": True,
-            "blocked_action_id": selected_policy.action_id,
+            "blocked_action_id": (selected_policy.action_id if selected_policy is not None else None),
             "requires_changed_evidence": [
                 "new_orchestration_id",
                 "new_workflow_id",
                 "updated_request_sha256",
             ],
+            "reason_codes": blockers,
+        }
+    elif budget_exhausted:
+        decision = {
+            "action_id": "stop_budget_exhausted",
+            "target_phase": phase["phase"] if phase is not None else target_phase,
+            "eligible": False,
+            "retryable": False,
+            "successor_required": False,
+            "blocked_action_id": None,
+            "requires_changed_evidence": [],
+            "reason_codes": blockers,
+        }
+    elif selected_policy is None:
+        decision = {
+            "action_id": "manual_review_required",
+            "target_phase": None,
+            "eligible": False,
+            "retryable": False,
+            "successor_required": False,
+            "blocked_action_id": None,
+            "requires_changed_evidence": ["operator_review"],
             "reason_codes": blockers,
         }
     else:
@@ -848,40 +1157,20 @@ def _decision_for_record(
             "reason_codes": blockers,
         }
 
-    no_progress = (
-        int(record["attempts"]) > 1
-        and bool(blockers)
-        and fingerprints_current
-        and orchestrator_implementation_matches_current
+    # 保存stateは累積attemptsだけを持ち、各attemptのevidence snapshotを保持しない。
+    # 現在値が同じだけでは「進展なし」を立証できないため、履歴がない旧stateでは
+    # no-progressを断定せず、明示的なattempt budgetだけでretryを制限する。
+    no_progress = False
+    history_unavailable = decision["retryable"] and int(record["attempts"]) > 1 and bool(blockers)
+    return (
+        decision,
+        {"workflow": workflow_budget, "phase": phase_budget},
+        {
+            "detected": no_progress,
+            "evidence_sha256": evidence_sha256,
+            "basis": ["retry_history_not_preserved"] if history_unavailable else [],
+        },
     )
-    if no_progress and decision["retryable"]:
-        previous_action = decision["action_id"]
-        decision.update(
-            {
-                "action_id": "wait_for_evidence_change",
-                "eligible": False,
-                "retryable": False,
-                "blocked_action_id": previous_action,
-                "requires_changed_evidence": [
-                    "blocker_snapshot_sha256",
-                    "phase_result_sha256",
-                    "stage_fingerprint_sha256",
-                ],
-            }
-        )
-    return decision, {"workflow": workflow_budget, "phase": phase_budget}, {
-        "detected": no_progress,
-        "evidence_sha256": evidence_sha256,
-        "basis": (
-            [
-                "multiple_workflow_attempts",
-                "retry_history_not_preserved",
-                "current_stage_fingerprints_unchanged",
-            ]
-            if no_progress
-            else []
-        ),
-    }
 
 
 def _load_child_provenance(
@@ -910,10 +1199,13 @@ def _load_child_provenance(
                 "report_file_sha256": None,
             }
         raise ResumePlannerError("lifecycle_missing", "child lifecycle stateがありません")
-    analysis_lifecycle._reject_existing_reparse_components(
-        lifecycle_root,
-        label="lifecycle state",
-    )
+    try:
+        analysis_lifecycle._reject_existing_reparse_components(
+            lifecycle_root,
+            label="lifecycle state",
+        )
+    except (analysis_lifecycle.LifecycleError, OSError) as exc:
+        raise ResumePlannerError("lifecycle_path_invalid", "lifecycle pathが不正です") from exc
     request_snapshot = reader.read(
         lifecycle_root / "request.json",
         maximum_bytes=analysis_lifecycle.MAX_REQUEST_BYTES,
@@ -934,7 +1226,7 @@ def _load_child_provenance(
             timeout_seconds=analysis_job_runner.DEFAULT_TIMEOUT_SECONDS,
             create=False,
         )
-    except analysis_lifecycle.LifecycleError as exc:
+    except (analysis_lifecycle.LifecycleError, OSError) as exc:
         raise ResumePlannerError("lifecycle_context_invalid", "child lifecycle contextが不正です") from exc
     state_snapshot = reader.read(
         lifecycle_root / "state.json",
@@ -1000,7 +1292,7 @@ def build_resume_plan(
             orchestration_root,
             label="orchestration state",
         )
-    except analysis_lifecycle.LifecycleError as exc:
+    except (analysis_lifecycle.LifecycleError, OSError) as exc:
         raise ResumePlannerError("orchestration_path_invalid", "orchestration pathが不正です") from exc
     request_snapshot = reader.read(
         orchestration_root / "request.json",
@@ -1022,7 +1314,11 @@ def build_resume_plan(
             timeout_seconds=analysis_job_runner.DEFAULT_TIMEOUT_SECONDS,
             create=False,
         )
-    except (analysis_orchestrator.OrchestrationError, analysis_lifecycle.LifecycleError) as exc:
+    except (
+        analysis_orchestrator.OrchestrationError,
+        analysis_lifecycle.LifecycleError,
+        OSError,
+    ) as exc:
         raise ResumePlannerError("orchestration_context_invalid", "orchestration contextが不正です") from exc
     state_snapshot = reader.read(
         orchestration_root / "state.json",
@@ -1086,7 +1382,7 @@ def build_resume_plan(
             }
         )
     reader.verify_unchanged()
-    if all(item["current_status"] == "complete" for item in workflows):
+    if all(item["decision"]["action_id"] == "no_op_complete" for item in workflows):
         status = "complete"
     elif any(item["decision"]["eligible"] for item in workflows):
         status = "actionable"
@@ -1097,6 +1393,11 @@ def build_resume_plan(
         "orchestration_id": orchestration_id,
         "request_sha256": state_snapshot.document["request_sha256"],
         "status": status,
+        "snapshot_limits": {
+            "maximum_files": MAX_SNAPSHOT_FILES,
+            "maximum_total_bytes": MAX_TOTAL_SNAPSHOT_BYTES,
+            "verification_chunk_bytes": SNAPSHOT_HASH_CHUNK_BYTES,
+        },
         "source_provenance": {
             "request_file_sha256": request_snapshot.sha256,
             "state_file_sha256": state_snapshot.sha256,
@@ -1104,6 +1405,8 @@ def build_resume_plan(
             "stored_implementation_sha256": state_snapshot.document["implementation_sha256"],
             "current_implementation_sha256": current_implementation,
             "implementation_matches_current": implementation_matches,
+            "implementation_fingerprint_scope": "orchestrator_source_only",
+            "transitive_implementation_status": "not_committed_by_saved_orchestration_state",
         },
         "workflows": workflows,
         "safety": {

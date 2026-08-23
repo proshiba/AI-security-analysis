@@ -142,20 +142,73 @@ python .\analysis-framework\common\refresh_overall_logic_diagrams.py `
 10. collection検証とコード類似性索引を更新します。
 
 任意Ghidra script実行は既定で無効のままにします。MCPが公開していない操作だけをUIで補います。
+Ghidra MCPのHTTP接続先は、DNS解決を行わないnumeric loopback literal（`127.0.0.0/8`または
+`::1`）に限定し、`localhost`などのhost名、資格情報、query、fragmentを受理しません。専用openerは
+環境変数のHTTP／HTTPS proxyを使用せず、外部host向けだけでなく別portを含むloopback向けも、すべての
+HTTP redirectをdestination request生成前に拒否します。したがって、redirect先へ認証headerやMCP
+request bodyを転送しません。応答は64 MiBを上限として1 byteだけ超過確認し、上限を超えた場合は
+JSON decode前にfail-closedで終了します。既存のrequest timeoutと公開APIは維持します。
 
 ## 一括解析
 
-`sample-root`と`private-output`はリポジトリ外のアクセス制限された領域を指定します。
+`collection`は`repository`内部の通常directory、`sample-root`と`private-output`は
+リポジトリ外のアクセス制限された領域を指定します。後者2つを含む各rootは同一pathや
+親子pathにせず、repositoryとcollection以外の相互包含を双方向で避けます。
+collectionとacquisitionの`manifest.json`は上限付きのstrict JSON snapshotとして読み、
+reparse point、hardlink、読取中のidentity／size／時刻変更を拒否します。acquisitionの
+`zip_path`は絶対path／sample-root相対pathのどちらでも`sample-root`配下に限定し、
+親directory参照、root外解決、重複pathを受理しません。ZIPは単一handleから固定したbytesと
+任意の`zip_sha256`／`zip_size`を照合し、そのmemory snapshotだけをarchive readerへ渡します。
+使用後に元ZIPと両manifestのbindingを再確認するため、差替えを検出したrunは公開しません。
+Ghidra MCPへ渡すPE pathは、検証済みlayer bytesから`private-output/import-staging/`へ
+O_EXCLで一度だけ作成した専用fileに限定します。既存stagingは単一link、hash、sizeが完全一致する
+場合だけ再利用し、不一致fileを削除または上書きしません。MCP import直前と直後にidentity、hash、
+sizeを再確認します。private raw index、program result、逆コンパイル／CIL JSONLも上限付きの
+strict single-handle snapshotとして読み、atomic update時に既存identityを再照合します。
+reparse point、hardlink、過大、破損JSON、競合差替えを検出したrunはfail-closedにします。
+逆コンパイル／CIL JSONLには、専用の総量64 MiB、100,000 record、1行8 MiB、JSON深度64の
+上限を適用します。single handleから1行ずつstrict parseし、duplicate key、NaN／Infinity、
+過大な行・件数・深度を拒否します。parse後のSHA-256再確認も固定chunkで行うため、JSONL全bytesを
+再保持しません。追記・全置換は同じdirectoryの一時fileへ既存bytesと新recordをstreaming出力し、
+各write前に累積sizeを確認します。既存identity／hashをcommit直前に再照合してからatomic replace
+するため、上限超過、破損、または競合を検出した場合も既存fileを変更しません。
+
 
 ```powershell
 python .\analysis-framework\common\ghidra_function_batch.py `
   --repository . `
   --collection .\analysis-results\collections\<collection-id> `
   --sample-root C:\path\to\isolated-samples `
-  --private-output C:\path\to\private-static-results
+  --private-output C:\path\to\private-static-results `
+  --minimum-free-bytes 8589934592 `
+  --disk-guard-path C:\path\to\ghidra-projects
 ```
 
-途中再開時だけ`--reuse-prepared-inputs`を追加します。cacheはcollection IDとcase集合が一致する場合だけ利用します。全programの処理後に、ページング対象の終端取得、opcode hash inventory、call graph補完、代表関数選定、private成果物検証、公開成果物生成、collection検証を実行します。
+pending checkpointがある途中再開では、同じcommandを再実行すると準備済みinputを
+自動利用します。checkpointがない既存cacheを明示的に再利用する場合だけ
+`--reuse-prepared-inputs`を追加します。cacheはcollection IDとcase集合が一致し、
+固定field集合、件数、停止段階、安全値に加え、`prepared_inventory_sha256`で
+`input-relationships.json`の正確なbytesへ束縛できる場合だけ利用します。inventoryと
+PE cacheは上限付き単一handle snapshotで読み、reparse point、hardlink、identity、size、
+時刻、SHA-256の不一致を拒否します。全programの
+処理後に、ページング対象の終端取得、opcode hash inventory、call graph補完、
+代表関数選定、private成果物検証、公開成果物生成、collection検証を実行します。
+
+空き容量は既定8 GiBをreserveし、repository、入力copy先の`sample-root`、
+private出力、追加指定したGhidra保存先を入力準備前、各input copyの直前と直後、
+各programの開始前後、後処理前に監視します。copy予定byte数を含めて判定するため、
+現在の空き容量が下限以上でもcopy後にreserveを割るwriteは開始しません。
+同一filesystemのroleは1件へ集約し、reserveは加算しません。
+別filesystemは個別に下限を満たす必要があります。不足時は完了済み成果物を保持したまま
+`ghidra_chunk_pending`で停止し、`run-progress.json`の`pending_programs`、
+`postprocessing_pending`、`resume_mode`から再開段階を機械判定します。
+入力準備途中ではatomic copy済みfileを保持し、inventory完成後だけ準備済みとして記録します。
+後処理中にもcheckpointを先に保存するため、中断後はprogram解析を再実行せず
+postprocessing-onlyで再開できます。不足状態のまま下限を無効化して処理を継続しません。
+容量下限は256 MiBです。容量確認とatomic checkpointではsymlink／junction／
+reparse pointおよびdirectory identityの途中変更を拒否し、進捗へ実local pathを残しません。
+CLIは全工程完了時だけ終了code `0`を返し、再実行可能な`ghidra_chunk_pending`では`20`を
+返します。自動実行側は`20`を完了として扱わず、容量回復または次chunkへ継続します。
 
 ```powershell
 python .\analysis-framework\common\validate_function_analysis.py `

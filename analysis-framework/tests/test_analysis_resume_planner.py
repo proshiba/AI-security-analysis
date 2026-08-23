@@ -205,6 +205,40 @@ def _plan(
     )
 
 
+def _synthetic_phase(
+    phase: str,
+    *,
+    status: str = "failed",
+    blocker: str,
+    failure_code: str | None,
+    attempts: int = 1,
+) -> dict[str, Any]:
+    blockers = [blocker]
+    return {
+        "phase": phase,
+        "enabled": True,
+        "status": status,
+        "attempts": attempts,
+        "stored_fingerprint_sha256": "1" * 64,
+        "current_fingerprint_sha256": "1" * 64,
+        "fingerprint_matches_current": True,
+        "result_sha256": "2" * 64,
+        "blocker_snapshot_sha256": lifecycle._sha256_value(blockers),
+        "blockers": blockers,
+        "failure_code": failure_code,
+    }
+
+
+def _synthetic_failed_record(blockers: list[str], *, attempts: int = 1) -> dict[str, Any]:
+    return {
+        "status": "failed",
+        "attempts": attempts,
+        "blockers": blockers,
+        "lifecycle_report_sha256": "3" * 64,
+        "result": {},
+    }
+
+
 def test_complete_workflow_is_verified_no_op(tmp_path: Path) -> None:
     result = _plan(_fixture(tmp_path, blocker=None))
 
@@ -223,6 +257,16 @@ def test_complete_workflow_is_verified_no_op(tmp_path: Path) -> None:
     }
     assert len(workflow["phase_provenance"]) == len(lifecycle.STAGE_ORDER)
     assert all(len(item["result_sha256"]) == 64 for item in workflow["phase_provenance"])
+    assert all(
+        item["fingerprint_scope"] == "declared_stage_sources_and_anchored_inputs"
+        and item["transitive_implementation_status"] == "not_committed_by_saved_stage_state"
+        for item in workflow["phase_provenance"]
+    )
+    assert result["source_provenance"]["implementation_fingerprint_scope"] == "orchestrator_source_only"
+    assert (
+        result["source_provenance"]["transitive_implementation_status"]
+        == "not_committed_by_saved_orchestration_state"
+    )
 
 
 @pytest.mark.parametrize(
@@ -252,11 +296,57 @@ def test_exact_and_prefix_blockers_have_deterministic_root_action(
     decision = result["workflows"][0]["decision"]
 
     assert result["status"] == "blocked"
-    assert decision["action_id"] == action_id
+    assert decision["action_id"] == "start_successor_workflow"
+    assert decision["blocked_action_id"] == action_id
     assert decision["target_phase"] == target_phase
     assert decision["eligible"] is False
     assert decision["retryable"] is False
-    assert decision["requires_changed_evidence"]
+    assert decision["successor_required"] is True
+    assert decision["requires_changed_evidence"][:3] == [
+        "new_orchestration_id",
+        "new_workflow_id",
+        "updated_request_sha256",
+    ]
+
+
+def test_every_lifecycle_registered_blocker_has_a_planner_policy() -> None:
+    blockers = set(lifecycle._BLOCKER_ACTION_KEYS)
+    blockers.update(f"orchestration:{gate}" for gate in lifecycle._ORCHESTRATION_GATE_ACTION_KEYS)
+
+    assert blockers
+    assert all(planner._policy_for_blocker(blocker) is not None for blocker in blockers)
+    assert planner._policy_for_blocker("orchestration:unregistered_gate") is None
+
+
+@pytest.mark.parametrize(
+    ("blocker", "action_id", "target_phase"),
+    [
+        ("config_and_c2_not_recovered", "configuration_and_c2_static_recovery", "static_analysis"),
+        ("operational_c2_not_recovered", "configuration_and_c2_static_recovery", "static_analysis"),
+        ("virtualized_terminal_payload_not_recovered", "terminal_payload_static_recovery", "static_analysis"),
+        ("family_attribution_unresolved", "family_attribution_review", "static_analysis"),
+        ("final_c2_endpoint_unresolved", "configuration_and_c2_static_recovery", "static_analysis"),
+        ("static_c2_config_unresolved", "configuration_and_c2_static_recovery", "static_analysis"),
+    ],
+)
+def test_lifecycle_registry_fallback_covers_completion_blockers(
+    blocker: str,
+    action_id: str,
+    target_phase: str,
+) -> None:
+    policy = planner._policy_for_blocker(blocker)
+
+    assert policy is not None
+    assert policy.action_id == action_id
+    assert policy.target_phase == target_phase
+    assert policy.retryable is False
+    assert policy.changed_evidence
+
+
+def test_malformed_lifecycle_action_spec_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(lifecycle._ACTION_SPECS, "config", ("invalid",))
+
+    assert planner._policy_for_blocker("config_and_c2_not_recovered") is None
 
 
 def test_unknown_or_malformed_prefix_blocker_fails_closed(tmp_path: Path) -> None:
@@ -268,10 +358,17 @@ def test_unknown_or_malformed_prefix_blocker_fails_closed(tmp_path: Path) -> Non
     )
     decision = result["workflows"][0]["decision"]
 
-    assert decision["action_id"] == "manual_review_required"
+    assert decision["action_id"] == "start_successor_workflow"
+    assert decision["blocked_action_id"] == "manual_review_required"
     assert decision["eligible"] is False
     assert decision["retryable"] is False
-    assert decision["requires_changed_evidence"] == ["operator_review"]
+    assert decision["successor_required"] is True
+    assert decision["requires_changed_evidence"] == [
+        "new_orchestration_id",
+        "new_workflow_id",
+        "updated_request_sha256",
+        "operator_review",
+    ]
 
 
 def test_transient_failure_is_resumable_once_with_explicit_budget(tmp_path: Path) -> None:
@@ -291,7 +388,7 @@ def test_transient_failure_is_resumable_once_with_explicit_budget(tmp_path: Path
     }
 
 
-def test_same_evidence_multiple_attempts_engages_no_progress_guard(tmp_path: Path) -> None:
+def test_attempt_count_without_evidence_history_does_not_assert_no_progress(tmp_path: Path) -> None:
     result = _plan(
         _fixture(
             tmp_path,
@@ -302,11 +399,13 @@ def test_same_evidence_multiple_attempts_engages_no_progress_guard(tmp_path: Pat
     )
     workflow = result["workflows"][0]
 
-    assert workflow["no_progress"]["detected"] is True
+    assert workflow["no_progress"]["detected"] is False
+    assert workflow["no_progress"]["basis"] == ["retry_history_not_preserved"]
+    assert lifecycle.SHA256_RE.fullmatch(workflow["no_progress"]["evidence_sha256"])
     assert workflow["retry_budget"]["workflow"]["history_complete"] is False
-    assert workflow["decision"]["action_id"] == "wait_for_evidence_change"
-    assert workflow["decision"]["blocked_action_id"] == "resume_workflow"
-    assert workflow["decision"]["eligible"] is False
+    assert workflow["decision"]["action_id"] == "resume_workflow"
+    assert workflow["decision"]["blocked_action_id"] is None
+    assert workflow["decision"]["eligible"] is True
 
 
 def test_exhausted_workflow_budget_stops_without_retry(tmp_path: Path) -> None:
@@ -338,23 +437,74 @@ def test_stale_implementation_requires_successor_workflow(tmp_path: Path) -> Non
 
     assert result["source_provenance"]["implementation_matches_current"] is False
     assert decision["action_id"] == "start_successor_workflow"
+    assert decision["blocked_action_id"] == "recover_terminal_payload_statically"
+    assert decision["target_phase"] == "static_analysis"
     assert decision["successor_required"] is True
     assert decision["eligible"] is False
+    assert decision["requires_changed_evidence"] == [
+        "new_orchestration_id",
+        "new_workflow_id",
+        "updated_request_sha256",
+    ]
 
 
 def test_stale_phase_fingerprint_requires_successor_workflow(tmp_path: Path) -> None:
     roots = _fixture(tmp_path)
+    child_context, _ = lifecycle._existing_context(
+        "sample-001",
+        repository=roots[0],
+        input_root=roots[1],
+        work_root=roots[2],
+        timeout_seconds=60,
+    )
+    orchestration_context, _ = orchestrator._existing_context(
+        roots[3],
+        repository=roots[0],
+        input_root=roots[1],
+        work_root=roots[2],
+        timeout_seconds=60,
+    )
     child_state_path = roots[2] / "lifecycles" / "sample-001" / "state.json"
+    child_report_path = roots[2] / "lifecycles" / "sample-001" / "report.json"
     state = json.loads(child_state_path.read_text(encoding="utf-8"))
     state["stages"]["completion_gate"]["fingerprint"] = "0" * 64
     child_state_path.write_text(json.dumps(state, sort_keys=True) + "\n", encoding="utf-8")
+    child_report_path.write_text(
+        json.dumps(lifecycle._public_report_from_state(child_context, state), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    orchestration_state_path = roots[2] / "orchestrations" / roots[3] / "state.json"
+    orchestration_report_path = roots[2] / "orchestrations" / roots[3] / "report.json"
+    orchestration_state = json.loads(orchestration_state_path.read_text(encoding="utf-8"))
+    parent_record = orchestration_state["workflows"][0]
+    parent_record["blockers"] = orchestrator._record_blockers(state)
+    parent_record["result"] = orchestrator._record_result(state)
+    parent_record["lifecycle_report_sha256"] = lifecycle._sha256_file(child_report_path)
+    orchestration_state_path.write_text(
+        json.dumps(orchestration_state, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    orchestration_report_path.write_text(
+        json.dumps(
+            orchestrator._public_report_from_state(orchestration_context, orchestration_state),
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     result = _plan(roots)
     decision = result["workflows"][0]["decision"]
 
     assert decision["action_id"] == "start_successor_workflow"
+    assert decision["blocked_action_id"] == "recover_terminal_payload_statically"
     assert decision["target_phase"] == "completion_gate"
     assert decision["successor_required"] is True
+    assert decision["requires_changed_evidence"] == [
+        "new_orchestration_id",
+        "new_workflow_id",
+        "updated_request_sha256",
+    ]
 
 
 def test_deferred_workflow_waits_without_consuming_budget(tmp_path: Path) -> None:
@@ -404,11 +554,7 @@ def test_current_source_change_after_stage_fingerprint_fails_closed(
     if source_kind == "stage":
         source_root = tmp_path / "current-common"
         source_root.mkdir()
-        source_names = {
-            name
-            for stage_names in lifecycle.STAGE_CODE_FILES.values()
-            for name in stage_names
-        }
+        source_names = {name for stage_names in lifecycle.STAGE_CODE_FILES.values() for name in stage_names}
         for name in source_names:
             (source_root / name).write_text(f"# {name}\n", encoding="utf-8")
         target = source_root / "analysis_lifecycle.py"
@@ -506,22 +652,65 @@ def test_publication_manifest_change_after_stage_fingerprint_fails_closed(
     assert str(tmp_path) not in str(caught.value)
 
 
+def test_snapshot_reader_enforces_aggregate_bytes_and_chunked_recheck(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    document_path = tmp_path / "document.json"
+    source_path = tmp_path / "source.py"
+    document_path.write_text('{"value":1}\n', encoding="utf-8")
+    source_path.write_bytes(b"source")
+    document_size = len(document_path.read_bytes())
+    source_size = len(source_path.read_bytes())
+    exact_limit = document_size + source_size
+    monkeypatch.setattr(planner, "SNAPSHOT_HASH_CHUNK_BYTES", 2)
+
+    reader = planner._SnapshotReader(maximum_total_bytes=exact_limit)
+    reader.read(document_path, maximum_bytes=document_size, label="document")
+    reader.read_file(source_path, maximum_bytes=source_size, label="source")
+    reader.verify_unchanged()
+
+    exceeded = planner._SnapshotReader(maximum_total_bytes=exact_limit - 1)
+    exceeded.read(document_path, maximum_bytes=document_size, label="document")
+    with pytest.raises(planner.ResumePlannerError) as caught:
+        exceeded.read_file(source_path, maximum_bytes=source_size, label="source")
+
+    assert caught.value.code == "snapshot_total_bytes_exceeded"
+    assert str(tmp_path) not in str(caught.value)
+
+
+def test_snapshot_reader_enforces_configurable_file_count_without_path_leak(tmp_path: Path) -> None:
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    first.write_text("{}\n", encoding="utf-8")
+    second.write_text("{}\n", encoding="utf-8")
+    reader = planner._SnapshotReader(maximum_files=1)
+
+    first_size = len(first.read_bytes())
+    second_size = len(second.read_bytes())
+    reader.read(first, maximum_bytes=first_size, label="first")
+    with pytest.raises(planner.ResumePlannerError) as caught:
+        reader.read(second, maximum_bytes=second_size, label="second")
+
+    assert caught.value.code == "snapshot_count_exceeded"
+    assert str(tmp_path) not in str(caught.value)
+
+
 def test_plan_is_stable_read_only_and_does_not_expose_local_paths(tmp_path: Path) -> None:
     roots = _fixture(tmp_path)
-    before = {
-        path.relative_to(roots[2]).as_posix(): path.read_bytes()
-        for path in roots[2].rglob("*.json")
-    }
+    before = {path.relative_to(roots[2]).as_posix(): path.read_bytes() for path in roots[2].rglob("*.json")}
 
     first = _plan(roots)
     second = _plan(roots)
-    after = {
-        path.relative_to(roots[2]).as_posix(): path.read_bytes()
-        for path in roots[2].rglob("*.json")
-    }
+    after = {path.relative_to(roots[2]).as_posix(): path.read_bytes() for path in roots[2].rglob("*.json")}
 
     assert first == second
     assert first["plan_id"] == second["plan_id"]
+    assert first["snapshot_limits"] == {
+        "maximum_files": planner.MAX_SNAPSHOT_FILES,
+        "maximum_total_bytes": 64 * 1024 * 1024,
+        "verification_chunk_bytes": planner.SNAPSHOT_HASH_CHUNK_BYTES,
+    }
     assert before == after
     assert str(tmp_path) not in json.dumps(first, ensure_ascii=False)
     assert first["safety"] == {
@@ -564,6 +753,27 @@ def test_report_tamper_is_rejected_before_planning(tmp_path: Path) -> None:
     assert caught.value.code == "orchestration_report_mismatch"
 
 
+def test_child_reparse_rejection_is_normalized_without_local_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roots = _fixture(tmp_path)
+    original = lifecycle._reject_existing_reparse_components
+
+    def reject_child(path: Path, *, label: str) -> None:
+        if label == "lifecycle state":
+            raise OSError(f"private path: {path}")
+        original(path, label=label)
+
+    monkeypatch.setattr(lifecycle, "_reject_existing_reparse_components", reject_child)
+
+    with pytest.raises(planner.ResumePlannerError) as caught:
+        _plan(roots)
+
+    assert caught.value.code == "lifecycle_path_invalid"
+    assert str(tmp_path) not in str(caught.value)
+
+
 def test_cli_outputs_machine_plan_and_partial_exit_code(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -589,3 +799,227 @@ def test_cli_outputs_machine_plan_and_partial_exit_code(
     assert output["schema_version"] == 1
     assert output["status"] == "blocked"
     assert len(output["plan_id"]) == 64
+    assert output["workflows"][0]["decision"]["action_id"] == "start_successor_workflow"
+    assert output["workflows"][0]["decision"]["successor_required"] is True
+    assert output["workflows"][0]["decision"]["eligible"] is False
+
+
+@pytest.mark.parametrize(
+    ("blocker", "target_phase"),
+    [
+        ("preflight_failed", "preflight"),
+        ("publication_failed", "publication"),
+        ("function_validation_failed", "function_validation"),
+        ("completion_gate_failed", "completion_gate"),
+        ("derived_refresh_failed", "derived_refresh"),
+        ("private_archive_failed", "private_archive"),
+    ],
+)
+def test_exact_transient_stage_failure_is_resumable_only_when_bound(
+    blocker: str,
+    target_phase: str,
+) -> None:
+    record = _synthetic_failed_record([blocker])
+    phase = _synthetic_phase(
+        target_phase,
+        blocker=blocker,
+        failure_code=blocker,
+    )
+
+    decision, budget, _ = planner._decision_for_record(
+        record,
+        phases=[phase],
+        orchestrator_implementation_matches_current=True,
+    )
+
+    assert decision["action_id"] == "resume_workflow"
+    assert decision["target_phase"] == target_phase
+    assert decision["eligible"] is True
+    assert budget["phase"]["remaining"] == lifecycle.MAX_ATTEMPTS - 1
+
+
+@pytest.mark.parametrize(
+    ("status", "failure_code"),
+    [
+        ("blocked", "publication_failed"),
+        ("failed", None),
+        ("failed", "static_analysis_failed"),
+    ],
+)
+def test_transient_code_without_matching_failed_stage_fails_closed(
+    status: str,
+    failure_code: str | None,
+) -> None:
+    blocker = "publication_failed"
+    record = _synthetic_failed_record([blocker])
+    phase = _synthetic_phase(
+        "publication",
+        status=status,
+        blocker=blocker,
+        failure_code=failure_code,
+    )
+
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[phase],
+        orchestrator_implementation_matches_current=True,
+    )
+
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["eligible"] is False
+
+
+def test_workflow_execution_failure_requires_exact_parent_envelope() -> None:
+    blocker = "workflow_execution_failed"
+    valid = _synthetic_failed_record([blocker])
+    valid["lifecycle_report_sha256"] = None
+    valid["result"] = {
+        "error": {
+            "code": blocker,
+            "message": "workflowを安全に完了できませんでした (RuntimeError)",
+        }
+    }
+
+    decision, _, _ = planner._decision_for_record(
+        valid,
+        phases=[],
+        orchestrator_implementation_matches_current=True,
+    )
+    assert decision["action_id"] == "resume_workflow"
+    assert decision["eligible"] is True
+
+    invalid = dict(valid)
+    invalid["result"] = {"error": {"code": blocker, "message": 1}}
+    decision, _, _ = planner._decision_for_record(
+        invalid,
+        phases=[],
+        orchestrator_implementation_matches_current=True,
+    )
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["eligible"] is False
+
+
+def test_non_retryable_root_blocker_precedes_dependency_marker() -> None:
+    record = _synthetic_failed_record(["dependency_not_succeeded", "publication_incomplete"])
+    phase = _synthetic_phase(
+        "publication",
+        status="blocked",
+        blocker="publication_incomplete",
+        failure_code=None,
+    )
+
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[phase],
+        orchestrator_implementation_matches_current=True,
+    )
+
+    assert decision["action_id"] == "repair_publication"
+    assert decision["retryable"] is False
+    assert decision["eligible"] is False
+
+
+def test_non_retryable_evidence_work_precedes_transient_stage_failure() -> None:
+    record = _synthetic_failed_record(["publication_failed", "terminal_payload_not_recovered"])
+    publication = _synthetic_phase(
+        "publication",
+        blocker="publication_failed",
+        failure_code="publication_failed",
+    )
+
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[publication],
+        orchestrator_implementation_matches_current=True,
+    )
+
+    assert decision["action_id"] == "recover_terminal_payload_statically"
+    assert decision["target_phase"] == "static_analysis"
+    assert decision["retryable"] is False
+    assert decision["eligible"] is False
+
+
+def test_unknown_blocker_stays_manual_when_budget_is_exhausted(tmp_path: Path) -> None:
+    result = _plan(
+        _fixture(
+            tmp_path,
+            blocker="future_unreviewed_blocker",
+            attempts=orchestrator.MAX_ATTEMPTS,
+        )
+    )
+    decision = result["workflows"][0]["decision"]
+
+    assert decision["action_id"] == "start_successor_workflow"
+    assert decision["blocked_action_id"] == "manual_review_required"
+    assert decision["successor_required"] is True
+    assert decision["eligible"] is False
+
+
+@pytest.mark.parametrize("complete", [False, True])
+def test_contract_drift_requires_successor_even_for_complete_or_exhausted(
+    tmp_path: Path,
+    complete: bool,
+) -> None:
+    roots = _fixture(
+        tmp_path,
+        blocker=None if complete else "terminal_payload_not_recovered",
+        attempts=1 if complete else orchestrator.MAX_ATTEMPTS,
+    )
+    state_path = roots[2] / "orchestrations" / roots[3] / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["implementation_sha256"] = "0" * 64
+    state_path.write_text(json.dumps(state, sort_keys=True) + "\n", encoding="utf-8")
+
+    result = _plan(roots)
+    decision = result["workflows"][0]["decision"]
+
+    assert result["status"] == "blocked"
+    assert decision["action_id"] == "start_successor_workflow"
+    assert decision["successor_required"] is True
+    assert decision["eligible"] is False
+
+
+def test_sample_bytes_are_not_read_or_exposed(tmp_path: Path) -> None:
+    roots = _fixture(tmp_path)
+    marker = "PRIVATE-SAMPLE-BYTES-MUST-NOT-APPEAR"
+    sample = roots[1] / "set" / "sample-001.bin"
+    sample.write_bytes(marker.encode("ascii"))
+
+    result = _plan(roots)
+    rendered = json.dumps(result, ensure_ascii=False)
+
+    assert marker not in rendered
+    assert result["safety"]["sample_bytes_read"] is False
+
+
+def test_cli_complete_and_invalid_state_exit_codes(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root, orchestration_id = _fixture(
+        tmp_path,
+        blocker=None,
+    )
+    argv = [
+        "plan-resume",
+        "--orchestration-id",
+        orchestration_id,
+        "--repository",
+        str(repository),
+        "--input-root",
+        str(input_root),
+        "--work-root",
+        str(work_root),
+    ]
+    assert planner.main(argv) == 0
+    complete_output = json.loads(capsys.readouterr().out)
+    assert complete_output["status"] == "complete"
+
+    monkeypatch.setattr(orchestrator, "MAX_STATE_BYTES", 64)
+    assert planner.main(argv) == 2
+    captured = capsys.readouterr()
+    error_output = json.loads(captured.err)
+    assert captured.out == ""
+    assert error_output["error"]["code"] == "orchestration_state_invalid"
+    assert str(tmp_path) not in captured.err

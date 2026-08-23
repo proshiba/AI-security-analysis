@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import hashlib
+import io
+import json
 import logging
-from pathlib import Path
+import os
 import sys
+from email.message import Message
+from pathlib import Path
 from types import SimpleNamespace
+from urllib.request import HTTPHandler, ProxyHandler, Request, build_opener
+from urllib.response import addinfourl
 
 import pytest
-
 
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
@@ -34,6 +39,37 @@ def _minimal_pe(marker: bytes) -> bytes:
     data[optional : optional + 2] = (0x10B).to_bytes(2, "little")
     data[optional + 92 : optional + 96] = (16).to_bytes(4, "little")
     return bytes(data) + marker
+
+
+def _write_prepared_inventory(
+    private_output: Path,
+    *,
+    collection_id: str,
+    digests: list[str],
+) -> str:
+    """自動再開test用の最小prepared input inventoryを保存する。"""
+
+    path = private_output / "input-relationships.json"
+    target._json_dump(
+        path,
+        {
+            "schema_version": target.SCHEMA_VERSION,
+            "collection_id": collection_id,
+            "relationships": [
+                {
+                    "case_sha256": digest,
+                    "layer_sha256": digest,
+                    "is_pe": True,
+                }
+                for digest in digests
+            ],
+            "unique_pe_objects": len(set(digests)),
+            "static_tools": {},
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    )
+    return target._bounded_json_snapshot(path).sha256
 
 
 def test_is_pe_rejects_truncated_mz_candidate() -> None:
@@ -147,8 +183,9 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
 
     data = b"MZ" + b"\x00" * 510
     digest = hashlib.sha256(data).hexdigest()
-    input_path = tmp_path / f"{digest}.quarantine.bin"
-    input_path.write_bytes(data)
+    private_output = tmp_path / "private"
+    input_snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    input_path = input_snapshot.path
     item = target.ProgramObject(
         sha256=digest,
         input_path=input_path,
@@ -160,6 +197,7 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
                 "transform": "root",
             }
         ],
+        input_snapshot=input_snapshot,
     )
     monkeypatch.setattr(target, "_is_managed_pe", lambda _data: True)
     monkeypatch.setattr(
@@ -181,7 +219,7 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     result = target.analyze_program(
         client,
         item,
-        tmp_path / "private",
+        private_output,
         "/Malware/Test",
         analysis_timeout=1,
     )
@@ -225,13 +263,15 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
 
     data = b"MZ" + b"\x00" * 510
     digest = hashlib.sha256(data).hexdigest()
-    input_path = tmp_path / f"{digest}.quarantine.bin"
-    input_path.write_bytes(data)
+    private_output = tmp_path / "private"
+    input_snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    input_path = input_snapshot.path
     item = target.ProgramObject(
         sha256=digest,
         input_path=input_path,
         size=len(data),
         relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=input_snapshot,
     )
     monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
     monkeypatch.setattr(
@@ -245,25 +285,72 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
         target.analyze_program(
             client,
             item,
-            tmp_path / "private",
+            private_output,
             "/Malware/Test",
             analysis_timeout=1,
         )
     assert client.import_calls == 1
 
 
-def test_client_accepts_only_local_plain_http() -> None:
-    """Ghidra MCP接続先をlocalhostの平文HTTPに限定する。"""
+def test_client_accepts_only_numeric_loopback_plain_http() -> None:
+    """Ghidra MCP接続先をDNS名ではなくnumeric loopbackの平文HTTPに限定する。"""
 
     assert target.GhidraMcpClient("http://127.0.0.1:8089").base_url == "http://127.0.0.1:8089"
+    assert target.GhidraMcpClient("http://[::1]:8089").base_url == "http://[::1]:8089"
     for value in (
         "https://127.0.0.1:8089",
         "http://192.0.2.1:8089",
-        "http://user:secret@localhost:8089",
+        "http://localhost:8089",
+        "http://user:secret@127.0.0.1:8089",
         "http://localhost:8089/?token=secret",
+        "http://127.0.0.1:not-a-port",
     ):
         with pytest.raises(ValueError):
             target.GhidraMcpClient(value)
+
+
+def test_client_uses_proxy_free_opener_and_preserves_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """環境proxyを無視する専用openerでHTTP 200をbounded readする。"""
+
+    monkeypatch.setenv("HTTP_PROXY", "http://198.51.100.10:3128")
+    monkeypatch.setenv("HTTPS_PROXY", "http://198.51.100.11:3128")
+    handlers: list[object] = []
+    opened: list[tuple[Request, int]] = []
+
+    class Response:
+        def __enter__(self) -> "Response":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self, amount: int = -1) -> bytes:
+            assert amount == target.MAX_MCP_RESPONSE_BYTES + 1
+            return b'{"ok":true}'
+
+    class Opener:
+        def open(self, request: Request, *, timeout: int) -> Response:
+            opened.append((request, timeout))
+            return Response()
+
+    def fake_build_opener(*values: object) -> Opener:
+        handlers.extend(values)
+        return Opener()
+
+    monkeypatch.setattr(target, "build_opener", fake_build_opener)
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=7)
+
+    assert client.get("/analysis_status", program="/Malware/Test/sample") == {"ok": True}
+    proxy_handlers = [value for value in handlers if isinstance(value, ProxyHandler)]
+    assert len(proxy_handlers) == 1
+    assert proxy_handlers[0].proxies == {}
+    assert any(isinstance(value, target._RejectMcpRedirectHandler) for value in handlers)
+    assert len(opened) == 1
+    request, timeout = opened[0]
+    assert request.full_url.startswith("http://127.0.0.1:8089/analysis_status?")
+    assert timeout == 7
 
 
 def test_client_rejects_mcp_error_object(
@@ -272,24 +359,106 @@ def test_client_rejects_mcp_error_object(
     """HTTP 200内のMCP error objectを成功扱いしない。"""
 
     class Response:
-        """urlopen responseの最小fixture。"""
-
         def __enter__(self) -> "Response":
             return self
 
         def __exit__(self, *args: object) -> None:
             return None
 
-        def read(self) -> bytes:
+        def read(self, _amount: int = -1) -> bytes:
             return b'{"error":"Program not found"}'
 
-    monkeypatch.setattr(target, "urlopen", lambda *args, **kwargs: Response())
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 180
+            return Response()
 
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError):
         target.GhidraMcpClient("http://127.0.0.1:8089").get(
             "/analysis_status",
             program="/Malware/Test/missing",
         )
+
+
+@pytest.mark.parametrize(
+    ("status_code", "destination"),
+    [
+        (301, "http://198.51.100.10/collect"),
+        (302, "http://127.0.0.1:8090/next"),
+        (303, "http://198.51.100.10/collect"),
+        (307, "http://127.0.0.1:8090/next"),
+        (308, "http://198.51.100.10/collect"),
+    ],
+)
+def test_mcp_opener_rejects_redirect_before_destination_request(
+    status_code: int,
+    destination: str,
+) -> None:
+    """external／同一loopback redirectを拒否し、auth headerを転送しない。"""
+
+    opened: list[tuple[str, dict[str, str]]] = []
+
+    class RedirectingHttpHandler(HTTPHandler):
+        def http_open(self, request: Request) -> object:
+            opened.append((request.full_url, dict(request.header_items())))
+            if len(opened) != 1:
+                pytest.fail("redirect destinationをopenしました")
+            headers = Message()
+            headers["Location"] = destination
+            response = addinfourl(
+                io.BytesIO(b""),
+                headers,
+                request.full_url,
+                code=status_code,
+            )
+            response.msg = "Synthetic redirect"
+            return response
+
+    opener = build_opener(
+        ProxyHandler({}),
+        target._RejectMcpRedirectHandler(),
+        RedirectingHttpHandler(),
+    )
+    request = Request(
+        "http://127.0.0.1:8089/analysis_status",
+        headers={"Authorization": "Bearer synthetic-secret"},
+    )
+
+    with pytest.raises(target.GhidraMcpError, match="redirect"):
+        opener.open(request, timeout=1)
+    assert len(opened) == 1
+    assert opened[0][0] == "http://127.0.0.1:8089/analysis_status"
+    assert opened[0][1]["Authorization"] == "Bearer synthetic-secret"
+    assert destination not in [value[0] for value in opened]
+
+
+def test_client_rejects_oversize_response_before_decode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """小さくpatchしたresponse上限のlimit+1をJSON decode前に拒否する。"""
+
+    monkeypatch.setattr(target, "MAX_MCP_RESPONSE_BYTES", 16)
+
+    class Response:
+        def __enter__(self) -> "Response":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self, amount: int = -1) -> bytes:
+            assert amount == 17
+            return b"{" + b"x" * 16
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 180
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="bytes上限"):
+        target.GhidraMcpClient("http://127.0.0.1:8089").get("/analysis_status")
 
 
 def test_decompile_status_preserves_limits() -> None:
@@ -1093,6 +1262,563 @@ def test_load_prepared_inputs_allows_missing_cache_for_complete_result(
         target.load_prepared_inputs(short_root / "samples", private)
 
 
+def test_load_prepared_inputs_rejects_hardlinked_inventory(tmp_path: Path) -> None:
+    """repository外fileへのhardlinkをprepared inventoryとして受理しない。"""
+
+    external = tmp_path / "external-inventory.json"
+    private = tmp_path / "private"
+    private.mkdir()
+    target._json_dump(
+        external,
+        {
+            "unique_pe_objects": 1,
+            "relationships": [],
+        },
+    )
+    try:
+        os.link(external, private / "input-relationships.json")
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+
+    with pytest.raises(ValueError, match="hardlink"):
+        target.load_prepared_inputs(tmp_path / "samples", private)
+
+
+def test_load_prepared_inputs_rejects_external_hardlink_cache(
+    tmp_path: Path,
+) -> None:
+    """sample root外fileへのhardlinkを検証済みPE cacheとして受理しない。"""
+
+    data = b"MZ-external-hardlink"
+    digest = hashlib.sha256(data).hexdigest()
+    short_root = tmp_path.parents[2] / (
+        "cache-hardlink-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
+    )
+    sample_root = short_root / "s"
+    input_path = (
+        sample_root
+        / digest
+        / "ghidra-input"
+        / f"{digest}.quarantine.bin"
+    )
+    input_path.parent.mkdir(parents=True)
+    external = short_root / "external-cache.bin"
+    external.parent.mkdir(parents=True, exist_ok=True)
+    external.write_bytes(data)
+    try:
+        os.link(external, input_path)
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+    private = short_root / "p"
+    target._json_dump(
+        private / "input-relationships.json",
+        {
+            "unique_pe_objects": 1,
+            "relationships": [
+                {
+                    "case_sha256": digest,
+                    "layer_sha256": digest,
+                    "depth": 0,
+                    "size": len(data),
+                    "is_pe": True,
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="hardlink"):
+        target.load_prepared_inputs(sample_root, private)
+
+
+def test_regular_snapshot_detects_same_content_identity_replacement(
+    tmp_path: Path,
+) -> None:
+    """同一bytesへの差替えでも固定済みfile identityの変更を拒否する。"""
+
+    path = tmp_path / "bound.bin"
+    replacement = tmp_path / "replacement.bin"
+    data = b"same-content"
+    path.write_bytes(data)
+    replacement.write_bytes(data)
+    _, snapshot = target._bounded_regular_file_snapshot(
+        path,
+        max_bytes=len(data),
+    )
+    os.replace(replacement, path)
+
+    with pytest.raises(ValueError, match="競合変更"):
+        target._assert_regular_snapshot_unchanged(
+            snapshot,
+            context="test",
+        )
+
+
+def test_archive_manifest_index_accepts_contained_absolute_and_relative_paths(
+    tmp_path: Path,
+) -> None:
+    """sample root内の絶対／相対archiveだけを決定的に索引化する。"""
+
+    sample_root = tmp_path / "samples"
+    first = sample_root / "a" / "first.zip"
+    second = sample_root / "b" / "second.zip"
+    first.parent.mkdir(parents=True)
+    second.parent.mkdir(parents=True)
+    first.write_bytes(b"first")
+    second.write_bytes(b"second")
+    first_digest = "a" * 64
+    second_digest = "b" * 64
+
+    index = target._archive_manifest_index(
+        sample_root,
+        {
+            "items": [
+                {"sha256": first_digest, "zip_path": str(first)},
+                {"sha256": second_digest, "zip_path": "b/second.zip"},
+            ]
+        },
+    )
+
+    assert index[first_digest].path == first.resolve()
+    assert index[second_digest].path == second.resolve()
+
+
+def test_archive_manifest_index_rejects_absolute_path_outside_root(
+    tmp_path: Path,
+) -> None:
+    """絶対zip_pathでもsample root外のfileを入力へ使用しない。"""
+
+    sample_root = tmp_path / "samples"
+    sample_root.mkdir()
+    outside = tmp_path / "outside.zip"
+    outside.write_bytes(b"outside")
+
+    with pytest.raises(ValueError, match="sample root外"):
+        target._archive_manifest_index(
+            sample_root,
+            {"items": [{"sha256": "a" * 64, "zip_path": str(outside)}]},
+        )
+
+
+def test_archive_manifest_index_rejects_parent_traversal(tmp_path: Path) -> None:
+    """相対zip_pathの親directory traversalを解決前に拒否する。"""
+
+    sample_root = tmp_path / "samples"
+    sample_root.mkdir()
+    (tmp_path / "outside.zip").write_bytes(b"outside")
+
+    with pytest.raises(ValueError, match="親directory参照"):
+        target._archive_manifest_index(
+            sample_root,
+            {"items": [{"sha256": "a" * 64, "zip_path": "../outside.zip"}]},
+        )
+
+
+def test_archive_manifest_index_rejects_hardlinked_archive(tmp_path: Path) -> None:
+    """sample root外fileへのhardlinkをarchive入力として受理しない。"""
+
+    sample_root = tmp_path / "samples"
+    sample_root.mkdir()
+    outside = tmp_path / "outside.zip"
+    archive = sample_root / "archive.zip"
+    outside.write_bytes(b"same-volume")
+    try:
+        os.link(outside, archive)
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+
+    with pytest.raises(ValueError, match="hardlink"):
+        target._archive_manifest_index(
+            sample_root,
+            {"items": [{"sha256": "a" * 64, "zip_path": str(archive)}]},
+        )
+
+
+def test_archive_manifest_index_rejects_reparse_archive(tmp_path: Path) -> None:
+    """sample root内のsymlinkから外部archiveへ到達しない。"""
+
+    sample_root = tmp_path / "samples"
+    sample_root.mkdir()
+    outside = tmp_path / "outside.zip"
+    archive = sample_root / "archive.zip"
+    outside.write_bytes(b"outside")
+    try:
+        archive.symlink_to(outside)
+    except OSError as exc:
+        pytest.skip(f"symlinkを作成できない環境です: {exc}")
+
+    with pytest.raises(ValueError, match="reparse point"):
+        target._archive_manifest_index(
+            sample_root,
+            {"items": [{"sha256": "a" * 64, "zip_path": str(archive)}]},
+        )
+
+
+def test_manifest_snapshot_rejects_hardlink_and_oversize(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """入力manifestもhardlinkと読取上限を同じsnapshot境界で拒否する。"""
+
+    sample_root = tmp_path / "samples"
+    sample_root.mkdir()
+    external = tmp_path / "external-manifest.json"
+    external.write_text('{"items": []}', encoding="utf-8")
+    manifest = sample_root / "manifest.json"
+    try:
+        os.link(external, manifest)
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+    with pytest.raises(ValueError, match="hardlink"):
+        target._bounded_json_snapshot(manifest)
+
+    manifest.unlink()
+    external.unlink()
+    manifest.write_text('{"padding":"' + ("x" * 80) + '"}', encoding="utf-8")
+    monkeypatch.setattr(target, "MAX_JSON_OBJECT_SIZE", 64)
+    with pytest.raises(ValueError, match="上限"):
+        target._bounded_json_snapshot(manifest)
+
+
+def test_read_manifest_archive_rejects_same_bytes_identity_swap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """snapshot後に同一bytesへ差し替えてもarchive bindingを拒否する。"""
+
+    archive = tmp_path / "archive.zip"
+    replacement = tmp_path / "replacement.zip"
+    data = b"fixture archive"
+    archive.write_bytes(data)
+    replacement.write_bytes(data)
+    digest = "a" * 64
+    entry = target._ArchiveManifestEntry(
+        sha256=digest,
+        path=archive,
+        expected_zip_sha256=hashlib.sha256(data).hexdigest(),
+        expected_zip_size=len(data),
+    )
+
+    def swap_after_snapshot(path: object, **_kwargs: object) -> SimpleNamespace:
+        assert isinstance(path, target._SnapshotInputPath)
+        assert path.open().read() == data
+        os.replace(replacement, archive)
+        return SimpleNamespace(
+            data=b"root",
+            outer_sha256=hashlib.sha256(data).hexdigest(),
+            outer_size=len(data),
+        )
+
+    monkeypatch.setattr(target, "read_input_unit", swap_after_snapshot)
+    with pytest.raises(ValueError, match="競合変更"):
+        target._read_manifest_archive(entry)
+
+
+def test_read_manifest_archive_rejects_oversize_before_archive_parse(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ZIP読取上限超過はarchive parserへ渡す前に拒否する。"""
+
+    archive = tmp_path / "archive.zip"
+    archive.write_bytes(b"0123456789")
+    entry = target._ArchiveManifestEntry(
+        sha256="a" * 64,
+        path=archive,
+        expected_zip_sha256=None,
+        expected_zip_size=None,
+    )
+    monkeypatch.setattr(target, "MAX_PREPARED_INPUT_BYTES", 8)
+    monkeypatch.setattr(
+        target,
+        "read_input_unit",
+        lambda *_args, **_kwargs: pytest.fail("過大ZIPをparserへ渡してはいけません"),
+    )
+
+    with pytest.raises(ValueError, match="上限"):
+        target._read_manifest_archive(entry)
+
+
+def test_immutable_staging_is_private_reusable_and_never_overwrites_tamper(
+    tmp_path: Path,
+) -> None:
+    """private stagingは同一bytesだけ再利用し、第三者bytesを上書きしない。"""
+
+    private = tmp_path / "private"
+    data = b"MZ-staging"
+    digest = hashlib.sha256(data).hexdigest()
+    first = target._immutable_staging_snapshot(private, digest, data)
+    second = target._immutable_staging_snapshot(private, digest, data)
+    assert first.path == second.path
+    assert private in first.path.parents
+
+    first.path.write_bytes(b"third-party")
+    with pytest.raises(ValueError, match="SHA-256"):
+        target._immutable_staging_snapshot(private, digest, data)
+    assert first.path.read_bytes() == b"third-party"
+
+
+def test_private_jsonl_positive_tamper_and_oversize(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """private JSONLは正常系を保持し、tamperとsize超過をfail-closedにする。"""
+
+    path = tmp_path / "raw.jsonl"
+    target._append_jsonl(path, [{"address": "0x1", "value": "ok"}])
+    assert target._load_jsonl(path)["0x1"]["value"] == "ok"
+
+    path.write_text("not-json\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="JSONLが不正"):
+        target._load_jsonl(path)
+
+    path.write_bytes(b"{}\n" * 8)
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_BYTES", 8)
+    with pytest.raises(ValueError, match="上限"):
+        target._bounded_jsonl_snapshot(path)
+
+
+def test_private_jsonl_atomic_update_rejects_identity_swap(tmp_path: Path) -> None:
+    """raw cache snapshot後の同一bytes path差替えをatomic commitで拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    replacement = tmp_path / "replacement.jsonl"
+    data = b'{"address":"0x1"}\n'
+    path.write_bytes(data)
+    replacement.write_bytes(data)
+    _, snapshot = target._bounded_jsonl_snapshot(path)
+    os.replace(replacement, path)
+
+    with pytest.raises(ValueError, match="競合変更"):
+        target._atomic_replace_bytes(
+            path,
+            b'{"address":"0x2"}\n',
+            expected_snapshot=snapshot,
+            maximum_bytes=target.MAX_PRIVATE_RAW_BYTES,
+        )
+    assert path.read_bytes() == data
+
+
+def test_private_jsonl_streaming_positive_and_replace(tmp_path: Path) -> None:
+    """末尾改行なしの既存fileもstream追記でき、全置換もstrictに読める。"""
+
+    path = tmp_path / "raw.jsonl"
+    path.write_bytes(b'{"address":"0x1","value":"first"}')
+
+    target._append_jsonl(path, [{"address": "0x2", "value": "second"}])
+    loaded = target._load_jsonl(path)
+    assert sorted(loaded) == ["0x1", "0x2"]
+    assert loaded["0x2"]["value"] == "second"
+
+    target._replace_jsonl(path, [{"address": "0x3", "value": "replacement"}])
+    assert target._load_jsonl(path) == {
+        "0x3": {"address": "0x3", "value": "replacement"}
+    }
+    assert target.MAX_PRIVATE_RAW_BYTES <= 64 * 1024 * 1024
+
+
+def test_private_jsonl_total_limit_plus_one_uses_small_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """小さなfixtureとmonkeypatchで総bytesのlimit+1を拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    data = b'{"address":"0x1"}\n'
+    path.write_bytes(data)
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_BYTES", len(data) - 1)
+
+    with pytest.raises(ValueError, match="総bytes上限"):
+        target._bounded_jsonl_snapshot(path)
+
+
+def test_private_jsonl_line_and_record_limits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """1行bytesとJSON record件数を独立して制限する。"""
+
+    path = tmp_path / "raw.jsonl"
+    line = b'{"address":"0x1","value":"long"}\n'
+    path.write_bytes(line)
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_BYTES", 4_096)
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_LINE_BYTES", len(line) - 1)
+    with pytest.raises(ValueError, match="1行bytes上限"):
+        target._bounded_jsonl_snapshot(path)
+
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_LINE_BYTES", 4_096)
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_RECORDS", 2)
+    path.write_bytes(
+        b'{"address":"0x1"}\n'
+        b'{"address":"0x2"}\n'
+        b'{"address":"0x3"}\n'
+    )
+    with pytest.raises(ValueError, match="record数上限"):
+        target._bounded_jsonl_snapshot(path)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b'{"address":"0x1","address":"0x2"}\n',
+        b'{"address":"0x1","value":NaN}\n',
+        b'{"address":"0x1","value":Infinity}\n',
+    ],
+)
+def test_private_jsonl_rejects_duplicate_and_non_finite(
+    tmp_path: Path,
+    payload: bytes,
+) -> None:
+    """duplicate keyとNaN／Infinityをstrict parserで拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    path.write_bytes(payload)
+    with pytest.raises(ValueError, match="JSONLが不正"):
+        target._bounded_jsonl_snapshot(path)
+
+
+def test_private_jsonl_depth_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JSON container深度の上限超過を拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    path.write_bytes(b'{"address":"0x1","a":{"b":{"c":1}}}\n')
+    monkeypatch.setattr(target, "MAX_PRIVATE_RAW_JSON_DEPTH", 2)
+
+    with pytest.raises(ValueError, match="JSONLが不正"):
+        target._bounded_jsonl_snapshot(path)
+
+
+def test_private_jsonl_generator_size_over_preserves_existing_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """generatorの累積size超過時もatomic置換前のfileを変更しない。"""
+
+    path = tmp_path / "raw.jsonl"
+    target._append_jsonl(path, [{"address": "0x1"}])
+    before = path.read_bytes()
+    extra = {"address": "0x2"}
+    encoded_extra = (
+        json.dumps(extra, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
+    monkeypatch.setattr(
+        target,
+        "MAX_PRIVATE_RAW_BYTES",
+        len(before) + len(encoded_extra) - 1,
+    )
+
+    def values() -> object:
+        yield extra
+
+    with pytest.raises(ValueError, match="総bytes上限"):
+        target._append_jsonl(path, values())
+    assert path.read_bytes() == before
+    assert not list(tmp_path.glob(".jsonl-*.tmp"))
+
+
+def test_private_jsonl_streaming_does_not_use_whole_snapshot_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """parse、hash再検証、atomic追記でwhole-file snapshot helperを使わない。"""
+
+    path = tmp_path / "raw.jsonl"
+    target._append_jsonl(path, [{"address": "0x1"}])
+    monkeypatch.setattr(
+        target,
+        "_bounded_regular_file_snapshot",
+        lambda *_args, **_kwargs: pytest.fail("whole snapshotを使用しました"),
+    )
+
+    rows, snapshot = target._bounded_jsonl_snapshot(path)
+    assert rows == [{"address": "0x1"}]
+    target._assert_jsonl_snapshot_unchanged(snapshot)
+    target._append_jsonl(path, [{"address": "0x2"}])
+    assert sorted(target._load_jsonl(path)) == ["0x1", "0x2"]
+
+def test_private_jsonl_parse_rehash_rejects_mixed_view_with_restored_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """parse後の別stream viewが異なるhashなら同一metadataでも拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    data = b'{"address":"0x1"}\n'
+    path.write_bytes(data)
+    metadata = path.lstat()
+    calls = 0
+
+    def mismatched_digest(
+        requested: Path,
+        *,
+        maximum_bytes: int,
+        destination: object | None = None,
+    ) -> object:
+        nonlocal calls
+        calls += 1
+        assert maximum_bytes >= len(data)
+        assert destination is None
+        return target._RegularFileSnapshot(
+            path=requested.resolve(),
+            sha256="f" * 64,
+            size=len(data),
+            metadata=metadata,
+        )
+
+    monkeypatch.setattr(target, "_stream_private_raw_digest", mismatched_digest)
+    with pytest.raises(ValueError, match="競合変更"):
+        target._bounded_jsonl_snapshot(path)
+    assert calls == 1
+
+
+
+def test_private_jsonl_atomic_rewrite_rejects_identity_swap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """commit直前の同一bytes identity差替えをstreaming rewriteでも拒否する。"""
+
+    path = tmp_path / "raw.jsonl"
+    replacement = tmp_path / "replacement.jsonl"
+    data = b'{"address":"0x1"}\n'
+    path.write_bytes(data)
+    replacement.write_bytes(data)
+    original_assert = target._assert_jsonl_snapshot_unchanged
+    swapped = False
+
+    def swap_then_assert(snapshot: object) -> None:
+        nonlocal swapped
+        if not swapped:
+            os.replace(replacement, path)
+            swapped = True
+        original_assert(snapshot)
+
+    monkeypatch.setattr(target, "_assert_jsonl_snapshot_unchanged", swap_then_assert)
+    with pytest.raises(ValueError, match="競合変更"):
+        target._append_jsonl(path, [{"address": "0x2"}])
+    assert path.read_bytes() == data
+    assert not list(tmp_path.glob(".jsonl-*.tmp"))
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows deny-write/delete共有の検証です")
+def test_staging_lock_blocks_path_swap_during_import_window(tmp_path: Path) -> None:
+    """WindowsではMCP import window中のstaging差替えをOS handleで拒否する。"""
+
+    private = tmp_path / "private"
+    data = b"MZ-locked"
+    digest = hashlib.sha256(data).hexdigest()
+    snapshot = target._immutable_staging_snapshot(private, digest, data)
+    replacement = tmp_path / "replacement.bin"
+    replacement.write_bytes(data)
+
+    with target._hold_staging_read_lock(snapshot):
+        with pytest.raises(OSError):
+            os.replace(replacement, snapshot.path)
+    assert snapshot.path.read_bytes() == data
+
+
 def test_finalize_case_report_promotes_only_function_analysis_blocker(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1601,6 +2327,7 @@ def test_bounded_json_snapshot_rejects_oversize(
     """transaction対象JSONは読取前に64MiB超を拒否する。"""
 
     path = tmp_path / name
+    path.write_bytes(b"{}")
     observed: list[tuple[Path, int]] = []
 
     def reject_oversize(candidate: Path, *, max_bytes: int) -> bytes:
@@ -2217,7 +2944,13 @@ def test_prepare_inputs_skips_replay_and_validates_static_tool_contract(
     }
     analysis_contract.seal_report(sealed_report)
     target._json_dump(case_dir / "report.json", sealed_report)
-    unit = SimpleNamespace(data=root_data, source_name="sample.exe")
+    archive_sha256 = hashlib.sha256(b"fixture archive").hexdigest()
+    unit = SimpleNamespace(
+        data=root_data,
+        source_name="sample.exe",
+        outer_sha256=archive_sha256,
+        outer_size=len(b"fixture archive"),
+    )
     observed: list[dict[str, Path | None]] = []
 
     monkeypatch.setattr(target, "read_input_unit", lambda *args, **kwargs: unit)
@@ -2275,6 +3008,8 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
     assert defaults.sevenzip is None
     assert defaults.diec is None
     assert defaults.skip_auto_analysis_sha256 == []
+    assert defaults.minimum_free_bytes == target.DEFAULT_MINIMUM_FREE_BYTES
+    assert defaults.disk_guard_path == []
 
     selected = parser.parse_args(
         common
@@ -2287,6 +3022,10 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
             str(tmp_path / "diec.exe"),
             "--skip-auto-analysis-sha256",
             "A" * 64,
+            "--minimum-free-bytes",
+            str(target.MINIMUM_CONFIGURABLE_FREE_BYTES),
+            "--disk-guard-path",
+            str(tmp_path),
             "--skip-auto-analysis-sha256",
             "b" * 64,
         ]
@@ -2295,6 +3034,60 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
     assert selected.sevenzip == tmp_path / "7z.exe"
     assert selected.diec == tmp_path / "diec.exe"
     assert selected.skip_auto_analysis_sha256 == ["a" * 64, "b" * 64]
+    assert selected.minimum_free_bytes == target.MINIMUM_CONFIGURABLE_FREE_BYTES
+    assert selected.disk_guard_path == [tmp_path]
+
+
+def test_cli_rejects_disabling_the_disk_reserve(tmp_path: Path) -> None:
+    """CLIから容量reserveを安全下限未満へ無効化できない。"""
+
+    with pytest.raises(ValueError, match="--minimum-free-bytes"):
+        target.main(
+            [
+                "--sample-root",
+                str(tmp_path / "samples"),
+                "--private-output",
+                str(tmp_path / "private"),
+                "--minimum-free-bytes",
+                str(target.MINIMUM_CONFIGURABLE_FREE_BYTES - 1),
+            ]
+        )
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_exit_code"),
+    [
+        ("complete", 0),
+        ("ghidra_chunk_pending", target.RETRYABLE_INCOMPLETE_EXIT_CODE),
+    ],
+)
+def test_cli_exit_code_distinguishes_complete_and_retryable_results(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    status: str,
+    expected_exit_code: int,
+) -> None:
+    """CLI callerが完了と再試行可能な途中停止を終了codeで区別できる。"""
+
+    monkeypatch.setattr(
+        target,
+        "run",
+        lambda _args: {
+            "status": status,
+            "retryable": status == "ghidra_chunk_pending",
+        },
+    )
+
+    exit_code = target.main(
+        [
+            "--sample-root",
+            str(tmp_path / "samples"),
+            "--private-output",
+            str(tmp_path / "private"),
+        ]
+    )
+
+    assert exit_code == expected_exit_code
 
 
 def test_prepare_inputs_replays_child_layers_with_same_tools(
@@ -2352,7 +3145,13 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     }
     analysis_contract.seal_report(report)
     target._json_dump(case_dir / "report.json", report)
-    unit = SimpleNamespace(data=root_data, source_name="sample.exe")
+    archive_sha256 = hashlib.sha256(b"fixture archive").hexdigest()
+    unit = SimpleNamespace(
+        data=root_data,
+        source_name="sample.exe",
+        outer_sha256=archive_sha256,
+        outer_size=len(b"fixture archive"),
+    )
     root_layer = SimpleNamespace(
         data=root_data,
         sha256=digest,
@@ -2370,6 +3169,7 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
         name="child.exe",
     )
     observed: list[dict[str, Path | None]] = []
+    storage_checks: list[tuple[str, str, int]] = []
     monkeypatch.setattr(target, "read_input_unit", lambda *args, **kwargs: unit)
 
     def replay_layers(
@@ -2386,11 +3186,29 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
         collection,
         sample_root,
         short_root / "p",
+        storage_guard=lambda phase, role, planned: storage_checks.append(
+            (phase, role, planned)
+        ),
     )
 
     assert set(objects) == {digest, child_digest}
     assert not non_pe
     assert observed == [identities]
+    assert storage_checks[:8] == [
+        ("before_input_copy", "sample_root", len(root_data)),
+        ("after_input_copy", "sample_root", 0),
+        ("before_ghidra_staging_write", "private_output", len(root_data)),
+        ("after_ghidra_staging_write", "private_output", 0),
+        ("before_input_copy", "sample_root", len(child_data)),
+        ("after_input_copy", "sample_root", 0),
+        ("before_ghidra_staging_write", "private_output", len(child_data)),
+        ("after_ghidra_staging_write", "private_output", 0),
+    ]
+    assert storage_checks[8][0:2] == (
+        "before_prepared_inventory_write",
+        "private_output",
+    )
+    assert storage_checks[8][2] > 0
     relationships = target.load_json_object_strict(short_root / "p" / "input-relationships.json")
     assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {"full_static_layer_replay"}
 
@@ -2463,7 +3281,13 @@ def test_prepare_inputs_replays_adaptive_static_layer_contract(
     }
     analysis_contract.seal_report(report)
     target._json_dump(case_dir / "report.json", report)
-    unit = SimpleNamespace(data=root_data, source_name="sample.exe")
+    archive_sha256 = hashlib.sha256(b"fixture archive").hexdigest()
+    unit = SimpleNamespace(
+        data=root_data,
+        source_name="sample.exe",
+        outer_sha256=archive_sha256,
+        outer_size=len(b"fixture archive"),
+    )
     root_layer = SimpleNamespace(
         data=root_data,
         sha256=digest,
@@ -2664,6 +3488,1039 @@ def test_refresh_rejects_truncated_initial_cache_after_project_rotation(
         )
 
 
+def test_storage_budget_observation_is_path_private_and_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """容量確認失敗を不足扱いにし、進捗へ実local pathを含めない。"""
+
+    repository = tmp_path / "repository"
+    private = tmp_path / "private"
+    repository.mkdir()
+    private.mkdir()
+
+    def observe(path: Path) -> tuple[tuple[int, str], int]:
+        if path == repository:
+            return (1, "volume-a"), target.DEFAULT_MINIMUM_FREE_BYTES + 1
+        raise OSError("fixture failure")
+
+    monkeypatch.setattr(target, "_observe_filesystem", observe)
+
+    observed = target._storage_budget_observation(
+        [("repository", repository), ("private_output", private)],
+        minimum_free_bytes=target.DEFAULT_MINIMUM_FREE_BYTES,
+        phase="test",
+    )
+
+    assert observed == {
+        "phase": "test",
+        "minimum_free_bytes": target.DEFAULT_MINIMUM_FREE_BYTES,
+        "sufficient": False,
+        "filesystems": [
+            {
+                "filesystem_id": "filesystem_1",
+                "roles": ["repository"],
+                "free_bytes": target.DEFAULT_MINIMUM_FREE_BYTES + 1,
+                "sufficient": True,
+                "error": None,
+            },
+            {
+                "filesystem_id": "filesystem_2",
+                "roles": ["private_output"],
+                "free_bytes": None,
+                "sufficient": False,
+                "error": "disk_usage_unavailable",
+            },
+        ],
+    }
+    assert str(tmp_path) not in str(observed)
+
+
+def test_storage_budget_deduplicates_roles_on_the_same_filesystem(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """同一filesystemの複数書込み先へreserveを重複計上しない。"""
+
+    paths = []
+    for name in ("repository", "samples", "private"):
+        path = tmp_path / name
+        path.mkdir()
+        paths.append(path)
+    monkeypatch.setattr(
+        target,
+        "_observe_filesystem",
+        lambda _path: ((7, "same-volume"), target.DEFAULT_MINIMUM_FREE_BYTES),
+    )
+
+    observed = target._storage_budget_observation(
+        [
+            ("repository", paths[0]),
+            ("sample_root", paths[1]),
+            ("private_output", paths[2]),
+        ],
+        minimum_free_bytes=target.DEFAULT_MINIMUM_FREE_BYTES,
+        phase="test",
+    )
+
+    assert observed["sufficient"] is True
+    assert observed["filesystems"] == [
+        {
+            "filesystem_id": "filesystem_1",
+            "roles": ["repository", "sample_root", "private_output"],
+            "free_bytes": target.DEFAULT_MINIMUM_FREE_BYTES,
+            "sufficient": True,
+            "error": None,
+        }
+    ]
+
+
+def test_storage_guard_includes_input_copy_destination(tmp_path: Path) -> None:
+    """repository外のsample_rootも入力copy前のguard対象に含める。"""
+
+    repository = tmp_path / "repository"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    repository.mkdir()
+    sample_root.mkdir()
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    observed = target._storage_guard_paths(
+        arguments,
+        repository,
+        sample_root,
+        private_output,
+    )
+
+    assert observed[:3] == [
+        ("repository", repository),
+        ("sample_root", sample_root),
+        ("private_output", private_output),
+    ]
+
+
+def test_planned_write_reserve_accounts_for_copy_size() -> None:
+    """現在値が下限以上でもcopy後にreserveを割るwriteは開始しない。"""
+
+    minimum = target.MINIMUM_CONFIGURABLE_FREE_BYTES
+    observation = {
+        "phase": "before_input_copy",
+        "minimum_free_bytes": minimum,
+        "sufficient": True,
+        "filesystems": [
+            {
+                "filesystem_id": "filesystem_1",
+                "roles": ["sample_root"],
+                "free_bytes": minimum + 63,
+                "sufficient": True,
+                "error": None,
+            }
+        ],
+    }
+
+    guarded = target._apply_planned_write_reserve(
+        observation,
+        role="sample_root",
+        planned_write_bytes=64,
+    )
+
+    assert guarded["sufficient"] is False
+    assert guarded["planned_write_sufficient"] is False
+    assert guarded["filesystems"][0]["planned_write_bytes"] == 64
+    assert "path" not in str(guarded).casefold()
+
+
+def test_run_rejects_sample_root_equal_to_repository(tmp_path: Path) -> None:
+    """検体copy先とrepositoryが同一または相互包含する構成を拒否する。"""
+
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    collection.mkdir(parents=True)
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(repository),
+            "--private-output",
+            str(tmp_path / "private"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="相互に包含"):
+        target.run(arguments)
+
+
+def test_guarded_path_resolution_rejects_reparse_component(tmp_path: Path) -> None:
+    """resolveで透過する前にsymlink／junction相当を拒否する。"""
+
+    target_root = tmp_path / "target"
+    link = tmp_path / "link"
+    target_root.mkdir()
+    try:
+        link.symlink_to(target_root, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinkを作成できない環境です: {exc}")
+
+    with pytest.raises(ValueError, match="reparse point"):
+        target._resolve_without_reparse(link / "private")
+
+
+def test_filesystem_observation_rejects_identity_change(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """disk usage照会前後にdirectoryが差し替わった場合はfail-closedにする。"""
+
+    monkeypatch.setattr(target, "_same_path_identity", lambda *_args: False)
+
+    with pytest.raises(OSError, match="identity"):
+        target._observe_filesystem(tmp_path)
+
+
+def test_run_progress_schema_is_stable_across_checkpoint_phases() -> None:
+    """準備前・program待ち・後処理待ち・完了でfield集合を変えない。"""
+
+    digest = "0" * 64
+    common = {
+        "collection_id": "batch",
+        "disk_space": {},
+    }
+    documents = [
+        target._run_progress_document(
+            **common,
+            status="ghidra_chunk_pending",
+            stop_reason="minimum_free_space_not_met",
+            retryable=True,
+            inventory_prepared=False,
+            prepared_inventory_sha256=None,
+            unique_pe_programs=None,
+            complete_programs=0,
+            cached_programs=0,
+            newly_analyzed_programs=0,
+            pending_programs=[],
+            postprocessing_pending=False,
+            prepared_inputs_reused=False,
+            resume_mode="fresh",
+        ),
+        target._run_progress_document(
+            **common,
+            status="ghidra_chunk_pending",
+            stop_reason="max_new_programs_reached",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=digest,
+            unique_pe_programs=1,
+            complete_programs=0,
+            cached_programs=0,
+            newly_analyzed_programs=0,
+            pending_programs=[digest],
+            postprocessing_pending=False,
+            prepared_inputs_reused=True,
+            resume_mode="prepared_inputs",
+        ),
+        target._run_progress_document(
+            **common,
+            status="ghidra_chunk_pending",
+            stop_reason="postprocessing_in_progress",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=digest,
+            unique_pe_programs=1,
+            complete_programs=1,
+            cached_programs=1,
+            newly_analyzed_programs=0,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=True,
+            resume_mode="postprocessing_only",
+        ),
+        target._run_progress_document(
+            **common,
+            status="complete",
+            stop_reason=None,
+            retryable=False,
+            inventory_prepared=True,
+            prepared_inventory_sha256=digest,
+            unique_pe_programs=1,
+            complete_programs=1,
+            cached_programs=1,
+            newly_analyzed_programs=0,
+            pending_programs=[],
+            postprocessing_pending=False,
+            prepared_inputs_reused=True,
+            resume_mode="prepared_inputs",
+        ),
+    ]
+
+    assert all(set(document) == set(documents[0]) for document in documents)
+    assert all(
+        document["schema_version"] == target.RUN_PROGRESS_SCHEMA_VERSION
+        for document in documents
+    )
+
+
+def test_resume_checkpoint_rejects_schema_drift(tmp_path: Path) -> None:
+    """field欠落や固定安全値の変更があるcheckpointを自動再開に使わない。"""
+
+    private_output = tmp_path / "private"
+    progress = target._run_progress_document(
+        collection_id="batch",
+        status="ghidra_chunk_pending",
+        stop_reason="minimum_free_space_not_met",
+        retryable=True,
+        inventory_prepared=False,
+        prepared_inventory_sha256=None,
+        unique_pe_programs=None,
+        complete_programs=0,
+        cached_programs=0,
+        newly_analyzed_programs=0,
+        pending_programs=[],
+        postprocessing_pending=False,
+        prepared_inputs_reused=False,
+        resume_mode="fresh",
+        disk_space={},
+    )
+    progress["safety"]["network_contacted"] = True
+    target._write_run_progress(private_output, progress)
+
+    with pytest.raises(ValueError, match="field集合|固定安全値"):
+        target._load_resume_checkpoint(private_output, collection_id="batch")
+
+
+def test_legacy_run_progress_is_strictly_migrated_for_resume(tmp_path: Path) -> None:
+    """既存schema 1の正規checkpointをschema 2へ正規化して再利用する。"""
+
+    digest = "a" * 64
+    private_output = tmp_path / "private"
+    inventory_sha256 = _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    target._write_run_progress(
+        private_output,
+        {
+            "schema_version": target.LEGACY_RUN_PROGRESS_SCHEMA_VERSION,
+            "collection_id": "batch",
+            "status": "ghidra_chunk_pending",
+            "unique_pe_programs": 1,
+            "complete_programs": 0,
+            "cached_programs": 0,
+            "newly_analyzed_programs": 0,
+            "pending_programs": [digest],
+            "prepared_inputs_reused": False,
+            "safety": {
+                "sample_executed": False,
+                "network_contacted": False,
+                "arbitrary_ghidra_scripts_enabled": False,
+                "mcp_localhost_only": True,
+            },
+        },
+    )
+
+    migrated = target._load_resume_checkpoint(
+        private_output,
+        collection_id="batch",
+    )
+
+    assert migrated is not None
+    assert migrated["schema_version"] == target.RUN_PROGRESS_SCHEMA_VERSION
+    assert migrated["resume_mode"] == "prepared_inputs"
+    assert migrated["pending_programs"] == [digest]
+    assert migrated["prepared_inventory_sha256"] == inventory_sha256
+
+
+def test_prepared_checkpoint_requires_bound_input_inventory(tmp_path: Path) -> None:
+    """preparedを名乗るcheckpointだけでは自動再開せずinventory欠落を拒否する。"""
+
+    digest = "d" * 64
+    private_output = tmp_path / "private"
+    target._write_run_progress(
+        private_output,
+        target._run_progress_document(
+            collection_id="batch",
+            status="ghidra_chunk_pending",
+            stop_reason="max_new_programs_reached",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=digest,
+            unique_pe_programs=1,
+            complete_programs=0,
+            cached_programs=0,
+            newly_analyzed_programs=0,
+            pending_programs=[digest],
+            postprocessing_pending=False,
+            prepared_inputs_reused=False,
+            resume_mode="fresh",
+            disk_space={},
+        ),
+    )
+
+    with pytest.raises((FileNotFoundError, ValueError)):
+        target._load_resume_checkpoint(private_output, collection_id="batch")
+
+
+def test_prepared_checkpoint_rejects_inventory_binding_change(
+    tmp_path: Path,
+) -> None:
+    """checkpoint作成後に変更されたprepared inventoryを自動再開へ使わない。"""
+
+    digest = "e" * 64
+    private_output = tmp_path / "private"
+    inventory_sha256 = _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    target._write_run_progress(
+        private_output,
+        target._run_progress_document(
+            collection_id="batch",
+            status="ghidra_chunk_pending",
+            stop_reason="max_new_programs_reached",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=inventory_sha256,
+            unique_pe_programs=1,
+            complete_programs=0,
+            cached_programs=0,
+            newly_analyzed_programs=0,
+            pending_programs=[digest],
+            postprocessing_pending=False,
+            prepared_inputs_reused=False,
+            resume_mode="fresh",
+            disk_space={},
+        ),
+    )
+    inventory_path = private_output / "input-relationships.json"
+    inventory = target.load_json_object_strict(inventory_path)
+    inventory["static_tools"] = {"changed": None}
+    target._json_dump(inventory_path, inventory)
+
+    with pytest.raises(ValueError, match="binding SHA-256"):
+        target._load_resume_checkpoint(private_output, collection_id="batch")
+
+
+def test_run_stops_before_input_preparation_when_disk_reserve_is_low(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """開始時のreserve不足では入力copyもMCP接触も行わず再開情報を保存する。"""
+
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: pytest.fail("入力準備を呼び出してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "GhidraMcpClient",
+        lambda *args, **kwargs: pytest.fail("MCP clientを初期化してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": False,
+            "filesystems": [
+                {
+                    "filesystem_id": "filesystem_1",
+                    "roles": ["repository", "sample_root", "private_output"],
+                    "free_bytes": 1,
+                    "sufficient": False,
+                    "error": None,
+                }
+            ],
+        },
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["status"] == "ghidra_chunk_pending"
+    assert result["stop_reason"] == "minimum_free_space_not_met"
+    assert result["inventory_prepared"] is False
+    assert result["retryable"] is True
+    assert result["resume_mode"] == "fresh"
+    assert result["safety"]["network_contacted"] is False
+    assert target.load_json_object_strict(private_output / "run-progress.json") == result
+    assert list(private_output.glob(".*.tmp")) == []
+
+
+def test_run_checkpoints_before_preparation_copy_would_cross_reserve(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """batch途中の次copyを開始せず、既存prepared fileを保持してatomic停止する。"""
+
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    preserved = sample_root / "preserved.quarantine.bin"
+    next_copy = sample_root / "next.quarantine.bin"
+
+    def prepare(*_args: object, **kwargs: object) -> object:
+        preserved.write_bytes(b"already prepared")
+        guard = kwargs["storage_guard"]
+        assert callable(guard)
+        guard("before_input_copy", "sample_root", 64)
+        next_copy.write_bytes(b"must not be written")
+        raise AssertionError("容量停止後もprepare_inputsが継続しました")
+
+    monkeypatch.setattr(target, "prepare_inputs", prepare)
+    monkeypatch.setattr(
+        target,
+        "GhidraMcpClient",
+        lambda *args, **kwargs: pytest.fail("入力準備の容量停止時にMCP clientを初期化してはいけません"),
+    )
+    minimum = target.MINIMUM_CONFIGURABLE_FREE_BYTES
+
+    def storage_observation(*_args: object, **kwargs: object) -> dict[str, object]:
+        return {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True,
+            "filesystems": [
+                {
+                    "filesystem_id": "filesystem_1",
+                    "roles": ["repository", "sample_root", "private_output"],
+                    "free_bytes": minimum + 63,
+                    "sufficient": True,
+                    "error": None,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(target, "_storage_budget_observation", storage_observation)
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+            "--minimum-free-bytes",
+            str(minimum),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["status"] == "ghidra_chunk_pending"
+    assert result["inventory_prepared"] is False
+    assert result["prepared_inventory_sha256"] is None
+    assert result["disk_space"]["planned_write_bytes"] == 64
+    assert result["disk_space"]["planned_write_sufficient"] is False
+    assert preserved.read_bytes() == b"already prepared"
+    assert not next_copy.exists()
+    assert target.load_json_object_strict(private_output / "run-progress.json") == result
+    assert list(private_output.glob(".*.tmp")) == []
+
+
+def test_low_space_recheck_preserves_existing_prepared_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """容量不足のまま再実行しても準備済みinventoryとpending一覧を失わない。"""
+
+    digest = "b" * 64
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    inventory_sha256 = _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    target._write_run_progress(
+        private_output,
+        target._run_progress_document(
+            collection_id="batch",
+            status="ghidra_chunk_pending",
+            stop_reason="max_new_programs_reached",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=inventory_sha256,
+            unique_pe_programs=1,
+            complete_programs=0,
+            cached_programs=0,
+            newly_analyzed_programs=0,
+            pending_programs=[digest],
+            postprocessing_pending=False,
+            prepared_inputs_reused=False,
+            resume_mode="fresh",
+            disk_space={},
+        ),
+    )
+    monkeypatch.setattr(
+        target,
+        "GhidraMcpClient",
+        lambda *args, **kwargs: pytest.fail("低容量時にMCP clientを初期化してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: pytest.fail("低容量時にinput準備してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "load_prepared_inputs",
+        lambda *args, **kwargs: pytest.fail("低容量時にinput cacheを読んではいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": False,
+            "filesystems": [],
+        },
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["inventory_prepared"] is True
+    assert result["unique_pe_programs"] == 1
+    assert result["pending_programs"] == [digest]
+    assert result["prepared_inputs_reused"] is False
+    assert result["resume_mode"] == "prepared_inputs"
+
+
+def test_run_stops_between_programs_and_preserves_completed_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """program完了後のreserve不足では次programを開始せずcheckpointを残す。"""
+
+    digests = ["1" * 64, "2" * 64]
+    objects = {
+        digest: target.ProgramObject(
+            sha256=digest,
+            input_path=tmp_path / f"{digest}.quarantine.bin",
+            size=index,
+        )
+        for index, digest in enumerate(digests, start=1)
+    }
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=digests,
+    )
+    monkeypatch.setattr(target, "prepare_inputs", lambda *args, **kwargs: (objects, {}))
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
+    phases: list[str] = []
+
+    def storage_observation(*args: object, **kwargs: object) -> dict[str, object]:
+        phase = str(kwargs["phase"])
+        phases.append(phase)
+        sufficient = phase != "after_program"
+        return {
+            "phase": phase,
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": sufficient,
+            "filesystems": [],
+        }
+
+    analyzed: list[str] = []
+
+    def analyze(_client: object, item: target.ProgramObject, *_args: object, **_kwargs: object):
+        analyzed.append(item.sha256)
+        result = {
+            "status": "complete",
+            "mcp_responses_valid": True,
+            "sha256": item.sha256,
+        }
+        target._json_dump(
+            private_output / "objects" / item.sha256 / "program-result.json",
+            result,
+        )
+        return result
+
+    monkeypatch.setattr(target, "_storage_budget_observation", storage_observation)
+    monkeypatch.setattr(target, "analyze_program", analyze)
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert analyzed == [digests[0]]
+    assert phases == [
+        "before_input_preparation",
+        "after_input_preparation",
+        "before_program",
+        "after_program",
+    ]
+    assert result["stop_reason"] == "minimum_free_space_not_met"
+    assert result["complete_programs"] == 1
+    assert result["newly_analyzed_programs"] == 1
+    assert result["pending_programs"] == [digests[1]]
+    assert (private_output / "objects" / digests[0] / "program-result.json").is_file()
+
+
+def test_run_defers_postprocessing_without_rewriting_complete_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """全program完了後のreserve不足ではcacheを変更せず後処理だけ保留する。"""
+
+    digest = "3" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    result_path = private_output / "objects" / digest / "program-result.json"
+    cached = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "functions": [],
+        "characteristic_function_ids": [],
+        "characteristic_function_count": 0,
+    }
+    target.ensure_characteristic_selection(cached)
+    target._json_dump(result_path, cached)
+    original = result_path.read_bytes()
+    monkeypatch.setattr(target, "prepare_inputs", lambda *args, **kwargs: ({digest: item}, {}))
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
+
+    def storage_observation(*args: object, **kwargs: object) -> dict[str, object]:
+        phase = str(kwargs["phase"])
+        sufficient = phase != "before_postprocessing"
+        return {
+            "phase": phase,
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": sufficient,
+            "filesystems": [],
+        }
+
+    monkeypatch.setattr(target, "_storage_budget_observation", storage_observation)
+    monkeypatch.setattr(
+        target,
+        "analyze_program",
+        lambda *args, **kwargs: pytest.fail("完了cacheをMCPへ再投入してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "refresh_complete_program_artifacts",
+        lambda *args, **kwargs: pytest.fail("空き容量不足時に後処理を開始してはいけません"),
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["stop_reason"] == "minimum_free_space_not_met"
+    assert result["pending_programs"] == []
+    assert result["postprocessing_pending"] is True
+    assert result["complete_programs"] == 1
+    assert result["cached_programs"] == 1
+    assert result_path.read_bytes() == original
+
+
+def test_run_automatically_reuses_prepared_inputs_after_capacity_stop(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """容量停止checkpointがあれば手動flagなしで準備済みinputを再利用する。"""
+
+    digest = "4" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    inventory_sha256 = _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    checkpoint = target._run_progress_document(
+        collection_id="batch",
+        status="ghidra_chunk_pending",
+        stop_reason="minimum_free_space_not_met",
+        retryable=True,
+        inventory_prepared=True,
+        prepared_inventory_sha256=inventory_sha256,
+        unique_pe_programs=1,
+        complete_programs=0,
+        cached_programs=0,
+        newly_analyzed_programs=0,
+        pending_programs=[digest],
+        postprocessing_pending=False,
+        prepared_inputs_reused=False,
+        resume_mode="fresh",
+        disk_space={},
+    )
+    target._write_run_progress(private_output, checkpoint)
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: pytest.fail("準備済みinputを再作成してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "load_prepared_inputs",
+        lambda *args, **kwargs: ({digest: item}, {}),
+    )
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
+
+    def storage_observation(*args: object, **kwargs: object) -> dict[str, object]:
+        phase = str(kwargs["phase"])
+        return {
+            "phase": phase,
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": phase == "before_input_preparation",
+            "filesystems": [],
+        }
+
+    monkeypatch.setattr(target, "_storage_budget_observation", storage_observation)
+    monkeypatch.setattr(
+        target,
+        "analyze_program",
+        lambda *args, **kwargs: pytest.fail("容量不足時にMCP解析してはいけません"),
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    result = target.run(arguments)
+
+    assert result["resume_mode"] == "prepared_inputs"
+    assert result["prepared_inputs_reused"] is True
+    assert result["pending_programs"] == [digest]
+
+
+def test_run_automatically_resumes_postprocessing_without_program_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """後処理checkpointからinput再準備やprogram解析をせず後処理へ進む。"""
+
+    digest = "5" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    inventory_sha256 = _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    target._write_run_progress(
+        private_output,
+        target._run_progress_document(
+            collection_id="batch",
+            status="ghidra_chunk_pending",
+            stop_reason="postprocessing_in_progress",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=inventory_sha256,
+            unique_pe_programs=1,
+            complete_programs=1,
+            cached_programs=1,
+            newly_analyzed_programs=0,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=True,
+            resume_mode="postprocessing_only",
+            disk_space={},
+        ),
+    )
+    cached = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "functions": [],
+    }
+    target.ensure_characteristic_selection(cached)
+    target._json_dump(
+        private_output / "objects" / digest / "program-result.json",
+        cached,
+    )
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: pytest.fail("postprocessing再開でinput準備してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "load_prepared_inputs",
+        lambda *args, **kwargs: ({digest: item}, {}),
+    )
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True,
+            "filesystems": [],
+        },
+    )
+    monkeypatch.setattr(
+        target,
+        "analyze_program",
+        lambda *args, **kwargs: pytest.fail("postprocessing再開でprogram解析してはいけません"),
+    )
+
+    def postprocessing_reached(*_args: object, **_kwargs: object) -> dict[str, int]:
+        progress = target.load_json_object_strict(private_output / "run-progress.json")
+        assert progress["postprocessing_pending"] is True
+        assert progress["resume_mode"] == "postprocessing_only"
+        raise RuntimeError("postprocessing reached")
+
+    monkeypatch.setattr(
+        target,
+        "refresh_complete_program_artifacts",
+        postprocessing_reached,
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    with pytest.raises(RuntimeError, match="postprocessing reached"):
+        target.run(arguments)
+
+
 def test_run_can_prepare_without_contacting_mcp(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2682,16 +4539,40 @@ def test_run_can_prepare_without_contacting_mcp(
     private_output = tmp_path / "private"
     collection.mkdir(parents=True)
     sample_root.mkdir()
+    _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
     monkeypatch.setattr(
         target,
         "prepare_inputs",
         lambda *args, **kwargs: ({digest: item}, {}),
     )
-    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args: None)
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         target,
         "analyze_program",
         lambda *args, **kwargs: pytest.fail("MCP解析を呼び出してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "GhidraMcpClient",
+        lambda *args, **kwargs: pytest.fail("入力準備だけのrunでMCP clientを初期化してはいけません"),
+    )
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True,
+            "filesystems": [],
+        },
     )
     arguments = target.build_parser().parse_args(
         [
