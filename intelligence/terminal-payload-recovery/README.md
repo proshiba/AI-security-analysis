@@ -2,13 +2,13 @@
 
 ## 結論
 
-過去の2,599ケースを対象に、精査済み難解析台帳、構造化レポート、人が読めるケース文書を統合し、終端ペイロードまたは終端ファミリーの確認まで到達していない741ケース／39ファミリーを抽出しました。
+過去の2,649ケースを対象に、精査済み難解析台帳、構造化レポート、人が読めるケース文書を統合し、終端ペイロードまたは終端ファミリーの確認まで到達していない748ケース／39ファミリーを抽出しました。
 
 単なる解析状態の`partial`は対象にしていません。精査済み難解析台帳に登録済みであるか、終端payload・本体・family・assemblyなどの未取得が現在の成果物に明記されている場合だけを収録します。最終C2だけが未回収で、終端本体を確認済みのケースはこの台帳へ自動追加しません。
 
 | 状態 | 件数 | 意味 |
 |---|---:|---|
-| 明示的未取得 | 681 | 現在のreportまたはケース文書が終端未取得を明記 |
+| 明示的未取得 | 688 | 現在のreportまたはケース文書が終端未取得を明記 |
 | 継続復元backlog | 55 | 精査済み難解析台帳に残る復元課題。最新成果物で再確認が必要 |
 | 必要byte不在 | 5 | 提出物に終端byteがなく、同じ検体の静的処理だけでは復元不能 |
 
@@ -29,7 +29,7 @@ P0から順に、MalwareBazaar等でfirst seenが新しい検体を実行時に�
 | P1 | `lummastealer` | 16 | 16 | 0 | 不明 | `LummaStealer`, `LummaC2` |
 | P1 | `remusstealer` | 15 | 15 | 0 | 2026-08-10 | `RemusStealer` |
 | P1 | `amadey` | 13 | 13 | 0 | 2026-08-01 | `Amadey` |
-| P1 | `acrstealer` | 9 | 9 | 0 | 2026-07-22 | `ACRStealer` |
+| P1 | `acrstealer` | 10 | 10 | 0 | 2026-08-22 | `ACRStealer` |
 | P1 | `prometei` | 7 | 7 | 0 | 2026-08-12 | `Prometei` |
 | P1 | `hijackloader` | 6 | 6 | 0 | 2026-08-10 | `HijackLoader` |
 | P1 | `formbook` | 5 | 5 | 0 | 2026-08-06 | `Formbook` |
@@ -42,8 +42,8 @@ P0から順に、MalwareBazaar等でfirst seenが新しい検体を実行時に�
 | P1 | `redlinestealer` | 2 | 0 | 0 | 2026-07-11 | `RedLineStealer` |
 | P1 | `snakekeylogger` | 2 | 0 | 0 | 2026-07-14 | `SnakeKeylogger` |
 | P1 | `shadowpad` | 1 | 0 | 0 | 不明 | `ShadowPad` |
-| P1 | `unclassified` | 326 | 326 | 0 | 2026-08-21 | 要OSINT確認 |
-| P1 | `dotnet-resource-loader` | 17 | 17 | 0 | 2026-08-21 | 要OSINT確認 |
+| P1 | `unclassified` | 330 | 330 | 0 | 2026-08-22 | 要OSINT確認 |
+| P1 | `dotnet-resource-loader` | 19 | 19 | 0 | 2026-08-22 | 要OSINT確認 |
 | P1 | `windows-script-stager` | 10 | 10 | 0 | 2026-07-20 | 要OSINT確認 |
 | P1 | `putita-v3` | 3 | 3 | 0 | 2026-07-20 | 要OSINT確認 |
 | P1 | `wannacry` | 3 | 3 | 0 | 2026-08-12 | 要OSINT確認 |
