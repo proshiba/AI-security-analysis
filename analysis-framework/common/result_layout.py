@@ -7,14 +7,14 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
-from typing import Any, Iterable
-
+from collections import defaultdict
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
 
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -35,7 +35,19 @@ _CLICKFIX_DOMAIN_RE = re.compile(
     r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
     r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
 )
-_CLICKFIX_CASE_RE = re.compile(r"^20\d{6}-(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+$")
+_CLICKFIX_CASE_RE = re.compile(
+    r"^20\d{6}-(?:(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+|command-pt\d+(?:-pt\d+)*)$"
+)
+_CLICKFIX_COLLECTION_LAYOUTS = (
+    (
+        re.compile(r"^clickfix-daily-20\d{6}$"),
+        frozenset({"INFRASTRUCTURE-SUMMARY.md", "README.md", "TRIAGE-SUMMARY.md", "manifest.json"}),
+    ),
+    (
+        re.compile(r"^clickfix-command-analysis-20\d{6}$"),
+        frozenset({"IOC-LIST.md", "README.md", "commands.json", "iocs.json", "manifest.json"}),
+    ),
+)
 _CLICKFIX_CASE_FILES = {
     "FEATURES.md",
     "INFECTION-CHAIN.md",
@@ -176,13 +188,11 @@ def _is_planned_clickfix_artifact(relative: Path) -> bool:
         return False
     if len(parts) == 2 and parts[1] in {"AGENTS.md", "README.md"}:
         return True
-    if (
-        len(parts) == 4
-        and parts[1] == "collections"
-        and re.fullmatch(r"clickfix-daily-20\d{6}", parts[2])
-        and parts[3] in {"INFRASTRUCTURE-SUMMARY.md", "README.md", "TRIAGE-SUMMARY.md", "manifest.json"}
-    ):
-        return True
+    if len(parts) == 4 and parts[1] == "collections":
+        for collection_pattern, allowed_files in _CLICKFIX_COLLECTION_LAYOUTS:
+            if collection_pattern.fullmatch(parts[2]):
+                return parts[3] in allowed_files
+        return False
     if (
         len(parts) == 5
         and _CLICKFIX_DOMAIN_RE.fullmatch(parts[1])

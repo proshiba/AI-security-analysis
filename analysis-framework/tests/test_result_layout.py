@@ -5,12 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
 import tempfile
-
-import pytest
+from pathlib import Path
 
 import normalize_result_layout as cli
+import pytest
 import result_layout as layout
 
 
@@ -561,4 +560,44 @@ def test_clickfix_fixed_layout_is_allowed_but_unknown_file_is_rejected(
     assert {
         "code": "unplanned_result_root_artifact",
         "path": ("analysis-results/clickfix/landing.example/cases/20260730-threatfox-1/unexpected.bin"),
+    } in rejected["errors"]
+
+
+def test_clickfix_command_analysis_layout_is_allowed_but_unknown_file_is_rejected(
+    tmp_path: Path,
+) -> None:
+    """収集済みcommand解析も固定命名と既知成果物だけを許可する。"""
+
+    repository = _base_repository(tmp_path)
+    clickfix = repository / "analysis-results" / "clickfix"
+    collection = clickfix / "collections" / "clickfix-command-analysis-20260825"
+    collection.mkdir(parents=True)
+    for name in ("IOC-LIST.md", "README.md", "commands.json", "iocs.json", "manifest.json"):
+        (collection / name).write_text("{}\n" if name.endswith(".json") else "# test\n", encoding="utf-8")
+
+    case = clickfix / "landing.example" / "cases" / "20260825-command-pt4-pt8-pt9"
+    case.mkdir(parents=True)
+    for name in (
+        "FEATURES.md",
+        "INFECTION-CHAIN.md",
+        "IOC-LIST.md",
+        "OVERALL-LOGIC.md",
+        "README.md",
+        "analysis.json",
+        "iocs.json",
+        "live-observation.json",
+    ):
+        (case / name).write_text("{}\n" if name.endswith(".json") else "# test\n", encoding="utf-8")
+    rules = case / "rules"
+    rules.mkdir()
+    (rules / "sigma.yml").write_text("title: test\n", encoding="utf-8")
+
+    accepted = layout.build_layout_plan(repository, maximum_path_length=320)
+    assert not any(finding["code"] == "unplanned_result_root_artifact" for finding in accepted["errors"])
+
+    (collection / "response.txt").write_text("not allowed\n", encoding="utf-8")
+    rejected = layout.build_layout_plan(repository, maximum_path_length=320)
+    assert {
+        "code": "unplanned_result_root_artifact",
+        "path": "analysis-results/clickfix/collections/clickfix-command-analysis-20260825/response.txt",
     } in rejected["errors"]
