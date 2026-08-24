@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "campaign_id": "valleyrat-japanese-malspam-20260820",
+  "observation_window": {
+    "first": "2026-08-20",
+    "last": "2026-08-24"
+  },
+  "assessment": "ZIP→IMG→正規EXEによるDLL side-loadingを共有するValleyRAT配布集合。外層loader、永続化、protocol mode、C2が異なるため同一operatorは未確定。ClickFixではない。",
+  "safety": {
+    "sample_executed_locally": false,
+    "recovered_payload_executed": false,
+    "pcap_replayed": false,
+    "c2_contacted": false
+  },
+  "cases": [
+    {
+      "id": 1,
+      "observed": "2026-08-24",
+      "subject": "【請求書】8月分ご請求書の送付について",
+      "variant": "chrome_elf_proxy_winos_ca00_x86",
+      "container_sha256": "d01d4a086d19d7be96383aeea7538dfbf364510354d997645e6f8ec11454c50b",
+      "image_sha256": "05cce219ba84d0e650fb310b42a1734c86fe8a51b0cee199c645fb9e1c59f5d0",
+      "malicious_dll_sha256": "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "recovered_stage_sha256": "4df8bda2718afbd6ee42a96e0097d24592e451a1c6a05d9bffa8921c683733e2",
+      "observed_endpoints": ["121.127.253.206:8856", "121.127.253.206:8868"],
+      "process_chain": ["CIT-Number.20260824112143.EXE", "ComputerDefaults.exe", "NvDLISR.NVX.exe", "cmd.exe watchdog"],
+      "last_observed_server_message": "0xC9 heartbeat_or_status",
+      "operation_command_observed": false
+    },
+    {
+      "id": 2,
+      "observed": "2026-08-20",
+      "subject": "情報更新など",
+      "variant": "vulkan_proxy_winos_ca01_x64",
+      "container_sha256": "75a3ae5489d181f3b219c0d1d79ec60046f19a0e5274f30f604020ea4a1fd0a6",
+      "image_sha256": "07c5ab781ab5989f07676207334fd196b0f1932acdbd00d8346e2d4600e02e57",
+      "malicious_dll_sha256": "22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "recovered_stage_sha256": "807361fe1ff663ff3716a7e667e964f9d8fd15a20766bd2796bd46b1f67e168e",
+      "observed_endpoints": ["170.62.130.47:449"],
+      "configured_unobserved_endpoints": ["170.62.130.47:443"],
+      "process_chain": ["2026081829618475_setup.exe", "Loader.exe --summary", "cmd.exe /c Loader.exe --portability", "Loader.exe --portability"],
+      "protocol": {"session_mode": "ca01", "payload_xor": "0xCC"},
+      "last_observed_server_message": "0xC9 heartbeat_or_status",
+      "operation_command_observed": false
+    },
+    {
+      "id": 3,
+      "observed": "2026-08-24",
+      "subject": "【お見積り・お取引のご相談】新規調達に関するお問い合わせ",
+      "variant": "msocf_rc4_xorff_raw_loader",
+      "image_sha256": [
+        "b326409c142eb8cb0793506c2c27187bba5f96e3986cda09b2ef3eb47811d3bf",
+        "8b141a7c5d8af94ed37ea2b5dd676f9cb105ba8a6eedda36349899a2f1d065ff",
+        "810e53107d0c6ced27f5f957d30981f5640c62b930bf4e30c9028b73b06c5cca"
+      ],
+      "malicious_dll_sha256": [
+        "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+        "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+        "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab"
+      ],
+      "common_imphash": "fc1d45e2b662c656e1a56e88c9fc63e6",
+      "common_decrypted_stage_sha256": "c77c885cae806025691827fa44ad1e40cdb737713473979212e0c986ceafdbf0",
+      "observed_endpoints": ["202.61.140.222:448"],
+      "initial_tcp_request_hex": "393900",
+      "initial_tcp_request_ascii": "99\\0",
+      "process_chain": ["20260824.exe", "svchostsr.exe", "kvckiller.sys", "svchostsr.exe persistence"],
+      "last_identified_server_object": "14-byte header followed by XOR-0xCC encrypted stage",
+      "operation_command_observed": null
+    }
+  ],
+  "shared_evidence": [
+    "日本語マルスパム",
+    "ZIP→IMG",
+    "正規EXEによるDLL side-loading",
+    "ValleyRAT sandbox family／後段能力"
+  ],
+  "actor_attribution": "unresolved"
+}

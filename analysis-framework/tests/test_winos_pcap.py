@@ -43,6 +43,25 @@ def test_reassemble_deduplicates_and_parses_stage_control() -> None:
     assert result["safety"]["pcap_replayed"] is False
 
 
+def test_reassemble_parses_ca01_fixed_xor_stage_frames() -> None:
+    # 2026-08-20検体のca01 mode。payloadは固定0xCCでXORされる。
+    control = bytes([0x04])
+    metadata = bytes([0x05]) + "登录模块.dll_bin".encode("utf-16le")
+    header = bytes.fromhex("74af580e00000000ca01")
+
+    def frame(payload: bytes) -> bytes:
+        encrypted = bytes(value ^ 0xCC for value in payload)
+        return (14 + len(payload)).to_bytes(4, "little") + header + encrypted
+
+    stream = (frame(control) + frame(metadata)).hex()
+    row = f"1|1|10.0.0.2|50001|170.62.130.47|449|{stream}"
+    result = MODULE.analyze_rows([row], [("170.62.130.47", 449)])
+    frames = result["streams"][0]["frames"]
+    assert [item["command"] for item in frames] == [4, 5]
+    assert frames[0]["role"] == "stage_channel_control"
+    assert frames[1]["role"] == "stage_channel_metadata"
+
+
 def test_reassembly_stops_at_sequence_gap() -> None:
     first = "100000009f25590e00000000ca00d1d5"
     rows = [
