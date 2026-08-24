@@ -12,6 +12,16 @@
 | 2 情報更新 | `2026081829618475_setup.exe`＋`vulkan-1.dll` | `Loader.exe --summary`→`cmd.exe`→`Loader.exe --portability` | HKLM Run `ServiceController` | `170.62.130.47:449` | x64 PE `807361fe…168e` |
 | 3 見積・取引 | `20260824.EXE`＋`MSOCF.dll` | `20260824.exe`→`svchostsr.exe`、driver load | HKCU Run `Microsoft Office`、service | `202.61.140.222:448` | raw stage `c77c885c…dbf0`＋C2 stage |
 
+## 個別マルウェア解析
+
+悪性DLLを主キーにしたcanonicalケースを`analysis-results/malware/valleyrat`へ登録しています。3件目の3 DLLはcode／復号stageが同一でも、resource／overlay差分を個別に追跡できるよう別ケースにしています。
+
+- 1件目 `nW_Elf.dLL`: [da33a95b…be066](../../../malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066/README.md)
+- 2件目 `vulkan-1.dll`: [22d1b557…67f](../../../malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f/README.md)
+- 3件目 `MSOCF.dll` resource増量: [041a0aeb…3b51](../../../malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51/README.md)
+- 3件目 `MSOCF.dll` overlay増量: [04c9eae9…a81f](../../../malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f/README.md)
+- 3件目 `MSOCF.dll` 基準size: [ad755d2d…57ab](../../../malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab/README.md)
+
 ## 確認水準
 
 - 「実観測」は取得済み公開sandbox reportまたはPCAPから確認した事実です。
