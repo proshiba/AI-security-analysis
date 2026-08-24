@@ -314,6 +314,13 @@
       "family": "remcosrat",
       "version_key": "unknown"
     },
+    "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "case_id": "sha256:041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "042c76861bfba62c1e4946697a143a185488c0e15f41431c3cd5a51dc11e52a1": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/042c76861bfba62c1e4946697a143a185488c0e15f41431c3cd5a51dc11e52a1",
@@ -363,6 +370,13 @@
     "04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b": {
       "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
       "case_id": "sha256:04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
+    "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "case_id": "sha256:04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
       "case_kind": "malware",
       "family": "valleyrat",
       "version_key": "unknown"
@@ -2661,6 +2675,13 @@
       "case_id": "sha256:22706f73e3960e86cccfcc7c06a20b9be3da87b410bfc82bfa07fe38bb547d52",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "case_id": "sha256:22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "22ed18a454b32a12ea6a10d8f2f93569e2d3fb2c6fa2f317446cfe38dd112fc6": {
@@ -13649,6 +13670,13 @@
       "family": "venomrat",
       "version_key": "unknown"
     },
+    "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "case_id": "sha256:ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "ad9f1ab9367b5a513d1489e58c9489c1870e6384508990a267b849b0031a29bc": {
       "canonical_path": "analysis-results/malware/venomrat/versions/unknown/cases/ad9f1ab9367b5a513d1489e58c9489c1870e6384508990a267b849b0031a29bc",
       "case_id": "sha256:ad9f1ab9367b5a513d1489e58c9489c1870e6384508990a267b849b0031a29bc",
@@ -17000,6 +17028,13 @@
       "case_id": "sha256:da29455a64858fda773319c32c0a6cd40edbe8042ed005aa2befb8a4f0fb0522",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "case_id": "sha256:da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "da3ad4675e4bb27501158a2e65b936466b225699a1d342567afa5a418810bf9e": {
