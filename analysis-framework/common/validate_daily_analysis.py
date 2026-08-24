@@ -42,6 +42,7 @@ NEWS_FILES = {
 CLICKFIX_FILES = {
     "FEATURES.md",
     "INFRASTRUCTURE.md",
+    "INFECTION-CHAIN.md",
     "IOC-LIST.md",
     "OVERALL-LOGIC.md",
     "README.md",
@@ -582,6 +583,57 @@ def validate_clickfix(repository: Path, analysis_date: str) -> dict[str, Any]:
             _finding(findings, "clickfix_case_path_escape", manifest_path, f"case pathがroot外です: {relative}")
             continue
         _files(case_root, CLICKFIX_FILES, findings)
+        analysis_path = case_root / "analysis.json"
+        analysis = _json(analysis_path, findings)
+        command = analysis.get("command")
+        if command is not None:
+            if not isinstance(command, dict):
+                _finding(
+                    findings,
+                    "clickfix_command_evidence_invalid",
+                    analysis_path,
+                    "commandはobjectまたはnullである必要があります。",
+                )
+            else:
+                digest = str(command.get("command_sha256") or "")
+                required_text = (
+                    "command_line_public",
+                    "command_line_normalized",
+                    "command_line_status",
+                    "command_line_source",
+                )
+                missing_text = [key for key in required_text if not str(command.get(key) or "").strip()]
+                if missing_text:
+                    _finding(
+                        findings,
+                        "clickfix_command_evidence_incomplete",
+                        analysis_path,
+                        "取得commandの公開command lineまたは根拠が不足しています: "
+                        + ", ".join(missing_text),
+                    )
+                if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest.lower()):
+                    _finding(
+                        findings,
+                        "clickfix_command_sha256_invalid",
+                        analysis_path,
+                        "command_sha256は64桁hexである必要があります。",
+                    )
+                if not isinstance(command.get("command_line_length"), int) or command.get("command_line_length", -1) < 0:
+                    _finding(
+                        findings,
+                        "clickfix_command_length_invalid",
+                        analysis_path,
+                        "command_line_lengthは0以上の整数である必要があります。",
+                    )
+                if not isinstance(command.get("processes"), list) or not isinstance(
+                    command.get("process_chain"), list
+                ):
+                    _finding(
+                        findings,
+                        "clickfix_process_chain_invalid",
+                        analysis_path,
+                        "processesとprocess_chainはarrayである必要があります。",
+                    )
         infrastructure = _json(case_root / "infrastructure.json", findings)
         if infrastructure.get("case_id") != case_id or not infrastructure.get("investigated_at_utc"):
             _finding(
