@@ -28,6 +28,20 @@ ClickFix Hunter、ClickFix Campaign Monitor、ThreatFoxの`clickfix`／`clearfak
 - `INFECTION-CHAIN.md`へMermaid図、段階表、停止位置、未解決edge、次の取得手順を保存します。
 - `analysis.json`の`infection_chain`へ同じ情報を機械可読形式で保存します。
 
+## 悪性process挙動と実command lineの記録
+
+ClickFix caseでは、domainやlureの説明より先に、利用者が貼り付けた場合に起動するprocessと
+復元command lineを防御側が照合できる形で残します。
+
+- case `README.md`の概要直後と`INFECTION-CHAIN.md`に、想定process chain、実command line、正規化command line、原文SHA-256、取得根拠、未実行状態を記載します。
+- `analysis.json.command`には`processes`、`process_chain`、`command_line_public`、`command_line_normalized`、`command_line_length`、`command_line_status`、`command_line_source`、`command_sha256`を保存します。
+- provider、静的HTML、実ブラウザでcommandを取得できなかった場合は、推測で補わず`not_retrieved`または「未取得」と明記します。
+- 公開用command lineではURLのuserinfo、query、fragment、Telegram等dual-use serviceのtoken pathと、その逆順literalだけを置換します。process名、switch、引数順、quote、pipe、redirect、連結operator、復号・download・実行ロジックは保持します。
+- 置換前の原文はprivate outputだけに保持し、SHA-256で公開成果物と対応付けます。credential、API key、invite token、session tokenはGitへ保存しません。
+- process chainはcommand tokenから静的に復元した候補と、Triage等で観測された親子関係を区別します。case固有の実行証跡がない限り「実行済み」としません。
+
+この記録処理は文字列解析だけであり、取得commandのpaste、shell起動、payload実行、C2接続を行いません。
+
 
 ## 実行順
 
@@ -92,8 +106,8 @@ py -3.13 .\analysis-framework\clickfix\clickfix_triage_enrichment.py `
 ```
 
 環境変数`TRIAGE_API_KEY`を値を表示せず使用します。`domain:`を必須とし、取得済み完全URLは`url:`、取得済みhashは`sha256:`で既存解析を検索し、
-公開sampleだけのoverviewと最大2件のbehavioral reportを要約します。process名、raw commandを
-公開しないcommand SHA-256、通信候補、dumped file、memory resource、PCAP候補を残します。
+公開sampleだけのoverviewと最大2件のbehavioral reportを要約します。process名、秘密値だけを
+置換した実command line、原文SHA-256、通信候補、dumped file、memory resource、PCAP候補を残します。
 hashを取得したcaseは`sha256:`照合を追加します。
 
 Triage APIは公開解析の検索、overview、task report、元sample、dumped file、memory、PCAPの

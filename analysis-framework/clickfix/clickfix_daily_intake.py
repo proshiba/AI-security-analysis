@@ -209,6 +209,34 @@ def redact_urls_in_text(value: str) -> str:
     return URL_RE.sub(replace, value)
 
 
+def redact_reversed_urls_in_text(value: str) -> str:
+    """逆順literalに隠されたURL秘密値を、reverse構文を残したまま置換する。"""
+
+    def replace(match: re.Match[str]) -> str:
+        recovered = match.group("value")[::-1]
+        if not recovered.lower().startswith(("http://", "https://")):
+            return match.group(0)
+        sanitized = sanitize_url(recovered)["sanitized"]
+        if sanitized == recovered:
+            return match.group(0)
+        return match.group(0).replace(match.group("value"), "<redacted-reversed-url>", 1)
+
+    return REVERSED_URL_RE.sub(replace, value)
+
+
+def public_command_line(command: str) -> str:
+    """秘密値だけを除き、実行構造を維持した公開用command lineを返す。"""
+
+    cleaned = command.replace("\x00", "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    return redact_urls_in_text(redact_reversed_urls_in_text(cleaned))[:16_384]
+
+
+def normalize_command_line(command: str) -> str:
+    """公開用command lineの連続空白を正規化して比較可能にする。"""
+
+    return re.sub(r"\s+", " ", public_command_line(command)).strip()
+
+
 def classify_bytes(data: bytes, content_type: str = "") -> str:
     """取得したbytesを実行せずに大まかな形式へ分類する。"""
 
@@ -248,20 +276,25 @@ def command_profile(command: str) -> dict[str, Any]:
     """ClickFixのコピーコマンドをプロセス・段階・検知系列へ要約する。"""
 
     lowered = command.lower()
-    processes = []
-    for marker, process in (
-        ("conhost", "conhost.exe"),
-        ("cmd", "cmd.exe"),
-        ("powershell", "powershell.exe"),
-        ("pwsh", "pwsh.exe"),
-        ("rundll32", "rundll32.exe"),
-        ("mshta", "mshta.exe"),
-        ("wscript", "wscript.exe"),
-        ("cscript", "cscript.exe"),
-        ("regsvr32", "regsvr32.exe"),
-        ("net use", "net.exe"),
+    process_hits = []
+    for pattern_expression, process in (
+        (r"\bconhost(?:\.exe)?\b", "conhost.exe"),
+        (r"\bcmd(?:\.exe)?\b", "cmd.exe"),
+        (r"\bpowershell(?:\.exe)?\b", "powershell.exe"),
+        (r"\bpwsh(?:\.exe)?\b", "pwsh.exe"),
+        (r"\brundll32(?:\.exe)?\b", "rundll32.exe"),
+        (r"\bmshta(?:\.exe)?\b", "mshta.exe"),
+        (r"\bwscript(?:\.exe)?\b", "wscript.exe"),
+        (r"\bcscript(?:\.exe)?\b", "cscript.exe"),
+        (r"\bregsvr32(?:\.exe)?\b", "regsvr32.exe"),
+        (r"\bnet\s+use\b", "net.exe"),
     ):
-        if marker in lowered and process not in processes:
+        match = re.search(pattern_expression, lowered)
+        if match:
+            process_hits.append((match.start(), process))
+    processes = []
+    for _offset, process in sorted(process_hits):
+        if process not in processes:
             processes.append(process)
     if "conhost" in lowered and "--headless" in lowered and "@ssl" in lowered:
         pattern = "webdav_rundll32"
@@ -290,10 +323,32 @@ def command_profile(command: str) -> dict[str, Any]:
     else:
         pattern = "unknown_clipboard_content"
         summary = "clipboard内容は取得したが、実行可能なcommandとして確定できない。"
+    published = public_command_line(command)
     return {
         "pattern": pattern,
         "summary": summary,
         "processes": processes,
+        "process_chain": [
+            {
+                "sequence": index,
+                "image": process,
+                "evidence": "command_token",
+                "relationship": "command_token_order_candidate",
+            }
+            for index, process in enumerate(processes, start=1)
+        ],
+        "process_chain_status": "recovered_from_command_not_executed",
+        "command_line_public": published,
+        "command_line_normalized": normalize_command_line(command),
+        "command_line_length": len(command),
+        "command_line_status": "recovered_not_executed",
+        "command_line_redactions": [
+            "url_userinfo",
+            "url_query",
+            "url_fragment",
+            "dual_use_token_path",
+            "reversed_url_literal",
+        ],
         "command_sha256": hashlib.sha256(command.encode("utf-8")).hexdigest(),
     }
 
@@ -1640,6 +1695,17 @@ def build_infection_chain(
         "edges": edges,
         "stage_urls": stage_urls,
         "processes": processes,
+        "process_chain": list((command or {}).get("process_chain") or []),
+        "process_chain_status": (
+            (command or {}).get("process_chain_status") if command else "not_retrieved"
+        ),
+        "command_line_public": (command or {}).get("command_line_public"),
+        "command_line_normalized": (command or {}).get("command_line_normalized"),
+        "command_line_status": (
+            (command or {}).get("command_line_status") if command else "not_retrieved"
+        ),
+        "command_line_source": (command or {}).get("command_line_source"),
+        "command_sha256": (command or {}).get("command_sha256"),
     }
 
 
@@ -1663,6 +1729,12 @@ def render_infection_chain(chain: dict[str, Any]) -> str:
     )
     urls = "\n".join(f"- `{url}`" for url in chain["stage_urls"]) or "- 次段URLは未復元です。"
     processes = " → ".join(f"`{process}`" for process in chain["processes"]) or "未確認"
+    command_line = chain.get("command_line_public")
+    command_block = _markdown_code_block(command_line) if command_line else "未取得"
+    command_normalized = chain.get("command_line_normalized")
+    normalized_block = _markdown_code_block(command_normalized) if command_normalized else "未取得"
+    command_sha256 = chain.get("command_sha256") or "未取得"
+    command_source = chain.get("command_line_source") or "未取得"
     stopped = "全段階を取得" if chain["stopped_at"] == "complete" else f"`{chain['stopped_at']}`で停止"
     next_action = {
         "CF-03": "実ブラウザでcopy操作とclipboard interceptionを再試行する。",
@@ -1696,9 +1768,25 @@ flowchart LR
 |---|---|---|---|---|
 {rows}
 
-## プロセスチェーン
+## 悪性process挙動と実command line（最重要）
 
 {processes}
+
+- process chainの状態: `{chain.get("process_chain_status", "not_retrieved")}`
+- command lineの状態: `{chain.get("command_line_status", "not_retrieved")}`
+- 取得根拠: `{command_source}`
+- 原文SHA-256: `{command_sha256}`
+
+### 復元command line（秘密値のみ置換、未実行）
+
+{command_block}
+
+### 正規化command line
+
+{normalized_block}
+
+URLのuserinfo、query、fragment、dual-use serviceのtoken pathと逆順literalだけを公開時に置換します。
+process名、switch、引数順、quote、pipe、redirect、連結operatorは復元command lineに保持します。
 
 ## 復元した次段URL
 
@@ -1786,6 +1874,15 @@ def _format_processes(command: dict[str, Any] | None) -> str:
     return " → ".join(f"`{item}`" for item in command["processes"])
 
 
+def _markdown_code_block(value: str) -> str:
+    """任意のcommand lineを安全なMarkdown code blockへ変換する。"""
+
+    fence = "```"
+    while fence in value:
+        fence += "`"
+    return f"{fence}text\n{value}\n{fence}"
+
+
 def render_case_readme(
     item: SelectedCase,
     summary: dict[str, Any],
@@ -1835,10 +1932,22 @@ def render_case_readme(
     )
     source_command = (
         f"- pattern: `{command['pattern']}`\n"
-        f"- コマンドSHA-256: `{command['command_sha256']}`\n"
+        f"- command lineの状態: `{command['command_line_status']}`\n"
+        f"- 取得根拠: `{command.get('command_line_source', '未取得')}`\n"
+        f"- 原文SHA-256: `{command['command_sha256']}`\n"
         f"- 正規化説明: {command_summary}"
         if command
         else "- providerまたはライブ本文から実行commandを取得できませんでした。"
+    )
+    command_block = (
+        _markdown_code_block(command["command_line_public"])
+        if command and command.get("command_line_public")
+        else "未取得"
+    )
+    normalized_command_block = (
+        _markdown_code_block(command["command_line_normalized"])
+        if command and command.get("command_line_normalized")
+        else "未取得"
     )
     live_chain_notes = []
     if summary["webdav_multistatus_observed"]:
@@ -1878,6 +1987,24 @@ def render_case_readme(
 `ClearFake`または`ClickFix`は配布cluster／手法を示し、終端マルウェアのfamily名とは限りません。
 本caseでは配布先、stage取得先、終端C2を役割別に分けています。
 
+## 悪性process挙動と実command line（最重要）
+
+想定されるprocess chain: {_format_processes(command)}
+
+{source_command}
+
+### 復元command line（秘密値のみ置換、未実行）
+
+{command_block}
+
+### 正規化command line
+
+{normalized_command_block}
+
+原文はprivate証跡へ保持します。公開時はURLのuserinfo、query、fragment、dual-use serviceの
+token pathと逆順literalだけを置換し、process名、switch、引数順、quote、pipe、redirect、連結operatorは保持します。
+process chainはcommand tokenから復元した候補であり、case固有のsandbox証跡がない限り実行済みとは扱いません。
+
 ## 配布マルウェア
 
 {payload_lines}
@@ -1898,14 +2025,6 @@ LummaStealer、NetSupport RAT等の終端familyを、このcaseの個別証跡�
 
 段階別の状態、根拠、停止位置は[感染チェーン](INFECTION-CHAIN.md)、
 実行・モジュール比較図は[全体ロジック](OVERALL-LOGIC.md)を参照してください。
-
-## 実行されるプロセスとcommand
-
-想定されるprocess chain: {_format_processes(command)}
-
-{source_command}
-
-生commandはquery、invite token等を含み得るため公開せず、hashと処理ロジックを残しました。
 
 ## 追加通信先
 
@@ -2125,9 +2244,11 @@ def publish(
         summary = observation_summary(observations[item.case_id])
         if item.raw_command:
             command = command_profile(item.raw_command)
+            command["command_line_source"] = "provider_reported"
             command["stage_urls"] = [sanitize_url(url)["sanitized"] for url in extract_stage_urls(item.raw_command)]
         elif summary["candidate_commands_live"]:
             command = dict(summary["candidate_commands_live"][0])
+            command["command_line_source"] = "live_observation_candidate"
         else:
             command = None
         iocs = build_iocs(item, summary, command)

