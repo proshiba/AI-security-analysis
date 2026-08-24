@@ -69,6 +69,23 @@ def test_compact_nvml_dat_loader_is_recognized() -> None:
     assert result == "nvml_compact_dat_loader"
 
 
+def test_msocf_rc4_ff_proxy_requires_exports_apis_marker_and_recovery() -> None:
+    exports = {f"?Function{index}@MsoCF@@YGXXZ" for index in range(40)}
+    arguments = {
+        "exports": exports,
+        "all_imports": set(MODULE.MSOCF_DECRYPTION_APIS),
+        "resource_types": set(),
+        "sections": [],
+        "export_target_peak_ratio": 0.02,
+        "text_markers": {"sys_cache.dat"},
+    }
+
+    assert MODULE.classify_proxy_profile(**arguments, msocf_payload_recovered=True) == (
+        "msocf_rc4_ff_proxy"
+    )
+    assert MODULE.classify_proxy_profile(**arguments, msocf_payload_recovered=False) is None
+
+
 def test_large_pdfcore8_proxy_accepts_reviewed_rotated_resource_profile() -> None:
     result = MODULE.classify_proxy_profile(
         exports=set(MODULE.PDFCORE_EXPORTS) | {f"export_{index}" for index in range(1_000)},
