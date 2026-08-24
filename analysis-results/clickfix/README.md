@@ -6,6 +6,7 @@ ClickFix、ClearFake、fake CAPTCHA、WebDAV型ClickFixのdomain／case別調査
 
 ## 最新調査
 
+- [2026-08-25 収集済みcommand解析](collections/clickfix-command-analysis-20260825/README.md)
 - [2026-08-06 日次調査](collections/clickfix-daily-20260806/README.md)
 
 ## 運用原則

@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "collection_id": "clickfix-command-analysis-20260825",
+  "analysis_date": "2026-08-25",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "size": 1916,
+    "command_labels": 10,
+    "unique_commands": 6
+  },
+  "private_evidence_datastore": {
+    "status": "verified",
+    "target": "clickfix-command-file-20260825",
+    "object_uri": "s3://malware-analysis-datastore-720232834682/analysis-targets/clickfix-command-file-20260825/2026/08/clickfix-command-file-20260825-20260824T232803Z-57ea6cd804e4.zip",
+    "archive_format": "WinZip AES-256",
+    "server_side_encryption": "AES256",
+    "archive_sha256": "ededee3771844406c90c99b3c4a41f24cbdbf4c1ecfa98b5dac92df43a37ff42",
+    "manifest_sha256": "57ea6cd804e42dd318f138d182e120d6f2a606073c5f726b1e40629118187e1f",
+    "archive_size": 6718,
+    "file_count": 5,
+    "local_source_deleted": false
+  },
+  "cases": [
+    {
+      "case_id": "20260825-command-pt1",
+      "domain": "fingerprint-verification.info",
+      "labels": [
+        "pt1"
+      ],
+      "command_sha256": "ad205fd0791c387ae175527f61eeafd7f56ef6458cfbfa14cb790135136d52f5",
+      "relative_path": "fingerprint-verification.info/cases/20260825-command-pt1",
+      "pattern": "Invoke-RestMethod + Invoke-Expression",
+      "terminal_payload_status": "not_retrieved"
+    },
+    {
+      "case_id": "20260825-command-pt2",
+      "domain": "rrewardgoldshop.com",
+      "labels": [
+        "pt2"
+      ],
+      "command_sha256": "a3b79eef4fe44ac7b4caff424ad0cc3512d703b87c74a23e366a3bf65010cded",
+      "relative_path": "rrewardgoldshop.com/cases/20260825-command-pt2",
+      "pattern": "文字列置換 + Process.Start + 子PowerShell IEX",
+      "terminal_payload_status": "not_retrieved"
+    },
+    {
+      "case_id": "20260825-command-pt3",
+      "domain": "makeverizyjar.info",
+      "labels": [
+        "pt3"
+      ],
+      "command_sha256": "5feb1ae28bba2dab1f4ef79911a36d2f467f3dd2c3fb0bc51a0a5a12db4ffe1a",
+      "relative_path": "makeverizyjar.info/cases/20260825-command-pt3",
+      "pattern": "Invoke-RestMethod + Invoke-Expression",
+      "terminal_payload_status": "not_retrieved"
+    },
+    {
+      "case_id": "20260825-command-pt4-pt8-pt9",
+      "domain": "imagehopeag.com",
+      "labels": [
+        "pt4",
+        "pt8",
+        "pt9"
+      ],
+      "command_sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed",
+      "relative_path": "imagehopeag.com/cases/20260825-command-pt4-pt8-pt9",
+      "pattern": "WebClient.DownloadString + Invoke-Expression",
+      "terminal_payload_status": "not_retrieved"
+    },
+    {
+      "case_id": "20260825-command-pt5-pt6-pt7",
+      "domain": "spielportal.com",
+      "labels": [
+        "pt5",
+        "pt6",
+        "pt7"
+      ],
+      "command_sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+      "relative_path": "spielportal.com/cases/20260825-command-pt5-pt6-pt7",
+      "pattern": "Invoke-RestMethod + 動的ScriptProperty getter",
+      "terminal_payload_status": "not_retrieved"
+    },
+    {
+      "case_id": "20260825-command-pt10",
+      "domain": "triapfog.com",
+      "labels": [
+        "pt10"
+      ],
+      "command_sha256": "1a44a4d00493aca1e833ed54f60d07141c42c196b81951fe31a6a3bc69842da8",
+      "relative_path": "triapfog.com/cases/20260825-command-pt10",
+      "pattern": "Base64 URL復号 + Invoke-RestMethod + Invoke-Expression",
+      "terminal_payload_status": "not_retrieved"
+    }
+  ],
+  "safety": {
+    "commands_executed": false,
+    "powershell_started": false,
+    "payloads_executed": false,
+    "live_context": "bounded GET only"
+  }
+}

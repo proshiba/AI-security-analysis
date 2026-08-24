@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt10",
+  "observation_type": "bounded_static_stage_get",
+  "result": {
+    "analyst_probe_url": "https://triapfog.com/security/c8ppwoye50",
+    "status": "http_403",
+    "http_status": 403,
+    "bytes": 5105,
+    "body_sha256": "1fc2b8f022b09b4076ef09e7fc4b3e6f702b5ee877837304ccd9eff30d028775",
+    "body_type": "html",
+    "payload_recovered": false
+  },
+  "policy": {
+    "javascript_executed": false,
+    "command_executed": false,
+    "command_pasted": false,
+    "payload_opened": false,
+    "private_address_blocked": true,
+    "maximum_body_bytes": 524288
+  }
+}

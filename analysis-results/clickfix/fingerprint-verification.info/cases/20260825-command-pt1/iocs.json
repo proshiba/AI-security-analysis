@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt1",
+  "source_file_sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "fingerprint-verification.info",
+      "role": "clickfix_stage_delivery",
+      "confidence": "confirmed_in_captured_command",
+      "source": "clickfix-command.txt"
+    },
+    {
+      "type": "url",
+      "value": "https://fingerprint-verification.info/b65e021a394660c5",
+      "role": "normalized_stage_locator",
+      "confidence": "decoded_or_analyst_normalized",
+      "source": "pt1"
+    },
+    {
+      "type": "sha256",
+      "value": "ad205fd0791c387ae175527f61eeafd7f56ef6458cfbfa14cb790135136d52f5",
+      "role": "captured_command_text",
+      "confidence": "confirmed",
+      "source": "pt1"
+    },
+    {
+      "type": "sha256",
+      "value": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+      "role": "context_only_current_http_response_not_payload",
+      "confidence": "observed_at_analysis_time",
+      "source": "bounded analyst GET"
+    }
+  ]
+}

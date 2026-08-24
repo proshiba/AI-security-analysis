@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt5-pt6-pt7",
+  "observation_type": "bounded_static_stage_get",
+  "result": {
+    "analyst_probe_url": "https://spielportal.com/cj5JpRGuScm5B9ok7",
+    "status": "timeout",
+    "http_status": null,
+    "bytes": 0,
+    "body_sha256": null,
+    "body_type": null,
+    "payload_recovered": false
+  },
+  "policy": {
+    "javascript_executed": false,
+    "command_executed": false,
+    "command_pasted": false,
+    "payload_opened": false,
+    "private_address_blocked": true,
+    "maximum_body_bytes": 524288
+  }
+}
