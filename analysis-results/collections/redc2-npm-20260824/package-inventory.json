@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "collection_id": "redc2-npm-20260824",
+  "outer_archive": {
+    "sha256": "0faeb1ff173c015a83331219c10afefd5a20e69252a1969c661dcfd20209b0cc",
+    "size": 142570,
+    "local_path_retained": false
+  },
+  "package_count": 5,
+  "unique_payload_count": 1,
+  "payload_occurrences": {
+    "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466": 5
+  },
+  "packages": [
+    {
+      "name": "kit-map-vim",
+      "version": "1.0.0",
+      "tarball_sha256": "e3876a8a6098c7fdf285e1320872dbf0ee7ddaed466ae938716b52b0c0a2cc00",
+      "tarball_size": 28729,
+      "payload_path": "dist/internal/calc-math.dat",
+      "payload_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "payload_size": 63616,
+      "loader": {
+        "activation": "package_import",
+        "install_hook_present": false,
+        "payload_path": "package/dist/internal/calc-math.dat",
+        "payload_mode": "0o644",
+        "payload_mode_executable": false,
+        "chmod_0755_before_spawn": true,
+        "spawn_present": true,
+        "spawn_detached": true,
+        "spawn_shell_false": true,
+        "child_unref_called": false,
+        "platform_guard_present": false,
+        "expected_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "actual_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "integrity_gate_matches": true,
+        "normal_install_execution_viable": true
+      }
+    },
+    {
+      "name": "map-streak-kit",
+      "version": "1.0.0",
+      "tarball_sha256": "f2ed178b376b2d0b8084da698b174e8016ed9863717683462a0fdef15c11f1cd",
+      "tarball_size": 28728,
+      "payload_path": "dist/internal/calc-math.dat",
+      "payload_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "payload_size": 63616,
+      "loader": {
+        "activation": "package_import",
+        "install_hook_present": false,
+        "payload_path": "package/dist/internal/calc-math.dat",
+        "payload_mode": "0o644",
+        "payload_mode_executable": false,
+        "chmod_0755_before_spawn": true,
+        "spawn_present": true,
+        "spawn_detached": true,
+        "spawn_shell_false": true,
+        "child_unref_called": false,
+        "platform_guard_present": false,
+        "expected_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "actual_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "integrity_gate_matches": true,
+        "normal_install_execution_viable": true
+      }
+    },
+    {
+      "name": "streak-cache-map",
+      "version": "1.0.0",
+      "tarball_sha256": "171aae3329880d35b0e459f895987c5db6f2bdd6e35872aa82bedadfa8dac8fc",
+      "tarball_size": 28731,
+      "payload_path": "dist/internal/calc-cache.bin",
+      "payload_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "payload_size": 63616,
+      "loader": {
+        "activation": "package_import",
+        "install_hook_present": false,
+        "payload_path": "package/dist/internal/calc-cache.bin",
+        "payload_mode": "0o644",
+        "payload_mode_executable": false,
+        "chmod_0755_before_spawn": true,
+        "spawn_present": true,
+        "spawn_detached": true,
+        "spawn_shell_false": true,
+        "child_unref_called": false,
+        "platform_guard_present": false,
+        "expected_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "actual_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "integrity_gate_matches": true,
+        "normal_install_execution_viable": true
+      }
+    },
+    {
+      "name": "streak-map-kit",
+      "version": "1.0.0",
+      "tarball_sha256": "b1d038a04272a1f0dbf1ece8f8697cd140dc7d9cc93dba1719cb916105fa3a37",
+      "tarball_size": 28740,
+      "payload_path": "dist/internal/calc-mapping.bin",
+      "payload_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "payload_size": 63616,
+      "loader": {
+        "activation": "package_import",
+        "install_hook_present": false,
+        "payload_path": "package/dist/internal/calc-mapping.bin",
+        "payload_mode": "0o644",
+        "payload_mode_executable": false,
+        "chmod_0755_before_spawn": true,
+        "spawn_present": true,
+        "spawn_detached": true,
+        "spawn_shell_false": true,
+        "child_unref_called": false,
+        "platform_guard_present": false,
+        "expected_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "actual_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "integrity_gate_matches": true,
+        "normal_install_execution_viable": true
+      }
+    },
+    {
+      "name": "streak-metrics-math",
+      "version": "1.0.0",
+      "tarball_sha256": "44c4e793056f661a1e80a2586dc755db2c1d32b7ab25f772fcc39d75d7a1d6ce",
+      "tarball_size": 28626,
+      "payload_path": "dist/math-calc.bin",
+      "payload_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "payload_size": 63616,
+      "loader": {
+        "activation": "package_import",
+        "install_hook_present": false,
+        "payload_path": "package/dist/math-calc.bin",
+        "payload_mode": "0o644",
+        "payload_mode_executable": false,
+        "chmod_0755_before_spawn": false,
+        "spawn_present": true,
+        "spawn_detached": true,
+        "spawn_shell_false": true,
+        "child_unref_called": false,
+        "platform_guard_present": false,
+        "expected_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "actual_sha256": "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+        "integrity_gate_matches": true,
+        "normal_install_execution_viable": false
+      }
+    }
+  ],
+  "safety": {
+    "sample_executed": false,
+    "node_imported": false,
+    "network_contacted": false,
+    "live_c2_checked": false
+  }
+}

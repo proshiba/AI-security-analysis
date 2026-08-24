@@ -8,7 +8,7 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 2699,
+    "catalog_cases": 2700,
     "profiled_cases": 1841,
     "candidate_pairs_before_limit": 612124,
     "retained_pairs": 8577,
