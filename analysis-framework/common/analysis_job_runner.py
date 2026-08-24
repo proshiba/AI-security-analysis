@@ -77,6 +77,13 @@ DEFAULT_TIMEOUT_SECONDS = 6 * 60 * 60
 MAX_TIMEOUT_SECONDS = 24 * 60 * 60
 PIPE_DRAIN_CHUNK_BYTES = 64 * 1024
 OUTPUT_MONITOR_INTERVAL_SECONDS = 0.5
+MAX_LIVE_OUTPUT_SCAN_ATTEMPTS = 3
+LIVE_OUTPUT_TRANSIENT_SCAN_CODES = frozenset(
+    {
+        "analysis_output_reparse_forbidden",
+        "analysis_output_unreadable",
+    }
+)
 RUNTIME_PREFLIGHT_TIMEOUT_SECONDS = 30
 MAX_RUNTIME_PREFLIGHT_ACTIVE_PROCESSES = 4
 MAX_RUNTIME_PREFLIGHT_MEMORY_BYTES = 1024 * 1024 * 1024
@@ -2944,7 +2951,7 @@ def _run_process_with_bounded_output(
                 if time.monotonic() >= deadline:
                     raise
                 if monitored_output is not None:
-                    validate_analysis_output_tree(monitored_output)
+                    _validate_live_analysis_output_tree(monitored_output)
                     if shutil.disk_usage(monitored_output).free <= MIN_FREE_DISK_RESERVE_BYTES:
                         raise JobContractError(
                             "analysis_output_disk_reserve_exceeded",
@@ -3048,6 +3055,42 @@ def validate_analysis_output_tree(path: Path) -> dict[str, int]:
                     f"解析出力が{MAX_ANALYSIS_OUTPUT_BYTES} bytes上限を超えています",
                 )
     return {"entries": entries, "files": files, "directories": directories, "total_bytes": total_bytes}
+
+
+def _exception_caused_by_live_tree_churn(error: BaseException) -> bool:
+    """明示的なcause chainにWindows live treeの消滅競合があるか確認する。"""
+
+    current: BaseException | None = error
+    for _ in range(8):
+        if isinstance(current, FileNotFoundError) or (
+            isinstance(current, PermissionError)
+            and getattr(current, "winerror", None) == 5
+        ):
+            return True
+        current = current.__cause__
+        if current is None:
+            break
+    return False
+
+
+def _validate_live_analysis_output_tree(path: Path) -> dict[str, int]:
+    """live出力の消滅競合だけを再試行し、安定したstrict検証結果を要求する。"""
+
+    last_error: JobContractError | None = None
+    for _ in range(MAX_LIVE_OUTPUT_SCAN_ATTEMPTS):
+        try:
+            return validate_analysis_output_tree(path)
+        except JobContractError as exc:
+            if (
+                exc.code not in LIVE_OUTPUT_TRANSIENT_SCAN_CODES
+                or not _exception_caused_by_live_tree_churn(exc)
+            ):
+                raise
+            last_error = exc
+    raise JobContractError(
+        "analysis_output_changed_during_scan",
+        "解析出力treeがlive検証中に継続して変更されました",
+    ) from last_error
 
 
 def finalize_job_private_temp(

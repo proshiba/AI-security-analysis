@@ -9,6 +9,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from build_all_c2_monitoring_targets import (
+    DAILY_HANDOFF_SCHEMA_VERSION,
+    _daily_source_dates,
+    daily_effective_target_commitment,
+)
 from c2_monitoring_history import (
     apply_monitoring_history,
     carry_forward_active_targets,
@@ -26,7 +31,11 @@ from maxmind_c2_enrichment import (
 from monitor_recent_c2 import PlanError, monitor, render_markdown, validate_plan
 from rat_emulation_evidence import (
     attach_sessions as attach_rat_emulation_sessions,
+)
+from rat_emulation_evidence import (
     load_and_validate as load_rat_emulation_evidence,
+)
+from rat_emulation_evidence import (
     public_sha256 as rat_emulation_public_sha256,
 )
 from render_c2_maxmind_section import insert_section, render_maxmind_section
@@ -218,6 +227,122 @@ def load_optional_rat_emulation_evidence(
     return evidence, rat_emulation_public_sha256(evidence)
 
 
+def _is_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and value == value.casefold()
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    """source commitmentと実効endpoint commitmentの結合をnetwork前に検証する。"""
+
+    targets = plan.get("targets")
+    if not isinstance(targets, list) or any(not isinstance(item, dict) for item in targets):
+        raise ValueError("daily handoffのtarget集合はobjectのlistである必要があります")
+    tagged_dates: set[str] = set()
+    for target in targets:
+        tagged_dates.update(_daily_source_dates(target))
+
+    records = plan.get("daily_source_handoffs", [])
+    if not isinstance(records, list) or any(not isinstance(item, dict) for item in records):
+        raise ValueError("daily_source_handoffsはobjectのlistである必要があります")
+    required = {
+        "schema_version",
+        "source_date",
+        "source_target_commitment_sha256",
+        "source_target_count",
+        "effective_target_commitment_sha256",
+        "effective_target_count",
+    }
+    normalized: list[dict[str, Any]] = []
+    dates: list[str] = []
+    for record in records:
+        if set(record) != required:
+            raise ValueError("daily source handoffのfield集合が正規schemaと一致しません")
+        source_date = record.get("source_date")
+        source_count = record.get("source_target_count")
+        effective_count = record.get("effective_target_count")
+        if (
+            record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
+            or not isinstance(source_date, str)
+            or isinstance(source_count, bool)
+            or not isinstance(source_count, int)
+            or source_count < 0
+            or isinstance(effective_count, bool)
+            or not isinstance(effective_count, int)
+            or effective_count < 0
+            or not _is_sha256(record.get("source_target_commitment_sha256"))
+            or not _is_sha256(record.get("effective_target_commitment_sha256"))
+        ):
+            raise ValueError("daily source handoffの型またはcommitmentが不正です")
+        effective_sha256, observed_count, observed_hosts = daily_effective_target_commitment(
+            plan.get("targets"),
+            source_date,
+        )
+        if (
+            effective_sha256 != record["effective_target_commitment_sha256"]
+            or observed_count != effective_count
+            or len(observed_hosts) != source_count
+        ):
+            raise ValueError("daily source handoffと実効C2 target集合が一致しません")
+        dates.append(source_date)
+        normalized.append(dict(record))
+    if dates != sorted(set(dates)):
+        raise ValueError("daily source handoffはsource_date昇順かつ一意である必要があります")
+    if tagged_dates != set(dates):
+        raise ValueError("daily source tagとhandoff recordのsource_date集合が完全一致しません")
+    return normalized
+
+
+def attach_daily_handoff_result_bindings(
+    result: dict[str, Any],
+    plan: dict[str, Any],
+    handoffs: list[dict[str, Any]],
+) -> None:
+    """実効targetのsource tagを観測結果へ継承し、同一commitmentを固定する。"""
+
+    plan_targets = plan.get("targets")
+    result_targets = result.get("results")
+    if not isinstance(plan_targets, list) or not isinstance(result_targets, list):
+        raise ValueError("daily handoffを結果へ結合できません")
+    by_id: dict[str, dict[str, Any]] = {}
+    for target in plan_targets:
+        target_id = target.get("target_id") if isinstance(target, dict) else None
+        if not isinstance(target_id, str) or not target_id or target_id in by_id:
+            raise ValueError("C2 target_idは一意な文字列である必要があります")
+        by_id[target_id] = target
+    for item in result_targets:
+        if not isinstance(item, dict) or item.get("target_id") not in by_id:
+            raise ValueError("C2 resultを実効targetへexactに結合できません")
+        source_dates = by_id[item["target_id"]].get("daily_source_dates", [])
+        if source_dates:
+            item["daily_source_dates"] = list(source_dates)
+    result_records: list[dict[str, Any]] = []
+    for handoff in handoffs:
+        source_date = handoff["source_date"]
+        result_sha256, result_count, result_hosts = daily_effective_target_commitment(
+            result_targets,
+            source_date,
+        )
+        if (
+            result_sha256 != handoff["effective_target_commitment_sha256"]
+            or result_count != handoff["effective_target_count"]
+            or len(result_hosts) != handoff["source_target_count"]
+        ):
+            raise ValueError("daily source handoffとC2 result集合が一致しません")
+        result_records.append(
+            {
+                **handoff,
+                "result_target_commitment_sha256": result_sha256,
+                "result_target_count": result_count,
+            }
+        )
+    result["daily_source_handoffs"] = result_records
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets", type=Path, required=True)
@@ -302,6 +427,7 @@ def main() -> int:
         )
         plan, carried_forward = carry_forward_active_targets(plan, previous_active)
         validate_plan(plan)
+        daily_handoffs = validate_daily_handoff_plan(plan)
         rat_emulation = load_optional_rat_emulation_evidence(
             args.rat_emulation_evidence,
             args.rat_emulation_evidence_sha256,
@@ -327,6 +453,7 @@ def main() -> int:
             xloader_private_material=args.xloader_private_material,
             nmap_executable=args.nmap,
         )
+        attach_daily_handoff_result_bindings(result, plan, daily_handoffs)
         if rat_emulation is not None:
             rat_evidence, rat_evidence_sha256 = rat_emulation
             attach_rat_emulation_sessions(

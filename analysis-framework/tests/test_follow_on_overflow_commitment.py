@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 
-
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / "common"
 REPOSITORY_ROOT = FRAMEWORK_ROOT.parent
@@ -128,6 +127,71 @@ def test_retained_scan_commits_every_record_beyond_explicit_omission_cap(
         "verified_output_edge_limit",
         "verified_output_omitted_metadata_limit",
     ]
+
+
+def test_invalid_retention_proof_forces_partial_instead_of_no_payloads(tmp_path: Path) -> None:
+    """quota sentinelを空payload証明へ読み替えず、graphをpartialへ倒す。"""
+
+    parent = "a" * 64
+    case_dir = tmp_path / "cases" / parent
+    case_dir.mkdir(parents=True)
+    (case_dir / "report.json").write_text(
+        json.dumps({"handler_executions": []}),
+        encoding="utf-8",
+    )
+    sentinel = {"truncated": True, "reason": "maximum_total_entries"}
+    (case_dir / "candidate-handler-assessment.json").write_text(
+        json.dumps(
+            {
+                "families": [
+                    {
+                        "family": "valleyrat",
+                        "attempts": [
+                            {
+                                "result": {
+                                    "verified_binary_outputs": sentinel,
+                                    "verified_binary_output_audit": sentinel,
+                                }
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    records, errors, read_count, read_bytes = one_shot._case_retained_payloads(
+        tmp_path,
+        parent,
+        maximum_records=64,
+        maximum_read_bytes=256 * 1024 * 1024,
+    )
+    assert records == []
+    assert errors == ["invalid_retention_metadata"]
+    assert read_count == 0 and read_bytes == 0
+
+    graph = one_shot._run_follow_on_fixed_point(
+        root_digests=[parent],
+        output=tmp_path,
+        registry=FRAMEWORK_ROOT / "registry" / "malware_types.json",
+        specs=[],
+        requirements_policy={},
+        minimum_confidence="medium",
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password="infected",
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+    )
+    assert graph["status"] == "partial"
+    assert graph["errors"] == [f"{parent}:invalid_retention_metadata"]
 
 
 def test_fixed_point_commitment_forces_partial_and_disables_parent_promotion(

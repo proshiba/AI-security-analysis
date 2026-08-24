@@ -7,7 +7,7 @@
 
 | 項目 | 件数 |
 |---|---:|
-| static-logic.json | 2648 |
+| static-logic.json | 2698 |
 | fingerprint対象関数 | 34845 |
 | 完全一致group | 3623 |
 | SimHash完全一致group | 1938 |

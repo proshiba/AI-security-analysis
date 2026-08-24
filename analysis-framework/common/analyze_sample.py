@@ -74,10 +74,6 @@ import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
 import terminal_payload_acquisition  # noqa: E402
-from follow_on_commitment import (  # noqa: E402
-    canonical_multiset_commitment,
-    metadata_identity,
-)
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
     build_pipeline_fingerprint,
@@ -99,12 +95,19 @@ from campaign_correlation import (  # noqa: E402
 )
 from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from extractors.profiled_family import clear_profile_cache  # noqa: E402
+from follow_on_commitment import (  # noqa: E402
+    canonical_multiset_commitment,
+    metadata_identity,
+)
 from handler_catalog import (  # noqa: E402
     DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
     DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE,
     MAX_ASSESSMENT_ATTEMPTS,
     MAX_ASSESSMENT_LAYERS,
     HandlerSpec,
+    _bounded_handler_environment,
+    _read_verified_artifact,
+    _sanitize_public_text,
     assess_candidate_handlers,
     catalog_summary,
     clear_handler_caches,
@@ -112,8 +115,6 @@ from handler_catalog import (  # noqa: E402
     discover_handlers,
     execute_handler_bounded_for_assessment,
     sanitize_public_value,
-    _bounded_handler_environment,
-    _read_verified_artifact,
 )
 from malware_io import (  # noqa: E402
     read_file_capped,
@@ -672,6 +673,57 @@ def _verification_candidates(routing: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _candidate_assessment_inputs(candidates: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """候補sourceだけを個別に無害化し、strict assessment入力へ射影する。"""
+
+    public = []
+    for candidate in candidates:
+        raw_sources = candidate.get("sources", candidate.get("source", []))
+        sources = [raw_sources] if isinstance(raw_sources, str) else list(raw_sources or [])
+        public.append(
+            {
+                "family": candidate.get("family"),
+                "sources": [
+                    _sanitize_public_text(value) if isinstance(value, str) else value
+                    for value in sources
+                ],
+                "routing_eligible": candidate.get("routing_eligible") is True,
+                "routing_mode": candidate.get("routing_mode"),
+                "routing_eligibility": candidate.get("routing_eligibility"),
+            }
+        )
+    return public
+
+
+def _public_candidate_layer(layer: StaticLayer) -> dict[str, Any]:
+    """候補assessmentへ公開するlayer文字列を個別に無害化する。"""
+
+    public = layer.public()
+    public["name"] = _sanitize_public_text(layer.name)
+    public["transform"] = _sanitize_public_text(layer.transform)
+    return public
+
+
+def _sanitize_candidate_assessment_layers(result: dict[str, Any]) -> None:
+    """解析時のraw layer名を変えず、公開attempt layerだけを個別に無害化する。"""
+
+    families = result.get("families")
+    if not isinstance(families, list):
+        return
+    for family in families:
+        attempts = family.get("attempts") if isinstance(family, Mapping) else None
+        if not isinstance(attempts, list):
+            continue
+        for attempt in attempts:
+            layer = attempt.get("layer") if isinstance(attempt, Mapping) else None
+            if not isinstance(layer, dict):
+                continue
+            for field in ("name", "transform"):
+                value = layer.get(field)
+                if isinstance(value, str):
+                    layer[field] = _sanitize_public_text(value)
+
+
 def _load_family_analysis_requirements(path: Path = FAMILY_ANALYSIS_REQUIREMENTS) -> dict[str, dict[str, Any]]:
     """family別の必須成果物policyを厳格schemaで読み込む。"""
 
@@ -750,11 +802,12 @@ def _candidate_handler_assessment(
     eligible: list[tuple[int, StaticLayer, str]] = []
     excluded: list[dict[str, Any]] = []
     for index, layer in enumerate(layers):
+        public_layer = _public_candidate_layer(layer)
         actual_format = detect_format(layer.data, layer.name)
         if not any(format_compatible(spec.input_formats, actual_format) for spec in candidate_specs):
-            excluded.append({"layer": layer.public(), "reason": "no_candidate_handler_accepts_format"})
+            excluded.append({"layer": public_layer, "reason": "no_candidate_handler_accepts_format"})
         elif len(layer.data) > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE:
-            excluded.append({"layer": layer.public(), "reason": "candidate_layer_size_limit"})
+            excluded.append({"layer": public_layer, "reason": "candidate_layer_size_limit"})
         else:
             eligible.append((index, layer, actual_format))
 
@@ -767,10 +820,10 @@ def _candidate_handler_assessment(
     total_size = 0
     for item in ordered:
         if len(selected) >= layer_limit:
-            excluded.append({"layer": item[1].public(), "reason": "candidate_attempt_limit"})
+            excluded.append({"layer": _public_candidate_layer(item[1]), "reason": "candidate_attempt_limit"})
             continue
         if total_size + len(item[1].data) > DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE:
-            excluded.append({"layer": item[1].public(), "reason": "candidate_total_size_limit"})
+            excluded.append({"layer": _public_candidate_layer(item[1]), "reason": "candidate_total_size_limit"})
             continue
         selected.append(item)
         total_size += len(item[1].data)
@@ -797,7 +850,7 @@ def _candidate_handler_assessment(
         for _index, layer, actual_format in selected
     ]
     result = assess_candidate_handlers(
-        candidates,
+        _candidate_assessment_inputs(candidates),
         assessment_layers,
         detector_evaluations=collect_detector_evaluations(layer_classifications),
         specs=candidate_specs,
@@ -808,7 +861,8 @@ def _candidate_handler_assessment(
     result["selected_layer_count"] = len(selected)
     result["selected_total_size"] = total_size
     result["excluded_layers"] = excluded
-    return sanitize_public_value(result)
+    _sanitize_candidate_assessment_layers(result)
+    return result
 
 
 def _preflight_applicable(specs: list[HandlerSpec], applicability: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -3092,25 +3146,31 @@ def _retained_outputs_from_wrapper(wrapper: object) -> list[dict[str, Any]]:
 
     if not isinstance(wrapper, Mapping):
         return []
+    has_outputs = "verified_binary_outputs" in wrapper
+    has_audit = "verified_binary_output_audit" in wrapper
+    if not has_outputs and not has_audit:
+        return []
+    if has_outputs != has_audit:
+        raise ValueError("保持payload proof fieldが片方だけです")
     supplied = wrapper.get("verified_binary_outputs")
     if not isinstance(supplied, Sequence) or isinstance(supplied, (str, bytes, bytearray)):
-        return []
+        raise TypeError("保持payload metadataのschemaが不正です")
     if len(supplied) > MAX_FOLLOW_ON_ARTIFACTS:
-        return []
+        raise ValueError("保持payload metadataが件数上限を超えています")
     bounded = list(supplied)
     audit = orchestration_outcome._verified_output_audit(  # noqa: SLF001 - 同一pipelineのstrict schema
         wrapper.get("verified_binary_output_audit"),
         output_count=len(bounded),
     )
     if audit is None:
-        return []
+        raise ValueError("保持payload auditのschemaが不正です")
     outputs = []
     for supplied_output in bounded:
         output = orchestration_outcome._verified_binary_output(  # noqa: SLF001
             supplied_output
         )
         if output is None:
-            return []
+            raise ValueError("保持payload metadataを検証できません")
         outputs.append(output)
     return outputs
 
@@ -3291,14 +3351,18 @@ def _case_retained_payloads(
     wrappers.extend(_candidate_wrappers(candidate_assessment))
     metadata_records: list[dict[str, Any]] = []
     for wrapper in wrappers:
-        retained_claimed = (
-            isinstance(wrapper, Mapping)
-            and isinstance(wrapper.get("verified_binary_output_audit"), Mapping)
-            and wrapper["verified_binary_output_audit"].get("retained_for_follow_on_analysis") is True
-        )
-        if retained_claimed and not _wrapper_follow_on_promotion_eligible(wrapper):
-            errors.add("incomplete_retention_audit")
-        for metadata in _retained_outputs_from_wrapper(wrapper):
+        try:
+            retained_outputs = _retained_outputs_from_wrapper(wrapper)
+            retained_claimed = (
+                isinstance(wrapper.get("verified_binary_output_audit"), Mapping)
+                and wrapper["verified_binary_output_audit"].get("retained_for_follow_on_analysis") is True
+            )
+            if retained_claimed and not _wrapper_follow_on_promotion_eligible(wrapper):
+                errors.add("incomplete_retention_audit")
+        except (TypeError, ValueError):
+            errors.add("invalid_retention_metadata")
+            continue
+        for metadata in retained_outputs:
             if len(metadata_records) >= maximum_records:
                 record_omission(metadata, "verified_output_edge_limit")
                 continue

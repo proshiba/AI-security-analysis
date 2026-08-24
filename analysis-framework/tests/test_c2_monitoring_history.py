@@ -4,7 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
@@ -219,6 +218,32 @@ def test_previous_active_targets_are_carried_forward_and_deduplicated() -> None:
     merged_again, carried_again = history.carry_forward_active_targets(merged, previous_plan)
     assert carried_again == 0
     assert len(merged_again["targets"]) == 2
+
+
+def test_previous_daily_handoff_tags_are_not_carried_into_current_run() -> None:
+    current_handoff = {"source_date": "2026-08-24"}
+    previous_handoff = {"source_date": "2026-08-23"}
+    current_plan = {
+        "schema_version": 1,
+        "daily_source_handoffs": [current_handoff],
+        "targets": [target("new.example")],
+    }
+    prior_target = target("old.example")
+    prior_target["daily_source_dates"] = ["2026-08-23"]
+    previous_plan = {
+        "schema_version": 1,
+        "daily_source_handoffs": [previous_handoff],
+        "targets": [prior_target],
+    }
+
+    merged, carried = history.carry_forward_active_targets(current_plan, previous_plan)
+
+    assert carried == 1
+    carried_target = next(item for item in merged["targets"] if item["host"] == "old.example")
+    assert "daily_source_dates" not in carried_target
+    assert merged["daily_source_handoffs"] == [current_handoff]
+    assert current_plan["targets"] == [target("new.example")]
+    assert previous_plan["targets"][0]["daily_source_dates"] == ["2026-08-23"]
 
 
 def test_onion_is_not_carried_forward_when_policy_excludes_it() -> None:
