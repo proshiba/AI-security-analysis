@@ -5318,6 +5318,13 @@
       "provisional_cluster_id": "agenttesla",
       "version_key": "unknown"
     },
+    "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466": {
+      "canonical_path": "analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "case_id": "sha256:4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466",
+      "case_kind": "malware",
+      "family": "redc2",
+      "version_key": "v4-0"
+    },
     "453e8395ae2bf5ce4de758228eb9dfb60e8da309f59a7cea600de3b8d3e258ea": {
       "canonical_path": "analysis-results/malware/quasarrat/versions/unknown/cases/453e8395ae2bf5ce4de758228eb9dfb60e8da309f59a7cea600de3b8d3e258ea",
       "case_id": "sha256:453e8395ae2bf5ce4de758228eb9dfb60e8da309f59a7cea600de3b8d3e258ea",

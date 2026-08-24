@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "collection_id": "redc2-npm-20260824",
+  "source_type": "user_provided_password_archive",
+  "source_date": "2026-08-24",
+  "cases": [
+    {"case_id": "sha256:4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466"}
+  ],
+  "family_sources": [],
+  "submitted_package_count": 5,
+  "unique_payload_count": 1,
+  "safety": {"sample_executed": false, "network_contacted": false}
+}

@@ -31,13 +31,13 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 <!-- case-inventory:start -->
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 2,699 |
-| ファミリ帰属済みcase | 1,653 |
+| SHA-256で一意な全case | 2,700 |
+| ファミリ帰属済みcase | 1,654 |
 | 未分類case | 1,045 |
 | サプライチェーンpayload | 1 |
 | 版を静的根拠で確認済み | 89 |
 | exact sampleの外部報告で版を特定 | 6 |
-| 版不明または判定資料不足（ファミリ帰属済み） | 1,558 |
+| 版不明または判定資料不足（ファミリ帰属済み） | 1,559 |
 <!-- case-inventory:end -->
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
@@ -74,6 +74,7 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 - [PureHVNC／PureRAT](malware/purehvnc/README.md)
 - [QuasarRAT](malware/quasarrat/README.md)
 - [RedLine Stealer](malware/redlinestealer/README.md)
+- [RedC2／RedShell](malware/redc2/README.md)
 - [Remcos RAT](malware/remcosrat/README.md)
 - [Remus Stealer](malware/remusstealer/README.md)
 - [ShadowPad](malware/shadowpad/README.md)
@@ -101,6 +102,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 - [2026-07-17 MalwareBazaar未分類：100件](collections/malwarebazaar-unknown-20260717/README.md)
 - [2026-07-23 ValleyRAT／ACRStealer追加解析：20件](collections/valleyrat-acrstealer-20260723/README.md)
 - [2026-07-27 ValleyRAT／FormBook個別調査：2件](collections/targeted-20260727-valleyrat-formbook/README.md)
+- [2026-08-24 RedC2 npm package提供集合：5 package／1 payload](collections/redc2-npm-20260824/README.md)
 - [MalwareBazaar 1000検体解析（進行中、batch-0001～0010：99件解析済み／1件取得待ち）](research/malwarebazaar/batches/README.md)
 
 ## 横断調査

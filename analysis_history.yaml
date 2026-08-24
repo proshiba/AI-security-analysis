@@ -7528,3 +7528,17 @@ analyses:
     c2: []
     notes: "GuLoader後段PEとXLoader／FormBook系terminal coreを静的復元しました。残る11保護関数と最終C2 record設定元は未解決のため、partialとして記録しています。"
     result_path: analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/
+
+  - malware_type: "redc2"
+    analyzed_at: 2026-08-24
+    sample_sha256: 4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466
+    analysis_level: package_chain_and_representative_function_static_analysis
+    campaign_type: redc2_npm_supply_chain
+    matched_patterns:
+      - "reviewed exact payload SHA-256"
+      - "REDSHELL／SECURE_BEACON／RC2TUN／BIGEXTRACT_START"
+      - "npm import-time ELF loader"
+    c2:
+      - "217.60.77.63:8792"
+    notes: "5 packageのloaderと同一ELF、認識関数34件、代表16関数を静的解析しました。検体実行と外部接続は行っていません。Ghidra完全解析はdisk reserve不足のため未完了です。"
+    result_path: analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/
