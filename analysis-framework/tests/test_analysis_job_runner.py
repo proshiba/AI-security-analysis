@@ -2722,6 +2722,124 @@ def test_default_process_runner_stops_during_output_quota_excess(
     assert caught.value.code == "analysis_output_size_quota_exceeded"
 
 
+def _raise_transient_output_scan_failure(
+    *,
+    access_denied: bool = False,
+    code: str = "analysis_output_reparse_forbidden",
+) -> None:
+    """削除済み一時directoryを列挙した実障害と同じcause chainを再現する。"""
+
+    if access_denied:
+        transient = PermissionError(13, "synthetic delete-pending directory", "handler-assessment-test")
+        transient.winerror = 5
+    else:
+        transient = FileNotFoundError(2, "synthetic missing directory", "handler-assessment-test")
+    try:
+        raise transient
+    except OSError as tree_changed:
+        try:
+            raise ValueError("case treeを安全に走査できません") from tree_changed
+        except ValueError as scan_error:
+            raise runner.JobContractError(
+                code,
+                "解析出力にreparse pointが含まれています",
+            ) from scan_error
+
+
+def test_live_output_scan_retries_only_transient_disappearance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """live treeから消えたentryは再試行し、安定snapshotだけを受理する。"""
+
+    expected = {"entries": 0, "files": 0, "directories": 0, "total_bytes": 0}
+    successful_attempts = 0
+
+    def transient_then_stable(_path: Path) -> dict[str, int]:
+        nonlocal successful_attempts
+        successful_attempts += 1
+        if successful_attempts == 1:
+            _raise_transient_output_scan_failure()
+        return expected
+
+    monkeypatch.setattr(runner, "validate_analysis_output_tree", transient_then_stable)
+
+    assert runner._validate_live_analysis_output_tree(tmp_path) == expected
+    assert successful_attempts == 2
+
+    access_denied_attempts = 0
+
+    def access_denied_then_stable(_path: Path) -> dict[str, int]:
+        nonlocal access_denied_attempts
+        access_denied_attempts += 1
+        if access_denied_attempts == 1:
+            _raise_transient_output_scan_failure(access_denied=True)
+        return expected
+
+    monkeypatch.setattr(runner, "validate_analysis_output_tree", access_denied_then_stable)
+
+    assert runner._validate_live_analysis_output_tree(tmp_path) == expected
+    assert access_denied_attempts == 2
+
+    exhausted_attempts = 0
+
+    def always_transient(_path: Path) -> dict[str, int]:
+        nonlocal exhausted_attempts
+        exhausted_attempts += 1
+        _raise_transient_output_scan_failure(access_denied=True)
+        raise AssertionError("到達不能")
+
+    monkeypatch.setattr(runner, "validate_analysis_output_tree", always_transient)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_live_analysis_output_tree(tmp_path)
+
+    assert caught.value.code == "analysis_output_changed_during_scan"
+    assert str(caught.value) == "解析出力treeがlive検証中に継続して変更されました"
+    assert exhausted_attempts == runner.MAX_LIVE_OUTPUT_SCAN_ATTEMPTS
+
+
+def test_live_output_scan_never_retries_actual_reparse(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """実reparse検出はlive scanでも即時にfail-closedとする。"""
+
+    attempts = 0
+
+    def actual_reparse(_path: Path) -> dict[str, int]:
+        nonlocal attempts
+        attempts += 1
+        try:
+            raise ValueError("reparse pointを含むcase tree")
+        except ValueError as scan_error:
+            raise runner.JobContractError(
+                "analysis_output_reparse_forbidden",
+                "解析出力にreparse pointが含まれています",
+            ) from scan_error
+
+    monkeypatch.setattr(runner, "validate_analysis_output_tree", actual_reparse)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_live_analysis_output_tree(tmp_path)
+
+    assert caught.value.code == "analysis_output_reparse_forbidden"
+    assert attempts == 1
+
+    quota_attempts = 0
+
+    def unrelated_quota_failure(_path: Path) -> dict[str, int]:
+        nonlocal quota_attempts
+        quota_attempts += 1
+        _raise_transient_output_scan_failure(code="analysis_output_size_quota_exceeded")
+        raise AssertionError("到達不能")
+
+    monkeypatch.setattr(runner, "validate_analysis_output_tree", unrelated_quota_failure)
+    with pytest.raises(runner.JobContractError) as unrelated:
+        runner._validate_live_analysis_output_tree(tmp_path)
+
+    assert unrelated.value.code == "analysis_output_size_quota_exceeded"
+    assert quota_attempts == 1
+
+
 def test_nonaccepted_exit_code_is_a_terminal_failure(tmp_path: Path) -> None:
     input_root, jobs_root = make_roots(tmp_path)
     request = runner.validate_request_object(request_value("job-failed"))

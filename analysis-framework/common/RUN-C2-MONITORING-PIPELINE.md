@@ -19,9 +19,14 @@ py -3.13 analysis-framework\common\build_all_c2_monitoring_targets.py `
   --results-root analysis-results `
   --output-plan analysis-results\research\c2-monitoring\YYYY-MM-DD\targets.json `
   --output-inventory analysis-results\research\c2-monitoring\YYYY-MM-DD\candidate-inventory.json `
+  --daily-source-date YYYY-MM-DD `
   --date YYYY-MM-DD `
   --write
+```
 
+`--daily-source-date`には、その実行でdaily成果物と厳密結合するsource日を明示します。その他の日付のdaily IOCも全履歴監視の一般証拠として取り込みますが、handoff tagは付けません。
+
+```powershell
 py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
   --targets analysis-results\research\c2-monitoring\YYYY-MM-DD\targets.json `
   --output-directory analysis-results\research\c2-monitoring\YYYY-MM-DD `

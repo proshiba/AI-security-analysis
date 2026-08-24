@@ -4,11 +4,13 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from build_all_c2_monitoring_targets import build_inventory
+from build_all_c2_monitoring_targets import build_inventory  # noqa: E402
 
 
 def _write_case(root: Path, family: str, sample: str, payload: dict, *, name: str = "iocs.json") -> None:
@@ -179,3 +181,175 @@ def test_conflicting_explicit_protocol_hints_do_not_select_first_value(tmp_path:
     assert target["protocol_hints"] == ["asyncrat", "remusstealer"]
     assert target["method"] == "protocol_profile_required"
     assert target["protocol_profile_status"] == "conflicting_explicit_protocol_hints"
+
+
+def test_daily_ioc_summary_is_bound_to_effective_targets_without_phishing(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-08-24"
+    summary = results / "research" / "daily-news-malware" / source_date / "ioc-summary.json"
+    summary.parent.mkdir(parents=True)
+    summary.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_date": source_date,
+                "items": [
+                    {
+                        "ioc_type": "domain",
+                        "ioc_value": "daily-c2.example",
+                        "category": "c2",
+                        "malware": "Fixture",
+                        "valid": True,
+                    },
+                    {
+                        "ioc_type": "url",
+                        "ioc_value": "https://daily-secure.example/drop",
+                        "category": "c2",
+                        "malware": "Fixture",
+                        "valid": True,
+                    },
+                    {
+                        "ioc_type": "url",
+                        "ioc_value": "https://phishing.example/login",
+                        "category": "phishing-site",
+                        "malware": "Fixture",
+                        "valid": True,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plan, inventory = build_inventory(
+        results,
+        generated_date=source_date,
+        daily_source_date=source_date,
+    )
+
+    daily_targets = [target for target in plan["targets"] if target.get("daily_source_dates")]
+    assert {(target["host"], target["port"]) for target in daily_targets} == {
+        ("daily-c2.example", 0),
+        ("daily-secure.example", 443),
+    }
+    assert all(target["daily_source_dates"] == [source_date] for target in daily_targets)
+    assert not any(target["host"] == "phishing.example" for target in plan["targets"])
+    assert len(plan["daily_source_handoffs"]) == 1
+    handoff = plan["daily_source_handoffs"][0]
+    assert handoff["source_date"] == source_date
+    assert handoff["source_target_count"] == 2
+    assert handoff["effective_target_count"] == 2
+    assert len(handoff["source_target_commitment_sha256"]) == 64
+    assert len(handoff["effective_target_commitment_sha256"]) == 64
+    assert inventory["scanned_daily_ioc_summary_file_count"] == 1
+
+
+def _write_daily_summary(results: Path, source_date: str, items: list[dict]) -> Path:
+    summary = results / "research" / "daily-news-malware" / source_date / "ioc-summary.json"
+    summary.parent.mkdir(parents=True)
+    summary.write_text(
+        json.dumps({"schema_version": 1, "source_date": source_date, "items": items}),
+        encoding="utf-8",
+    )
+    return summary
+
+
+def _daily_c2_item(value: str, *, ioc_type: str = "domain") -> dict:
+    return {
+        "ioc_type": ioc_type,
+        "ioc_value": value,
+        "category": "c2",
+        "malware": "Fixture",
+        "valid": True,
+    }
+
+
+def test_only_explicit_daily_summary_is_added_to_historical_monitoring(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    historical_date = "2026-07-29"
+    source_date = "2026-08-23"
+    _write_daily_summary(
+        results,
+        historical_date,
+        [
+            _daily_c2_item("historical-c2.example"),
+            _daily_c2_item("historical-wallet.eth"),
+        ],
+    )
+    _write_daily_summary(results, source_date, [_daily_c2_item("current-c2.example")])
+
+    plan, inventory = build_inventory(
+        results,
+        generated_date="2026-08-24",
+        daily_source_date=source_date,
+    )
+
+    by_host = {target["host"]: target for target in plan["targets"]}
+    assert "historical-c2.example" not in by_host
+    assert by_host["current-c2.example"]["daily_source_dates"] == [source_date]
+    assert "historical-wallet.eth" not in by_host
+    assert [record["source_date"] for record in plan["daily_source_handoffs"]] == [source_date]
+    assert inventory["scanned_daily_ioc_summary_file_count"] == 1
+    assert "non_dns_name_excluded" not in inventory["exclusion_reason_counts"]
+
+
+def test_explicit_daily_source_rejects_policy_excluded_current_target(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-08-24"
+    _write_daily_summary(results, source_date, [_daily_c2_item("current-wallet.eth")])
+
+    with pytest.raises(ValueError, match="完全に結合されていません"):
+        build_inventory(
+            results,
+            generated_date=source_date,
+            daily_source_date=source_date,
+        )
+
+
+def test_explicit_daily_source_must_be_canonical_and_present(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+
+    with pytest.raises(ValueError, match="canonical YYYY-MM-DD"):
+        build_inventory(
+            results,
+            generated_date="2026-08-24",
+            daily_source_date="2026-8-24",
+        )
+    with pytest.raises(ValueError, match="一意に見つかりません"):
+        build_inventory(
+            results,
+            generated_date="2026-08-24",
+            daily_source_date="2026-08-24",
+        )
+
+
+def test_explicit_daily_source_rejects_duplicate_summary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-08-24"
+    first = _write_daily_summary(results, source_date, [_daily_c2_item("first.example")])
+    second = (
+        results
+        / "duplicate"
+        / "daily-news-malware"
+        / source_date
+        / "ioc-summary.json"
+    )
+    second.parent.mkdir(parents=True)
+    second.write_text(first.read_text(encoding="utf-8"), encoding="utf-8")
+    original_glob = Path.glob
+
+    def duplicate_daily_glob(path: Path, pattern: str):
+        if path == results and pattern == "research/daily-news-malware/*/ioc-summary.json":
+            return iter((first, second))
+        return original_glob(path, pattern)
+
+    monkeypatch.setattr(Path, "glob", duplicate_daily_glob)
+    with pytest.raises(ValueError, match="重複しています"):
+        build_inventory(
+            results,
+            generated_date=source_date,
+            daily_source_date=source_date,
+        )

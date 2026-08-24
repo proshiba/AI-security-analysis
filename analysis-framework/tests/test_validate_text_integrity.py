@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "common" / "validate_text_integrity.py"
 SPEC = importlib.util.spec_from_file_location("validate_text_integrity", MODULE_PATH)
@@ -94,4 +93,92 @@ def test_generated_ui_data_checks_docs_but_allows_raw_provider_name(
 
     assert result["complete"] is False
     assert len(result["findings"]) == 1
+    assert result["findings"][0]["code"] == "question_mark_run"
+
+
+def test_candidate_handler_machine_suspicious_string_is_not_human_corruption(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "candidate-handler-assessment.json"
+    path.write_text(
+        json.dumps(
+            {
+                "families": [
+                    {
+                        "attempts": [
+                            {
+                                "result": {
+                                    "result": {
+                                        "suspicious_strings": [
+                                            ".?AV<lambda_1>@?1???0PluginComponent"
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = target.validate_text_integrity(tmp_path)
+
+    assert result["complete"] is True
+    assert result["finding_count"] == 0
+
+
+def test_candidate_handler_human_summary_is_still_checked(tmp_path: Path) -> None:
+    path = tmp_path / "candidate-handler-assessment.json"
+    path.write_text(
+        json.dumps(
+            {
+                "families": [
+                    {
+                        "attempts": [
+                            {
+                                "result": {
+                                    "result": {"suspicious_strings": ["safe"]}
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "summary": "???",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = target.validate_text_integrity(tmp_path)
+
+    assert result["complete"] is False
+    assert result["findings"][0]["code"] == "question_mark_run"
+
+
+def test_other_json_suspicious_strings_are_still_checked(tmp_path: Path) -> None:
+    path = tmp_path / "report.json"
+    path.write_text(
+        json.dumps(
+            {
+                "families": [
+                    {
+                        "attempts": [
+                            {
+                                "result": {
+                                    "result": {"suspicious_strings": ["???"]}
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = target.validate_text_integrity(tmp_path)
+
+    assert result["complete"] is False
     assert result["findings"][0]["code"] == "question_mark_run"

@@ -6,8 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any, Iterator
 
 TEXT_SUFFIXES = {
@@ -106,7 +106,22 @@ def _iter_json_strings(
         yield keys, value
 
 
+def _candidate_handler_machine_string(path: Path, keys: tuple[str, ...]) -> bool:
+    return (
+        path.name == "candidate-handler-assessment.json"
+        and len(keys) == 8
+        and keys[0] == "families"
+        and keys[1].isdigit()
+        and keys[2] == "attempts"
+        and keys[3].isdigit()
+        and keys[4:7] == ("result", "result", "suspicious_strings")
+        and keys[7].isdigit()
+    )
+
+
 def _raw_json_value(relative: str, path: Path, keys: tuple[str, ...]) -> bool:
+    if _candidate_handler_machine_string(path, keys):
+        return True
     if path.name in RAW_JSON_NAMES or relative in DERIVED_JSON_PATHS:
         return True
     if "pe_static_summary" in keys and "sections" in keys:

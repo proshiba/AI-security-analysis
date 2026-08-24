@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "common" / "validate_daily_analysis.py"
 SPEC = importlib.util.spec_from_file_location("validate_daily_analysis", MODULE_PATH)
@@ -82,13 +81,39 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         path = news / name
         if path.suffix == ".md":
             path.write_text("# 日次解析\n", encoding="utf-8")
-    _write_json(
-        news / "ioc-summary.json",
-        {"source_date": ANALYSIS_DATE},
+    ioc_document = {
+        "source_date": ANALYSIS_DATE,
+        "items": [
+            {
+                "ioc_type": "domain",
+                "ioc_value": "c2.example",
+                "category": "c2",
+                "malware": "Fixture",
+                "valid": True,
+            }
+        ],
+    }
+    _write_json(news / "ioc-summary.json", ioc_document)
+    commitment, target_count = target._daily_infrastructure_target_commitment(
+        ioc_document["items"],
+        ANALYSIS_DATE,
     )
     _write_json(
         news / "infrastructure-summary.json",
-        {"source_date": ANALYSIS_DATE},
+        {
+            "schema_version": target.DAILY_INFRASTRUCTURE_HANDOFF_SCHEMA_VERSION,
+            "source_date": ANALYSIS_DATE,
+            "analysis_date": ANALYSIS_DATE,
+            "mode": target.DAILY_INFRASTRUCTURE_HANDOFF_MODE,
+            "target_commitment_sha256": commitment,
+            "target_count": target_count,
+            "c2_monitoring_reference": target._daily_c2_monitoring_reference(ANALYSIS_DATE),
+            "network_contacted": False,
+            "http_requests_sent": False,
+            "malware_protocol_sent": False,
+            "credentials_sent": False,
+            "results": [],
+        },
     )
     _write_json(
         news / "provider-summary.json",
@@ -221,8 +246,26 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         "port": 443,
         "protocol": "tcp",
         "transport": "direct",
+        "method": "tcp_connect",
+        "daily_source_dates": [ANALYSIS_DATE],
     }
-    c2_target_plan = {"schema_version": 1, "targets": [c2_target]}
+    effective_sha256, effective_count, _hosts = target.daily_effective_target_commitment(
+        [c2_target],
+        ANALYSIS_DATE,
+    )
+    source_binding = {
+        "schema_version": target.DAILY_HANDOFF_SCHEMA_VERSION,
+        "source_date": ANALYSIS_DATE,
+        "source_target_commitment_sha256": commitment,
+        "source_target_count": target_count,
+        "effective_target_commitment_sha256": effective_sha256,
+        "effective_target_count": effective_count,
+    }
+    c2_target_plan = {
+        "schema_version": 1,
+        "daily_source_handoffs": [source_binding],
+        "targets": [c2_target],
+    }
     _write_json(c2 / "targets.json", c2_target_plan)
     _write_json(c2 / "effective-targets.json", c2_target_plan)
     _write_json(
@@ -267,6 +310,13 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
                 "one_bounded_probe_per_target": True,
             },
             "target_count": 1,
+            "daily_source_handoffs": [
+                {
+                    **source_binding,
+                    "result_target_commitment_sha256": effective_sha256,
+                    "result_target_count": effective_count,
+                }
+            ],
             "results": [
                 {
                     **c2_target,
@@ -334,6 +384,61 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     return root
 
 
+def _rebind_daily_c2_source(
+    repository: Path,
+    source_date: str,
+    source_commitment: str,
+    source_count: int,
+) -> None:
+    c2_root = (
+        repository
+        / "analysis-results"
+        / "research"
+        / "c2-monitoring"
+        / ANALYSIS_DATE
+    )
+    binding = None
+    for name in ("targets.json", "effective-targets.json", "active-targets.json"):
+        path = c2_root / name
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        for item in plan["targets"]:
+            if item["host"] == "c2.example":
+                item["daily_source_dates"] = [source_date]
+        effective_sha256, effective_count, _hosts = target.daily_effective_target_commitment(
+            plan["targets"],
+            source_date,
+        )
+        binding = {
+            "schema_version": target.DAILY_HANDOFF_SCHEMA_VERSION,
+            "source_date": source_date,
+            "source_target_commitment_sha256": source_commitment,
+            "source_target_count": source_count,
+            "effective_target_commitment_sha256": effective_sha256,
+            "effective_target_count": effective_count,
+        }
+        plan["daily_source_handoffs"] = [binding]
+        _write_json(path, plan)
+
+    assert binding is not None
+    result_path = c2_root / "monitoring-results.json"
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    for item in result["results"]:
+        if item["host"] == "c2.example":
+            item["daily_source_dates"] = [source_date]
+    result_sha256, result_count, _hosts = target.daily_effective_target_commitment(
+        result["results"],
+        source_date,
+    )
+    result["daily_source_handoffs"] = [
+        {
+            **binding,
+            "result_target_commitment_sha256": result_sha256,
+            "result_target_count": result_count,
+        }
+    ]
+    _write_json(result_path, result)
+
+
 def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
 
@@ -348,6 +453,64 @@ def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
     ]
 
 
+
+
+def test_infrastructure_handoff_tampering_fails_daily_completion(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    handoff_path = (
+        repository
+        / "analysis-results"
+        / "research"
+        / "daily-news-malware"
+        / ANALYSIS_DATE
+        / "infrastructure-summary.json"
+    )
+    original = json.loads(handoff_path.read_text(encoding="utf-8"))
+    mutations = [
+        (
+            "schema",
+            lambda value: value.__setitem__("unexpected", "secret"),
+            "daily_infrastructure_handoff_schema",
+        ),
+        (
+            "date",
+            lambda value: value.__setitem__("analysis_date", "2026-07-29"),
+            "daily_infrastructure_handoff_binding",
+        ),
+        (
+            "reference",
+            lambda value: value.__setitem__("c2_monitoring_reference", "../wrong.json"),
+            "daily_infrastructure_handoff_binding",
+        ),
+        (
+            "network",
+            lambda value: value.__setitem__("network_contacted", True),
+            "daily_infrastructure_handoff_network_activity",
+        ),
+        (
+            "results",
+            lambda value: value.__setitem__("results", [{"raw": "secret"}]),
+            "daily_infrastructure_handoff_network_activity",
+        ),
+        (
+            "commitment",
+            lambda value: value.__setitem__("target_commitment_sha256", "0" * 64),
+            "daily_infrastructure_handoff_commitment_mismatch",
+        ),
+        (
+            "count",
+            lambda value: value.__setitem__("target_count", value["target_count"] + 1),
+            "daily_infrastructure_handoff_commitment_mismatch",
+        ),
+    ]
+    for _name, mutate, expected_code in mutations:
+        tampered = json.loads(json.dumps(original))
+        mutate(tampered)
+        _write_json(handoff_path, tampered)
+        result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+        assert result["complete"] is False
+        assert expected_code in {item["code"] for item in result["lanes"][0]["findings"]}
+    _write_json(handoff_path, original)
 def test_clickfix_is_independent_and_does_not_block_daily_completion(tmp_path: Path) -> None:
     repository = _complete_repository(tmp_path)
     manifest_path = (
@@ -513,6 +676,17 @@ def test_news_source_date_can_differ_from_execution_date(tmp_path: Path) -> None
         value = json.loads(path.read_text(encoding="utf-8"))
         value["source_date"] = source_date
         _write_json(path, value)
+    ioc_document = json.loads((renamed / "ioc-summary.json").read_text(encoding="utf-8"))
+    handoff_path = renamed / "infrastructure-summary.json"
+    handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+    commitment, target_count = target._daily_infrastructure_target_commitment(
+        ioc_document["items"],
+        source_date,
+    )
+    handoff["target_commitment_sha256"] = commitment
+    handoff["target_count"] = target_count
+    _write_json(handoff_path, handoff)
+    _rebind_daily_c2_source(repository, source_date, commitment, target_count)
 
     result = target.validate_daily_analysis(
         repository,
@@ -550,3 +724,24 @@ def test_text_integrity_failure_fails_daily_completion(tmp_path: Path) -> None:
 
     assert validated["complete"] is False
     assert validated["quality_gates"][0]["findings"][0]["code"] == "japanese_mojibake"
+
+
+def test_daily_handoff_requires_exact_effective_c2_target(tmp_path: Path) -> None:
+    repository = _complete_repository(tmp_path)
+    effective_path = (
+        repository
+        / "analysis-results"
+        / "research"
+        / "c2-monitoring"
+        / ANALYSIS_DATE
+        / "effective-targets.json"
+    )
+    effective = json.loads(effective_path.read_text(encoding="utf-8"))
+    effective["targets"][0]["host"] = "unrelated.example"
+    _write_json(effective_path, effective)
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert result["complete"] is False
+    codes = {item["code"] for item in result["lanes"][0]["findings"]}
+    assert "daily_infrastructure_c2_target_mismatch" in codes

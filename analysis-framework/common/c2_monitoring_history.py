@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import json
+import re
 from copy import deepcopy
 from datetime import UTC, datetime
-import json
 from pathlib import Path
-import re
 from typing import Any
 
 from c2_infrastructure_tags import build_ip_detail, load_registry, missing_ip_detail
-
 
 RETIREMENT_AFTER_DAYS = 7
 MINIMUM_OFF_OBSERVATIONS = 2
@@ -551,6 +550,7 @@ def carry_forward_active_targets(
         key = endpoint_key(prior)
         if key not in by_key:
             copied = deepcopy(prior)
+            copied.pop("daily_source_dates", None)
             targets.append(copied)
             by_key[key] = copied
             carried += 1

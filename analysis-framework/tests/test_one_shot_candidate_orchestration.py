@@ -203,6 +203,111 @@ def test_routing_uses_complete_internal_evaluations_after_public_quota() -> None
     assert routing["candidates"][0]["layer_support"][0]["detector_matched"] is True
 
 
+def test_candidate_assessment_preserves_late_proof_and_sanitizes_public_text(monkeypatch) -> None:
+    """集約quotaで後半proofを壊さず、公開文字列だけを個別に無害化する。"""
+
+    secret = "xoxb-" + "A" * 48
+    data = b"candidate aggregate quota fixture"
+    digest = hashlib.sha256(data).hexdigest()
+    layer = one_shot.StaticLayer(
+        name=f"token={secret}.bin",
+        data=data,
+        sha256=digest,
+        parent_sha256=None,
+        depth=0,
+        transform=f"password={secret}",
+    )
+    routing = {
+        "candidates": [
+            {
+                "family": "guloader",
+                "sources": [f"token={secret}"],
+                "routing_eligible": True,
+                "routing_mode": "candidate_verification",
+                "routing_eligibility": {"candidate_verification": True},
+                "layer_sha256": [digest],
+            }
+        ]
+    }
+    audit = {
+        "schema_version": 1,
+        "maximum_outputs": 64,
+        "maximum_total_size": 256 * 1024 * 1024,
+        "binary_values_seen": 0,
+        "binary_bytes_seen": 0,
+        "traversal_items": 0,
+        "observed_output_count": 0,
+        "retained_output_count": 0,
+        "retained_for_follow_on_analysis": False,
+        "follow_on_analysis_complete": False,
+        "observation_scope": "wrapper_hash_metadata_only",
+        "truncated": False,
+        "reasons": [],
+    }
+    wrapper = {
+        "executed_sample": False,
+        "handler": {"id": "guloader:fixture"},
+        "network_contacted": False,
+        "observed_binary_outputs": [],
+        "result": {f"field-{index:04d}": index for index in range(4_095)},
+        "result_quota": {"entries_seen": 4_096, "truncated": False, "reasons": []},
+        "verified_binary_output_audit": audit,
+        "verified_binary_outputs": [],
+    }
+    captured = {}
+
+    def fake_assess(candidates, layers, **_kwargs):
+        captured["candidates"] = candidates
+        captured["layers"] = layers
+        return {
+            "schema_version": 1,
+            "status": "no_confirmed_family",
+            "families": [
+                {
+                    "family": "guloader",
+                    "attempts": [
+                        {
+                            "layer": {
+                                "name": layers[0]["name"],
+                                "transform": layers[0]["transform"],
+                            },
+                            "result": wrapper,
+                        }
+                    ],
+                }
+            ],
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        }
+
+    monkeypatch.setattr(one_shot, "assess_candidate_handlers", fake_assess)
+    assessment = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=[layer],
+        layer_classifications=[],
+        specs=[_fixture_handler_spec("guloader")],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+
+    retained = assessment["families"][0]["attempts"][0]["result"]
+    assert retained["verified_binary_outputs"] == []
+    assert retained["verified_binary_output_audit"] == audit
+    assert retained["result_quota"]["truncated"] is False
+    assert len(retained["result"]) == 4_095
+    assert captured["layers"][0]["name"] == layer.name
+    assert captured["layers"][0]["transform"] == layer.transform
+    public_layer = assessment["families"][0]["attempts"][0]["layer"]
+    public_values = [
+        captured["candidates"][0]["sources"][0],
+        public_layer["name"],
+        public_layer["transform"],
+    ]
+    assert all(secret not in value for value in public_values)
+    assert all("[REDACTED" in value for value in public_values)
+
+
 def test_candidate_status_and_binary_requirement_are_preserved() -> None:
     """corroboratedを弱めず、binaryの未実施関数解析を必須gateにする。"""
 

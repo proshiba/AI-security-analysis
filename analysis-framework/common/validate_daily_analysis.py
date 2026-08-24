@@ -5,17 +5,28 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 COMMON_DIRECTORY = Path(__file__).resolve().parent
 if str(COMMON_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(COMMON_DIRECTORY))
-from validate_text_integrity import validate_text_integrity
+from build_all_c2_monitoring_targets import (
+    DAILY_HANDOFF_SCHEMA_VERSION,
+    daily_effective_target_commitment,
+)
 from c2_analysis_contract import validate_case as validate_case_c2_analysis
+from daily_news_malware_intake import (
+    DAILY_INFRASTRUCTURE_HANDOFF_MODE,
+    DAILY_INFRASTRUCTURE_HANDOFF_SCHEMA_VERSION,
+    _daily_c2_monitoring_reference,
+    _daily_infrastructure_target_commitment,
+    _daily_infrastructure_target_hosts,
+)
+from validate_text_integrity import validate_text_integrity
 
 EXPECTED_CASES = 50
 NEWS_FILES = {
@@ -80,7 +91,230 @@ def _window_date(value: object) -> str | None:
         return None
 
 
-def validate_news(repository: Path, source_date: str) -> dict[str, Any]:
+def _validate_infrastructure_handoff(
+    document: dict[str, Any],
+    ioc_document: dict[str, Any],
+    *,
+    path: Path,
+    source_date: str,
+    analysis_date: str,
+    findings: list[dict[str, str]],
+) -> None:
+    """日次取込がdirect接続せず同日C2 laneへ固定handoffしたことを検証する。"""
+
+    required = {
+        "schema_version",
+        "source_date",
+        "analysis_date",
+        "mode",
+        "target_commitment_sha256",
+        "target_count",
+        "c2_monitoring_reference",
+        "network_contacted",
+        "http_requests_sent",
+        "malware_protocol_sent",
+        "credentials_sent",
+        "results",
+    }
+    if set(document) != required:
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_schema",
+            path,
+            "infrastructure handoffのfield集合が正規schemaと一致しません。",
+        )
+        return
+    expected_reference = _daily_c2_monitoring_reference(analysis_date)
+    if (
+        document.get("schema_version") != DAILY_INFRASTRUCTURE_HANDOFF_SCHEMA_VERSION
+        or document.get("source_date") != source_date
+        or document.get("analysis_date") != analysis_date
+        or document.get("mode") != DAILY_INFRASTRUCTURE_HANDOFF_MODE
+        or document.get("c2_monitoring_reference") != expected_reference
+    ):
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_binding",
+            path,
+            "infrastructure handoffの日付、mode、C2監視参照が一致しません。",
+        )
+    if any(
+        document.get(key) is not False
+        for key in (
+            "network_contacted",
+            "http_requests_sent",
+            "malware_protocol_sent",
+            "credentials_sent",
+        )
+    ) or document.get("results") != []:
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_network_activity",
+            path,
+            "日次取込handoffにdirect接続または観測結果を含めてはいけません。",
+        )
+    items = ioc_document.get("items")
+    if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_ioc_items",
+            path,
+            "IOC公開要約からhandoff対象集合を再計算できません。",
+        )
+        return
+    try:
+        expected_commitment, expected_count = _daily_infrastructure_target_commitment(
+            items,
+            source_date,
+        )
+    except (MemoryError, TypeError, ValueError):
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_commitment_invalid",
+            path,
+            "IOC公開要約からhandoff commitmentを安全に再計算できません。",
+        )
+        return
+    if (
+        document.get("target_commitment_sha256") != expected_commitment
+        or document.get("target_count") != expected_count
+        or isinstance(document.get("target_count"), bool)
+    ):
+        _finding(
+            findings,
+            "daily_infrastructure_handoff_commitment_mismatch",
+            path,
+            "handoff対象件数またはcommitmentが現在のIOC集合と一致しません。",
+        )
+
+
+def _validate_infrastructure_c2_binding(
+    repository: Path,
+    handoff: dict[str, Any],
+    ioc_document: dict[str, Any],
+    *,
+    source_date: str,
+    analysis_date: str,
+    path: Path,
+    findings: list[dict[str, str]],
+) -> None:
+    """daily source、実効target、観測resultの3集合をcross-laneで照合する。"""
+
+    c2_root = repository / "analysis-results" / "research" / "c2-monitoring" / analysis_date
+    effective_path = c2_root / "effective-targets.json"
+    result_path = c2_root / "monitoring-results.json"
+    effective = _json(effective_path, findings)
+    result = _json(result_path, findings)
+    plan_records = effective.get("daily_source_handoffs")
+    result_records = result.get("daily_source_handoffs")
+    if not isinstance(plan_records, list) or not isinstance(result_records, list):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_binding_missing",
+            path,
+            "C2 laneにdaily source handoff bindingがありません。",
+        )
+        return
+    matching_plan = [
+        item for item in plan_records if isinstance(item, dict) and item.get("source_date") == source_date
+    ]
+    matching_result = [
+        item for item in result_records if isinstance(item, dict) and item.get("source_date") == source_date
+    ]
+    if len(matching_plan) != 1 or len(matching_result) != 1:
+        _finding(
+            findings,
+            "daily_infrastructure_c2_binding_cardinality",
+            path,
+            "現在sourceに対応するC2 handoff bindingが一意ではありません。",
+        )
+        return
+    plan_record = matching_plan[0]
+    result_record = matching_result[0]
+    plan_required = {
+        "schema_version",
+        "source_date",
+        "source_target_commitment_sha256",
+        "source_target_count",
+        "effective_target_commitment_sha256",
+        "effective_target_count",
+    }
+    result_required = plan_required | {
+        "result_target_commitment_sha256",
+        "result_target_count",
+    }
+    if set(plan_record) != plan_required or set(result_record) != result_required:
+        _finding(
+            findings,
+            "daily_infrastructure_c2_binding_schema",
+            path,
+            "C2 handoff bindingのfield集合が正規schemaと一致しません。",
+        )
+        return
+    if (
+        plan_record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
+        or result_record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
+        or plan_record.get("source_target_commitment_sha256")
+        != handoff.get("target_commitment_sha256")
+        or plan_record.get("source_target_count") != handoff.get("target_count")
+        or any(result_record.get(key) != plan_record.get(key) for key in plan_required)
+    ):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_source_mismatch",
+            path,
+            "daily source commitmentがC2 laneへ同一値で継承されていません。",
+        )
+    items = ioc_document.get("items")
+    if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_ioc_items",
+            path,
+            "C2 laneと照合するIOC item集合が不正です。",
+        )
+        return
+    try:
+        expected_hosts = set(_daily_infrastructure_target_hosts(items))
+        effective_sha256, effective_count, effective_hosts = daily_effective_target_commitment(
+            effective.get("targets"),
+            source_date,
+        )
+        result_sha256, result_count, result_hosts = daily_effective_target_commitment(
+            result.get("results"),
+            source_date,
+        )
+    except (TypeError, ValueError):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_binding_invalid",
+            path,
+            "C2 laneの実効target/result commitmentを再計算できません。",
+        )
+        return
+    if (
+        effective_sha256 != plan_record.get("effective_target_commitment_sha256")
+        or effective_count != plan_record.get("effective_target_count")
+        or result_sha256 != result_record.get("result_target_commitment_sha256")
+        or result_count != result_record.get("result_target_count")
+        or result_sha256 != effective_sha256
+        or result_count != effective_count
+        or set(effective_hosts) != expected_hosts
+        or set(result_hosts) != expected_hosts
+    ):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_target_mismatch",
+            path,
+            "daily IOC対象が実効C2 target/result集合へexactに結合されていません。",
+        )
+
+
+def validate_news(
+    repository: Path,
+    source_date: str,
+    analysis_date: str,
+) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     root = repository / "analysis-results" / "research" / "daily-news-malware" / source_date
     _files(root, NEWS_FILES, findings)
@@ -94,6 +328,23 @@ def validate_news(repository: Path, source_date: str) -> dict[str, Any]:
     for name, value in values.items():
         if value and value.get("source_date") != source_date:
             _finding(findings, "source_date_mismatch", root / name, "source_dateが解析対象日と一致しません。")
+    _validate_infrastructure_handoff(
+        values["infrastructure-summary.json"],
+        values["ioc-summary.json"],
+        path=root / "infrastructure-summary.json",
+        source_date=source_date,
+        analysis_date=analysis_date,
+        findings=findings,
+    )
+    _validate_infrastructure_c2_binding(
+        repository,
+        values["infrastructure-summary.json"],
+        values["ioc-summary.json"],
+        source_date=source_date,
+        analysis_date=analysis_date,
+        path=root / "infrastructure-summary.json",
+        findings=findings,
+    )
     provider = values["provider-summary.json"]
     if provider.get("virustotal_submission_performed") is not False:
         _finding(
@@ -761,7 +1012,7 @@ def validate_daily_analysis(
         raise ValueError("MalwareBazaar件数は正の整数である必要があります")
     effective_news_date = news_source_date or analysis_date
     lanes = [
-        validate_news(repository, effective_news_date),
+        validate_news(repository, effective_news_date, analysis_date),
         validate_malwarebazaar(repository, analysis_date, malwarebazaar_count),
         validate_c2_live_check(repository, analysis_date),
     ]

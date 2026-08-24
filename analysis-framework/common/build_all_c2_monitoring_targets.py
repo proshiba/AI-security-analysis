@@ -9,7 +9,7 @@ import ipaddress
 import json
 import re
 from collections import Counter, defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -20,6 +20,7 @@ from c2_protocol_probe_profiles import (
     profile_registry_metadata,
     remus_review_registry_metadata,
 )
+from daily_news_malware_intake import _daily_infrastructure_target_commitment
 from immutable_snapshot import decode_strict_json, read_bounded_snapshot
 
 MAX_IOC_JSON_BYTES = 16 * 1024 * 1024
@@ -57,6 +58,8 @@ NON_DNS_SUFFIXES = (".onion", ".eth", ".sol", ".did", ".iid")
 DEFAULT_PORTS = {"http": 80, "https": 443, "ftp": 21}
 IOC_LIST_KEYS = ("network", "configured_c2", "configured_or_observed_c2", "indicators")
 MALWARE_PROTOCOL_HINTS = frozenset(protocol for protocol, _method in PROFILE_METHODS.values())
+DAILY_HANDOFF_SCHEMA_VERSION = 1
+DAILY_IOC_SUMMARY_GLOB = "research/daily-news-malware/*/ioc-summary.json"
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -218,7 +221,130 @@ def _target_id(host: str, port: int, protocol: str) -> str:
     return f"all-history-{digest}"
 
 
-def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def _canonical_json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _daily_source_dates(target: dict[str, Any]) -> tuple[str, ...]:
+    values = target.get("daily_source_dates", [])
+    if not isinstance(values, list) or values != sorted(set(values)):
+        raise ValueError("daily_source_datesは重複のない昇順listである必要があります")
+    normalized: list[str] = []
+    for value in values:
+        if not isinstance(value, str) or date.fromisoformat(value).isoformat() != value:
+            raise ValueError("daily_source_datesにcanonical dateではない値があります")
+        normalized.append(value)
+    return tuple(normalized)
+
+
+def _daily_monitoring_target_identity(target: dict[str, Any]) -> dict[str, Any]:
+    host = str(target.get("host") or "").casefold().rstrip(".")
+    port = target.get("port")
+    target_id = target.get("target_id")
+    if (
+        not host
+        or isinstance(port, bool)
+        or not isinstance(port, int)
+        or not 0 <= port <= 65535
+        or not isinstance(target_id, str)
+        or not target_id
+    ):
+        raise ValueError("daily handoff対象identityが不正です")
+    return {
+        "target_id": target_id,
+        "host": host,
+        "port": port,
+        "protocol": str(target.get("protocol") or "tcp").casefold(),
+        "transport": str(target.get("transport") or "direct").casefold(),
+        "method": str(target.get("method") or "tcp_connect"),
+        "http_path": str(target.get("http_path") or ""),
+    }
+
+
+def daily_effective_target_commitment(
+    targets: Any,
+    source_date: str,
+) -> tuple[str, int, tuple[str, ...]]:
+    """daily sourceへ帰属する実効endpoint集合をexact commitmentへ固定する。"""
+
+    if not isinstance(targets, list):
+        raise ValueError("daily handoffのtarget集合はlistである必要があります")
+    normalized_date = date.fromisoformat(source_date).isoformat()
+    if normalized_date != source_date:
+        raise ValueError("daily handoffのsource_dateがcanonicalではありません")
+    identities: list[dict[str, Any]] = []
+    hosts: set[str] = set()
+    for target in targets:
+        if not isinstance(target, dict):
+            raise ValueError("daily handoffのtargetはobjectである必要があります")
+        if normalized_date not in _daily_source_dates(target):
+            continue
+        identity = _daily_monitoring_target_identity(target)
+        identities.append(identity)
+        hosts.add(identity["host"])
+    identities.sort(
+        key=lambda value: json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
+    if len({_canonical_json_sha256(value) for value in identities}) != len(identities):
+        raise ValueError("daily handoffの実効endpoint identityが重複しています")
+    commitment = _canonical_json_sha256(
+        {
+            "schema_version": DAILY_HANDOFF_SCHEMA_VERSION,
+            "source_date": normalized_date,
+            "targets": identities,
+        }
+    )
+    return commitment, len(identities), tuple(sorted(hosts))
+
+
+def _daily_ioc_entries(payload: dict[str, Any], source_date: str | None):
+    items = payload.get("items")
+    if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+        raise ValueError("daily ioc-summaryのitemsが不正です")
+    for index, item in enumerate(items):
+        if item.get("valid") is not True or str(item.get("category") or "") != "c2":
+            continue
+        if str(item.get("ioc_type") or "") not in {"domain", "ip", "url"}:
+            continue
+        evidence = {
+            "value": item.get("ioc_value"),
+            "role": "c2",
+            "confidence": "daily_news_ioc_label",
+            "daily_malware": str(item.get("malware") or "unknown"),
+        }
+        if source_date is not None:
+            evidence["daily_source_date"] = source_date
+        yield (
+            "daily_news_handoff",
+            index,
+            evidence,
+        )
+
+
+def build_inventory(
+    results_root: Path,
+    *,
+    generated_date: str,
+    daily_source_date: str | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if daily_source_date is not None:
+        try:
+            if date.fromisoformat(daily_source_date).isoformat() != daily_source_date:
+                raise ValueError
+        except (TypeError, ValueError) as exc:
+            raise ValueError("daily_source_dateはcanonical YYYY-MM-DDである必要があります") from exc
     records: list[dict[str, Any]] = []
     exclusions: list[dict[str, Any]] = []
     scanned = 0
@@ -226,23 +352,74 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
     scanned_by_name: Counter[str] = Counter()
     duplicate_evidence: list[dict[str, str]] = []
     seen_evidence: dict[tuple[object, ...], str] = {}
+    daily_source_handoffs: dict[str, dict[str, Any]] = {}
+    daily_expected_hosts: dict[str, set[str]] = {}
+    daily_input_paths = (
+        {
+            path
+            for path in results_root.glob(DAILY_IOC_SUMMARY_GLOB)
+            if path.parent.name == daily_source_date
+        }
+        if daily_source_date is not None
+        else set()
+    )
     input_paths = sorted(
         set(results_root.glob("**/iocs.json"))
-        | set(results_root.glob("**/indicators.json")),
+        | set(results_root.glob("**/indicators.json"))
+        | daily_input_paths,
         key=lambda value: value.as_posix(),
     )
     for path in input_paths:
         scanned += 1
         scanned_by_name[path.name] += 1
+        is_daily_summary = (
+            path.name == "ioc-summary.json" and path.parent.parent.name == "daily-news-malware"
+        )
+        is_requested_daily_summary = (
+            is_daily_summary and path.parent.name == daily_source_date
+        )
         try:
             payload = _read_json(path)
         except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            if is_requested_daily_summary:
+                raise ValueError(f"指定daily source summaryを安全に読めません: {daily_source_date}") from exc
             parse_errors.append({"source": str(path), "error": str(exc)})
             continue
-        family, sample = _family_and_sample(path, results_root, payload)
         case_key = path.parent.relative_to(results_root).as_posix()
         source = path.as_posix()
-        entries = list(_iter_ioc_entries(payload))
+        if is_daily_summary:
+            source_date = str(payload.get("source_date") or "")
+            bind_daily_source = source_date == daily_source_date
+            try:
+                if date.fromisoformat(source_date).isoformat() != source_date or path.parent.name != source_date:
+                    raise ValueError("daily ioc-summaryのsource_date/path bindingが不正です")
+                entries = list(
+                    _daily_ioc_entries(payload, source_date if bind_daily_source else None)
+                )
+                if bind_daily_source:
+                    commitment, target_count = _daily_infrastructure_target_commitment(
+                        payload.get("items") or [],
+                        source_date,
+                    )
+            except (TypeError, ValueError) as exc:
+                if is_requested_daily_summary:
+                    raise ValueError(f"指定daily source summaryが不正です: {daily_source_date}") from exc
+                parse_errors.append({"source": str(path), "error": str(exc)})
+                continue
+            if bind_daily_source:
+                if source_date in daily_source_handoffs:
+                    raise ValueError(f"指定daily source summaryが重複しています: {source_date}")
+                daily_source_handoffs[source_date] = {
+                    "schema_version": DAILY_HANDOFF_SCHEMA_VERSION,
+                    "source_date": source_date,
+                    "source_target_commitment_sha256": commitment,
+                    "source_target_count": target_count,
+                }
+                daily_expected_hosts[source_date] = set()
+            family, sample = "daily-news", None
+        else:
+            family, sample = _family_and_sample(path, results_root, payload)
+            entries = list(_iter_ioc_entries(payload))
         companion_ports = _companion_c2_ports(entries)
         for container, index, entry in entries:
             role = str(entry.get("role") or "").strip()
@@ -258,7 +435,7 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
                 "source": f"{source}:{container}[{index}]",
                 "container": container,
                 "role": role or "未記載",
-                "family": family,
+                "family": str(entry.get("daily_malware") or family),
                 "sample_sha256": sample,
                 "confidence": entry.get("confidence"),
             }
@@ -271,6 +448,9 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
             if not host:
                 exclusions.append({**evidence, "reason": "endpoint_parse_failed"})
                 continue
+            record_daily_source_date = entry.get("daily_source_date")
+            if isinstance(record_daily_source_date, str):
+                daily_expected_hosts[record_daily_source_date].add(host)
             allowed, host_kind = _host_classification(host)
             if not allowed:
                 exclusions.append({**evidence, "host": host, "port": port, "reason": host_kind})
@@ -307,8 +487,13 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
                     "port": port,
                     "protocol_hint": protocol_hint,
                     "selection_reason": reason,
+                    "daily_source_date": record_daily_source_date,
                 }
             )
+    if daily_source_date is not None and daily_source_date not in daily_source_handoffs:
+        raise ValueError(
+            f"指定daily source summaryが一意に見つかりません: {daily_source_date}"
+        )
     known_ports: dict[str, set[int]] = defaultdict(set)
     for record in records:
         if isinstance(record["port"], int):
@@ -359,6 +544,15 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
             "protocol_hints": protocol_hints,
             "maximum_response_bytes": 256,
         }
+        daily_source_dates = sorted(
+            {
+                record["daily_source_date"]
+                for record in evidence_records
+                if isinstance(record.get("daily_source_date"), str)
+            }
+        )
+        if daily_source_dates:
+            target["daily_source_dates"] = daily_source_dates
         targets.append(target)
     profile_registry = profile_registry_metadata()
     evidence_repository_root = results_root.parent
@@ -395,6 +589,25 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
                 ),
             }
         )
+    for source_date, handoff in sorted(daily_source_handoffs.items()):
+        effective_commitment, effective_count, effective_hosts = daily_effective_target_commitment(
+            targets,
+            source_date,
+        )
+        if set(effective_hosts) != daily_expected_hosts[source_date]:
+            raise ValueError(
+                f"daily source対象が実効C2 targetへ完全に結合されていません: {source_date}"
+            )
+        if len(effective_hosts) != handoff["source_target_count"]:
+            raise ValueError(
+                f"daily source対象件数と実効C2 host件数が一致しません: {source_date}"
+            )
+        handoff.update(
+            {
+                "effective_target_commitment_sha256": effective_commitment,
+                "effective_target_count": effective_count,
+            }
+        )
     reason_counts = Counter(item["reason"] for item in exclusions)
     inventory = {
         "schema_version": 2,
@@ -410,6 +623,7 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
         "scanned_ioc_file_count": scanned,
         "scanned_iocs_json_file_count": scanned_by_name["iocs.json"],
         "scanned_indicators_json_file_count": scanned_by_name["indicators.json"],
+        "scanned_daily_ioc_summary_file_count": scanned_by_name["ioc-summary.json"],
         "duplicate_evidence_record_count": len(duplicate_evidence),
         "duplicate_evidence": duplicate_evidence,
         "parse_error_count": len(parse_errors),
@@ -448,6 +662,7 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
                 "scanned_ioc_file_count",
                 "scanned_iocs_json_file_count",
                 "scanned_indicators_json_file_count",
+                "scanned_daily_ioc_summary_file_count",
                 "duplicate_evidence_record_count",
                 "parse_error_count",
                 "candidate_evidence_record_count",
@@ -462,6 +677,7 @@ def build_inventory(results_root: Path, *, generated_date: str) -> tuple[dict[st
                 "ordinary_host_coverage_percent",
             )
         },
+        "daily_source_handoffs": [daily_source_handoffs[key] for key in sorted(daily_source_handoffs)],
         "targets": targets,
     }
     return plan, inventory
@@ -473,9 +689,17 @@ def main() -> int:
     parser.add_argument("--output-plan", type=Path, required=True)
     parser.add_argument("--output-inventory", type=Path, required=True)
     parser.add_argument("--date", required=True)
+    parser.add_argument(
+        "--daily-source-date",
+        help="この日付のdaily ioc-summaryだけを実効targetへ厳密結合する",
+    )
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
-    plan, inventory = build_inventory(args.results_root, generated_date=args.date)
+    plan, inventory = build_inventory(
+        args.results_root,
+        generated_date=args.date,
+        daily_source_date=args.daily_source_date,
+    )
     if args.write:
         args.output_plan.parent.mkdir(parents=True, exist_ok=True)
         args.output_inventory.parent.mkdir(parents=True, exist_ok=True)
