@@ -1861,6 +1861,76 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
     }
     assert analysis_contract.verify_report_semantics(refreshed) == []
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
+def test_finalize_case_report_preserves_unresolved_orchestration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Preserve unresolved orchestration while closing only the function blocker."""
+
+    digest = "9" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    target._json_dump(case_dir / "static-logic.json", {"status": "complete"})
+    outcome = {
+        "schema_version": target.ORCHESTRATION_SCHEMA_VERSION,
+        "sample_sha256": digest,
+        "status": "partial",
+        "family_resolution": {
+            "status": "unresolved",
+            "family": None,
+            "reason": "no_candidate_met_evidence_threshold",
+            "candidates": [],
+        },
+        "quality_gates": {
+            "function_analysis": {
+                "required": None,
+                "satisfied": False,
+                "observed": None,
+                "status": "not_declared",
+            }
+        },
+        "blockers": ["family_resolution"],
+        "next_actions_ja": ["add structural evidence for a family candidate"],
+        "automation": {
+            "ai_used": False,
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    }
+    target._json_dump(case_dir / "orchestration.json", outcome)
+    orchestration_before = (case_dir / "orchestration.json").read_bytes()
+    report = {
+        "classification": {"selected_families": []},
+        "orchestration": "orchestration.json",
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": [target.FUNCTION_ANALYSIS_BLOCKER],
+        },
+        "artifact_sha256": {
+            name: hashlib.sha256((case_dir / name).read_bytes()).hexdigest()
+            for name in ("static-logic.json", "orchestration.json")
+        },
+    }
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    assert target.finalize_case_report(case_dir) == "triaged_unknown"
+    assert (case_dir / "orchestration.json").read_bytes() == orchestration_before
+    refreshed = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed["case_state"] == {
+        "status": "triaged_unknown",
+        "complete": False,
+        "resumable": False,
+        "blockers": [],
+    }
+    assert refreshed["artifact_sha256"]["orchestration.json"] == hashlib.sha256(
+        orchestration_before
+    ).hexdigest()
+
+
 
 
 def _write_finalize_orchestration_fixture(

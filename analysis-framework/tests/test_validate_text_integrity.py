@@ -21,6 +21,16 @@ def test_valid_utf8_japanese_passes(tmp_path: Path) -> None:
     assert result["complete"] is True
     assert result["finding_count"] == 0
 
+def test_question_mark_filename_wildcard_passes(tmp_path: Path) -> None:
+    path = tmp_path / "README.md"
+    path.write_text("`prj????.tmp` uses a variable suffix.\n", encoding="utf-8")
+
+    result = target.validate_text_integrity(tmp_path)
+
+    assert result["complete"] is True
+    assert result["finding_count"] == 0
+
+
 
 def test_invalid_utf8_fails(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_bytes(b"# \xff\n")
