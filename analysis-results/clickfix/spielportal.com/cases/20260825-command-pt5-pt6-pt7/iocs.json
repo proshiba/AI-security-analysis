@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt5-pt6-pt7",
+  "source_file_sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "spielportal.com",
+      "role": "clickfix_stage_delivery",
+      "confidence": "confirmed_in_captured_command",
+      "source": "clickfix-command.txt"
+    },
+    {
+      "type": "url",
+      "value": "https://spielportal.com/cj5JpRGuScm5B9ok7",
+      "role": "normalized_stage_locator",
+      "confidence": "decoded_or_analyst_normalized",
+      "source": "pt5, pt6, pt7"
+    },
+    {
+      "type": "sha256",
+      "value": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+      "role": "captured_command_text",
+      "confidence": "confirmed",
+      "source": "pt5, pt6, pt7"
+    }
+  ]
+}

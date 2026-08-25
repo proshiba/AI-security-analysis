@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt2",
+  "source_file_sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "rrewardgoldshop.com",
+      "role": "clickfix_stage_delivery",
+      "confidence": "confirmed_in_captured_command",
+      "source": "clickfix-command.txt"
+    },
+    {
+      "type": "url",
+      "value": "https://rrewardgoldshop.com/q",
+      "role": "normalized_stage_locator",
+      "confidence": "decoded_or_analyst_normalized",
+      "source": "pt2"
+    },
+    {
+      "type": "sha256",
+      "value": "a3b79eef4fe44ac7b4caff424ad0cc3512d703b87c74a23e366a3bf65010cded",
+      "role": "captured_command_text",
+      "confidence": "confirmed",
+      "source": "pt2"
+    }
+  ]
+}

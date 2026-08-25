@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt10",
+  "source_file_sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "triapfog.com",
+      "role": "clickfix_stage_delivery",
+      "confidence": "confirmed_in_captured_command",
+      "source": "clickfix-command.txt"
+    },
+    {
+      "type": "url",
+      "value": "https://triapfog.com/security/c8ppwoye50",
+      "role": "normalized_stage_locator",
+      "confidence": "decoded_or_analyst_normalized",
+      "source": "pt10"
+    },
+    {
+      "type": "sha256",
+      "value": "1a44a4d00493aca1e833ed54f60d07141c42c196b81951fe31a6a3bc69842da8",
+      "role": "captured_command_text",
+      "confidence": "confirmed",
+      "source": "pt10"
+    },
+    {
+      "type": "sha256",
+      "value": "1fc2b8f022b09b4076ef09e7fc4b3e6f702b5ee877837304ccd9eff30d028775",
+      "role": "context_only_current_http_response_not_payload",
+      "confidence": "observed_at_analysis_time",
+      "source": "bounded analyst GET"
+    }
+  ]
+}

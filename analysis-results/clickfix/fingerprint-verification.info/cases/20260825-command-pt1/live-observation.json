@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt1",
+  "observation_type": "bounded_static_stage_get",
+  "result": {
+    "analyst_probe_url": "https://fingerprint-verification.info/b65e021a394660c5",
+    "status": "http_404",
+    "http_status": 404,
+    "bytes": 146,
+    "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+    "body_type": "html",
+    "payload_recovered": false
+  },
+  "policy": {
+    "javascript_executed": false,
+    "command_executed": false,
+    "command_pasted": false,
+    "payload_opened": false,
+    "private_address_blocked": true,
+    "maximum_body_bytes": 524288
+  }
+}

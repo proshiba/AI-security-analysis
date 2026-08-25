@@ -1,0 +1,24 @@
+title: ClickFix captured command pt3
+id: 0b3f9e6f-3a9b-d9a3-557d-3eab452a3354
+status: experimental
+description: clickfix-command.txtで確認したPowerShell command lineの特徴を検知する。
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith: '\powershell.exe'
+  selection_commandline:
+    CommandLine|contains|all:
+      - "*iex*"
+      - "*irm*"
+      - "*UseBasicParsing*"
+      - "*-w h*"
+  condition: selection_image and selection_commandline
+falsepositives:
+  - 管理者が同じ表現を含む検証scriptを実行した場合
+level: high
+tags:
+  - attack.t1204.004
+  - attack.t1059.001
+  - attack.t1105

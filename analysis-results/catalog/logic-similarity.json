@@ -8,14 +8,14 @@
     "max_matches_per_case": 10
   },
   "counts": {
-    "catalog_cases": 2700,
-    "profiled_cases": 1841,
-    "candidate_pairs_before_limit": 612124,
-    "retained_pairs": 8577,
+    "catalog_cases": 2705,
+    "profiled_cases": 1846,
+    "candidate_pairs_before_limit": 612130,
+    "retained_pairs": 8583,
     "levels": {
       "高": 4571,
-      "中": 3801,
-      "参考候補": 205
+      "中": 3804,
+      "参考候補": 208
     }
   },
   "profiles": {
@@ -1463,6 +1463,45 @@
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/0401641605ad700f9e34bbff44e4af87d77201db5597a8bbe27aeb05877ef9ee/OVERALL-LOGIC.md"
     },
+    "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51": {
+      "case_id": "sha256:041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "sha256": "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_sideload_dll:x86",
+          "recovered_stage:x86 raw shellcode"
+        ],
+        "capabilities": [
+          "behavior:1",
+          "behavior:2",
+          "behavior:3",
+          "behavior:4",
+          "clickfix:false",
+          "delivery:zip_img_sideload",
+          "protocol:custom_stage"
+        ],
+        "function_roles": [
+          "alternate_stage_retrieval",
+          "api_resolution",
+          "dll_sideload_entry",
+          "memory_execution",
+          "payload_decryption",
+          "stage_retrieval"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51/OVERALL-LOGIC.md"
+    },
     "042c76861bfba62c1e4946697a143a185488c0e15f41431c3cd5a51dc11e52a1": {
       "case_id": "sha256:042c76861bfba62c1e4946697a143a185488c0e15f41431c3cd5a51dc11e52a1",
       "sha256": "042c76861bfba62c1e4946697a143a185488c0e15f41431c3cd5a51dc11e52a1",
@@ -1597,6 +1636,45 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/04813c53d1a698ddcb0c6076b87425902c6e959d998a97cfd64b0d5c672a401a/OVERALL-LOGIC.md"
+    },
+    "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f": {
+      "case_id": "sha256:04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "sha256": "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_sideload_dll:x86",
+          "recovered_stage:x86 raw shellcode"
+        ],
+        "capabilities": [
+          "behavior:1",
+          "behavior:2",
+          "behavior:3",
+          "behavior:4",
+          "clickfix:false",
+          "delivery:zip_img_sideload",
+          "protocol:custom_stage"
+        ],
+        "function_roles": [
+          "alternate_stage_retrieval",
+          "api_resolution",
+          "dll_sideload_entry",
+          "memory_execution",
+          "payload_decryption",
+          "stage_retrieval"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f/OVERALL-LOGIC.md"
     },
     "04e293d3a35fc2a8a1c90f28fa4d1c92412a04757035972fd49f47de0e5e5a9a": {
       "case_id": "sha256:04e293d3a35fc2a8a1c90f28fa4d1c92412a04757035972fd49f47de0e5e5a9a",
@@ -13506,6 +13584,45 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/22706f73e3960e86cccfcc7c06a20b9be3da87b410bfc82bfa07fe38bb547d52/OVERALL-LOGIC.md"
+    },
+    "22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f": {
+      "case_id": "sha256:22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "sha256": "22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_sideload_dll:x64",
+          "recovered_stage:x64"
+        ],
+        "capabilities": [
+          "behavior:1",
+          "behavior:2",
+          "behavior:3",
+          "behavior:4",
+          "clickfix:false",
+          "delivery:zip_img_sideload",
+          "protocol:custom_stage"
+        ],
+        "function_roles": [
+          "initialization",
+          "installation_and_persistence",
+          "remote_control_initialization",
+          "sideload_entry",
+          "stage_and_control",
+          "stage_retrieval"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f/OVERALL-LOGIC.md"
     },
     "22ed18a454b32a12ea6a10d8f2f93569e2d3fb2c6fa2f317446cfe38dd112fc6": {
       "case_id": "sha256:22ed18a454b32a12ea6a10d8f2f93569e2d3fb2c6fa2f317446cfe38dd112fc6",
@@ -73392,6 +73509,45 @@
       ],
       "document_path": "analysis-results/malware/acrstealer/versions/unknown/cases/ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99/OVERALL-LOGIC.md"
     },
+    "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab": {
+      "case_id": "sha256:ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "sha256": "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_sideload_dll:x86",
+          "recovered_stage:x86 raw shellcode"
+        ],
+        "capabilities": [
+          "behavior:1",
+          "behavior:2",
+          "behavior:3",
+          "behavior:4",
+          "clickfix:false",
+          "delivery:zip_img_sideload",
+          "protocol:custom_stage"
+        ],
+        "function_roles": [
+          "alternate_stage_retrieval",
+          "api_resolution",
+          "dll_sideload_entry",
+          "memory_execution",
+          "payload_decryption",
+          "stage_retrieval"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab/OVERALL-LOGIC.md"
+    },
     "adc857a97f68ff07f50143708bec6faa917d55fce21e3294b7213b6a5d0507d6": {
       "case_id": "sha256:adc857a97f68ff07f50143708bec6faa917d55fce21e3294b7213b6a5d0507d6",
       "sha256": "adc857a97f68ff07f50143708bec6faa917d55fce21e3294b7213b6a5d0507d6",
@@ -89825,6 +89981,46 @@
         "code_fingerprints"
       ],
       "document_path": "analysis-results/malware/unclassified/versions/unknown/cases/da29455a64858fda773319c32c0a6cd40edbe8042ed005aa2befb8a4f0fb0522/OVERALL-LOGIC.md"
+    },
+    "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066": {
+      "case_id": "sha256:da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "sha256": "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "dimensions": {
+        "execution_stages": [],
+        "layer_chain": [],
+        "module_stack": [
+          "malicious_sideload_dll:x86",
+          "recovered_stage:x86"
+        ],
+        "capabilities": [
+          "behavior:1",
+          "behavior:2",
+          "behavior:3",
+          "behavior:4",
+          "clickfix:false",
+          "delivery:zip_img_sideload",
+          "protocol:custom_stage"
+        ],
+        "function_roles": [
+          "controller_initialization",
+          "dll_sideload_proxy",
+          "process_injection",
+          "protected_loader_entry",
+          "registration_and_heartbeat",
+          "remote_command_execution",
+          "stage_retrieval"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "module_stack",
+        "capabilities",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066/OVERALL-LOGIC.md"
     },
     "da3ad4675e4bb27501158a2e65b936466b225699a1d342567afa5a418810bf9e": {
       "case_id": "sha256:da3ad4675e4bb27501158a2e65b936466b225699a1d342567afa5a418810bf9e",
@@ -400760,6 +400956,156 @@
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
     },
     {
+      "left_sha256": "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "right_sha256": "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "same_family": true,
+      "score": 1.0,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "malicious_sideload_dll:x86",
+            "recovered_stage:x86 raw shellcode"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 1.0,
+          "shared": [
+            "alternate_stage_retrieval",
+            "api_resolution",
+            "dll_sideload_entry",
+            "memory_execution",
+            "payload_decryption",
+            "stage_retrieval"
+          ],
+          "shared_total": 6
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "right_sha256": "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "same_family": true,
+      "score": 1.0,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "malicious_sideload_dll:x86",
+            "recovered_stage:x86 raw shellcode"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 1.0,
+          "shared": [
+            "alternate_stage_retrieval",
+            "api_resolution",
+            "dll_sideload_entry",
+            "memory_execution",
+            "payload_decryption",
+            "stage_retrieval"
+          ],
+          "shared_total": 6
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "right_sha256": "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "same_family": true,
+      "score": 1.0,
+      "level": "中",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 1.0,
+          "shared": [
+            "malicious_sideload_dll:x86",
+            "recovered_stage:x86 raw shellcode"
+          ],
+          "shared_total": 2
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 1.0,
+          "shared": [
+            "alternate_stage_retrieval",
+            "api_resolution",
+            "dll_sideload_entry",
+            "memory_execution",
+            "payload_decryption",
+            "stage_retrieval"
+          ],
+          "shared_total": 6
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
       "left_sha256": "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
       "right_sha256": "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648",
       "same_family": true,
@@ -556693,6 +557039,138 @@
             "unpack:status"
           ],
           "shared_total": 5
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51",
+      "right_sha256": "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "same_family": true,
+      "score": 0.4062,
+      "level": "参考候補",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 0.3333,
+          "shared": [
+            "malicious_sideload_dll:x86"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.0833,
+          "shared": [
+            "stage_retrieval"
+          ],
+          "shared_total": 1
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f",
+      "right_sha256": "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "same_family": true,
+      "score": 0.4062,
+      "level": "参考候補",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 0.3333,
+          "shared": [
+            "malicious_sideload_dll:x86"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.0833,
+          "shared": [
+            "stage_retrieval"
+          ],
+          "shared_total": 1
+        }
+      ],
+      "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"
+    },
+    {
+      "left_sha256": "ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
+      "right_sha256": "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066",
+      "same_family": true,
+      "score": 0.4062,
+      "level": "参考候補",
+      "independent_evidence_axes": 3,
+      "evidence": [
+        {
+          "dimension": "module_stack",
+          "label_ja": "モジュール構成",
+          "similarity": 0.3333,
+          "shared": [
+            "malicious_sideload_dll:x86"
+          ],
+          "shared_total": 1
+        },
+        {
+          "dimension": "capabilities",
+          "label_ja": "機能・挙動",
+          "similarity": 1.0,
+          "shared": [
+            "behavior:1",
+            "behavior:2",
+            "behavior:3",
+            "behavior:4",
+            "clickfix:false",
+            "delivery:zip_img_sideload",
+            "protocol:custom_stage"
+          ],
+          "shared_total": 7
+        },
+        {
+          "dimension": "function_roles",
+          "label_ja": "代表関数の役割",
+          "similarity": 0.0833,
+          "shared": [
+            "stage_retrieval"
+          ],
+          "shared_total": 1
         }
       ],
       "assessment": "類似候補。campaignまたはactorの同一性を意味しません。"

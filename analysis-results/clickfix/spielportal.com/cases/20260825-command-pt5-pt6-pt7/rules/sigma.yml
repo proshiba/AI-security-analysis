@@ -1,0 +1,25 @@
+title: ClickFix captured command pt5, pt6, pt7
+id: 2686741f-30e9-d306-4f91-8bc91018c5f0
+status: experimental
+description: clickfix-command.txtで確認したPowerShell command lineの特徴を検知する。
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith: '\powershell.exe'
+  selection_commandline:
+    CommandLine|contains|all:
+      - "*Add-Member*"
+      - "*ScriptProperty*"
+      - "*ScriptBlock]::Create*"
+      - "*Out-Null*"
+  condition: selection_image and selection_commandline
+falsepositives:
+  - 管理者が同じ表現を含む検証scriptを実行した場合
+level: high
+tags:
+  - attack.t1204.004
+  - attack.t1059.001
+  - attack.t1027
+  - attack.t1105
