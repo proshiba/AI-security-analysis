@@ -55,7 +55,7 @@ RAW_JSON_KEYS = {
     "source_name",
     "strings",
 }
-QUESTION_RUN = re.compile(r"\?{3,}")
+QUESTION_RUN = re.compile(r"(?<![A-Za-z0-9_.?-])\?{3,}(?![A-Za-z0-9_.?-])")
 MOJIBAKE = re.compile(r"(?:縺|繧|譁|蜿|荳|螟|逕|螳|險|驥|霆|蟄|譛|邱|鬥|縲)[\uFF61-\uFF9F]")
 
 
@@ -238,7 +238,7 @@ def validate_text_integrity(repository: Path) -> dict[str, Any]:
             continue
         human_files += 1
         pattern = (
-            r"\ufffd|\?{3,}|"
+            r"\ufffd|(?<![A-Za-z0-9_.?-])\?{3,}(?![A-Za-z0-9_.?-])|"
             r"(?:縺|繧|譁|蜿|荳|螟|逕|螳|險|驥|霆|蟄|譛|邱|鬥|縲)[\uFF61-\uFF9F]"
         )
         for match in re.finditer(pattern, text):

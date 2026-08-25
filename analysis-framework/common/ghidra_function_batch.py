@@ -4897,9 +4897,37 @@ def _prepare_orchestration_function_reconciliation(
     resolution = outcome.get("family_resolution")
     requirements = resolution.get("requirements") if isinstance(resolution, Mapping) else None
     family = resolution.get("family") if isinstance(resolution, Mapping) else None
+    resolution_status = resolution.get("status") if isinstance(resolution, Mapping) else None
+    classification = report.get("classification")
+    selected = (
+        classification.get("selected_families")
+        if isinstance(classification, Mapping)
+        else None
+    )
+    if resolution_status == "unresolved":
+        automation = outcome.get("automation")
+        if not isinstance(automation, Mapping) or any(
+            automation.get(name) is not False
+            for name in ("ai_used", "sample_executed", "network_contacted")
+        ):
+            raise ValueError(f"invalid orchestration safety contract: {case_dir.name}")
+        function_gate = outcome.get("quality_gates", {}).get("function_analysis")
+        if (
+            family is not None
+            or requirements is not None
+            or selected != []
+            or not isinstance(function_gate, Mapping)
+            or function_gate.get("required") is not None
+            or function_gate.get("satisfied") is not False
+            or function_gate.get("status") != "not_declared"
+        ):
+            raise ValueError(
+                f"invalid unresolved-family orchestration boundary: {case_dir.name}"
+            )
+        return None
     if (
         not isinstance(resolution, Mapping)
-        or resolution.get("status") != "resolved"
+        or resolution_status != "resolved"
         or not isinstance(family, str)
         or not family
         or not isinstance(requirements, Mapping)
@@ -4908,12 +4936,6 @@ def _prepare_orchestration_function_reconciliation(
         raise ValueError(
             f"解決済みfamilyのfunction_analysis要件を確認できません: {case_dir.name}"
         )
-    classification = report.get("classification")
-    selected = (
-        classification.get("selected_families")
-        if isinstance(classification, Mapping)
-        else None
-    )
     if not isinstance(selected, list) or family not in selected:
         raise ValueError(
             f"reportとorchestrationのfamily resolutionが一致しません: {case_dir.name}"
