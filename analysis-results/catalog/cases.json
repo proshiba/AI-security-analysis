@@ -492,6 +492,13 @@
       "family": "signed-dht-bot",
       "version_key": "2026-07-19-signed-dht"
     },
+    "05b37b0056fcd2365b5caf484a08939fb2ef6310b36b187f2bf1002ef8bf6901": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/05b37b0056fcd2365b5caf484a08939fb2ef6310b36b187f2bf1002ef8bf6901",
+      "case_id": "sha256:05b37b0056fcd2365b5caf484a08939fb2ef6310b36b187f2bf1002ef8bf6901",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "05be5a8131993a5034bc4a57963f0c8860aeb3188dd906ed78d95439d15d813e": {
       "canonical_path": "analysis-results/malware/wannacry/versions/unknown/cases/05be5a8131993a5034bc4a57963f0c8860aeb3188dd906ed78d95439d15d813e",
       "case_id": "sha256:05be5a8131993a5034bc4a57963f0c8860aeb3188dd906ed78d95439d15d813e",
@@ -889,6 +896,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "0b4dc32d947ae8371aaa88210787244bc31b7b9a5e6c35b41bc093f405533a71": {
+      "canonical_path": "analysis-results/malware/stealc/versions/unknown/cases/0b4dc32d947ae8371aaa88210787244bc31b7b9a5e6c35b41bc093f405533a71",
+      "case_id": "sha256:0b4dc32d947ae8371aaa88210787244bc31b7b9a5e6c35b41bc093f405533a71",
+      "case_kind": "malware",
+      "family": "stealc",
+      "version_key": "unknown"
+    },
     "0b845b890586407658a6bfcb1030b32be641760120e304bdf372a835ca5d77a4": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/0b845b890586407658a6bfcb1030b32be641760120e304bdf372a835ca5d77a4",
       "case_id": "sha256:0b845b890586407658a6bfcb1030b32be641760120e304bdf372a835ca5d77a4",
@@ -940,6 +954,13 @@
       "case_id": "sha256:0bdbb0f2361160d4c5e71ed923fde9e0133ee6927c8a02a3f491cee1b83a1982",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "0beaf7839d3a1b2e0c86566fd597c159da9f154e2be236d482ecb2c9ff32e225": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/0beaf7839d3a1b2e0c86566fd597c159da9f154e2be236d482ecb2c9ff32e225",
+      "case_id": "sha256:0beaf7839d3a1b2e0c86566fd597c159da9f154e2be236d482ecb2c9ff32e225",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "0c16963f43604246e81f006d1f7df0a7258b36b929252c1502d92fea573d86aa": {
@@ -1019,6 +1040,13 @@
       "case_id": "sha256:0d39da93c95bc61bf717491072f80ea5e49692ae0537bdfb3829e5875c64bc97",
       "case_kind": "malware",
       "family": "asyncrat",
+      "version_key": "unknown"
+    },
+    "0d4391dff5042019739e753b18b7d79627ecc59e2c52b0ea681a484267f33004": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/0d4391dff5042019739e753b18b7d79627ecc59e2c52b0ea681a484267f33004",
+      "case_id": "sha256:0d4391dff5042019739e753b18b7d79627ecc59e2c52b0ea681a484267f33004",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "0d477ed687d9f7424d2d28b66717bad4c0d21db8433752c9c51b032d04066af1": {
@@ -2168,6 +2196,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "1b31ce2dc9f700aaf2765e44abf263f6a71a4e1630f4c57fdbbba6f6d57f5010": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/1b31ce2dc9f700aaf2765e44abf263f6a71a4e1630f4c57fdbbba6f6d57f5010",
+      "case_id": "sha256:1b31ce2dc9f700aaf2765e44abf263f6a71a4e1630f4c57fdbbba6f6d57f5010",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "1b4865646b89fa938b340c30177e04c88f5e6a5de227fcd89798ea1113d12161": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/1b4865646b89fa938b340c30177e04c88f5e6a5de227fcd89798ea1113d12161",
@@ -2290,6 +2325,13 @@
       "case_id": "sha256:1d5d0dfa7d49213f59f48704305762a936492c57026336a0ff56eafdf5710a48",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "1d70972c44664eb6f4b3f4a4fa11e44eaed32913a8cb4c02a11c27d70eef1edc": {
+      "canonical_path": "analysis-results/malware/acrstealer/versions/unknown/cases/1d70972c44664eb6f4b3f4a4fa11e44eaed32913a8cb4c02a11c27d70eef1edc",
+      "case_id": "sha256:1d70972c44664eb6f4b3f4a4fa11e44eaed32913a8cb4c02a11c27d70eef1edc",
+      "case_kind": "malware",
+      "family": "acrstealer",
       "version_key": "unknown"
     },
     "1d7be0eb2f6771b7a71b9eae3054eaa7a30467b68503c68ce29b50629e0b90c9": {
@@ -2699,6 +2741,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "223b572c10f3b361959d74c5c59bf2868bcf63e49c0b2679f4df5528035331a4": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/223b572c10f3b361959d74c5c59bf2868bcf63e49c0b2679f4df5528035331a4",
+      "case_id": "sha256:223b572c10f3b361959d74c5c59bf2868bcf63e49c0b2679f4df5528035331a4",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/223f03fcc04e7c0f0fdc1b5ffaa30ce817269ad1903d25036887bea299cdf187",
@@ -3078,6 +3127,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "265ff3e568105a01f8c6d52912715be58f550096b12332fdc86c7c4e80746323": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/265ff3e568105a01f8c6d52912715be58f550096b12332fdc86c7c4e80746323",
+      "case_id": "sha256:265ff3e568105a01f8c6d52912715be58f550096b12332fdc86c7c4e80746323",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8": {
       "canonical_path": "analysis-results/malware/efimer/versions/unknown/cases/266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8",
       "case_id": "sha256:266ee21a6c9f3408e472b4f146db4d1c6e5b0775bd04bae92862023d6c1e95f8",
@@ -3246,6 +3303,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "280b0baefd4928848659c6ae2a9ad75b8745cd000b84bb958b1b888af452be2e": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/280b0baefd4928848659c6ae2a9ad75b8745cd000b84bb958b1b888af452be2e",
+      "case_id": "sha256:280b0baefd4928848659c6ae2a9ad75b8745cd000b84bb958b1b888af452be2e",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "281d4d60fc99cf7f54819defb1c7c14b9202d46890936c4c6b9ebe3ddc75dd2f": {
       "attribution_status": "provisional",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/281d4d60fc99cf7f54819defb1c7c14b9202d46890936c4c6b9ebe3ddc75dd2f",
@@ -3306,6 +3371,13 @@
       "case_id": "sha256:285030eeb9fa60d670b1144833cdecec0ba7203659476ac944846a994766bf94",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "2853cdaa2ab6448c1161473e3ffe9a3c8fbe6a349a3cc435705683c9932dd1af": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/2853cdaa2ab6448c1161473e3ffe9a3c8fbe6a349a3cc435705683c9932dd1af",
+      "case_id": "sha256:2853cdaa2ab6448c1161473e3ffe9a3c8fbe6a349a3cc435705683c9932dd1af",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "2869b20c33bb050c36f74d3bd341ff6c524fbba99a93923aa5cad724203f943e": {
@@ -3869,6 +3941,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "3120eaff8db9ffa89a9f94e88e68741f57603b0498f75a5c20e06616daade5fb": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/3120eaff8db9ffa89a9f94e88e68741f57603b0498f75a5c20e06616daade5fb",
+      "case_id": "sha256:3120eaff8db9ffa89a9f94e88e68741f57603b0498f75a5c20e06616daade5fb",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "31346fc375b4137a5110697cb429412ad1968d2db8d11cb7fa0d68263b1c2868": {
       "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/31346fc375b4137a5110697cb429412ad1968d2db8d11cb7fa0d68263b1c2868",
       "case_id": "sha256:31346fc375b4137a5110697cb429412ad1968d2db8d11cb7fa0d68263b1c2868",
@@ -4264,6 +4343,14 @@
       "family": "asyncrat",
       "version_key": "unknown"
     },
+    "35850fc8c8d89cb0fd8a4d861bf9c19447c7ebb21a378f1d9f16ed4fbbdc9792": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/35850fc8c8d89cb0fd8a4d861bf9c19447c7ebb21a378f1d9f16ed4fbbdc9792",
+      "case_id": "sha256:35850fc8c8d89cb0fd8a4d861bf9c19447c7ebb21a378f1d9f16ed4fbbdc9792",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "35889a75f0d7c9f13f2b1d41507fab3f29244bb06aa22582847c52d04c6ceb21": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/35889a75f0d7c9f13f2b1d41507fab3f29244bb06aa22582847c52d04c6ceb21",
@@ -4286,6 +4373,13 @@
       "case_id": "sha256:361bb9d7af27899814865ea2167d8919efb69c389f0e23e23fb419e71bacb2fa",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "361cb8d273f677f336eb453700717d4ef85744354112a43a8d89f3e1d7126bc8": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/361cb8d273f677f336eb453700717d4ef85744354112a43a8d89f3e1d7126bc8",
+      "case_id": "sha256:361cb8d273f677f336eb453700717d4ef85744354112a43a8d89f3e1d7126bc8",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "362d59aeb45ccaa8f46889a6760d9fdd4bf1a1849548483a4ed164d232458868": {
@@ -4457,6 +4551,13 @@
       "case_id": "sha256:388a9e43f9baec112abc28f1e058072e5ee847b0331388896f71517b832aff0d",
       "case_kind": "malware",
       "family": "condi",
+      "version_key": "unknown"
+    },
+    "38e64a68be595cf383e959c617c990f2a75db00076823ee4ab56e46b9e25f919": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/38e64a68be595cf383e959c617c990f2a75db00076823ee4ab56e46b9e25f919",
+      "case_id": "sha256:38e64a68be595cf383e959c617c990f2a75db00076823ee4ab56e46b9e25f919",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "3924cc20aef6c2864187f4d5f942056b1f2ac33ab66af6e0ce0985701a3ea091": {
@@ -4714,6 +4815,13 @@
     "3c6b036f2eebc124c17db51960d9f6c9b39e236e9a33d5ac0c3a3a2cabe36833": {
       "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/3c6b036f2eebc124c17db51960d9f6c9b39e236e9a33d5ac0c3a3a2cabe36833",
       "case_id": "sha256:3c6b036f2eebc124c17db51960d9f6c9b39e236e9a33d5ac0c3a3a2cabe36833",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
+    "3c714b5438e80e0458bfaf9523cc2d7116afa71ef76d9f25a94e3464c044b471": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/3c714b5438e80e0458bfaf9523cc2d7116afa71ef76d9f25a94e3464c044b471",
+      "case_id": "sha256:3c714b5438e80e0458bfaf9523cc2d7116afa71ef76d9f25a94e3464c044b471",
       "case_kind": "malware",
       "family": "remusstealer",
       "version_key": "unknown"
@@ -6929,6 +7037,13 @@
       "family": "guloader",
       "version_key": "unknown"
     },
+    "56ffd2771ef463a8b67ff3dcc8528e78b78e4a2ce9234ae941695118a73b3543": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/56ffd2771ef463a8b67ff3dcc8528e78b78e4a2ce9234ae941695118a73b3543",
+      "case_id": "sha256:56ffd2771ef463a8b67ff3dcc8528e78b78e4a2ce9234ae941695118a73b3543",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/5717548bd5b20f9fc8ed9264cf26bb033d640377b23d4ab810d463e61da85215",
@@ -7386,6 +7501,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "genesisstealer",
+      "version_key": "unknown"
+    },
+    "5c61c977440dd7e870c1a63037558dd3fc2c41c8fd9d6ab67acff1c7d35abe01": {
+      "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/5c61c977440dd7e870c1a63037558dd3fc2c41c8fd9d6ab67acff1c7d35abe01",
+      "case_id": "sha256:5c61c977440dd7e870c1a63037558dd3fc2c41c8fd9d6ab67acff1c7d35abe01",
+      "case_kind": "malware",
+      "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
     "5c81219c7f169c9df974ae86e9169edf9b154efaae91c305199ef76ef7af2e32": {
@@ -8430,6 +8552,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "682b0b39e3f74b2191762568e9166058d526abfc89e884dbba9686dc2908849c": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/682b0b39e3f74b2191762568e9166058d526abfc89e884dbba9686dc2908849c",
+      "case_id": "sha256:682b0b39e3f74b2191762568e9166058d526abfc89e884dbba9686dc2908849c",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "686492d6fdc77d25ac4965be3fcc2cf0bb51bfdb41cc52f500aa45f542fe6660": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/686492d6fdc77d25ac4965be3fcc2cf0bb51bfdb41cc52f500aa45f542fe6660",
@@ -8733,6 +8862,14 @@
       "case_id": "sha256:6b465dc7cc21ba92d848425f8eabae3dc9f72d873d92a7b18639fd79814c7b1b",
       "case_kind": "malware",
       "family": "wannacry",
+      "version_key": "unknown"
+    },
+    "6b4afe2d853d455f80a3e254a9dbb0aff9fde1bbf2b188d1e0e8f4d14be29ffb": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/6b4afe2d853d455f80a3e254a9dbb0aff9fde1bbf2b188d1e0e8f4d14be29ffb",
+      "case_id": "sha256:6b4afe2d853d455f80a3e254a9dbb0aff9fde1bbf2b188d1e0e8f4d14be29ffb",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "6b58d360729582335d241c0f35676459dd5634b85a7a4a8a634269bf2e37a7b6": {
@@ -9284,6 +9421,13 @@
       "family": "freepbx-k-php",
       "version_key": "unknown"
     },
+    "7274541ff85fa7563b8731fa5c403f756f8358dd127bb5d1810c06adf4b813a4": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/7274541ff85fa7563b8731fa5c403f756f8358dd127bb5d1810c06adf4b813a4",
+      "case_id": "sha256:7274541ff85fa7563b8731fa5c403f756f8358dd127bb5d1810c06adf4b813a4",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "727c152c2f20469adf1743fb4e5de698615b806c0cce4322fa68112a1b74b1b1": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/727c152c2f20469adf1743fb4e5de698615b806c0cce4322fa68112a1b74b1b1",
@@ -9409,6 +9553,14 @@
       "case_id": "sha256:736af94a2fd07dca7397c2b2068bfd1e2a71a716c5ddda5e9cb7da808355487a",
       "case_kind": "malware",
       "family": "stealc",
+      "version_key": "unknown"
+    },
+    "736dedb3dc80fc3c7e584666082ff8ff9673a4356f5d88f85165792086e93c1d": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/736dedb3dc80fc3c7e584666082ff8ff9673a4356f5d88f85165792086e93c1d",
+      "case_id": "sha256:736dedb3dc80fc3c7e584666082ff8ff9673a4356f5d88f85165792086e93c1d",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "73827e53552bac53092a3f937f4c29d060969093cf20d9548836de516f2efede": {
@@ -10099,6 +10251,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "7d33dd89511d48517917d9a9c7090f6e337aa1739a5b0e7d628e0517766b808c": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/7d33dd89511d48517917d9a9c7090f6e337aa1739a5b0e7d628e0517766b808c",
+      "case_id": "sha256:7d33dd89511d48517917d9a9c7090f6e337aa1739a5b0e7d628e0517766b808c",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "7d632ef693d666befba004437de5f3760340c2af7dad5d937015d89132aae64e": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/7d632ef693d666befba004437de5f3760340c2af7dad5d937015d89132aae64e",
@@ -10410,6 +10569,13 @@
       "family": "remusstealer",
       "version_key": "unknown"
     },
+    "8191df46bde2355f90246149ed51e0817625f7d1f6fb1d3ceb76a53446aa1b51": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/8191df46bde2355f90246149ed51e0817625f7d1f6fb1d3ceb76a53446aa1b51",
+      "case_id": "sha256:8191df46bde2355f90246149ed51e0817625f7d1f6fb1d3ceb76a53446aa1b51",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "81989c161901a4c3b4fc02ca83631c351bf9fd2f95bd8644d4945d4bcf3be982": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/81989c161901a4c3b4fc02ca83631c351bf9fd2f95bd8644d4945d4bcf3be982",
@@ -10430,6 +10596,20 @@
       "case_id": "sha256:81c1d1cdeaf0e551444a1ac4eb79e14b048e2fd439fa808868524dc8e6751721",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "81de4d530901a1df65b325368728f4eea2c39e7e53a2df97aec3744771d86a1e": {
+      "canonical_path": "analysis-results/malware/acrstealer/versions/unknown/cases/81de4d530901a1df65b325368728f4eea2c39e7e53a2df97aec3744771d86a1e",
+      "case_id": "sha256:81de4d530901a1df65b325368728f4eea2c39e7e53a2df97aec3744771d86a1e",
+      "case_kind": "malware",
+      "family": "acrstealer",
+      "version_key": "unknown"
+    },
+    "81deca370910eea773c0ebd4e8602930dd15e901c815db1689863b55ace711f2": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/81deca370910eea773c0ebd4e8602930dd15e901c815db1689863b55ace711f2",
+      "case_id": "sha256:81deca370910eea773c0ebd4e8602930dd15e901c815db1689863b55ace711f2",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9": {
@@ -10816,6 +10996,13 @@
       "case_id": "sha256:86dac88668ac7f20317d657ee7e95aea8a9df3530ff2713f8d62557e381bbec9",
       "case_kind": "malware",
       "family": "efimer",
+      "version_key": "unknown"
+    },
+    "86f27425624e99fca1a6735b4ed5e192f575794e57f16c47a1e068bb1e608d6a": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/86f27425624e99fca1a6735b4ed5e192f575794e57f16c47a1e068bb1e608d6a",
+      "case_id": "sha256:86f27425624e99fca1a6735b4ed5e192f575794e57f16c47a1e068bb1e608d6a",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1": {
@@ -11227,6 +11414,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "8b1e10c2b2534760b3b800b7b0830adc4bf8994a75730d4e5e72948984e24b8b": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/8b1e10c2b2534760b3b800b7b0830adc4bf8994a75730d4e5e72948984e24b8b",
+      "case_id": "sha256:8b1e10c2b2534760b3b800b7b0830adc4bf8994a75730d4e5e72948984e24b8b",
+      "case_kind": "malware",
+      "family": "vidar",
+      "version_key": "unknown"
+    },
     "8b32f0d7aef7046e3d48633a0d759e64f86b9d3ccc9eb7b7f12fc5733ddf27d4": {
       "canonical_path": "analysis-results/malware/dotnet-resource-loader/versions/unknown/cases/8b32f0d7aef7046e3d48633a0d759e64f86b9d3ccc9eb7b7f12fc5733ddf27d4",
       "case_id": "sha256:8b32f0d7aef7046e3d48633a0d759e64f86b9d3ccc9eb7b7f12fc5733ddf27d4",
@@ -11572,6 +11766,13 @@
       "case_id": "sha256:8f78a2bc79b2af9f852684eef9ebbeaf7858b6de808f9a19d18d9eb3987229ed",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "8f9a5a5bda7dc3faf1d5cb74f0b4dc63643ab3bb205f119e585c5f290adc9137": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/8f9a5a5bda7dc3faf1d5cb74f0b4dc63643ab3bb205f119e585c5f290adc9137",
+      "case_id": "sha256:8f9a5a5bda7dc3faf1d5cb74f0b4dc63643ab3bb205f119e585c5f290adc9137",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "8fa9499257d83a30bf4737480259282aa928ce3af19a08dbed4b6eecfbb1f189": {
@@ -11982,6 +12183,13 @@
       "family": "efimer",
       "version_key": "unknown"
     },
+    "9461ce465a3b0fa41aab50948190501d1574143daed369cd910de6d26b54afa1": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/9461ce465a3b0fa41aab50948190501d1574143daed369cd910de6d26b54afa1",
+      "case_id": "sha256:9461ce465a3b0fa41aab50948190501d1574143daed369cd910de6d26b54afa1",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "94620f612e74609ad155ac854ca42b615e97361f0c6552e20ba902b690514a30": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/94620f612e74609ad155ac854ca42b615e97361f0c6552e20ba902b690514a30",
@@ -12018,6 +12226,13 @@
       "case_kind": "unclassified",
       "family": "unclassified",
       "provisional_cluster_id": "electron-payload-loader",
+      "version_key": "unknown"
+    },
+    "94eafdd65b213502396db5d9f7f6571984bd9cff62fc608b603475b28eb093d9": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/94eafdd65b213502396db5d9f7f6571984bd9cff62fc608b603475b28eb093d9",
+      "case_id": "sha256:94eafdd65b213502396db5d9f7f6571984bd9cff62fc608b603475b28eb093d9",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502": {
@@ -12110,6 +12325,13 @@
       "case_id": "sha256:95b5ec00be672b07e4df77320cb7f3e32063038508bd6da3aea54d55d9f19784",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "95bdda0c1a9f6c321461e4e6451af8040c0afb7ac9f8c72e86e8ff2074a873f6": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/95bdda0c1a9f6c321461e4e6451af8040c0afb7ac9f8c72e86e8ff2074a873f6",
+      "case_id": "sha256:95bdda0c1a9f6c321461e4e6451af8040c0afb7ac9f8c72e86e8ff2074a873f6",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "96000ea06d9c60f12db32c005400fab457443b2ee57a9fa1dad28816cf3fa2ab": {
@@ -12344,6 +12566,13 @@
       "case_id": "sha256:9916a3a0da9b0953b1ba80a1f094ed4aa9e177804566fd3b4fd59b6166684c80",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "99328f02c062e6f2d52c257e7df219789f9ef0d9167444b2d123c78bba75362b": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/99328f02c062e6f2d52c257e7df219789f9ef0d9167444b2d123c78bba75362b",
+      "case_id": "sha256:99328f02c062e6f2d52c257e7df219789f9ef0d9167444b2d123c78bba75362b",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "99394c069d6474ed22abfc96f3b73cd5f640539f85786cd3f842e4a03dd13494": {
@@ -13101,12 +13330,26 @@
       "family": "dotnet-resource-loader",
       "version_key": "unknown"
     },
+    "a248d97387d19b49b6b074d23d97e656305391aedd866d2fa0dd0477d315c074": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/a248d97387d19b49b6b074d23d97e656305391aedd866d2fa0dd0477d315c074",
+      "case_id": "sha256:a248d97387d19b49b6b074d23d97e656305391aedd866d2fa0dd0477d315c074",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "a26e60693dadcc06a106fb2cb339f2b438d1c0e1a3e630cbf73a4cc00954b364": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/a26e60693dadcc06a106fb2cb339f2b438d1c0e1a3e630cbf73a4cc00954b364",
       "case_id": "sha256:a26e60693dadcc06a106fb2cb339f2b438d1c0e1a3e630cbf73a4cc00954b364",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "a2bebd07b8b41a55452eea9794871762b34ccdc04b9ff354b530be2a44a3ffb8": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/a2bebd07b8b41a55452eea9794871762b34ccdc04b9ff354b530be2a44a3ffb8",
+      "case_id": "sha256:a2bebd07b8b41a55452eea9794871762b34ccdc04b9ff354b530be2a44a3ffb8",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "a2ca31441dec4d9a0d5895c0b2cc3fa9fb77928e91d4b8b0e14d189de62a977e": {
@@ -13915,6 +14158,13 @@
       "family": "valleyrat",
       "version_key": "unknown"
     },
+    "ad4b54a449ee7affd5d8a775d576db81007c58ee9a77c82d7962bde6caa93910": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/ad4b54a449ee7affd5d8a775d576db81007c58ee9a77c82d7962bde6caa93910",
+      "case_id": "sha256:ad4b54a449ee7affd5d8a775d576db81007c58ee9a77c82d7962bde6caa93910",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99": {
       "canonical_path": "analysis-results/malware/acrstealer/versions/unknown/cases/ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99",
       "case_id": "sha256:ad5d551335f98af221996306603a1618f990832bf6fdda23200e886be5a28f99",
@@ -13934,6 +14184,14 @@
       "case_id": "sha256:ad755d2dfeaa23b80d561656848d12d8e66edd99b1169d63a936fe7b01da57ab",
       "case_kind": "malware",
       "family": "valleyrat",
+      "version_key": "unknown"
+    },
+    "ad9dd438fd00d4130d2e993d0765d2095c71aa68f156e2e7b53863f0e18446ee": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/ad9dd438fd00d4130d2e993d0765d2095c71aa68f156e2e7b53863f0e18446ee",
+      "case_id": "sha256:ad9dd438fd00d4130d2e993d0765d2095c71aa68f156e2e7b53863f0e18446ee",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "ad9f1ab9367b5a513d1489e58c9489c1870e6384508990a267b849b0031a29bc": {
@@ -14064,6 +14322,13 @@
       "case_id": "sha256:aef01ab9e284b663cdd5caf288eff4120406ae452f5fb73e4b135c542aa59919",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "af1762c75e7da96ca5bc1181e2cdb343b4b4309366e16aec1fe4bc0ff39d26fa": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/af1762c75e7da96ca5bc1181e2cdb343b4b4309366e16aec1fe4bc0ff39d26fa",
+      "case_id": "sha256:af1762c75e7da96ca5bc1181e2cdb343b4b4309366e16aec1fe4bc0ff39d26fa",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "af20b2627b1d7119c84457fdc01d568ff845b1c1286e0da608f003a924b6b738": {
@@ -14516,6 +14781,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "b3c023cc4dd7a59b9dbd9e0e352d82d3b8a8fba0da89a47805693c0d482c184d": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/b3c023cc4dd7a59b9dbd9e0e352d82d3b8a8fba0da89a47805693c0d482c184d",
+      "case_id": "sha256:b3c023cc4dd7a59b9dbd9e0e352d82d3b8a8fba0da89a47805693c0d482c184d",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb": {
       "canonical_path": "analysis-results/malware/remcosrat/versions/v7.2.6-pro/cases/b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb",
       "case_id": "sha256:b3d07e47793a40bf3d99133b7a58feffe5bf8d27ea42a8e45eba322bc02cf8fb",
@@ -14770,6 +15042,13 @@
       "case_id": "sha256:b6bc55d2b6e281b5bbf84f589a2847544233ad4b7abd05f942f27cba26703b8b",
       "case_kind": "malware",
       "family": "stealc",
+      "version_key": "unknown"
+    },
+    "b6eb46746e026d8e9163ede8d005153c5588a186cbfc0d762fd68a6c28d7249a": {
+      "canonical_path": "analysis-results/malware/vidar/versions/unknown/cases/b6eb46746e026d8e9163ede8d005153c5588a186cbfc0d762fd68a6c28d7249a",
+      "case_id": "sha256:b6eb46746e026d8e9163ede8d005153c5588a186cbfc0d762fd68a6c28d7249a",
+      "case_kind": "malware",
+      "family": "vidar",
       "version_key": "unknown"
     },
     "b6ec4bc228289231f84fbc7330402668cf9d79eaec0f5179148a15ca937c0c7b": {
@@ -15324,6 +15603,14 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "bdf2afe29ab2a2c48d027dc9a4e0d8ea296c92021bfe90acaf2c1d214032999e": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/bdf2afe29ab2a2c48d027dc9a4e0d8ea296c92021bfe90acaf2c1d214032999e",
+      "case_id": "sha256:bdf2afe29ab2a2c48d027dc9a4e0d8ea296c92021bfe90acaf2c1d214032999e",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "be33857b248abf63e9a1883f5369ee14f34c274e2ad82908ffde00477cc4cd2a": {
       "canonical_path": "analysis-results/malware/gh0strat/versions/unknown/cases/be33857b248abf63e9a1883f5369ee14f34c274e2ad82908ffde00477cc4cd2a",
       "case_id": "sha256:be33857b248abf63e9a1883f5369ee14f34c274e2ad82908ffde00477cc4cd2a",
@@ -15604,6 +15891,14 @@
       "case_id": "sha256:c18dc03e19a7a80431fc2a836500bd97d9b2d6f65d1193735a4a148c4fa1e272",
       "case_kind": "malware",
       "family": "protected-pe-loader",
+      "version_key": "unknown"
+    },
+    "c191cba2b5246213a4078d613e839dbdc47c9663d021afc0093f0ecc6f5a3168": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/c191cba2b5246213a4078d613e839dbdc47c9663d021afc0093f0ecc6f5a3168",
+      "case_id": "sha256:c191cba2b5246213a4078d613e839dbdc47c9663d021afc0093f0ecc6f5a3168",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "c19a50080f76018e266bcf06d162be2770c55be4d85dddcf0ee851cf761173ab": {
@@ -16715,6 +17010,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "d1db4e527ecf5ebb601744ec216724d6d25a0c2468668acc4e121cadfaa59a52": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d1db4e527ecf5ebb601744ec216724d6d25a0c2468668acc4e121cadfaa59a52",
+      "case_id": "sha256:d1db4e527ecf5ebb601744ec216724d6d25a0c2468668acc4e121cadfaa59a52",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215": {
       "canonical_path": "analysis-results/malware/jackskid/versions/2026-07-ens-sns/cases/d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215",
       "case_id": "sha256:d1e7bb3d3a56b3fa0810838df4885c5c3c794519502f3bc7ae335c9720099215",
@@ -16734,6 +17036,13 @@
       "case_id": "sha256:d20ac6d6eda2d70adf552f3bca04c1e030611df9e61febee7246b87410e68d6e",
       "case_kind": "malware",
       "family": "redlinestealer",
+      "version_key": "unknown"
+    },
+    "d256d5c55de076203b3ff997ca2dca466f72d97ee5d3ae6666717cee4baa7c1b": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d256d5c55de076203b3ff997ca2dca466f72d97ee5d3ae6666717cee4baa7c1b",
+      "case_id": "sha256:d256d5c55de076203b3ff997ca2dca466f72d97ee5d3ae6666717cee4baa7c1b",
+      "case_kind": "malware",
+      "family": "remusstealer",
       "version_key": "unknown"
     },
     "d26834d9d6bfef3de785c34d373f51f918c9ee8639d80f02d7938e22f956316b": {
@@ -17125,6 +17434,13 @@
       "family": "efimer",
       "version_key": "unknown"
     },
+    "d76f26d8876a17edfa9efccfccc10a1648b08fa69dbc70756b20b13ef3918333": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d76f26d8876a17edfa9efccfccc10a1648b08fa69dbc70756b20b13ef3918333",
+      "case_id": "sha256:d76f26d8876a17edfa9efccfccc10a1648b08fa69dbc70756b20b13ef3918333",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "d776991e64f8abcdcae6fe99e48e83a7570a51712d0b6df25f72f5abaf99fbe4": {
       "canonical_path": "analysis-results/malware/lummastealer/versions/unknown/cases/d776991e64f8abcdcae6fe99e48e83a7570a51712d0b6df25f72f5abaf99fbe4",
       "case_id": "sha256:d776991e64f8abcdcae6fe99e48e83a7570a51712d0b6df25f72f5abaf99fbe4",
@@ -17303,6 +17619,14 @@
       "case_id": "sha256:d9824b3a6894de0606a03a23417f1c7e780ee0b5655f724dbfa455601e13eb8e",
       "case_kind": "malware",
       "family": "remusstealer",
+      "version_key": "unknown"
+    },
+    "d99796073dfaed40d0dc92868d43a93e1ea0ea0cf81074b30b7d80c00cc3b15e": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/d99796073dfaed40d0dc92868d43a93e1ea0ea0cf81074b30b7d80c00cc3b15e",
+      "case_id": "sha256:d99796073dfaed40d0dc92868d43a93e1ea0ea0cf81074b30b7d80c00cc3b15e",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "d9b67969142627b6e0b2342e98fe900acd7440e79c5ada813e2500900f9678c1": {
@@ -17661,6 +17985,14 @@
       "case_id": "sha256:dea0649857c76ceabba2ac3ecb1aa5960e92f1a5ef80b385a75903aa7edd2c3d",
       "case_kind": "malware",
       "family": "dotnet-resource-loader",
+      "version_key": "unknown"
+    },
+    "def70cf438e0c5a064f8314709a90ad67a2a30b5e9d48e36015cd035cf33e75f": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/def70cf438e0c5a064f8314709a90ad67a2a30b5e9d48e36015cd035cf33e75f",
+      "case_id": "sha256:def70cf438e0c5a064f8314709a90ad67a2a30b5e9d48e36015cd035cf33e75f",
+      "case_kind": "unclassified",
+      "family": "unclassified",
       "version_key": "unknown"
     },
     "deff02ac3bd2ecce51edcdf0d5f53f16e53a17f053f7fcaf1c063d599f74de3f": {
@@ -18362,6 +18694,13 @@
       "case_id": "sha256:e82f6ae11ddfaf06b82738aa2f499d4cb8476ec7914efd9aa16bdf520ef90539",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "e83ee79f9419395234a70b758b1295c5e73cb1be0357370a3d56e429b936f8d9": {
+      "canonical_path": "analysis-results/malware/acrstealer/versions/unknown/cases/e83ee79f9419395234a70b758b1295c5e73cb1be0357370a3d56e429b936f8d9",
+      "case_id": "sha256:e83ee79f9419395234a70b758b1295c5e73cb1be0357370a3d56e429b936f8d9",
+      "case_kind": "malware",
+      "family": "acrstealer",
       "version_key": "unknown"
     },
     "e865ccdc55aad38dbbabad97e930951b379d8a51e31ed4163999876343f218b4": {
@@ -19961,6 +20300,13 @@
       "family": "unclassified",
       "version_key": "unknown"
     },
+    "f9b2120a061c50d6385976c360feadf9f1791b743bc43b3702e35734e718d25d": {
+      "canonical_path": "analysis-results/malware/remusstealer/versions/unknown/cases/f9b2120a061c50d6385976c360feadf9f1791b743bc43b3702e35734e718d25d",
+      "case_id": "sha256:f9b2120a061c50d6385976c360feadf9f1791b743bc43b3702e35734e718d25d",
+      "case_kind": "malware",
+      "family": "remusstealer",
+      "version_key": "unknown"
+    },
     "f9cd5c1b5926bee2a6cc8a84cfdbf7d0eab89b9e8e80ed2a4e33de8fb09659b5": {
       "canonical_path": "analysis-results/malware/lummastealer/versions/unknown/cases/f9cd5c1b5926bee2a6cc8a84cfdbf7d0eab89b9e8e80ed2a4e33de8fb09659b5",
       "case_id": "sha256:f9cd5c1b5926bee2a6cc8a84cfdbf7d0eab89b9e8e80ed2a4e33de8fb09659b5",
@@ -20251,6 +20597,14 @@
       "family": "signed-dht-bot",
       "version_key": "2026-07-19-signed-dht"
     },
+    "fd669e1388907d25b8039b5ae22804a6b77a96d139c8f8bbff50c15c9968bfa2": {
+      "attribution_status": "unresolved",
+      "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/fd669e1388907d25b8039b5ae22804a6b77a96d139c8f8bbff50c15c9968bfa2",
+      "case_id": "sha256:fd669e1388907d25b8039b5ae22804a6b77a96d139c8f8bbff50c15c9968bfa2",
+      "case_kind": "unclassified",
+      "family": "unclassified",
+      "version_key": "unknown"
+    },
     "fd862ca3126251f4f0788ff7b583acdc2d88d21bb1f2f1ee06eaa12abdeb7a8a": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/fd862ca3126251f4f0788ff7b583acdc2d88d21bb1f2f1ee06eaa12abdeb7a8a",
@@ -20360,6 +20714,13 @@
       "case_id": "sha256:fed541de0e768a6132da368ec8e0c66125ed7c144ca7d039bbcfe7b75192ecaa",
       "case_kind": "malware",
       "family": "remusstealer",
+      "version_key": "unknown"
+    },
+    "feef37105fdda0fe2421e2aa73d2e68692effcc641421e296d312c3914c8652e": {
+      "canonical_path": "analysis-results/malware/acrstealer/versions/unknown/cases/feef37105fdda0fe2421e2aa73d2e68692effcc641421e296d312c3914c8652e",
+      "case_id": "sha256:feef37105fdda0fe2421e2aa73d2e68692effcc641421e296d312c3914c8652e",
+      "case_kind": "malware",
+      "family": "acrstealer",
       "version_key": "unknown"
     },
     "ff1218a7958943a4979d9037fd9c4abad02de2e1e3bab1fd39e4019c648aa653": {

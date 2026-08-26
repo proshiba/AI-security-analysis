@@ -31,17 +31,17 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 <!-- case-inventory:start -->
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 2,755 |
-| ファミリ帰属済みcase | 1,679 |
-| 未分類case | 1,075 |
+| SHA-256で一意な全case | 2,805 |
+| ファミリ帰属済みcase | 1,718 |
+| 未分類case | 1,086 |
 | サプライチェーンpayload | 1 |
 | 版を静的根拠で確認済み | 89 |
 | exact sampleの外部報告で版を特定 | 6 |
-| 版不明または判定資料不足（ファミリ帰属済み） | 1,584 |
+| 版不明または判定資料不足（ファミリ帰属済み） | 1,623 |
 <!-- case-inventory:end -->
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
-未分類1,075件は既知ファミリへ無理に帰属させていません。個別caseの挙動・検体特徴と不足項目は `FEATURES.md`／`features.json` に分離し、ファミリー名や収集batchだけではcampaign labelを付けません。
+未分類1,086件は既知ファミリへ無理に帰属させていません。個別caseの挙動・検体特徴と不足項目は `FEATURES.md`／`features.json` に分離し、ファミリー名や収集batchだけではcampaign labelを付けません。
 
 ## マルウェアファミリ
 

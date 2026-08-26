@@ -1218,6 +1218,70 @@ def test_load_prepared_inputs_verifies_hashes_and_relationships(
         target.load_prepared_inputs(short_root / "samples", private)
 
 
+def test_non_pe_only_case_accepts_static_script_function_evidence() -> None:
+    """PE programがなくても静的script関数があれば公開対象として受理する。"""
+
+    case_sha = "a" * 64
+    records = target._selected_script_records(
+        {
+            case_sha: [
+                {
+                    "script_function_records": [
+                        {
+                            "function_id": "script:entry",
+                            "analysis_kind": "script_static",
+                        }
+                    ]
+                }
+            ]
+        },
+        case_sha,
+    )
+
+    target._require_case_static_evidence(case_sha, [], records, [])
+    assert records == [
+        {
+            "function_id": "script:entry",
+            "analysis_kind": "script_static",
+            "selected_for_characteristic_analysis": True,
+            "selection_score": 1_000,
+            "selection_reasons": ["static_script_entry_or_function"],
+        }
+    ]
+
+
+def test_unresolved_function_gate_accepts_only_canonical_states() -> None:
+    """未分類caseでは未宣言または静的解析済みの正規状態だけを許可する。"""
+
+    assert target._valid_unresolved_function_gate(
+        {"required": None, "satisfied": False, "observed": None, "status": "not_declared"}
+    )
+    assert target._valid_unresolved_function_gate(
+        {"required": None, "satisfied": True, "observed": None, "status": "satisfied"}
+    )
+    assert not target._valid_unresolved_function_gate(
+        {"required": True, "satisfied": True, "observed": None, "status": "satisfied"}
+    )
+
+
+def test_non_pe_layer_only_evidence_is_accepted_for_legacy_checkpoint() -> None:
+    """旧checkpointでも非PE layer証跡があれば構造限定解析へ進める。"""
+
+    target._require_case_static_evidence(
+        "b" * 64,
+        [],
+        [],
+        [{"is_pe": False, "format": "script"}],
+    )
+
+
+def test_case_without_static_evidence_is_rejected() -> None:
+    """program、script関数、非PE layerがすべてないcaseは拒否する。"""
+
+    with pytest.raises(ValueError, match="非PE layer証跡"):
+        target._require_case_static_evidence("c" * 64, [], [], [])
+
+
 def test_load_prepared_inputs_allows_missing_cache_for_complete_result(
     tmp_path: Path,
 ) -> None:

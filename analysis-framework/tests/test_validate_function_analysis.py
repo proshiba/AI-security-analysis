@@ -292,6 +292,64 @@ def test_validate_case_accepts_documented_program_structure_only(
     assert result.valid is True
     assert result.coverage["characteristic_function_selected_count"] == 0
 
+def test_validate_case_accepts_non_pe_static_layer_without_ghidra_program(
+    tmp_path: Path,
+) -> None:
+    """Accept a non-PE static layer when no Ghidra program is applicable."""
+
+    case_dir = _case_dir(tmp_path)
+    report = _case_report()
+    report["coverage"].update(
+        {
+            "function_inventory_count": 0,
+            "discovered_function_inventory_count": 0,
+            "characteristic_function_selected_count": 0,
+            "characteristic_function_analyzed_count": 0,
+            "decompilation_attempted_count": 0,
+            "decompilation_succeeded_count": 0,
+            "decompilation_limited_or_failed_count": 0,
+            "decompilation_excluded_count": 0,
+            "unselected_function_count": 0,
+            "ghidra_program_count": 0,
+            "ghidra_function_inventory_count": 0,
+            "ghidra_programs_with_valid_mcp_responses": 0,
+            "non_pe_recovered_layers_recorded": 1,
+        }
+    )
+    report["functions"] = []
+    report["program_evidence"] = []
+    report["overall_logic"]["selected_function_count"] = 0
+    report["overall_logic"]["phases"][0]["function_ids"] = []
+    _write_json(case_dir / "static-logic.json", report)
+    (case_dir / "STATIC-LOGIC.md").write_text("# static logic\n", encoding="utf-8")
+    (case_dir / "OVERALL-LOGIC.md").write_text("# overall logic\n", encoding="utf-8")
+
+    result = validate_case(case_dir, SHA256)
+
+    assert result.valid is True
+    assert result.coverage["non_pe_recovered_layers_recorded"] == 1
+
+
+def test_validate_case_rejects_case_without_static_program_or_non_pe_layer(
+    tmp_path: Path,
+) -> None:
+    """Reject a case that has neither a Ghidra program nor a non-PE layer."""
+
+    case_dir = _case_dir(tmp_path)
+    report = _case_report()
+    report["coverage"]["ghidra_program_count"] = 0
+    report["coverage"]["ghidra_programs_with_valid_mcp_responses"] = 0
+    report["coverage"]["non_pe_recovered_layers_recorded"] = 0
+    report["program_evidence"] = []
+    _write_json(case_dir / "static-logic.json", report)
+    (case_dir / "STATIC-LOGIC.md").write_text("# static logic\n", encoding="utf-8")
+    (case_dir / "OVERALL-LOGIC.md").write_text("# overall logic\n", encoding="utf-8")
+
+    result = validate_case(case_dir, SHA256)
+
+    assert result.valid is False
+    assert any("Ghidra program" in value for value in result.findings)
+
 
 def test_validate_case_rejects_undocumented_failure(tmp_path: Path) -> None:
     """制約理由の次の解析方針がないcaseを拒否する。"""

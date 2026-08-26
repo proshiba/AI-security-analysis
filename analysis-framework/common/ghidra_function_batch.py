@@ -21,7 +21,7 @@ import stat
 import sys
 import time
 from collections import Counter, defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -1827,6 +1827,7 @@ def prepare_inputs(
                 )
             if storage_guard is not None:
                 storage_guard("after_input_copy", "sample_root", 0)
+            layer_public = layer.public() if callable(getattr(layer, "public", None)) else {}
             relation = {
                 "case_sha256": case_sha,
                 "layer_sha256": layer.sha256,
@@ -1835,6 +1836,7 @@ def prepare_inputs(
                 "parent_sha256": layer.parent_sha256,
                 "size": len(layer.data),
                 "is_pe": _is_pe(layer.data),
+                "format": str(layer_public.get("format") or "unknown"),
                 "reconstruction_mode": reconstruction_mode,
                 "source_archive_sha256": archive_snapshot.sha256,
                 "source_archive_size": archive_snapshot.size,
@@ -1876,7 +1878,7 @@ def prepare_inputs(
                 )
                 item.relationships.append(relation)
             else:
-                if layer.transform == "pe-resource-script":
+                if relation["format"] == "script":
                     script_records = extract_script_function_records(layer.data, layer.name)
                     for record in script_records:
                         record["function_id"] = f"{layer.sha256}:script:{record['function_id']}"
@@ -4866,6 +4868,20 @@ def _rollback_case_files(
         ) from original_error
 
 
+def _valid_unresolved_function_gate(value: Any) -> bool:
+    """未分類caseで許可するfunction gateの正規形を確認する。"""
+
+    return (
+        isinstance(value, Mapping)
+        and value.get("required") is None
+        and value.get("observed") is None
+        and (
+            (value.get("satisfied") is False and value.get("status") == "not_declared")
+            or (value.get("satisfied") is True and value.get("status") == "satisfied")
+        )
+    )
+
+
 def _prepare_orchestration_function_reconciliation(
     case_dir: Path,
     report: Mapping[str, Any],
@@ -4916,10 +4932,7 @@ def _prepare_orchestration_function_reconciliation(
             family is not None
             or requirements is not None
             or selected != []
-            or not isinstance(function_gate, Mapping)
-            or function_gate.get("required") is not None
-            or function_gate.get("satisfied") is not False
-            or function_gate.get("status") != "not_declared"
+            or not _valid_unresolved_function_gate(function_gate)
         ):
             raise ValueError(
                 f"invalid unresolved-family orchestration boundary: {case_dir.name}"
@@ -5790,6 +5803,39 @@ def _enrich_normalized_functions(
         }
 
 
+def _selected_script_records(
+    non_pe: Mapping[str, list[dict[str, Any]]],
+    case_sha: str,
+) -> list[dict[str, Any]]:
+    """非PE layerから公開対象の静的script関数recordを選定する。"""
+
+    selected_records: list[dict[str, Any]] = []
+    for relation in non_pe.get(case_sha, []):
+        for record in relation.get("script_function_records", []):
+            if not isinstance(record, Mapping):
+                continue
+            selected = dict(record)
+            selected["selected_for_characteristic_analysis"] = True
+            selected["selection_score"] = 1_000
+            selected["selection_reasons"] = ["static_script_entry_or_function"]
+            selected_records.append(selected)
+    return selected_records
+
+
+def _require_case_static_evidence(
+    case_sha: str,
+    related: Sequence[Mapping[str, Any]],
+    script_records: Sequence[Mapping[str, Any]],
+    non_pe_relations: Sequence[Mapping[str, Any]],
+) -> None:
+    """Ghidra program、静的script関数、非PE layer証跡のいずれかを要求する。"""
+
+    if not related and not script_records and not non_pe_relations:
+        raise ValueError(
+            f"caseへ対応するGhidra program、静的script関数、非PE layer証跡がありません: {case_sha}"
+        )
+
+
 def publish_cases(
     repository: Path,
     collection_dir: Path,
@@ -5814,8 +5860,9 @@ def publish_cases(
             for result in mutable_results.values()
             if any(str(item["case_sha256"]) == case_sha for item in result.get("relationships", []))
         ]
-        if not related:
-            raise ValueError(f"caseへ対応するGhidra programがありません: {case_sha}")
+        non_pe_relations = non_pe.get(case_sha, [])
+        script_records = _selected_script_records(non_pe, case_sha)
+        _require_case_static_evidence(case_sha, related, script_records, non_pe_relations)
         invalid_mcp = [
             str(result.get("sha256") or "unknown")
             for result in related
@@ -5835,16 +5882,6 @@ def publish_cases(
                 if record.get("analysis_kind") == "managed_cil":
                     record["program_selector"] = str(result["program_selector"])
                 records.append(record)
-        script_records: list[dict[str, Any]] = []
-        for relation in non_pe.get(case_sha, []):
-            for record in relation.get("script_function_records", []):
-                if not isinstance(record, Mapping):
-                    continue
-                selected = dict(record)
-                selected["selected_for_characteristic_analysis"] = True
-                selected["selection_score"] = 1_000
-                selected["selection_reasons"] = ["static_script_entry_or_function"]
-                script_records.append(selected)
         records.extend(script_records)
         discovered_count = sum(
             int(result.get("function_inventory_count") or len(result.get("functions", []))) for result in related
@@ -5954,7 +5991,11 @@ def publish_cases(
         if structure_only:
             report["limitations"].insert(
                 0,
-                "Ghidra MCPでprogram構造は取得しましたが、解析可能な関数本体を認識できなかったため構造限定解析としました。",
+                (
+                    "非PE layerのhash・親子関係・形式は記録しましたが、旧checkpointに静的script関数recordがないため構造限定解析としました。"
+                    if not related and non_pe_relations
+                    else "Ghidra MCPでprogram構造は取得しましたが、解析可能な関数本体を認識できなかったため構造限定解析としました。"
+                ),
             )
         report["safety"].update(
             {
