@@ -254,6 +254,11 @@ def validate_case(case_dir: Path, sha256: str | None = None) -> CaseValidation:
     valid_mcp_programs = _int_field(
         validation, coverage, "ghidra_programs_with_valid_mcp_responses"
     )
+    non_pe_layers = (
+        _int_field(validation, coverage, "non_pe_recovered_layers_recorded")
+        if "non_pe_recovered_layers_recorded" in coverage
+        else 0
+    )
     validation.coverage = {
         "function_inventory_count": inventory,
         "discovered_function_inventory_count": discovered,
@@ -268,6 +273,7 @@ def validate_case(case_dir: Path, sha256: str | None = None) -> CaseValidation:
         "ghidra_function_inventory_count": native_functions,
         "managed_method_inventory_count": managed_methods,
         "ghidra_programs_with_valid_mcp_responses": valid_mcp_programs,
+        "non_pe_recovered_layers_recorded": non_pe_layers,
         "all_discovered_functions_inventoried": bool(
             coverage.get("all_discovered_functions_inventoried")
         ),
@@ -296,7 +302,7 @@ def validate_case(case_dir: Path, sha256: str | None = None) -> CaseValidation:
         validation.add("発見関数inventory数が代表関数数を下回っています")
     if unselected != discovered - selected:
         validation.add("選定外関数数が発見数と代表関数数の差に一致しません")
-    if programs <= 0:
+    if programs <= 0 and non_pe_layers <= 0:
         validation.add("Ghidra programが記録されていません")
     if valid_mcp_programs != programs:
         validation.add("MCP成功証跡のあるprogram数がGhidra program数と一致しません")
