@@ -9,10 +9,10 @@ ValleyRATとPureRATの防御的エミュレーターについて、現在実装�
 | family／系統 | 準備度 | 利用範囲 | 外部live | 主な未実装 |
 |---|---|---|---|---|
 | ValleyRAT N520 | `bounded_host_emulation` | 44-byte handshake、session鍵、認証frame、空command 1登録、最大16 command分類。offline fake-result判断はresult command `2`まで固定 | profileと有効な短期leaseがある場合だけ。fake resultのlive送信は禁止 | command 2のpayload serializer、ACK値、plugin／file転送 |
-| ValleyRAT Winos | `bounded_host_emulation` | 固定15-byte `0xC9` heartbeat、最大64 byteの1 frame分類。loopback serverは`0xC9` statusと`0x06`登録への`0xCA` ACKだけを返す | 不可。`offline_or_loopback_only` | operation result serializer、stage要求 |
+| ValleyRAT Winos | `exact_offline_multi_variant_classification`＋legacy loopback | raw downloader 1 profileとcommand session 5 profileをexact provenance、framing、cipher、direction、shapeへ固定。raw stageは復号metadataだけを生成しhandoffを拒否 | 不可。`offline_or_loopback_only` | 非remote client reply body serializer、delegated／plugin body完全契約 |
 | ValleyRAT vvaS | `exact_bounded_probe`＋`header_only_loopback` | 固定`33 32 00`、14-byte header確認。loopbackでは明示flag時だけheaderを返し、stage bodyは0 byte | host emulatorとしては不可。個別承認のexact probe以外は通信しない | terminal stage、task channel、task result serializer |
 | ValleyRAT Onyx terminal | `passive_loopback_sink` | numeric loopbackでHTTP request 1件を分類し、空bodyの204／400 ACKで終了 | 不可 | valid Onyx response、payload配信、task/result protocol |
-| PureRAT／PureHVNC 4.4.1 | `bounded_offline_host_emulation` | 匿名固定`GClass4` registration、最大1 frame分類。plugin result型`4`まで固定したoffline判断を提供 | 不可。`offline_or_loopback_only` | command result型、plugin／command result payload serializer |
+| PureRAT／PureHVNC 4.4.1 | `exact_offline_codec_and_session` | TLS 1.0、LE32＋GZip＋protobuf-net、全8 subtypeとfield contract、匿名registration、heartbeat、config／plugin／command拒否を再現 | 不可。`offline_or_loopback_only` | tag `4`の方向、plugin operation／result、command result serializer |
 
 ## C2検知との分離
 
@@ -26,9 +26,16 @@ synthetic behaviorは、wire byteを送るものとmetadataだけを返すもの
 |---|---|---|
 | Winos | `C9 00` heartbeat状態、`CA` registration完了 | operation command result（未実装） |
 | N520 | なし | result command `2`、outcome、送信禁止理由 |
-| PureRAT | なし | plugin result discriminator `4`、command result未解決状態、outcome |
+| PureRAT | なし | tag `4`は`GClass7`型対応のみ。plugin response型・operation・command resultはいずれも未解決として記録 |
 | vvaS | 14-byte synthetic stage headerだけ。stage bodyは0 byte | terminal task result |
 | Onyx | HTTP 204／400の空ACKだけ | valid Onyx response、task result |
+
+
+### Winos exact static profile（legacy heartbeat fixtureとは別）
+
+`winos_offline_orchestrator.py`は、raw downloader 1 profileとcommand session 5 profileをexact provenanceへ固定します。CA00 rolling、CA01 fixed XOR、NVML CA01 rollingを別profileとし、`CA01`末尾からcipherを推測しません。server→clientを完全に分類できるのは各dispatcherで復元済みのshapeだけで、remote desktopだけが方向別contractを持ちます。raw downloaderは`36 34 00`（ASCII `64\\0`）と307,214-byte stage frameを別state machineで扱い、復号metadataを生成してhandoffを拒否します。
+
+外部live、DNS、socket、検体実行、process／file／registry／screen／input操作、module load、payload handoff、推測replyはありません。非remote系のclient reply body serializerと、delegated／plugin bodyの完全契約は未解決です。
 
 横断回帰テストは外部通信なしで実行できます。
 

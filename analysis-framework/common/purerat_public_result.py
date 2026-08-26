@@ -9,21 +9,13 @@ from typing import Any
 
 RESULT_SCOPE = "offline_or_loopback_only"
 MAXIMUM_FRAME_BYTES = 65536
-EMPTY_GCLASS4_SHA256 = (
-    "102b51b9765a56a3e899f7cf0ee38e5251f9c503b357b330a49183eb7b155604"
-)
-EMPTY_GCLASS4_FRAME_SHA256 = (
-    "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
-)
+EMPTY_GCLASS4_SHA256 = "102b51b9765a56a3e899f7cf0ee38e5251f9c503b357b330a49183eb7b155604"
+EMPTY_GCLASS4_FRAME_SHA256 = "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 EXPECTED_PROFILE = {
     "profile_id": "purerat-441-d025a296-direct-tls10-empty-gclass4",
-    "protocol_profile_id": (
-        "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
-    ),
-    "protocol_profile_object_sha256": (
-        "01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec"
-    ),
+    "protocol_profile_id": ("purerat-441-d025a296-45-192-211-77-56001-direct-tls10"),
+    "protocol_profile_object_sha256": ("01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec"),
     "family": "purehvnc",
     "adapter_id": "purerat_direct_tls_v1",
     "host": "45.192.211.77",
@@ -32,20 +24,14 @@ EXPECTED_PROFILE = {
     "transport": "tls",
     "tls_version": "TLSv1.0",
     "sni": None,
-    "expected_certificate_sha256": (
-        "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
-    ),
+    "expected_certificate_sha256": ("b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"),
     "certificate_mismatch_is_negative_evidence": False,
     "sample_sha256s": [
         "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
         "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7",
     ],
-    "evidence_source": (
-        "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
-    ),
-    "evidence_sha256": (
-        "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8"
-    ),
+    "evidence_source": ("analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"),
+    "evidence_sha256": ("6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77"),
     "registration_mode": "fixed_empty_gclass4",
     "station_id_sent": False,
     "unknown_task_action": "no_response",
@@ -83,13 +69,13 @@ EXPECTED_DECISION = {
         "no_response_and_terminate",
     ),
     4: (
-        "plugin_result",
-        "client_origin_message_received_from_server",
+        "plugin_context_direction_unconfirmed",
+        "known_non_operation_message_observed",
         "no_response_and_terminate",
     ),
     5: (
-        "plugin_request",
-        "plugin_request_refused",
+        "plugin_descriptor_or_cache_miss_request",
+        "plugin_descriptor_refused",
         "refuse_plugin_or_file_and_terminate",
     ),
     35: (
@@ -168,9 +154,7 @@ def _scalar(source: Mapping[str, Any], key: str, expected_type: type) -> Any:
     return value
 
 
-def _sha256(
-    source: Mapping[str, Any], key: str, *, optional: bool = False
-) -> str | None:
+def _sha256(source: Mapping[str, Any], key: str, *, optional: bool = False) -> str | None:
     value = source.get(key)
     if optional and value is None:
         return None
@@ -192,11 +176,7 @@ def _public_registration(result: Mapping[str, Any]) -> dict[str, Any]:
     public: dict[str, Any] = {}
     for key, expected in EXPECTED_REGISTRATION.items():
         expected_type = int if type(expected) is int else type(expected)
-        value = (
-            _sha256(registration, key)
-            if key.endswith("sha256")
-            else _scalar(registration, key, expected_type)
-        )
+        value = _sha256(registration, key) if key.endswith("sha256") else _scalar(registration, key, expected_type)
         _require(value == expected, f"PureRAT registration.{key} is inconsistent")
         public[key] = value
     return public
@@ -268,9 +248,7 @@ def _public_decisions(
     return public
 
 
-def build_public_purerat_result(
-    result: Mapping[str, Any], profile: Mapping[str, Any]
-) -> dict[str, Any]:
+def build_public_purerat_result(result: Mapping[str, Any], profile: Mapping[str, Any]) -> dict[str, Any]:
     """Return only reviewed scalars and never promote an offline result to C2 proof."""
 
     if not isinstance(result, Mapping) or not isinstance(profile, Mapping):
@@ -292,9 +270,7 @@ def build_public_purerat_result(
         _require(top[key] == expected, f"PureRAT {key} is inconsistent")
     collection_source = _mapping(result, "collection")
     response_size = _scalar(collection_source, "response_size", int)
-    response_sha256 = _sha256(
-        collection_source, "response_sha256", optional=True
-    )
+    response_sha256 = _sha256(collection_source, "response_sha256", optional=True)
     frame_count = _scalar(collection_source, "frame_count", int)
     collection = {
         "response_size": response_size,

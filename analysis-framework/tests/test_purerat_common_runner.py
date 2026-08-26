@@ -15,14 +15,14 @@ ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import run_defensive_rat_emulator as runner
-from rat_emulator_profiles import (
+import run_defensive_rat_emulator as runner  # noqa: E402
+from rat_emulator_profiles import (  # noqa: E402
     DEFAULT_REGISTRY_PATH,
     RatEmulatorProfileError,
     load_registry,
     resolve_profile,
 )
-from rat_emulator_transcript import (
+from rat_emulator_transcript import (  # noqa: E402
     SessionTranscriptWriter,
     build_public_summary,
 )
@@ -159,7 +159,7 @@ def test_public_mapper_redacts_unknown_nested_values_and_rejects_semantic_mutati
     wrong_status["status"] = "c2_confirmed"
     mutations.append(wrong_status)
     wrong_pair = copy.deepcopy(result)
-    wrong_pair["decisions"][0]["classification"] = "plugin_request_refused"
+    wrong_pair["decisions"][0]["classification"] = "plugin_descriptor_refused"
     mutations.append(wrong_pair)
     wrong_reply = copy.deepcopy(result)
     wrong_reply["decisions"][0]["should_respond"] = True
@@ -182,7 +182,7 @@ def test_profile_exact_contract_and_mutations_fail_closed(short_tmp: Path) -> No
     assert profile["sni"] is None
     assert profile["registration_mode"] == "fixed_empty_gclass4"
     assert profile["live_scope"] == "offline_or_loopback_only"
-    assert profile["evidence_sha256"] == ("73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8")
+    assert profile["evidence_sha256"] == ("6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77")
     assert profile["protocol_profile_object_sha256"] == (
         "01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec"
     )

@@ -119,7 +119,7 @@ def test_contract_is_direct_tls_and_limited_to_fixed_empty_registration() -> Non
 @pytest.mark.parametrize(
     ("message_type", "classification"),
     [
-        (5, "plugin_request_refused"),
+        (5, "plugin_descriptor_refused"),
         (38, "configuration_update_refused"),
         (86, "command_refused"),
         (127, "unknown_discriminator_rejected"),

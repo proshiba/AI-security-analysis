@@ -14,7 +14,7 @@ ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from rat_emulator_profiles import (
+from rat_emulator_profiles import (  # noqa: E402
     DEFAULT_REGISTRY_PATH,
     RatEmulatorProfileError,
     load_registry,
@@ -35,14 +35,8 @@ def _write_registry(path: Path, document: dict) -> None:
 
 
 def test_registry_digest_is_identical_for_lf_and_crlf(tmp_path: Path) -> None:
-    expected_sha256 = (
-        "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
-    )
-    canonical_lf = (
-        DEFAULT_REGISTRY_PATH.read_bytes()
-        .replace(b"\r\n", b"\n")
-        .replace(b"\r", b"\n")
-    )
+    expected_sha256 = "a78c740cb464bc496ae80583123d21071c0b36a9b4d23b8e9527a75153385ef1"
+    canonical_lf = DEFAULT_REGISTRY_PATH.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     lf_path = tmp_path / "registry-lf.json"
     crlf_path = tmp_path / "registry-crlf.json"
     lf_path.write_bytes(canonical_lf)
@@ -61,39 +55,30 @@ def _copy_evidence_tree(root: Path, *, crlf: bool) -> dict[str, str]:
         assert b"\r" not in canonical_lf
         target = root / source
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(
-            canonical_lf.replace(b"\n", b"\r\n") if crlf else canonical_lf
-        )
+        target.write_bytes(canonical_lf.replace(b"\n", b"\r\n") if crlf else canonical_lf)
         expected[profile["profile_id"]] = profile["evidence_sha256"]
     return expected
 
 
 def test_all_evidence_pins_are_identical_for_lf_and_crlf(tmp_path: Path) -> None:
     expected = {
-        "valleyrat-n520-host-d11e793-9999": (
-            "2c91c9d80e685244b9b984cc511b24d48f9c4afc5ba76c1b8df31108f72531bc"
-        ),
+        "valleyrat-n520-host-d11e793-9999": ("2c91c9d80e685244b9b984cc511b24d48f9c4afc5ba76c1b8df31108f72531bc"),
         "asyncrat-058-20f21565-191-96-78-221-7788": (
             "479f96e2d8c9179e1e982ee094a1f83b102d1803cfe83f00fb1b711b93810340"
         ),
-        "venomrat-603-6a24ba25-localto-6377": (
-            "f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8"
-        ),
+        "venomrat-603-6a24ba25-localto-6377": ("f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8"),
         "valleyrat-winos-heartbeat-20260803-ljdnxz": (
             "a5aa744072c48e98f1765d4184e42f4a08b8363c322fde2fcf5dc6c6e8e45424"
         ),
         "purerat-441-d025a296-direct-tls10-empty-gclass4": (
-            "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8"
+            "6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77"
         ),
     }
     for line_ending in ("lf", "crlf"):
         root = tmp_path / line_ending
         assert _copy_evidence_tree(root, crlf=line_ending == "crlf") == expected
         registry = load_registry(root=root)
-        assert {
-            profile_id: profile["evidence_sha256"]
-            for profile_id, profile in registry.profiles.items()
-        } == expected
+        assert {profile_id: profile["evidence_sha256"] for profile_id, profile in registry.profiles.items()} == expected
 
 
 def test_evidence_content_mutation_is_rejected_after_lf_normalization(
@@ -164,9 +149,7 @@ def test_default_registry_is_bound_to_all_reviewed_host_evidence() -> None:
 
 
 def test_winos_profile_is_control_only_and_offline_only() -> None:
-    profile = load_registry().profiles[
-        "valleyrat-winos-heartbeat-20260803-ljdnxz"
-    ]
+    profile = load_registry().profiles["valleyrat-winos-heartbeat-20260803-ljdnxz"]
     assert profile["adapter_id"] == "valleyrat_winos_v1"
     assert profile["host"] == "ljdnxz.cc"
     assert profile["port"] == 8868
@@ -253,8 +236,7 @@ def test_unknown_profile_and_duplicate_json_key_are_rejected(tmp_path: Path) -> 
         resolve_profile("missing-profile")
     duplicate = tmp_path / "duplicate.json"
     duplicate.write_text(
-        '{"schema_version":1,"schema_version":1,"protocol_profile_registry":{},'
-        '"profiles":[]}',
+        '{"schema_version":1,"schema_version":1,"protocol_profile_registry":{},"profiles":[]}',
         encoding="utf-8",
     )
     with pytest.raises(RatEmulatorProfileError):

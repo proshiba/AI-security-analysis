@@ -15,18 +15,16 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from rat_emulator_live_leases import (
+from rat_emulator_live_leases import (  # noqa: E402
     DEFAULT_LIVE_LEASE_REGISTRY_PATH,
     MAXIMUM_LIVE_LEASE_REGISTRY_BYTES,
     RatEmulatorLiveLeaseError,
     load_live_lease_registry,
     resolve_active_live_lease,
 )
-from rat_emulator_profiles import load_registry
+from rat_emulator_profiles import load_registry  # noqa: E402
 
-PROFILE_REGISTRY_SHA256 = (
-    "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
-)
+PROFILE_REGISTRY_SHA256 = "a78c740cb464bc496ae80583123d21071c0b36a9b4d23b8e9527a75153385ef1"
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)
 
@@ -52,9 +50,7 @@ def test_production_registry_is_bound_to_all_exact_profiles() -> None:
         "sha256": PROFILE_REGISTRY_SHA256,
     }
     expected_leases = {
-        profile_id
-        for profile_id, profile in profiles.profiles.items()
-        if profile["live_scope"] == "leased_external"
+        profile_id for profile_id, profile in profiles.profiles.items() if profile["live_scope"] == "leased_external"
     }
     assert set(registry.leases) == expected_leases
     assert "valleyrat-winos-heartbeat-20260803-ljdnxz" not in registry.leases
