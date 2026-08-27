@@ -127,6 +127,89 @@ def test_managed_cil_parser_diagnostics_do_not_leak(
     assert "SECRET_DNFILE_DIAGNOSTIC" not in captured.err
 
 
+@pytest.mark.parametrize(
+    ("operand", "expected"),
+    [
+        (float("nan"), "<nan>"),
+        (float("inf"), "<positive_infinity>"),
+        (float("-inf"), "<negative_infinity>"),
+    ],
+)
+def test_token_value_normalizes_non_finite_cil_operands(
+    tmp_path: Path,
+    operand: float,
+    expected: str,
+) -> None:
+
+    normalized = target._token_value(operand)
+    assert normalized == expected
+
+    path = tmp_path / "cil-instructions.raw.jsonl"
+    target._replace_jsonl(path, [{"address": "0x1", "operand": normalized}])
+    assert target._load_jsonl(path)["0x1"]["operand"] == expected
+
+
+def test_public_replacement_characters_are_escaped() -> None:
+    sanitized = target._escape_public_replacement_characters(
+        {"name\ufffd": "bad\ufffdname", "items": ["ok", "bad\ufffdvalue"]}
+    )
+    assert sanitized == {
+        r"name\uFFFD": r"bad\uFFFDname",
+        "items": ["ok", r"bad\uFFFDvalue"],
+    }
+    assert "\ufffd" not in json.dumps(sanitized, ensure_ascii=False)
+
+
+def test_bounded_managed_cil_raw_instructions_preserves_count() -> None:
+    instructions = [
+        {"offset": str(index), "opcode": "nop", "operand": None}
+        for index in range(target.MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD + 1)
+    ]
+    result = target._bounded_managed_cil_raw_instructions(instructions)
+    assert result["instruction_count"] == len(instructions)
+    assert result["instructions_truncated"] is True
+    assert len(result["instructions"]) == target.MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD
+    assert result["instructions"] == instructions[:-1]
+
+
+def test_program_result_externalizes_and_hydrates_function_shards(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(target, "MAX_PROGRAM_RESULT_INLINE_BYTES", 256)
+    monkeypatch.setattr(target, "MAX_PROGRAM_FUNCTION_SHARD_BYTES", 512)
+    functions = [
+        {
+            "function_id": f"function-{index}",
+            "analysis_kind": "managed_cil",
+            "pseudocode": "nop " * 48,
+        }
+        for index in range(20)
+    ]
+    result = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "function_inventory_count": len(functions),
+        "functions": functions,
+    }
+    path = tmp_path / "program-result.json"
+    target._persist_program_result(path, result)
+
+    stored = target.load_json_object_strict(path)
+    assert stored["functions"] == []
+    artifact = stored["function_records_artifact"]
+    assert artifact["record_count"] == len(functions)
+    assert len(artifact["shards"]) > 1
+    assert all(item["size"] <= 512 for item in artifact["shards"])
+    hydrated, _snapshot = target._load_program_result(path)
+    assert hydrated["functions"] == functions
+
+    first_shard = path.with_name(artifact["shards"][0]["name"])
+    first_shard.write_bytes(first_shard.read_bytes() + b"{}\n")
+    with pytest.raises(ValueError, match="manifest"):
+        target._load_program_result(path)
+
+
 def test_managed_program_uses_cil_primary_without_auto_analysis(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1943,7 +2026,7 @@ def test_finalize_case_report_preserves_unresolved_orchestration(
             "status": "unresolved",
             "family": None,
             "reason": "no_candidate_met_evidence_threshold",
-            "candidates": [],
+            "candidates": [{"family": "candidate_family"}],
         },
         "quality_gates": {
             "function_analysis": {
@@ -1964,7 +2047,10 @@ def test_finalize_case_report_preserves_unresolved_orchestration(
     target._json_dump(case_dir / "orchestration.json", outcome)
     orchestration_before = (case_dir / "orchestration.json").read_bytes()
     report = {
-        "classification": {"selected_families": []},
+        "classification": {
+            "automation_status": "unresolved",
+            "selected_families": ["candidate_family"],
+        },
         "orchestration": "orchestration.json",
         "case_state": {
             "status": "partial",
@@ -1980,6 +2066,16 @@ def test_finalize_case_report_preserves_unresolved_orchestration(
     analysis_contract.seal_report(report)
     target._json_dump(case_dir / "report.json", report)
     monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    invalid_report = {
+        **report,
+        "classification": {
+            "automation_status": "unresolved",
+            "selected_families": ["unrelated_family"],
+        },
+    }
+    with pytest.raises(ValueError, match="invalid unresolved-family"):
+        target._prepare_orchestration_function_reconciliation(case_dir, invalid_report)
 
     assert target.finalize_case_report(case_dir) == "triaged_unknown"
     assert (case_dir / "orchestration.json").read_bytes() == orchestration_before

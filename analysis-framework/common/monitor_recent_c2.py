@@ -31,8 +31,8 @@ from darkcomet_profile_evidence import (
     DarkCometEvidenceError,
     validate_darkcomet_profile_evidence,
 )
-from nmap_c2_detector import probe_target_with_nmap
 from darkcomet_server_first_probe import probe_reviewed_darkcomet_server_first
+from nmap_c2_detector import probe_target_with_nmap
 from purerat_direct_tls_probe import (
     PureRatDirectTlsError,
     probe_reviewed_purerat_direct_tls,
@@ -157,6 +157,7 @@ METHOD_LABELS = {
     "xloader_v8_get_registration": "完全一致・XLoader v8合成PKT2登録GET 1要求＋暗号応答検証（command非公開・非実行）",
 }
 SAFE_HTTP_HEADERS = {"server", "content-type", "content-length", "date", "connection"}
+MAX_MONITORING_TARGETS = 512
 
 
 class PlanError(ValueError):
@@ -181,8 +182,8 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
     targets = plan.get("targets")
     if not isinstance(targets, list) or not targets:
         raise PlanError("targets は1件以上のlistである必要があります")
-    if len(targets) > 256:
-        raise PlanError("1回の監視対象は256 endpoint以下です")
+    if len(targets) > MAX_MONITORING_TARGETS:
+        raise PlanError(f"1回の監視対象は{MAX_MONITORING_TARGETS} endpoint以下です")
     active_targets = [
         target for target in targets if isinstance(target, dict) and target.get("method") in ACTIVE_PROFILE_METHODS
     ]
