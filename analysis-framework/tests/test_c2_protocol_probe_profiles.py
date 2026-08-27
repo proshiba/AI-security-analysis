@@ -14,9 +14,7 @@ if str(COMMON) not in sys.path:
 
 profile_module = importlib.import_module("c2_protocol_probe_profiles")
 evidence = importlib.import_module("remus_profile_evidence")
-build_inventory = importlib.import_module(
-    "build_all_c2_monitoring_targets"
-).build_inventory
+build_inventory = importlib.import_module("build_all_c2_monitoring_targets").build_inventory
 ProtocolProfileError = profile_module.ProtocolProfileError
 apply_profiles = profile_module.apply_profiles
 load_profiles = profile_module.load_profiles
@@ -72,9 +70,7 @@ def test_winos_ip_literal_profiles_are_pinned_and_stage_control_only() -> None:
         assert profile["channel_role"] == "stage_and_control"
         assert profile["timeout_seconds"] == 3.0
         assert profile["maximum_response_bytes"] == 64
-        assert profile["sample_sha256s"] == [
-            "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
-        ]
+        assert profile["sample_sha256s"] == ["6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"]
 
 
 @pytest.mark.parametrize(
@@ -91,14 +87,11 @@ def test_winos_profile_mutation_fails_closed(
     field: str,
     value: object,
 ) -> None:
-    document = json.loads(
-        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
-    )
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
     profile = next(
         item
         for item in document["profiles"]
-        if item["profile_id"]
-        == "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666"
+        if item["profile_id"] == "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666"
     )
     profile[field] = value
     source = tmp_path / "profiles.json"
@@ -109,13 +102,9 @@ def test_winos_profile_mutation_fails_closed(
 
 
 def test_purerat_direct_tls_profile_is_exact_and_evidence_pinned() -> None:
-    profile = load_profiles()[
-        "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
-    ]
+    profile = load_profiles()["purerat-441-d025a296-45-192-211-77-56001-direct-tls10"]
     root_sha256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
-    terminal_sha256 = (
-        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
-    )
+    terminal_sha256 = "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
 
     assert profile["handler"] == "purerat_direct_tls"
     assert profile["protocol"] == "purerat_direct_tls"
@@ -139,18 +128,14 @@ def test_purerat_direct_tls_profile_is_exact_and_evidence_pinned() -> None:
     assert profile["maximum_response_bytes"] == 0
     assert profile["timeout_seconds"] == 3.0
     assert profile["allow_openssl_legacy_security_level"] is True
-    assert profile["source"] == (
-        "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
-    )
+    assert profile["source"] == ("analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json")
 
     repository = Path(__file__).resolve().parents[2]
     evidence_source = repository / profile["source"]
     assert evidence.canonical_lf_json_sha256(
         evidence_source.read_bytes(),
         label="PureRAT evidence",
-    ) == (
-        "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8"
-    )
+    ) == ("6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77")
     assert profile_module.canonical_profile_object_sha256(profile) == (
         "01ef2619ccbcc772d95a1bb73291c900627522b5f45b6d7e72f2d2b8b0979cec"
     )
@@ -186,14 +171,11 @@ def test_purerat_direct_tls_profile_mutation_fails_closed(
     field: str,
     value: object,
 ) -> None:
-    document = json.loads(
-        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
-    )
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
     profile = next(
         item
         for item in document["profiles"]
-        if item["profile_id"]
-        == "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
+        if item["profile_id"] == "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
     )
     profile[field] = value
     source = tmp_path / "profiles.json"
@@ -201,7 +183,6 @@ def test_purerat_direct_tls_profile_mutation_fails_closed(
 
     with pytest.raises(ProtocolProfileError):
         load_profiles(source)
-
 
 
 def test_builder_adds_only_profiles_with_existing_repository_evidence(
@@ -249,14 +230,8 @@ def test_stealc_profile_accepts_exact_bounded_php_gate(
 ) -> None:
     """StealCだけは静的復元した単一階層PHP gateを完全一致で許可する。"""
 
-    document = json.loads(
-        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
-    )
-    profile = next(
-        item
-        for item in document["profiles"]
-        if item["handler"] == "stealc_v2_registration_task"
-    )
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
+    profile = next(item for item in document["profiles"] if item["handler"] == "stealc_v2_registration_task")
     profile["http_path"] = http_path
     source = tmp_path / "profiles.json"
     source.write_text(json.dumps(document), encoding="utf-8")
@@ -277,14 +252,8 @@ def test_stealc_profile_rejects_unbounded_or_non_php_gate(
     tmp_path: Path,
     http_path: str,
 ) -> None:
-    document = json.loads(
-        profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8")
-    )
-    profile = next(
-        item
-        for item in document["profiles"]
-        if item["handler"] == "stealc_v2_registration_task"
-    )
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
+    profile = next(item for item in document["profiles"] if item["handler"] == "stealc_v2_registration_task")
     profile["http_path"] = http_path
     source = tmp_path / "profiles.json"
     source.write_text(json.dumps(document), encoding="utf-8")

@@ -52,7 +52,7 @@ LECEは配布層の構造であり、このmagicだけをPureRAT判定へ使っ�
 
 `purerat-direct-tls.nse`はreview済み`45.192.211[.]77:56001`以外をscript側で接続せず、TLS接続後にleaf certificate SHA-256を読むだけで即切断します。旧`purerat-c2.nse`はplaintext prelude variant専用として分離します。Nmap socketではTLS 1.0を厳密に強制したことを保証しにくいため、証明書・endpoint完全一致でもconfidenceは0.92、`c2_confirmed=false`です。Python direct probeへfallbackしません。
 
-frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf-netを上限付きで展開し、既知ProtoInclude discriminatorを分類します。確認済み対応はregistration `1`、heartbeat `2`、status/error `3`、plugin result `4`、plugin request `5`、configuration update `38`、command `86`です。
+frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf-netを上限付きで展開し、既知ProtoInclude discriminatorを分類します。確認済みの型対応はregistration `1`、heartbeat `2`、status/error `3`、plugin context `4`、plugin descriptor／cache-miss request `5`、configuration update `38`、command wrapper `86`です。tag `4`をplugin resultまたはtag `5`への応答と確定する根拠はなく、operation／result wire契約は未解決です。既存offline synthetic fixtureのresult候補`4`はmetadata上の候補であり、exact 4.4.1の返信方向、operation、payload schema、terminal直接送信を確認したものではなく、wire生成には使用しません。
 
 ## 既存実装へ反映すべき差分
 
@@ -67,7 +67,7 @@ frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf
 
 終端assembly `df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7`を再解析し、protobuf-net基底contract `GClass2`、`ProtoInclude(1, GClass4)`、`GClass4`の`ProtoMember(1..20)`を確認しました。送信call chainも`Serializer.Serialize<GClass2>`、GZip、LE32長、圧縮bodyの順で確定しています。公開証拠は[`purerat_441_emulator_evidence.json`](../malware/purehvnc/purerat_441_emulator_evidence.json)へ、MVID、型inventory digest、代表methodのsemantic SHA-256として保存し、raw CIL、PFX、秘密鍵は含めていません。
 
-RAT emulator registryの`evidence_sha256`は、この公開JSONをstrict UTF-8で読み、CRLFだけをLFへ正規化したSHA-256 `73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8`です。`analysis-framework/malware/purehvnc/purerat_host_emulator.py`は、全`GClass4` memberをdefaultのままにした固定registration `0a00`だけを生成します。deterministicなLE32／GZip frameは26 bytes、SHA-256は`fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001`です。実ユーザー名、端末名、HWID、OS、campaign等は設定しません。
+RAT emulator registryの`evidence_sha256`は、この公開JSONをstrict UTF-8で読み、CRLFだけをLFへ正規化したSHA-256 `6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77`です。`analysis-framework/malware/purehvnc/purerat_host_emulator.py`は、全`GClass4` memberをdefaultのままにした固定registration `0a00`だけを生成します。deterministicなLE32／GZip frameは26 bytes、SHA-256は`fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001`です。実ユーザー名、端末名、HWID、OS、campaign等は設定しません。
 
 実行範囲はoffline fixtureまたは`127.0.0.1` loopbackだけです。共通runnerのprofileは`offline_or_loopback_only`として扱い、外部live sessionはDNS解決・socket作成より前に拒否します。TLS client certificate、PFX、秘密鍵は読み込みません。
 

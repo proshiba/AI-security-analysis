@@ -13,9 +13,9 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import run_defensive_rat_emulator as runner  # noqa: E402
-from rat_emulator_profiles import resolve_profile  # noqa: E402
-from rat_emulator_transcript import SessionTranscriptWriter  # noqa: E402
+import run_defensive_rat_emulator as runner
+from rat_emulator_profiles import resolve_profile
+from rat_emulator_transcript import SessionTranscriptWriter
 
 PROFILE_ID = "valleyrat-n520-host-d11e793-9999"
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
@@ -63,9 +63,7 @@ def _kill_switch(path: Path) -> Path:
 def test_preflight_publishes_active_lease_and_cli_has_no_time_override() -> None:
     result = runner.preflight(PROFILE_ID, lease_now_utc=REVIEWED)
     assert result["network_used"] is False
-    assert result["registry_sha256"] == (
-        "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
-    )
+    assert result["registry_sha256"] == ("aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba")
     assert result["live_lease"] == {
         "source": "analysis-framework/common/rat_emulator_live_leases.json",
         "sha256": result["live_lease"]["sha256"],

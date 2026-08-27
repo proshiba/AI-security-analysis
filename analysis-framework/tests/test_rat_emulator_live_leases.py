@@ -24,7 +24,7 @@ from rat_emulator_live_leases import (
 )
 from rat_emulator_profiles import load_registry
 
-PROFILE_REGISTRY_SHA256 = "55b6ab992a0a952016367801d71e6421b55d9753a1144d13b98e53aab11d0eaf"
+PROFILE_REGISTRY_SHA256 = "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)
 

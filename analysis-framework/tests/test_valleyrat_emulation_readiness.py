@@ -8,13 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = (
-    ROOT
-    / "analysis-framework"
-    / "malware"
-    / "valleyrat"
-    / "audit_emulation_readiness.py"
-)
+MODULE_PATH = ROOT / "analysis-framework" / "malware" / "valleyrat" / "audit_emulation_readiness.py"
 
 
 def _load():
@@ -43,16 +37,14 @@ def test_repository_reports_expected_offline_component_states() -> None:
     assert result["safety"]["sample_executed"] is False
     assert result["safety"]["adapter_modules_imported"] is False
 
-    host_registry = json.loads(
-        (ROOT / AUDIT.HOST_REGISTRY).read_text(encoding="utf-8")
-    )
+    host_registry = json.loads((ROOT / AUDIT.HOST_REGISTRY).read_text(encoding="utf-8"))
     expected_protocol_sha256 = host_registry["protocol_profile_registry"]["sha256"]
     assert result["status"] == "complete"
     assert result["check_passed"] is True
     assert result["registry_binding"]["protocol_registry_pin_matches"] is True
     assert result["registry_binding"]["protocol_registry_sha256"] == expected_protocol_sha256
     assert result["registry_binding"]["host_registry_sha256"] == (
-        "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
+        "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
     )
 
 

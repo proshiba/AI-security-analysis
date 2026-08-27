@@ -82,7 +82,7 @@ lease更新では既存live summary、監視sidecar、静的evidenceを変更・
 | AsyncRAT 0.5.8 | TLS、gzip MessagePack、`ClientInfo`、token `0x06000024`の`KeepAlivePacket`、Ping／pong | 合成`ClientInfo`、空`Message`の固定Ping、1 frame受信、無応答終了。offline detectorと固定pongだけのloopback C2 fixture | 任意操作の分類表とresult serializer |
 | VenomRAT 6.0.3 | TLS、gzip MessagePack、`ClientInfo`、token `0x06000056`の`KeepAlivePacket`、`Pac_ket=Ping`／`Po_ng` | 合成`ClientInfo`、空`Message`の固定Ping、1 frame受信、無応答終了。offline detectorと固定Po_ngだけのloopback C2 fixture | command別result serializer |
 | DarkComet | RC4とserver-first `IDTYPE` | 受信・fingerprint | client identity、command／result mapping |
-| PureRAT／PureHVNC 4.4.1 direct-TLS | TLS 1.0、LE32／GZip／protobuf-net、`GClass2`／`GClass4` registration schema | 匿名固定`GClass4`を1回送信。plugin result型`4`までをoffline metadata化しwire化しない | command result型、result payload serializer、外部live |
+| PureRAT／PureHVNC 4.4.1 direct-TLS | TLS 1.0、LE32／GZip／protobuf-net、`GClass2`／`GClass4` registration schema | 匿名固定`GClass4`を1回送信。synthetic fixtureのresult候補`4`はexact返信契約未確認のmetadataとして保持し、wire化しない | command result型、result payload serializer、外部live |
 | Remcos／Quasar／Gh0st／NanoCore等 | 部分的なtransportまたは状態モデル | offline／loopbackのみ | 実C2互換の登録・command・結果形式 |
 
 exact ILの`KeepAlivePacket`はactive window titleを`Ping.Message`へ入れますが、エミュレーターは`GetActiveWindowTitle`を呼ばず、空文字へsanitizeします。「heartbeat応答まで」と「遠隔commandを受信できる」は同じ完成度ではありません。公開要約では、`handshake_confirmed`、`registration_accepted`、Ping request送信、heartbeat応答、task受信を分け、`synthetic_reply_sent=false`を明示します。
