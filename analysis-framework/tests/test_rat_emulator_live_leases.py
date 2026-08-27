@@ -24,9 +24,7 @@ from rat_emulator_live_leases import (
 )
 from rat_emulator_profiles import load_registry
 
-PROFILE_REGISTRY_SHA256 = (
-    "e0bee32089355702a37b6a4f4c014e35df1d409873d0afc97ef71376a482a43d"
-)
+PROFILE_REGISTRY_SHA256 = "55b6ab992a0a952016367801d71e6421b55d9753a1144d13b98e53aab11d0eaf"
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)
 
@@ -52,9 +50,7 @@ def test_production_registry_is_bound_to_all_exact_profiles() -> None:
         "sha256": PROFILE_REGISTRY_SHA256,
     }
     expected_leases = {
-        profile_id
-        for profile_id, profile in profiles.profiles.items()
-        if profile["live_scope"] == "leased_external"
+        profile_id for profile_id, profile in profiles.profiles.items() if profile["live_scope"] == "leased_external"
     }
     assert set(registry.leases) == expected_leases
     assert "valleyrat-winos-heartbeat-20260803-ljdnxz" not in registry.leases

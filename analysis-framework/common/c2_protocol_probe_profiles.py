@@ -32,11 +32,20 @@ from remus_profile_evidence import (
 DEFAULT_PROFILE_PATH = Path(__file__).with_name("c2_protocol_probe_profiles.json")
 MAXIMUM_PROFILE_REGISTRY_BYTES = 256 * 1024
 PROFILE_REGISTRY_SOURCE = "analysis-framework/common/c2_protocol_probe_profiles.json"
-REDLINE_ACTIVE_PROFILE_REGISTRY_SOURCE = (
-    "analysis-framework/malware/redlinestealer/active_profiles.json"
-)
+REDLINE_ACTIVE_PROFILE_REGISTRY_SOURCE = "analysis-framework/malware/redlinestealer/active_profiles.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 SHA1_RE = re.compile(r"^[0-9a-f]{40}$")
+STEALC_EXACT_PROFILE_ID = "stealc-v2-1backs-31-77-228-62-80"
+STEALC_EXACT_SAMPLE_SHA256 = "47854afb3cfeb64a85dda148e00e5ca83168f431a28e5c5fb28733e37f484b13"
+STEALC_EXACT_BUILD = "1backs"
+STEALC_SYNTHETIC_IDENTITY_SEED = "stealc-v2-1backs-47854afb-registration-v1"
+LUMMA_EXACT_PROFILE_ID = "lumma-v6-f63c436b-bizsmmit-80"
+LUMMA_EXACT_SAMPLE_SHA256 = "4b7d75f5c35d8d326af5723fb77c44d769478c90ca2f88e2edfb3e08817fb29c"
+LUMMA_EXACT_HOST = "bizsmmit.cyou"
+LUMMA_EXACT_PORT = 80
+LUMMA_EXACT_PINNED_IP = "64.89.161.173"
+LUMMA_EXACT_UID = "f63c436b52398b25d646c1b190a76c0aba2093"
+LUMMA_EXACT_SOURCE = "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:samples[2]"
 XLOADER_SYNTHETIC_TEMPLATE_ID = "xloader-v8-pkt2-synthetic-v1"
 PURERAT_ROOT_SAMPLE_SHA256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
 PURERAT_TERMINAL_SAMPLE_SHA256 = "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
@@ -76,13 +85,7 @@ def _repository_root() -> Path:
 def _load_redline_active_probe_module():
     """RedLine固有probeを名前衝突なしで読み込む。"""
 
-    module_path = (
-        _repository_root()
-        / "analysis-framework"
-        / "malware"
-        / "redlinestealer"
-        / "active_probe.py"
-    )
+    module_path = _repository_root() / "analysis-framework" / "malware" / "redlinestealer" / "active_probe.py"
     module_name = "_common_redline_active_probe"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
@@ -92,9 +95,7 @@ def _load_redline_active_probe_module():
     try:
         spec.loader.exec_module(module)
     except (ImportError, OSError, ValueError) as exc:
-        raise ProtocolProfileError(
-            f"RedLine active probe moduleを検証できません: {exc}"
-        ) from exc
+        raise ProtocolProfileError(f"RedLine active probe moduleを検証できません: {exc}") from exc
     return module
 
 
@@ -114,9 +115,7 @@ def redline_active_profile_registry_metadata(
             label="RedLine active profile registry",
         )
     except RemusEvidenceError as exc:
-        raise ProtocolProfileError(
-            f"RedLine active profile registryを読めません: {exc}"
-        ) from exc
+        raise ProtocolProfileError(f"RedLine active profile registryを読めません: {exc}") from exc
     return {
         "source": REDLINE_ACTIVE_PROFILE_REGISTRY_SOURCE,
         "sha256": hashlib.sha256(raw).hexdigest(),
@@ -147,9 +146,7 @@ def validate_redline_profile_binding(
         family_profile = family_profiles[profile["profile_id"]]
         binding = module.bind_profile_evidence(family_profile)
     except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
-        raise ProtocolProfileError(
-            f"RedLine固有profile/config証拠を検証できません: {exc}"
-        ) from exc
+        raise ProtocolProfileError(f"RedLine固有profile/config証拠を検証できません: {exc}") from exc
     exact_fields = (
         "status",
         "family",
@@ -185,9 +182,7 @@ def validate_redline_profile_binding(
         "payload_download_allowed",
     )
     if any(profile.get(field) != family_profile.get(field) for field in exact_fields):
-        raise ProtocolProfileError(
-            "共通RedLine profileがfamily固有profileと一致しません"
-        )
+        raise ProtocolProfileError("共通RedLine profileがfamily固有profileと一致しません")
     binding_fields = (
         ("review_id", "config_review_id"),
         ("config_source", "config_source"),
@@ -197,9 +192,7 @@ def validate_redline_profile_binding(
         ("terminal_cil_semantic_sha256", "terminal_cil_semantic_sha256"),
     )
     if any(binding.get(left) != profile.get(right) for left, right in binding_fields):
-        raise ProtocolProfileError(
-            "RedLine config/MVID/CIL bindingが共通profileと一致しません"
-        )
+        raise ProtocolProfileError("RedLine config/MVID/CIL bindingが共通profileと一致しません")
     return {
         "registry": registry,
         "binding": binding,
@@ -244,15 +237,11 @@ def validate_xloader_profile_evidence(
             label="XLoader review evidence",
         )
     except RemusEvidenceError as exc:
-        raise ProtocolProfileError(
-            f"XLoader review evidence artifactを安全に読めません: {exc}"
-        ) from exc
+        raise ProtocolProfileError(f"XLoader review evidence artifactを安全に読めません: {exc}") from exc
     digest = hashlib.sha256(raw).hexdigest()
     pinned = str(profile.get("review_evidence_sha256") or "")
     if digest != pinned or (expected_sha256 is not None and digest != expected_sha256):
-        raise ProtocolProfileError(
-            "XLoader review evidence SHA-256 pinが一致しません"
-        )
+        raise ProtocolProfileError("XLoader review evidence SHA-256 pinが一致しません")
     return {"source": source, "sha256": digest}
 
 
@@ -417,17 +406,10 @@ def load_profiles(
                 or profile.get("tls_version") != "TLSv1.2"
                 or maximum != 64
                 or timeout != 3.0
-                or not SHA256_RE.fullmatch(
-                    str(profile.get("expected_certificate_sha256") or "")
-                )
-                or any(
-                    key in profile
-                    for key in ("payload", "checkin", "request_packet", "artifact_zip")
-                )
+                or not SHA256_RE.fullmatch(str(profile.get("expected_certificate_sha256") or ""))
+                or any(key in profile for key in ("payload", "checkin", "request_packet", "artifact_zip"))
             ):
-                raise ProtocolProfileError(
-                    f"PureRAT prelude profileのreview済み安全境界が不正です: {profile_id}"
-                )
+                raise ProtocolProfileError(f"PureRAT prelude profileのreview済み安全境界が不正です: {profile_id}")
         elif handler == "c2_detector_n520_server_first":
             if profile.get("sni") != "update.microsoft.com" or maximum != 44:
                 raise ProtocolProfileError("N520 server-first profileのSNIまたは応答上限が不正です")
@@ -444,8 +426,7 @@ def load_profiles(
                 profile.get("variant") != "managed_purerat_4_4_1_direct_tls"
                 or profile.get("root_sample_sha256") != PURERAT_ROOT_SAMPLE_SHA256
                 or profile.get("terminal_sample_sha256") != PURERAT_TERMINAL_SAMPLE_SHA256
-                or profile.get("sample_sha256s")
-                != [PURERAT_ROOT_SAMPLE_SHA256, PURERAT_TERMINAL_SAMPLE_SHA256]
+                or profile.get("sample_sha256s") != [PURERAT_ROOT_SAMPLE_SHA256, PURERAT_TERMINAL_SAMPLE_SHA256]
                 or pinned != ["45.192.211.77"]
                 or host != "45.192.211.77"
                 or port != 56001
@@ -517,16 +498,13 @@ def load_profiles(
                 or profile.get("http_path") != "/"
                 or profile.get("content_type") != "text/xml; charset=utf-8"
                 or profile.get("soap_version") != "1.1"
-                or profile.get("soap_action")
-                != "http://tempuri.org/Endpoint/CheckConnect"
+                or profile.get("soap_action") != "http://tempuri.org/Endpoint/CheckConnect"
                 or profile.get("redirect_followed") is not False
                 or profile.get("task_poll_allowed") is not False
                 or profile.get("task_execution_allowed") is not False
                 or profile.get("payload_download_allowed") is not False
             ):
-                raise ProtocolProfileError(
-                    "RedLine CheckConnect profileのreview済み安全境界が不正です"
-                )
+                raise ProtocolProfileError("RedLine CheckConnect profileのreview済み安全境界が不正です")
             validate_redline_profile_binding(profile)
         elif handler == "xloader_v8_get_registration":
             pinned = profile.get("pinned_ips")
@@ -548,13 +526,11 @@ def load_profiles(
                     "cross_version_v8_7_primary_research",
                 }
                 or any(
-                    type(profile.get(field)) is not str
-                    or not SHA256_RE.fullmatch(str(profile.get(field)))
+                    type(profile.get(field)) is not str or not SHA256_RE.fullmatch(str(profile.get(field)))
                     for field in digests
                 )
                 or profile.get("sample_sha256s") != [profile.get("sample_sha256")]
-                or profile.get("synthetic_template_id")
-                != XLOADER_SYNTHETIC_TEMPLATE_ID
+                or profile.get("synthetic_template_id") != XLOADER_SYNTHETIC_TEMPLATE_ID
                 or not isinstance(profile.get("review_id"), str)
                 or not profile.get("review_id")
                 or not isinstance(profile.get("private_material_reference"), str)
@@ -574,8 +550,7 @@ def load_profiles(
                 or profile.get("scheme") != "http"
                 or profile.get("transport") != "raw_socket"
                 or profile.get("http_method") != "GET"
-                or re.fullmatch(r"/[A-Za-z0-9]{4}/", str(profile.get("http_path")))
-                is None
+                or re.fullmatch(r"/[A-Za-z0-9]{4}/", str(profile.get("http_path"))) is None
                 or type(profile.get("request_budget")) is not int
                 or profile.get("request_budget") != 1
                 or type(profile.get("maximum_request_count")) is not int
@@ -608,8 +583,7 @@ def load_profiles(
                     profile.get("junk_parameter_name"),
                 )
                 is None
-                or profile.get("data_parameter_name")
-                == profile.get("junk_parameter_name")
+                or profile.get("data_parameter_name") == profile.get("junk_parameter_name")
                 or type(profile.get("junk_value")) is not str
                 or re.fullmatch(
                     r"[A-Za-z0-9]{1,64}",
@@ -622,20 +596,14 @@ def load_profiles(
                 or "\r" in profile.get("user_agent")
                 or "\n" in profile.get("user_agent")
             ):
-                raise ProtocolProfileError(
-                    "XLoader v8登録profileのreview済み安全境界または証拠pinが不正です"
-                )
+                raise ProtocolProfileError("XLoader v8登録profileのreview済み安全境界または証拠pinが不正です")
         elif handler in registration_handlers:
             pinned = profile.get("pinned_ips")
             http_path = profile.get("http_path")
             stealc_path_valid = bool(
                 handler == "stealc_v2_registration_task"
                 and isinstance(http_path, str)
-                and (
-                    http_path == "/"
-                    or re.fullmatch(r"/[A-Za-z0-9_-]{1,128}\.php", http_path)
-                    is not None
-                )
+                and (http_path == "/" or re.fullmatch(r"/[A-Za-z0-9_-]{1,128}\.php", http_path) is not None)
             )
             if (
                 not isinstance(pinned, list)
@@ -654,23 +622,39 @@ def load_profiles(
                 except (binascii.Error, ValueError):
                     decoded_key = b""
                 if (
-                    maximum != 16384
-                    or not 1 <= len(build) <= 64
+                    profile_id != STEALC_EXACT_PROFILE_ID
+                    or profile.get("sample_sha256s") != [STEALC_EXACT_SAMPLE_SHA256]
+                    or build != STEALC_EXACT_BUILD
                     or not 8 <= len(decoded_key) <= 64
                     or profile.get("http_host") != profile.get("host")
+                    or profile.get("reviewed_response_content_types") != ["application/json"]
+                    or profile.get("synthetic_identity_seed") != STEALC_SYNTHETIC_IDENTITY_SEED
+                    or maximum != 16384
                 ):
                     raise ProtocolProfileError("StealC v2登録profileがreview済み境界と一致しません")
             elif handler == "lumma_v6_registration_task":
                 uid = str(profile.get("uid") or "")
                 cid = profile.get("cid")
                 if (
-                    maximum != 65536
-                    or not 32 <= len(uid) <= 64
-                    or any(value not in "0123456789abcdef" for value in uid.casefold())
-                    or not isinstance(cid, str)
-                    or profile.get("http_host") != profile.get("host")
+                    profile_id != LUMMA_EXACT_PROFILE_ID
+                    or profile.get("sample_sha256s") != [LUMMA_EXACT_SAMPLE_SHA256]
+                    or host != LUMMA_EXACT_HOST
+                    or port != LUMMA_EXACT_PORT
+                    or pinned != [LUMMA_EXACT_PINNED_IP]
+                    or uid != LUMMA_EXACT_UID
+                    or cid != ""
+                    or http_path != "/"
+                    or profile.get("http_host") != LUMMA_EXACT_HOST
+                    or profile.get("request_budget") != 2
+                    or type(profile.get("timeout_seconds")) is not float
+                    or profile.get("timeout_seconds") != 3.0
+                    or type(profile.get("maximum_request_bytes")) is not int
+                    or profile.get("maximum_request_bytes") != 4096
+                    or type(profile.get("maximum_response_bytes")) is not int
+                    or maximum != 65536
+                    or profile.get("source") != LUMMA_EXACT_SOURCE
                 ):
-                    raise ProtocolProfileError("Lumma v6登録profileがreview済み境界と一致しません")
+                    raise ProtocolProfileError("Lumma v6登録profileがreview済みexact境界と一致しません")
             elif (
                 maximum != 8192
                 or len(str(profile.get("tag") or "")) != 32
@@ -856,55 +840,27 @@ def apply_profiles(
             target["protocol_profile_flow_artifact_sha256"] = profile["flow_artifact_sha256"]
         if profile.get("handler") == "redline_checkconnect_soap11":
             target["http_path"] = profile["http_path"]
-            target["protocol_profile_evidence_sha256"] = profile[
-                "config_artifact_review_sha256"
-            ]
+            target["protocol_profile_evidence_sha256"] = profile["config_artifact_review_sha256"]
             target["protocol_profile_evidence_source"] = profile["config_source"]
             target["protocol_profile_review_id"] = profile["config_review_id"]
-            target["protocol_profile_endpoint_json_pointer"] = profile[
-                "endpoint_json_pointer"
-            ]
+            target["protocol_profile_endpoint_json_pointer"] = profile["endpoint_json_pointer"]
             target["protocol_profile_terminal_mvid"] = profile["terminal_mvid"]
-            target["protocol_profile_terminal_cil_semantic_sha256"] = profile[
-                "terminal_cil_semantic_sha256"
-            ]
+            target["protocol_profile_terminal_cil_semantic_sha256"] = profile["terminal_cil_semantic_sha256"]
             target["protocol_profile_request_sha256"] = profile["request_sha256"]
-            target["protocol_profile_family_registry_source"] = profile[
-                "redline_registry_source"
-            ]
-            target["protocol_profile_family_registry_sha256"] = profile[
-                "redline_registry_sha256"
-            ]
+            target["protocol_profile_family_registry_source"] = profile["redline_registry_source"]
+            target["protocol_profile_family_registry_sha256"] = profile["redline_registry_sha256"]
         if profile.get("handler") == "xloader_v8_get_registration":
             target["http_path"] = profile["http_path"]
-            target["protocol_profile_evidence_sha256"] = profile[
-                "evidence_sha256"
-            ]
-            target["protocol_profile_evidence_source"] = profile[
-                "evidence_source"
-            ]
+            target["protocol_profile_evidence_sha256"] = profile["evidence_sha256"]
+            target["protocol_profile_evidence_source"] = profile["evidence_source"]
             target["protocol_profile_review_id"] = profile["review_id"]
-            target["protocol_profile_payload_sha256"] = profile[
-                "profile_object_sha256"
-            ]
-            target["protocol_profile_private_material_reference"] = profile[
-                "private_material_reference"
-            ]
-            target["protocol_profile_private_material_sha256"] = profile[
-                "private_material_sha256"
-            ]
-            target["protocol_profile_selector_path_table_sha256"] = profile[
-                "selector_path_table_sha256"
-            ]
-            target["protocol_profile_synthetic_template_id"] = profile[
-                "synthetic_template_id"
-            ]
-            target["protocol_profile_pkt2_inner_plaintext_sha256"] = profile[
-                "pkt2_inner_plaintext_sha256"
-            ]
-            target["protocol_profile_request_sha256"] = profile[
-                "request_sha256"
-            ]
+            target["protocol_profile_payload_sha256"] = profile["profile_object_sha256"]
+            target["protocol_profile_private_material_reference"] = profile["private_material_reference"]
+            target["protocol_profile_private_material_sha256"] = profile["private_material_sha256"]
+            target["protocol_profile_selector_path_table_sha256"] = profile["selector_path_table_sha256"]
+            target["protocol_profile_synthetic_template_id"] = profile["synthetic_template_id"]
+            target["protocol_profile_pkt2_inner_plaintext_sha256"] = profile["pkt2_inner_plaintext_sha256"]
+            target["protocol_profile_request_sha256"] = profile["request_sha256"]
         target["family"] = profile["family"]
         target["sample_sha256s"] = profile_samples
         target["associated_case_count"] = len(profile_samples)
