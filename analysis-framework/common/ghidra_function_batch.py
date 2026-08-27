@@ -14,6 +14,7 @@ import hashlib
 import io
 import ipaddress
 import json
+import math
 import os
 import re
 import shutil
@@ -97,6 +98,7 @@ STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
+MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD = 8
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
 FUNCTION_ANALYSIS_NEXT_ACTION_JA = "特徴関数と全体ロジックの静的解析を追加してください。"
@@ -110,6 +112,8 @@ MAX_PRIVATE_RAW_BYTES = 64 * 1024 * 1024
 MAX_PRIVATE_RAW_RECORDS = 100_000
 MAX_PRIVATE_RAW_LINE_BYTES = 8 * 1024 * 1024
 MAX_PRIVATE_RAW_JSON_DEPTH = 64
+MAX_PROGRAM_RESULT_INLINE_BYTES = 32 * 1024 * 1024
+MAX_PROGRAM_FUNCTION_SHARD_BYTES = 32 * 1024 * 1024
 PRIVATE_RAW_STREAM_CHUNK_BYTES = 64 * 1024
 RETRYABLE_INCOMPLETE_EXIT_CODE = 20
 
@@ -3109,6 +3113,135 @@ def _atomic_private_json(path: Path, value: Mapping[str, Any]) -> None:
     )
 
 
+def _write_program_function_shards(
+    result_path: Path,
+    functions: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Write a complete function inventory as bounded private JSONL shards."""
+
+    if not 0 < MAX_PROGRAM_FUNCTION_SHARD_BYTES <= MAX_PRIVATE_RAW_BYTES:
+        raise ValueError("program function shard byte limit is invalid")
+    shards: list[dict[str, Any]] = []
+    current: list[Mapping[str, Any]] = []
+    current_bytes = 0
+
+    def flush() -> None:
+        nonlocal current, current_bytes
+        if not current:
+            return
+        shard_number = len(shards) + 1
+        shard_name = f"program-functions-{shard_number:04d}.raw.jsonl"
+        shard_path = result_path.with_name(shard_name)
+        _replace_jsonl(shard_path, current)
+        snapshot = _stream_private_jsonl(
+            shard_path,
+            lambda _item, _line_number: None,
+        )
+        if snapshot.size > MAX_PROGRAM_FUNCTION_SHARD_BYTES:
+            raise ValueError("program function shard exceeded its byte limit")
+        shards.append(
+            {
+                "name": shard_name,
+                "sha256": snapshot.sha256,
+                "size": snapshot.size,
+                "record_count": snapshot.record_count,
+            }
+        )
+        current = []
+        current_bytes = 0
+
+    for value in functions:
+        if not isinstance(value, Mapping):
+            raise TypeError("program function record must be a JSON object")
+        encoded = _encode_private_jsonl_record(
+            value,
+            path=result_path,
+            line_number=len(current) + 1,
+        )
+        if len(encoded) > MAX_PROGRAM_FUNCTION_SHARD_BYTES:
+            raise ValueError("program function record exceeded the shard byte limit")
+        if current and current_bytes + len(encoded) > MAX_PROGRAM_FUNCTION_SHARD_BYTES:
+            flush()
+        current.append(value)
+        current_bytes += len(encoded)
+    flush()
+    if sum(int(item["record_count"]) for item in shards) != len(functions):
+        raise ValueError("program function shard record count is inconsistent")
+    return {
+        "format": "private-jsonl-shards-v1",
+        "record_count": len(functions),
+        "shards": shards,
+    }
+
+
+def _persist_program_result(path: Path, value: Mapping[str, Any]) -> None:
+    """Persist a program result without exceeding the bounded JSON object limit."""
+
+    normalized = dict(value)
+    normalized.pop("function_records_artifact", None)
+    functions = normalized.get("functions")
+    if not isinstance(functions, list):
+        raise TypeError("program result functions must be a list")
+    encoded = _json_bytes(normalized)
+    if len(encoded) <= MAX_PROGRAM_RESULT_INLINE_BYTES:
+        _atomic_private_json(path, normalized)
+        return
+    artifact = _write_program_function_shards(path, functions)
+    normalized["functions"] = []
+    normalized["function_records_artifact"] = artifact
+    _atomic_private_json(path, normalized)
+
+
+def _load_program_result(
+    path: Path,
+) -> tuple[dict[str, Any], _JsonFileSnapshot]:
+    """Load a bounded program result and strictly hydrate external function shards."""
+
+    snapshot = _bounded_json_snapshot(path)
+    result = snapshot.document
+    artifact = result.get("function_records_artifact")
+    if artifact is None:
+        return result, snapshot
+    if not isinstance(artifact, Mapping):
+        raise ValueError("program function artifact manifest must be an object")
+    if artifact.get("format") != "private-jsonl-shards-v1":
+        raise ValueError("program function artifact format is unsupported")
+    if result.get("functions") not in (None, []):
+        raise ValueError("externalized program result contains inline functions")
+    expected_count = artifact.get("record_count")
+    shards = artifact.get("shards")
+    if type(expected_count) is not int or expected_count < 0:
+        raise ValueError("program function artifact record count is invalid")
+    if not isinstance(shards, list) or (expected_count and not shards):
+        raise ValueError("program function artifact shard list is invalid")
+    functions: list[dict[str, Any]] = []
+    observed_names: set[str] = set()
+    for index, item in enumerate(shards, start=1):
+        if not isinstance(item, Mapping):
+            raise ValueError("program function shard manifest entry is invalid")
+        expected_name = f"program-functions-{index:04d}.raw.jsonl"
+        name = item.get("name")
+        if name != expected_name or name in observed_names:
+            raise ValueError("program function shard name is invalid")
+        observed_names.add(name)
+        shard_path = path.with_name(name)
+        rows, shard_snapshot = _bounded_jsonl_snapshot(shard_path)
+        if (
+            item.get("sha256") != shard_snapshot.sha256
+            or item.get("size") != shard_snapshot.size
+            or item.get("record_count") != shard_snapshot.record_count
+        ):
+            raise ValueError("program function shard manifest does not match the file")
+        functions.extend(rows)
+    if len(functions) != expected_count:
+        raise ValueError("program function artifact record count does not match")
+    if int(result.get("function_inventory_count") or 0) != expected_count:
+        raise ValueError("program function inventory count does not match")
+    _assert_snapshot_unchanged(snapshot, context="program function shard hydration")
+    result["functions"] = functions
+    return result, snapshot
+
+
 def _decompile_chunk(
     client: GhidraMcpClient,
     program: str,
@@ -3217,11 +3350,30 @@ def _decompile_all(
 
 def _token_value(operand: Any) -> Any:
     value = getattr(operand, "value", operand)
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return "<nan>"
+        return "<positive_infinity>" if value > 0 else "<negative_infinity>"
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
     if isinstance(value, (list, tuple)):
         return [_token_value(item) for item in value]
     return str(value)
+
+
+def _bounded_managed_cil_raw_instructions(
+    instructions: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    total = len(instructions)
+    stored = [
+        dict(value)
+        for value in instructions[:MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD]
+    ]
+    return {
+        "instructions": stored,
+        "instruction_count": total,
+        "instructions_truncated": len(stored) < total,
+    }
 
 
 def _method_owner_map(pe: dnfile.dnPE) -> dict[int, str]:
@@ -3379,7 +3531,7 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
                 "rva": hex(rva),
                 "status": status,
                 "error": error_name,
-                "instructions": instructions,
+                **_bounded_managed_cil_raw_instructions(instructions),
                 "executed": False,
                 "emulated": False,
             }
@@ -3584,15 +3736,10 @@ def analyze_program(
     except FileNotFoundError:
         result_present = False
     if result_present:
-        result_snapshot = _bounded_json_snapshot(result_path)
-        cached = result_snapshot.document
+        cached, _result_snapshot = _load_program_result(result_path)
         if cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True:
             ensure_characteristic_selection(cached)
-            _atomic_replace_bytes(
-                result_path,
-                _json_bytes(cached),
-                expected_snapshot=result_snapshot,
-            )
+            _persist_program_result(result_path, cached)
             return cached
     staging_root = private_output / "import-staging"
     if not _same_or_nested(item.input_path, staging_root):
@@ -3881,7 +4028,7 @@ def analyze_program(
         },
     }
     ensure_characteristic_selection(result)
-    _atomic_private_json(result_path, result)
+    _persist_program_result(result_path, result)
     try:
         if not managed_cil_primary:
             client.get("/save_program", program=program)
@@ -3993,7 +4140,7 @@ def refresh_complete_program_artifacts(
         result["retrieval_coverage"] = coverage
         result["all_static_analysis_content_retained"] = True
         _atomic_private_json(raw_index_path, raw_index)
-        _atomic_private_json(object_dir / "program-result.json", result)
+        _persist_program_result(object_dir / "program-result.json", result)
         if opened_program is not None:
             try:
                 client.post("/close_program", {"name": opened_program})
@@ -4198,7 +4345,7 @@ def augment_private_call_graphs(
             if isinstance(item, Mapping) and item.get("selected_for_characteristic_analysis") is True
         ]
         _atomic_private_json(raw_index_path, raw_index)
-        _atomic_private_json(object_dir / "program-result.json", result)
+        _persist_program_result(object_dir / "program-result.json", result)
         totals["programs"] += 1
     return dict(totals)
 
@@ -4914,14 +5061,42 @@ def _prepare_orchestration_function_reconciliation(
     requirements = resolution.get("requirements") if isinstance(resolution, Mapping) else None
     family = resolution.get("family") if isinstance(resolution, Mapping) else None
     resolution_status = resolution.get("status") if isinstance(resolution, Mapping) else None
+    resolution_candidates = (
+        resolution.get("candidates") if isinstance(resolution, Mapping) else None
+    )
     classification = report.get("classification")
     selected = (
         classification.get("selected_families")
         if isinstance(classification, Mapping)
         else None
     )
+    automation_status = (
+        classification.get("automation_status")
+        if isinstance(classification, Mapping)
+        else None
+    )
     if resolution_status == "unresolved":
         automation = outcome.get("automation")
+        candidate_families = (
+            [
+                item.get("family")
+                for item in resolution_candidates
+                if isinstance(item, Mapping)
+            ]
+            if isinstance(resolution_candidates, list)
+            else []
+        )
+        candidate_boundary_valid = (
+            isinstance(resolution_candidates, list)
+            and len(candidate_families) == len(resolution_candidates)
+            and all(isinstance(value, str) and value for value in candidate_families)
+            and len(candidate_families) == len(set(candidate_families))
+            and isinstance(selected, list)
+            and all(isinstance(value, str) and value for value in selected)
+            and len(selected) == len(set(selected))
+            and set(selected).issubset(set(candidate_families))
+            and (not selected or automation_status == "unresolved")
+        )
         if not isinstance(automation, Mapping) or any(
             automation.get(name) is not False
             for name in ("ai_used", "sample_executed", "network_contacted")
@@ -4931,7 +5106,7 @@ def _prepare_orchestration_function_reconciliation(
         if (
             family is not None
             or requirements is not None
-            or selected != []
+            or not candidate_boundary_valid
             or not _valid_unresolved_function_gate(function_gate)
         ):
             raise ValueError(
@@ -5167,13 +5342,19 @@ def finalize_case_report(case_dir: Path) -> str:
                     if isinstance(classification, Mapping)
                     else None
                 )
+                automation_status = (
+                    classification.get("automation_status")
+                    if isinstance(classification, Mapping)
+                    else None
+                )
                 if not isinstance(selected, list):
                     raise ValueError(f"selected_familiesがありません: {case_dir.name}")
+                resolved_selection = bool(selected) and automation_status != "unresolved"
                 state.update(
                     {
-                        "status": "complete" if selected else "triaged_unknown",
-                        "complete": bool(selected),
-                        "resumable": bool(selected),
+                        "status": "complete" if resolved_selection else "triaged_unknown",
+                        "complete": resolved_selection,
+                        "resumable": resolved_selection,
                         "blockers": [],
                     }
                 )
@@ -5625,6 +5806,21 @@ def _build_overall_logic(report: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _escape_public_replacement_characters(value: Any) -> Any:
+    """Escape Ghidra display replacement characters before publication."""
+
+    if isinstance(value, str):
+        return value.replace("\ufffd", r"\uFFFD")
+    if isinstance(value, Mapping):
+        return {
+            _escape_public_replacement_characters(key): _escape_public_replacement_characters(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_escape_public_replacement_characters(item) for item in value]
+    return value
+
+
 def _markdown_code_value(value: Any) -> str:
     """識別子を内容を変えずMarkdownの1行code表示へ整える。"""
 
@@ -6004,6 +6200,7 @@ def publish_cases(
             }
         )
         report["overall_logic"] = _build_overall_logic(report)
+        report = _escape_public_replacement_characters(report)
         _json_dump(case_dir / "static-logic.json", report)
         (case_dir / "STATIC-LOGIC.md").write_text(
             _render_markdown(report),
@@ -6357,8 +6554,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cached: dict[str, Any] | None = None
         cached_snapshot: _JsonFileSnapshot | None = None
         if result_path.is_file():
-            cached_snapshot = _bounded_json_snapshot(result_path)
-            cached = cached_snapshot.document
+            cached, cached_snapshot = _load_program_result(result_path)
             cached_complete = cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
         if postprocessing_only and not cached_complete:
             raise ValueError(
@@ -6375,11 +6571,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             results[item.sha256] = cached
             selection_after = _json_bytes(cached)
             if not storage_blocked and selection_after != selection_before:
-                _atomic_replace_bytes(
-                    result_path,
-                    selection_after,
-                    expected_snapshot=cached_snapshot,
-                )
+                _persist_program_result(result_path, cached)
             cached_programs += 1
             continue
         if storage_blocked:

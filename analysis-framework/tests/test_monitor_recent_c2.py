@@ -37,6 +37,29 @@ def plan() -> dict:
     }
 
 
+def test_monitoring_plan_accepts_512_targets_and_rejects_513() -> None:
+    value = plan()
+    template = value["targets"][0]
+    value["targets"] = [
+        {
+            **template,
+            "target_id": f"fixture-{index}",
+            "host": f"c2-{index}.example",
+        }
+        for index in range(monitor_recent_c2.MAX_MONITORING_TARGETS)
+    ]
+    monitor_recent_c2.validate_plan(value)
+    value["targets"].append(
+        {
+            **template,
+            "target_id": "fixture-over-limit",
+            "host": "c2-over-limit.example",
+        }
+    )
+    with pytest.raises(monitor_recent_c2.PlanError, match="512 endpoint"):
+        monitor_recent_c2.validate_plan(value)
+
+
 def test_tls_success_separates_reachability_from_c2_confidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
