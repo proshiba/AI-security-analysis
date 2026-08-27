@@ -190,7 +190,7 @@
         "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
       ],
       "evidence_source": "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json",
-      "evidence_sha256": "73422aedd0227225850dc2df3edea996b3bd1c30ec334c0c079f93c8277822a8",
+      "evidence_sha256": "6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77",
       "registration_mode": "fixed_empty_gclass4",
       "station_id_sent": false,
       "unknown_task_action": "no_response",

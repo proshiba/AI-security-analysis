@@ -72,6 +72,20 @@ overlayはentropy 7.9999で、有効な埋め込みPE／archive magicは確認�
 
 `kvckiller.sys`のdrop／load、`SeLoadDriverPrivilege`／`SeDebugPrivilege`使用、`svchostsr.exe`の永続化は、security product停止を目的とするBYOVD chainと整合します。ただしdriver内部の対象製品・IOCTLまでは独立に逆解析していないため、この目的評価は中確度です。
 
+## 3 branchの通信契約比較
+
+| branch | exact後段／dispatcher | frame・cipher | 静的に確認した範囲 | 未解決範囲 |
+|---|---|---|---|---|
+| 1 `nW_Elf` CA00 x86 | `4df8bda2…733e2`／`FUN_100108b6` | `uint32le total + 10-byte header + payload`、`rolling_header_plus_0x36`、suffix `CA00` | server→client `00`〜`14`,`64`,`65`,`C9`,`CA`の長さ・最小構造分類 | CA00 parserのwire cap、operation result serializer、実reply body |
+| 2 Vulkan CA01 x64 | `807361fe…168e`／`FUN_18000f6a0` | 同じframe、固定`0xCC` XOR、suffix `CA01` | server→client `00`〜`13`,`64`,`65`,`C9`,`CA`。CA00とのID意味差とunchecked-copy risk | 32 MiBはoffline防御capのみ。operation result serializer、実reply body |
+| 3 MSOCF raw bootstrap | `c77c885c…dbf0` raw shellcode | client `39 39 00`（ASCII `99\0`）、serverは14-byte prefix＋固定`0xCC` XOR stage | TCP選択、固定要求、stage受信・復号shape。UDP fallbackは静的能力のみ | 受信stage以降のcommand dispatcherとoperation result schema |
+
+`CA01` suffixだけではcipherを判定できません。2件目はfixed XORですが、別キャンペーンのNVML `39b206…`／`024ab2…`／`9ad36b…`は同じ`CA01`でrolling方式です。必ずroot lineage、sample SHA-256、Ghidra selector、dispatcher、suffix、cipherをexact profileとして束縛します。
+
+MSOCF 3 DLLは同じ`99\0` raw bootstrapを共有しますが、これはCA00／CA01 command frameでも、NVML predecessorの`33 32 00`（ASCII `32\0`）transportでもありません。今回復元したCA00、CA01、NVML bootstrap／主制御／remote desktopのdispatcher契約をMSOCFへ一般化しません。
+
+公開するoffline結果はcommand ID、role、方向、長さ、最小構造、SHA-256へ限定します。復号本文、被害端末情報、鍵、画面、clipboard、入力、operation resultは公開せず、socket接続、payload実行、OS作用、reply wire生成を行いません。今回の追解析でも検体や追加payloadを実行せず、live C2へ接続していません。
+
 ## 相関評価
 
 1件目と2件目は、stage channelでcommand `0x04`→`0x05`、server応答`0x04`→`0x01`、control channelで`0x06`登録、`0xCA`完了、`0xC9` heartbeatを使う同じWinos系統です。一方、XOR mode、architecture、外層proxy、永続化、C2 infrastructureは異なります。
