@@ -1,0 +1,4807 @@
+{
+  "analysis_window": {
+    "end": "2026-08-28T23:59:59+09:00",
+    "start": "リポジトリ収録開始"
+  },
+  "collection_scope": "all_historical_c2",
+  "daily_source_handoffs": [
+    {
+      "effective_target_commitment_sha256": "45f3e3ecff77f4d6ee2ce5ae70e8f401926c10f91c47a2b5b2c1bf8925526ccc",
+      "effective_target_count": 33,
+      "schema_version": 1,
+      "source_date": "2026-08-27",
+      "source_target_commitment_sha256": "b2f074adc5725a3f6f674d630db38c0ac32ca0e634cdde75cc21ab950313e5bf",
+      "source_target_count": 33
+    }
+  ],
+  "generated_from_run": "2026-08-28",
+  "inventory_summary": {
+    "candidate_evidence_record_count": 351,
+    "dns_only_target_count": 37,
+    "duplicate_evidence_record_count": 16,
+    "network_service_endpoint_count": 160,
+    "ordinary_candidate_host_count": 166,
+    "ordinary_host_coverage_percent": 100.0,
+    "parse_error_count": 0,
+    "planned_endpoint_count": 197,
+    "planned_ordinary_host_count": 166,
+    "rejected_protocol_profile_count": 1,
+    "reviewed_profile_only_target_count": 13,
+    "reviewed_protocol_target_count": 21,
+    "scanned_daily_ioc_summary_file_count": 1,
+    "scanned_indicators_json_file_count": 128,
+    "scanned_ioc_file_count": 2911,
+    "scanned_iocs_json_file_count": 2782
+  },
+  "lifecycle_policy": {
+    "minimum_off_observations": 2,
+    "retirement_after_days_without_on": 7,
+    "shared_cdn_rotation_counts_as_infrastructure_change": false
+  },
+  "onion_excluded_by_policy": true,
+  "protocol_profile_registry": {
+    "sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json"
+  },
+  "remus_review_registry": {
+    "sha256": "e01941f1d7e81703c7051a11e38202502c7a8d2176293e0876ceffb5595fa144",
+    "source": "analysis-framework/common/remus_active_profile_review_registry.json"
+  },
+  "schema_version": 1,
+  "targets": [
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "1.32.216.171",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[98]"
+      ],
+      "target_id": "all-history-82d79e6ddb90",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "ValleyRAT/research-campaigns",
+      "host": "121.127.253.206",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8868,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2",
+        "control_endpoint"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/campaigns/valleyrat-japanese-malspam-20260820/iocs.json:indicators[3]",
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[130]",
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[6]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[5]"
+      ],
+      "target_id": "all-history-1c86f2971e5f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 3,
+      "family": "unclassified",
+      "host": "130.12.180.135",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 3000,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "0d477ed687d9f7424d2d28b66717bad4c0d21db8433752c9c51b032d04066af1",
+        "6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4",
+        "ba2bdc527333b0d728c712604cda8f0cddec1caebd681f12e4ae4c8d33748072"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/unclassified/versions/unknown/cases/0d477ed687d9f7424d2d28b66717bad4c0d21db8433752c9c51b032d04066af1/iocs.json:network[0]",
+        "analysis-results/malware/unclassified/versions/unknown/cases/6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4/iocs.json:network[0]",
+        "analysis-results/malware/unclassified/versions/unknown/cases/ba2bdc527333b0d728c712604cda8f0cddec1caebd681f12e4ae4c8d33748072/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-473ae4932f1b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "154.64.238.222",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[101]"
+      ],
+      "target_id": "all-history-511018a41252",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "154.64.238.247",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[102]"
+      ],
+      "target_id": "all-history-51e2bf794cf0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "research-campaigns/valleyrat",
+      "host": "170.62.130.47",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 449,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "stage_and_control",
+        "stage_and_control_endpoint",
+        "c2"
+      ],
+      "sample_sha256s": [
+        "22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/22d1b5576ccb3c425a94e405076a0665efa0dd2d59325bfb561b6b16969e267f/iocs.json:network[0]",
+        "analysis-results/research/campaigns/valleyrat-japanese-malspam-20260820/iocs.json:indicators[4]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[11]"
+      ],
+      "target_id": "all-history-26fb02da53df",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "172.86.98.113",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[6]"
+      ],
+      "target_id": "all-history-a629968a7b79",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 4,
+      "family": "unclassified",
+      "host": "178.16.54.109",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "0d477ed687d9f7424d2d28b66717bad4c0d21db8433752c9c51b032d04066af1",
+        "6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4",
+        "902d28ddfee24818d1ca25d2cf37a950972d876047fdfff29a7feafd60810fdb",
+        "ba2bdc527333b0d728c712604cda8f0cddec1caebd681f12e4ae4c8d33748072"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/unclassified/versions/unknown/cases/0d477ed687d9f7424d2d28b66717bad4c0d21db8433752c9c51b032d04066af1/iocs.json:network[1]",
+        "analysis-results/malware/unclassified/versions/unknown/cases/6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4/iocs.json:network[1]",
+        "analysis-results/malware/unclassified/versions/unknown/cases/902d28ddfee24818d1ca25d2cf37a950972d876047fdfff29a7feafd60810fdb/iocs.json:network[0]",
+        "analysis-results/malware/unclassified/versions/unknown/cases/ba2bdc527333b0d728c712604cda8f0cddec1caebd681f12e4ae4c8d33748072/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-2af7c05ff879",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unclassified",
+      "host": "178.16.55.240",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/unclassified/versions/unknown/cases/6b221814fa8c8d800a2ea3dcbb30943c33d8a28e184dbd368e42c5f5e92f90e4/iocs.json:network[4]"
+      ],
+      "target_id": "all-history-4c9aa25913f3",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "asyncrat",
+      "host": "191.96.78.221",
+      "maximum_request_bytes": 96,
+      "maximum_response_bytes": 64,
+      "method": "asyncrat_tls_messagepack",
+      "port": 7788,
+      "protocol": "asyncrat",
+      "protocol_profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "AsyncRAT 0.5.8 TLS MessagePack C2"
+      ],
+      "sample_sha256s": [
+        "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/research/c2-protocol-profiles/2026-08-04/profiles-evidence.json:analysis[0]"
+      ],
+      "target_id": "reviewed-asyncrat-058-20f21565-191-96-78-221-7788",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "redlinestealer",
+      "host": "192.144.32.84",
+      "http_path": "/",
+      "maximum_request_bytes": 357,
+      "maximum_response_bytes": 4096,
+      "method": "redline_checkconnect_soap11",
+      "port": 16383,
+      "protocol": "redlinestealer",
+      "protocol_hints": [],
+      "protocol_profile_endpoint_json_pointer": "/config/network_candidates/0",
+      "protocol_profile_evidence_sha256": "99ce975eef7d10f152a6a3c0d8e9832905b06b73fa9d3d3551da29bd25a122b2",
+      "protocol_profile_evidence_source": "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/config.json",
+      "protocol_profile_family_registry_sha256": "c09dec08c439efc1bed280bef60ac15c27256196f2800cf3ec9b0c7ed1a031db",
+      "protocol_profile_family_registry_source": "analysis-framework/malware/redlinestealer/active_profiles.json",
+      "protocol_profile_id": "redline-3f3ac0a3-checkconnect-v1",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "protocol_profile_request_sha256": "dd8c02ce792cd8d4e9ce3e05c32ff19c8d1633d24312203b9ec5018645e45f33",
+      "protocol_profile_review_id": "redline-3f3ac0a3-static-config-v1",
+      "protocol_profile_terminal_cil_semantic_sha256": "3ef4c2b5a3acaf779ecc23f622df36d2db8db169fa7859a72832ba674d253a42",
+      "protocol_profile_terminal_mvid": "b9bb7589-ca7d-4755-974e-86d58a25c8d8",
+      "roles": [
+        "c2_endpoint"
+      ],
+      "sample_sha256s": [
+        "3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/config.json:/config/network_candidates/0",
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/indicators.json:indicators[1]",
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/indicators.json:indicators[2]"
+      ],
+      "target_id": "all-history-274cb680e6df",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "valleyrat",
+      "host": "192.252.180.45",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6666,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "stage_and_control"
+      ],
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25",
+        "93df03d7db7df23317ee87ebe3946ddff4364e45de5217b0c90c7925b22c8f04"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/iocs.json:network[0]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/93df03d7db7df23317ee87ebe3946ddff4364e45de5217b0c90c7925b22c8f04/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-fc10974516a4",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "192.252.180.45",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6666,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos stage/control共用channel"
+      ],
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json:live_check"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260810-192-252-180-45-6666",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "macos-stealer-v2",
+      "host": "196.251.107.171",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 3000,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [
+        "b30b4b58eb215b60a8526c506d689ffab91ed43124709bc20b4085edf9d5361b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/macos-stealer-v2/versions/v256/cases/b30b4b58eb215b60a8526c506d689ffab91ed43124709bc20b4085edf9d5361b/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-7d20eee1d1b6",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "ValleyRAT",
+      "host": "202.146.222.95",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[118]",
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[12]"
+      ],
+      "target_id": "all-history-113e0bbee1d3",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "ValleyRAT",
+      "host": "202.61.140.222",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[131]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[20]"
+      ],
+      "target_id": "all-history-9e2a2b5758a0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "204.194.50.231",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 449,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "control"
+      ],
+      "sample_sha256s": [
+        "7a330c11f130d4c459ba733f0fc2a7adafa5093d4a7f41d7b87a92e498d5390f"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/7a330c11f130d4c459ba733f0fc2a7adafa5093d4a7f41d7b87a92e498d5390f/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-793783d28eb3",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "207.56.119.83",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6666,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "primary_c2"
+      ],
+      "sample_sha256s": [
+        "c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-5a8fc3e18712",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "redc2",
+      "host": "217.60.77.63",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8060,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "plaintext_http_bulk_exfiltration"
+      ],
+      "sample_sha256s": [
+        "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-b28ad4a8674b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "redc2",
+      "host": "217.60.77.63",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8792,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "tls_c2_candidate_static_config"
+      ],
+      "sample_sha256s": [
+        "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-9d7d773a862f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "purehvnc",
+      "host": "45.192.211.77",
+      "maximum_request_bytes": 0,
+      "maximum_response_bytes": 0,
+      "method": "purerat_direct_tls_certificate_pin",
+      "port": 56001,
+      "protocol": "purerat_direct_tls",
+      "protocol_profile_id": "purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "PureRAT 4.4.1 TLS-first certificate pin"
+      ],
+      "sample_sha256s": [
+        "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
+        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+      ],
+      "target_id": "reviewed-purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "prometei",
+      "host": "45.55.193.40",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "controller_host"
+      ],
+      "sample_sha256s": [
+        "2134c368a639c7525a6c98d0b5351e50757db7a59a69de707dd390578675a17c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/prometei/versions/unknown/cases/2134c368a639c7525a6c98d0b5351e50757db7a59a69de707dd390578675a17c/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-c2f3cb64c858",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 8,
+      "family": "freepbx-k-php/jomangy/research-campaigns",
+      "host": "45.95.147.178",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "configured_exfiltration_endpoint",
+        "data_exfiltration",
+        "distribution_and_data_exfiltration",
+        "distribution_or_exfiltration",
+        "exfiltration",
+        "primary_exfiltration",
+        "shared_campaign_evidence"
+      ],
+      "sample_sha256s": [
+        "0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e",
+        "112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76",
+        "366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171",
+        "726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572",
+        "9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786",
+        "c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5",
+        "da49d5a6abbb96438cd2daecd2643fb5f38122ce4d9cda6d072704e54c17d3ed",
+        "fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/0d059ffb15664c6b5411ec5c646cff16b27c92a8582bee8eb551311d75077a4e/iocs.json:network[3]",
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/112b937fa19a366ea8c7a404d6ed21a3814410fb210358c907e1fd580616cd76/iocs.json:network[1]",
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/366000d889c91ca66b3c0f55b6b2f5670a610c764ea516cf31f2aafad67f4171/iocs.json:network[1]",
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/726ca85760e035489a885da5b01dbe62c7a1e0b52e1735b656adbc899090a572/iocs.json:network[2]",
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/c29da327855142577dbb802096148c8c805595809bb3f8a89ed96b785fa45ac5/iocs.json:network[1]",
+        "analysis-results/malware/freepbx-k-php/versions/unknown/cases/da49d5a6abbb96438cd2daecd2643fb5f38122ce4d9cda6d072704e54c17d3ed/iocs.json:network[1]",
+        "analysis-results/malware/jomangy/versions/unknown/cases/9731b02a6cee4d3db1a29285bae92962617dfcad8055c28e5b25417b1ac93786/iocs.json:configured_c2[0]",
+        "analysis-results/malware/jomangy/versions/unknown/cases/fb8c3315722d0d2d78d08278774e0b03d334b35cfd59fa2d2a6dd21fbf99b347/iocs.json:configured_c2[0]",
+        "analysis-results/research/campaigns/correlated-20260723/correlated-freepbx-k-php-jomangy-eb89229e7b5d/iocs.json:indicators[1]",
+        "analysis-results/research/campaigns/correlated-20260724/correlated-freepbx-k-php-jomangy-eb89229e7b5d/iocs.json:indicators[1]"
+      ],
+      "target_id": "all-history-f9ce70bebd1a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "47.76.131.175",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[100]"
+      ],
+      "target_id": "all-history-a87effbddd19",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "64.81.30.192",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6666,
+      "protocol": "winos",
+      "protocol_hints": [],
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos stage/control共用channel",
+        "control_failover"
+      ],
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json:live_check"
+      ],
+      "target_id": "all-history-d7b75378c19a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 8,
+      "family": "putita-v3",
+      "host": "64.89.163.215",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 666,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4",
+        "195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c",
+        "70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29",
+        "73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf",
+        "9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e",
+        "e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89",
+        "ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190",
+        "f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/putita-v3/versions/v3/cases/11ce110d1a9b0b3aeb13e1827fb66fce905504a8ec4239c32dfabd66cf34bdb4/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/195fe7c703d6fef572f1a6d7441898488c5483db820a7feb0c2d622d1c4e4b2c/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/70005bbb6db8afaf30661df0311395fb3cf7bf1ece51d511841d4f4def908a29/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/73ad9a7105eb9c7b548e8e9299e7446623c3286f878d7f0abd0c4aef20a88caf/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/9175a9708efa0242a02ad042a9d235a73cd4f691cb90258cc78d24a58e5f235e/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/e8ba80f829b67d3a0fcad9a7d554b6a686876dd09125c3b1a2e3230712490e89/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/ee2ac2bdd780e82866f0135effc08c748895c42541d368e34b6214dbc9a6d190/iocs.json:network[0]",
+        "analysis-results/malware/putita-v3/versions/v3/cases/f0ea2d0017a88323d730042c2b571a4d06cd8dbe169c3cef2e457bd0c5d676ff/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-47d34e43da70",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "stealc",
+      "host": "777palm.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_domain_from_static_config",
+        "c2_url_from_static_config"
+      ],
+      "sample_sha256s": [
+        "87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/stealc/versions/unknown/cases/87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6/iocs.json:network[0]",
+        "analysis-results/malware/stealc/versions/unknown/cases/87f18bd70353e44aa74d3c2fda27a2ae5dd6e7d238c3d875f6240283bc909ba6/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-75ee8da7f5d5",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "8.148.149.147",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[99]"
+      ],
+      "target_id": "all-history-8c64da0ba903",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "owareaper",
+      "host": "acocdn.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "encrypted_http_c2_and_exfiltration"
+      ],
+      "sample_sha256s": [
+        "6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/owareaper/versions/unknown/cases/6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-ac77a1103e90",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "unknown",
+      "host": "aecert.org",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[10]"
+      ],
+      "target_id": "all-history-c89a3c4711cc",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "api.keyval.org",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[115]"
+      ],
+      "target_id": "all-history-46c13a8e7d9d",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "owareaper",
+      "host": "asecdns.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "dns_fallback_exfiltration"
+      ],
+      "sample_sha256s": [
+        "6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/owareaper/versions/unknown/cases/6897b649f29e54d8910459963bbf94ed5c7a4fe66a56bc5962540b226b8e48c4/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-27a2751f29c1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 7800,
+      "protocol": "winos",
+      "protocol_hints": [],
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-auk218",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel",
+        "control"
+      ],
+      "sample_sha256s": [
+        "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/network-evidence.json:live_check"
+      ],
+      "target_id": "all-history-70e309f4ba71",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "research-campaigns",
+      "host": "bifa668.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 9899,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/campaigns/atlascross/silver-fox-vpn-2026/iocs.json:network.c2[0]"
+      ],
+      "target_id": "all-history-30cdb666e26e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "lummastealer",
+      "host": "bizsmmit.cyou",
+      "maximum_request_bytes": 4096,
+      "maximum_response_bytes": 65536,
+      "method": "lumma_v6_registration_task",
+      "port": 80,
+      "protocol": "lummastealer",
+      "protocol_profile_id": "lumma-v6-f63c436b-bizsmmit-80",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Lumma v6の設定登録・plugin task取得先"
+      ],
+      "sample_sha256s": [
+        "4b7d75f5c35d8d326af5723fb77c44d769478c90ca2f88e2edfb3e08817fb29c"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:analysis[2]"
+      ],
+      "target_id": "reviewed-lumma-v6-f63c436b-bizsmmit-80",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unclassified",
+      "host": "bsc.blockrazor.xyz",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "350e3bddcd39098123be338cfcd12ef78a0d6cfabc48a17c6dacf31397880b3c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/unclassified/versions/unknown/cases/350e3bddcd39098123be338cfcd12ef78a0d6cfabc48a17c6dacf31397880b3c/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-896534c992dd",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "acrstealer",
+      "host": "bsc.rpc.blxrbdn.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "4c245ae9f80db604f285eeb27f05964cc2f1dbd35f2cf2e60736fed39ffa5f7b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/acrstealer/versions/unknown/cases/4c245ae9f80db604f285eeb27f05964cc2f1dbd35f2cf2e60736fed39ffa5f7b/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-9cd55c6c7c43",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "cakhia21.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "bb0ce18a3d8d497ae462d0807130eaac3f0afbec107a12ff116fddd678a6344b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/bb0ce18a3d8d497ae462d0807130eaac3f0afbec107a12ff116fddd678a6344b/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-0b08f19e6088",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "cakhiazvt.tv",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "d2a0dbb65ccff464d95a257e05362fa1a661188b6698644e26ad4cf0dbf4a0d4"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/d2a0dbb65ccff464d95a257e05362fa1a661188b6698644e26ad4cf0dbf4a0d4/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-6f003e6fe90b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "ValleyRAT",
+      "host": "cicfo.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[117]",
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[11]"
+      ],
+      "target_id": "all-history-4494bffa94a8",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "blazetrack",
+      "host": "dry-band-ae8f.zavrayah.workers.dev",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/blazetrack/versions/unknown/cases/b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-76a4a169304e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "asyncrat",
+      "host": "f8bet.casino",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "configured_c2"
+      ],
+      "sample_sha256s": [
+        "8d1ce2c612537f4537df7192715a8be98312cd9c6cd60757c294493c7fc180ac"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/asyncrat/versions/unknown/cases/8d1ce2c612537f4537df7192715a8be98312cd9c6cd60757c294493c7fc180ac/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-085110765f32",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "fastlink.ws",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[112]"
+      ],
+      "target_id": "all-history-4d11a9b2804a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "stealc",
+      "host": "fff-ttt.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_domain_from_static_config",
+        "c2_url_from_static_config"
+      ],
+      "sample_sha256s": [
+        "1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/stealc/versions/unknown/cases/1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2/iocs.json:network[0]",
+        "analysis-results/malware/stealc/versions/unknown/cases/1e09d04c793205661d88d6993cb3e0ef5e5a37a8660f504c1d36b0d8562e63a2/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-3cb27b5597a5",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 3,
+      "family": "remusstealer",
+      "host": "fimmora.surf",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6504,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20",
+        "11a258ccf1bf0cc0a8edfd2b5afda3e7bf6b1b4b25936ff32e7db5b48514b66b",
+        "b6bc2fb4af89149d91c946ac7f7898b2831f2466545d2777b32a6edf0cc34b7f"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20/iocs.json:network[0]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/11a258ccf1bf0cc0a8edfd2b5afda3e7bf6b1b4b25936ff32e7db5b48514b66b/iocs.json:network[0]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/b6bc2fb4af89149d91c946ac7f7898b2831f2466545d2777b32a6edf0cc34b7f/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-5fd262eec197",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-hk-bak.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[106]"
+      ],
+      "target_id": "all-history-727af1140bda",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-hk.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[105]"
+      ],
+      "target_id": "all-history-b33fa24bc660",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-jp.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[107]"
+      ],
+      "target_id": "all-history-c87492412fee",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-sg.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[109]"
+      ],
+      "target_id": "all-history-7da96f18d317",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-tw.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[108]"
+      ],
+      "target_id": "all-history-a415938867bf",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-us-bak.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[104]"
+      ],
+      "target_id": "all-history-21c58cb3d6cc",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flanycast-us.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[103]"
+      ],
+      "target_id": "all-history-ed0ed3a6da4f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flnode-dl.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[111]"
+      ],
+      "target_id": "all-history-d26e63fd12b1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "flnode-ulus.yotocloud.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[110]"
+      ],
+      "target_id": "all-history-0e455ceba6b9",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "blazetrack",
+      "host": "frosty-union-ff75.laserkusym.workers.dev",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/blazetrack/versions/unknown/cases/b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022/iocs.json:network[3]"
+      ],
+      "target_id": "all-history-fb031c785b98",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "ValleyRAT/research-campaigns/valleyrat",
+      "host": "fshsjlk.cc",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8868,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2",
+        "c2_domain",
+        "control"
+      ],
+      "sample_sha256s": [
+        "da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/da33a95b2ed28e2c50da002584eb81e4e94fe4a55e98945146842ed9e23be066/iocs.json:network[1]",
+        "analysis-results/research/campaigns/valleyrat-japanese-malspam-20260820/iocs.json:indicators[1]",
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[129]",
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[5]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[6]"
+      ],
+      "target_id": "all-history-e4cdc0a668ee",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "agenttesla",
+      "host": "ftp.hivimer.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 21,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "49279ff36b563b4cd568c4b836fe28275090f0712af4c36d1469cf5a1f5b0977"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/agenttesla/versions/2026-07-js-aes-runpe-ftp/cases/49279ff36b563b4cd568c4b836fe28275090f0712af4c36d1469cf5a1f5b0977/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-48b7205f8697",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "agenttesla",
+      "host": "ftp.vilimorin.com",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 1024,
+      "method": "ftp_authenticated",
+      "port": 21,
+      "protocol": "ftp",
+      "protocol_hints": [
+        "ftp"
+      ],
+      "protocol_profile_id": "agenttesla-ftp-auth-3f091457-vilimorin",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "FTP credential exfiltration endpoint",
+        "credential_exfiltration"
+      ],
+      "sample_sha256s": [
+        "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/config.json:config_endpoints[0]",
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-8786572d839f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 16,
+      "family": "genddos-bot/research-campaigns",
+      "host": "genddos.st",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6742,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2",
+        "c2_candidate",
+        "shared_campaign_evidence"
+      ],
+      "sample_sha256s": [
+        "13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb",
+        "1e55ecd233043bea9f7b1850cb560acf58d10d0fea04c097b54ef0488aaefe4c",
+        "338b19ba5a4d15cca22d48c02c298064164d9db9654e7473880d12211f3cd185",
+        "3bc7efeed4bbebc6a515be55736e6726dd3873553b00e70af513f8ab05761422",
+        "517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50",
+        "5c299c0278faf2fb51febdde019a7f24ea147e6c968b688cb05f7cef4d4f76a0",
+        "5f85a860b374bb803aff4cc9e1d928b5ad3d678c0e252b45e7b88d3bed88b152",
+        "635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414",
+        "850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079",
+        "956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430",
+        "b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6",
+        "c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd",
+        "c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca",
+        "e7889354c0d2cce6cc0c6a34ec13afd79bf361388e76ed2b3b987e0613d9c6a6",
+        "ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638",
+        "f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/1e55ecd233043bea9f7b1850cb560acf58d10d0fea04c097b54ef0488aaefe4c/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/338b19ba5a4d15cca22d48c02c298064164d9db9654e7473880d12211f3cd185/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/3bc7efeed4bbebc6a515be55736e6726dd3873553b00e70af513f8ab05761422/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/517164c29c0e178b1bb4613d3d5ceb552329c9596791624d8277f2dc5ba37c50/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/5c299c0278faf2fb51febdde019a7f24ea147e6c968b688cb05f7cef4d4f76a0/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/5f85a860b374bb803aff4cc9e1d928b5ad3d678c0e252b45e7b88d3bed88b152/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/635b3f87384694ca954602b2e3ccf7732056833e8276ab80d8f3545ad420d414/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/850847440cf308046af0139b1c74e7059d19e82f591705f772d4568d854c1079/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/956f66bf9a0d796c9913a9b9cd255e8d1c49ab1b3de29d5418fd01b485032430/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/b65f46923cfeaccb0287f6603d5f02d901dce5aabb00246fcb9a96bb215b17c6/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/c0685aa4c68bbecb0bc5a61c3ee46eb9056ae33ded414784761d8ccac48e5bbd/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/c7e7d77602c121ebe2785d8e4068b7d459abe975ad9e3e8471ba28e9783b8dca/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/e7889354c0d2cce6cc0c6a34ec13afd79bf361388e76ed2b3b987e0613d9c6a6/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/ee44fb0df1cf9740c5779bc5a811e4d1c984365fd5e0482434f58fc1cc54d638/iocs.json:network[0]",
+        "analysis-results/malware/genddos-bot/versions/unknown/cases/f9191fbfcd25b4d0274e7831ae190d888c42be4e3794c4bb3dea7517b704fdee/iocs.json:network[0]",
+        "analysis-results/research/campaigns/correlated-20260723/correlated-genddos-bot-a74d6b3d1370/iocs.json:indicators[1]",
+        "analysis-results/research/campaigns/correlated-20260724/correlated-genddos-bot-a74d6b3d1370/iocs.json:indicators[1]"
+      ],
+      "target_id": "all-history-482d434de0a7",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "blazetrack",
+      "host": "gentle-pond-2294.zavrayah.workers.dev",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/blazetrack/versions/unknown/cases/b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-030de84dcf1e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 3,
+      "family": "maskgram-stealer",
+      "host": "geschmeidig6307-kotyatanet.sbs",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [
+        "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a",
+        "e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756",
+        "ed23e0d5d55c12998aea2e4d065726301cb02257f4c9435758368fb94c7881c9"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a/iocs.json:network[2]",
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756/iocs.json:network[0]",
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/ed23e0d5d55c12998aea2e4d065726301cb02257f4c9435758368fb94c7881c9/iocs.json:network[4]"
+      ],
+      "target_id": "all-history-64df992107d6",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "asyncrat",
+      "host": "glara.info",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "configured_c2"
+      ],
+      "sample_sha256s": [
+        "cc900a5a94804cc09fa2009055e3ef4aca1e3b18b32358e8d9884da4d374712b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/asyncrat/versions/unknown/cases/cc900a5a94804cc09fa2009055e3ef4aca1e3b18b32358e8d9884da4d374712b/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-9156aeff096f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6685,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "Winos control channel",
+        "control"
+      ],
+      "sample_sha256s": [
+        "61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5",
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/61a602b23169ad451a22661e2e356e16ef2bd3c7ef7a23d5892ac4f79baff0b5/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-ce6b0bb1ce83",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6685,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260727",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/iocs.json:network[0]"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260727",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 6698,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "Winos stage channel"
+      ],
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-cdc219e4cbd6",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "instantmessagehub.tech",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[95]"
+      ],
+      "target_id": "all-history-4b7b74dc684e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "jump.qt-proxy.org",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[94]"
+      ],
+      "target_id": "all-history-dc2682d36848",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "catddos",
+      "host": "lifeisabouthavingfun448.duckdns.org",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 35342,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [
+        "950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502",
+        "b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/catddos/versions/v2.0.4-socks5/cases/950b618c7f24e2b67d93bbf111c572978478622706eb7d288193fcea92145502/iocs.json:network[0]",
+        "analysis-results/malware/catddos/versions/v2.0.4-socks5/cases/b3fe0576f4e8a73f15d6cb8c0a614dd4340aea525605e2841311a2cb764eb6dc/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-2e18c879f68c",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "redc2",
+      "host": "litterbox.catbox.moe",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "third_party_file_exfiltration"
+      ],
+      "sample_sha256s": [
+        "4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/iocs.json:network[4]"
+      ],
+      "target_id": "all-history-fbc49d13de2f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8868,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "control"
+      ],
+      "sample_sha256s": [
+        "194845853f864088bc9fae5c0b2f692f6d6b1564f41111041247b3f86d356f30",
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/194845853f864088bc9fae5c0b2f692f6d6b1564f41111041247b3f86d356f30/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-11d9ac074222",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 8868,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/network-evidence.json:live_check"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "snakekeylogger",
+      "host": "mail.elpasohonroso.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 587,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "credential_exfiltration"
+      ],
+      "sample_sha256s": [
+        "dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/snakekeylogger/versions/unknown/cases/dfc8e7b7e48faab9a410111ea31001c729ab9b1c83525499f028b5344869be9e/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-71ce6a59b8f0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "mq-result-qt-team.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[97]"
+      ],
+      "target_id": "all-history-6c30d56fa3eb",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "mq-task-qt-team.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[96]"
+      ],
+      "target_id": "all-history-259da6abd103",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "TWOSTROKE",
+      "host": "neexportfolio.azurewebsites.net",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[8]"
+      ],
+      "target_id": "all-history-dea8a4b9d0b0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "TWOSTROKE",
+      "host": "neexportfolio.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[7]"
+      ],
+      "target_id": "all-history-90340ac0efca",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "TWOSTROKE",
+      "host": "neexportfolio.eastus.cloudapp.azure.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[9]"
+      ],
+      "target_id": "all-history-0ed3a8d56b07",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "netkata.io",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-0f93a52fb13a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "ok-google.io",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a449b1aa31480572952a07d9dd29ad0a3c53fce17735208b032d70f8b63c4423"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/a449b1aa31480572952a07d9dd29ad0a3c53fce17735208b032d70f8b63c4423/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-346a49489e67",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 4,
+      "family": "remusstealer",
+      "host": "onesdto.shop",
+      "maximum_response_bytes": 256,
+      "method": "protocol_profile_required",
+      "port": 2535,
+      "protocol": "tcp",
+      "protocol_hints": [
+        "remusstealer"
+      ],
+      "protocol_profile_required": true,
+      "protocol_profile_status": "reviewed_exact_profile_missing",
+      "roles": [
+        "c2_candidate_external_sandbox_config",
+        "selected_c2"
+      ],
+      "sample_sha256s": [
+        "843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93",
+        "c4e1726827d84a3d77979d1c01baf16518965d9574409e09c1311b89784766cc",
+        "d00bdb02626137fd008456600d4fd89500f1de1c87a3ea3295b4e78740613b76",
+        "f8cdef17d24fff6b62927d599b08164309a94304da6a045eb39727685be4643c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93/iocs.json:network[0]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/c4e1726827d84a3d77979d1c01baf16518965d9574409e09c1311b89784766cc/iocs.json:network[2]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/d00bdb02626137fd008456600d4fd89500f1de1c87a3ea3295b4e78740613b76/iocs.json:network[2]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/f8cdef17d24fff6b62927d599b08164309a94304da6a045eb39727685be4643c/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-d6828c078dcf",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "pure26.myftp.org",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 56001,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [
+        "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b/iocs.json:network[3]"
+      ],
+      "target_id": "all-history-cc0d3f619591",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "qt-proxy.org",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[93]"
+      ],
+      "target_id": "all-history-a49c07f309a6",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "qtproxy.xyz",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[91]"
+      ],
+      "target_id": "all-history-833843510c33",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "blazetrack",
+      "host": "ray-wildflower-59b3.zavrayah.workers.dev",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate"
+      ],
+      "sample_sha256s": [
+        "b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/blazetrack/versions/unknown/cases/b0f43bcb2af128106bda1ac0495f70028d364056e4a9521e4e06f1b83769e022/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-9bf96b0e8f78",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "venomrat",
+      "host": "s2gj9tonn.localto.net",
+      "maximum_request_bytes": 96,
+      "maximum_response_bytes": 64,
+      "method": "venomrat_tls_messagepack",
+      "port": 6377,
+      "protocol": "venomrat",
+      "protocol_hints": [],
+      "protocol_profile_id": "venomrat-603-6a24ba25-localto-6377",
+      "protocol_profile_registry_sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "VenomRAT 6.0.3 TLS MessagePack C2",
+        "c2_monitoring_target"
+      ],
+      "sample_sha256s": [
+        "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/venomrat/versions/v6.0.3/cases/6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073/iocs.json:network[2]",
+        "analysis-results/research/c2-protocol-profiles/2026-08-04/profiles-evidence.json:analysis[1]"
+      ],
+      "target_id": "all-history-e8d091ae4378",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "research-campaigns",
+      "host": "server275.web-hosting.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 587,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "shared_campaign_evidence"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/campaigns/correlated-20260723/correlated-agenttesla-4721f7464834/iocs.json:indicators[0]",
+        "analysis-results/research/campaigns/correlated-20260724/correlated-agenttesla-4721f7464834/iocs.json:indicators[0]"
+      ],
+      "target_id": "all-history-02fb3cd15777",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "remusstealer",
+      "host": "slyfogx.shop",
+      "maximum_response_bytes": 256,
+      "method": "protocol_profile_required",
+      "port": 5776,
+      "protocol": "tcp",
+      "protocol_hints": [
+        "remusstealer"
+      ],
+      "protocol_profile_required": true,
+      "protocol_profile_status": "reviewed_exact_profile_missing",
+      "roles": [
+        "fallback_c2"
+      ],
+      "sample_sha256s": [
+        "843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/843eec789f90f15c13e6905f36f54c32a0dbf767d9715aef1387d232aa11ab93/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-c7be210ff611",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "credential-phishing-html",
+      "host": "smartforms.dev",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "credential_exfiltration"
+      ],
+      "sample_sha256s": [
+        "8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/credential-phishing-html/versions/unknown/cases/8f04100e8545056820957f9e010c3ffd83f248329cb369487e6d04f4a19c4385/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-95b427e597f5",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "quasarrat",
+      "host": "stopman.ooguy.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 2002,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_static_config",
+        "quasar_tcp_c2"
+      ],
+      "sample_sha256s": [
+        "439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2",
+        "c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/indicators.json:indicators[4]",
+        "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2/indicators.json:indicators[5]",
+        "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/indicators.json:indicators[4]",
+        "analysis-results/malware/quasarrat/versions/v1.3.0.0/cases/c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627/indicators.json:indicators[5]"
+      ],
+      "target_id": "all-history-47836bec585c",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "purelogs",
+      "host": "tea.vexexo.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 56001,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "PureRAT/PureHVNC candidate C2"
+      ],
+      "sample_sha256s": [
+        "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/purelogs/versions/unknown/cases/0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/iocs.json:configured_or_observed_c2[1]"
+      ],
+      "target_id": "all-history-fd871a4ff96b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "tonibrisland.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "1c6a49c2c071e8182a8727ccc5622e59c66bc6f3629a87f0cbb76a64f2323d8e"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/1c6a49c2c071e8182a8727ccc5622e59c66bc6f3629a87f0cbb76a64f2323d8e/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-7f3ae4c853d1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "utuhv.cn",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8080,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_static_config"
+      ],
+      "sample_sha256s": [
+        "4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-ac9635d03728",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "franz-electron-backdoor",
+      "host": "web-telegram.ug",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_static_config",
+        "tasking_endpoint"
+      ],
+      "sample_sha256s": [
+        "9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/franz-electron-backdoor/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/indicators.json:indicators[1]",
+        "analysis-results/malware/franz-electron-backdoor/versions/unknown/cases/9c0a88ea53c4e0324157542385a1d342101feb51cf7b8cf76e9441376f1f522a/indicators.json:indicators[2]"
+      ],
+      "target_id": "all-history-45c002cb86f9",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "shadowpad",
+      "host": "websencl.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_domain_from_config",
+        "c2_endpoint_tcp_http"
+      ],
+      "sample_sha256s": [
+        "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[0]",
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-5e01a3fa8247",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "shadowpad",
+      "host": "websencl.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_domain_from_config",
+        "c2_endpoint_tcp_http"
+      ],
+      "sample_sha256s": [
+        "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[0]",
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-270c01c8c252",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "shadowpad",
+      "host": "websencl.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 8080,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_domain_from_config",
+        "c2_endpoint_tcp_http"
+      ],
+      "sample_sha256s": [
+        "656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[0]",
+        "analysis-results/malware/shadowpad/versions/unknown/cases/656582bf82205ac3e10b46cbbcf8abb56dd67092459093f35ce8daa64f379a2c/iocs.json:network[3]"
+      ],
+      "target_id": "all-history-f8ed19b9f0c2",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 3,
+      "family": "maskgram-stealer",
+      "host": "wintersonyae246leisekoshachiy.icu",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [
+        "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a",
+        "e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756",
+        "ed23e0d5d55c12998aea2e4d065726301cb02257f4c9435758368fb94c7881c9"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a/iocs.json:network[0]",
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756/iocs.json:network[1]",
+        "analysis-results/malware/maskgram-stealer/versions/unknown/cases/ed23e0d5d55c12998aea2e4d065726301cb02257f4c9435758368fb94c7881c9/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-f84772488718",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "stealc",
+      "host": "wss.infrastructurecore.cc",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_host_candidate_static_config",
+        "c2"
+      ],
+      "sample_sha256s": [
+        "4153db289c9a3de57845890aadeec7951fcf5516fd39f25c6d8c3e42fc21f801"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/stealc/versions/unknown/cases/4153db289c9a3de57845890aadeec7951fcf5516fd39f25c6d8c3e42fc21f801/iocs.json:network[1]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[73]"
+      ],
+      "target_id": "all-history-50a6daecca82",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "www.cakhia21.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "bb0ce18a3d8d497ae462d0807130eaac3f0afbec107a12ff116fddd678a6344b"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/bb0ce18a3d8d497ae462d0807130eaac3f0afbec107a12ff116fddd678a6344b/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-42ca1d30664f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "www.cakhiazvt.tv",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "d2a0dbb65ccff464d95a257e05362fa1a661188b6698644e26ad4cf0dbf4a0d4"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/d2a0dbb65ccff464d95a257e05362fa1a661188b6698644e26ad4cf0dbf4a0d4/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-6dae15b76165",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "remcosrat",
+      "host": "www.ikukuomaproject.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 2404,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remcosrat/versions/unknown/cases/a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-bfbc6d9078ff",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "remcosrat",
+      "host": "www.ikukuomaprojectbackup.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 2404,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remcosrat/versions/unknown/cases/a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-b01170e94b54",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "remcosrat",
+      "host": "www.ikukuomaprojectbackup1.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 2404,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remcosrat/versions/unknown/cases/a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-24649f919635",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "remcosrat",
+      "host": "www.ikukuomaprojectbackup2.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 2404,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remcosrat/versions/unknown/cases/a82ab47795a1a4a04da0b73a9597a58072fcb05ce9ac83ba8f922c11d74b8457/iocs.json:network[3]"
+      ],
+      "target_id": "all-history-46c56d627f2b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "www.netkata.io",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/0ec1ed0daf72e7f3b2a9afb44d8e2de77b97b126788e54e0cb948cc176de91ba/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-3a4a8d0cc748",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "www.ok-google.io",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "a449b1aa31480572952a07d9dd29ad0a3c53fce17735208b032d70f8b63c4423"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/a449b1aa31480572952a07d9dd29ad0a3c53fce17735208b032d70f8b63c4423/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-2762c0941976",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "guloader",
+      "host": "www.plantaonewsms.com.br",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "xloader_bootstrap_c2_candidate"
+      ],
+      "sample_sha256s": [
+        "8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/guloader/versions/unknown/cases/8d96249aa92bee27d9ac8ffa8e32e3f8dd3a5c77cbe541b1d0cc97f37e962a1e/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-6fc4fdf6ac0d",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-08-27"
+      ],
+      "family": "N/A",
+      "host": "www.qtproxy.xyz",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-27/ioc-summary.json:daily_news_handoff[92]"
+      ],
+      "target_id": "all-history-e9c77e901d58",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "nanocore",
+      "host": "www.tonibrisland.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "1c6a49c2c071e8182a8727ccc5622e59c66bc6f3629a87f0cbb76a64f2323d8e"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/nanocore/versions/unknown/cases/1c6a49c2c071e8182a8727ccc5622e59c66bc6f3629a87f0cbb76a64f2323d8e/iocs.json:network[1]"
+      ],
+      "target_id": "all-history-7980cb39b77c",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 3,
+      "family": "remusstealer",
+      "host": "zelpx.garden",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 9895,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2_candidate_external_sandbox_config"
+      ],
+      "sample_sha256s": [
+        "077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20",
+        "11a258ccf1bf0cc0a8edfd2b5afda3e7bf6b1b4b25936ff32e7db5b48514b66b",
+        "b6bc2fb4af89149d91c946ac7f7898b2831f2466545d2777b32a6edf0cc34b7f"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/remusstealer/versions/unknown/cases/077480d961420c8b53b68059ce2493a1318756c7f9b93e2242020740f98afe20/iocs.json:network[2]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/11a258ccf1bf0cc0a8edfd2b5afda3e7bf6b1b4b25936ff32e7db5b48514b66b/iocs.json:network[2]",
+        "analysis-results/malware/remusstealer/versions/unknown/cases/b6bc2fb4af89149d91c946ac7f7898b2831f2466545d2777b32a6edf0cc34b7f/iocs.json:network[2]"
+      ],
+      "target_id": "all-history-e5e4ae00dc61",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "195.63.142.49",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[46]"
+      ],
+      "target_id": "all-history-2f59b4b55ebc",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxNetV2",
+      "host": "45.130.151.214",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[41]"
+      ],
+      "target_id": "all-history-95e25c3b25d9",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxNetV2",
+      "host": "45.151.139.113",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[42]",
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[43]"
+      ],
+      "target_id": "all-history-d76fcae7a5d4",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "65.21.80.170",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[45]"
+      ],
+      "target_id": "all-history-aa2b7d97ec54",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "75.119.135.83",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[33]"
+      ],
+      "target_id": "all-history-c58ae627276e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "93.152.224.75",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[44]"
+      ],
+      "target_id": "all-history-bf798a1f89b1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "alxescript.info",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[21]"
+      ],
+      "target_id": "all-history-fecfbe726237",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "anomkit.shop",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[13]"
+      ],
+      "target_id": "all-history-abcf42eadf21",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "apple-login-imaps.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[14]"
+      ],
+      "target_id": "all-history-f601dbda4d3d",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "apple-thailand.co",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[15]"
+      ],
+      "target_id": "all-history-1aa6469a9e26",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "apple-unlock.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[19]"
+      ],
+      "target_id": "all-history-9f1c2e538e4b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "b.pro-center.my.id",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[28]"
+      ],
+      "target_id": "all-history-3313f6e0f03f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "catalyst-pro.lat",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[48]"
+      ],
+      "target_id": "all-history-52aec76504c0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "center-one.online",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[29]"
+      ],
+      "target_id": "all-history-99fd7cc0d2b1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "echo-systems.cfd",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[58]"
+      ],
+      "target_id": "all-history-30166be98a95",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "fimwoglea.shop",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[54]"
+      ],
+      "target_id": "all-history-425a5d7e455f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "findsupport.live",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[16]"
+      ],
+      "target_id": "all-history-a5f18cb60812",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "gon-unlocker.pro",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[24]"
+      ],
+      "target_id": "all-history-7645326266ec",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "icloud-findmy.app",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[23]"
+      ],
+      "target_id": "all-history-da01667ca9d1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "irealm-server.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[17]"
+      ],
+      "target_id": "all-history-1aac7fb33cf3",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "kelemet.shop",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[59]"
+      ],
+      "target_id": "all-history-88a0d0fcec8d",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "key-unlock.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[20]"
+      ],
+      "target_id": "all-history-cb1a7952087f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "kit-pro-bot.click",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[27]"
+      ],
+      "target_id": "all-history-ac5165406e54",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "more-arpc.icu",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[57]"
+      ],
+      "target_id": "all-history-10d6e81c5707",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "nexahub.lat",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[53]"
+      ],
+      "target_id": "all-history-1048ad51c631",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "pinnacle-labs.lat",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[52]"
+      ],
+      "target_id": "all-history-19cc33afaeaf",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "projectpartapple.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[26]"
+      ],
+      "target_id": "all-history-0a2e48feeb0f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "rpcsecnoweb.pro",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[56]"
+      ],
+      "target_id": "all-history-c6bcd743d051",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "spider-off-unlock.one",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[22]"
+      ],
+      "target_id": "all-history-814043ff0863",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "stellar-minds.cfd",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[51]"
+      ],
+      "target_id": "all-history-f6fd22e594fc",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "telegra.ph",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[61]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[75]"
+      ],
+      "target_id": "all-history-a00186c1be2a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "trusaifi.cfd",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[50]"
+      ],
+      "target_id": "all-history-311794917d5f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "twigoamwu.cfd",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[49]"
+      ],
+      "target_id": "all-history-fdfbbdcbbda1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "uktservice.sa.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[18]"
+      ],
+      "target_id": "all-history-5885de02928a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "velodium.lat",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[55]"
+      ],
+      "target_id": "all-history-924db05ed172",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "PavinLoader",
+      "host": "zarwieciv.cfd",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[60]"
+      ],
+      "target_id": "all-history-b2557f386342",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AnonyMousKIT",
+      "host": "zu7pl.pro",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-26/ioc-summary.json:daily_news_handoff[25]"
+      ],
+      "target_id": "all-history-60ae41958764",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "103.249.117.183",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[117]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[123]"
+      ],
+      "target_id": "all-history-0559e7187ad3",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "103.77.242.187",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[113]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[119]"
+      ],
+      "target_id": "all-history-71c657f7d736",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "160.187.147.119",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 80,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[114]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[125]"
+      ],
+      "target_id": "all-history-56b0ebbf0ed2",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "210.183.177.217",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[116]"
+      ],
+      "target_id": "all-history-3aa2ee5fe171",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "84.247.145.65",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[115]"
+      ],
+      "target_id": "all-history-f62997cf2d04",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "app-api.lensstory.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[68]"
+      ],
+      "target_id": "all-history-7dfacdd252b1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "aspencore18.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[90]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[98]"
+      ],
+      "target_id": "all-history-9e6fa7953e67",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "atlas-compass.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[91]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[99]"
+      ],
+      "target_id": "all-history-3d6862a5f9e0",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "dist.runtimeconsole.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[71]"
+      ],
+      "target_id": "all-history-38bb35df9756",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "dust.packetflow.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[66]"
+      ],
+      "target_id": "all-history-2c7c2d57b9ab",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "grove-12.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[89]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[96]"
+      ],
+      "target_id": "all-history-c3842ce97357",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "grove-satin.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[101]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[92]"
+      ],
+      "target_id": "all-history-d28bb00c23da",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "health.luminexus.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[61]"
+      ],
+      "target_id": "all-history-5a12a5c66593",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "id.binaryharbor.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[72]"
+      ],
+      "target_id": "all-history-c7246e138993",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "id.exhumepacifier.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[74]"
+      ],
+      "target_id": "all-history-457fa07627e5",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "WordlistLoader",
+      "host": "kudbwiw.shop-nitrilean.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[34]"
+      ],
+      "target_id": "all-history-2955d685e137",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "WordlistLoader",
+      "host": "lldoxqa.shop-nitrilean.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[36]"
+      ],
+      "target_id": "all-history-5382f95e7ecf",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "WordlistLoader",
+      "host": "nqhuew.shop-thyrafemmebalance.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[35]"
+      ],
+      "target_id": "all-history-6f0a98468bc2",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "pmpo.cloudvector.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[65]"
+      ],
+      "target_id": "all-history-fec5521edee8",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "proxy.fluxautomation.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[69]"
+      ],
+      "target_id": "all-history-4fbc506c9e83",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "quill-flint.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[102]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[93]"
+      ],
+      "target_id": "all-history-c12993786f67",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "stream.luminfrastructure.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[62]"
+      ],
+      "target_id": "all-history-366439bd8b6c",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "stream.pawpalace.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[70]"
+      ],
+      "target_id": "all-history-f77be23b2cdc",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "stream.threatenbrick.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[63]"
+      ],
+      "target_id": "all-history-d282f8388c50",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "unknown",
+      "host": "sweet-iki-4263.holy.jp",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[131]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[132]"
+      ],
+      "target_id": "all-history-fd86ee08420c",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "trekmesh15.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[88]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[95]"
+      ],
+      "target_id": "all-history-9d6289ba3b1a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "updates.wildtrail.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[67]"
+      ],
+      "target_id": "all-history-3963c2ab5f06",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "AMOS",
+      "host": "vine-96.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[104]",
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[94]"
+      ],
+      "target_id": "all-history-226622a7895b",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "Amatera Stealer",
+      "host": "yw.enhanceblabber.cc",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-25/ioc-summary.json:daily_news_handoff[64]"
+      ],
+      "target_id": "all-history-7a7318894457",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "107.151.248.132",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[211]"
+      ],
+      "target_id": "all-history-cb94f11179b6",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "128.14.210.58",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[212]"
+      ],
+      "target_id": "all-history-63accbe01458",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "144.217.243.201",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[210]"
+      ],
+      "target_id": "all-history-13e0b5bdc713",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "cardoor.cn",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[216]"
+      ],
+      "target_id": "all-history-b28aef5d2c84",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxicPanda",
+      "host": "cctvv2.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[0]",
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[4]"
+      ],
+      "target_id": "all-history-cb7feabcf76f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxicPanda",
+      "host": "g8688808.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[3]",
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[7]"
+      ],
+      "target_id": "all-history-8cf227f6d440",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "ishano456.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[201]"
+      ],
+      "target_id": "all-history-84f9bd6f16ce",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "kookjar.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[206]"
+      ],
+      "target_id": "all-history-e807cf82a7aa",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "kshahnd.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[203]"
+      ],
+      "target_id": "all-history-1b47235e502f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "mdsjhd.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[204]"
+      ],
+      "target_id": "all-history-e016918f97c1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "nmnsny.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[205]"
+      ],
+      "target_id": "all-history-b4804101ba21",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "ty4523.space",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[209]"
+      ],
+      "target_id": "all-history-2e25d3f2e422",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "ty54fgd435.my",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[207]"
+      ],
+      "target_id": "all-history-bc429857c6ea",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "ue886578433.online",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[208]"
+      ],
+      "target_id": "all-history-4005548347a1",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxicPanda",
+      "host": "www.v17001.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[1]",
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[5]"
+      ],
+      "target_id": "all-history-c6081243597f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "ToxicPanda",
+      "host": "www.w17907.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[2]",
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[6]"
+      ],
+      "target_id": "all-history-7c27227cd03d",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "xmsae.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[200]"
+      ],
+      "target_id": "all-history-76823187584e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "JarService",
+      "host": "xshaon123.sbs",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-08-24/ioc-summary.json:daily_news_handoff[202]"
+      ],
+      "target_id": "all-history-af1cbeed7853",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    }
+  ]
+}
