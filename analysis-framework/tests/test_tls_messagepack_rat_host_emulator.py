@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import importlib.util
+import json
 import os
 import struct
 import sys
@@ -13,6 +14,7 @@ import pytest
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 MODULE = COMMON / "tls_messagepack_rat_host_emulator.py"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _load():
@@ -51,6 +53,28 @@ class LoopbackStream:
         chunk = bytes(self.incoming[:size])
         del self.incoming[:size]
         return chunk
+
+
+class ApplicationFrameStream:
+    def __init__(self, frame: bytes, *, before: object, after: object) -> None:
+        self.frame = frame
+        self.inbound_read_calls = before
+        self.after = after
+        self.sent: list[bytes] = []
+        self.timeout_seconds: float | None = None
+        self.application_read_calls = 0
+
+    def settimeout(self, timeout_seconds: float) -> None:
+        self.timeout_seconds = timeout_seconds
+
+    def sendall(self, data: bytes) -> None:
+        self.sent.append(bytes(data))
+
+    def recv_application_frame(self, maximum_frame_bytes: int) -> bytes:
+        self.application_read_calls += 1
+        self.inbound_read_calls = self.after
+        assert len(self.frame) <= maximum_frame_bytes
+        return self.frame
 
 
 def _frame_from_messagepack(raw: bytes) -> bytes:
@@ -107,10 +131,66 @@ def test_exact_venom_registration_has_confirmed_version_and_map16() -> None:
     assert values["ClientType"] == "Normal"
     assert values["Version"] == "Venom RAT + HVNC + Stealer + Grabber  v6.0.3"
     raw = HOST.encode_messagepack_map(values)
-    assert raw[:3] == b"\xDE\x00\x16"
+    assert raw[:3] == b"\xde\x00\x16"
     assert _decode(HOST.encode_frame(values)) == values
     profile = HOST.resolve_profile(HOST.VENOM_PROFILE_ID)
     assert profile.evidence_sha256 == "f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8"
+
+
+def test_current_venom_profile_is_evidence_pinned_decode_only() -> None:
+    profile = HOST.resolve_profile(HOST.VENOM_CURRENT_PROFILE_ID)
+    assert profile.sample_sha256 == ("2b0af18bdd10782cf72a985b2f49564aa9058c34645205afb4fcc27724794f6a")
+    assert profile.registration_enabled is False
+    assert profile.registration_fields == ()
+    assert profile.heartbeat_request_reviewed is False
+    assert profile.operation_opcodes == frozenset()
+    assert profile.file_opcodes == frozenset({"plu_gin", "save_Plugin"})
+    with pytest.raises(HOST.TlsMessagePackHostError, match="registration is disabled"):
+        HOST.build_synthetic_client_info(HOST.VENOM_CURRENT_PROFILE_ID)
+
+    assert profile.evidence_source == HOST.VENOM_CURRENT_EVIDENCE_SOURCE
+    evidence_path = REPOSITORY_ROOT / profile.evidence_source
+    evidence_raw = evidence_path.read_bytes()
+    canonical = evidence_raw.decode("utf-8").replace("\r\n", "\n")
+    assert "\r" not in canonical
+    assert hashlib.sha256(canonical.encode("utf-8")).hexdigest() == profile.evidence_sha256
+    evidence = json.loads(canonical)
+    assert evidence["artifact_type"] == "venomrat_current_decode_profile_evidence"
+    assert evidence["static_configuration"]["group"] == "Default"
+    assert evidence["static_configuration"]["install"] == "false"
+    assert evidence["static_configuration"]["configured_endpoint"]["use_by_profile"] is False
+    assert evidence["registration"]["registration_enabled"] is False
+    assert evidence["registration"]["synthetic_client_info_send_allowed"] is False
+    assert evidence["messagepack_protocol"]["operation_opcodes"] == []
+    assert evidence["messagepack_protocol"]["heartbeat_request"]["send_allowed"] is False
+    for artifact in evidence["source_artifacts"]:
+        source_raw = (REPOSITORY_ROOT / artifact["path"]).read_bytes()
+        source_canonical = source_raw.decode("utf-8").replace("\r\n", "\n")
+        assert hashlib.sha256(source_canonical.encode("utf-8")).hexdigest() == (artifact["canonical_lf_json_sha256"])
+
+    current_path = next(
+        item["path"]
+        for item in evidence["source_artifacts"]
+        if "/versions/unknown/" in item["path"] and item["path"].endswith("static-logic.json")
+    )
+    old_path = next(
+        item["path"]
+        for item in evidence["source_artifacts"]
+        if "/versions/v6.0.3/" in item["path"] and item["path"].endswith("static-logic.json")
+    )
+    current_logic = json.loads((REPOSITORY_ROOT / current_path).read_text(encoding="utf-8"))
+    old_logic = json.loads((REPOSITORY_ROOT / old_path).read_text(encoding="utf-8"))
+    current_hashes = {
+        function["name"]: function["fingerprints"]["semantic_sequence_sha256"]
+        for function in current_logic["functions"]
+    }
+    old_hashes = {
+        function["name"]: function["fingerprints"]["semantic_sequence_sha256"] for function in old_logic["functions"]
+    }
+    for method in evidence["semantic_lineage"]["methods"]:
+        name = method["name"]
+        expected = method["semantic_sequence_sha256"]
+        assert current_hashes[name] == old_hashes[name] == expected
 
 
 def test_messagepack_round_trip_supports_map16_strings_integers_and_binary() -> None:
@@ -121,7 +201,7 @@ def test_messagepack_round_trip_supports_map16_strings_integers_and_binary() -> 
 
 
 def test_duplicate_map_key_is_rejected() -> None:
-    raw = b"\x82\xA1A\xA1x\xA1A\xA1y"
+    raw = b"\x82\xa1A\xa1x\xa1A\xa1y"
     with pytest.raises(HOST.TlsMessagePackHostError, match="duplicate"):
         HOST._decode_frame(_frame_from_messagepack(raw), HOST.SessionLimits())
 
@@ -129,10 +209,10 @@ def test_duplicate_map_key_is_rejected() -> None:
 @pytest.mark.parametrize(
     "raw",
     [
-        b"\x81\xD9\x01A\xA1x",
-        b"\xDE\x00\x01\xA1A\xA1x",
-        b"\x81\xA1A\xCD\x00\x80",
-        b"\x81\xA1A\xC5\x00\x01x",
+        b"\x81\xd9\x01A\xa1x",
+        b"\xde\x00\x01\xa1A\xa1x",
+        b"\x81\xa1A\xcd\x00\x80",
+        b"\x81\xa1A\xc5\x00\x01x",
     ],
 )
 def test_noncanonical_overlong_encodings_are_rejected(raw: bytes) -> None:
@@ -192,9 +272,7 @@ def test_file_and_plugin_commands_are_fingerprinted_but_never_retained(
         (HOST.VENOM_PROFILE_ID, "Pac_ket", "HVNCStop"),
     ],
 )
-def test_operation_commands_have_no_effect_and_receive_no_reply(
-    profile_id: str, packet_key: str, opcode: str
-) -> None:
+def test_operation_commands_have_no_effect_and_receive_no_reply(profile_id: str, packet_key: str, opcode: str) -> None:
     stream = LoopbackStream(HOST.encode_frame({packet_key: opcode, "Message": "ignored"}))
     result = HOST.run_host_session(stream, profile_id, allow_registration=True)
     assert result["command"]["packet_kind"] == "operation"
@@ -229,6 +307,8 @@ def test_only_reviewed_fixed_ping_can_be_sent_before_heartbeat_response(
     assert result["heartbeat_request"]["sent"] is True
     assert result["heartbeat_request"]["synthetic"] is True
     assert result["command"]["should_respond"] is False
+    assert result["command"]["opcode"] == opcode
+    assert "protocol_identifier" not in result["command"]
     assert result["safety"]["arbitrary_fake_result_sent"] is False
     assert [event["event"] for event in events] == [
         "registration_sent",
@@ -236,6 +316,10 @@ def test_only_reviewed_fixed_ping_can_be_sent_before_heartbeat_response(
         "command_classified",
         "session_terminated",
     ]
+    assert events[-2]["opcode"] == opcode
+    assert events[-1]["opcode"] == opcode
+    assert "protocol_identifier" not in events[-2]
+    assert "protocol_identifier" not in events[-1]
     _assert_no_bytes(events)
 
 
@@ -247,13 +331,41 @@ def test_heartbeat_request_requires_separate_explicit_approval() -> None:
     assert len(stream.sent) == 1
 
 
+def test_current_venom_unreviewed_heartbeat_fails_before_registration() -> None:
+    stream = LoopbackStream(HOST.encode_frame({"Pac_ket": "Po_ng"}))
+    with pytest.raises(HOST.TlsMessagePackHostError, match="registration is disabled"):
+        HOST.run_host_session(
+            stream,
+            HOST.VENOM_CURRENT_PROFILE_ID,
+            allow_registration=True,
+            allow_heartbeat_request=True,
+        )
+    assert stream.sent == []
+    assert stream.timeout_seconds is None
+
+
 def test_unknown_command_terminates_without_reply_or_argument_disclosure() -> None:
     stream = LoopbackStream(HOST.encode_frame({"Packet": "mystery", "token": "secret"}))
-    result = HOST.run_host_session(stream, HOST.ASYNC_PROFILE_ID, allow_registration=True)
+    events: list[dict[str, Any]] = []
+    result = HOST.run_host_session(
+        stream,
+        HOST.ASYNC_PROFILE_ID,
+        allow_registration=True,
+        transcript_callback=events.append,
+    )
+    opcode_digest = hashlib.sha256(b"mystery").hexdigest()
     assert result["status"] == "unknown_command_terminated"
-    assert result["command"]["opcode"] == "mystery"
+    assert result["command"]["opcode"] is None
+    assert result["command"]["protocol_identifier"] is None
+    assert result["command"]["protocol_identifier_sha256"] == opcode_digest
     assert "secret" not in repr(result)
     assert "token" not in repr(result)
+    assert "mystery" not in repr(result)
+    assert "mystery" not in repr(events)
+    for event in events[-2:]:
+        assert event["opcode"] is None
+        assert event["protocol_identifier"] is None
+        assert event["protocol_identifier_sha256"] == opcode_digest
     assert len(stream.sent) == 1
 
 
@@ -296,6 +408,75 @@ def test_read_call_limit_is_enforced() -> None:
     assert len(stream.sent) == 1
 
 
+def test_application_frame_reader_read_call_delta_limit_is_enforced() -> None:
+    stream = ApplicationFrameStream(
+        HOST.encode_frame({"Packet": "pong"}),
+        before=10,
+        after=13,
+    )
+    events: list[dict[str, Any]] = []
+    with pytest.raises(HOST.TlsMessagePackHostError, match="read-call limit"):
+        HOST.run_host_session(
+            stream,
+            HOST.ASYNC_PROFILE_ID,
+            allow_registration=True,
+            session_limits={"maximum_read_calls": 2},
+            transcript_callback=events.append,
+        )
+    assert stream.application_read_calls == 1
+    assert len(stream.sent) == 1
+    assert [event["event"] for event in events] == ["registration_sent"]
+
+
+@pytest.mark.parametrize(
+    ("before", "after", "expected_application_reads", "error"),
+    [
+        (None, 1, 0, "non-negative integer"),
+        (True, 1, 0, "non-negative integer"),
+        (-1, 0, 0, "non-negative integer"),
+        (3, 2, 1, "decreased"),
+        (0, "1", 1, "non-negative integer"),
+        (0, True, 1, "non-negative integer"),
+        (0, -1, 1, "non-negative integer"),
+    ],
+)
+def test_application_frame_reader_rejects_invalid_read_call_counters(
+    before: object,
+    after: object,
+    expected_application_reads: int,
+    error: str,
+) -> None:
+    stream = ApplicationFrameStream(
+        HOST.encode_frame({"Packet": "pong"}),
+        before=before,
+        after=after,
+    )
+    with pytest.raises(HOST.TlsMessagePackHostError, match=error):
+        HOST.run_host_session(
+            stream,
+            HOST.ASYNC_PROFILE_ID,
+            allow_registration=True,
+        )
+    assert stream.application_read_calls == expected_application_reads
+    assert len(stream.sent) == 1
+
+
+def test_application_frame_reader_reports_valid_read_call_delta() -> None:
+    stream = ApplicationFrameStream(
+        HOST.encode_frame({"Packet": "pong"}),
+        before=10,
+        after=12,
+    )
+    result = HOST.run_host_session(
+        stream,
+        HOST.ASYNC_PROFILE_ID,
+        allow_registration=True,
+        session_limits={"maximum_read_calls": 2},
+    )
+    assert result["collection"]["read_calls"] == 2
+    assert result["status"] == "unsolicited_heartbeat_response_observed"
+
+
 def test_send_byte_limit_is_checked_before_registration_send() -> None:
     stream = LoopbackStream(HOST.encode_frame({"Packet": "pong"}))
     with pytest.raises(HOST.TlsMessagePackHostError, match="send-byte"):
@@ -309,9 +490,7 @@ def test_send_byte_limit_is_checked_before_registration_send() -> None:
 
 
 def test_arbitrary_synthetic_result_has_no_live_wire_representation() -> None:
-    decision = HOST.synthetic_result_decision(
-        HOST.VENOM_PROFILE_ID, "runningapp", "not_executed"
-    )
+    decision = HOST.synthetic_result_decision(HOST.VENOM_PROFILE_ID, "runningapp", "not_executed")
     assert decision["send_allowed"] is False
     assert decision["fixture_only"] is True
     assert decision["wire_schema_status"] == "operation_result_serializer_unresolved"

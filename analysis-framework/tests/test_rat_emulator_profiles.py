@@ -14,7 +14,7 @@ ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from rat_emulator_profiles import (  # noqa: E402
+from rat_emulator_profiles import (
     DEFAULT_REGISTRY_PATH,
     RatEmulatorProfileError,
     load_registry,
@@ -35,7 +35,7 @@ def _write_registry(path: Path, document: dict) -> None:
 
 
 def test_registry_digest_is_identical_for_lf_and_crlf(tmp_path: Path) -> None:
-    expected_sha256 = "a78c740cb464bc496ae80583123d21071c0b36a9b4d23b8e9527a75153385ef1"
+    expected_sha256 = "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
     canonical_lf = DEFAULT_REGISTRY_PATH.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     lf_path = tmp_path / "registry-lf.json"
     crlf_path = tmp_path / "registry-crlf.json"

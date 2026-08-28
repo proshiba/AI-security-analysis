@@ -14,6 +14,8 @@ from typing import Any, Protocol, TypeAlias
 ADAPTER_ID = "tls_messagepack_rat_host"
 ASYNC_PROFILE_ID = "asyncrat-058-20f21565-191-96-78-221-7788"
 VENOM_PROFILE_ID = "venomrat-603-6a24ba25-localto-6377"
+VENOM_CURRENT_PROFILE_ID = "venomrat-603-2b0af18b-loopback-4449"
+VENOM_CURRENT_EVIDENCE_SOURCE = "analysis-framework/malware/venomrat/current-2b0af18b-exact-profile-evidence.json"
 LIVE_ARBITRARY_RESULT_ALLOWED = False
 
 Scalar: TypeAlias = str | int | bytes
@@ -109,6 +111,7 @@ class ExactProfile:
     profile_id: str
     family: str
     sample_sha256: str
+    evidence_source: str
     evidence_sha256: str
     packet_key: str
     registration_fields: tuple[tuple[str, str], ...]
@@ -143,10 +146,19 @@ class CommandDecision:
     operation_executed: bool
     fingerprint: dict[str, Any] = field(default_factory=dict)
 
+    def _public_protocol_identity(self) -> dict[str, str | None]:
+        if self.packet_kind != "unknown":
+            return {"opcode": self.opcode}
+        return {
+            "opcode": None,
+            "protocol_identifier": None,
+            "protocol_identifier_sha256": hashlib.sha256(self.opcode.encode("utf-8")).hexdigest(),
+        }
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "packet_kind": self.packet_kind,
-            "opcode": self.opcode,
+            **self._public_protocol_identity(),
             "action": self.action,
             "should_respond": self.should_respond,
             "terminate_session": self.terminate_session,
@@ -196,6 +208,7 @@ class HostSessionResult:
             "family": self.profile.family,
             "protocol": self.profile.family,
             "sample_sha256": self.profile.sample_sha256,
+            "evidence_source": self.profile.evidence_source,
             "evidence_sha256": self.profile.evidence_sha256,
             "status": self.status,
             "registration": dict(self.registration),
@@ -268,6 +281,9 @@ _PROFILES = {
         profile_id=ASYNC_PROFILE_ID,
         family="asyncrat",
         sample_sha256="20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3",
+        evidence_source=(
+            "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/asyncrat-protocol-evidence.json"
+        ),
         evidence_sha256="479f96e2d8c9179e1e982ee094a1f83b102d1803cfe83f00fb1b711b93810340",
         packet_key="Packet",
         registration_fields=_ASYNC_REGISTRATION,
@@ -281,16 +297,33 @@ _PROFILES = {
         profile_id=VENOM_PROFILE_ID,
         family="venomrat",
         sample_sha256="6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073",
+        evidence_source=(
+            "analysis-results/research/c2-protocol-profiles/2026-08-09-rat-emulator/venomrat-protocol-evidence.json"
+        ),
         evidence_sha256="f1841e6e00e029065494ceedf32d11291261f10b17081f9d951b241c1e0015d8",
         packet_key="Pac_ket",
         registration_fields=_VENOM_REGISTRATION,
         heartbeat_request_opcode="Ping",
         heartbeat_response_opcode="Po_ng",
         file_opcodes=frozenset({"plu_gin", "save_Plugin", "loadofflinelog"}),
-        operation_opcodes=frozenset(
-            {"init_reg", "HVNCStop", "keylogsetting", "runningapp", "filterinfo"}
-        ),
+        operation_opcodes=frozenset({"init_reg", "HVNCStop", "keylogsetting", "runningapp", "filterinfo"}),
         handler="venomrat_tls_messagepack",
+    ),
+    VENOM_CURRENT_PROFILE_ID: ExactProfile(
+        profile_id=VENOM_CURRENT_PROFILE_ID,
+        family="venomrat",
+        sample_sha256="2b0af18bdd10782cf72a985b2f49564aa9058c34645205afb4fcc27724794f6a",
+        evidence_source=VENOM_CURRENT_EVIDENCE_SOURCE,
+        evidence_sha256="f2cc66f0a8bdc03acb9530af57d3f551bb65d25d770b3c09d622c9516f32c77c",
+        packet_key="Pac_ket",
+        registration_fields=(),
+        heartbeat_request_opcode="unreviewed",
+        heartbeat_response_opcode="Po_ng",
+        file_opcodes=frozenset({"plu_gin", "save_Plugin"}),
+        operation_opcodes=frozenset(),
+        handler="venomrat_tls_messagepack",
+        registration_enabled=False,
+        heartbeat_request_reviewed=False,
     ),
 }
 
@@ -345,10 +378,10 @@ def _encode_string(value: str, limits: SessionLimits) -> bytes:
     if size <= 31:
         return bytes([0xA0 | size]) + raw
     if size <= 0xFF:
-        return b"\xD9" + bytes([size]) + raw
+        return b"\xd9" + bytes([size]) + raw
     if size <= 0xFFFF:
-        return b"\xDA" + struct.pack(">H", size) + raw
-    return b"\xDB" + struct.pack(">I", size) + raw
+        return b"\xda" + struct.pack(">H", size) + raw
+    return b"\xdb" + struct.pack(">I", size) + raw
 
 
 def _encode_integer(value: int) -> bytes:
@@ -359,21 +392,21 @@ def _encode_integer(value: int) -> bytes:
     if -32 <= value < 0:
         return bytes([value & 0xFF])
     if 0 <= value <= 0xFF:
-        return b"\xCC" + struct.pack(">B", value)
+        return b"\xcc" + struct.pack(">B", value)
     if 0 <= value <= 0xFFFF:
-        return b"\xCD" + struct.pack(">H", value)
+        return b"\xcd" + struct.pack(">H", value)
     if 0 <= value <= 0xFFFFFFFF:
-        return b"\xCE" + struct.pack(">I", value)
+        return b"\xce" + struct.pack(">I", value)
     if 0 <= value <= 0x7FFFFFFFFFFFFFFF:
-        return b"\xD3" + struct.pack(">q", value)
+        return b"\xd3" + struct.pack(">q", value)
     if -0x80 <= value < -32:
-        return b"\xD0" + struct.pack(">b", value)
+        return b"\xd0" + struct.pack(">b", value)
     if -0x8000 <= value < -0x80:
-        return b"\xD1" + struct.pack(">h", value)
+        return b"\xd1" + struct.pack(">h", value)
     if -0x80000000 <= value < -0x8000:
-        return b"\xD2" + struct.pack(">i", value)
+        return b"\xd2" + struct.pack(">i", value)
     if -0x8000000000000000 <= value < -0x80000000:
-        return b"\xD3" + struct.pack(">q", value)
+        return b"\xd3" + struct.pack(">q", value)
     raise TlsMessagePackHostError("MessagePack integer is outside signed 64-bit range")
 
 
@@ -382,10 +415,10 @@ def _encode_binary(value: bytes, limits: SessionLimits) -> bytes:
     if size > limits.maximum_binary_bytes:
         raise TlsMessagePackHostError("MessagePack binary exceeds the reviewed limit")
     if size <= 0xFF:
-        return b"\xC4" + bytes([size]) + value
+        return b"\xc4" + bytes([size]) + value
     if size <= 0xFFFF:
-        return b"\xC5" + struct.pack(">H", size) + value
-    return b"\xC6" + struct.pack(">I", size) + value
+        return b"\xc5" + struct.pack(">H", size) + value
+    return b"\xc6" + struct.pack(">I", size) + value
 
 
 def _encode_scalar(value: Scalar, limits: SessionLimits) -> bytes:
@@ -414,7 +447,7 @@ def encode_messagepack_map(values: Mapping[str, Scalar], limits: SessionLimits |
         encoded.extend(_encode_string(key, active))
         encoded.extend(_encode_scalar(value, active))
     count = len(items)
-    header = bytes([0x80 | count]) if count <= 15 else b"\xDE" + struct.pack(">H", count)
+    header = bytes([0x80 | count]) if count <= 15 else b"\xde" + struct.pack(">H", count)
     return header + bytes(encoded)
 
 
@@ -688,9 +721,7 @@ def classify_frame(
     )
 
 
-def synthetic_result_decision(
-    profile: str | Mapping[str, Any], opcode: str, outcome: str
-) -> dict[str, Any]:
+def synthetic_result_decision(profile: str | Mapping[str, Any], opcode: str, outcome: str) -> dict[str, Any]:
     """Return a fixture-only decision; no arbitrary result has a live wire form."""
 
     selected = resolve_profile(profile)
@@ -722,6 +753,13 @@ class _ReadBudget:
     received_bytes: int = 0
 
 
+def _inbound_read_call_counter(stream: RatStream) -> int:
+    value = getattr(stream, "inbound_read_calls", None)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise TlsMessagePackHostError("stream inbound_read_calls must be a non-negative integer")
+    return value
+
+
 def _recv_exact(stream: RatStream, size: int, limits: SessionLimits, budget: _ReadBudget) -> bytes:
     output = bytearray()
     while len(output) < size:
@@ -748,15 +786,17 @@ def _recv_exact(stream: RatStream, size: int, limits: SessionLimits, budget: _Re
 def _read_one_frame(stream: RatStream, limits: SessionLimits, budget: _ReadBudget) -> DecodedFrame:
     application_reader = getattr(stream, "recv_application_frame", None)
     if callable(application_reader):
-        before = getattr(stream, "inbound_read_calls", None)
+        before = _inbound_read_call_counter(stream)
         frame = application_reader(limits.maximum_frame_bytes)
+        after = _inbound_read_call_counter(stream)
+        if after < before:
+            raise TlsMessagePackHostError("stream inbound_read_calls decreased")
+        read_calls = after - before
+        if read_calls > limits.maximum_read_calls:
+            raise TlsMessagePackHostError("stream exceeded the reviewed read-call limit")
         if not isinstance(frame, bytes) or not frame:
             raise TlsMessagePackHostError("stream closed before one frame was complete")
-        after = getattr(stream, "inbound_read_calls", None)
-        if isinstance(before, int) and isinstance(after, int) and after >= before:
-            budget.calls = after - before
-        else:
-            budget.calls = 1
+        budget.calls = read_calls
         budget.received_bytes = len(frame)
         return _decode_frame(frame, limits)
     header = _recv_exact(stream, 4, limits, budget)
@@ -796,15 +836,13 @@ def run_host_session(
     """Run one bounded application session over a caller-owned TLS-like stream."""
 
     selected = resolve_profile(profile)
-    limits = (
-        session_limits
-        if isinstance(session_limits, SessionLimits)
-        else SessionLimits.from_mapping(session_limits)
-    )
+    limits = session_limits if isinstance(session_limits, SessionLimits) else SessionLimits.from_mapping(session_limits)
     if not allow_registration:
         raise TlsMessagePackHostError("synthetic ClientInfo transmission requires explicit approval")
     if not selected.registration_enabled:
         raise TlsMessagePackHostError("registration is disabled because its schema is incomplete")
+    if allow_heartbeat_request and not selected.heartbeat_request_reviewed:
+        raise TlsMessagePackHostError("heartbeat request schema is not reviewed")
 
     stream.settimeout(float(limits.timeout_seconds))
     registration_frame = encode_frame(build_synthetic_client_info(selected.profile_id), limits)
@@ -824,8 +862,6 @@ def run_host_session(
         "synthetic": True,
     }
     if allow_heartbeat_request:
-        if not selected.heartbeat_request_reviewed:
-            raise TlsMessagePackHostError("heartbeat request schema is not reviewed")
         request_values: dict[str, Scalar] = {
             selected.packet_key: selected.heartbeat_request_opcode,
             "Message": "",
@@ -855,9 +891,7 @@ def run_host_session(
 
     status = {
         "heartbeat": (
-            "heartbeat_response_observed"
-            if heartbeat_request["sent"]
-            else "unsolicited_heartbeat_response_observed"
+            "heartbeat_response_observed" if heartbeat_request["sent"] else "unsolicited_heartbeat_response_observed"
         ),
         "file_or_plugin": "file_or_plugin_refused",
         "operation": "operation_refused",
@@ -866,7 +900,11 @@ def run_host_session(
 
     _emit(
         transcript_callback,
-        {"event": "session_terminated", "packet_kind": decision.packet_kind, "opcode": decision.opcode},
+        {
+            "event": "session_terminated",
+            "packet_kind": decision.packet_kind,
+            **decision._public_protocol_identity(),
+        },
     )
     return HostSessionResult(
         profile=selected,

@@ -258,12 +258,14 @@
       "pinned_ips": ["31.77.228.62"],
       "build": "1backs",
       "network_rc4_key_base64": "eTZtVXVBY3NJb1ViNXg2OEo=",
+      "reviewed_response_content_types": ["application/json"],
+      "synthetic_identity_seed": "stealc-v2-1backs-47854afb-registration-v1",
       "request_budget": 2,
       "timeout_seconds": 3.0,
       "maximum_request_bytes": 4096,
       "maximum_response_bytes": 16384,
       "role": "StealC v2の合成端末登録・loader task取得先",
-      "source": "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:analysis[0]"
+      "source": "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:samples[0]"
     },
     {
       "profile_id": "lumma-v6-f63c436b-bizsmmit-80",
@@ -284,7 +286,7 @@
       "maximum_request_bytes": 4096,
       "maximum_response_bytes": 65536,
       "role": "Lumma v6の設定登録・plugin task取得先",
-      "source": "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:analysis[2]"
+      "source": "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:samples[2]"
     },
     {
       "profile_id": "remus-ba0044e8-onesdto-2535",

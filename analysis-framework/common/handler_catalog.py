@@ -471,11 +471,24 @@ def _malware_specs() -> list[HandlerSpec]:
 def _extractor_specs() -> list[HandlerSpec]:
     specs: list[HandlerSpec] = []
     paths = sorted(EXTRACTORS_ROOT.glob("*/extractor.py"))
+    for path in sorted(EXTRACTORS_ROOT.glob("*.py")):
+        try:
+            tree = _module_tree(path)
+        except (OSError, SyntaxError, UnicodeError):
+            continue
+        if not any(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "extract" for node in tree.body
+        ):
+            continue
+        paths.append(path)
     nested = EXTRACTORS_ROOT / "unclassified" / "mx_go" / "extractor.py"
     if nested.is_file():
         paths.append(nested)
     for path in paths:
-        family = "mx-go" if path.parent.name == "mx_go" else path.parent.name
+        if path.parent == EXTRACTORS_ROOT:
+            family = path.stem
+        else:
+            family = "mx-go" if path.parent.name == "mx_go" else path.parent.name
         if FAMILY_ID.fullmatch(family) is None:
             continue
         invocation, supported, reason = _function_shape(path, "extract")
@@ -3038,6 +3051,11 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:_take",
         "stream.read",
     ): "callerが入力bytes由来BytesIOへ固定するbounded read",
+    (
+        "analysis-framework/malware/valleyrat/campaigns/signed_proxy_sideload/analyze.py",
+        "reachable:_pe_summary",
+        "msocf_recovery.public_summary",
+    ): "入力bytesから復元済みのfrozen dataclassを秘密値除外済み公開要約へ変換する純粋呼び出し",
     (
         "extractors/acrstealer/extractor.py",
         "reachable:_recover_pumped_zip",

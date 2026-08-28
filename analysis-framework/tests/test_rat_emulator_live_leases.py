@@ -15,16 +15,16 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from rat_emulator_live_leases import (  # noqa: E402
+from rat_emulator_live_leases import (
     DEFAULT_LIVE_LEASE_REGISTRY_PATH,
     MAXIMUM_LIVE_LEASE_REGISTRY_BYTES,
     RatEmulatorLiveLeaseError,
     load_live_lease_registry,
     resolve_active_live_lease,
 )
-from rat_emulator_profiles import load_registry  # noqa: E402
+from rat_emulator_profiles import load_registry
 
-PROFILE_REGISTRY_SHA256 = "a78c740cb464bc496ae80583123d21071c0b36a9b4d23b8e9527a75153385ef1"
+PROFILE_REGISTRY_SHA256 = "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
 REVIEWED = datetime(2026, 8, 9, 9, 30, tzinfo=UTC)
 EXPIRES = datetime(2026, 8, 10, 9, 30, tzinfo=UTC)
 

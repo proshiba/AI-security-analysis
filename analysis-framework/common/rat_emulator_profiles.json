@@ -2,7 +2,7 @@
   "schema_version": 1,
   "protocol_profile_registry": {
     "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
-    "sha256": "0b0c20822ae5a5fd50b4536f20cc383031e34ea092a53b115245334ac8664117"
+    "sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2"
   },
   "profiles": [
     {
