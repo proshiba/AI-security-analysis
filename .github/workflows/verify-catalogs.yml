@@ -60,13 +60,15 @@ jobs:
   notify:
     # PRでは検査結果がそのままチェックとして見えるので、通知は main への push
     # (＝マージ後に初めて壊れたと分かる場合)だけに絞る。
+    # 成功時も呼ぶのは、復旧したときに未解決Issueを閉じるため。
     needs: verify
-    if: failure() && github.event_name == 'push'
+    if: (success() || failure()) && github.event_name == 'push'
     permissions:
       contents: read
       issues: write
     uses: ./.github/workflows/notify-failure.yml
     with:
+      outcome: ${{ needs.verify.result }}
       key: verify-catalogs
       title: "[CI] 索引と派生成果物の整合性検証が失敗しています"
       body: |

@@ -117,14 +117,18 @@ jobs:
 
   notify:
     # デプロイが失敗しても前回の公開が残るため、失敗は無音になる。気づける
-    # ようにIssueを立てる。
+    # ようにIssueを立てる。成功時も呼ぶのは、復旧したときに未解決Issueを
+    # 閉じるため。build と deploy の両方が成功したときだけ復旧扱いにする。
+    # run ごとcancelされたとき(concurrency)に失敗扱いで起票しないよう、
+    # 成功か失敗のときだけ通知する。
     needs: [build, deploy]
-    if: failure()
+    if: success() || failure()
     permissions:
       contents: read
       issues: write
     uses: ./.github/workflows/notify-failure.yml
     with:
+      outcome: ${{ (needs.build.result == 'success' && needs.deploy.result == 'success') && 'success' || 'failure' }}
       key: deploy-pages
       title: "[CI] UIのGitHub Pagesデプロイが失敗しています"
       body: |

@@ -1,10 +1,14 @@
-# CI失敗をIssueで知らせる共通ジョブ。
+# CIの失敗と復旧をIssueで知らせる共通ジョブ。
 #
 # デプロイが失敗しても前回公開された内容がサイトに残り続けるため、失敗は
 # 完全に無音になる。既定のメール通知は見落とされやすいので、Issueを立てて
 # 気づける状態にする。同じ原因で何度も落ちてもIssueは1件に保ち、2回目以降は
 # コメントを足す。
-name: 失敗をIssueで通知
+#
+# 復旧しても閉じないと、直っているのに開きっぱなしのIssueが残り、通知が
+# 信用されなくなる。そこで outcome=success で呼ばれたときは、対応するIssueに
+# 復旧を書いて閉じる。呼び出し側は if: always() で1回だけ呼べばよい。
+name: CI結果をIssueで通知
 
 on:
   workflow_call:
@@ -18,8 +22,13 @@ on:
         required: true
         type: string
       body:
-        description: "本文。実行ログへのリンクなどは自動で付く。"
+        description: "失敗時の本文。実行ログへのリンクなどは自動で付く。"
         required: true
+        type: string
+      outcome:
+        description: "success なら復旧としてIssueを閉じる。既定は failure。"
+        required: false
+        default: "failure"
         type: string
 
 permissions:
@@ -33,12 +42,13 @@ jobs:
       contents: read
       issues: write
     steps:
-      - name: Issueを起票またはコメント
+      - name: Issueを起票・コメント・クローズ
         uses: actions/github-script@v7
         env:
           NOTIFY_TITLE: ${{ inputs.title }}
           NOTIFY_BODY: ${{ inputs.body }}
           NOTIFY_KEY: ${{ inputs.key }}
+          NOTIFY_OUTCOME: ${{ inputs.outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
@@ -46,15 +56,7 @@ jobs:
             const repo = context.repo.repo;
             const title = process.env.NOTIFY_TITLE;
             const label = "ci-failure";
-            const body = [
-              process.env.NOTIFY_BODY,
-              "",
-              `- 実行ログ: ${process.env.RUN_URL}`,
-              `- 対象commit: \`${context.sha}\``,
-              `- ワークフロー: \`${process.env.NOTIFY_KEY}\``,
-              "",
-              "復旧したらこのIssueを閉じてください。",
-            ].join("\n");
+            const recovered = process.env.NOTIFY_OUTCOME === "success";
 
             // ラベルで絞ってからタイトル一致を見る。ラベルが未作成でも
             // listForRepo は空を返すだけで、issues.create 側が自動で作る。
@@ -62,6 +64,39 @@ jobs:
               owner, repo, state: "open", labels: label, per_page: 100,
             });
             const existing = open.find((issue) => issue.title === title);
+
+            if (recovered) {
+              if (!existing) {
+                core.info("未解決のIssueは無いので何もしません。");
+                return;
+              }
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: [
+                  "復旧を確認したため自動で閉じます。",
+                  "",
+                  `- 成功した実行: ${process.env.RUN_URL}`,
+                  `- 対象commit: \`${context.sha}\``,
+                  `- ワークフロー: \`${process.env.NOTIFY_KEY}\``,
+                ].join("\n"),
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: existing.number,
+                state: "closed", state_reason: "completed",
+              });
+              core.notice(`Issue #${existing.number} を復旧として閉じました。`);
+              return;
+            }
+
+            const body = [
+              process.env.NOTIFY_BODY,
+              "",
+              `- 実行ログ: ${process.env.RUN_URL}`,
+              `- 対象commit: \`${context.sha}\``,
+              `- ワークフロー: \`${process.env.NOTIFY_KEY}\``,
+              "",
+              "同じワークフローが成功すると自動で閉じます。",
+            ].join("\n");
             if (existing) {
               await github.rest.issues.createComment({
                 owner, repo, issue_number: existing.number, body,
