@@ -739,7 +739,7 @@ def _sanitize_url(value: str) -> str:
 
 
 def _sanitize_public_text(value: str) -> str:
-    """自由文字列からURL資格情報、token、メールアドレスを除去する。"""
+    """自由文字列から秘密値を除去し、復号不能文字を可視表記へ変換する。"""
 
     stripped = value.strip()
     result = _sanitize_url(stripped) if stripped.lower().startswith(("http://", "https://", "ftp://")) else value
@@ -755,7 +755,8 @@ def _sanitize_public_text(value: str) -> str:
     result = PEM_PRIVATE_KEY.sub("[REDACTED_PRIVATE_KEY]", result)
     result = AWS_ACCESS_KEY_ID.sub("[REDACTED_AWS_ACCESS_KEY_ID]", result)
     result = HIGH_CONFIDENCE_CREDENTIAL.sub("[REDACTED_CREDENTIAL]", result)
-    return OPAQUE_CREDENTIAL.sub("[REDACTED_CREDENTIAL]", result)
+    result = OPAQUE_CREDENTIAL.sub("[REDACTED_CREDENTIAL]", result)
+    return result.replace("\ufffd", r"\uFFFD")
 
 
 def _stable_public_sort_key(value: Any) -> str:
@@ -1965,6 +1966,88 @@ def _invoke_handler_from_verified_snapshots(
             sys.modules[module_name] = previous_module
 
 
+def _import_handler_from_verified_snapshots(
+    spec: HandlerSpec,
+    dependency_source_manifest: Any,
+    dependency_data_manifest: Any = None,
+    dependency_module_manifest: Any = None,
+) -> str:
+    """検証済みsnapshotだけからhandlerをimportし、検体を渡さずcallableを解決する。"""
+
+    path = _resolve_handler_path(spec)
+    repository = REPOSITORY_ROOT.resolve(strict=True)
+    handler_relative_path = path.relative_to(repository).as_posix()
+    snapshots = _validated_dependency_source_snapshots(
+        dependency_source_manifest,
+        repository=repository,
+    )
+    data_snapshots = _validated_dependency_data_snapshots(
+        dependency_data_manifest if dependency_data_manifest is not None else [],
+        repository=repository,
+    )
+    raw_module_manifest = (
+        _inferred_dependency_module_manifest(snapshots)
+        if dependency_module_manifest is None
+        else dependency_module_manifest
+    )
+    module_bindings = _validated_dependency_module_bindings(
+        raw_module_manifest,
+        snapshots=snapshots,
+    )
+    handler_snapshot = next(
+        (
+            snapshot
+            for snapshot in snapshots
+            if snapshot.relative_path == handler_relative_path
+        ),
+        None,
+    )
+    if handler_snapshot is None:
+        raise HandlerLoadError("handler source is absent from dependency manifest")
+    module_name = (
+        "one_shot_handler_import_"
+        f"{hashlib.sha256(str(path).encode()).hexdigest()[:16]}"
+    )
+    loader = _VerifiedSnapshotLoader(handler_snapshot)
+    module_spec = importlib.util.spec_from_loader(
+        module_name,
+        loader,
+        origin=str(handler_snapshot.resolved_path),
+        is_package=False,
+    )
+    if module_spec is None:
+        raise HandlerLoadError("cannot create verified handler module spec")
+    module_spec.has_location = True
+    module = importlib.util.module_from_spec(module_spec)
+    previous_module = sys.modules.get(module_name)
+    try:
+        with (
+            _handler_import_environment(path),
+            _verified_snapshot_import_environment(snapshots, module_bindings),
+            _verified_dynamic_source_environment(snapshots),
+            _verified_data_read_environment(data_snapshots),
+        ):
+            sys.modules[module_name] = module
+            loader.exec_module(module)
+            callable_value = getattr(module, spec.callable_name, None)
+            if not callable(callable_value):
+                raise HandlerLoadError(f"callable not found: {spec.callable_name}")
+            invocation = spec.invocation
+            if invocation == "profiled_bytes_name":
+                callable_value = callable_value(spec.family)
+                if not callable(callable_value):
+                    raise HandlerLoadError(
+                        f"profile factory did not return a callable: {spec.family}"
+                    )
+                invocation = "bytes_name"
+            return invocation
+    finally:
+        if previous_module is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous_module
+
+
 def _assessment_worker_main(encoded_request: str, output_path: str) -> int:
     """隔離Python process内で1 handler・1 layerだけを実行する内部entrypoint。"""
 
@@ -2052,6 +2135,106 @@ def _assessment_worker_main(encoded_request: str, output_path: str) -> int:
             "ok": False,
             "error": "handler_worker_failed",
             "error_type": type(exc).__name__,
+        }
+    encoded = json.dumps(
+        response,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    if len(encoded) > MAX_HANDLER_WORKER_OUTPUT_SIZE:
+        encoded = b'{"error":"worker_output_limit_exceeded","error_type":"HandlerLoadError","ok":false}'
+    try:
+        with worker_output.open("xb") as stream:
+            stream.write(encoded)
+    except OSError:
+        return 3
+    return 0
+
+
+def _runtime_import_worker_main(encoded_request: str, output_path: str) -> int:
+    """隔離processで検証済みhandlerをimportし、検体を渡さずcallableだけ確認する。"""
+
+    global EXTRACTORS_ROOT, FRAMEWORK_ROOT, MALWARE_ROOT, PROFILE_PATH, REPOSITORY_ROOT
+    worker_common = str(Path(__file__).resolve().parent)
+    if worker_common not in sys.path:
+        sys.path.insert(0, worker_common)
+    worker_output = Path(output_path)
+    if (
+        not worker_output.is_absolute()
+        or worker_output.exists()
+        or not worker_output.parent.is_dir()
+    ):
+        return 2
+    try:
+        from analysis_contract import ensure_no_reparse_components
+
+        ensure_no_reparse_components(worker_output.parent)
+    except (OSError, ValueError):
+        return 2
+    try:
+        if len(encoded_request) > MAX_HANDLER_WORKER_REQUEST_SIZE:
+            raise HandlerLoadError("worker request is too large")
+        padding = "=" * (-len(encoded_request) % 4)
+        decoded = base64.urlsafe_b64decode(
+            (encoded_request + padding).encode("ascii")
+        )
+        request = _strict_json_loads(decoded, description="runtime import worker request")
+        if not isinstance(request, dict) or set(request) != {
+            "dependency_source_manifest",
+            "dependency_data_manifest",
+            "dependency_module_manifest",
+            "extractors_root",
+            "framework_root",
+            "malware_root",
+            "repository_root",
+            "spec",
+        }:
+            raise HandlerLoadError("runtime import worker request fields are invalid")
+        repository = _worker_root(
+            request.get("repository_root"), name="repository_root"
+        )
+        framework = _worker_root(
+            request.get("framework_root"), name="framework_root"
+        )
+        malware = _worker_root(request.get("malware_root"), name="malware_root")
+        extractors = _worker_root(
+            request.get("extractors_root"), name="extractors_root"
+        )
+        if framework != repository / "analysis-framework":
+            raise HandlerLoadError("worker framework_root does not match repository")
+        if malware != framework / "malware" or extractors != repository / "extractors":
+            raise HandlerLoadError("worker handler roots do not match repository")
+        raw_spec = request.get("spec")
+        if not isinstance(raw_spec, dict):
+            raise HandlerLoadError("worker spec is invalid")
+
+        REPOSITORY_ROOT = repository
+        FRAMEWORK_ROOT = framework
+        MALWARE_ROOT = malware
+        EXTRACTORS_ROOT = extractors
+        PROFILE_PATH = extractors / "profiles" / "windows_family_profiles.json"
+        clear_handler_caches()
+        spec = _handler_spec_from_public(raw_spec)
+        discarded = _DiscardHandlerText()
+        with redirect_stdout(discarded), redirect_stderr(discarded):
+            invocation = _import_handler_from_verified_snapshots(
+                spec,
+                request.get("dependency_source_manifest"),
+                request.get("dependency_data_manifest"),
+                request.get("dependency_module_manifest"),
+            )
+        response: dict[str, Any] = {
+            "handler_id": spec.id,
+            "invocation": invocation,
+            "ok": True,
+        }
+    except Exception as exc:  # noqa: BLE001 - worker境界では型名だけへ正規化する
+        response = {
+            "error": "handler_runtime_import_failed",
+            "error_type": type(exc).__name__,
+            "ok": False,
         }
     encoded = json.dumps(
         response,
@@ -2423,6 +2606,115 @@ def _execute_handler_bounded(
             worker_artifacts=worker_artifacts,
             artifact_destination=artifact_destination,
         )
+
+
+def _verify_handler_runtime_import_bounded(
+    spec: HandlerSpec,
+    *,
+    timeout_seconds: float,
+    dependency_source_manifest: list[dict[str, str]],
+    dependency_data_manifest: list[dict[str, str]],
+    dependency_module_manifest: list[dict[str, Any]],
+) -> str:
+    """検体を渡さず、handler importだけを隔離・有界processで確認する。"""
+
+    request = {
+        "repository_root": str(REPOSITORY_ROOT.resolve(strict=True)),
+        "framework_root": str(
+            (REPOSITORY_ROOT / "analysis-framework").resolve(strict=True)
+        ),
+        "malware_root": str(MALWARE_ROOT.resolve(strict=True)),
+        "extractors_root": str(EXTRACTORS_ROOT.resolve(strict=True)),
+        "spec": spec.public(),
+        "dependency_source_manifest": dependency_source_manifest,
+        "dependency_data_manifest": dependency_data_manifest,
+        "dependency_module_manifest": dependency_module_manifest,
+    }
+    token = (
+        base64.urlsafe_b64encode(
+            json.dumps(request, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        )
+        .decode("ascii")
+        .rstrip("=")
+    )
+    if len(token) > MAX_HANDLER_WORKER_REQUEST_SIZE:
+        raise HandlerLoadError("handler runtime import request exceeds size limit")
+    import bounded_process
+
+    with tempfile.TemporaryDirectory(prefix="handler-runtime-import-") as temporary:
+        output_path = Path(temporary) / "response.json"
+        worker_temp = Path(temporary) / "worker-temp"
+        worker_temp.mkdir(mode=0o700)
+        os.chmod(worker_temp, 0o700)
+        completed = bounded_process.run_bounded(
+            [
+                sys.executable,
+                "-I",
+                "-B",
+                str(Path(__file__).resolve()),
+                "--runtime-import-worker",
+                token,
+                str(output_path),
+            ],
+            timeout=timeout_seconds,
+            check=False,
+            shell=False,
+            env=_bounded_handler_environment(temporary_root=worker_temp),
+            cwd=REPOSITORY_ROOT,
+            input=b"",
+            stdout=subprocess.DEVNULL,
+            require_containment=True,
+            maximum_active_processes=1,
+            maximum_memory_bytes=bounded_process.DEFAULT_CONTAINED_MEMORY_BYTES,
+            stderr=subprocess.DEVNULL,
+            text=False,
+        )
+        if completed.returncode != 0:
+            raise HandlerLoadError("handler runtime import worker failed")
+        try:
+            from analysis_contract import ensure_no_reparse_components
+
+            ensure_no_reparse_components(output_path)
+            output, _output_sha256 = _regular_file_snapshot(
+                output_path,
+                maximum_size=MAX_HANDLER_WORKER_OUTPUT_SIZE,
+                description="handler runtime import worker output",
+            )
+        except (OSError, ValueError) as exc:
+            raise HandlerLoadError(
+                "handler runtime import worker output is unavailable"
+            ) from exc
+        response = _strict_json_loads(
+            output,
+            description="handler runtime import worker output",
+        )
+        if not isinstance(response, dict):
+            raise HandlerLoadError(
+                "handler runtime import worker response is not an object"
+            )
+        if response.get("ok") is False and set(response) == {
+            "error",
+            "error_type",
+            "ok",
+        }:
+            raise HandlerLoadError("handler runtime import failed")
+        if (
+            response.get("ok") is not True
+            or set(response) != {"handler_id", "invocation", "ok"}
+            or response.get("handler_id") != spec.id
+            or response.get("invocation")
+            not in {
+                "bytes",
+                "bytes_expected_sha256",
+                "bytes_name",
+                "bytes_pe_timestamp",
+                "text",
+            }
+        ):
+            raise HandlerLoadError(
+                "handler runtime import worker response schema is invalid"
+            )
+        return str(response["invocation"])
 
 
 _DETECTOR_METADATA_KEYS = frozenset(
@@ -5299,6 +5591,102 @@ def _preflight_dependency_sources_unchanged(preflight: Mapping[str, Any]) -> boo
     return True
 
 
+def preflight_handler_runtime_import(
+    spec: HandlerSpec,
+    *,
+    static_preflight: Mapping[str, Any],
+    timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    """AST監査済みhandlerを、検体なしの隔離processでimport確認する。"""
+
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not 0.1 <= float(timeout_seconds) <= MAX_HANDLER_TIMEOUT_SECONDS
+    ):
+        raise ValueError("timeout_secondsは0.1秒以上300秒以下で指定してください")
+    base = {
+        "handler_id": spec.id,
+        "attempted": False,
+        "handler_imported": False,
+        "invocation": None,
+        "isolated_process": False,
+        "sanitized_environment": False,
+        "sample_execution_allowed": False,
+        "network_allowed": False,
+        "filesystem_write_allowed": False,
+    }
+    blockers: list[str] = []
+    if not isinstance(static_preflight, Mapping):
+        blockers.append("static_preflight_required")
+    else:
+        if static_preflight.get("handler_id") != spec.id:
+            blockers.append("static_preflight_handler_id_mismatch")
+        if static_preflight.get("eligible") is not True:
+            blockers.append("static_preflight_ineligible")
+        for key in (
+            "sample_execution_allowed",
+            "network_allowed",
+            "filesystem_write_allowed",
+        ):
+            if static_preflight.get(key) is not False:
+                blockers.append(f"static_preflight_safety_contract_invalid:{key}")
+    if blockers:
+        return {**base, "eligible": False, "blockers": sorted(set(blockers))}
+
+    try:
+        dependency_source_manifest = _preflight_dependency_source_manifest(
+            static_preflight
+        )
+        dependency_data_manifest = _preflight_dependency_data_manifest(
+            static_preflight
+        )
+        dependency_module_manifest = _preflight_dependency_module_manifest(
+            static_preflight
+        )
+    except (HandlerLoadError, OSError, ValueError):
+        return {
+            **base,
+            "eligible": False,
+            "blockers": ["runtime_dependency_snapshot_unavailable"],
+        }
+
+    attempted = {
+        **base,
+        "attempted": True,
+        "isolated_process": True,
+        "sanitized_environment": True,
+    }
+    try:
+        invocation = _verify_handler_runtime_import_bounded(
+            spec,
+            timeout_seconds=float(timeout_seconds),
+            dependency_source_manifest=dependency_source_manifest,
+            dependency_data_manifest=dependency_data_manifest,
+            dependency_module_manifest=dependency_module_manifest,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            **attempted,
+            "eligible": False,
+            "blockers": ["runtime_import_timeout"],
+        }
+    except Exception as exc:  # noqa: BLE001 - 公開結果へ例外本文を漏らさない
+        return {
+            **base,
+            "attempted": True,
+            "eligible": False,
+            "blockers": [f"runtime_import_failed:{type(exc).__name__}"],
+        }
+    return {
+        **attempted,
+        "eligible": True,
+        "blockers": [],
+        "handler_imported": True,
+        "invocation": invocation,
+    }
+
+
 def execute_handler_bounded_for_assessment(
     spec: HandlerSpec,
     data: bytes,
@@ -6040,4 +6428,8 @@ def assess_candidate_handlers(
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--assessment-worker":
         raise SystemExit(_assessment_worker_main(sys.argv[2], sys.argv[3]))
-    raise SystemExit("このmoduleは--assessment-worker以外の直接実行に対応していません")
+    if len(sys.argv) == 4 and sys.argv[1] == "--runtime-import-worker":
+        raise SystemExit(_runtime_import_worker_main(sys.argv[2], sys.argv[3]))
+    raise SystemExit(
+        "このmoduleは内部worker option以外の直接実行に対応していません"
+    )

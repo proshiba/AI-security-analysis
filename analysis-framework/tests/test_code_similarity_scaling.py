@@ -10,8 +10,9 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from generate_code_similarity_index import build_index, render_markdown
-from static_logic import build_static_logic_report
+import generate_code_similarity_index as similarity  # noqa: E402
+from generate_code_similarity_index import build_index, render_markdown  # noqa: E402
+from static_logic import build_static_logic_report  # noqa: E402
 
 
 def test_identical_functions_are_grouped_without_quadratic_pairs(
@@ -147,3 +148,62 @@ def test_similarity_pairs_are_bounded_and_counts_preserve_total(tmp_path: Path) 
     markdown = render_markdown(index)
     assert "条件に一致した類似候補pair | 3" in markdown
     assert "上限により省略した類似候補pair | 2" in markdown
+
+
+def test_similarity_candidate_memory_is_bounded_before_ranking(
+    tmp_path: Path,
+) -> None:
+    """endpoint別候補上限により全一致pairをメモリへ保持しない。"""
+
+    results = tmp_path / "analysis-results"
+    for index in range(10):
+        sha256 = f"{index + 1:064x}"
+        case = (
+            results
+            / "malware"
+            / "fixture"
+            / "versions"
+            / "unknown"
+            / "cases"
+            / sha256
+        )
+        case.mkdir(parents=True)
+        (case / "static-logic.json").write_text(
+            json.dumps(
+                {
+                    "sha256": sha256,
+                    "family": "fixture",
+                    "functions": [
+                        {
+                            "function_id": f"function_{index}",
+                            "role": "config_decoder",
+                            "api_calls": ["decrypt_config", "parse_config"],
+                            "fingerprints": {
+                                "semantic_simhash64": f"{index:016x}",
+                                "semantic_sequence_sha256": f"{index + 100:064x}",
+                                "semantic_token_count": 8,
+                            },
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    index = build_index(results, pair_limit=100, per_function_limit=1)
+
+    assert index["counts"]["similarity_pairs_total"] == 45
+    assert index["counts"]["similarity_pairs_retained_for_ranking"] <= 10
+    assert index["counts"]["similarity_pairs_omitted_before_ranking"] >= 35
+    assert index["counts"]["similarity_pair_candidate_limit_per_function"] == 1
+
+
+def test_large_output_comparison_is_streamed_and_bom_tolerant(
+    monkeypatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "index.json"
+    target.write_bytes(b"\xef\xbb\xbf{\r\n  \"ok\": true\r\n}\r\n")
+    monkeypatch.setattr(similarity, "TEXT_COMPARE_CHARS", 3)
+
+    assert similarity._text_matches(target, '{\n  "ok": true\n}\n') is True
+    assert similarity._text_matches(target, '{\n  "ok": false\n}\n') is False

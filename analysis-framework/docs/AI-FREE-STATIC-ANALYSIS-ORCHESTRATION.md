@@ -51,7 +51,7 @@ MalwareBazaar応答は先頭rowへ依存せず、上限内の全rowを照合hash
 
 静的解析対象は、検証済みprovider文書から導出した取得SHA-256集合、`archives`直下のcanonical filename集合、runnerが認証した単一memberの内部SHA-256集合を完全一致させます。外装`<sha256>.zip`名と内部member SHA-256の不一致、複数member、raw／unsupported入力、読込失敗、余分な旧archive、欠落archiveは公開集計前に拒否します。runnerはcase seal検証で読んだ同一handleの`generic-triage.json`と`static-logic.json`だけを件数・個別・合計容量上限付きbundleへcaptureし、daily入口はそのin-memory bundleと検証済みIOC／provider文書からpure要約を生成します。子summarizerや検証後のcase／provider path再openは行わず、入力commitmentを公開要約へ記録します。疎通確認cacheもschema version 2、source date、target集合、結果commitmentへ束縛し、同じ上限付き単一handle境界で再利用します。
 
-daily入口はrunnerと同じ入力snapshot manifestをread-onlyで再構成し、archiveごとのsize／SHA-256、family-hint manifestのSHA-256、`job_id`を除く正規化request、解析器が列挙するproduction component／handler catalog／runtime dependency versionを単一cache keyへ束縛して決定的job IDを生成します。既存jobを再利用するのは、同じjob IDが終端`complete`または`partial`で、request SHA-256、入力snapshot manifest SHA-256、family-hintのpath／SHA-256、summary、全case seal、成果物tree、安全flagが現在値と完全一致する場合だけです。未終端または不整合な既存jobはfail-closedにし、入力、hint、request option、解析実装が変われば別job IDになります。cache判定から成果物受理まで実装fileのidentityも再確認します。
+daily入口はrunnerと同じ入力snapshot manifestをread-onlyで再構成し、archiveごとのsize／SHA-256、family-hint manifestのSHA-256、`job_id`を除く正規化request、解析器が列挙するproduction component／handler catalog／runtime dependency versionを単一cache keyへ束縛して決定的job IDを生成します。既存jobを再利用するのは、同じjob IDが終端`complete`または`partial`で、request SHA-256、入力snapshot manifest SHA-256、family-hintのpath／SHA-256、summary、全case seal、成果物tree、安全flagが現在値と完全一致する場合だけです。再利用時もjob-private入力・tool snapshotと現在コードからroot／follow-on契約を隔離workerで再構成し、保存済み解析契約bundle、終端payload台帳、result artifact hashまで再検証します。未終端、古い契約、一部改変された既存jobはfail-closedにし、入力、hint、request option、解析実装が変われば別job IDになります。cache判定から成果物受理まで実装fileのidentityも再確認します。
 
 runner子processはsanitized environmentで起動し、launcherは標準出力／標準エラーを保持しません。runner自身が上限付きlogと機械可読成果物を管理するため、daily入口が子process出力を無制限に蓄積することはありません。
 
@@ -110,9 +110,9 @@ familyによってconfigやC2を持たない場合もあるため、単純に全
 
 ### case別blockerと修復計画
 
-[`analysis_lifecycle.py`](../common/analysis_lifecycle.py)のcompletion結果は、各caseのSHA-256、状態、`report_blockers`、`orchestration_blockers`を対応付けたまま返します。平坦化したworkflow全体の`blockers`も互換性のため残しますが、自動化側はcaseとの対応を失わない`remediation_actions`を使用します。各actionは少なくとも`case_sha256`、`blocker_code`、`action_id`、`target_phase`、`executor`、`automatic`、`requires_changed_evidence`、`prerequisites`を持ち、全actionのcanonical JSONは`remediation_plan_sha256`へcommitします。orchestratorはaction集合、`next_actions`、plan SHA-256の一致を独立に再計算してから要約を保存します。
+[`analysis_lifecycle.py`](../common/analysis_lifecycle.py)のcompletion結果は、各caseのSHA-256、状態、`report_blockers`、`orchestration_blockers`、`c2_blockers`、`terminal_acquisition_blockers`を対応付けたまま返します。入力読込み、resume検証、root静的解析の固定batch errorは`analysis_errors`へ保持し、`batch_error:<error_code>`としてworkflow blockerへ接続します。平坦化したworkflow全体の`blockers`も互換性のため残しますが、自動化側はcaseとの対応を失わない`remediation_actions`を使用します。各actionは少なくとも`case_sha256`、`blocker_code`、`action_id`、`target_phase`、`executor`、`automatic`、`requires_changed_evidence`、`prerequisites`を持ち、全actionのcanonical JSONは`remediation_plan_sha256`へcommitします。orchestratorはaction集合、`next_actions`、plan SHA-256の一致を独立に再計算してから要約を保存します。
 
-blockerからactionへの変換は完全一致のregistryと、明示的にレビューした少数のprefix形式だけを使います。部分文字列では分類しません。registryにない未知のblockerは`review_machine_readable_blocker`、`executor=human_review`、`automatic=false`へfail-closedにし、証拠または実装が変わるまで同じ解析を自動反復しません。
+blockerからactionへの変換は`remediation_registry.py`の完全一致registryと、明示的にレビューした少数のprefix形式だけを使います。同じ正本をlifecycle、終端payload台帳、再開plannerが共有し、部分文字列では分類しません。registryにない未知のblockerは`review_machine_readable_blocker`、`executor=human_review`、`automatic=false`へfail-closedにし、証拠または実装が変わるまで同じ解析を自動反復しません。
 
 ## 再開計画と後継workflow
 
@@ -143,7 +143,7 @@ completionが`partial`のworkflowは`same_workflow_resume_allowed=false`で保�
 
 ## Ghidra大規模batchの容量保護と再開
 
-[`ghidra_function_batch.py`](../common/ghidra_function_batch.py)は既定で8 GiBの空き容量をreserveし、repository、入力copy先の`sample-root`、private出力、`--disk-guard-path`で追加したGhidra保存先を、入力準備前、各input copyの直前と直後、各programの開始前後、後処理前に確認します。copy直前は予定write byte数を差し引き、write後にreserveを割るcopyを開始しません。同一filesystemのroleは重複計上せず、別filesystemはそれぞれ下限を満たす必要があります。設定可能な下限は256 MiBであり、reserveを無効化できません。
+[`ghidra_function_batch.py`](../common/ghidra_function_batch.py)は既定で8 GiBの空き容量をreserveし、repository、不変の暗号化archiveを読む`sample-root`、`--prepared-input-root`で分離した復元input copy先、private出力、`--disk-guard-path`で追加したGhidra保存先を、入力準備前、各input copyの直前と直後、各programの開始前後、後処理前に確認します。`--prepared-input-root`省略時だけ後方互換として`sample-root`を使いますが、日次orchestratorは必ず別rootを指定します。copy直前は予定write byte数を差し引き、write後にreserveを割るcopyを開始しません。同一filesystemのroleは重複計上せず、別filesystemはそれぞれ下限を満たす必要があります。設定可能な下限は256 MiBであり、reserveを無効化できません。
 
 容量不足時は完了済み成果物を保持し、`ghidra_chunk_pending`としてatomicな`run-progress.json`を保存して停止します。checkpointはcollection ID、準備済みinventory、program件数、`pending_programs`、`postprocessing_pending`、固定安全値を検証し、実local pathは記録しません。準備済みcheckpointは`prepared_inventory_sha256`で`input-relationships.json`の正確なbytesへ束縛します。inventoryとPE cacheは上限付き単一handle snapshotで読み、reparse point、hardlink、identity／size／時刻／SHA-256の不一致を拒否します。同じcommandを再実行すると検証済みの準備済みinputを自動利用し、program解析後のcheckpointからは`postprocessing_only`としてprogramを再実行せず後処理を再開します。checkpointがない既存cacheを利用するときだけ`--reuse-prepared-inputs`を明示します。symlink、junction、reparse point、directory identityの途中変更、schema不一致は再開へ使用せずfail-closedにします。CLIは全工程完了時だけ終了code`0`を返し、`ghidra_chunk_pending`では再実行可能な未完了を示す`20`を返します。詳細なcommandと成果物契約は[静的関数ロジックとコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
 
@@ -171,7 +171,7 @@ family handlerが返す公開結果と復元bytesは分離します。format、s
 
 `follow-on-analysis.json`はroot、node、edge、除外理由、解析契約SHA-256を持つ機械可読グラフです。terminal stateへ到達した子caseだけを`summary.json`の`derived_cases`へ公開し、rootの`cases`／`counts`とは別に`derived_counts`へ集計します。edge上限、再読込byte上限、期限、成果物検証失敗で走査できなかった保持metadataは、先頭4,096件を親・子SHA-256、size、path、role、kind、理由付きで`omitted_metadata`へ残します。上限を超えた残余は、親ごとの件数と多重集合canonical SHA-256を`omitted_metadata_commitments`へ残します。WebUI runnerはroot／child契約を現在コードと要求から再計算し、seal済みroot caseから全countsを再計算したうえで、グラフ本体のSHA-256、安全フラグ、hard counter、DAGの深さ、edgeとnode状態、子reportのsemantic seal、成果物hash、lineage、summaryとの完全一致を再検証します。さらに親wrapperから残余`Counter`を独立再計算し、`edge + omitted_metadata + commitment`が全保持metadataを多重度込みで完全分割することを照合します。omissionまたはcommitmentが1件でもあれば必ず`partial`です。commitmentがあるgraphでは親昇格を禁止し、保持file本体の再SHA-256は引き続き有界・期限付きで実施します。
 
-`terminal-payload-acquisition.json`は、この検証済みグラフから最深の終端frontierを決定的に抽出します。厳格な`complete`子だけを`selected_sha256`へ採用し、timeout、解析途中、深さ・size・件数・合計byte上限、cycle、omissionは`pending_sha256`と機械可読`blockers`へ分離します。公開するのはSHA-256、size、深さ、role、kind、親SHA-256、解析状態だけで、payload本文や秘密値は含めません。外部取得は自動実行せず、`external_retrieval_attempted=false`、`network_contacted=false`を固定します。job runnerはこの成果物を`follow-on-analysis.json`から再計算し、artifact SHA-256、件数、状態が完全一致しない結果を拒否します。
+`terminal-payload-acquisition.json`は、この検証済みグラフから最深の終端frontierを決定的に抽出する必須成果物です。厳格な`complete`子だけを`selected_sha256`へ採用し、timeout、解析途中、深さ・size・件数・合計byte上限、cycle、omissionは`pending_sha256`と機械可読`blockers`へ分離します。公開するのはSHA-256、size、深さ、role、kind、親SHA-256、解析状態だけで、payload本文や秘密値は含めません。外部取得は自動実行せず、`external_retrieval_attempted=false`、`network_contacted=false`を固定します。job runnerはsummary参照またはfileの欠落を拒否し、この成果物を`follow-on-analysis.json`から再計算して、artifact SHA-256、件数、状態、安全flagが完全一致しない結果を拒否します。検証済み台帳の相対pathとSHA-256は`result.json.artifacts`にも固定します。
 
 子handlerが同じSHA-256を再出力した場合は、自己edgeを`cycle_excluded`として記録します。そのSHA-256はfrontierから消去せず、`cycle_detected`理由を持つ`pending_sha256`へ残します。したがって取得済みbytesを失わず、同時に自己cycleを解析完了へ誤昇格させません。
 
@@ -214,7 +214,7 @@ UIは`schema`出力をrequest formとclient検証の正本にし、option、上�
 
 UPXと7zzをproductionで使う場合も、client requestへ実行file pathを追加しません。service operatorが別rootで管理するstrict JSON manifestと、そのmanifest raw bytesのSHA-256 pinをrunner CLIへ同時に固定します。runnerはmanifest、host platform、各binaryのsize／SHA-256、単一link、非reparse、input／job／repository rootとの分離を検証し、jobごとの`contract-inputs/static-tools/`へ単一handleからsnapshotして、そのcopyだけをroot解析とfollow-on解析へ渡します。tool identityとsnapshot manifest SHA-256は解析契約と`result.json`へ残します。DIECはproductionの信頼済みtool契約では無効です。詳細なmanifest schemaと運用例は[ローカル静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)を参照してください。
 
-UIは`status.json`、`progress.json`、`result.json`を表示し、解析processの標準出力を無制限に中継しません。`result.json`はrootの`counts`に加え、`derived_counts`、follow-on状態、検証済み`follow-on-analysis.json`への相対pathを返します。サービスadapterを実装する場合も、公開する操作はジョブ作成と状態取得に限定し、任意path、任意環境変数、shell、外部通信option、資格情報を受理しません。localhost以外へ公開する場合は、この契約とは別に認証、CSRF対策、rate limit、監査logを設計する必要があります。
+UIは`status.json`、`progress.json`、`result.json`を表示し、解析processの標準出力を無制限に中継しません。`result.json`はrootの`counts`に加え、`derived_counts`、follow-on状態、検証済み`follow-on-analysis.json`と`terminal-payload-acquisition.json`の相対path、終端payload台帳のSHA-256を返します。サービスadapterを実装する場合も、公開する操作はジョブ作成と状態取得に限定し、任意path、任意環境変数、shell、外部通信option、資格情報を受理しません。localhost以外へ公開する場合は、この契約とは別に認証、CSRF対策、rate limit、監査logを設計する必要があります。
 
 `analysis_job_runner.py status`が返すのは`status.json`単体ではなく、`status.json`、`progress.json`、存在する場合は`result.json`を検証して束ねたsnapshotです。WebUI adapterは`schema --artifact snapshot`をdecode契約の正本とし、内包job IDと状態遷移を再検証した結果だけを表示します。
 
@@ -267,4 +267,4 @@ python .\analysis-framework\common\automation_coverage.py `
 
 数値は「family名が登録されているか」ではなく、detector、自動handler、安全preflight、入力形式、候補検証の各状態を確認して解釈します。これは実装構造と無害なprobeによるpreflightのカバレッジであり、実検体を使った解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を測定した値ではありません。
 
-2026-08-10時点の生成結果では、登録86 familyのうち76 family（88.37%）がdetector・安全handler・品質policyを備えた自動routing経路を持ち、84 family（97.67%）が安全なscript-only handlerを持ちます。残りは候補検証専用8 family、detectorと自動handlerのない2 familyです。この値は経路を構成できることを示し、各実検体の品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。
+2026-08-29時点の生成結果では、登録87 familyのうち77 family（88.51%）がdetector・AST監査・検体なしruntime import確認済みhandler・品質policyを備えた自動routing構造を持ちます。handlerは宣言97件、AST監査通過97件、runtime import確認済み97件で、自動handlerの停止は0件です。候補検証専用は8 family、detectorと自動handlerのないfamilyは2件です。代表fixtureまたは実検体で自動解析完了を実証済みとして集計したfamilyは0件であり、この構造値は各検体のconfig／C2抽出、終端payload到達、品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。

@@ -12,7 +12,13 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from automation_coverage import _check_output, _rendered_outputs, build_coverage, render_markdown  # noqa: E402
+import handler_catalog as handler_catalog_module  # noqa: E402
+from automation_coverage import (  # noqa: E402
+    _check_output,
+    _rendered_outputs,
+    render_markdown,
+)
+from automation_coverage import build_coverage as _production_build_coverage  # noqa: E402
 from handler_catalog import HandlerSpec  # noqa: E402
 
 
@@ -83,6 +89,37 @@ def _preflight(*, blocked_formats: set[str] | None = None):
     return run
 
 
+def _runtime_import(*, blocked_handlers: set[str] | None = None):
+    blocked_handlers = blocked_handlers or set()
+
+    def run(spec, *, static_preflight, timeout_seconds):
+        del static_preflight
+        assert timeout_seconds == 10.0
+        blocked = spec.id in blocked_handlers
+        return {
+            "handler_id": spec.id,
+            "eligible": not blocked,
+            "blockers": ["fixture_dependency_missing"] if blocked else [],
+            "attempted": True,
+            "handler_imported": not blocked,
+            "invocation": None if blocked else spec.invocation,
+            "isolated_process": True,
+            "sanitized_environment": True,
+            "sample_execution_allowed": False,
+            "network_allowed": False,
+            "filesystem_write_allowed": False,
+        }
+
+    return run
+
+
+def build_coverage(**kwargs):
+    """既存testは決定的な検体なしruntime import fixtureを既定利用する。"""
+
+    kwargs.setdefault("runtime_import", _runtime_import())
+    return _production_build_coverage(**kwargs)
+
+
 def test_coverage_separates_safe_automation_states() -> None:
     report = build_coverage(
         registered_families={"full", "classifier", "manual"},
@@ -106,15 +143,19 @@ def test_coverage_separates_safe_automation_states() -> None:
     assert report["counts"]["script_only_handler_available"] == 2
     assert report["counts"]["declared_automatic_handlers"] == 2
     assert report["counts"]["safe_automatic_handlers"] == 2
+    assert report["counts"]["ast_preflight_eligible_handlers"] == 2
+    assert report["counts"]["runtime_import_verified_handlers"] == 2
     assert report["counts"]["blocked_automatic_handlers"] == 0
     assert report["counts"]["quality_policy_declared"] == 2
     assert report["counts"]["quality_gated_script_only_handler_available"] == 2
     assert report["counts"]["automatic_family_selection_possible"] == 1
     assert report["counts"]["automated_analysis_completion_possible"] == 1
     assert report["counts"]["structurally_routable"] == 1
+    assert report["counts"]["runtime_import_verified_structure"] == 1
     assert report["counts"]["automated_analysis_completion_verified"] == 0
     full = next(item for item in report["families"] if item["family"] == "full")
     assert full["structurally_routable"] is True
+    assert full["runtime_import_verified_structure"] is True
     assert full["automated_analysis_completion_possible"] is True
     assert full["automated_analysis_completion_verified"] is False
     assert full["completion_verification"] == {
@@ -133,12 +174,20 @@ def test_coverage_separates_safe_automation_states() -> None:
         "後方互換用"
     )
     assert report["counts"]["executed_preflight_count"] == 2
+    assert report["counts"]["planned_runtime_import_count"] == 2
+    assert report["counts"]["executed_runtime_import_count"] == 2
     assert report["preflight_policy"] == {
-        "scope": "each_declared_format",
-        "probe_input_size": 1,
+        "ast_scope": "each_declared_format",
+        "runtime_import_scope": "each_ast_eligible_handler",
+        "declared_input_size_metadata": 1,
+        "runtime_import_sample_input_size": 0,
+        "runtime_import_timeout_seconds": 10.0,
         "maximum_input_size": 128 * 1024 * 1024,
         "maximum_preflight_count": 2_048,
-        "handler_imported": False,
+        "handler_imported_during_ast_preflight": False,
+        "handler_imported_during_runtime_preflight": True,
+        "runtime_import_isolated_process": True,
+        "runtime_import_sanitized_environment": True,
         "sample_execution_allowed": False,
         "network_allowed": False,
         "filesystem_write_allowed": False,
@@ -164,6 +213,183 @@ def test_declared_automatic_is_not_safe_when_preflight_blocks() -> None:
     assert len(
         item["blocked_automatic_handlers"][0]["dependency_fingerprint_sha256"]
     ) == 64
+
+
+def test_ast_safe_handler_is_blocked_when_runtime_dependency_is_missing() -> None:
+    report = build_coverage(
+        registered_families={"missing_dependency"},
+        specs=[_spec("missing_dependency")],
+        quality_policies=_policies("missing_dependency"),
+        preflight=_preflight(),
+        runtime_import=_runtime_import(
+            blocked_handlers={"missing_dependency:extract"}
+        ),
+    )
+    item = report["families"][0]
+    handler = item["automatic_handler_preflights"][0]
+    assert item["status"] == "automatic_handler_blocked"
+    assert handler["ast_preflight_eligible"] is True
+    assert handler["ast_eligible_formats"] == ["pe"]
+    assert handler["eligible"] is False
+    assert handler["eligible_formats"] == []
+    assert "fixture_dependency_missing" in handler["blockers"]
+    assert handler["runtime_import"]["eligible"] is False
+    assert report["counts"]["ast_preflight_eligible_handlers"] == 1
+    assert report["counts"]["runtime_import_verified_handlers"] == 0
+    assert report["counts"]["runtime_import_verified_structure"] == 0
+
+
+def test_runtime_import_safety_contract_is_fail_closed() -> None:
+    def unsafe_runtime_import(spec, *, static_preflight, timeout_seconds):
+        result = _runtime_import()(
+            spec,
+            static_preflight=static_preflight,
+            timeout_seconds=timeout_seconds,
+        )
+        result["network_allowed"] = True
+        return result
+
+    report = build_coverage(
+        registered_families={"unsafe_runtime"},
+        specs=[_spec("unsafe_runtime")],
+        quality_policies=_policies("unsafe_runtime"),
+        preflight=_preflight(),
+        runtime_import=unsafe_runtime_import,
+    )
+    blocked = report["families"][0]["blocked_automatic_handlers"][0]
+    assert blocked["ast_preflight_eligible"] is True
+    assert blocked["runtime_import"]["network_allowed"] is True
+    assert blocked["blockers"] == [
+        "runtime_import_safety_contract_invalid:network_allowed"
+    ]
+
+
+def test_runtime_import_is_not_attempted_when_ast_preflight_blocks() -> None:
+    called = False
+
+    def should_not_run(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("呼ばれないこと")
+
+    report = build_coverage(
+        registered_families={"ast_blocked"},
+        specs=[_spec("ast_blocked")],
+        preflight=_preflight(blocked_formats={"pe"}),
+        runtime_import=should_not_run,
+    )
+    preflight = report["families"][0]["automatic_handler_preflights"][0]
+    assert called is False
+    assert preflight["runtime_import"]["attempted"] is False
+    assert report["counts"]["planned_runtime_import_count"] == 1
+    assert report["counts"]["executed_runtime_import_count"] == 0
+
+
+def test_completion_possible_alias_is_explicitly_structural() -> None:
+    report = build_coverage(
+        registered_families={"structural"},
+        specs=[_spec("structural")],
+        quality_policies=_policies("structural"),
+        preflight=_preflight(),
+    )
+    item = report["families"][0]
+    assert item["automated_analysis_completion_possible"] is item[
+        "runtime_import_verified_structure"
+    ]
+    assert report["counts"]["automated_analysis_completion_possible"] == report[
+        "counts"
+    ]["runtime_import_verified_structure"]
+    semantics = report["metric_semantics"]
+    assert "deprecated alias" in semantics["automated_analysis_completion_possible"]
+    assert "構造指標" in semantics["automated_analysis_completion_possible"]
+    assert "実検体の完了可能性" in semantics[
+        "automated_analysis_completion_possible"
+    ]
+    assert item["automated_analysis_completion_verified"] is False
+
+
+def test_public_runtime_import_preflight_never_needs_sample_data(monkeypatch) -> None:
+    spec = _spec("runtime_contract")
+    static = _preflight()(
+        spec,
+        actual_format="pe",
+        input_size=1,
+        maximum_input_size=128 * 1024 * 1024,
+    )
+    monkeypatch.setattr(
+        handler_catalog_module,
+        "_preflight_dependency_source_manifest",
+        lambda _preflight: [],
+    )
+    monkeypatch.setattr(
+        handler_catalog_module,
+        "_preflight_dependency_data_manifest",
+        lambda _preflight: [],
+    )
+    monkeypatch.setattr(
+        handler_catalog_module,
+        "_preflight_dependency_module_manifest",
+        lambda _preflight: [],
+    )
+    received = {}
+
+    def verified(spec, **kwargs):
+        received["handler_id"] = spec.id
+        received.update(kwargs)
+        return "bytes"
+
+    monkeypatch.setattr(
+        handler_catalog_module,
+        "_verify_handler_runtime_import_bounded",
+        verified,
+    )
+    result = handler_catalog_module.preflight_handler_runtime_import(
+        spec,
+        static_preflight=static,
+        timeout_seconds=2,
+    )
+    assert received == {
+        "handler_id": spec.id,
+        "timeout_seconds": 2.0,
+        "dependency_source_manifest": [],
+        "dependency_data_manifest": [],
+        "dependency_module_manifest": [],
+    }
+    assert result["eligible"] is True
+    assert result["handler_imported"] is True
+    assert result["sample_execution_allowed"] is False
+    assert result["network_allowed"] is False
+    assert result["filesystem_write_allowed"] is False
+
+
+def test_public_runtime_import_dependency_failure_is_not_available(
+    monkeypatch,
+) -> None:
+    spec = _spec("missing_runtime_dependency")
+    static = _preflight()(
+        spec,
+        actual_format="pe",
+        input_size=1,
+        maximum_input_size=128 * 1024 * 1024,
+    )
+
+    def missing(_preflight):
+        raise OSError("credential=should-not-leak")
+
+    monkeypatch.setattr(
+        handler_catalog_module,
+        "_preflight_dependency_source_manifest",
+        missing,
+    )
+    result = handler_catalog_module.preflight_handler_runtime_import(
+        spec,
+        static_preflight=static,
+    )
+    assert result["eligible"] is False
+    assert result["handler_imported"] is False
+    assert result["attempted"] is False
+    assert result["blockers"] == ["runtime_dependency_snapshot_unavailable"]
+    assert "credential" not in repr(result)
 
 
 def test_safe_handler_without_quality_policy_cannot_be_fully_routable() -> None:
@@ -398,13 +624,13 @@ def test_markdown_is_japanese_and_deterministic() -> None:
     assert rendered == render_markdown(report)
     assert "既知マルウェア自動解析カバレッジ" in rendered
     assert "生成AIは使用しません" in rendered
-    assert "安全preflight済み" in rendered
-    assert "構造上ルーティング可能" in rendered
+    assert "AST監査＋runtime import確認済み" in rendered
+    assert "runtime import確認済みhandler＋品質policyが揃う構造" in rendered
     assert "代表fixtureで自動解析完了を実証済み: 0件" in rendered
     assert "後方互換用のdeprecated alias" in rendered
     assert "実検体を解析して測定した成功率ではなく" in rendered
-    assert "構造・preflight上で" in rendered
-    assert "実検体での完了を保証しません" in rendered
+    assert "AST監査と検体なしruntime import上で" in rendered
+    assert "実検体での実行・完了を保証しません" in rendered
     assert "| full | fully_routable | あり | あり | 1 | 1 | なし |" in rendered
 
 

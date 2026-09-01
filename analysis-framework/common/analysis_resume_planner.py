@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import stat
 import sys
 from collections.abc import Mapping
@@ -18,6 +17,7 @@ from typing import Any
 import analysis_job_runner
 import analysis_lifecycle
 import analysis_orchestrator
+import remediation_registry
 
 SCHEMA_VERSION = 1
 MAX_SNAPSHOT_FILES = analysis_orchestrator.MAX_WORKFLOWS * 4 + 32
@@ -25,7 +25,6 @@ MAX_TOTAL_SNAPSHOT_BYTES = 64 * 1024 * 1024
 SNAPSHOT_HASH_CHUNK_BYTES = 64 * 1024
 MAX_CODE_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_ANCHORED_INPUT_BYTES = analysis_job_runner.MAX_SUMMARY_BYTES
-_FAMILY_SUFFIX_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$")
 
 
 class ResumePlannerError(RuntimeError):
@@ -278,338 +277,7 @@ class _SnapshotReader:
                 )
 
 
-@dataclass(frozen=True)
-class _BlockerPolicy:
-    """blockerから安全な次動作へ変換する固定policy。"""
-
-    action_id: str
-    target_phase: str | None
-    retryable: bool
-    priority: int
-    changed_evidence: tuple[str, ...]
-
-
-_EXACT_BLOCKER_POLICIES: Mapping[str, _BlockerPolicy] = {
-    "analysis_partial": _BlockerPolicy(
-        "reanalyze_static_pipeline",
-        "static_analysis",
-        False,
-        30,
-        ("analysis_contract_sha256", "static_analysis_evidence_sha256"),
-    ),
-    "generic_triage_failed": _BlockerPolicy(
-        "repair_generic_triage",
-        "static_analysis",
-        False,
-        30,
-        ("analysis_contract_sha256", "generic_triage_evidence_sha256"),
-    ),
-    "generic_triage_partial": _BlockerPolicy(
-        "repair_generic_triage",
-        "static_analysis",
-        False,
-        30,
-        ("analysis_contract_sha256", "generic_triage_evidence_sha256"),
-    ),
-    "static_layer_limit_reached": _BlockerPolicy(
-        "expand_static_layer_budget",
-        "static_analysis",
-        False,
-        31,
-        ("analysis_contract_sha256", "static_layer_budget"),
-    ),
-    "static_layer_incomplete": _BlockerPolicy(
-        "repair_static_layer_pipeline",
-        "static_analysis",
-        False,
-        32,
-        ("analysis_contract_sha256", "static_layer_evidence_sha256"),
-    ),
-    "detector_error_present": _BlockerPolicy(
-        "repair_family_detector",
-        "static_analysis",
-        False,
-        40,
-        ("detector_fingerprint_sha256", "classification_evidence_sha256"),
-    ),
-    "handler_failed": _BlockerPolicy(
-        "repair_family_handler",
-        "static_analysis",
-        False,
-        41,
-        ("handler_dependency_fingerprint_sha256", "handler_evidence_sha256"),
-    ),
-    "handler_preflight_failed": _BlockerPolicy(
-        "repair_handler_preflight",
-        "static_analysis",
-        False,
-        41,
-        ("handler_dependency_fingerprint_sha256",),
-    ),
-    "handler_no_evidence": _BlockerPolicy(
-        "strengthen_family_handler_evidence",
-        "static_analysis",
-        False,
-        42,
-        ("handler_dependency_fingerprint_sha256", "handler_evidence_sha256"),
-    ),
-    "handler_ambiguous_evidence": _BlockerPolicy(
-        "resolve_handler_evidence_ambiguity",
-        "static_analysis",
-        False,
-        42,
-        ("handler_dependency_fingerprint_sha256", "handler_evidence_sha256"),
-    ),
-    "handler_incompatible_input_format": _BlockerPolicy(
-        "add_handler_input_support",
-        "static_analysis",
-        False,
-        43,
-        ("handler_dependency_fingerprint_sha256", "selected_layer_sha256"),
-    ),
-    "selected_family_layer_incomplete": _BlockerPolicy(
-        "repair_selected_family_layer_analysis",
-        "static_analysis",
-        False,
-        43,
-        ("handler_dependency_fingerprint_sha256", "selected_layer_sha256"),
-    ),
-    "representative_function_analysis_required": _BlockerPolicy(
-        "perform_representative_function_static_review",
-        "function_validation",
-        False,
-        70,
-        ("function_analysis_evidence_sha256",),
-    ),
-    "terminal_payload_not_recovered": _BlockerPolicy(
-        "recover_terminal_payload_statically",
-        "static_analysis",
-        False,
-        50,
-        ("terminal_payload_evidence_sha256",),
-    ),
-    "root_to_terminal_byte_derivation_incomplete": _BlockerPolicy(
-        "recover_terminal_payload_statically",
-        "static_analysis",
-        False,
-        50,
-        ("terminal_payload_evidence_sha256", "root_to_terminal_lineage_sha256"),
-    ),
-    "required_terminal_bytes_absent": _BlockerPolicy(
-        "recover_terminal_payload_statically",
-        "static_analysis",
-        False,
-        50,
-        ("terminal_payload_evidence_sha256",),
-    ),
-    "c2_protocol_confirmation_pending": _BlockerPolicy(
-        "confirm_c2_protocol_statically",
-        "static_analysis",
-        False,
-        60,
-        ("network_configuration_evidence_sha256", "protocol_evidence_sha256"),
-    ),
-    "orchestration:config": _BlockerPolicy(
-        "recover_configuration_statically",
-        "static_analysis",
-        False,
-        60,
-        ("configuration_evidence_sha256",),
-    ),
-    "orchestration:network": _BlockerPolicy(
-        "recover_network_configuration_statically",
-        "static_analysis",
-        False,
-        61,
-        ("network_configuration_evidence_sha256",),
-    ),
-    "orchestration:terminal_payload": _BlockerPolicy(
-        "recover_terminal_payload_statically",
-        "static_analysis",
-        False,
-        50,
-        ("terminal_payload_evidence_sha256",),
-    ),
-    "orchestration:function_analysis": _BlockerPolicy(
-        "perform_representative_function_static_review",
-        "function_validation",
-        False,
-        70,
-        ("function_analysis_evidence_sha256",),
-    ),
-    "orchestration:static_layers": _BlockerPolicy(
-        "repair_static_layer_pipeline",
-        "static_analysis",
-        False,
-        32,
-        ("analysis_contract_sha256", "static_layer_evidence_sha256"),
-    ),
-    "orchestration:family_resolution": _BlockerPolicy(
-        "strengthen_family_resolution",
-        "static_analysis",
-        False,
-        40,
-        ("detector_fingerprint_sha256", "classification_evidence_sha256"),
-    ),
-    "orchestration:handler_evidence": _BlockerPolicy(
-        "strengthen_family_handler_evidence",
-        "static_analysis",
-        False,
-        42,
-        ("handler_dependency_fingerprint_sha256", "handler_evidence_sha256"),
-    ),
-    "requirements_policy": _BlockerPolicy(
-        "declare_family_analysis_requirements",
-        "completion_gate",
-        False,
-        65,
-        ("family_requirements_policy_sha256",),
-    ),
-    "publication_requires_complete_or_partial_staging_opt_in": _BlockerPolicy(
-        "review_partial_publication_policy",
-        "publication",
-        False,
-        80,
-        ("publication_policy_sha256",),
-    ),
-    "function_validation_incomplete": _BlockerPolicy(
-        "perform_representative_function_static_review",
-        "function_validation",
-        False,
-        70,
-        ("function_analysis_evidence_sha256",),
-    ),
-    "publication_incomplete": _BlockerPolicy(
-        "repair_publication",
-        "publication",
-        False,
-        80,
-        ("publication_evidence_sha256",),
-    ),
-    "static_analysis_failed": _BlockerPolicy(
-        "resume_workflow",
-        "static_analysis",
-        True,
-        10,
-        (),
-    ),
-    "preflight_failed": _BlockerPolicy(
-        "resume_workflow",
-        "preflight",
-        True,
-        10,
-        (),
-    ),
-    "publication_failed": _BlockerPolicy(
-        "resume_workflow",
-        "publication",
-        True,
-        10,
-        (),
-    ),
-    "function_validation_failed": _BlockerPolicy(
-        "resume_workflow",
-        "function_validation",
-        True,
-        10,
-        (),
-    ),
-    "completion_gate_failed": _BlockerPolicy(
-        "resume_workflow",
-        "completion_gate",
-        True,
-        10,
-        (),
-    ),
-    "derived_refresh_failed": _BlockerPolicy(
-        "resume_workflow",
-        "derived_refresh",
-        True,
-        10,
-        (),
-    ),
-    "private_archive_failed": _BlockerPolicy(
-        "resume_workflow",
-        "private_archive",
-        True,
-        10,
-        (),
-    ),
-    "workflow_execution_failed": _BlockerPolicy(
-        "resume_workflow",
-        None,
-        True,
-        10,
-        (),
-    ),
-    "stage_contract_changed": _BlockerPolicy(
-        "start_successor_workflow",
-        None,
-        False,
-        5,
-        ("new_workflow_id", "updated_request_sha256"),
-    ),
-    "unexpected_lifecycle_state": _BlockerPolicy(
-        "repair_lifecycle_state",
-        None,
-        False,
-        5,
-        ("lifecycle_state_integrity_sha256",),
-    ),
-    "lifecycle_state_invalid": _BlockerPolicy(
-        "repair_lifecycle_state",
-        None,
-        False,
-        5,
-        ("lifecycle_state_integrity_sha256",),
-    ),
-    "analysis_blocked": _BlockerPolicy(
-        "manual_review_required",
-        None,
-        False,
-        0,
-        ("operator_review",),
-    ),
-}
-
-_PREFIX_BLOCKER_POLICIES: tuple[tuple[str, _BlockerPolicy], ...] = (
-    (
-        "selected_family_has_no_automatic_handler:",
-        _BlockerPolicy(
-            "implement_family_handler",
-            "static_analysis",
-            False,
-            40,
-            ("handler_dependency_fingerprint_sha256",),
-        ),
-    ),
-    (
-        "selected_family_has_no_valid_handler_evidence:",
-        _BlockerPolicy(
-            "strengthen_family_handler_evidence",
-            "static_analysis",
-            False,
-            41,
-            ("handler_dependency_fingerprint_sha256", "handler_evidence_sha256"),
-        ),
-    ),
-)
-
-# lifecycleのremediation registryをplannerの実stageへ変換する。blocker自体の
-# 分類は共通registryだけを正とし、この表は抽象phaseから保存stateのstageへの
-# 明示的な変換と優先度だけを担う。未知のaction keyはmanualへfail-closedする。
-_LIFECYCLE_POLICY_TRANSLATIONS: Mapping[str, tuple[str, str | None, int]] = {
-    "family": ("family_resolution", "static_analysis", 40),
-    "function": ("function_analysis", "function_validation", 70),
-    "static": ("static_analysis", "static_analysis", 30),
-    "static_limit": ("static_analysis", "static_analysis", 31),
-    "terminal": ("terminal_payload_recovery", "static_analysis", 50),
-    "config": ("configuration_recovery", "static_analysis", 60),
-    "protocol": ("protocol_analysis", "static_analysis", 61),
-    "handler": ("handler_execution", "static_analysis", 42),
-    "publication": ("publication", "publication", 80),
-    "manual": ("manual_review", None, 0),
-}
+_BlockerPolicy = remediation_registry.PlannerPolicySpec
 
 _BUDGET_BLOCKERS = frozenset(
     {
@@ -862,50 +530,15 @@ def _validate_lifecycle_state(
 
 
 def _policy_for_blocker(blocker: str) -> _BlockerPolicy | None:
-    policy = _EXACT_BLOCKER_POLICIES.get(blocker)
-    if policy is not None:
-        return policy
-    for prefix, prefix_policy in _PREFIX_BLOCKER_POLICIES:
-        if blocker.startswith(prefix):
-            suffix = blocker.removeprefix(prefix)
-            return prefix_policy if _FAMILY_SUFFIX_RE.fullmatch(suffix) is not None else None
-
-    action_key = analysis_lifecycle._BLOCKER_ACTION_KEYS.get(blocker)
-    if blocker.startswith("orchestration:"):
-        gate = blocker.removeprefix("orchestration:")
-        action_key = analysis_lifecycle._ORCHESTRATION_GATE_ACTION_KEYS.get(gate)
-    elif analysis_lifecycle._HANDLER_EVIDENCE_BLOCKER_RE.fullmatch(blocker):
-        action_key = "handler"
-    if action_key is None:
-        return None
-    translation = _LIFECYCLE_POLICY_TRANSLATIONS.get(action_key)
-    spec = analysis_lifecycle._ACTION_SPECS.get(action_key)
-    if translation is None or not isinstance(spec, tuple) or len(spec) != 6:
-        return None
-    expected_target, target_phase, priority = translation
-    action_id, abstract_target, executor, automatic, changed, prerequisites = spec
-    if (
-        not isinstance(action_id, str)
-        or analysis_lifecycle.BLOCKER_RE.fullmatch(action_id) is None
-        or abstract_target != expected_target
-        or not isinstance(executor, str)
-        or analysis_lifecycle.BLOCKER_RE.fullmatch(executor) is None
-        or not isinstance(automatic, bool)
-        or not isinstance(changed, bool)
-        or not isinstance(prerequisites, tuple)
-        or not prerequisites
-        or any(
-            not isinstance(item, str) or analysis_lifecycle.BLOCKER_RE.fullmatch(item) is None
-            for item in prerequisites
-        )
-    ):
+    resolved = remediation_registry.planner_policy_for_blocker(blocker)
+    if resolved is None:
         return None
     return _BlockerPolicy(
-        action_id=action_id,
-        target_phase=target_phase,
-        retryable=False,
-        priority=priority,
-        changed_evidence=prerequisites if changed else (),
+        action_id=resolved.action_id,
+        target_phase=resolved.target_phase,
+        retryable=resolved.retryable,
+        priority=resolved.priority,
+        changed_evidence=resolved.changed_evidence,
     )
 
 

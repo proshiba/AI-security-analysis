@@ -1,39 +1,44 @@
 {
   "ai_used": false,
   "counts": {
-    "automated_analysis_completion_possible": 76,
+    "ast_preflight_eligible_handlers": 97,
+    "automated_analysis_completion_possible": 77,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 76,
+    "automatic_family_selection_possible": 77,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 76,
+      "fully_routable": 77,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 96,
-    "declared_script_only_handler_available": 84,
-    "declared_script_only_handler_percent": 97.67,
-    "detector_registered": 76,
-    "executed_preflight_count": 1043,
-    "families": 86,
-    "fully_routable": 76,
-    "fully_routable_percent": 88.37,
-    "planned_preflight_count": 1043,
+    "declared_automatic_handlers": 97,
+    "declared_script_only_handler_available": 85,
+    "declared_script_only_handler_percent": 97.7,
+    "detector_registered": 77,
+    "executed_preflight_count": 1041,
+    "executed_runtime_import_count": 97,
+    "families": 87,
+    "fully_routable": 77,
+    "fully_routable_percent": 88.51,
+    "planned_preflight_count": 1041,
+    "planned_runtime_import_count": 97,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 84,
-    "quality_policy_declared": 84,
+    "quality_gated_script_only_handler_available": 85,
+    "quality_policy_declared": 85,
     "quality_policy_missing": 0,
-    "safe_automatic_handlers": 96,
-    "script_only_handler_available": 84,
-    "script_only_handler_percent": 97.67,
-    "structurally_routable": 76
+    "runtime_import_verified_handlers": 97,
+    "runtime_import_verified_structure": 77,
+    "safe_automatic_handlers": 97,
+    "script_only_handler_available": 85,
+    "script_only_handler_percent": 97.7,
+    "structurally_routable": 77
   },
   "executed_sample": false,
   "families": [
@@ -51,6 +56,16 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "autoit-a3x",
+            "cab",
+            "data",
+            "ole",
+            "pe",
+            "script",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -74,7 +89,20 @@
             "script",
             "zip"
           ],
-          "handler_id": "acrstealer:extractors.acrstealer.extractor.py:extract"
+          "handler_id": "acrstealer:extractors.acrstealer.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "acrstealer:extractors.acrstealer.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -120,6 +148,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "acrstealer:extractors.acrstealer.extractor.py:extract"
       ],
@@ -150,6 +179,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -158,16 +193,48 @@
             "script"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "35db48536379aac0f97343d15e178760004fb94c52b3b44475adb9122627077b",
+          "dependency_fingerprint_sha256": "86cc771ead0de2263fb8086a6c5e605f0058072216eefb972974784457f1cd32",
           "eligible": true,
           "eligible_formats": [
             "data",
             "pe",
             "script"
           ],
-          "handler_id": "agenttesla:analysis.framework.malware.agenttesla.extract.config.py:extract_config"
+          "handler_id": "agenttesla:analysis.framework.malware.agenttesla.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "agenttesla:analysis.framework.malware.agenttesla.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -209,7 +276,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "agenttesla:extractors.agenttesla.extractor.py:extract"
+          "handler_id": "agenttesla:extractors.agenttesla.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "agenttesla:extractors.agenttesla.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -270,6 +350,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "agenttesla:analysis.framework.malware.agenttesla.extract.config.py:extract_config",
         "agenttesla:extractors.agenttesla.extractor.py:extract"
@@ -301,6 +382,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -342,7 +442,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "amadey:extractors.amadey.extractor.py:extract"
+          "handler_id": "amadey:extractors.amadey.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "amadey:extractors.amadey.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -397,6 +510,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "amadey:extractors.amadey.extractor.py:extract"
       ],
@@ -427,6 +541,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -468,7 +601,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "amosstealer:extractors.amosstealer.extractor.py:extract"
+          "handler_id": "amosstealer:extractors.amosstealer.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "amosstealer:extractors.amosstealer.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -523,6 +669,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "amosstealer:extractors.amosstealer.extractor.py:extract"
       ],
@@ -532,34 +679,45 @@
     },
     {
       "accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_file_count": 7,
+          "dependency_fingerprint_sha256": "8796ff19fff6a5fd870cef1413cf9d13915e771db80cbfbfd2164e90029bb60b",
           "eligible": true,
           "eligible_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "handler_id": "asyncrat:extractors.profiled_family:extractor_for"
+          "handler_id": "asyncrat:extractors.asyncrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "asyncrat:extractors.asyncrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
-        "asyncrat:extractors.profiled_family:extractor_for"
+        "asyncrat:extractors.asyncrat.extractor.py:extract"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -578,12 +736,10 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "declared_automatic_handlers": [
-        "asyncrat:extractors.profiled_family:extractor_for"
+        "asyncrat:extractors.asyncrat.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
@@ -597,8 +753,9 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "asyncrat:extractors.profiled_family:extractor_for"
+        "asyncrat:extractors.asyncrat.extractor.py:extract"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -627,6 +784,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -668,7 +844,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "atlascross:extractors.atlascross.extractor.py:extract"
+          "handler_id": "atlascross:extractors.atlascross.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "atlascross:extractors.atlascross.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -723,6 +912,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "atlascross:extractors.atlascross.extractor.py:extract"
       ],
@@ -753,6 +943,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -794,7 +1003,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config"
+          "handler_id": "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -849,6 +1071,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "blackhorse_miner_agent:analysis.framework.malware.blackhorse.miner.agent.extract.config.py:extract_config"
       ],
@@ -879,6 +1102,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -920,7 +1162,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config"
+          "handler_id": "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -975,6 +1230,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "blazetrack:analysis.framework.malware.blazetrack.extract.config.py:extract_config"
       ],
@@ -990,6 +1246,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1001,7 +1261,20 @@
           "eligible_formats": [
             "elf"
           ],
-          "handler_id": "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config"
+          "handler_id": "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1041,6 +1314,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "catddos:analysis.framework.malware.catddos.extract.config.py:extract_config"
       ],
@@ -1071,6 +1345,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1112,7 +1405,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
+          "handler_id": "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1167,6 +1473,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "chud_bot:analysis.framework.malware.chud.bot.extract.config.py:extract_config"
       ],
@@ -1197,6 +1504,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1238,7 +1564,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config"
+          "handler_id": "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1292,6 +1631,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "clickfix_booking:analysis.framework.malware.clickfix.booking.extract.config.py:extract_config"
       ],
@@ -1322,6 +1662,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1363,7 +1722,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
+          "handler_id": "condi:analysis.framework.malware.condi.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "condi:analysis.framework.malware.condi.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1418,6 +1790,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "condi:analysis.framework.malware.condi.extract.config.py:extract_config"
       ],
@@ -1448,6 +1821,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1489,7 +1881,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
+          "handler_id": "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1544,6 +1949,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "credential_phishing_html:analysis.framework.malware.credential.phishing.html.extract.config.py:extract_config"
       ],
@@ -1574,6 +1980,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1615,7 +2040,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "darkcomet:extractors.darkcomet.extractor.py:extract"
+          "handler_id": "darkcomet:extractors.darkcomet.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "darkcomet:extractors.darkcomet.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1670,6 +2108,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "darkcomet:extractors.darkcomet.extractor.py:extract"
       ],
@@ -1685,18 +2124,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "e3cc390b3d11fe18b16944d3625c743a29bde9d717649f08e2287d4aa139bb08",
+          "dependency_fingerprint_sha256": "47672bd92bf53f7a1d67f3c63581553ae2917cadd2604b26adff5c1b8f8b83e3",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "dcrat:extractors.dcrat.extractor.py:extract"
+          "handler_id": "dcrat:extractors.dcrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "dcrat:extractors.dcrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1736,6 +2192,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "dcrat:extractors.dcrat.extractor.py:extract"
       ],
@@ -1766,6 +2223,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -1787,7 +2263,7 @@
             "zip"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "84fdde65ccac02ce7c0b1e9cb11616d53242f21f360b7209fcb26806d748a2bd",
+          "dependency_fingerprint_sha256": "30b9dd9dddc883b8e9153f4b4f0802122fbc11dab4478c3e5c549004dc3dc434",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -1807,7 +2283,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "donutloader:extractors.donutloader.extractor.py:extract"
+          "handler_id": "donutloader:extractors.donutloader.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "donutloader:extractors.donutloader.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1862,6 +2351,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "donutloader:extractors.donutloader.extractor.py:extract"
       ],
@@ -1877,18 +2367,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "bca539dcea2bbb729d69bd94a82b4807f5afd5c9cbc84ecc2fd52c92e0c7825c",
+          "dependency_fingerprint_sha256": "424947e1a32eae2942092ce459bfb05b25fd540166c884cd59087e103fe75321",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config"
+          "handler_id": "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1933,6 +2440,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "dotnet_resource_loader:analysis.framework.malware.dotnet.resource.loader.extract.config.py:extract_config"
       ],
@@ -1948,18 +2456,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "586049eba108d20739487c6bed5e5431c08d33043e295080dfa05e14ed1ad18b",
+          "dependency_fingerprint_sha256": "c47f952f49427e35364dad65514315fa2ae2fbf32ef95fb05e6726be5037835d",
           "eligible": true,
           "eligible_formats": [
             "elf"
           ],
-          "handler_id": "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config"
+          "handler_id": "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -1999,6 +2524,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "dysphoria:analysis.framework.malware.dysphoria.extract.config.py:extract_config"
       ],
@@ -2029,6 +2555,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2070,7 +2615,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
+          "handler_id": "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2125,6 +2683,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "eclipse_ddos_bot:analysis.framework.malware.eclipse.ddos.bot.extract.config.py:extract_config"
       ],
@@ -2140,18 +2699,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "c01849f0753ccc7797c2667359f4914b1a035b6fe3e4b74e93dd5a5ba80fa0a0",
+          "dependency_fingerprint_sha256": "14e5c86afcd864283ec03cae64aaa83f9ce100e720cb3b59a80b6fa3fac476e7",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
+          "handler_id": "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2193,6 +2769,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "efimer:analysis.framework.malware.efimer.extract.config.py:extract_config"
       ],
@@ -2223,6 +2800,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2264,7 +2860,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
+          "handler_id": "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2319,6 +2928,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "electron_payload_loader:analysis.framework.malware.electron.payload.loader.extract.config.py:extract_config"
       ],
@@ -2349,6 +2959,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2390,7 +3019,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "formbook:extractors.formbook.extractor.py:extract"
+          "handler_id": "formbook:extractors.formbook.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "formbook:extractors.formbook.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2445,6 +3087,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "formbook:extractors.formbook.extractor.py:extract"
       ],
@@ -2475,6 +3118,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2496,7 +3158,7 @@
             "zip"
           ],
           "dependency_file_count": 26,
-          "dependency_fingerprint_sha256": "d0f25d4a4583f14cfbbed2122f16f95cd6e08d006a84eb26f208d5b1557e2e0e",
+          "dependency_fingerprint_sha256": "ab2c46ab960eed32bc519c5127e9636245d6b5c68c2160af8804ab63a15355f0",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2516,7 +3178,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config"
+          "handler_id": "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2573,6 +3248,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config"
       ],
@@ -2588,6 +3264,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2599,7 +3279,20 @@
           "eligible_formats": [
             "script"
           ],
-          "handler_id": "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config"
+          "handler_id": "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2639,6 +3332,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "freepbx_k_php:analysis.framework.malware.freepbx.k.php.extract.config.py:extract_config"
       ],
@@ -2669,6 +3363,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2710,7 +3423,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
+          "handler_id": "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2765,6 +3491,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "genddos_bot:analysis.framework.malware.genddos.bot.extract.config.py:extract_config"
       ],
@@ -2782,6 +3509,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2797,7 +3530,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "gh0strat:extractors.profiled_family:extractor_for"
+          "handler_id": "gh0strat:extractors.profiled_family:extractor_for",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "gh0strat:extractors.profiled_family:extractor_for",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2839,6 +3585,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "gh0strat:extractors.profiled_family:extractor_for"
       ],
@@ -2869,6 +3616,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2910,7 +3676,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config"
+          "handler_id": "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -2964,6 +3743,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "go_synthetic_workload:analysis.framework.malware.go.synthetic.workload.extract.config.py:extract_config"
       ],
@@ -2981,6 +3761,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -2996,7 +3782,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config"
+          "handler_id": "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3038,6 +3837,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "guloader:analysis.framework.malware.guloader.extract.config.py:extract_config"
       ],
@@ -3055,6 +3855,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3070,7 +3876,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "hijackloader:extractors.profiled_family:extractor_for"
+          "handler_id": "hijackloader:extractors.profiled_family:extractor_for",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "hijackloader:extractors.profiled_family:extractor_for",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3112,6 +3931,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "hijackloader:extractors.profiled_family:extractor_for"
       ],
@@ -3142,6 +3962,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3183,7 +4022,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config"
+          "handler_id": "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3237,6 +4089,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "infrastructure_decoy_hta:analysis.framework.malware.infrastructure.decoy.hta.extract.config.py:extract_config"
       ],
@@ -3267,6 +4120,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3308,7 +4180,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config"
+          "handler_id": "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3363,6 +4248,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "jackskid:analysis.framework.malware.jackskid.extract.config.py:extract_config"
       ],
@@ -3393,6 +4279,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3434,7 +4339,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
+          "handler_id": "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3491,6 +4409,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "jiproxy_relay:analysis.framework.malware.jiproxy.relay.extract.config.py:extract_config"
       ],
@@ -3521,6 +4440,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3562,7 +4500,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
+          "handler_id": "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3617,6 +4568,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "jomangy:analysis.framework.malware.jomangy.extract.config.py:extract_config"
       ],
@@ -3647,6 +4599,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3688,7 +4659,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "latrodectus:extractors.latrodectus.extractor.py:extract"
+          "handler_id": "latrodectus:extractors.latrodectus.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "latrodectus:extractors.latrodectus.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3743,6 +4727,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "latrodectus:extractors.latrodectus.extractor.py:extract"
       ],
@@ -3758,18 +4743,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "6fb9ebffe44843773a509c43a29819a7c89d911920771a2cc8b841bd532db87c",
+          "dependency_fingerprint_sha256": "8092f7d0ce35b434fd7daa5392a9660459228d3ff58ac4a925bfe9bba80735c2",
           "eligible": true,
           "eligible_formats": [
             "script"
           ],
-          "handler_id": "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config"
+          "handler_id": "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3809,6 +4811,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "linux_downloader:analysis.framework.malware.linux.downloader.extract.config.py:extract_config"
       ],
@@ -3839,6 +4842,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -3880,7 +4902,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config"
+          "handler_id": "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -3934,6 +4969,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "linux_ens_sns_bot:analysis.framework.malware.linux.ens.sns.bot.extract.config.py:extract_config"
       ],
@@ -3964,6 +5000,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4005,7 +5060,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config"
+          "handler_id": "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4060,6 +5128,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "linux_reverse_shell:analysis.framework.malware.linux.reverse.shell.extract.config.py:extract_config"
       ],
@@ -4090,6 +5159,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4131,7 +5219,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "lummastealer:extractors.lummastealer.extractor.py:extract"
+          "handler_id": "lummastealer:extractors.lummastealer.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "lummastealer:extractors.lummastealer.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4186,6 +5287,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "lummastealer:extractors.lummastealer.extractor.py:extract"
       ],
@@ -4216,6 +5318,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4257,7 +5378,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config"
+          "handler_id": "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4312,6 +5446,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "macos_stealer_v2:analysis.framework.malware.macos.stealer.v2.extract.config.py:extract_config"
       ],
@@ -4329,6 +5464,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "script",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4337,14 +5478,27 @@
             "zip"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "53320411c3787a99a5cef2d4dc75420772c48dba1333d10104518f3b2b7d8ae2",
+          "dependency_fingerprint_sha256": "1a69170385e638d4e01620099ff952cd4d393c7a893ca7defac2aa584308de68",
           "eligible": true,
           "eligible_formats": [
             "data",
             "script",
             "zip"
           ],
-          "handler_id": "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config"
+          "handler_id": "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4386,6 +5540,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "manageengine_endpoint_central_abuse:analysis.framework.malware.manageengine.endpoint.central.abuse.extract.config.py:extract_config"
       ],
@@ -4416,6 +5571,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4457,9 +5631,41 @@
             "xz",
             "zip"
           ],
-          "handler_id": "maskgram_stealer:analysis.framework.malware.maskgram.stealer.extract.config.py:extract_config"
+          "handler_id": "maskgram_stealer:analysis.framework.malware.maskgram.stealer.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "maskgram_stealer:analysis.framework.malware.maskgram.stealer.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4501,7 +5707,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract"
+          "handler_id": "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4558,6 +5777,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "maskgram_stealer:analysis.framework.malware.maskgram.stealer.extract.config.py:extract_config",
         "maskgram_stealer:extractors.maskgram.stealer.extractor.py:extract"
@@ -4589,6 +5809,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4630,7 +5869,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config"
+          "handler_id": "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4684,6 +5936,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "mig_logcleaner:analysis.framework.malware.mig.logcleaner.extract.config.py:extract_config"
       ],
@@ -4699,6 +5952,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4710,7 +5967,20 @@
           "eligible_formats": [
             "elf"
           ],
-          "handler_id": "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config"
+          "handler_id": "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4752,6 +6022,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "mirai:analysis.framework.malware.mirai.extract.config.py:extract_config"
       ],
@@ -4782,6 +6053,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4823,7 +6113,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config"
+          "handler_id": "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -4880,6 +6183,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "mirai_ens_doh_bot:analysis.framework.malware.mirai.ens.doh.bot.extract.config.py:extract_config"
       ],
@@ -4910,6 +6214,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -4951,7 +6274,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
+          "handler_id": "mx-go:extractors.unclassified.mx.go.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "mx-go:extractors.unclassified.mx.go.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5006,6 +6342,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "mx-go:extractors.unclassified.mx.go.extractor.py:extract"
       ],
@@ -5036,6 +6373,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5077,7 +6433,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
+          "handler_id": "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5132,6 +6501,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
       ],
@@ -5141,34 +6511,45 @@
     },
     {
       "accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "fd7a9109d38162a0ffc57070cdb2f7896657b9ec4bd63c2503988d66cf2f26fc",
           "eligible": true,
           "eligible_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "handler_id": "njrat:extractors.profiled_family:extractor_for"
+          "handler_id": "njrat:extractors.njrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "njrat:extractors.njrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
-        "njrat:extractors.profiled_family:extractor_for"
+        "njrat:extractors.njrat.extractor.py:extract"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -5187,12 +6568,10 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "declared_automatic_handlers": [
-        "njrat:extractors.profiled_family:extractor_for"
+        "njrat:extractors.njrat.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
@@ -5206,8 +6585,9 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "njrat:extractors.profiled_family:extractor_for"
+        "njrat:extractors.njrat.extractor.py:extract"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -5236,6 +6616,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5277,7 +6676,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract"
+          "handler_id": "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5332,6 +6744,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "npm_supply_chain:extractors.npm.supply.chain.extractor.py:extract"
       ],
@@ -5362,6 +6775,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5403,7 +6835,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config"
+          "handler_id": "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5460,6 +6905,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "nsis_obfuscated_loader:analysis.framework.malware.nsis.obfuscated.loader.extract.config.py:extract_config"
       ],
@@ -5490,6 +6936,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5531,7 +6996,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config"
+          "handler_id": "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5586,6 +7064,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "owareaper:analysis.framework.malware.owareaper.extract.config.py:extract_config"
       ],
@@ -5616,6 +7095,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5657,7 +7155,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config"
+          "handler_id": "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5712,6 +7223,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "panchan:analysis.framework.malware.panchan.extract.config.py:extract_config"
       ],
@@ -5742,6 +7254,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5783,7 +7314,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config"
+          "handler_id": "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5838,6 +7382,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "phorpiex_downloader:analysis.framework.malware.phorpiex.downloader.extract.config.py:extract_config"
       ],
@@ -5868,6 +7413,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5909,7 +7473,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
+          "handler_id": "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -5966,6 +7543,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "phorpiex_spam:analysis.framework.malware.phorpiex.spam.extract.config.py:extract_config"
       ],
@@ -5981,6 +7559,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -5992,7 +7574,20 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config"
+          "handler_id": "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6032,6 +7627,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "png_registry_loader:analysis.framework.malware.png.registry.loader.extract.config.py:extract_config"
       ],
@@ -6062,6 +7658,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6103,7 +7718,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
+          "handler_id": "pony:analysis.framework.malware.pony.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "pony:analysis.framework.malware.pony.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6158,6 +7786,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "pony:analysis.framework.malware.pony.extract.config.py:extract_config"
       ],
@@ -6188,6 +7817,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6229,7 +7877,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
+          "handler_id": "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6284,6 +7945,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "prometei:analysis.framework.malware.prometei.extract.config.py:extract_config"
       ],
@@ -6314,6 +7976,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6355,7 +8036,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config"
+          "handler_id": "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6411,6 +8105,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "protected_pe_loader:analysis.framework.malware.protected.pe.loader.extract.config.py:extract_config"
       ],
@@ -6441,6 +8136,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6482,7 +8196,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config"
+          "handler_id": "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6536,6 +8263,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "protection_agent_loader:analysis.framework.malware.protection.agent.loader.extract.config.py:extract_config"
       ],
@@ -6566,6 +8294,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6607,7 +8354,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
+          "handler_id": "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6662,6 +8422,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "proxyrack_pop_deployer:analysis.framework.malware.proxyrack.pop.deployer.extract.config.py:extract_config"
       ],
@@ -6692,6 +8453,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6703,9 +8468,41 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "purehvnc:analysis.framework.malware.purehvnc.extract.config.py:extract_config"
+          "handler_id": "purehvnc:analysis.framework.malware.purehvnc.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "purehvnc:analysis.framework.malware.purehvnc.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6747,7 +8544,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "purehvnc:extractors.purehvnc.extractor.py:extract"
+          "handler_id": "purehvnc:extractors.purehvnc.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "purehvnc:extractors.purehvnc.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6804,6 +8614,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "purehvnc:analysis.framework.malware.purehvnc.extract.config.py:extract_config",
         "purehvnc:extractors.purehvnc.extractor.py:extract"
@@ -6835,6 +8646,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -6876,7 +8706,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "purelogs:extractors.purelogs.extractor.py:extract"
+          "handler_id": "purelogs:extractors.purelogs.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "purelogs:extractors.purelogs.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -6931,6 +8774,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "purelogs:extractors.purelogs.extractor.py:extract"
       ],
@@ -6961,6 +8805,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7002,7 +8865,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config"
+          "handler_id": "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7057,6 +8933,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "putita_v3:analysis.framework.malware.putita.v3.extract.config.py:extract_config"
       ],
@@ -7074,6 +8951,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7089,7 +8972,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "quasarrat:extractors.profiled_family:extractor_for"
+          "handler_id": "quasarrat:extractors.profiled_family:extractor_for",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "quasarrat:extractors.profiled_family:extractor_for",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7131,8 +9027,98 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "quasarrat:extractors.profiled_family:extractor_for"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
+        "data",
+        "elf"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "data",
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "data",
+            "elf"
+          ],
+          "dependency_file_count": 4,
+          "dependency_fingerprint_sha256": "5c2ae3417d420cc2ff1cd1b6f3f5edde8965de7aacffa31ad8b6719b161bd8c8",
+          "eligible": true,
+          "eligible_formats": [
+            "data",
+            "elf"
+          ],
+          "handler_id": "redc2:analysis.framework.malware.redc2.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "redc2:analysis.framework.malware.redc2.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "redc2:analysis.framework.malware.redc2.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "data",
+        "elf"
+      ],
+      "declared_automatic_handlers": [
+        "redc2:analysis.framework.malware.redc2.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "redc2",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "backdoor",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "redc2:analysis.framework.malware.redc2.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -7148,6 +9134,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7163,7 +9155,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "redlinestealer:extractors.profiled_family:extractor_for"
+          "handler_id": "redlinestealer:extractors.profiled_family:extractor_for",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "redlinestealer:extractors.profiled_family:extractor_for",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7205,6 +9210,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "redlinestealer:extractors.profiled_family:extractor_for"
       ],
@@ -7235,6 +9241,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7276,7 +9301,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "remcosrat:extractors.remcosrat.extractor.py:extract"
+          "handler_id": "remcosrat:extractors.remcosrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "remcosrat:extractors.remcosrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7333,6 +9371,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "remcosrat:extractors.remcosrat.extractor.py:extract"
       ],
@@ -7363,6 +9402,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7404,7 +9462,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "remusstealer:extractors.remusstealer.extractor.py:extract"
+          "handler_id": "remusstealer:extractors.remusstealer.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "remusstealer:extractors.remusstealer.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7459,6 +9530,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "remusstealer:extractors.remusstealer.extractor.py:extract"
       ],
@@ -7474,6 +9546,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7485,7 +9561,20 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config"
+          "handler_id": "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7525,6 +9614,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "screenconnect_rmm:analysis.framework.malware.screenconnect.rmm.extract.config.py:extract_config"
       ],
@@ -7555,6 +9645,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7596,7 +9705,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "shadowpad:extractors.shadowpad.extractor.py:extract"
+          "handler_id": "shadowpad:extractors.shadowpad.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "shadowpad:extractors.shadowpad.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7651,6 +9773,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "shadowpad:extractors.shadowpad.extractor.py:extract"
       ],
@@ -7666,6 +9789,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7677,7 +9804,20 @@
           "eligible_formats": [
             "elf"
           ],
-          "handler_id": "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config"
+          "handler_id": "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7717,6 +9857,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "signed_dht_bot:analysis.framework.malware.signed.dht.bot.extract.config.py:extract_config"
       ],
@@ -7734,6 +9875,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7742,14 +9889,27 @@
             "script"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "0d0ea1da48fe4a772c050a01fc89c40eb7bc63e115f0038cae299af2630be916",
+          "dependency_fingerprint_sha256": "2f53b8242e6b41f4dcbb9a4552f0be4a543f76532441fc01e8eeff08a5dab1cf",
           "eligible": true,
           "eligible_formats": [
             "data",
             "pe",
             "script"
           ],
-          "handler_id": "snakekeylogger:extractors.snakekeylogger.extractor.py:extract"
+          "handler_id": "snakekeylogger:extractors.snakekeylogger.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "snakekeylogger:extractors.snakekeylogger.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7793,6 +9953,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "snakekeylogger:extractors.snakekeylogger.extractor.py:extract"
       ],
@@ -7823,6 +9984,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7864,7 +10044,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config"
+          "handler_id": "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -7918,6 +10111,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [
         "sobfox_launcher:analysis.framework.malware.sobfox.launcher.extract.config.py:extract_config"
       ],
@@ -7948,6 +10142,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -7989,7 +10202,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
+          "handler_id": "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8044,6 +10270,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "softbot:analysis.framework.malware.softbot.extract.config.py:extract_config"
       ],
@@ -8074,6 +10301,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8095,7 +10341,7 @@
             "zip"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "6b4acb386b2e7db70fce7b27d85f4bc40ce2f2f43b55cb66e1d06cfc594f44bd",
+          "dependency_fingerprint_sha256": "4d1926db455fa1ee521848bd88b9a82b55d065ad53fc98a4a6977fc54fc2d278",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8115,7 +10361,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "spyglace:extractors.spyglace.extractor.py:extract"
+          "handler_id": "spyglace:extractors.spyglace.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "spyglace:extractors.spyglace.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8170,6 +10429,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "spyglace:extractors.spyglace.extractor.py:extract"
       ],
@@ -8200,6 +10460,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8241,7 +10520,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "stealc:extractors.stealc.extractor.py:extract"
+          "handler_id": "stealc:extractors.stealc.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "stealc:extractors.stealc.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8296,6 +10588,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "stealc:extractors.stealc.extractor.py:extract"
       ],
@@ -8311,6 +10604,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8322,7 +10619,20 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config"
+          "handler_id": "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes_pe_timestamp",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8362,6 +10672,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "suomi_agent:analysis.framework.malware.suomi.agent.extract.config.py:extract_config"
       ],
@@ -8392,6 +10703,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8433,7 +10763,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config"
+          "handler_id": "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8488,6 +10831,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "tbot_iot_bot:analysis.framework.malware.tbot.iot.bot.extract.config.py:extract_config"
       ],
@@ -8527,6 +10871,7 @@
       "next_action_ja": "detectorを追加し、既存handlerを共通契約へ適合させる。",
       "quality_policy": null,
       "quality_policy_declared": false,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [],
       "script_only_handler_available": false,
       "status": "manual_only_without_detector",
@@ -8555,6 +10900,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8596,7 +10960,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
+          "handler_id": "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8651,6 +11028,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "traffmonetizer_deployer:analysis.framework.malware.traffmonetizer.deployer.extract.config.py:extract_config"
       ],
@@ -8690,6 +11068,7 @@
       "next_action_ja": "detectorを追加し、既存handlerを共通契約へ適合させる。",
       "quality_policy": null,
       "quality_policy_declared": false,
+      "runtime_import_verified_structure": false,
       "safe_automatic_handlers": [],
       "script_only_handler_available": false,
       "status": "manual_only_without_detector",
@@ -8718,6 +11097,10 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8729,9 +11112,26 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "ole"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8743,53 +11143,122 @@
           "eligible_formats": [
             "ole"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.msi.lzx.protected.pe.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.msi.lzx.protected.pe.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.msi.lzx.protected.pe.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "f82f24de63d2caad379bc5cb972645b0c5704fbc55868160c251ee21a3a2bb34",
+          "dependency_fingerprint_sha256": "16c8612a089edd47add6cea092147c8c9a774bdec11a8e792cda74539e3e6a21",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.onyx.qt.loader.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.onyx.qt.loader.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.onyx.qt.loader.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "3c6086549b22c1846ebfc30b1a1e14fc377fc82f373360a74fab31abd2b55470",
+          "dependency_fingerprint_sha256": "149ef353cd602ca9e4c3fc50681b93c14c9276a4af5ae13a6a00f04aec9d892b",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.protected.installer.bundle.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.protected.installer.bundle.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.protected.installer.bundle.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "data",
             "pe"
           ],
-          "dependency_file_count": 33,
-          "dependency_fingerprint_sha256": "29da339f531c6925df579977303399d37084398e827c018d69a35a5bdffb1f59",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "363a06cf5a4b9860d1755080c99751dbd5160a529d29c7dde5121c379227b53a",
           "eligible": true,
           "eligible_formats": [
             "data",
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.signed.proxy.sideload.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.signed.proxy.sideload.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.signed.proxy.sideload.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8801,9 +11270,26 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.dotnet.il.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.dotnet.il.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.dotnet.il.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes_expected_sha256",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8815,23 +11301,60 @@
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.single.pe.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.single.pe.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.single.pe.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes_expected_sha256",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "e4905d42b8fcf10a2b1ca31f4c6a8e57220313adeae9cdf9188ba06358f311cd",
+          "dependency_fingerprint_sha256": "d1119d1a9d7dc92ed20d580e46559367fcc7614db08ad52e0a2fca2a7d933ef5",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.vvas.resource.analyze.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.vvas.resource.analyze.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.vvas.resource.analyze.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "7z",
+            "data",
+            "pe",
+            "png"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8849,9 +11372,41 @@
             "pe",
             "png"
           ],
-          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.yuanbao.sideload.analyze.bundle.py:analyze"
+          "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.yuanbao.sideload.analyze.bundle.py:analyze",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:analysis.framework.malware.valleyrat.campaigns.yuanbao.sideload.analyze.bundle.py:analyze",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         },
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -8873,7 +11428,7 @@
             "zip"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "5a0f1dda38fb995bcbadfcff27c1049c2ba967ff04dcb2224a5d5f4a17963677",
+          "dependency_fingerprint_sha256": "9f89f91cfb554b885afd15ad119161c796239d58120719f84d8957784fc38c39",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8893,7 +11448,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "valleyrat:extractors.valleyrat.extractor.py:extract"
+          "handler_id": "valleyrat:extractors.valleyrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "valleyrat:extractors.valleyrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -8970,6 +11538,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze",
         "valleyrat:analysis.framework.malware.valleyrat.campaigns.msi.lzx.protected.pe.analyze.py:analyze",
@@ -8994,18 +11563,35 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "pe"
           ],
           "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "8aa107bf8b0cbfb3a8a73142fb41043fa98f018c0b9eda4fe0ecf751f8bd9354",
+          "dependency_fingerprint_sha256": "f24980eb3ef98ede739d9b76fd5bccf43692527142a48162a548277570f2e63b",
           "eligible": true,
           "eligible_formats": [
             "pe"
           ],
-          "handler_id": "venomrat:extractors.venomrat.extractor.py:extract"
+          "handler_id": "venomrat:extractors.venomrat.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "venomrat:extractors.venomrat.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9047,6 +11633,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "venomrat:extractors.venomrat.extractor.py:extract"
       ],
@@ -9077,6 +11664,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -9098,7 +11704,7 @@
             "zip"
           ],
           "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "a257ae991e1486b8372ab49338f38a61efea3858d224bb7bba3925fe207c8163",
+          "dependency_fingerprint_sha256": "8ce7b456d87efbb9d36e17ea391139248a5e61839b27f6bdb725c14536879ec7",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9118,7 +11724,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "vidar:extractors.vidar.extractor.py:extract"
+          "handler_id": "vidar:extractors.vidar.extractor.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "vidar:extractors.vidar.extractor.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9173,6 +11792,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "vidar:extractors.vidar.extractor.py:extract"
       ],
@@ -9203,6 +11823,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -9244,7 +11883,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
+          "handler_id": "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9299,6 +11951,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "wannacry:analysis.framework.malware.wannacry.extract.config.py:extract_config"
       ],
@@ -9329,6 +11982,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -9370,7 +12042,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
+          "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9432,6 +12117,7 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
       ],
@@ -9462,6 +12148,25 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
+            "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
+            "pe",
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -9503,7 +12208,20 @@
             "xz",
             "zip"
           ],
-          "handler_id": "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
+          "handler_id": "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9558,6 +12276,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "xmrig:analysis.framework.malware.xmrig.extract.config.py:extract_config"
       ],
@@ -9575,6 +12294,12 @@
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
+          "ast_eligible_formats": [
+            "data",
+            "pe",
+            "script"
+          ],
+          "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
@@ -9590,7 +12315,20 @@
             "pe",
             "script"
           ],
-          "handler_id": "xworm:extractors.profiled_family:extractor_for"
+          "handler_id": "xworm:extractors.profiled_family:extractor_for",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "xworm:extractors.profiled_family:extractor_for",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
@@ -9632,6 +12370,7 @@
         "terminal_payload_required": false
       },
       "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "xworm:extractors.profiled_family:extractor_for"
       ],
@@ -9641,21 +12380,28 @@
     }
   ],
   "metric_semantics": {
-    "automated_analysis_completion_possible": "後方互換用のdeprecated alias。structurally_routableと同値で、実検体の完了実績を表さない",
+    "automated_analysis_completion_possible": "後方互換用のdeprecated alias。runtime_import_verified_structureと同値の構造指標であり、名前に反して実検体の完了可能性や完了実績を表さない",
     "automated_analysis_completion_verified": "代表fixtureで必須出力と全品質gateを検証したfamily数",
-    "structurally_routable": "detector、安全preflight済みhandler、family別品質policyが揃う構造上の経路"
+    "runtime_import_verified_structure": "detector、AST監査済みかつ隔離runtime import確認済みhandler、family別品質policyが揃う構造。handlerへ検体を渡した実績や必須出力の完了実績は含まない",
+    "structurally_routable": "runtime_import_verified_structureと同値の構造指標。実検体の実行可能性や完了実績を表さない"
   },
   "network_contacted": false,
   "preflight_policy": {
+    "ast_scope": "each_declared_format",
+    "declared_input_size_metadata": 1,
     "filesystem_write_allowed": false,
-    "handler_imported": false,
+    "handler_imported_during_ast_preflight": false,
+    "handler_imported_during_runtime_preflight": true,
     "maximum_input_size": 134217728,
     "maximum_preflight_count": 2048,
     "network_allowed": false,
-    "probe_input_size": 1,
-    "sample_execution_allowed": false,
-    "scope": "each_declared_format"
+    "runtime_import_isolated_process": true,
+    "runtime_import_sample_input_size": 0,
+    "runtime_import_sanitized_environment": true,
+    "runtime_import_scope": "each_ast_eligible_handler",
+    "runtime_import_timeout_seconds": 10.0,
+    "sample_execution_allowed": false
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "complete"
 }

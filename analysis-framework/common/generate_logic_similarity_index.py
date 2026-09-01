@@ -12,12 +12,17 @@ import argparse
 from collections.abc import Mapping
 from itertools import combinations
 import json
+import os
 from pathlib import Path
+import tempfile
 from typing import Any
+
+from bounded_pair_selection import BoundedPairSelector
 
 
 SCHEMA_VERSION = 1
 MAX_MATCHES_PER_CASE = 10
+MAX_CANDIDATES_PER_CASE = 64
 MAX_SHARED_ITEMS = 8
 SHA256_LENGTH = 64
 
@@ -324,18 +329,21 @@ def compare_profiles(
     }
 
 
-def _retain_matches(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _match_rank(item: Mapping[str, Any]) -> tuple[Any, ...]:
+    """小さい値ほど優先される決定的な候補順位を返す。"""
+
     priority = {"高": 0, "中": 1, "参考候補": 2}
-    ordered = sorted(
-        matches,
-        key=lambda item: (
-            priority[item["level"]],
-            -float(item["score"]),
-            -int(item["independent_evidence_axes"]),
-            item["left_sha256"],
-            item["right_sha256"],
-        ),
+    return (
+        priority[str(item["level"])],
+        -float(item["score"]),
+        -int(item["independent_evidence_axes"]),
+        str(item["left_sha256"]),
+        str(item["right_sha256"]),
     )
+
+
+def _retain_matches(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ordered = sorted(matches, key=_match_rank)
     retained: list[dict[str, Any]] = []
     per_case: dict[str, int] = {}
     for match in ordered:
@@ -389,12 +397,20 @@ def build_index(repository: Path) -> dict[str, Any]:
         if len(profile["available_dimensions"]) >= 2:
             profiles[str(sha256)] = profile
 
-    matches = []
+    pair_selector: BoundedPairSelector[dict[str, Any]] = BoundedPairSelector(
+        candidate_limit_per_endpoint=MAX_CANDIDATES_PER_CASE
+    )
     for left_sha, right_sha in combinations(sorted(profiles), 2):
         match = compare_profiles(profiles[left_sha], profiles[right_sha])
         if match is not None:
-            matches.append(match)
-    retained = _retain_matches(matches)
+            pair_selector.offer(
+                left=left_sha,
+                right=right_sha,
+                rank_key=_match_rank(match),
+                value=match,
+            )
+    ranking_matches = pair_selector.ordered_values()
+    retained = _retain_matches(ranking_matches)
     level_counts = {
         level: sum(1 for match in retained if match["level"] == level)
         for level in ("高", "中", "参考候補")
@@ -407,11 +423,15 @@ def build_index(repository: Path) -> dict[str, Any]:
             "single_ioc_is_evidence": False,
             "actor_or_campaign_attribution_automatic": False,
             "max_matches_per_case": MAX_MATCHES_PER_CASE,
+            "max_candidates_per_case_before_ranking": MAX_CANDIDATES_PER_CASE,
         },
         "counts": {
             "catalog_cases": len(cases),
             "profiled_cases": len(profiles),
-            "candidate_pairs_before_limit": len(matches),
+            "candidate_pairs_before_limit": pair_selector.offered_count,
+            "candidate_pairs_retained_for_ranking": len(ranking_matches),
+            "candidate_pairs_omitted_before_ranking": pair_selector.offered_count
+            - len(ranking_matches),
             "retained_pairs": len(retained),
             "levels": level_counts,
         },
@@ -421,6 +441,10 @@ def build_index(repository: Path) -> dict[str, Any]:
             "比較対象に構造化成果物がない場合はprofileを作成できません。",
             "同じpacker、builder、runtime、共通libraryでも一致し得ます。",
             "類似候補はcampaign、actor、ファミリーの同一性を自動確定しません。",
+            (
+                f"最終順位付け前は各case最大{MAX_CANDIDATES_PER_CASE}件を保持し、"
+                "省略前後の候補数を集計へ記録します。"
+            ),
         ],
         "safety": {
             "samples_opened": False,
@@ -461,6 +485,11 @@ def render_markdown(index: Mapping[str, Any]) -> str:
         "",
         f"- カタログcase: {int(counts.get('catalog_cases') or 0):,}件",
         f"- 比較プロファイル作成済み: {int(counts.get('profiled_cases') or 0):,}件",
+        f"- 条件に一致した候補pair: {int(counts.get('candidate_pairs_before_limit') or 0):,}件",
+        (
+            "- 最終順位付けへ保持した候補pair: "
+            f"{int(counts.get('candidate_pairs_retained_for_ranking') or 0):,}件"
+        ),
         f"- 保持した候補pair: {int(counts.get('retained_pairs') or 0):,}件",
         "",
         "## 類似候補",
@@ -504,9 +533,20 @@ def render_markdown(index: Mapping[str, Any]) -> str:
 
 def _atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(content, encoding="utf-8", newline="\n")
-    temporary.replace(path)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except (OSError, UnicodeError):
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def generate(

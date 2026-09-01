@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "case_id": "20260901-payload-wmisave",
+  "analysis_date": "2026-09-01",
+  "domain": "fingerprint-verification.info",
+  "case_kind": "clickfix_payload_delivery",
+  "delivery": {
+    "source": "analyst-provided archive and Zone.Identifier",
+    "filename": "WMIsave.7z",
+    "sha256": "2ad9b75c8199982ac4398cfe500246d9a840e7554b1a27e2e7d6b53c1ebe15ae",
+    "archive_password": "002700",
+    "payload_filename": "WMIsave.exe",
+    "payload_sha256": "d3fc5ed15a97063e804664d5f379bb7454d103b4defa9ac9e788f1eaa922a675",
+    "command_captured": false,
+    "canonical_malware_case": "analysis-results/malware/unclassified/versions/unknown/cases/d3fc5ed15a97063e804664d5f379bb7454d103b4defa9ac9e788f1eaa922a675"
+  },
+  "confidence_boundaries": {
+    "provider_context": "ClickFix delivery",
+    "zone_identifier_url": "confirmed",
+    "archive_and_payload_hashes": "confirmed",
+    "initial_command": "not_observed",
+    "payload_behavior": "recorded_only_in_canonical_malware_case"
+  },
+  "safety": {
+    "sample_executed": false,
+    "payload_executed": false,
+    "javascript_executed": false,
+    "powershell_executed": false,
+    "sandbox_submission_performed": false,
+    "sandbox_artifact_downloaded": false
+  }
+}

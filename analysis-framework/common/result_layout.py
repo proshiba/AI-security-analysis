@@ -36,7 +36,7 @@ _CLICKFIX_DOMAIN_RE = re.compile(
     r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
 )
 _CLICKFIX_CASE_RE = re.compile(
-    r"^20\d{6}-(?:(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+|command-pt\d+(?:-pt\d+)*)$"
+    r"^20\d{6}-(?:(?:clickfix-hunter|clickfix-pro|threatfox)-[a-z0-9]+|command-pt\d+(?:-pt\d+)*|payload-[a-z0-9]+)$"
 )
 _CLICKFIX_COLLECTION_LAYOUTS = (
     (

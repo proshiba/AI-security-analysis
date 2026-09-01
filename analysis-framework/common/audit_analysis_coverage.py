@@ -45,15 +45,38 @@ RAW_PROVIDER_KEYS = {
     "yara_rules",
 }
 CONFIG_RECOVERY_KEYS = {"decoded_config_recovered", "static_config_recovered"}
+MAX_PUBLIC_DOCUMENT_BYTES = 128 * 1024 * 1024
+
+
+class DocumentTooLargeError(ValueError):
+    """公開文書が監査上限を超えたことを表す。"""
 
 
 @dataclass(frozen=True)
 class JsonDocument:
-    """One parsed public JSON document and its nearest case identity."""
+    """解析済み公開JSON文書と最寄りのcase identity。"""
 
     path: Path
     case_sha256: str | None
     value: Any
+    text: str
+
+
+def _read_bounded_text(
+    path: Path,
+    *,
+    maximum_bytes: int | None = None,
+) -> str:
+    """公開文書をbyte上限付きで読み、UTF-8 textを返す。"""
+
+    limit = MAX_PUBLIC_DOCUMENT_BYTES if maximum_bytes is None else maximum_bytes
+    if limit < 1:
+        raise ValueError("maximum_bytes must be positive")
+    with path.open("rb") as handle:
+        content = handle.read(limit + 1)
+    if len(content) > limit:
+        raise DocumentTooLargeError(path)
+    return content.decode("utf-8-sig")
 
 
 def _relative(path: Path, repository: Path) -> str:
@@ -139,19 +162,26 @@ def _config_recovery_observation(value: Any) -> tuple[int, bool] | None:
     return None
 
 
-def _load_json_documents(
-    repository: Path, results_root: Path
-) -> tuple[list[JsonDocument], list[str]]:
-    documents: list[JsonDocument] = []
-    errors: list[str] = []
+def _iter_json_documents(
+    repository: Path,
+    results_root: Path,
+    parse_errors: list[str],
+    oversized_documents: set[str],
+) -> Iterable[JsonDocument]:
+    """公開JSONを一件ずつ解析し、全documentの同時保持を避ける。"""
+
     for path in sorted(results_root.rglob("*.json")):
+        relative = _relative(path, repository)
         try:
-            value = json.loads(path.read_text(encoding="utf-8-sig"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            errors.append(_relative(path, repository))
+            text = _read_bounded_text(path)
+            value = json.loads(text)
+        except DocumentTooLargeError:
+            oversized_documents.add(relative)
             continue
-        documents.append(JsonDocument(path, _case_sha(path, results_root), value))
-    return documents, errors
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            parse_errors.append(relative)
+            continue
+        yield JsonDocument(path, _case_sha(path, results_root), value, text)
 
 
 def _load_history_hashes(repository: Path) -> tuple[set[str], list[str]]:
@@ -220,13 +250,21 @@ def audit_repository(repository: Path) -> dict[str, Any]:
         _relative(path, repository) for path in case_directories if not (path / "IOC-LIST.md").is_file()
     ]
 
-    documents, json_parse_errors = _load_json_documents(repository, results_root)
+    json_parse_errors: list[str] = []
+    oversized_documents: set[str] = set()
+    public_json_documents = 0
     status_counts: Counter[str] = Counter()
     schemaless_analysis: list[str] = []
     unresolved: dict[str, set[str]] = defaultdict(set)
     config_recovery_observations: dict[str, list[tuple[int, bool, str]]] = defaultdict(list)
     provider_boundary_violations: list[str] = []
-    for document in documents:
+    for document in _iter_json_documents(
+        repository,
+        results_root,
+        json_parse_errors,
+        oversized_documents,
+    ):
+        public_json_documents += 1
         if document.path.name == "analysis.json" and isinstance(document.value, dict):
             case = document.value.get("case", {})
             nested_status = (
@@ -237,17 +275,18 @@ def audit_repository(repository: Path) -> dict[str, Any]:
             ] += 1
             if "schema_version" not in document.value:
                 schemaless_analysis.append(_relative(document.path, repository))
-        serialized = json.dumps(document.value, ensure_ascii=False, sort_keys=True)
+        serialized = document.text
         if document.case_sha256:
             for name, pattern in UNRESOLVED_MARKERS.items():
                 if pattern.search(serialized):
                     unresolved[name].add(document.case_sha256)
-            observation = _config_recovery_observation(document.value)
-            if observation is not None:
-                priority, state = observation
-                config_recovery_observations[document.case_sha256].append(
-                    (priority, state, _relative(document.path, repository))
-                )
+            if any(key in document.text for key in CONFIG_RECOVERY_KEYS):
+                observation = _config_recovery_observation(document.value)
+                if observation is not None:
+                    priority, state = observation
+                    config_recovery_observations[document.case_sha256].append(
+                        (priority, state, _relative(document.path, repository))
+                    )
         if document.path.name == "malwarebazaar-info.json":
             keys = {key.lower() for key in _walk_keys(document.value)}
             raw_flag = (
@@ -258,32 +297,37 @@ def audit_repository(repository: Path) -> dict[str, Any]:
             if keys.intersection(RAW_PROVIDER_KEYS) or raw_flag is not False:
                 provider_boundary_violations.append(_relative(document.path, repository))
 
-    # Some older workflows record their terminal limitation only in a case
-    # README. Include both JSON and Markdown so unresolved coverage is not
-    # understated merely because result schemas differ.
-    for case_directory in case_directories:
-        digest = case_directory.name.lower()
-        for path in sorted(case_directory.rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in {".json", ".md"}:
-                continue
-            try:
-                text = path.read_text(encoding="utf-8-sig")
-            except (OSError, UnicodeDecodeError):
-                continue
+    # 一部の旧workflowはterminal limitationをREADMEだけへ記録する。
+    # JSONは上で確認済み。Markdownを1回走査し、IOC形式も同時に検査する。
+    ioc_files: list[Path] = []
+    nonstandard_ioc: list[str] = []
+    for path in sorted(results_root.rglob("*.md")):
+        if not path.is_file():
+            continue
+        digest = _case_sha(path, results_root)
+        is_ioc_list = path.name == "IOC-LIST.md"
+        if is_ioc_list:
+            ioc_files.append(path)
+        if digest is None and not is_ioc_list:
+            continue
+        relative = _relative(path, repository)
+        try:
+            text = _read_bounded_text(path)
+        except DocumentTooLargeError:
+            oversized_documents.add(relative)
+            if is_ioc_list:
+                nonstandard_ioc.append(relative)
+            continue
+        except (OSError, UnicodeDecodeError):
+            if is_ioc_list:
+                nonstandard_ioc.append(relative)
+            continue
+        if digest is not None:
             for name, pattern in UNRESOLVED_MARKERS.items():
                 if pattern.search(text):
                     unresolved[name].add(digest)
-
-    ioc_files = sorted(results_root.rglob("IOC-LIST.md"))
-    nonstandard_ioc: list[str] = []
-    for path in ioc_files:
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            nonstandard_ioc.append(_relative(path, repository))
-            continue
-        if STANDARD_IOC_HEADER not in text:
-            nonstandard_ioc.append(_relative(path, repository))
+        if is_ioc_list and STANDARD_IOC_HEADER not in text:
+            nonstandard_ioc.append(relative)
 
     history_hashes, invalid_history = _load_history_hashes(repository)
     missing_history = sorted(case_hashes - history_hashes)
@@ -307,7 +351,7 @@ def audit_repository(repository: Path) -> dict[str, Any]:
         # 実移行前の read-only 互換。新規出力先は canonical research path のみ。
         hard_case_path = results_root / "static-hard-cases" / "deep-static-triage.json"
     try:
-        hard_case = json.loads(hard_case_path.read_text(encoding="utf-8"))
+        hard_case = json.loads(_read_bounded_text(hard_case_path))
         summary = hard_case.get("summary", {})
         if isinstance(summary, dict):
             hard_case_summary = {
@@ -323,11 +367,15 @@ def audit_repository(repository: Path) -> dict[str, Any]:
                     "expected_children_missing_cases",
                 )
             }
+    except DocumentTooLargeError:
+        oversized_documents.add(_relative(hard_case_path, repository))
+        hard_case_summary = {"status": "report_too_large"}
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         hard_case_summary = {"status": "report_missing_or_invalid"}
 
     findings = {
         "json_parse_errors": sorted(json_parse_errors),
+        "oversized_public_documents": sorted(oversized_documents),
         "case_directories_missing_readme": sorted(missing_readme),
         "case_directories_missing_ioc_list": sorted(missing_ioc),
         "analysis_json_without_schema_version": sorted(schemaless_analysis),
@@ -345,11 +393,12 @@ def audit_repository(repository: Path) -> dict[str, Any]:
             "samples_executed": False,
             "emulated": False,
             "network_contacted": False,
+            "maximum_public_document_bytes": MAX_PUBLIC_DOCUMENT_BYTES,
         },
         "counts": {
             "case_directories": len(case_directories),
             "unique_case_hashes": len(case_hashes),
-            "public_json_documents": len(documents),
+            "public_json_documents": public_json_documents,
             "ioc_list_files": len(ioc_files),
             "history_hashes": len(history_hashes),
             "decoded_or_static_config_not_recovered_cases": len(config_not_recovered_records),
@@ -388,6 +437,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     }
     finding_labels = {
         "json_parse_errors": "JSON解析エラー",
+        "oversized_public_documents": "監査上限を超えた公開文書",
         "case_directories_missing_readme": "READMEがないケース",
         "case_directories_missing_ioc_list": "IOC一覧がないケース",
         "analysis_json_without_schema_version": "schema_versionがないanalysis.json",

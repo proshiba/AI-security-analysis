@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "case_id": "20260901-payload-wmisave",
+  "domain": "fingerprint-verification.info",
+  "observed_at": "2026-08-31T14:45:06Z",
+  "investigated_at_utc": "2026-08-31T23:14:00Z",
+  "evidence_layers": {
+    "provider_observation": {"source": "analyst-provided Zone.Identifier", "source_id": "WMIsave.7z"},
+    "active_bounded_get": {
+      "reachable": false,
+      "not_attempted": true,
+      "reason": "配布本文を再取得せず、DNSとTLS handshakeだけを確認",
+      "http_statuses": [],
+      "webdav_multistatus_observed": false,
+      "redirects": [],
+      "public_addresses": ["178.16.52.101"],
+      "landing_public_addresses": ["178.16.52.101"],
+      "stage_public_addresses": [],
+      "tls_certificates": [
+        {
+          "subject": "CN=fingerprint-verification.info",
+          "issuer": "CN=YR2, O=Let's Encrypt, C=US",
+          "not_before": "2026-08-24T04:11:33Z",
+          "not_after": "2026-11-22T04:11:32Z",
+          "sha256": "638a0743830403481a753f46f0167f03e0d5fb6fa03a29177b627098e0e0522d",
+          "protocol": "TLS 1.3"
+        }
+      ]
+    },
+    "current_passive_dns": {
+      "A": {"status": 0, "records": [{"name": "fingerprint-verification.info", "type": 1, "ttl": 300, "data": "178.16.52.101"}]},
+      "AAAA": {"status": 0, "records": []},
+      "CNAME": {"status": 0, "records": []},
+      "NS": {"status": 0, "records": [{"name": "fingerprint-verification.info", "type": 2, "ttl": 21600, "data": "justin.ns.cloudflare.com"}, {"name": "fingerprint-verification.info", "type": 2, "ttl": 21600, "data": "melody.ns.cloudflare.com"}]},
+      "MX": {"status": 0, "records": []}
+    },
+    "domain_rdap": {
+      "registrar": "Spaceship, Inc.",
+      "registrar_iana_id": "3862",
+      "nameservers": ["justin.ns.cloudflare.com", "melody.ns.cloudflare.com"],
+      "status": ["client transfer prohibited"],
+      "registered_at": "2026-08-24T03:35:39.909Z",
+      "expires_at": "2027-08-24T03:35:39.909Z",
+      "last_changed_at": "2026-08-29T03:36:11.283Z"
+    },
+    "certificate_transparency": {
+      "certificate_rows": 2,
+      "names": ["fingerprint-verification.info"],
+      "issuers": ["C=US, O=Let's Encrypt, CN=YR2"],
+      "not_before": ["2026-08-24T04:11:33Z"],
+      "not_after": ["2026-11-22T04:11:32Z"]
+    },
+    "ip_pivot": {
+      "address": "178.16.52.101",
+      "rdap": {"handle": "178.16.52.0 - 178.16.52.255", "name": "OMEGATECH", "type": "ASSIGNED PA", "country": "DE", "start_address": "178.16.52.0", "end_address": "178.16.52.255", "parent_handle": "178.16.52.0 - 178.16.55.255", "status": ["active"]},
+      "asn": {"asn": 202412, "organization": "OMEGATECH", "isp": "Omegatech LTD", "country_code": "DE"},
+      "shodan_internetdb": {"ip": "178.16.52.101", "ports": [80, 443], "hostnames": ["fingerprint-verification.info"], "cpes": ["cpe:/a:f5:nginx"], "vulns": [], "tags": []}
+    },
+    "historical_passive_dns": {"status": "not_collected", "reason": "履歴DNS provider未設定"}
+  },
+  "errors": [],
+  "interpretation": {"shared_hosting_and_cdn_possible": true, "dns_or_open_port_alone_is_c2": false, "campaign_attribution_requires_multi_axis_evidence": true}
+}

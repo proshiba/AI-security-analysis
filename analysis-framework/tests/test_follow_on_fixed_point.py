@@ -11,7 +11,6 @@ from types import SimpleNamespace
 
 import pytest
 
-
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / 'common'
 REPOSITORY_ROOT = FRAMEWORK_ROOT.parent
@@ -22,7 +21,6 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT):
 
 import analyze_sample as one_shot  # noqa: E402
 import bounded_process  # noqa: E402
-
 
 REGISTRY = FRAMEWORK_ROOT / 'registry' / 'malware_types.json'
 
@@ -1346,7 +1344,15 @@ def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatc
             'roots': [root],
             'nodes': [
                 {'sha256': root, 'depth': 0, 'state': 'root'},
-                {'sha256': child, 'depth': 1, 'state': 'timeout', 'size': 10},
+                {
+                    'sha256': child,
+                    'depth': 1,
+                    'state': 'timeout',
+                    'size': 10,
+                    'family_hint_count': 0,
+                    'family_hint_root_sha256': None,
+                    'family_hint_lineage_depth': None,
+                },
             ],
             'edges': [
                 {

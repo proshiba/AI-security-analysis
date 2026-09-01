@@ -238,7 +238,7 @@ job_artifact_schemas.validate_job_artifact_document(
 | `max_static_layers` | `64` | 1～64 |
 | `retry_max_static_layers` | `null` | 初回上限より大きく、最大256 |
 
-入力全体の合計は2 GiB、tree entryは10,000件までです。要求上限を大きくしてもrunnerのhard limitを超えることはできません。受付時に全入力fileを`lstat` identityへ固定し、単一handleからjob専用`contract-inputs/samples/<index>/`へcopyします。copy前後でdirectory identity、通常file、hardlink、reparse point、size、mtime、ctime、SHA-256を検証し、worker／analyzerの前後でもmanifestとtreeを再検証します。以後の解析へ渡すのはjob専用snapshotだけで、元の入力pathは渡しません。
+入力全体の合計は2 GiB、tree entryは10,000件までです。要求上限を大きくしてもrunnerのhard limitを超えることはできません。受付時に全入力fileを`lstat` identityへ固定し、検証済みの単一handleからjob専用領域へcopyします。解析対象は`contract-inputs/samples/<index>/`、MalwareBazaarモードで解析対象から外した非ZIPは`contract-inputs/inventory/<index>/`へ分離します。copy前後でdirectory identity、通常file、hardlink、reparse point、size、mtime、ctime、SHA-256を検証し、worker／analyzerの前後と完了job返却直前にもmanifest、全入力snapshot、log、契約bundle、request、解析treeを再検証します。解析へ渡すのは`samples`側のjob専用snapshotだけで、元の入力pathと`inventory`側の非選択fileは渡しません。
 
 `family_hint_manifest`は解析対象file数へ含めず、UTF-8、重複keyなし、非有限数なし、JSON object root、通常file、4 MiB以下をrunnerで検証します。検証した同じbytesをjob-localの`contract-inputs/family-hint-manifest.json`へatomicに固定し、子processには元fileではなくこのcopyだけを渡します。manifest内のexact root SHA-256とfamily候補のschemaは`analyze_sample.py`側でも再検証し、metadata hint単独でfamilyを確定しません。
 
@@ -323,11 +323,13 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
     trusted-static-tools.json      # operator tool有効時のsnapshot provenance
     static-tools/<tool-id>/...     # job-private UPX／7zz launcher snapshot
     samples/<index>/...            # 名前衝突を避けた検体snapshot
+    inventory/<index>/...          # 解析へ渡さない非選択入力の証跡snapshot
     family-hint-manifest.json      # 指定時だけ
   analysis/          # analyze_sample.pyのroot・derived成果物
     .private-temp/   # 空なら終了時に非再帰削除。残存物・差替え時は調査用に保持
     summary.json
     follow-on-analysis.json
+    terminal-payload-acquisition.json
     cases/<sha256>/
 ```
 
@@ -335,9 +337,11 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
 
 ### statusスキーマ
 
+request／解析契約のversion 1とは独立して、`status.json`、`progress.json`、`result.json`、API snapshotは成果物契約version 2を使用します。version 1の完了成果物は新しい必須sealを持たないため再利用せず、新しいjob IDで再解析します。
+
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "job_id": "analysis-20260810-0001",
   "state": "running",
   "terminal": false,
@@ -356,7 +360,7 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "job_id": "analysis-20260810-0001",
   "phase": "static_analysis",
   "percent": 30,
@@ -373,9 +377,9 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "job_id": "analysis-20260810-0001",
-  "request_sha256": "64文字のSHA-256",
+  "request_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "accepted": true,
   "analysis_state": "complete",
   "inputs": [
@@ -383,44 +387,75 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
       "relative_path": "intake-20260810/sample.zip",
       "kind": "file",
       "file_count": 1,
+      "analyzer_file_count": 1,
       "total_bytes": 123456
     }
   ],
-  "family_hint_manifest": "hints/analysis-20260810-0001.json",
+  "family_hint_manifest": null,
+  "trusted_static_tools": null,
   "counts": {
     "input_files": 1,
     "analyzed": 1,
+    "duplicates": 0,
+    "errors": 0,
+    "identified": 1,
+    "unknown_or_ambiguous": 0,
+    "automation_resolved": 1,
+    "automation_partial": 0,
+    "automation_unknown": 0,
+    "candidate_handler_attempts": 1,
+    "handler_successes": 1,
+    "handler_failures": 0,
+    "handler_no_evidence": 0,
+    "handler_ambiguous": 0,
+    "handler_incompatible": 0,
+    "analysis_stage_failures": 0,
+    "analysis_stage_partial": 0,
     "complete": 1,
+    "triaged_unknown": 0,
     "partial": 0,
-    "failed": 0
+    "failed": 0,
+    "resumed": 0
   },
   "derived_counts": {
-    "analyzed": 1,
-    "complete": 1,
+    "analyzed": 0,
+    "identified": 0,
+    "unknown_or_ambiguous": 0,
+    "complete": 0,
+    "triaged_unknown": 0,
     "partial": 0,
-    "failed": 0
+    "failed": 0,
+    "resumed": 0
   },
   "follow_on_analysis": {
     "artifact": "follow-on-analysis.json",
-    "sha256": "64文字のSHA-256",
-    "status": "complete",
-    "node_count": 2,
-    "edge_count": 1,
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "status": "no_retained_payloads",
+    "node_count": 1,
+    "edge_count": 0,
     "error_count": 0
   },
   "artifacts": {
     "analysis_summary": "analysis/summary.json",
     "follow_on_analysis": "analysis/follow-on-analysis.json",
-    "family_hint_manifest": "contract-inputs/family-hint-manifest.json",
-    "family_hint_manifest_sha256": "64文字のSHA-256",
+    "terminal_payload_acquisition": "analysis/terminal-payload-acquisition.json",
+    "terminal_payload_acquisition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "family_hint_manifest": null,
+    "family_hint_manifest_sha256": null,
     "analysis_contract_bundle": "contract-inputs/analysis-contract-bundle.json",
-    "analysis_contract_bundle_sha256": "64文字のSHA-256",
+    "analysis_contract_bundle_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "input_snapshot_manifest": "contract-inputs/input-snapshot-manifest.json",
-    "input_snapshot_manifest_sha256": "64文字のSHA-256",
-    "trusted_static_tools_manifest": "contract-inputs/trusted-static-tools.json",
-    "trusted_static_tools_manifest_sha256": "64文字のSHA-256",
+    "input_snapshot_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "trusted_static_tools_manifest": null,
+    "trusted_static_tools_manifest_sha256": null,
     "stdout": "stdout.log",
     "stderr": "stderr.log",
+    "stdout_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "stderr_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "stdout_size": 1024,
+    "stderr_size": 0,
+    "stdout_observed_bytes": 1024,
+    "stderr_observed_bytes": 0,
     "stdout_truncated": false,
     "stderr_truncated": false,
     "analysis_output": {
@@ -428,7 +463,8 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
       "files": 80,
       "directories": 20,
       "total_bytes": 12345678
-    }
+    },
+    "analysis_output_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
   },
   "process": {
     "exit_code": 0,
@@ -450,13 +486,17 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
 
 `counts`は入力root検体だけ、`derived_counts`は保持payloadを固定点解析してterminal stateまで到達した子caseだけを数えます。runnerはrootのseal済みreport、orchestration、candidate assessmentとcase recordを照合した後、family、automation、handler、解析stage、terminal state、resumeの全件数をcase recordから再計算します。`triaged_unknown`はprocess成功として受理しますが解析完了には数えず、rootまたはderived caseに1件でもあれば`completed_partial`、`analysis_state=partial`、終了code `20`へ写像します。timeout途中、seal不一致、成果物hash不一致、解析契約不一致の子caseは`derived_counts`へ入らず、follow-on状態とjob終了codeを`partial`／`20`にします。runnerはgraph上の`analyzed`／`resumed_complete` node集合と`derived_cases`を完全一致で照合します。
 
-`input-snapshot-manifest.json`は元入力identityとsnapshotの相対path、size、SHA-256を固定します。`analysis-contract-bundle.json`は、production実行直前にisolated `-I -B` workerがsnapshotから読み取ったanalyzer単位の入力名、読取成否、SHA-256と、現在コード・registry・固定optionから計算したroot／child解析契約を保存します。runnerは両manifestをatomic保存後に再読込し、`result.json`へfile bytesのSHA-256を記録します。これによりUIの受付件数、snapshot、analyzerの`cases`／`duplicates`／`errors`、実際に解析した入力を完全照合できます。
+`input-snapshot-manifest.json`は要求順の`input_records`に加えて、受付tree内の全通常fileを`source_inventory`へ固定します。`source_inventory`にはMalwareBazaarモードで解析対象から除外した非ZIPも含め、元の相対path、job-private snapshotの相対path、size、SHA-256を記録します。受付時は検証済みの単一handleから全fileをcopyし、解析対象だけを`contract-inputs/samples`、非選択fileを`contract-inputs/inventory`へ分離します。後者をanalyzerへ渡すことはありません。再検証時はinventoryから各requestの`file_count`、`analyzer_file_count`、`total_bytes`を再導出し、全inventory snapshotの実byteと、解析対象snapshotの相対path、size、SHA-256を完全一致で照合します。両snapshot treeの追加・削除・reparse pointも拒否するため、非選択fileのmanifest値だけを整合的に書き換えて再利用することはできません。Windowsの大小文字だけが異なる正当な所有pathは同一視しますが、別入力への付替え、大小文字を無視した重複path、snapshot pathの重複、要求外source名は拒否します。`analysis-contract-bundle.json`は、production実行直前にisolated `-I -B` workerがsnapshotから読み取ったanalyzer単位の入力名、読取成否、SHA-256と、現在コード・registry・固定optionから計算したroot／child解析契約を保存します。runnerは両manifestをatomic保存後に再読込し、`result.json`へfile bytesのSHA-256を記録します。これによりUIの受付件数、全source inventory、snapshot、analyzerの`cases`／`duplicates`／`errors`、実際に解析した入力を完全照合できます。`errors`は受付順を表す`input_index`、nullable SHA-256、`input_read`／`resume_validation`／`root_static_analysis`の固定stage、対応する固定`error_code`、日本語prefixと例外型だけのmessageを持ちます。例外本文、credential、ファイル名、絶対path、任意keyは公開せず、index、stage、SHA-256を入力manifestへ完全照合します。
+
+完了済みjobを上位lifecycleまたはdaily入口で再利用するときも、runnerの`revalidate_completed_job()`はjob-private入力snapshotと信頼済みtool snapshotを再固定し、現在コードと保存optionからroot／follow-on契約を隔離workerで再構成します。解析treeは件数と総sizeだけでなく、許可された全相対path、directory種別、各fileのsize／SHA-256をcanonical manifestへ固定します。summary、follow-on、終端payload台帳、case reportとcaseの`artifact_sha256`が参照するfile以外は、tree上の未参照entryとして拒否します。保存済み契約bundle、root／child seal、exact解析tree、全入力snapshot、信頼済みtool、family hint、stdout／stderrの保持size・実観測bytes・SHA-256・切詰め状態、`request.json`、`status.json`、`progress.json`、`result.json`を現在の生成規則から再構築し、終端state読取後にも副次成果物と主要成果物を再度閉包検証します。完全一致しないjobは再利用しません。公開artifact validatorも、保持sizeが実観測bytes以下であり、切詰めflagが`実観測bytes > 保持size`と一致することをsnapshot読取時点で要求します。保持sizeが1 MiBちょうどで観測bytesも同じ場合は切詰めなしとし、観測bytesが保持sizeを超えた場合だけ切詰め済みとします。再検証用一時directoryはjob root、repository、入力rootの外側へ作り、終了時に破棄します。
+
+再検証のconsumerへ元jobを直接渡さず、完了job全体の通常file／directory集合、各fileのsize／SHA-256、合計件数、合計sizeをhard quota内のexact manifestへ固定して、job・repository外のprivate directoryへ複製します。copy前後の元jobとcopyを完全一致で照合し、copyを読取専用化した後はその同じprivate snapshotだけを検証します。返却前にprivate snapshotと元jobをどちらも全体再hashするため、入力検証後のlog処理中に入力だけを差し替えるような成果物間の交差改変も受理しません。
 
 `trusted-static-tools.json`はoperator manifestのraw SHA-256、host platform、job-private launcherの相対path、名前、size、SHA-256を固定します。root／child解析契約の`settings.static_tools`、summary、`result.trusted_static_tools`、artifact manifest SHA-256を独立照合します。toolを無効にしたjobでは`trusted_static_tools`と対応artifact 2 fieldはすべて`null`であり、provenanceとmanifest参照の片方だけを持つresultはschema違反です。公開値へoperatorの絶対pathは含めません。
 
 親caseを`complete`へ昇格した場合、`follow-on-analysis.json`の`promoted_parent_sha256`と、全検証済みreport内の`follow_on_promotion`保持case集合は完全一致しなければなりません。昇格に使えるのは当該親から通常またはshared edgeで到達したchild-contract caseだけで、`depth_limit`、cycle、size／件数上限、別root再利用を別経路の成功で流用しません。runnerはresolved familyの品質gateへ寄与したwrapper群から保持payload集合とoutcomeを再計算し、wrapper内部proof、親proof、子解析契約SHA-256、子report semantic hash、親子edgeを完全一致で再結合します。
 
-別のroot入力と同じSHA-256の保持payloadは、depth 0のroot nodeを重複作成せずshared edgeで参照します。`shared_sha256_reused_complete`は参照先rootのseal済みcaseとorchestrationが厳格な`complete`の場合だけ受理します。root契約で解析したcaseをchild契約の親昇格proofへ流用しません。
+別のroot入力と同じSHA-256の保持payloadは、depth 0のroot nodeを重複作成せずshared edgeで参照します。`shared_sha256_reused_complete`は参照先rootのseal済みcaseとorchestrationが厳格な`complete`の場合だけ受理し、終端payload台帳の生成時と再検証時の両方でsummaryのroot case stateをgraphへ明示的に再結合します。非root nodeのactive incoming edgeは厳密に1本とし、`cycle_excluded`は実際のactive親鎖でancestorへ到達できる場合だけ認めます。root契約で解析したcaseをchild契約の親昇格proofへ流用しません。
 
 保持metadataをedgeへ変換できなかった場合は、黙って切り捨てません。先頭4,096件までは`omitted_metadata`へ親・子SHA-256、size、path、role、kindと、edge上限、再読込byte上限、wall-clock、成果物検証失敗の理由を記録します。この上限を超える残余は、親ごとに多重度を保つcanonical SHA-256と件数を`omitted_metadata_commitments`へ記録します。canonical hashはunique metadataと多重度を辞書順で逐次hashし、多重度分の巨大なlistを生成しません。runnerはseal済みwrapperから残余`Counter`を独立再計算し、`edge + omitted_metadata + omitted_metadata_commitments`が全保持metadataを過不足なく表すことを照合します。個別omissionまたはcommitmentが1件でもあれば必ず`partial`です。commitmentがあるjobでは親昇格を無効化し、昇格済み親一覧も空でなければなりません。親昇格はproof、品質gate、artifact manifest、全JSON serializationを先に検証し、その後に各fileをatomic replaceして`report.json`を最後に保存します。これは論理的な二段階commitであり、複数fileを単一filesystem transactionにするものではありません。I/O失敗時はcompleteとして公開しません。
 
@@ -516,8 +556,12 @@ family handlerは公開resultへraw bytesを入れません。検証済みbytes�
 
 ```powershell
 py -3.13 -m pytest .\analysis-framework\tests\test_analysis_job_runner.py -q
-py -3.13 -m ruff check .\analysis-framework\common\analysis_job_runner.py `
-  .\analysis-framework\tests\test_analysis_job_runner.py
+py -3.13 -m pytest .\analysis-framework\tests\test_job_artifact_schemas.py -q
+py -3.13 -m ruff check --select I,UP,E4,E7,E9,F,DTZ `
+  .\analysis-framework\common\analysis_job_runner.py `
+  .\analysis-framework\common\job_artifact_schemas.py `
+  .\analysis-framework\tests\test_analysis_job_runner.py `
+  .\analysis-framework\tests\test_job_artifact_schemas.py
 ```
 
 テストはstrict JSON、stdin size上限、machine-readable schemaと実装定数の一致、snapshotの重複／未知field、cross-job混入、terminal整合性、許可されたatomic遷移、hardlink、network／live option拒否、path traversal、重複入力、root重複、reparse、件数上限、元file差替え・grow・同名file・snapshot改ざん、canonical manifest copy、isolated runtime依存、同一interpreter、private stdinの契約worker、入力manifest／重複／errorの完全照合、`shell=False`、有界stdout／stderr drain、process tree終了、実行中・完了後output quota、seal済みrootからの全件数再計算、root／child契約アンカー、assessment-only状態結合、follow-on graph改ざん、hard counter、edge／omission／commitment完全分割、commitment時の親昇格禁止、node状態、親wrapper metadataとedgeの完全一致、payload再hash、別root同一SHA再利用、子report seal・成果物hash・lineage、親別昇格proof、wrapper内部proof、途中case除外、終了codeとsummaryの一致、global wall-clock、`ai_used=false`、完全成功、部分成功、安全summary違反、異常終了、timeout、atomic JSON、job ID再利用拒否を確認します。
@@ -526,4 +570,4 @@ py -3.13 -m ruff check .\analysis-framework\common\analysis_job_runner.py `
 
 runnerはnetwork optionを公開せず、信頼済みのオフライン静的解析scriptだけを起動します。ただしPython process自体へOSレベルの通信遮断を付与するものではありません。本番serviceでは専用低権限accountとoutbound denyを併用してください。`summary.network_contacted=false`は解析契約の事後確認であり、OSのegress policyを置き換えません。同様に、runnerが固定する`ai_used=false`はこのscript-only経路の契約値であり、serviceが別processや別APIでAIを呼び出さないことはservice側の監査対象です。runtime preflightは同じ`sys.executable`のisolated modeと最小環境を使い、user-site依存を許可しません。全handlerを毎jobで一括importして起動を遅延させず、catalog全体を短時間で構築したうえで、選択されたhandlerの再帰依存監査とimportを実行直前に行います。handler本体とrepository-local Python依存は、監査時に単一handleから取得したSHA-256付きbytes snapshotだけを専用loaderで実行します。監査後のpath再import、manifest外local import、差し替え、hardlink、reparseはfail-closedです。data fileは別の成果物・path契約で検証します。Windows、REMnux、containerのいずれでも、serviceを起動するsystem siteまたは専用venvへrequirementsを導入してください。
 
-producerが`terminal_payload_acquisition`参照を持つ場合、runnerは`terminal-payload-acquisition.json`を単一handleで読み、SHA-256と件数を確認した後、検証済みfollow-on graphから終端frontierを再計算します。`selected_sha256`は厳格completeの最深leafだけ、timeout・上限・cycle・omissionは`pending_sha256`とblockerへ写像され、外部取得・検体実行・通信の安全フラグは常にfalseでなければなりません。graphと一致しない取得済み主張はjob結果へ公開しません。
+現行production producerは`summary.json`の`terminal_payload_acquisition`参照と`terminal-payload-acquisition.json`を必ず生成します。runnerは参照欠落とfile欠落を拒否し、台帳を単一handleで読み、SHA-256と件数を確認した後、検証済みfollow-on graphから終端frontierを再計算します。`selected_sha256`は厳格completeの最深leafだけ、timeout・上限・cycle・omissionは`pending_sha256`とblockerへ写像され、外部取得・検体実行・通信の安全フラグは常にfalseでなければなりません。graph、件数、安全flagと一致しない取得済み主張はjob結果へ公開せず、検証済み台帳の相対pathとSHA-256を`result.json.artifacts`へ固定します。

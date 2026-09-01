@@ -17,6 +17,7 @@ if str(COMMON) not in sys.path:
 planner = importlib.import_module("analysis_resume_planner")
 lifecycle = importlib.import_module("analysis_lifecycle")
 orchestrator = importlib.import_module("analysis_orchestrator")
+registry = importlib.import_module("remediation_registry")
 
 
 def _lifecycle_request(workflow_id: str) -> dict[str, Any]:
@@ -264,8 +265,7 @@ def test_complete_workflow_is_verified_no_op(tmp_path: Path) -> None:
     )
     assert result["source_provenance"]["implementation_fingerprint_scope"] == "orchestrator_source_only"
     assert (
-        result["source_provenance"]["transitive_implementation_status"]
-        == "not_committed_by_saved_orchestration_state"
+        result["source_provenance"]["transitive_implementation_status"] == "not_committed_by_saved_orchestration_state"
     )
 
 
@@ -284,13 +284,33 @@ def test_complete_workflow_is_verified_no_op(tmp_path: Path) -> None:
             "implement_family_handler",
             "static_analysis",
         ),
+        (
+            "terminal_acquisition:child_timeout",
+            "terminal_payload_static_recovery",
+            "static_analysis",
+        ),
+        (
+            "batch_error:root_static_analysis_failed",
+            "reanalyze_static_pipeline",
+            "static_analysis",
+        ),
+        (
+            "batch_error:resume_validation_failed",
+            "reanalyze_static_pipeline",
+            "static_analysis",
+        ),
+        (
+            "batch_error:input_read_failed",
+            "review_machine_readable_blocker",
+            "static_analysis",
+        ),
     ],
 )
 def test_exact_and_prefix_blockers_have_deterministic_root_action(
     tmp_path: Path,
     blocker: str,
     action_id: str,
-    target_phase: str,
+    target_phase: str | None,
 ) -> None:
     result = _plan(_fixture(tmp_path, blocker=blocker))
     decision = result["workflows"][0]["decision"]
@@ -316,6 +336,16 @@ def test_every_lifecycle_registered_blocker_has_a_planner_policy() -> None:
     assert blockers
     assert all(planner._policy_for_blocker(blocker) is not None for blocker in blockers)
     assert planner._policy_for_blocker("orchestration:unregistered_gate") is None
+
+
+def test_every_terminal_acquisition_blocker_has_a_planner_policy() -> None:
+    for reason in registry.TERMINAL_ACQUISITION_REASONS:
+        policy = planner._policy_for_blocker(f"terminal_acquisition:{reason}")
+
+        assert policy is not None
+        assert policy.action_id == "terminal_payload_static_recovery"
+        assert policy.target_phase == "static_analysis"
+        assert policy.retryable is False
 
 
 @pytest.mark.parametrize(
@@ -344,7 +374,9 @@ def test_lifecycle_registry_fallback_covers_completion_blockers(
 
 
 def test_malformed_lifecycle_action_spec_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setitem(lifecycle._ACTION_SPECS, "config", ("invalid",))
+    malformed = dict(registry.ACTION_SPECS)
+    malformed["config"] = ("invalid",)
+    monkeypatch.setattr(registry, "ACTION_SPECS", malformed)
 
     assert planner._policy_for_blocker("config_and_c2_not_recovered") is None
 

@@ -953,11 +953,11 @@ def test_selected_family_timeout_keeps_legacy_failure_schema(tmp_path: Path, mon
         assessment_only=False,
         analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
     )
-    report = json.loads(
-        (output / "cases" / result["sha256"] / "report.json").read_text(encoding="utf-8")
-    )
+    case_dir = output / "cases" / result["sha256"]
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
     execution = report["handler_executions"][0]
     attempt = next(item for item in execution["attempts"] if item["status"] == "failed")
+    assert not (case_dir / "p").exists()
     assert execution["status"] == "failed"
     assert execution["error"] == "all_eligible_layers_failed"
     assert attempt["execution_boundary"] == "bounded_assessment_worker"

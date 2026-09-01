@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "20260901-payload-wmisave",
+  "domain": "fingerprint-verification.info",
+  "queried_at_utc": "2026-08-31T23:14:22.723720Z",
+  "queries": [
+    {"operator": "domain", "result_count": 9},
+    {"operator": "url", "status": "timeout"},
+    {"operator": "sha256", "role": "delivery_archive", "result_count": 0},
+    {"operator": "sha256", "role": "original_payload", "result_count": 1},
+    {"operator": "sha256", "role": "depumped_payload", "result_count": 0},
+    {"operator": "sha256", "role": "unpacked_payload", "result_count": 0}
+  ],
+  "public_match_count": 0,
+  "private_matches_omitted": 3,
+  "matches": [],
+  "errors": [{"operator": "url", "error": "TimeoutError"}],
+  "safety": {"sample_submitted": false, "sample_downloaded": false, "artifact_downloaded": false, "pcap_downloaded": false, "sample_executed_locally": false}
+}

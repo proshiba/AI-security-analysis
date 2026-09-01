@@ -172,6 +172,18 @@ def test_public_sanitizer_removes_credentials_and_binary_content() -> None:
     assert "MZpayload" not in json.dumps(value)
 
 
+def test_public_sanitizer_escapes_replacement_characters_recursively() -> None:
+    """復号不能文字をJSONへ残さず、keyと値を可視のUnicode表記へ変換する。"""
+
+    value = sanitize_public_value(
+        {"detector\ufffdname": {"error": "expected token at bad\ufffdname"}}
+    )
+    assert value == {
+        r"detector\uFFFDname": {"error": r"expected token at bad\uFFFDname"}
+    }
+    assert "\ufffd" not in json.dumps(value, ensure_ascii=False)
+
+
 def test_forced_family_runs_only_automatic_handlers(tmp_path: Path) -> None:
     """明示ファミリーでは標準抽出器を実行し、特殊派生解析器を強制しない。"""
 

@@ -4,11 +4,14 @@
 
 ## 安全境界
 
-- `server.py` はループバック以外のバインドアドレスを拒否します。
-- `client.py` はループバック以外の接続先URLを拒否します。
+- `server.py` はIPv4／IPv6ループバック以外のバインドアドレスを拒否します。
+- `client.py` はcredential、追加path、query、fragmentのないループバックHTTP URLだけを許可します。
+- clientはredirectを追跡せず、環境変数のHTTP proxyを使用しません。
+- request／responseを各64 KiB以下に制限し、負値・過大・欠落Content-Length、実長不一致、重複JSON key、非標準数値を拒否します。
 - 共通`c2_detector.py`は互換用offline planだけを返し、MX-Goのnetwork動作を実行しません。
-- 合成check-inと受信者取得は本ディレクトリの`client.py`だけで行い、接続先をnumeric loopbackへ固定します。
+- 合成check-inと受信者取得は本ディレクトリの`client.py`だけで行い、接続先をliteral loopbackへ固定します。
 - ハートビートには合成IDと `LAB_ONLY` を使用し、ホスト名、MACアドレス、実端末の識別子を収集しません。
+- serverは固定heartbeatとの完全一致を要求し、未知fieldや実identityを保存しません。状態fixtureも`lab_emulator`と固定actionの完全一致を要求します。
 - 受信者の合成データには予約済み `.invalid` TLDを使います。出力には件数／ハッシュだけを含め、アドレスは含めません。
 - 検証環境が返すコマンドフラグは空で、動作しません。メール送信やコマンド実行はできません。
 
@@ -33,6 +36,7 @@ python .\emulators\unclassified\mx_go\server.py --host 127.0.0.1 --port 5000
 python .\emulators\unclassified\mx_go\client.py `
   --base-url http://127.0.0.1:5000 `
   --mode both `
+  --timeout 3 `
   --output C:\malware-lab\mx-go-lab-client.json
 ```
 
@@ -58,7 +62,7 @@ python .\emulators\unclassified\mx_go\client.py `
   --output C:\malware-lab\mx-go-recipients.json
 ```
 
-`client.py`はループバック以外のURLをHTTP処理より前に拒否します。実C2、実受信者、外部コンテンツserverへの接続には使用できません。
+`client.py`はループバック以外のURLをHTTP処理より前に拒否します。結果の`response_validated=true`は固定合成応答との一致、`redirect_followed=false`と`proxy_used=false`は外部遷移を行わなかったことを示します。実C2、実受信者、外部コンテンツserverへの接続には使用できません。
 
 ## テスト
 

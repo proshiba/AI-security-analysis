@@ -19,12 +19,14 @@ import tempfile
 import threading
 import time
 from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import cache
-from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from pathlib import Path, PurePosixPath
+from typing import Any
 
+import batch_error_contract
 import job_artifact_schemas
 import orchestration_outcome
 import runtime_contract
@@ -45,6 +47,7 @@ ANALYZER = COMMON_ROOT / "analyze_sample.py"
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
 
 SCHEMA_VERSION = 1
+JOB_ARTIFACT_SCHEMA_VERSION = job_artifact_schemas.SCHEMA_VERSION
 MAX_REQUEST_BYTES = 64 * 1024
 MAX_FAMILY_HINT_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REGISTRY_BYTES = 8 * 1024 * 1024
@@ -52,6 +55,7 @@ MAX_SUMMARY_BYTES = 64 * 1024 * 1024
 MAX_DAILY_STATIC_CAPTURE_FILE_BYTES = 8 * 1024 * 1024
 MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES = 128 * 1024 * 1024
 MAX_LOG_BYTES = 1024 * 1024
+MAX_LOG_OBSERVED_BYTES = (1 << 63) - 1
 MAX_ANALYSIS_OUTPUT_ENTRIES = 100_000
 MAX_ANALYSIS_OUTPUT_BYTES = 1024 * 1024 * 1024
 MIN_FREE_DISK_RESERVE_BYTES = 256 * 1024 * 1024
@@ -225,6 +229,19 @@ FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 TOOL_PROFILE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 TRUSTED_STATIC_TOOL_IDS = ("upx", "sevenzip")
+MAX_COMPLETED_JOB_ENTRIES = MAX_ANALYSIS_OUTPUT_ENTRIES + (2 * MAX_TREE_ENTRIES) + 4_096
+MAX_COMPLETED_JOB_BYTES = (
+    MAX_TOTAL_INPUT_BYTES
+    + MAX_ANALYSIS_OUTPUT_BYTES
+    + (len(TRUSTED_STATIC_TOOL_IDS) * MAX_TRUSTED_TOOL_BINARY_BYTES)
+    + MAX_FAMILY_HINT_MANIFEST_BYTES
+    + MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES
+    + MAX_INPUT_SNAPSHOT_MANIFEST_BYTES
+    + MAX_TRUSTED_TOOL_MANIFEST_BYTES
+    + (2 * MAX_LOG_BYTES)
+    + (4 * MAX_SUMMARY_BYTES)
+    + (16 * MAX_REQUEST_BYTES)
+)
 RESERVED_WINDOWS_NAMES = {
     "aux",
     "clock$",
@@ -422,6 +439,7 @@ SUMMARY_KEYS = frozenset(
         "follow_on_analysis_contract",
         "requirements_policy",
         "follow_on_analysis",
+        "terminal_payload_acquisition",
         "cases",
         "derived_cases",
         "derived_counts",
@@ -433,7 +451,6 @@ SUMMARY_KEYS = frozenset(
         "ai_used",
     }
 )
-SUMMARY_OPTIONAL_KEYS = frozenset({"terminal_payload_acquisition"})
 FOLLOW_ON_MINIMAL_DOCUMENT_KEYS = frozenset(
     {
         "schema_version",
@@ -599,6 +616,7 @@ class InputSnapshotBundle:
     """snapshot群と、改ざん検知に使う固定manifest。"""
 
     inputs: tuple[SnapshotInput, ...]
+    inventory_snapshots: tuple[SnapshotInput, ...]
     manifest_path: Path
     manifest_relative_path: str
     manifest_sha256: str
@@ -909,6 +927,13 @@ def load_json_object_strict(path: Path, *, max_bytes: int) -> dict[str, Any]:
     return _decode_json_object_strict(_read_regular_file_once(path, max_bytes=max_bytes))
 
 
+def load_json_object_snapshot(path: Path, *, max_bytes: int) -> tuple[bytes, dict[str, Any]]:
+    """単一handleで固定したraw bytesとstrict JSON objectを同時に返す。"""
+
+    payload = _read_regular_file_once(path, max_bytes=max_bytes)
+    return payload, _decode_json_object_strict(payload)
+
+
 def _bounded_integer(value: Any, *, name: str, maximum: int) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
         raise JobContractError("option_out_of_bounds", f"{name}は1..{maximum}の整数で指定してください")
@@ -1204,6 +1229,30 @@ def load_job_request_from_stdin(stream: Any | None = None) -> JobRequest:
 
 def _absolute_path(path: Path) -> Path:
     return Path(os.path.abspath(os.fspath(path)))
+
+
+def _extended_length_path(path: Path) -> Path:
+    """Windowsではprivate snapshotの深い成果物へextended-length pathを使う。"""
+
+    absolute = _absolute_path(path)
+    if os.name != "nt":
+        return absolute
+    value = os.fspath(absolute)
+    if value.startswith("\\\\?\\"):
+        return absolute
+    if value.startswith("\\\\"):
+        return Path(f"\\\\?\\UNC\\{value.lstrip(chr(92))}")
+    return Path(f"\\\\?\\{value}")
+
+
+def _analysis_output_io_path(path: Path) -> Path:
+    """SHA-256 case directoryがWindowsのlegacy境界へ達する出力だけを拡張path化する。"""
+
+    absolute = _absolute_path(path)
+    anticipated_case = absolute / "cases" / ("0" * 64)
+    if os.name == "nt" and len(os.fspath(anticipated_case)) >= 248:
+        return _extended_length_path(absolute)
+    return absolute
 
 
 def _is_within(path: Path, root: Path) -> bool:
@@ -1528,13 +1577,14 @@ def _selected_source_bindings(
 def _snapshot_digest_once(path: Path, *, expected_size: int) -> str:
     """snapshotを単一handleで再読込し、path差替えと変更を検出する。"""
 
+    io_path = _extended_length_path(path)
     _ensure_no_reparse(
-        path,
+        io_path,
         code="input_snapshot_reparse_forbidden",
         message="入力snapshotにreparse pointは使用できません",
     )
     try:
-        before = path.lstat()
+        before = io_path.lstat()
     except OSError as exc:
         raise JobContractError(
             "input_snapshot_changed",
@@ -1554,7 +1604,7 @@ def _snapshot_digest_once(path: Path, *, expected_size: int) -> str:
     flags |= int(getattr(os, "O_CLOEXEC", 0)) | int(getattr(os, "O_NOINHERIT", 0))
     flags |= int(getattr(os, "O_NOFOLLOW", 0))
     try:
-        descriptor = os.open(path, flags)
+        descriptor = os.open(io_path, flags)
     except OSError as exc:
         raise JobContractError(
             "input_snapshot_changed",
@@ -1590,7 +1640,7 @@ def _snapshot_digest_once(path: Path, *, expected_size: int) -> str:
             "入力snapshotを安全に読めません",
         ) from exc
     try:
-        after_path = path.lstat()
+        after_path = io_path.lstat()
     except OSError as exc:
         raise JobContractError(
             "input_snapshot_changed",
@@ -1615,14 +1665,16 @@ def _copy_bound_source_to_snapshot(
     """検証済みsourceを単一handleからchunk copyし、同directoryでatomic固定する。"""
 
     source = binding.path
+    io_source = _extended_length_path(source)
+    io_destination = _extended_length_path(destination)
     expected = binding.information
     _ensure_no_reparse(
-        source,
+        io_source,
         code="input_reparse_forbidden",
         message="入力sourceにreparse pointは使用できません",
     )
     try:
-        before = source.lstat()
+        before = io_source.lstat()
     except OSError as exc:
         raise JobContractError(
             "input_changed_after_validation",
@@ -1637,20 +1689,20 @@ def _copy_bound_source_to_snapshot(
     flags |= int(getattr(os, "O_CLOEXEC", 0)) | int(getattr(os, "O_NOINHERIT", 0))
     flags |= int(getattr(os, "O_NOFOLLOW", 0))
     try:
-        descriptor = os.open(source, flags)
+        descriptor = os.open(io_source, flags)
     except OSError as exc:
         raise JobContractError(
             "input_changed_after_validation",
             "入力fileを安全に開けません",
         ) from exc
-    destination.parent.mkdir(parents=True, exist_ok=False)
+    io_destination.parent.mkdir(parents=True, exist_ok=False)
     _ensure_no_reparse(
-        destination.parent,
+        io_destination.parent,
         code="input_snapshot_reparse_forbidden",
         message="入力snapshot directoryにreparse pointは使用できません",
     )
     try:
-        destination_parent = destination.parent.lstat()
+        destination_parent = io_destination.parent.lstat()
     except OSError as exc:
         raise JobContractError(
             "input_snapshot_failed",
@@ -1674,8 +1726,8 @@ def _copy_bound_source_to_snapshot(
                 )
             with tempfile.NamedTemporaryFile(
                 mode="wb",
-                dir=destination.parent,
-                prefix=f".{destination.name}.",
+                dir=io_destination.parent,
+                prefix=f".{io_destination.name}.",
                 suffix=".tmp",
                 delete=False,
             ) as destination_handle:
@@ -1696,7 +1748,7 @@ def _copy_bound_source_to_snapshot(
                 os.fsync(destination_handle.fileno())
             after_handle = os.fstat(source_handle.fileno())
         try:
-            after_path = source.lstat()
+            after_path = io_source.lstat()
         except OSError as exc:
             raise JobContractError(
                 "input_changed_after_validation",
@@ -1711,13 +1763,13 @@ def _copy_bound_source_to_snapshot(
                 "input_changed_after_validation",
                 "入力fileがcopy中に変更されました",
             )
-        if destination.exists():
+        if io_destination.exists():
             raise JobContractError(
                 "input_snapshot_collision",
                 "入力snapshotの出力先が既に存在します",
             )
         try:
-            parent_before_replace = destination.parent.lstat()
+            parent_before_replace = io_destination.parent.lstat()
         except OSError as exc:
             raise JobContractError(
                 "input_snapshot_changed",
@@ -1732,9 +1784,9 @@ def _copy_bound_source_to_snapshot(
                 "input_snapshot_changed",
                 "入力snapshot directoryがcopy中に変更されました",
             )
-        os.replace(temporary_name, destination)
+        os.replace(temporary_name, io_destination)
         temporary_name = None
-        parent_after_replace = destination.parent.lstat()
+        parent_after_replace = io_destination.parent.lstat()
         if (
             not stat.S_ISDIR(parent_after_replace.st_mode)
             or _stat_has_reparse_attribute(parent_after_replace)
@@ -1744,7 +1796,7 @@ def _copy_bound_source_to_snapshot(
                 "input_snapshot_changed",
                 "入力snapshot directoryがatomic replace中に変更されました",
             )
-        os.chmod(destination, stat.S_IREAD)
+        os.chmod(io_destination, stat.S_IREAD)
     except JobContractError:
         raise
     except OSError as exc:
@@ -1758,7 +1810,7 @@ def _copy_bound_source_to_snapshot(
                 Path(temporary_name).unlink()
             except OSError:
                 pass
-    snapshot_digest = _snapshot_digest_once(destination, expected_size=copied)
+    snapshot_digest = _snapshot_digest_once(io_destination, expected_size=copied)
     if snapshot_digest != digest.hexdigest():
         raise JobContractError(
             "input_snapshot_changed",
@@ -1777,13 +1829,14 @@ def stage_input_snapshots(
     """production入力をjob-private directoryへ固定し、元pathを以後使わない。"""
 
     bindings = _selected_source_bindings(request, records)
-    for binding in bindings:
+    all_bindings = [binding for record in records for binding in record.source_files]
+    for binding in all_bindings:
         if not _is_within(binding.path, input_root):
             raise JobContractError(
                 "input_snapshot_failed",
                 "入力sourceがinput-root外です",
             )
-    required_bytes = sum(binding.information.st_size for binding in bindings)
+    required_bytes = sum(binding.information.st_size for binding in all_bindings)
     try:
         free_bytes = shutil.disk_usage(job_dir).free
     except OSError as exc:
@@ -1803,7 +1856,15 @@ def stage_input_snapshots(
         code="input_snapshot_reparse_forbidden",
         message="入力snapshot rootにreparse pointは使用できません",
     )
+    inventory_root = job_dir / "contract-inputs" / "inventory"
+    inventory_root.mkdir(parents=True, exist_ok=False)
+    _ensure_no_reparse(
+        inventory_root,
+        code="input_snapshot_reparse_forbidden",
+        message="入力inventory snapshot rootにreparse pointは使用できません",
+    )
     snapshot_inputs: list[SnapshotInput] = []
+    snapshot_by_source: dict[Path, SnapshotInput] = {}
     for index, binding in enumerate(bindings):
         destination = samples_root / f"{index:06d}" / binding.path.name
         size, digest = _copy_bound_source_to_snapshot(binding, destination)
@@ -1815,19 +1876,78 @@ def stage_input_snapshots(
                 "入力sourceがinput-root外です",
             ) from exc
         snapshot_relative = destination.relative_to(job_dir).as_posix()
-        snapshot_inputs.append(
-            SnapshotInput(
-                index=index,
-                source_relative_path=source_relative,
-                path=destination,
-                snapshot_relative_path=snapshot_relative,
-                size=size,
-                sha256=digest,
+        snapshot = SnapshotInput(
+            index=index,
+            source_relative_path=source_relative,
+            path=destination,
+            snapshot_relative_path=snapshot_relative,
+            size=size,
+            sha256=digest,
+        )
+        snapshot_inputs.append(snapshot)
+        snapshot_by_source[binding.path] = snapshot
+    source_inventory: list[dict[str, Any]] = []
+    inventory_snapshots: list[SnapshotInput] = []
+    observed_source_paths: set[str] = set()
+    ignored_index = 0
+    for input_index, record in enumerate(records):
+        inventory_files: list[dict[str, Any]] = []
+        for binding in sorted(record.source_files, key=lambda item: str(item.path).casefold()):
+            try:
+                source_relative = binding.path.relative_to(input_root).as_posix()
+            except ValueError as exc:
+                raise JobContractError(
+                    "input_snapshot_failed",
+                    "入力sourceがinput-root外です",
+                ) from exc
+            folded_source = source_relative.casefold()
+            if folded_source in observed_source_paths:
+                raise JobContractError(
+                    "input_snapshot_failed",
+                    "入力sourceのcanonical pathが重複しています",
+                )
+            observed_source_paths.add(folded_source)
+            snapshot = snapshot_by_source.get(binding.path)
+            if snapshot is None:
+                destination = inventory_root / f"{ignored_index:06d}" / binding.path.name
+                size, digest = _copy_bound_source_to_snapshot(binding, destination)
+                snapshot_relative = destination.relative_to(job_dir).as_posix()
+                ignored_index += 1
+            else:
+                size, digest = snapshot.size, snapshot.sha256
+                destination = snapshot.path
+                snapshot_relative = snapshot.snapshot_relative_path
+            inventory_index = len(inventory_snapshots)
+            inventory_snapshots.append(
+                SnapshotInput(
+                    index=inventory_index,
+                    source_relative_path=source_relative,
+                    path=destination,
+                    snapshot_relative_path=snapshot_relative,
+                    size=size,
+                    sha256=digest,
+                )
             )
+            inventory_files.append(
+                {
+                    "source_relative_path": source_relative,
+                    "snapshot_relative_path": snapshot_relative,
+                    "size": size,
+                    "sha256": digest,
+                }
+            )
+        source_inventory.append(
+            {
+                "input_index": input_index,
+                "relative_path": record.relative_path,
+                "files": inventory_files,
+            }
         )
     manifest_document = {
         "schema_version": SCHEMA_VERSION,
         "archive_mode": request.options["archive_mode"],
+        "input_records": [record.public() for record in records],
+        "source_inventory": source_inventory,
         "file_count": len(snapshot_inputs),
         "total_bytes": sum(item.size for item in snapshot_inputs),
         "files": [item.public() for item in snapshot_inputs],
@@ -1846,12 +1966,26 @@ def stage_input_snapshots(
         )
     bundle = InputSnapshotBundle(
         inputs=tuple(snapshot_inputs),
+        inventory_snapshots=tuple(inventory_snapshots),
         manifest_path=manifest_path,
         manifest_relative_path=manifest_relative_path,
         manifest_sha256=hashlib.sha256(manifest_payload).hexdigest(),
         manifest_document=manifest_document,
     )
     verify_input_snapshot_bundle(bundle, job_dir=job_dir)
+    rehydrated = _rehydrate_input_snapshot_bundle(
+        job_dir,
+        request,
+        {
+            "input_snapshot_manifest": manifest_relative_path,
+            "input_snapshot_manifest_sha256": bundle.manifest_sha256,
+        },
+    )
+    if rehydrated != bundle:
+        raise JobContractError(
+            "input_snapshot_failed",
+            "入力snapshot bundleの生成値と独立再構成値が一致しません",
+        )
     return bundle
 
 
@@ -1871,15 +2005,44 @@ def verify_input_snapshot_bundle(bundle: InputSnapshotBundle, *, job_dir: Path) 
             "入力snapshot manifestが変更されました",
         )
     samples_root = job_dir / "contract-inputs" / "samples"
-    _ensure_tree_no_reparse(
-        samples_root,
-        max_entries=MAX_TREE_ENTRIES,
-        code="input_snapshot_reparse_forbidden",
-        message="入力snapshot treeにreparse pointは使用できません",
-    )
-    expected_entries: set[str] = set()
-    for item in bundle.inputs:
-        relative = item.path.relative_to(samples_root)
+    inventory_root = job_dir / "contract-inputs" / "inventory"
+    selected_by_source = {item.source_relative_path.casefold(): item for item in bundle.inputs}
+    if len(selected_by_source) != len(bundle.inputs):
+        raise JobContractError("input_snapshot_changed", "解析対象snapshotが重複しています")
+    inventory_by_source = {
+        item.source_relative_path.casefold(): item for item in bundle.inventory_snapshots
+    }
+    if len(inventory_by_source) != len(bundle.inventory_snapshots):
+        raise JobContractError("input_snapshot_changed", "入力inventory snapshotが重複しています")
+    for folded_source, selected in selected_by_source.items():
+        inventory = inventory_by_source.get(folded_source)
+        if (
+            inventory is None
+            or inventory.path != selected.path
+            or inventory.snapshot_relative_path != selected.snapshot_relative_path
+            or inventory.size != selected.size
+            or inventory.sha256 != selected.sha256
+        ):
+            raise JobContractError(
+                "input_snapshot_changed",
+                "解析対象snapshotと入力inventory snapshotが一致しません",
+            )
+
+    expected_by_root: dict[Path, set[str]] = {samples_root: set(), inventory_root: set()}
+    observed_snapshot_paths: set[str] = set()
+    for item in bundle.inventory_snapshots:
+        folded_snapshot = item.snapshot_relative_path.casefold()
+        if folded_snapshot in observed_snapshot_paths:
+            raise JobContractError("input_snapshot_changed", "入力snapshot pathが重複しています")
+        observed_snapshot_paths.add(folded_snapshot)
+        if _is_within(item.path, samples_root):
+            root = samples_root
+        elif _is_within(item.path, inventory_root):
+            root = inventory_root
+        else:
+            raise JobContractError("input_snapshot_changed", "入力snapshot pathが契約外です")
+        relative = item.path.relative_to(root)
+        expected_entries = expected_by_root[root]
         expected_entries.add(relative.as_posix())
         expected_entries.update(parent.as_posix() for parent in relative.parents if parent != Path("."))
         if _snapshot_digest_once(item.path, expected_size=item.size) != item.sha256:
@@ -1887,18 +2050,25 @@ def verify_input_snapshot_bundle(bundle: InputSnapshotBundle, *, job_dir: Path) 
                 "input_snapshot_changed",
                 "入力snapshotのSHA-256が変更されました",
             )
-    try:
-        actual_entries = {path.relative_to(samples_root).as_posix() for path in samples_root.rglob("*")}
-    except OSError as exc:
-        raise JobContractError(
-            "input_snapshot_changed",
-            "入力snapshot treeを再列挙できません",
-        ) from exc
-    if actual_entries != expected_entries:
-        raise JobContractError(
-            "input_snapshot_changed",
-            "入力snapshot treeに追加・削除されたentryがあります",
+    for root, expected_entries in expected_by_root.items():
+        _ensure_tree_no_reparse(
+            root,
+            max_entries=MAX_TREE_ENTRIES,
+            code="input_snapshot_reparse_forbidden",
+            message="入力snapshot treeにreparse pointは使用できません",
         )
+        try:
+            actual_entries = {path.relative_to(root).as_posix() for path in root.rglob("*")}
+        except OSError as exc:
+            raise JobContractError(
+                "input_snapshot_changed",
+                "入力snapshot treeを再列挙できません",
+            ) from exc
+        if actual_entries != expected_entries:
+            raise JobContractError(
+                "input_snapshot_changed",
+                "入力snapshot treeに追加・削除されたentryがあります",
+            )
 
 
 def load_trusted_tool_policy(
@@ -2274,12 +2444,12 @@ def build_analyzer_argv(
     executable = Path(python_executable or sys.executable).resolve(strict=True)
     argv = [str(executable), "-I", "-B", str(ANALYZER)]
     for path in inputs:
-        argv.extend(("--input", str(path)))
+        argv.extend(("--input", str(_extended_length_path(path))))
     options = request.options
     argv.extend(
         (
             "--output",
-            str(output),
+            str(_analysis_output_io_path(output)),
             "--registry",
             str(REGISTRY),
             "--archive-mode",
@@ -2496,8 +2666,8 @@ def build_expected_analysis_bundle(
     private_request = json.dumps(
         {
             "schema_version": SCHEMA_VERSION,
-            "inputs": [str(path) for path in inputs],
-            "output": str(analysis_output),
+            "inputs": [str(_extended_length_path(path)) for path in inputs],
+            "output": str(_analysis_output_io_path(analysis_output)),
             "registry": str(REGISTRY),
             "family_hint_manifest": (str(family_hint_manifest) if family_hint_manifest is not None else None),
             "options": dict(request.options),
@@ -2686,7 +2856,7 @@ def persist_analysis_contract_bundle(
 
 def _write_progress(job_dir: Path, *, phase: str, percent: int, message: str, **extra: Any) -> None:
     value = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
         "job_id": job_dir.name,
         "phase": phase,
         "percent": percent,
@@ -2710,7 +2880,7 @@ def _write_status(
     atomic_json(
         job_dir / "status.json",
         {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
             "job_id": job_dir.name,
             "state": state,
             "terminal": terminal,
@@ -2735,16 +2905,17 @@ def _request_digest(request: JobRequest) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _bounded_log(value: bytes | str | None) -> tuple[bytes, bool]:
+def _bounded_log(value: bytes | str | None) -> tuple[bytes, bool, int]:
     if value is None:
-        return b"", False
+        return b"", False, 0
     encoded = value.encode("utf-8", errors="replace") if isinstance(value, str) else value
-    return encoded[:MAX_LOG_BYTES], len(encoded) > MAX_LOG_BYTES
+    return encoded[:MAX_LOG_BYTES], len(encoded) > MAX_LOG_BYTES, len(encoded)
 
 
 @dataclass
 class _PipeCapture:
     retained: bytearray
+    observed_bytes: int = 0
     truncated: bool = False
     error: BaseException | None = None
 
@@ -2762,6 +2933,8 @@ class _BoundedProcessResult:
     stderr: bytes
     stdout_truncated: bool
     stderr_truncated: bool
+    stdout_observed_bytes: int
+    stderr_observed_bytes: int
 
     def check_returncode(self) -> None:
         if self.returncode:
@@ -2785,6 +2958,7 @@ def _drain_pipe(
             chunk = stream.read(PIPE_DRAIN_CHUNK_BYTES)
             if not chunk:
                 break
+            capture.observed_bytes += len(chunk)
             remaining = maximum_bytes - len(capture.retained)
             if remaining > 0:
                 capture.retained.extend(chunk[:remaining])
@@ -2996,6 +3170,8 @@ def _run_process_with_bounded_output(
         stderr=bytes(stderr_capture.retained),
         stdout_truncated=stdout_capture.truncated,
         stderr_truncated=stderr_capture.truncated,
+        stdout_observed_bytes=stdout_capture.observed_bytes,
+        stderr_observed_bytes=stderr_capture.observed_bytes,
     )
     if check:
         completed.check_returncode()
@@ -3055,6 +3231,443 @@ def validate_analysis_output_tree(path: Path) -> dict[str, int]:
                     f"解析出力が{MAX_ANALYSIS_OUTPUT_BYTES} bytes上限を超えています",
                 )
     return {"entries": entries, "files": files, "directories": directories, "total_bytes": total_bytes}
+
+
+def _analysis_output_entry_snapshot(path: Path) -> tuple[tuple[object, ...], ...]:
+    """解析treeのpath、種類、file identity、変更検知metadataを固定する。"""
+
+    records: list[tuple[object, ...]] = []
+    for item in sorted(
+        path.rglob("*"),
+        key=lambda value: (
+            value.relative_to(path).as_posix().casefold(),
+            value.relative_to(path).as_posix(),
+        ),
+    ):
+        try:
+            information = item.lstat()
+        except OSError as exc:
+            raise JobContractError(
+                "analysis_output_unreadable",
+                "解析出力entryを安全に確認できません",
+            ) from exc
+        relative = item.relative_to(path).as_posix()
+        kind = "directory" if stat.S_ISDIR(information.st_mode) else "file"
+        records.append(
+            (
+                relative,
+                kind,
+                information.st_size if kind == "file" else 0,
+                information.st_dev,
+                information.st_ino,
+                information.st_nlink,
+                information.st_mtime_ns,
+                information.st_ctime_ns,
+            )
+        )
+    folded = [str(record[0]).casefold() for record in records]
+    if len(folded) != len(set(folded)):
+        raise JobContractError(
+            "analysis_output_path_collision",
+            "解析出力に大文字小文字だけが異なるpathがあります",
+        )
+    return tuple(records)
+
+
+def _hash_analysis_output_file_once(path: Path, *, expected_size: int) -> str:
+    """通常fileを単一handleでstream hashし、読取中の変更を拒否する。"""
+
+    try:
+        before = path.lstat()
+    except OSError as exc:
+        raise JobContractError("analysis_output_changed", "解析出力fileを確認できません") from exc
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or _stat_has_reparse_attribute(before)
+        or before.st_nlink != 1
+        or before.st_size != expected_size
+        or not 0 <= expected_size <= MAX_ANALYSIS_OUTPUT_BYTES
+    ):
+        raise JobContractError("analysis_output_changed", "解析出力file境界が不正です")
+    flags = os.O_RDONLY | int(getattr(os, "O_BINARY", 0))
+    flags |= int(getattr(os, "O_CLOEXEC", 0)) | int(getattr(os, "O_NOINHERIT", 0))
+    flags |= int(getattr(os, "O_NOFOLLOW", 0))
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise JobContractError("analysis_output_changed", "解析出力fileを開けません") from exc
+    digest = hashlib.sha256()
+    observed = 0
+    try:
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            opened = os.fstat(handle.fileno())
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or _stat_has_reparse_attribute(opened)
+                or opened.st_nlink != 1
+                or opened.st_size != expected_size
+                or not _same_file_identity(before, opened)
+            ):
+                raise JobContractError("analysis_output_changed", "解析出力fileがopen前に変化しました")
+            while True:
+                chunk = handle.read(INPUT_SNAPSHOT_CHUNK_BYTES)
+                if not chunk:
+                    break
+                observed += len(chunk)
+                if observed > expected_size:
+                    raise JobContractError("analysis_output_changed", "解析出力fileのsizeが増加しました")
+                digest.update(chunk)
+            after_handle = os.fstat(handle.fileno())
+    except JobContractError:
+        raise
+    except OSError as exc:
+        raise JobContractError("analysis_output_changed", "解析出力fileを読めません") from exc
+    try:
+        after_path = path.lstat()
+    except OSError as exc:
+        raise JobContractError("analysis_output_changed", "解析出力fileが消失しました") from exc
+    if (
+        observed != expected_size
+        or not _same_file_identity(opened, after_handle)
+        or not _same_file_identity(opened, after_path)
+        or after_handle.st_size != expected_size
+        or after_path.st_nlink != 1
+        or opened.st_mtime_ns != after_handle.st_mtime_ns
+        or opened.st_ctime_ns != after_handle.st_ctime_ns
+    ):
+        raise JobContractError("analysis_output_changed", "解析出力fileが読取中に変化しました")
+    return digest.hexdigest()
+
+
+def analysis_output_content_manifest(path: Path) -> dict[str, Any]:
+    """解析treeのexact path集合と全file contentを決定的manifestへ固定する。"""
+
+    tree = validate_analysis_output_tree(path)
+    before = _analysis_output_entry_snapshot(path)
+    entries: list[dict[str, Any]] = []
+    for relative, kind, size, *_identity in before:
+        if kind == "directory":
+            entries.append({"path": relative, "kind": kind})
+            continue
+        file_path = path.joinpath(*PurePosixPath(str(relative)).parts)
+        entries.append(
+            {
+                "path": relative,
+                "kind": kind,
+                "size": size,
+                "sha256": _hash_analysis_output_file_once(
+                    file_path,
+                    expected_size=int(size),
+                ),
+            }
+        )
+    after = _analysis_output_entry_snapshot(path)
+    if before != after or validate_analysis_output_tree(path) != tree:
+        raise JobContractError(
+            "analysis_output_changed",
+            "解析出力treeがcontent manifest作成中に変化しました",
+        )
+    return {"schema_version": SCHEMA_VERSION, "tree": tree, "entries": entries}
+
+
+def analysis_output_content_sha256(manifest: Mapping[str, Any]) -> str:
+    """exact content manifestのcanonical SHA-256を返す。"""
+
+    encoded = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _completed_job_entry_snapshot(
+    path: Path,
+) -> tuple[dict[str, int], tuple[object, ...], tuple[tuple[object, ...], ...]]:
+    """完了job全体を有界な通常file／directory集合として固定する。"""
+
+    _ensure_no_reparse(
+        path,
+        code="existing_job_reparse_forbidden",
+        message="完了job snapshotにreparse pointは使用できません",
+    )
+    _ensure_tree_no_reparse(
+        path,
+        max_entries=MAX_COMPLETED_JOB_ENTRIES,
+        code="existing_job_reparse_forbidden",
+        message="完了job snapshotにreparse pointは使用できません",
+    )
+    try:
+        root_information = path.lstat()
+    except OSError as exc:
+        raise JobContractError(
+            "existing_job_state_changed",
+            "完了job directoryを安全に確認できません",
+        ) from exc
+    if not stat.S_ISDIR(root_information.st_mode) or _stat_has_reparse_attribute(root_information):
+        raise JobContractError(
+            "existing_job_state_changed",
+            "完了job rootが通常directoryではありません",
+        )
+
+    pending: list[tuple[Path, os.stat_result]] = [(path, root_information)]
+    records: list[tuple[object, ...]] = []
+    entries = 0
+    files = 0
+    directories = 0
+    total_bytes = 0
+    while pending:
+        directory, expected_directory = pending.pop()
+        try:
+            current_directory = directory.lstat()
+        except OSError as exc:
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job directoryが列挙前に変更されました",
+            ) from exc
+        if (
+            not stat.S_ISDIR(current_directory.st_mode)
+            or _stat_has_reparse_attribute(current_directory)
+            or not _same_file_identity(expected_directory, current_directory)
+            or expected_directory.st_mtime_ns != current_directory.st_mtime_ns
+            or expected_directory.st_ctime_ns != current_directory.st_ctime_ns
+        ):
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job directoryが列挙前に変更されました",
+            )
+        try:
+            with os.scandir(directory) as iterator:
+                children = sorted(
+                    iterator,
+                    key=lambda item: (item.name.casefold(), item.name),
+                )
+        except OSError as exc:
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job treeを安全に列挙できません",
+            ) from exc
+        for entry in children:
+            entries += 1
+            if entries > MAX_COMPLETED_JOB_ENTRIES:
+                raise JobContractError(
+                    "existing_job_entry_quota_exceeded",
+                    f"完了jobが{MAX_COMPLETED_JOB_ENTRIES} entry上限を超えています",
+                )
+            entry_path = Path(entry.path)
+            try:
+                information = entry_path.lstat()
+            except OSError as exc:
+                raise JobContractError(
+                    "existing_job_state_changed",
+                    "完了job entryが列挙中に変更されました",
+                ) from exc
+            if _stat_has_reparse_attribute(information):
+                raise JobContractError(
+                    "existing_job_reparse_forbidden",
+                    "完了job snapshotにreparse pointは使用できません",
+                )
+            relative = entry_path.relative_to(path).as_posix()
+            if stat.S_ISDIR(information.st_mode):
+                kind = "directory"
+                size = 0
+                directories += 1
+                pending.append((entry_path, information))
+            elif stat.S_ISREG(information.st_mode):
+                if information.st_nlink != 1:
+                    raise JobContractError(
+                        "existing_job_hardlink_forbidden",
+                        "完了job snapshotにhardlinkは使用できません",
+                    )
+                if not 0 <= information.st_size <= MAX_ANALYSIS_OUTPUT_BYTES:
+                    raise JobContractError(
+                        "existing_job_file_quota_exceeded",
+                        f"完了jobの単一fileが{MAX_ANALYSIS_OUTPUT_BYTES} bytes上限を超えています",
+                    )
+                kind = "file"
+                size = information.st_size
+                files += 1
+                total_bytes += size
+                if total_bytes > MAX_COMPLETED_JOB_BYTES:
+                    raise JobContractError(
+                        "existing_job_size_quota_exceeded",
+                        f"完了jobが{MAX_COMPLETED_JOB_BYTES} bytes上限を超えています",
+                    )
+            else:
+                raise JobContractError(
+                    "existing_job_entry_forbidden",
+                    "完了jobには通常file／directoryだけを許可します",
+                )
+            records.append(
+                (
+                    relative,
+                    kind,
+                    size,
+                    information.st_dev,
+                    information.st_ino,
+                    information.st_nlink,
+                    information.st_mode,
+                    information.st_mtime_ns,
+                    information.st_ctime_ns,
+                )
+            )
+        try:
+            directory_after = directory.lstat()
+        except OSError as exc:
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job directoryが列挙中に変更されました",
+            ) from exc
+        if (
+            not _same_file_identity(expected_directory, directory_after)
+            or expected_directory.st_mtime_ns != directory_after.st_mtime_ns
+            or expected_directory.st_ctime_ns != directory_after.st_ctime_ns
+        ):
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job directoryが列挙中に変更されました",
+            )
+
+    folded = [str(record[0]).casefold() for record in records]
+    if len(folded) != len(set(folded)):
+        raise JobContractError(
+            "existing_job_path_collision",
+            "完了jobに大文字小文字だけが異なるpathがあります",
+        )
+    root_identity = (
+        root_information.st_dev,
+        root_information.st_ino,
+        root_information.st_nlink,
+        root_information.st_mode,
+        root_information.st_mtime_ns,
+        root_information.st_ctime_ns,
+    )
+    tree = {
+        "entries": entries,
+        "files": files,
+        "directories": directories,
+        "total_bytes": total_bytes,
+    }
+    return tree, root_identity, tuple(records)
+
+
+def _completed_job_content_manifest(path: Path) -> dict[str, Any]:
+    """完了job全体のexact path集合と全file内容を一つのmanifestへ固定する。"""
+
+    before_tree, before_root, before_entries = _completed_job_entry_snapshot(path)
+    entries: list[dict[str, Any]] = []
+    for relative, kind, size, *_identity in before_entries:
+        if kind == "directory":
+            entries.append({"path": relative, "kind": kind})
+            continue
+        file_path = path.joinpath(*PurePosixPath(str(relative)).parts)
+        try:
+            digest = _hash_analysis_output_file_once(
+                file_path,
+                expected_size=int(size),
+            )
+        except JobContractError as exc:
+            raise JobContractError(
+                "existing_job_state_changed",
+                "完了job fileがmanifest作成中に変更されました",
+            ) from exc
+        entries.append(
+            {
+                "path": relative,
+                "kind": kind,
+                "size": size,
+                "sha256": digest,
+            }
+        )
+    after_tree, after_root, after_entries = _completed_job_entry_snapshot(path)
+    if (
+        before_tree != after_tree
+        or before_root != after_root
+        or before_entries != after_entries
+    ):
+        raise JobContractError(
+            "existing_job_state_changed",
+            "完了job treeがmanifest作成中に変更されました",
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "tree": before_tree,
+        "entries": entries,
+    }
+
+
+def _set_completed_job_snapshot_read_only(root: Path, *, read_only: bool) -> None:
+    """再検証用private snapshotを読取専用化し、cleanup時に権限を戻す。"""
+
+    entries = sorted(
+        root.rglob("*"),
+        key=lambda item: (len(item.parts), str(item).casefold(), str(item)),
+        reverse=not read_only,
+    )
+    entries.append(root)
+    for path in entries:
+        information = path.lstat()
+        if _stat_has_reparse_attribute(information):
+            raise JobContractError(
+                "existing_job_reparse_forbidden",
+                "再検証用private snapshotにreparse pointは使用できません",
+            )
+        if stat.S_ISDIR(information.st_mode):
+            mode = stat.S_IRUSR | stat.S_IXUSR
+            if not read_only:
+                mode |= stat.S_IWUSR
+        elif stat.S_ISREG(information.st_mode):
+            mode = stat.S_IRUSR
+            if not read_only:
+                mode |= stat.S_IWUSR
+        else:
+            raise JobContractError(
+                "existing_job_entry_forbidden",
+                "再検証用private snapshotには通常file／directoryだけを許可します",
+            )
+        os.chmod(path, mode)
+
+
+def _validate_analysis_output_reference_closure(
+    summary_path: Path,
+    validated_case_reports: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """summaryとcase sealから許可したentry以外を解析treeで拒否する。"""
+
+    expected_files = {
+        "summary.json",
+        "follow-on-analysis.json",
+        "terminal-payload-acquisition.json",
+    }
+    for digest, report in validated_case_reports.items():
+        artifact_manifest = report.get("artifact_sha256")
+        if not isinstance(artifact_manifest, Mapping):
+            raise JobContractError("summary_invalid", "case artifact manifestがありません")
+        case_prefix = PurePosixPath("cases") / digest
+        expected_files.add((case_prefix / "report.json").as_posix())
+        for relative in artifact_manifest:
+            if not isinstance(relative, str):
+                raise JobContractError("summary_invalid", "case artifact pathが不正です")
+            expected_files.add((case_prefix / PurePosixPath(relative)).as_posix())
+    expected_entries = {(relative, "file") for relative in expected_files}
+    for relative in expected_files:
+        for parent in PurePosixPath(relative).parents:
+            if parent == PurePosixPath("."):
+                continue
+            expected_entries.add((parent.as_posix(), "directory"))
+    observed_manifest = analysis_output_content_manifest(summary_path.parent)
+    observed_entries = {
+        (str(item.get("path")), str(item.get("kind")))
+        for item in observed_manifest["entries"]
+        if isinstance(item, Mapping)
+    }
+    if observed_entries != expected_entries:
+        raise JobContractError(
+            "analysis_output_reference_mismatch",
+            "解析出力treeに未参照または不足しているentryがあります",
+        )
 
 
 def _exception_caused_by_live_tree_churn(error: BaseException) -> bool:
@@ -3636,8 +4249,36 @@ def _validated_terminal_payload_acquisition(
             "terminal payload acquisition artifactのSHA-256が一致しません",
         )
     document = _decode_json_object_strict(raw)
+    root_case_states: dict[str, str] | None = None
+    if follow_on.get("status") in terminal_payload_acquisition.OPERATIONAL_STATUSES:
+        roots = follow_on.get("roots")
+        cases = summary.get("cases")
+        if not isinstance(roots, list) or not isinstance(cases, list):
+            raise JobContractError("summary_invalid", "終端payload root case一覧が不正です")
+        root_set = set(roots)
+        root_case_states = {}
+        for case in cases:
+            if not isinstance(case, dict):
+                raise JobContractError("summary_invalid", "終端payload root case schemaが不正です")
+            digest = case.get("sha256")
+            case_state = case.get("case_state")
+            if digest not in root_set:
+                continue
+            if (
+                not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+                or digest in root_case_states
+                or case_state not in terminal_payload_acquisition.NODE_CASE_STATES
+            ):
+                raise JobContractError("summary_invalid", "終端payload root case fieldが不正です")
+            root_case_states[digest] = case_state
+        if set(root_case_states) != root_set:
+            raise JobContractError("summary_invalid", "終端payload rootsとroot case一覧が一致しません")
     try:
-        expected = terminal_payload_acquisition.build_terminal_payload_acquisition(follow_on)
+        expected = terminal_payload_acquisition.build_terminal_payload_acquisition(
+            follow_on,
+            root_case_states=root_case_states,
+        )
     except terminal_payload_acquisition.TerminalPayloadAcquisitionError as exc:
         raise JobContractError(
             "summary_invalid",
@@ -4528,20 +5169,10 @@ def _validate_summary_input_records(
         ):
             raise JobContractError("summary_invalid", "duplicate record schemaまたはroot参照が不正です")
     for item in errors:
-        if (
-            not isinstance(item, dict)
-            or set(item) != {"source_name", "error"}
-            or not _is_safe_public_text(
-                item.get("source_name"),
-                maximum_characters=512,
-                source_name=True,
-            )
-            or not _is_safe_public_text(
-                item.get("error"),
-                maximum_characters=4_096,
-            )
-        ):
-            raise JobContractError("summary_invalid", "error record schemaが不正です")
+        try:
+            batch_error_contract.validate_record(item)
+        except batch_error_contract.BatchErrorContractError as exc:
+            raise JobContractError("summary_invalid", "error record schemaが不正です") from exc
     if expected_input_manifest is None:
         return
 
@@ -4560,15 +5191,18 @@ def _validate_summary_input_records(
             raise JobContractError("summary_invalid", "root case入力identityが不正です")
         case_counter[(item["source_name"], item["sha256"])] += 1
     duplicate_counter = Counter((item["source_name"], item["sha256"]) for item in duplicates)
-    error_counter = Counter(item["source_name"] for item in errors)
+    error_counter = Counter(
+        (item["input_index"], item["sha256"], item["stage"])
+        for item in errors
+    )
 
     seen: set[str] = set()
     expected_duplicates: Counter[tuple[str, str]] = Counter()
-    primary_records: list[ExpectedInputUnit] = []
-    read_failure_sources: list[str] = []
-    for record in expected_input_manifest:
+    primary_records: list[tuple[int, ExpectedInputUnit]] = []
+    read_failure_indices: list[int] = []
+    for input_index, record in enumerate(expected_input_manifest):
         if not record.read_succeeded:
-            read_failure_sources.append(record.source_name)
+            read_failure_indices.append(input_index)
             continue
         if record.sha256 is None or record.unit_source_name is None or SHA256_RE.fullmatch(record.sha256) is None:
             raise JobContractError("summary_invalid", "固定入力manifestが不正です")
@@ -4576,30 +5210,40 @@ def _validate_summary_input_records(
             expected_duplicates[(record.source_name, record.sha256)] += 1
             continue
         seen.add(record.sha256)
-        primary_records.append(record)
+        primary_records.append((input_index, record))
     if duplicate_counter != expected_duplicates:
         raise JobContractError(
             "summary_invalid",
             "duplicatesが固定入力manifestと一致しません",
         )
-    for source_name in read_failure_sources:
-        if error_counter[source_name] <= 0:
+    for input_index in read_failure_indices:
+        key = (input_index, None, "input_read")
+        if error_counter[key] <= 0:
             raise JobContractError(
                 "summary_invalid",
                 "入力読込みerrorが固定入力manifestと一致しません",
             )
-        error_counter[source_name] -= 1
-    for record in primary_records:
+        error_counter[key] -= 1
+    for input_index, record in primary_records:
         case_key = (str(record.unit_source_name), str(record.sha256))
         if case_counter[case_key] > 0:
             case_counter[case_key] -= 1
-        elif error_counter[record.source_name] > 0:
-            error_counter[record.source_name] -= 1
         else:
-            raise JobContractError(
-                "summary_invalid",
-                "root case／errorが固定入力manifestと一致しません",
+            candidate_errors = (
+                (input_index, record.sha256, "resume_validation"),
+                (input_index, record.sha256, "root_static_analysis"),
             )
+            matched_error = next(
+                (key for key in candidate_errors if error_counter[key] > 0),
+                None,
+            )
+            if matched_error is not None:
+                error_counter[matched_error] -= 1
+            else:
+                raise JobContractError(
+                    "summary_invalid",
+                    "root case／errorが固定入力manifestと一致しません",
+                )
     if any(case_counter.values()) or any(error_counter.values()):
         raise JobContractError(
             "summary_invalid",
@@ -4626,9 +5270,7 @@ def _validated_summary(
     validation_deadline = time.monotonic() + MAX_FOLLOW_ON_WALL_SECONDS if verify_root_cases else None
     summary = load_json_object_strict(path, max_bytes=MAX_SUMMARY_BYTES)
     summary_keys = set(summary)
-    if summary_keys != SUMMARY_KEYS and summary_keys != (
-        SUMMARY_KEYS | SUMMARY_OPTIONAL_KEYS
-    ):
+    if summary_keys != SUMMARY_KEYS:
         raise JobContractError("summary_invalid", "summary.jsonのtop-level schemaが不正です")
     if summary.get("schema_version") != SCHEMA_VERSION:
         raise JobContractError("summary_invalid", "summary.jsonのschema_versionが一致しません")
@@ -4654,8 +5296,7 @@ def _validated_summary(
         if not isinstance(summary.get(key), expected_type):
             raise JobContractError("summary_invalid", f"summary.{key}はarrayである必要があります")
     follow_on = _validated_follow_on_artifact(path, summary)
-    if "terminal_payload_acquisition" in summary:
-        _validated_terminal_payload_acquisition(path, summary, follow_on)
+    _validated_terminal_payload_acquisition(path, summary, follow_on)
     follow_on_contract = summary.get("follow_on_analysis_contract")
     if (
         not isinstance(follow_on_contract, dict)
@@ -4949,7 +5590,38 @@ def _validated_summary(
         raise JobContractError("summary_count_mismatch", "cases件数がanalyzedと一致しません")
     if len(summary["duplicates"]) != counts["duplicates"] or len(summary["errors"]) != counts["errors"]:
         raise JobContractError("summary_count_mismatch", "duplicates／errors配列件数がcountsと一致しません")
+    if verify_root_cases:
+        _validate_analysis_output_reference_closure(path, validated_case_reports)
     return summary, counts
+
+
+def _completion_state_from_validated_summary(
+    summary: Mapping[str, Any],
+    counts: Mapping[str, int],
+) -> tuple[str, str, int]:
+    """検証済みsummaryからresult、status、process終了codeを一意に導出する。"""
+
+    follow_on = summary.get("follow_on_analysis")
+    derived_counts = summary.get("derived_counts")
+    if not isinstance(follow_on, Mapping) or not isinstance(derived_counts, Mapping):
+        raise JobContractError("summary_invalid", "完了状態の導出に必要なsummary fieldがありません")
+    partial = (
+        counts["errors"]
+        + counts["triaged_unknown"]
+        + counts["partial"]
+        + counts["failed"]
+        + int(derived_counts["triaged_unknown"])
+        > 0
+        or follow_on.get("status")
+        not in {
+            "complete",
+            "no_retained_payloads",
+            "disabled_assessment_only",
+        }
+    )
+    if partial:
+        return "partial", "completed_partial", 20
+    return "complete", "completed", 0
 
 
 def validated_daily_static_bundle(
@@ -5051,7 +5723,7 @@ def _write_failure(
     atomic_json(
         job_dir / "result.json",
         {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
             "job_id": request.job_id,
             "request_sha256": _request_digest(request),
             "accepted": False,
@@ -5119,7 +5791,7 @@ def _run_job_impl(
         code="output_reparse_forbidden",
         message="job出力pathにreparse pointを使用できません",
     )
-    analysis_output = job_dir / "analysis"
+    analysis_output = _analysis_output_io_path(job_dir / "analysis")
     analysis_output.mkdir(exist_ok=False)
     private_temp = prepare_job_private_temp(analysis_output)
     created = utc_now()
@@ -5264,14 +5936,30 @@ def _run_job_impl(
         if trusted_tool_bundle is not None:
             verify_trusted_tool_bundle(trusted_tool_bundle, job_dir=job_dir)
         finalize_job_private_temp(private_temp, analysis_output=analysis_output)
-        stdout, bounded_stdout_truncated = _bounded_log(completed.stdout)
-        stderr, bounded_stderr_truncated = _bounded_log(completed.stderr)
+        stdout, bounded_stdout_truncated, bounded_stdout_observed = _bounded_log(completed.stdout)
+        stderr, bounded_stderr_truncated, bounded_stderr_observed = _bounded_log(completed.stderr)
         stdout_truncated = bool(getattr(completed, "stdout_truncated", False)) or bounded_stdout_truncated
         stderr_truncated = bool(getattr(completed, "stderr_truncated", False)) or bounded_stderr_truncated
+        stdout_observed = getattr(completed, "stdout_observed_bytes", bounded_stdout_observed)
+        stderr_observed = getattr(completed, "stderr_observed_bytes", bounded_stderr_observed)
+        for name, retained, observed, truncated in (
+            ("stdout", stdout, stdout_observed, stdout_truncated),
+            ("stderr", stderr, stderr_observed, stderr_truncated),
+        ):
+            if (
+                type(observed) is not int
+                or observed < len(retained)
+                or truncated is not (observed > len(retained))
+            ):
+                raise JobContractError(
+                    "analyzer_log_contract_invalid",
+                    f"{name}の保持量・観測量・切詰め状態が一致しません",
+                )
         _atomic_bytes(job_dir / "stdout.log", stdout)
         _atomic_bytes(job_dir / "stderr.log", stderr)
         _write_progress(job_dir, phase="validating_results", percent=90, message="解析結果の安全契約を検証しています")
-        output_tree = validate_analysis_output_tree(analysis_output)
+        output_manifest_before = analysis_output_content_manifest(analysis_output)
+        output_tree = output_manifest_before["tree"]
         if completed.returncode not in {0, 20}:
             _write_failure(
                 job_dir,
@@ -5293,31 +5981,32 @@ def _run_job_impl(
             expected_input_manifest=expected_input_manifest,
             verify_root_cases=run_process is None,
         )
-        follow_on_status = validated_summary["follow_on_analysis"]["status"]
-        summary_partial = counts["errors"] + counts["triaged_unknown"] + counts["partial"] + counts[
-            "failed"
-        ] + validated_summary["derived_counts"]["triaged_unknown"] > 0 or follow_on_status not in {
-            "complete",
-            "no_retained_payloads",
-            "disabled_assessment_only",
-        }
-        expected_exit_code = 20 if summary_partial else 0
+        output_manifest_after = analysis_output_content_manifest(analysis_output)
+        if output_manifest_after != output_manifest_before:
+            raise JobContractError(
+                "analysis_output_changed",
+                "解析出力treeが結果検証中に変化しました",
+            )
+        output_tree_sha256 = analysis_output_content_sha256(output_manifest_after)
+        analysis_state, state, expected_exit_code = _completion_state_from_validated_summary(
+            validated_summary,
+            counts,
+        )
         if completed.returncode != expected_exit_code:
             raise JobContractError(
                 "analyzer_exit_summary_mismatch",
                 "analyzer終了codeと検証済みsummary状態が一致しません",
             )
-        partial = summary_partial
-        state = "completed_partial" if partial else "completed"
+        partial = analysis_state == "partial"
         finished = utc_now()
         atomic_json(
             job_dir / "result.json",
             {
-                "schema_version": SCHEMA_VERSION,
+                "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
                 "job_id": request.job_id,
                 "request_sha256": _request_digest(request),
                 "accepted": True,
-                "analysis_state": "partial" if partial else "complete",
+                "analysis_state": analysis_state,
                 "inputs": [item.public() for item in records],
                 "family_hint_manifest": request.family_hint_manifest,
                 "trusted_static_tools": (trusted_tool_bundle.provenance() if trusted_tool_bundle is not None else None),
@@ -5327,6 +6016,8 @@ def _run_job_impl(
                 "artifacts": {
                     "analysis_summary": "analysis/summary.json",
                     "follow_on_analysis": "analysis/follow-on-analysis.json",
+                    "terminal_payload_acquisition": "analysis/terminal-payload-acquisition.json",
+                    "terminal_payload_acquisition_sha256": validated_summary["terminal_payload_acquisition"]["sha256"],
                     "family_hint_manifest": (
                         "contract-inputs/family-hint-manifest.json" if family_hint_manifest is not None else None
                     ),
@@ -5343,9 +6034,16 @@ def _run_job_impl(
                     ),
                     "stdout": "stdout.log",
                     "stderr": "stderr.log",
+                    "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+                    "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+                    "stdout_size": len(stdout),
+                    "stderr_size": len(stderr),
+                    "stdout_observed_bytes": stdout_observed,
+                    "stderr_observed_bytes": stderr_observed,
                     "stdout_truncated": stdout_truncated,
                     "stderr_truncated": stderr_truncated,
                     "analysis_output": output_tree,
+                    "analysis_output_sha256": output_tree_sha256,
                 },
                 "process": {
                     "exit_code": completed.returncode,
@@ -5383,8 +6081,8 @@ def _run_job_impl(
         )
         return 20 if partial else 0
     except subprocess.TimeoutExpired as exc:
-        stdout, _ = _bounded_log(exc.output)
-        stderr, _ = _bounded_log(exc.stderr)
+        stdout, _, _ = _bounded_log(exc.output)
+        stderr, _, _ = _bounded_log(exc.stderr)
         _atomic_bytes(job_dir / "stdout.log", stdout)
         _atomic_bytes(job_dir / "stderr.log", stderr)
         _write_failure(
@@ -5546,7 +6244,10 @@ def read_job_snapshot(jobs_root: Path, job_id: str) -> dict[str, Any]:
     )
     if not job_dir.is_dir():
         raise JobContractError("job_not_found", "指定したjob_idがありません")
-    snapshot: dict[str, Any] = {"schema_version": SCHEMA_VERSION, "job_id": job_id}
+    snapshot: dict[str, Any] = {
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": job_id,
+    }
     for name, limit in (
         ("status.json", MAX_REQUEST_BYTES),
         ("progress.json", MAX_REQUEST_BYTES),
@@ -5575,6 +6276,924 @@ def read_job_snapshot(jobs_root: Path, job_id: str) -> dict[str, Any]:
             "job状態JSONのschemaまたは相互整合性が不正です",
         ) from exc
     return snapshot
+
+
+def _rehydrate_input_snapshot_bundle(
+    job_dir: Path,
+    request: JobRequest,
+    artifacts: Mapping[str, Any],
+) -> InputSnapshotBundle:
+    """保存済み入力snapshotを固定schemaから再構成して全byteを再検証する。"""
+
+    relative = artifacts.get("input_snapshot_manifest")
+    expected_digest = artifacts.get("input_snapshot_manifest_sha256")
+    if relative != "contract-inputs/input-snapshot-manifest.json" or not isinstance(expected_digest, str):
+        raise JobContractError("existing_job_contract_invalid", "入力snapshot manifest参照が不正です")
+    path = job_dir / "contract-inputs" / "input-snapshot-manifest.json"
+    payload = _read_regular_file_once(path, max_bytes=MAX_INPUT_SNAPSHOT_MANIFEST_BYTES)
+    if not hmac.compare_digest(hashlib.sha256(payload).hexdigest(), expected_digest):
+        raise JobContractError("input_snapshot_changed", "入力snapshot manifestのSHA-256が一致しません")
+    document = _decode_json_object_strict(payload)
+    if set(document) != {
+        "schema_version",
+        "archive_mode",
+        "input_records",
+        "source_inventory",
+        "file_count",
+        "total_bytes",
+        "files",
+    }:
+        raise JobContractError("input_snapshot_changed", "入力snapshot manifest schemaが不正です")
+    input_records = document.get("input_records")
+    source_inventory = document.get("source_inventory")
+    files = document.get("files")
+    file_count = document.get("file_count")
+    total_bytes = document.get("total_bytes")
+    if (
+        document.get("schema_version") != SCHEMA_VERSION
+        or document.get("archive_mode") != request.options["archive_mode"]
+        or not isinstance(input_records, list)
+        or len(input_records) != len(request.inputs)
+        or not isinstance(source_inventory, list)
+        or len(source_inventory) != len(request.inputs)
+        or not isinstance(files, list)
+        or not files
+        or len(files) > MAX_DISCOVERED_FILES
+        or isinstance(file_count, bool)
+        or not isinstance(file_count, int)
+        or file_count < 1
+        or file_count != len(files)
+        or isinstance(total_bytes, bool)
+        or not isinstance(total_bytes, int)
+        or not 0 <= total_bytes <= MAX_TOTAL_INPUT_BYTES
+    ):
+        raise JobContractError("input_snapshot_changed", "入力snapshot manifest fieldが不正です")
+    normalized_input_records: list[dict[str, Any]] = []
+    for index, (expected_relative, item) in enumerate(zip(request.inputs, input_records, strict=True)):
+        if not isinstance(item, dict) or set(item) != {
+            "relative_path",
+            "kind",
+            "file_count",
+            "analyzer_file_count",
+            "total_bytes",
+        }:
+            raise JobContractError("input_snapshot_changed", "入力集計record schemaが不正です")
+        file_total = item.get("file_count")
+        analyzer_total = item.get("analyzer_file_count")
+        byte_total = item.get("total_bytes")
+        if (
+            item.get("relative_path") != expected_relative
+            or item.get("kind") not in {"file", "directory"}
+            or type(file_total) is not int
+            or not 1 <= file_total <= MAX_DISCOVERED_FILES
+            or type(analyzer_total) is not int
+            or not 0 <= analyzer_total <= file_total
+            or type(byte_total) is not int
+            or not 0 <= byte_total <= MAX_TOTAL_INPUT_BYTES
+            or (item["kind"] == "file" and file_total != 1)
+        ):
+            raise JobContractError("input_snapshot_changed", f"入力集計record fieldが不正です: {index}")
+        normalized_input_records.append(dict(item))
+    selected_inventory: list[dict[str, Any]] = []
+    inventory_snapshots: list[SnapshotInput] = []
+    observed_source_paths: set[str] = set()
+    observed_snapshot_paths: set[str] = set()
+    source_file_total = 0
+    source_byte_total = 0
+    ignored_index = 0
+    for input_index, (record, inventory) in enumerate(
+        zip(normalized_input_records, source_inventory, strict=True)
+    ):
+        if not isinstance(inventory, dict) or set(inventory) != {
+            "input_index",
+            "relative_path",
+            "files",
+        }:
+            raise JobContractError("input_snapshot_changed", "入力source inventory schemaが不正です")
+        inventory_files = inventory.get("files")
+        if (
+            type(inventory.get("input_index")) is not int
+            or inventory["input_index"] != input_index
+            or inventory.get("relative_path") != record["relative_path"]
+            or not isinstance(inventory_files, list)
+            or len(inventory_files) != record["file_count"]
+        ):
+            raise JobContractError("input_snapshot_changed", "入力source inventory fieldが不正です")
+        record_bytes = 0
+        record_selected = 0
+        record_source_order: list[str] = []
+        for source in inventory_files:
+            if not isinstance(source, dict) or set(source) != {
+                "source_relative_path",
+                "snapshot_relative_path",
+                "size",
+                "sha256",
+            }:
+                raise JobContractError("input_snapshot_changed", "入力source identity schemaが不正です")
+            normalized_source = _normalize_relative_input(source.get("source_relative_path"))
+            normalized_snapshot = _normalize_relative_input(source.get("snapshot_relative_path"))
+            size = source.get("size")
+            digest = source.get("sha256")
+            folded_source = normalized_source.casefold()
+            folded_snapshot = normalized_snapshot.casefold()
+            folded_record = record["relative_path"].casefold()
+            owned = (
+                record["kind"] == "file"
+                and folded_source == folded_record
+            ) or (
+                record["kind"] == "directory"
+                and folded_source.startswith(f"{folded_record}/")
+            )
+            selected = (
+                request.options["archive_mode"] != "malwarebazaar"
+                or PurePosixPath(normalized_source).suffix.casefold() == ".zip"
+            )
+            snapshot_parts = PurePosixPath(normalized_snapshot).parts
+            if selected:
+                snapshot_path_valid = (
+                    len(snapshot_parts) == 4
+                    and snapshot_parts[:2] == ("contract-inputs", "samples")
+                    and snapshot_parts[2].isdigit()
+                    and len(snapshot_parts[2]) == 6
+                )
+            else:
+                expected_ignored = (
+                    f"contract-inputs/inventory/{ignored_index:06d}/"
+                    f"{PurePosixPath(normalized_source).name}"
+                )
+                snapshot_path_valid = normalized_snapshot == expected_ignored
+            if (
+                not owned
+                or folded_source in observed_source_paths
+                or folded_snapshot in observed_snapshot_paths
+                or not snapshot_path_valid
+                or PurePosixPath(normalized_snapshot).name
+                != PurePosixPath(normalized_source).name
+                or isinstance(size, bool)
+                or not isinstance(size, int)
+                or not 0 <= size <= request.options["max_file_size"]
+                or not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+            ):
+                raise JobContractError("input_snapshot_changed", "入力source identity fieldが不正です")
+            observed_source_paths.add(folded_source)
+            observed_snapshot_paths.add(folded_snapshot)
+            record_source_order.append(normalized_source)
+            record_bytes += size
+            source_file_total += 1
+            source_byte_total += size
+            inventory_snapshots.append(
+                SnapshotInput(
+                    index=len(inventory_snapshots),
+                    source_relative_path=normalized_source,
+                    path=job_dir.joinpath(*snapshot_parts),
+                    snapshot_relative_path=normalized_snapshot,
+                    size=size,
+                    sha256=digest,
+                )
+            )
+            if selected:
+                record_selected += 1
+                selected_inventory.append(
+                    {
+                        "source_relative_path": normalized_source,
+                        "snapshot_relative_path": normalized_snapshot,
+                        "size": size,
+                        "sha256": digest,
+                    }
+                )
+            else:
+                ignored_index += 1
+        if record_source_order != sorted(record_source_order, key=str.casefold):
+            raise JobContractError(
+                "input_snapshot_changed",
+                "入力source inventoryがcanonical順ではありません",
+            )
+        if (
+            record_bytes != record["total_bytes"]
+            or record_selected != record["analyzer_file_count"]
+        ):
+            raise JobContractError(
+                "input_snapshot_changed",
+                "入力source inventoryとrequest単位集計が一致しません",
+            )
+    if (
+        source_file_total > request.options["max_files"]
+        or source_byte_total > MAX_TOTAL_INPUT_BYTES
+        or len(selected_inventory) != file_count
+    ):
+        raise JobContractError(
+            "input_snapshot_changed",
+            "入力source inventoryの全体集計が契約範囲外です",
+        )
+    selected_inventory.sort(key=lambda item: item["source_relative_path"].casefold())
+    inputs: list[SnapshotInput] = []
+    observed_total = 0
+    for index, item in enumerate(files):
+        if not isinstance(item, dict) or set(item) != {
+            "index",
+            "source_relative_path",
+            "snapshot_relative_path",
+            "source_name",
+            "size",
+            "sha256",
+        }:
+            raise JobContractError("input_snapshot_changed", "入力snapshot record schemaが不正です")
+        source_name = item.get("source_name")
+        source_relative = item.get("source_relative_path")
+        snapshot_relative = item.get("snapshot_relative_path")
+        size = item.get("size")
+        digest = item.get("sha256")
+        if not _is_safe_public_text(source_name, maximum_characters=512, source_name=True):
+            raise JobContractError("input_snapshot_changed", "入力snapshot source名が不正です")
+        normalized_source = _normalize_relative_input(source_relative)
+        normalized_snapshot = _normalize_relative_input(snapshot_relative)
+        expected_relative = f"contract-inputs/samples/{index:06d}/{source_name}"
+        expected_source = selected_inventory[index]
+        if (
+            type(item.get("index")) is not int
+            or item.get("index") != index
+            or normalized_snapshot != expected_relative
+            or normalized_snapshot != expected_source["snapshot_relative_path"]
+            or source_name != PurePosixPath(normalized_source).name
+            or normalized_source != expected_source["source_relative_path"]
+            or (
+                request.options["archive_mode"] == "malwarebazaar"
+                and PurePosixPath(normalized_source).suffix.casefold() != ".zip"
+            )
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or not 0 <= size <= request.options["max_file_size"]
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+            or size != expected_source["size"]
+            or digest != expected_source["sha256"]
+        ):
+            raise JobContractError("input_snapshot_changed", "入力snapshot record fieldが不正です")
+        snapshot_path = job_dir.joinpath(*normalized_snapshot.split("/"))
+        inputs.append(
+            SnapshotInput(
+                index=index,
+                source_relative_path=normalized_source,
+                path=snapshot_path,
+                snapshot_relative_path=normalized_snapshot,
+                size=size,
+                sha256=digest,
+            )
+        )
+        observed_total += size
+    if observed_total != total_bytes:
+        raise JobContractError("input_snapshot_changed", "入力snapshot manifestの合計sizeが一致しません")
+    bundle = InputSnapshotBundle(
+        inputs=tuple(inputs),
+        inventory_snapshots=tuple(inventory_snapshots),
+        manifest_path=path,
+        manifest_relative_path=relative,
+        manifest_sha256=expected_digest,
+        manifest_document=document,
+    )
+    verify_input_snapshot_bundle(bundle, job_dir=job_dir)
+    return bundle
+
+
+def _rehydrate_trusted_tool_bundle(
+    job_dir: Path,
+    result: Mapping[str, Any],
+    artifacts: Mapping[str, Any],
+) -> TrustedToolBundle | None:
+    """保存済みoperator tool snapshotをprovenanceと実byteから再構成する。"""
+
+    provenance = result.get("trusted_static_tools")
+    relative = artifacts.get("trusted_static_tools_manifest")
+    expected_digest = artifacts.get("trusted_static_tools_manifest_sha256")
+    if provenance is None:
+        if relative is not None or expected_digest is not None:
+            raise JobContractError("trusted_tool_snapshot_changed", "無効toolのmanifest参照が残っています")
+        return None
+    if (
+        not isinstance(provenance, dict)
+        or relative != "contract-inputs/trusted-static-tools.json"
+        or not isinstance(expected_digest, str)
+        or SHA256_RE.fullmatch(expected_digest) is None
+    ):
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenance参照が不正です")
+    path = job_dir / "contract-inputs" / "trusted-static-tools.json"
+    payload = _read_regular_file_once(path, max_bytes=MAX_TRUSTED_TOOL_MANIFEST_BYTES)
+    if not hmac.compare_digest(hashlib.sha256(payload).hexdigest(), expected_digest):
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool manifestのSHA-256が一致しません")
+    document = _decode_json_object_strict(payload)
+    if set(document) != {
+        "schema_version",
+        "profile_id",
+        "operator_manifest_sha256",
+        "platform",
+        "tools",
+        "diec",
+    }:
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool manifest schemaが不正です")
+    platform_record = document.get("platform")
+    tools = document.get("tools")
+    profile_id = document.get("profile_id")
+    operator_digest = document.get("operator_manifest_sha256")
+    if (
+        document.get("schema_version") != SCHEMA_VERSION
+        or document.get("diec") is not None
+        or not isinstance(profile_id, str)
+        or not profile_id
+        or not isinstance(operator_digest, str)
+        or SHA256_RE.fullmatch(operator_digest) is None
+        or platform_record
+        != {
+            "sys_platform": sys.platform.casefold(),
+            "machine": platform.machine().casefold(),
+        }
+        or not isinstance(tools, dict)
+        or set(tools) != set(TRUSTED_STATIC_TOOL_IDS)
+    ):
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool manifest fieldが不正です")
+    snapshots: dict[str, TrustedToolSnapshot | None] = {}
+    for tool_id in TRUSTED_STATIC_TOOL_IDS:
+        item = tools[tool_id]
+        if item is None:
+            snapshots[tool_id] = None
+            continue
+        if not isinstance(item, dict) or set(item) != {
+            "name",
+            "size",
+            "sha256",
+            "snapshot_relative_path",
+        }:
+            raise JobContractError("trusted_tool_snapshot_changed", f"{tool_id} snapshot schemaが不正です")
+        launcher_name = f"{tool_id}.exe" if os.name == "nt" else tool_id
+        expected_relative = f"contract-inputs/static-tools/{tool_id}/{launcher_name}"
+        size = item.get("size")
+        digest = item.get("sha256")
+        if (
+            item.get("name") != launcher_name
+            or item.get("snapshot_relative_path") != expected_relative
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or not 1 <= size <= MAX_TRUSTED_TOOL_BINARY_BYTES
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+        ):
+            raise JobContractError("trusted_tool_snapshot_changed", f"{tool_id} snapshot fieldが不正です")
+        snapshot_path = job_dir.joinpath(*expected_relative.split("/"))
+        snapshots[tool_id] = TrustedToolSnapshot(
+            tool_id=tool_id,
+            path=snapshot_path,
+            snapshot_relative_path=expected_relative,
+            size=size,
+            sha256=digest,
+        )
+    if all(value is None for value in snapshots.values()):
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool snapshotが空です")
+    bundle = TrustedToolBundle(
+        profile_id=profile_id,
+        operator_manifest_sha256=operator_digest,
+        tools=snapshots,
+        manifest_path=path,
+        manifest_relative_path=relative,
+        manifest_sha256=expected_digest,
+        manifest_document=document,
+    )
+    if bundle.provenance() != provenance:
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenanceがmanifestと一致しません")
+    verify_trusted_tool_bundle(bundle, job_dir=job_dir)
+    return bundle
+
+
+def _revalidate_completed_job_snapshot(
+    jobs_root: Path,
+    request: JobRequest,
+    *,
+    temporary_root: Path,
+    expected_timeout_seconds: int,
+) -> dict[str, Any]:
+    """private copyへ固定した既存完了jobを現在コードから再検証する。"""
+
+    request = validate_request_object(request.public())
+    expected_timeout_seconds = _bounded_integer(
+        expected_timeout_seconds,
+        name="expected_timeout_seconds",
+        maximum=MAX_TIMEOUT_SECONDS,
+    )
+    snapshot = read_job_snapshot(jobs_root, request.job_id)
+    result = snapshot.get("result")
+    if (
+        not isinstance(result, dict)
+        or result.get("accepted") is not True
+        or result.get("request_sha256") != _request_digest(request)
+    ):
+        raise JobContractError("existing_job_incomplete", "既存jobが検証済み完了状態ではありません")
+    status = snapshot.get("status")
+    progress = snapshot.get("progress")
+    result_state = result.get("analysis_state")
+    terminal_state = "completed" if result_state == "complete" else "completed_partial"
+    if (
+        result_state not in {"complete", "partial"}
+        or not isinstance(status, Mapping)
+        or status.get("state") != terminal_state
+        or status.get("terminal") is not True
+        or not isinstance(progress, Mapping)
+        or progress.get("phase") != terminal_state
+        or progress.get("percent") != 100
+    ):
+        raise JobContractError(
+            "existing_job_incomplete",
+            "既存jobのstatus／progress／resultが同じ終端状態ではありません",
+        )
+    root = _absolute_path(jobs_root)
+    job_dir = root / request.job_id
+    stored_request = load_json_object_strict(job_dir / "request.json", max_bytes=MAX_REQUEST_BYTES)
+    if stored_request != request.public():
+        raise JobContractError("existing_job_contract_invalid", "保存済みrequestが現在の要求と一致しません")
+    artifacts = result.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise JobContractError("existing_job_contract_invalid", "既存jobのartifact manifestが不正です")
+
+    input_bundle = _rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+    trusted_tools = _rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
+    family_hint_manifest: Path | None = None
+    family_hint_relative = artifacts.get("family_hint_manifest")
+    family_hint_digest = artifacts.get("family_hint_manifest_sha256")
+    if request.family_hint_manifest is None:
+        if family_hint_relative is not None or family_hint_digest is not None:
+            raise JobContractError("family_hint_manifest_changed", "未指定のfamily hint manifestが残っています")
+    else:
+        if (
+            family_hint_relative != "contract-inputs/family-hint-manifest.json"
+            or not isinstance(family_hint_digest, str)
+            or SHA256_RE.fullmatch(family_hint_digest) is None
+        ):
+            raise JobContractError("family_hint_manifest_changed", "family hint manifest参照が不正です")
+        family_hint_manifest = job_dir / "contract-inputs" / "family-hint-manifest.json"
+        family_hint_payload = _read_regular_file_once(family_hint_manifest, max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES)
+        if not hmac.compare_digest(hashlib.sha256(family_hint_payload).hexdigest(), family_hint_digest):
+            raise JobContractError("family_hint_manifest_changed", "family hint manifestのSHA-256が一致しません")
+
+    contract_relative = artifacts.get("analysis_contract_bundle")
+    contract_digest = artifacts.get("analysis_contract_bundle_sha256")
+    if (
+        contract_relative != "contract-inputs/analysis-contract-bundle.json"
+        or not isinstance(contract_digest, str)
+        or SHA256_RE.fullmatch(contract_digest) is None
+    ):
+        raise JobContractError("existing_job_contract_invalid", "解析契約bundle参照が不正です")
+    contract_path = job_dir / "contract-inputs" / "analysis-contract-bundle.json"
+    contract_payload = _read_regular_file_once(contract_path, max_bytes=MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES)
+    if not hmac.compare_digest(hashlib.sha256(contract_payload).hexdigest(), contract_digest):
+        raise JobContractError("existing_job_contract_invalid", "解析契約bundleのSHA-256が一致しません")
+    stored_contract = _decode_json_object_strict(contract_payload)
+
+    temp = _absolute_path(temporary_root)
+    _ensure_no_reparse(
+        temp,
+        code="temporary_root_reparse_forbidden",
+        message="再検証用一時directoryにreparse pointは使用できません",
+    )
+    if not temp.is_dir():
+        raise JobContractError("temporary_root_invalid", "再検証用一時directoryがありません")
+    if _paths_overlap(temp, job_dir) or _paths_overlap(temp, REPOSITORY_ROOT):
+        raise JobContractError(
+            "temporary_root_invalid",
+            "再検証用一時directoryはjobとrepositoryの外へ分離してください",
+        )
+    analysis_output = _analysis_output_io_path(job_dir / "analysis")
+    verify_input_snapshot_bundle(input_bundle, job_dir=job_dir)
+    if trusted_tools is not None:
+        verify_trusted_tool_bundle(trusted_tools, job_dir=job_dir)
+    expected_root, expected_follow_on, expected_manifest = build_expected_analysis_bundle(
+        request,
+        [item.path for item in input_bundle.inputs],
+        analysis_output,
+        family_hint_manifest=family_hint_manifest,
+        temporary_root=temp,
+        trusted_tools=trusted_tools,
+    )
+    verify_analysis_contract_trusted_tools(
+        expected_root,
+        expected_follow_on,
+        trusted_tools=trusted_tools,
+    )
+    expected_contract = {
+        "schema_version": SCHEMA_VERSION,
+        "input_manifest": [item.public() for item in expected_manifest],
+        "root_analysis_contract": expected_root,
+        "follow_on_analysis_contract": expected_follow_on,
+    }
+    if stored_contract != expected_contract:
+        raise JobContractError("existing_job_contract_invalid", "既存jobの解析契約が現在コードと一致しません")
+    verify_input_snapshot_bundle(input_bundle, job_dir=job_dir)
+    if trusted_tools is not None:
+        verify_trusted_tool_bundle(trusted_tools, job_dir=job_dir)
+    if family_hint_manifest is not None:
+        current_hint = _read_regular_file_once(family_hint_manifest, max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES)
+        if not hmac.compare_digest(hashlib.sha256(current_hint).hexdigest(), str(family_hint_digest)):
+            raise JobContractError("family_hint_manifest_changed", "family hint manifestが再検証中に変更されました")
+
+    output_manifest_before = analysis_output_content_manifest(analysis_output)
+    summary, counts = _validated_summary(
+        analysis_output / "summary.json",
+        expected_input_files=len(input_bundle.inputs),
+        expected_analysis_contract=expected_root,
+        expected_follow_on_contract=expected_follow_on,
+        expected_options=request.options,
+        expected_input_manifest=expected_manifest,
+        verify_root_cases=True,
+    )
+    output_manifest_after = analysis_output_content_manifest(analysis_output)
+    if output_manifest_after != output_manifest_before:
+        raise JobContractError(
+            "analysis_output_changed",
+            "既存jobの解析treeが再検証中に変化しました",
+        )
+    expected_analysis_state, expected_terminal_state, expected_exit_code = (
+        _completion_state_from_validated_summary(summary, counts)
+    )
+    output_tree = output_manifest_after["tree"]
+    output_tree_sha256 = analysis_output_content_sha256(output_manifest_after)
+    input_records = input_bundle.manifest_document.get("input_records")
+    if not isinstance(input_records, list):
+        raise JobContractError("existing_job_contract_invalid", "入力集計recordがありません")
+    log_details: dict[str, dict[str, Any]] = {}
+    for name in ("stdout", "stderr"):
+        log_path = job_dir / f"{name}.log"
+        try:
+            information = log_path.lstat()
+        except OSError as exc:
+            raise JobContractError("existing_job_result_mismatch", "job logがありません") from exc
+        if (
+            not stat.S_ISREG(information.st_mode)
+            or _stat_has_reparse_attribute(information)
+            or information.st_nlink != 1
+            or not 0 <= information.st_size <= MAX_LOG_BYTES
+        ):
+            raise JobContractError("existing_job_result_mismatch", "job log境界が不正です")
+        observed_bytes = artifacts.get(f"{name}_observed_bytes")
+        truncated = artifacts.get(f"{name}_truncated")
+        if (
+            type(observed_bytes) is not int
+            or not information.st_size <= observed_bytes <= MAX_LOG_OBSERVED_BYTES
+            or type(truncated) is not bool
+            or truncated is not (observed_bytes > information.st_size)
+        ):
+            raise JobContractError(
+                "existing_job_result_mismatch",
+                "job logの保持量・観測量・切詰め状態が一致しません",
+            )
+        log_details[name] = {
+            "size": information.st_size,
+            "sha256": _hash_analysis_output_file_once(
+                log_path,
+                expected_size=information.st_size,
+            ),
+            "observed_bytes": observed_bytes,
+            "truncated": truncated,
+        }
+    expected_artifacts = {
+        "analysis_summary": "analysis/summary.json",
+        "follow_on_analysis": "analysis/follow-on-analysis.json",
+        "terminal_payload_acquisition": "analysis/terminal-payload-acquisition.json",
+        "terminal_payload_acquisition_sha256": summary["terminal_payload_acquisition"]["sha256"],
+        "family_hint_manifest": (
+            "contract-inputs/family-hint-manifest.json"
+            if family_hint_manifest is not None
+            else None
+        ),
+        "family_hint_manifest_sha256": (
+            str(family_hint_digest) if family_hint_manifest is not None else None
+        ),
+        "analysis_contract_bundle": "contract-inputs/analysis-contract-bundle.json",
+        "analysis_contract_bundle_sha256": hashlib.sha256(contract_payload).hexdigest(),
+        "input_snapshot_manifest": "contract-inputs/input-snapshot-manifest.json",
+        "input_snapshot_manifest_sha256": input_bundle.manifest_sha256,
+        "trusted_static_tools_manifest": (
+            trusted_tools.manifest_relative_path if trusted_tools is not None else None
+        ),
+        "trusted_static_tools_manifest_sha256": (
+            trusted_tools.manifest_sha256 if trusted_tools is not None else None
+        ),
+        "stdout": "stdout.log",
+        "stderr": "stderr.log",
+        "stdout_sha256": log_details["stdout"]["sha256"],
+        "stderr_sha256": log_details["stderr"]["sha256"],
+        "stdout_size": log_details["stdout"]["size"],
+        "stderr_size": log_details["stderr"]["size"],
+        "stdout_observed_bytes": log_details["stdout"]["observed_bytes"],
+        "stderr_observed_bytes": log_details["stderr"]["observed_bytes"],
+        "stdout_truncated": log_details["stdout"]["truncated"],
+        "stderr_truncated": log_details["stderr"]["truncated"],
+        "analysis_output": output_tree,
+        "analysis_output_sha256": output_tree_sha256,
+    }
+    expected_result = {
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": request.job_id,
+        "request_sha256": _request_digest(request),
+        "accepted": True,
+        "analysis_state": expected_analysis_state,
+        "inputs": input_records,
+        "family_hint_manifest": request.family_hint_manifest,
+        "trusted_static_tools": (
+            trusted_tools.provenance() if trusted_tools is not None else None
+        ),
+        "counts": counts,
+        "derived_counts": summary.get("derived_counts"),
+        "follow_on_analysis": summary.get("follow_on_analysis"),
+        "artifacts": expected_artifacts,
+        "process": {
+            "exit_code": expected_exit_code,
+            "shell": False,
+            "script": "analysis-framework/common/analyze_sample.py",
+            "timeout_seconds": expected_timeout_seconds,
+        },
+        "safety": {
+            "network_or_live_options_allowed": False,
+            "sample_execution_allowed": False,
+            "summary_safety_contract_verified": True,
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+        },
+        "finished_at_utc": result.get("finished_at_utc"),
+    }
+    expected_progress = {
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": request.job_id,
+        "phase": expected_terminal_state,
+        "percent": 100,
+        "message": (
+            "静的解析が完了しました"
+            if expected_analysis_state == "complete"
+            else "静的解析は追加解析待ちを含んで完了しました"
+        ),
+        "updated_at_utc": progress.get("updated_at_utc"),
+        "completed_files": counts["analyzed"],
+        "derived_files": summary["derived_counts"]["analyzed"],
+        "total_files": len(input_bundle.inputs),
+    }
+    expected_status = {
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": request.job_id,
+        "state": expected_terminal_state,
+        "terminal": True,
+        "created_at_utc": status.get("created_at_utc"),
+        "started_at_utc": status.get("started_at_utc"),
+        "finished_at_utc": result.get("finished_at_utc"),
+        "progress_path": "progress.json",
+        "result_path": "result.json",
+        "error": None,
+    }
+    try:
+        created_time = datetime.fromisoformat(str(status.get("created_at_utc")))
+        started_time = datetime.fromisoformat(str(status.get("started_at_utc")))
+        finished_time = datetime.fromisoformat(str(status.get("finished_at_utc")))
+        progress_time = datetime.fromisoformat(str(progress.get("updated_at_utc")))
+    except ValueError as exc:
+        raise JobContractError("existing_job_result_mismatch", "既存job timestampを比較できません") from exc
+    if (
+        result != expected_result
+        or artifacts != expected_artifacts
+        or progress != expected_progress
+        or status != expected_status
+        or not created_time <= started_time <= finished_time <= progress_time
+    ):
+        raise JobContractError("existing_job_result_mismatch", "既存job resultと再検証済み成果物が一致しません")
+    result_payload = _read_regular_file_once(job_dir / "result.json", max_bytes=MAX_SUMMARY_BYTES)
+    summary_payload = _read_regular_file_once(
+        analysis_output / "summary.json",
+        max_bytes=MAX_SUMMARY_BYTES,
+    )
+    if (
+        _decode_json_object_strict(result_payload) != result
+        or _decode_json_object_strict(summary_payload) != summary
+        or analysis_output_content_manifest(analysis_output) != output_manifest_after
+    ):
+        raise JobContractError(
+            "existing_job_state_changed",
+            "既存job成果物が再検証中に変更されました",
+        )
+    if read_job_snapshot(jobs_root, request.job_id) != snapshot:
+        raise JobContractError(
+            "existing_job_state_changed",
+            "既存jobの終端状態が再検証中に変更されました",
+        )
+    verify_input_snapshot_bundle(input_bundle, job_dir=job_dir)
+    if trusted_tools is not None:
+        verify_trusted_tool_bundle(trusted_tools, job_dir=job_dir)
+    if family_hint_manifest is not None:
+        current_hint = _read_regular_file_once(
+            family_hint_manifest,
+            max_bytes=MAX_FAMILY_HINT_MANIFEST_BYTES,
+        )
+        if not hmac.compare_digest(
+            hashlib.sha256(current_hint).hexdigest(),
+            str(family_hint_digest),
+        ):
+            raise JobContractError(
+                "existing_job_state_changed",
+                "family hint manifestが最終再検証中に変更されました",
+            )
+    current_contract = _read_regular_file_once(
+        contract_path,
+        max_bytes=MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES,
+    )
+    if not hmac.compare_digest(current_contract, contract_payload):
+        raise JobContractError(
+            "existing_job_state_changed",
+            "解析契約bundleが最終再検証中に変更されました",
+        )
+    if load_json_object_strict(job_dir / "request.json", max_bytes=MAX_REQUEST_BYTES) != request.public():
+        raise JobContractError(
+            "existing_job_state_changed",
+            "保存済みrequestが最終再検証中に変更されました",
+        )
+    for name, expected_log in log_details.items():
+        log_path = job_dir / f"{name}.log"
+        try:
+            information = log_path.lstat()
+        except OSError as exc:
+            raise JobContractError(
+                "existing_job_state_changed",
+                "job logが最終再検証中に変更されました",
+            ) from exc
+        if (
+            not stat.S_ISREG(information.st_mode)
+            or _stat_has_reparse_attribute(information)
+            or information.st_nlink != 1
+            or information.st_size != expected_log["size"]
+            or _hash_analysis_output_file_once(
+                log_path,
+                expected_size=information.st_size,
+            )
+            != expected_log["sha256"]
+        ):
+            raise JobContractError(
+                "existing_job_state_changed",
+                "job logが最終再検証中に変更されました",
+            )
+    result_payload = _read_regular_file_once(job_dir / "result.json", max_bytes=MAX_SUMMARY_BYTES)
+    summary_payload = _read_regular_file_once(
+        analysis_output / "summary.json",
+        max_bytes=MAX_SUMMARY_BYTES,
+    )
+    if (
+        _decode_json_object_strict(result_payload) != result
+        or _decode_json_object_strict(summary_payload) != summary
+        or analysis_output_content_manifest(analysis_output) != output_manifest_after
+    ):
+        raise JobContractError(
+            "existing_job_state_changed",
+            "既存job成果物が最終再検証中に変更されました",
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "result": result,
+        "summary": summary,
+        "counts": counts,
+        "analysis_output": output_tree,
+        "analysis_output_sha256": output_tree_sha256,
+        "result_sha256": hashlib.sha256(result_payload).hexdigest(),
+        "summary_sha256": hashlib.sha256(summary_payload).hexdigest(),
+    }
+
+
+def revalidate_completed_job(
+    jobs_root: Path,
+    request: JobRequest,
+    *,
+    temporary_root: Path,
+    expected_timeout_seconds: int,
+) -> dict[str, Any]:
+    """既存完了job全体をprivate snapshotへ固定してから再構築・再検証する。"""
+
+    request = validate_request_object(request.public())
+    expected_timeout_seconds = _bounded_integer(
+        expected_timeout_seconds,
+        name="expected_timeout_seconds",
+        maximum=MAX_TIMEOUT_SECONDS,
+    )
+    root = _absolute_path(jobs_root)
+    job_dir = root / request.job_id
+    temp = _absolute_path(temporary_root)
+    _ensure_no_reparse(
+        temp,
+        code="temporary_root_reparse_forbidden",
+        message="再検証用一時directoryにreparse pointは使用できません",
+    )
+    if not temp.is_dir():
+        raise JobContractError(
+            "temporary_root_invalid",
+            "再検証用一時directoryがありません",
+        )
+    if _paths_overlap(temp, job_dir) or _paths_overlap(temp, REPOSITORY_ROOT):
+        raise JobContractError(
+            "temporary_root_invalid",
+            "再検証用一時directoryはjobとrepositoryの外へ分離してください",
+        )
+
+    source_before = _completed_job_content_manifest(job_dir)
+    required_bytes = int(source_before["tree"]["total_bytes"])
+    try:
+        free_bytes = shutil.disk_usage(temp).free
+    except OSError as exc:
+        raise JobContractError(
+            "temporary_root_invalid",
+            "再検証用一時directoryの空き容量を確認できません",
+        ) from exc
+    if free_bytes < required_bytes + MIN_FREE_DISK_RESERVE_BYTES:
+        raise JobContractError(
+            "temporary_root_capacity_insufficient",
+            "完了jobのprivate snapshotに必要な空き容量がありません",
+        )
+
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix="r-",
+            dir=temp,
+            ignore_cleanup_errors=True,
+        ) as temporary:
+            private_root = _extended_length_path(Path(temporary))
+            snapshot_jobs_root = private_root
+            worker_temp = private_root / "t"
+            worker_temp.mkdir(mode=0o700)
+            snapshot_job_dir = snapshot_jobs_root / request.job_id
+            try:
+                shutil.copytree(
+                    job_dir,
+                    snapshot_job_dir,
+                    symlinks=True,
+                )
+                copied = _completed_job_content_manifest(snapshot_job_dir)
+                source_after_copy = _completed_job_content_manifest(job_dir)
+                if copied != source_before or source_after_copy != source_before:
+                    raise JobContractError(
+                        "existing_job_state_changed",
+                        "完了jobがprivate snapshot作成中に変更されました",
+                    )
+                _set_completed_job_snapshot_read_only(
+                    snapshot_job_dir,
+                    read_only=True,
+                )
+                frozen = _completed_job_content_manifest(snapshot_job_dir)
+                if frozen != copied:
+                    raise JobContractError(
+                        "existing_job_state_changed",
+                        "再検証用private snapshotが固定中に変更されました",
+                    )
+                validation = _revalidate_completed_job_snapshot(
+                    snapshot_jobs_root,
+                    request,
+                    temporary_root=worker_temp,
+                    expected_timeout_seconds=expected_timeout_seconds,
+                )
+                snapshot_after = _completed_job_content_manifest(snapshot_job_dir)
+                source_after = _completed_job_content_manifest(job_dir)
+                if snapshot_after != frozen or source_after != source_before:
+                    raise JobContractError(
+                        "existing_job_state_changed",
+                        "完了jobまたはprivate snapshotが再検証中に変更されました",
+                    )
+                return validation
+            finally:
+                if snapshot_job_dir.exists():
+                    try:
+                        _set_completed_job_snapshot_read_only(
+                            snapshot_job_dir,
+                            read_only=False,
+                        )
+                    except (JobContractError, OSError):
+                        pass
+                    try:
+                        shutil.rmtree(snapshot_job_dir)
+                    except OSError:
+                        pass
+                if worker_temp.exists():
+                    try:
+                        shutil.rmtree(worker_temp)
+                    except OSError:
+                        pass
+                try:
+                    cleanup_incomplete = (
+                        snapshot_job_dir.exists()
+                        or worker_temp.exists()
+                        or any(private_root.iterdir())
+                    )
+                except OSError:
+                    cleanup_incomplete = True
+                if cleanup_incomplete:
+                    raise JobContractError(
+                        "existing_job_snapshot_cleanup_failed",
+                        "再検証用private snapshotを完全に破棄できません",
+                    )
+    except JobContractError:
+        raise
+    except (OSError, shutil.Error) as exc:
+        raise JobContractError(
+            "existing_job_snapshot_failed",
+            "完了jobのprivate snapshotを安全に作成できません",
+        ) from exc
 
 
 def _timeout_type(value: str) -> int:

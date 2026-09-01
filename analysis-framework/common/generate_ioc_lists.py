@@ -416,6 +416,12 @@ def analysis_directories(results_root: Path, history: dict[str, dict]) -> list[P
                 and index + 2 == len(parts) - 1
             ):
                 output.add(readme.parent)
+        if (
+            len(parent_parts) == 3
+            and parent_parts[:2] == ("clickfix", "collections")
+            and (readme.parent / "iocs.json").is_file()
+        ):
+            output.add(readme.parent)
         if "campaigns" in parent_parts:
             index = parent_parts.index("campaigns")
             if (

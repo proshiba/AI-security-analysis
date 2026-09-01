@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 import sys
 
-
 ROOT = Path(__file__).resolve().parents[2]
 COMMON = ROOT / "analysis-framework" / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
+import generate_logic_similarity_index as logic_similarity  # noqa: E402
 from generate_logic_similarity_index import (  # noqa: E402
     build_index,
     build_profile,
@@ -212,3 +212,58 @@ def test_generate_writes_and_then_passes_check(tmp_path: Path) -> None:
     assert "最低2つの独立軸" in markdown
     assert "../malware/agenttesla/versions/test/cases/" in markdown
     assert "/README.md" in markdown
+
+
+def test_build_index_bounds_candidates_before_global_ranking(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """全pair件数を残しつつendpoint heapの和集合だけを順位付けへ渡す。"""
+
+    monkeypatch.setattr(logic_similarity, "MAX_CANDIDATES_PER_CASE", 2)
+    repository = tmp_path / "repository"
+    catalog_dir = repository / "analysis-results" / "catalog"
+    catalog_dir.mkdir(parents=True)
+    cases = {}
+    for index in range(6):
+        sha256 = f"{index + 1:064x}"
+        case_path = (
+            repository
+            / "analysis-results"
+            / "malware"
+            / "agenttesla"
+            / "versions"
+            / "test"
+            / "cases"
+            / sha256
+        )
+        case_path.mkdir(parents=True)
+        report = _report()
+        report["sha256"] = sha256
+        for name, value in (
+            ("static-logic.json", report),
+            ("static-layers.json", _layers()),
+            ("features.json", _features()),
+        ):
+            (case_path / name).write_text(
+                json.dumps(value, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        cases[sha256] = {
+            "canonical_path": case_path.relative_to(repository).as_posix(),
+            "family": "agenttesla",
+            "version_key": "test",
+        }
+    (catalog_dir / "cases.json").write_text(
+        json.dumps({"schema_version": 1, "cases": cases}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    index = logic_similarity.build_index(repository)
+
+    assert index["counts"]["candidate_pairs_before_limit"] == 15
+    assert index["counts"]["candidate_pairs_retained_for_ranking"] <= 12
+    assert index["counts"]["candidate_pairs_omitted_before_ranking"] >= 3
+    assert (
+        index["comparison_contract"]["max_candidates_per_case_before_ranking"]
+        == 2
+    )

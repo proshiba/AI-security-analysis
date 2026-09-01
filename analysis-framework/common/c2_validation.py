@@ -7,6 +7,7 @@ import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 
 from nmap_c2_detector import probe_target_with_nmap
 
@@ -129,6 +130,49 @@ def _nmap_target(candidate: dict, sample_sha256s: list[str]) -> dict:
         "sources": [candidate["source"]],
         "selection_basis": "Nmap NSEによるtransport到達性観測のみ",
     }
+
+
+def _probe_args(
+    candidate: dict, sample_sha256s: list[str], allow_network: bool
+) -> SimpleNamespace:
+    """旧probe呼出し用の安全なconnect-only引数を返す。
+
+    実probeはNmap NSEへ移行済みだが、既存利用側が安全policyを検査できるよう、
+    送信payloadを持たない互換objectだけを残す。
+    """
+
+    return SimpleNamespace(
+        host=candidate["host"],
+        port=candidate["port"],
+        protocol=candidate.get("protocol", "tcp"),
+        timeout=float(candidate.get("timeout", 3.0)),
+        max_bytes=int(candidate.get("max_bytes", 64)),
+        send_hex=None,
+        expected_stage_size=0,
+        expected_header_size=0,
+        http_path=candidate.get("http_path", "/"),
+        http_host=candidate.get("http_host"),
+        sni=candidate.get("sni"),
+        mxgo_mode="preview",
+        mxgo_client_id="LAB-MXGO-000000000000",
+        mxgo_recipient_path="/fixture.txt",
+        n520_checkin=False,
+        n520_wait=1.0,
+        n520_max_bytes=64,
+        n520_max_frames=1,
+        artifact_zip=None,
+        archive_password="infected",
+        proxy_host=(
+            "127.0.0.1" if candidate.get("transport") == "tor-socks5" else None
+        ),
+        proxy_port=candidate.get("proxy_port", 9050),
+        collect_jarm=False,
+        jarm_script=None,
+        allow_network=allow_network,
+        target_role=candidate.get("role", "c2"),
+        sample_sha256=sample_sha256s,
+        connect_only=True,
+    )
 
 
 def _connection_status(results: list[dict], allow_network: bool, empty_status: str) -> str:

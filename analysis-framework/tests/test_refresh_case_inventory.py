@@ -95,6 +95,21 @@ def test_sync_checksum_manifests_is_portable_across_text_line_endings(
     assert inventory.sync_checksum_manifests(tmp_path)["mismatches"] == []
 
 
+def test_streaming_checksum_normalizes_crlf_across_chunk_boundary(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "report.txt"
+    target.write_bytes(b"ab\r\ncd\r")
+
+    digest = inventory._streaming_sha256(
+        target,
+        normalize_crlf=True,
+        chunk_bytes=3,
+    )
+
+    assert digest == hashlib.sha256(b"ab\ncd\r").hexdigest()
+
+
 def _stub_plan() -> dict:
     return {
         "errors": [],

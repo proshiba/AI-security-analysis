@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -16,7 +17,7 @@ import stat
 import subprocess
 import sys
 import tempfile
-from typing import Any, Sequence
+from typing import Any, BinaryIO, Iterator, Sequence
 
 import pyzipper
 
@@ -52,10 +53,25 @@ class SourceFile:
     archive_name: str
     size: int
     sha256: str
+    identity: os.stat_result
 
 
 class DatastoreError(RuntimeError):
     """解析データ保管処理を安全に継続できない場合の例外。"""
+
+
+def _extended_length_path(path: Path) -> Path:
+    """Windowsの深いprivate artifactにはextended-length pathを使う。"""
+
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    if os.name != "nt":
+        return absolute
+    value = os.fspath(absolute)
+    if value.startswith("\\\\?\\"):
+        return absolute
+    if value.startswith("\\\\"):
+        return Path(f"\\\\?\\UNC\\{value.lstrip(chr(92))}")
+    return Path(f"\\\\?\\{value}")
 
 
 def sha256_file(path: Path) -> str:
@@ -68,13 +84,115 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
+    try:
+        return os.path.samestat(first, second)
+    except (AttributeError, OSError):
+        return (
+            first.st_dev == second.st_dev
+            and first.st_ino != 0
+            and first.st_ino == second.st_ino
+        )
+
+
+def _is_reparse_metadata(metadata: os.stat_result) -> bool:
+    return bool(
+        getattr(metadata, "st_file_attributes", 0)
+        & FILE_ATTRIBUTE_REPARSE_POINT
+    )
+
+
+def _validate_regular_source_metadata(
+    path: Path,
+    metadata: os.stat_result,
+) -> None:
+    if not stat.S_ISREG(metadata.st_mode):
+        raise DatastoreError(f"通常ファイル以外は保管対象にできません: {path}")
+    if metadata.st_nlink != 1:
+        raise DatastoreError(f"hardlinkは保管対象にできません: {path}")
+    if _is_reparse_metadata(metadata):
+        raise DatastoreError(f"reparse pointは保管対象にできません: {path}")
+
+
+def _validate_source_identity(
+    path: Path,
+    first: os.stat_result,
+    second: os.stat_result,
+) -> None:
+    _validate_regular_source_metadata(path, second)
+    if (
+        not _same_file_identity(first, second)
+        or first.st_size != second.st_size
+        or first.st_mtime_ns != second.st_mtime_ns
+    ):
+        raise DatastoreError(f"保管処理中にsource identityが変更されました: {path}")
+
+
+@contextmanager
+def _open_verified_source(
+    path: Path,
+    *,
+    expected: os.stat_result | None = None,
+) -> Iterator[tuple[BinaryIO, os.stat_result]]:
+    """通常fileを単一handleへ固定し、open前後とclose前後のidentityを検証する。"""
+
+    absolute = _extended_length_path(path)
+    _reject_reparse_components(absolute)
+    try:
+        before = absolute.lstat()
+    except OSError as exc:
+        raise DatastoreError(f"source metadataを取得できません: {absolute}") from exc
+    _validate_regular_source_metadata(absolute, before)
+    if expected is not None:
+        _validate_source_identity(absolute, expected, before)
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_BINARY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOINHERIT", 0)
+    )
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(absolute, flags)
+        opened = os.fstat(descriptor)
+        _validate_source_identity(absolute, before, opened)
+        with os.fdopen(descriptor, "rb", closefd=True) as handle:
+            descriptor = None
+            yield handle, opened
+            after_handle = os.fstat(handle.fileno())
+        _validate_source_identity(absolute, opened, after_handle)
+        _reject_reparse_components(absolute)
+        after_path = absolute.lstat()
+        _validate_source_identity(absolute, opened, after_path)
+    except DatastoreError:
+        raise
+    except OSError as exc:
+        raise DatastoreError(f"sourceを安全に読込めません: {absolute}") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _hash_source_snapshot(path: Path) -> tuple[str, int, os.stat_result]:
+    digest = hashlib.sha256()
+    size = 0
+    with _open_verified_source(path) as (handle, identity):
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+            size += len(chunk)
+    if size != identity.st_size:
+        raise DatastoreError(f"ハッシュ計算中にsource sizeが変更されました: {path}")
+    return digest.hexdigest(), size, identity
+
+
 def _is_reparse_point(path: Path) -> bool:
     metadata = path.lstat()
     return path.is_symlink() or bool(getattr(metadata, "st_file_attributes", 0) & FILE_ATTRIBUTE_REPARSE_POINT)
 
 
 def _reject_reparse_components(path: Path) -> None:
-    absolute = Path(os.path.abspath(os.fspath(path)))
+    absolute = _extended_length_path(path)
     parts = absolute.parts
     if not parts:
         raise DatastoreError("source pathが空です")
@@ -125,14 +243,16 @@ def _reject_host_credential_name(relative: PurePosixPath) -> None:
 
 def _walk_directory(root: Path) -> list[tuple[Path, PurePosixPath]]:
     results: list[tuple[Path, PurePosixPath]] = []
-    stack: list[tuple[Path, PurePosixPath]] = [(root, PurePosixPath())]
+    stack: list[tuple[Path, PurePosixPath]] = [
+        (_extended_length_path(root), PurePosixPath())
+    ]
     while stack:
         directory, relative_directory = stack.pop()
         with os.scandir(directory) as entries:
             for entry in sorted(entries, key=lambda item: item.name.casefold(), reverse=True):
                 path = Path(entry.path)
                 relative = relative_directory / entry.name
-                metadata = entry.stat(follow_symlinks=False)
+                metadata = path.lstat()
                 if entry.is_symlink() or bool(
                     getattr(metadata, "st_file_attributes", 0) & FILE_ATTRIBUTE_REPARSE_POINT
                 ):
@@ -155,7 +275,7 @@ def collect_source_files(sources: Sequence[Path]) -> list[SourceFile]:
     archive_names: set[str] = {MANIFEST_NAME.casefold()}
     collected: list[SourceFile] = []
     for supplied in sources:
-        source = Path(os.path.abspath(os.fspath(supplied)))
+        source = _extended_length_path(supplied)
         if not source.exists():
             raise DatastoreError(f"sourceが存在しません: {source}")
         _reject_reparse_components(source)
@@ -184,20 +304,14 @@ def collect_source_files(sources: Sequence[Path]) -> list[SourceFile]:
             if archive_key in archive_names:
                 raise DatastoreError(f"ZIP member名が重複しています: {archive_name}")
             archive_names.add(archive_key)
-            metadata_before = path.stat(follow_symlinks=False)
-            digest = sha256_file(path)
-            metadata_after = path.stat(follow_symlinks=False)
-            if (
-                metadata_before.st_size != metadata_after.st_size
-                or metadata_before.st_mtime_ns != metadata_after.st_mtime_ns
-            ):
-                raise DatastoreError(f"ハッシュ計算中にsourceが変更されました: {path}")
+            digest, size, identity = _hash_source_snapshot(path)
             collected.append(
                 SourceFile(
                     source=path,
                     archive_name=archive_name,
-                    size=metadata_after.st_size,
+                    size=size,
                     sha256=digest,
+                    identity=identity,
                 )
             )
     return sorted(collected, key=lambda item: item.archive_name.casefold())
@@ -261,15 +375,25 @@ def create_encrypted_archive(
             archive.setencryption(pyzipper.WZ_AES, nbits=256)
             archive.writestr(MANIFEST_NAME, manifest_bytes(manifest))
             for item in files:
-                metadata_before = item.source.stat(follow_symlinks=False)
-                archive.write(item.source, arcname=item.archive_name)
-                metadata_after = item.source.stat(follow_symlinks=False)
-                if (
-                    metadata_before.st_size != item.size
-                    or metadata_after.st_size != item.size
-                    or metadata_before.st_mtime_ns != metadata_after.st_mtime_ns
-                ):
-                    raise DatastoreError(f"archive作成中にsourceが変更されました: {item.source}")
+                digest = hashlib.sha256()
+                size = 0
+                with _open_verified_source(
+                    item.source,
+                    expected=item.identity,
+                ) as (source, _identity):
+                    with archive.open(
+                        item.archive_name,
+                        "w",
+                        force_zip64=True,
+                    ) as member:
+                        while chunk := source.read(1024 * 1024):
+                            digest.update(chunk)
+                            size += len(chunk)
+                            member.write(chunk)
+                if size != item.size or digest.hexdigest() != item.sha256:
+                    raise DatastoreError(
+                        f"archive作成中にsource内容が変更されました: {item.source}"
+                    )
 
 
 def verify_encrypted_archive(

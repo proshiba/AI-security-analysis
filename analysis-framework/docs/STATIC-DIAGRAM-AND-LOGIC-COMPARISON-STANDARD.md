@@ -102,6 +102,8 @@ py -3.13 .\analysis-framework\common\generate_logic_similarity_index.py --reposi
 - `analysis-results/catalog/logic-similarity.json`
 - `analysis-results/catalog/LOGIC-SIMILARITY.md`
 
+比較条件に一致したpairは全件数を集計へ残しますが、全pairをメモリへ保持しません。最終順位付け前は各case最大64件をendpoint別の有界heapへ保持し、その後は各case最大10件へ絞ります。`candidate_pairs_before_limit`、`candidate_pairs_retained_for_ranking`、`candidate_pairs_omitted_before_ranking`で省略前後を確認できます。候補省略はcampaign／actor帰属の自動確定には使用しません。
+
 ## `OVERALL-LOGIC.md`の比較節
 
 新規caseでは、3図の後に次を記録します。

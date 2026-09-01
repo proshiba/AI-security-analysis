@@ -1,32 +1,40 @@
 #!/usr/bin/env python3
-"""Loopback-only synthetic registration lab for profile-defined families.
+"""profile定義family向けのloopback限定合成registration lab。
 
-This is deliberately not a wire-compatible client for Internet C2 services.
-It models field relationships and framing with synthetic identities and empty
-responses so analysts can test parsers without running malware.
+Internet上のC2とwire互換ではありません。合成identityと空command応答だけで
+field関係とframingを再現し、検体を実行せずparserを検証します。
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import socket
 import socketserver
 import struct
 
-from emulators.common import require_loopback as validate_loopback
+from emulators.common import (
+    load_strict_json_object,
+    read_exact_bounded,
+    require_port,
+    require_timeout,
+)
+from emulators.common import (
+    require_loopback as validate_loopback,
+)
 from extractors.profiled_family import load_profiles, normalize_family, profile_for
 
 MAX_FRAME = 65_536
 
 
 def require_loopback(host: str) -> str:
-    """Return a loopback host or reject every external emulator target."""
+    """loopbackを返し、外部のbind先または接続先を拒否する。"""
     return validate_loopback(host, "family emulator")
 
 
 def emulation_profile(family: str) -> dict:
-    """Return sanitized field and transport metadata for one family."""
+    """1 familyの無害化済みfieldとtransport metadataを返す。"""
     profile = profile_for(family)
     fields = {
         "rat": ["lab_emulator", "family", "client_id", "capabilities"],
@@ -45,7 +53,7 @@ def emulation_profile(family: str) -> dict:
 
 
 def synthetic_message(family: str) -> dict:
-    """Build a non-sensitive lab message with no real host or victim identity."""
+    """実hostや被害者identityを含まない合成lab messageを構築する。"""
     profile = emulation_profile(family)
     value = {
         "lab_emulator": True,
@@ -62,84 +70,121 @@ def synthetic_message(family: str) -> dict:
 
 
 def encode_frame(value: dict) -> bytes:
-    """Encode one bounded synthetic JSON frame."""
+    """有界の合成JSON frameを1件encodeする。"""
     raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
     if len(raw) > MAX_FRAME:
-        raise ValueError("emulator frame exceeds limit")
+        raise ValueError("emulator frameがsize上限を超えています")
     return struct.pack(">I", len(raw)) + raw
 
 
 def decode_frame(frame: bytes) -> dict:
-    """Decode and validate one complete lab-marked frame."""
+    """完全なlab marker付きframeをstrict decodeする。"""
     if len(frame) < 4:
-        raise ValueError("truncated emulator frame")
+        raise ValueError("emulator frame headerが途中で切れています")
     length = struct.unpack(">I", frame[:4])[0]
     if length > MAX_FRAME or len(frame) != length + 4:
-        raise ValueError("invalid emulator frame length")
-    value = json.loads(frame[4:])
-    if not isinstance(value, dict) or value.get("lab_emulator") is not True:
-        raise ValueError("lab marker required")
+        raise ValueError("emulator frameの宣言長または実長が不正です")
+    value = load_strict_json_object(
+        frame[4:], label="family emulator frame", maximum_bytes=MAX_FRAME
+    )
+    if value.get("lab_emulator") is not True:
+        raise ValueError("lab markerが必要です")
     return value
 
 
-def _read_exact(sock: socket.socket, length: int) -> bytes:
-    chunks = []
-    remaining = length
-    while remaining:
-        chunk = sock.recv(remaining)
-        if not chunk:
-            raise ValueError("truncated emulator stream")
-        chunks.append(chunk)
-        remaining -= len(chunk)
-    return b"".join(chunks)
+def _read_frame(sock: socket.socket) -> bytes:
+    """uint32-be宣言長を先に検証して1 frameだけ読む。"""
+    header = read_exact_bounded(sock, 4, maximum_bytes=4, label="family frame header")
+    length = struct.unpack(">I", header)[0]
+    payload = read_exact_bounded(
+        sock, length, maximum_bytes=MAX_FRAME, label="family frame payload"
+    )
+    return header + payload
+
+
+def _response_for(family: str) -> dict[str, object]:
+    """profile完全一致時だけ返す空command応答を構築する。"""
+    return {
+        "lab_emulator": True,
+        "family": family,
+        "accepted": True,
+        "profile_matched": True,
+        "commands": [],
+    }
 
 
 class Handler(socketserver.BaseRequestHandler):
-    """Accept a lab-marked registration and return an empty command list."""
+    """完全一致するlab registrationだけへ空command listを返す。"""
 
     def handle(self) -> None:
-        """Process one bounded synthetic frame without retaining its contents."""
-        header = _read_exact(self.request, 4)
-        length = struct.unpack(">I", header)[0]
-        if length > MAX_FRAME:
+        """本文を保持せず、有界の合成frameを1件だけ処理する。"""
+        self.request.settimeout(5.0)
+        try:
+            value = decode_frame(_read_frame(self.request))
+            family = normalize_family(str(value.get("family") or ""), load_profiles())
+            if value != synthetic_message(family):
+                return
+            self.request.sendall(encode_frame(_response_for(family)))
+        except (TimeoutError, OSError, ValueError):
             return
-        value = decode_frame(header + _read_exact(self.request, length))
-        family = normalize_family(str(value.get("family") or ""), load_profiles())
-        response = {"lab_emulator": True, "family": family, "accepted": True, "commands": []}
-        self.request.sendall(encode_frame(response))
 
 
 class Server(socketserver.ThreadingTCPServer):
-    """Reusable loopback-only threaded emulator server."""
+    """再利用可能なIPv4 loopback限定threaded emulator server。"""
 
     allow_reuse_address = True
+    daemon_threads = True
+    block_on_close = False
+    request_queue_size = 8
+
+
+class ServerV6(Server):
+    """IPv6 loopback用のthreaded emulator server。"""
+
+    address_family = socket.AF_INET6
 
 
 def build_server(host: str, port: int) -> Server:
-    """Create a loopback-only family lab server."""
-    return Server((require_loopback(host), port), Handler)
+    """IPv4／IPv6 loopbackだけへfamily lab serverをbindする。"""
+    host = require_loopback(host)
+    require_port(port, allow_zero=True, label="family emulator port")
+    server_type = ServerV6 if ":" in host else Server
+    return server_type((host, port), Handler)
 
 
 def send(family: str, host: str, port: int, timeout: float = 5.0) -> dict:
-    """Send one synthetic message to a loopback-only lab server."""
-    require_loopback(host)
+    """loopback labへ完全一致の合成messageを1件だけ送る。"""
+    host = require_loopback(host)
+    require_port(port, allow_zero=False, label="family emulator port")
+    timeout = require_timeout(timeout, label="family emulator timeout")
     request = encode_frame(synthetic_message(family))
     with socket.create_connection((host, port), timeout=timeout) as sock:
+        sock.settimeout(timeout)
         sock.sendall(request)
-        header = _read_exact(sock, 4)
-        length = struct.unpack(">I", header)[0]
-        response = decode_frame(header + _read_exact(sock, length))
+        response_frame = _read_frame(sock)
+        response = decode_frame(response_frame)
+    normalized_family = normalize_family(family, load_profiles())
+    expected_response = _response_for(normalized_family)
+    if response != expected_response:
+        raise ValueError("family emulator response profileが一致しません")
     return {
-        "family": normalize_family(family, load_profiles()),
+        "family": normalized_family,
         "response_is_lab_emulator": response.get("lab_emulator") is True,
+        "accepted": response.get("accepted") is True,
+        "profile_matched": response.get("profile_matched") is True,
+        "response_family_matched": response.get("family") == normalized_family,
         "commands_returned": bool(response.get("commands")),
+        "request_bytes": len(request),
+        "request_sha256": hashlib.sha256(request).hexdigest(),
+        "response_bytes": len(response_frame),
+        "response_sha256": hashlib.sha256(response_frame).hexdigest(),
         "network_scope": "loopback_only",
         "wire_compatible_with_malware": False,
     }
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build preview, server, and loopback client subcommands."""
+    """preview、server、loopback client subcommandを定義する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     preview = commands.add_parser("preview")
@@ -151,14 +196,24 @@ def build_parser() -> argparse.ArgumentParser:
     client.add_argument("--family", required=True, choices=sorted(load_profiles()))
     client.add_argument("--host", default="127.0.0.1")
     client.add_argument("--port", type=int, default=19090)
+    client.add_argument("--timeout", type=float, default=5.0)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Preview a synthetic frame or run the loopback server/client."""
+    """合成frameのpreviewまたはloopback server／clientを実行する。"""
     args = build_parser().parse_args(argv)
     if args.command == "preview":
-        print(json.dumps({"profile": emulation_profile(args.family), "message": synthetic_message(args.family), "network_contacted": False}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "profile": emulation_profile(args.family),
+                    "message": synthetic_message(args.family),
+                    "network_contacted": False,
+                },
+                indent=2,
+            )
+        )
         return 0
     if args.command == "server":
         server = build_server(args.host, args.port)
@@ -167,7 +222,11 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             server.server_close()
         return 0
-    print(json.dumps(send(args.family, args.host, args.port), indent=2))
+    print(
+        json.dumps(
+            send(args.family, args.host, args.port, timeout=args.timeout), indent=2
+        )
+    )
     return 0
 
 

@@ -9,8 +9,10 @@ import io
 import json
 import os
 import re
+import shutil
 import stat
 import sys
+import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager, redirect_stdout
 from dataclasses import dataclass
@@ -20,9 +22,13 @@ from typing import Any
 
 import analysis_job_runner
 import archive_analysis_datastore
+import batch_error_contract
 import build_terminal_payload_gap_inventory
+import c2_analysis_contract
 import publish_one_shot_collection
 import refresh_case_inventory
+import remediation_registry
+import terminal_payload_acquisition
 import validate_function_analysis
 
 SCHEMA_VERSION = 1
@@ -98,7 +104,14 @@ STAGE_CODE_FILES: Mapping[str, tuple[str, ...]] = {
     "static_analysis": ("analysis_lifecycle.py", "analysis_job_runner.py", "analyze_sample.py"),
     "publication": ("analysis_lifecycle.py", "publish_one_shot_collection.py"),
     "function_validation": ("analysis_lifecycle.py", "validate_function_analysis.py"),
-    "completion_gate": ("analysis_lifecycle.py", "analysis_job_runner.py"),
+    "completion_gate": (
+        "analysis_lifecycle.py",
+        "analysis_job_runner.py",
+        "batch_error_contract.py",
+        "c2_analysis_contract.py",
+        "remediation_registry.py",
+        "terminal_payload_acquisition.py",
+    ),
     "derived_refresh": (
         "analysis_lifecycle.py",
         "refresh_case_inventory.py",
@@ -107,135 +120,20 @@ STAGE_CODE_FILES: Mapping[str, tuple[str, ...]] = {
     "private_archive": ("analysis_lifecycle.py", "archive_analysis_datastore.py"),
 }
 
-# blockerは部分文字列で分類しない。未登録値は必ずmanual reviewへ落とす。
-_ACTION_SPECS: Mapping[
-    str,
-    tuple[str, str, str, bool, bool, tuple[str, ...]],
-] = {
-    "family": (
-        "family_attribution_review",
-        "family_resolution",
-        "classifier_verification",
-        False,
-        True,
-        ("independent_static_family_evidence",),
-    ),
-    "function": (
-        "representative_function_static_review",
-        "function_analysis",
-        "ghidra_function_batch",
-        False,
-        True,
-        ("reviewed_program_available",),
-    ),
-    "static": (
-        "deeper_static_layer_analysis",
-        "static_analysis",
-        "analysis_job_runner",
-        False,
-        True,
-        ("new_static_evidence_or_implementation",),
-    ),
-    "static_limit": (
-        "start_successor_with_extended_static_layer_limit",
-        "static_analysis",
-        "analysis_job_runner",
-        True,
-        True,
-        ("reviewed_higher_static_layer_limit", "successor_workflow"),
-    ),
-    "terminal": (
-        "terminal_payload_static_recovery",
-        "terminal_payload_recovery",
-        "terminal_payload_acquisition",
-        False,
-        True,
-        ("new_terminal_evidence_or_implementation",),
-    ),
-    "config": (
-        "configuration_and_c2_static_recovery",
-        "configuration_recovery",
-        "family_config_extractor",
-        False,
-        True,
-        ("verified_family_or_terminal_payload",),
-    ),
-    "protocol": (
-        "offline_protocol_evidence_review",
-        "protocol_analysis",
-        "c2_profile_review",
-        False,
-        True,
-        ("offline_protocol_evidence",),
-    ),
-    "handler": (
-        "handler_evidence_review",
-        "handler_execution",
-        "family_handler",
-        False,
-        True,
-        ("handler_fix_or_new_evidence",),
-    ),
-    "publication": (
-        "complete_case_or_enable_reviewed_partial_staging",
-        "publication",
-        "publish_one_shot_collection",
-        False,
-        True,
-        ("reviewed_partial_staging_contract",),
-    ),
-    "manual": (
-        "review_machine_readable_blocker",
-        "manual_review",
-        "human_review",
-        False,
-        True,
-        ("new_verified_evidence_or_implementation",),
-    ),
+# lifecycle／resume planner／terminal台帳の分類語彙は単一registryを正本とする。
+_ACTION_SPECS = remediation_registry.ACTION_SPECS
+_BLOCKER_ACTION_KEYS = remediation_registry.BLOCKER_ACTION_KEYS
+_ORCHESTRATION_GATE_ACTION_KEYS = remediation_registry.ORCHESTRATION_GATE_ACTION_KEYS
+_TERMINAL_ACQUISITION_REASONS = remediation_registry.TERMINAL_ACQUISITION_REASONS
+_TERMINAL_EDGE_BLOCKER_BY_STATUS: Mapping[str, str] = {
+    "artifact_count_limit": "artifact_count_limit",
+    "child_incomplete": "child_analysis_incomplete",
+    "cycle_excluded": "cycle_detected",
+    "depth_limit": "depth_limit",
+    "payload_size_limit": "payload_size_limit",
+    "shared_sha256_reused_incomplete": "child_analysis_incomplete",
+    "total_bytes_limit": "total_bytes_limit",
 }
-_BLOCKER_ACTION_KEYS: Mapping[str, str] = {
-    "canonical_reclassification_move_pending": "family",
-    "config": "config",
-    "config_and_c2_not_recovered": "config",
-    "detector_error_present": "handler",
-    "family_attribution_unresolved": "family",
-    "family_resolution": "family",
-    "final_c2_endpoint_unresolved": "config",
-    "function_analysis": "function",
-    "function_analysis_pending": "function",
-    "generic_triage": "static",
-    "generic_triage_failed": "static",
-    "generic_triage_partial": "static",
-    "handler_ambiguous_evidence": "handler",
-    "handler_failed": "handler",
-    "handler_incompatible_input_format": "handler",
-    "handler_no_evidence": "handler",
-    "handler_preflight_failed": "handler",
-    "live_c2_unverified": "protocol",
-    "live_protocol_confirmation_pending": "protocol",
-    "network": "protocol",
-    "operational_c2_not_recovered": "config",
-    "publication_requires_complete_or_partial_staging_opt_in": "publication",
-    "representative_function_analysis_required": "function",
-    "root_to_terminal_byte_derivation_incomplete": "terminal",
-    "selected_family_layer_incomplete": "static",
-    "static_c2_config_unresolved": "config",
-    "static_layer_incomplete": "static",
-    "static_layer_limit_reached": "static_limit",
-    "static_layers": "static",
-    "terminal_family_unresolved": "family",
-    "terminal_payload": "terminal",
-    "terminal_payload_not_recovered": "terminal",
-    "virtualized_terminal_payload_not_recovered": "terminal",
-}
-_ORCHESTRATION_GATE_ACTION_KEYS: Mapping[str, str] = {
-    key: _BLOCKER_ACTION_KEYS[key]
-    for key in ("config", "family_resolution", "function_analysis", "network", "static_layers", "terminal_payload")
-}
-_HANDLER_EVIDENCE_BLOCKER_RE = re.compile(
-    r"^selected_family_has_no_(?:automatic_handler|valid_handler_evidence):"
-    r"[a-z0-9][a-z0-9_-]{0,63}$"
-)
 
 
 class LifecycleError(RuntimeError):
@@ -958,12 +856,23 @@ def _production_preflight(context: LifecycleContext, _: Mapping[str, Any]) -> St
     )
 
 
-def _verified_static_result(context: LifecycleContext) -> dict[str, Any] | None:
+def _revalidated_static_bundle(context: LifecycleContext) -> dict[str, Any] | None:
+    """既存jobの意味、exact tree、raw artifact hashを同じ再検証で固定する。"""
+
     job_dir = context.jobs_root / context.request.job.job_id
     if not job_dir.exists():
         return None
-    snapshot = analysis_job_runner.read_job_snapshot(context.jobs_root, context.request.job.job_id)
-    result = snapshot.get("result")
+    with tempfile.TemporaryDirectory(
+        prefix=f"{context.request.workflow_id}-existing-job-validation-",
+        dir=context.work_root,
+    ) as temporary:
+        validation = analysis_job_runner.revalidate_completed_job(
+            context.jobs_root,
+            context.request.job,
+            temporary_root=Path(temporary),
+            expected_timeout_seconds=context.timeout_seconds,
+        )
+    result = validation.get("result")
     if (
         not isinstance(result, dict)
         or result.get("accepted") is not True
@@ -976,7 +885,47 @@ def _verified_static_result(context: LifecycleContext) -> dict[str, Any] | None:
         safety.get(key) is not False for key in ("executed_sample", "network_contacted", "ai_used")
     ):
         raise LifecycleError("static_safety_invalid", "既存jobの安全flagが不正です")
-    return result
+    return validation
+
+
+def _verified_static_result(context: LifecycleContext) -> dict[str, Any] | None:
+    """後方互換用に再検証済みresultだけを返す。"""
+
+    validation = _revalidated_static_bundle(context)
+    if validation is None:
+        return None
+    result = validation.get("result")
+    return result if isinstance(result, dict) else None
+
+
+def _static_stage_result(
+    context: LifecycleContext,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    """再検証bundleだけからstatic stageのexact保存値を構築する。"""
+
+    result = validation.get("result")
+    if not isinstance(result, Mapping):
+        raise LifecycleError("static_result_missing", "再検証済み静的解析結果がありません")
+    values = {
+        "analysis_state": result.get("analysis_state"),
+        "counts": result.get("counts"),
+        "derived_counts": result.get("derived_counts"),
+        "follow_on_analysis": result.get("follow_on_analysis"),
+        "result_sha256": validation.get("result_sha256"),
+        "summary_sha256": validation.get("summary_sha256"),
+        "analysis_tree_sha256": validation.get("analysis_output_sha256"),
+        "job_relative_path": f"jobs/{context.request.job.job_id}",
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+    }
+    if any(
+        not isinstance(values[key], str) or SHA256_RE.fullmatch(values[key]) is None
+        for key in ("result_sha256", "summary_sha256", "analysis_tree_sha256")
+    ):
+        raise LifecycleError("static_result_invalid", "再検証済みartifact sealが不正です")
+    return values
 
 
 def _resolve_job_artifact(job_dir: Path, value: Any, *, label: str) -> Path:
@@ -999,13 +948,29 @@ def _resolve_job_artifact(job_dir: Path, value: Any, *, label: str) -> Path:
 
 def _verify_input_snapshot_manifest(job_dir: Path, manifest_path: Path) -> None:
     manifest = _load_json(manifest_path, maximum_bytes=analysis_job_runner.MAX_INPUT_SNAPSHOT_MANIFEST_BYTES)
-    if set(manifest) != {"schema_version", "archive_mode", "file_count", "total_bytes", "files"}:
+    if set(manifest) != {
+        "schema_version",
+        "archive_mode",
+        "input_records",
+        "source_inventory",
+        "file_count",
+        "total_bytes",
+        "files",
+    }:
         raise LifecycleError("input_snapshot_changed", "入力snapshot manifest schemaが不正です")
+    input_records = manifest.get("input_records")
+    source_inventory = manifest.get("source_inventory")
     files = manifest.get("files")
     file_count = manifest.get("file_count")
     total_bytes = manifest.get("total_bytes")
     if (
         manifest.get("schema_version") != SCHEMA_VERSION
+        or manifest.get("archive_mode") not in {"raw", "malwarebazaar"}
+        or not isinstance(input_records, list)
+        or not input_records
+        or len(input_records) > analysis_job_runner.MAX_REQUEST_INPUTS
+        or not isinstance(source_inventory, list)
+        or len(source_inventory) != len(input_records)
         or not isinstance(files, list)
         or len(files) > analysis_job_runner.MAX_DISCOVERED_FILES
         or isinstance(file_count, bool)
@@ -1016,11 +981,189 @@ def _verify_input_snapshot_manifest(job_dir: Path, manifest_path: Path) -> None:
         or not 0 <= total_bytes <= analysis_job_runner.MAX_TOTAL_INPUT_BYTES
     ):
         raise LifecycleError("input_snapshot_changed", "入力snapshot manifest fieldが不正です")
+    selected_inventory: list[dict[str, Any]] = []
+    inventory_snapshots: list[dict[str, Any]] = []
+    observed_sources: set[str] = set()
+    observed_snapshot_paths: set[str] = set()
+    source_total_bytes = 0
+    source_total_files = 0
+    ignored_index = 0
+    for input_index, (record, inventory) in enumerate(zip(input_records, source_inventory, strict=True)):
+        if (
+            not isinstance(record, dict)
+            or set(record)
+            != {
+                "relative_path",
+                "kind",
+                "file_count",
+                "analyzer_file_count",
+                "total_bytes",
+            }
+            or not isinstance(inventory, dict)
+            or set(inventory) != {"input_index", "relative_path", "files"}
+        ):
+            raise LifecycleError("input_snapshot_changed", "入力source inventory schemaが不正です")
+        record_relative = _normalize_relative_path(record.get("relative_path"), label="input record")
+        inventory_files = inventory.get("files")
+        if (
+            record.get("kind") not in {"file", "directory"}
+            or type(record.get("file_count")) is not int
+            or not 1 <= record["file_count"] <= analysis_job_runner.MAX_DISCOVERED_FILES
+            or type(record.get("analyzer_file_count")) is not int
+            or not 0 <= record["analyzer_file_count"] <= record["file_count"]
+            or type(record.get("total_bytes")) is not int
+            or not 0 <= record["total_bytes"] <= analysis_job_runner.MAX_TOTAL_INPUT_BYTES
+            or inventory.get("input_index") != input_index
+            or inventory.get("relative_path") != record_relative
+            or not isinstance(inventory_files, list)
+            or len(inventory_files) != record["file_count"]
+        ):
+            raise LifecycleError("input_snapshot_changed", "入力source inventory fieldが不正です")
+        record_bytes = 0
+        record_selected = 0
+        record_source_order: list[str] = []
+        for source in inventory_files:
+            if not isinstance(source, dict) or set(source) != {
+                "source_relative_path",
+                "snapshot_relative_path",
+                "size",
+                "sha256",
+            }:
+                raise LifecycleError("input_snapshot_changed", "入力source identity schemaが不正です")
+            source_relative = _normalize_relative_path(
+                source.get("source_relative_path"),
+                label="input source",
+            )
+            snapshot_relative = _normalize_relative_path(
+                source.get("snapshot_relative_path"),
+                label="input inventory snapshot",
+            )
+            size = source.get("size")
+            digest = source.get("sha256")
+            folded_source = source_relative.casefold()
+            folded_snapshot = snapshot_relative.casefold()
+            folded_record = record_relative.casefold()
+            owned = (
+                record["kind"] == "file"
+                and folded_source == folded_record
+            ) or (
+                record["kind"] == "directory"
+                and folded_source.startswith(f"{folded_record}/")
+            )
+            selected = (
+                manifest["archive_mode"] != "malwarebazaar"
+                or PurePosixPath(source_relative).suffix.casefold() == ".zip"
+            )
+            snapshot_parts = PurePosixPath(snapshot_relative).parts
+            if selected:
+                snapshot_path_valid = (
+                    len(snapshot_parts) == 4
+                    and snapshot_parts[:2] == ("contract-inputs", "samples")
+                    and snapshot_parts[2].isascii()
+                    and snapshot_parts[2].isdigit()
+                    and len(snapshot_parts[2]) == 6
+                )
+            else:
+                expected_ignored = (
+                    f"contract-inputs/inventory/{ignored_index:06d}/"
+                    f"{PurePosixPath(source_relative).name}"
+                )
+                snapshot_path_valid = snapshot_relative == expected_ignored
+            if (
+                not owned
+                or folded_source in observed_sources
+                or folded_snapshot in observed_snapshot_paths
+                or not snapshot_path_valid
+                or PurePosixPath(snapshot_relative).name
+                != PurePosixPath(source_relative).name
+                or isinstance(size, bool)
+                or not isinstance(size, int)
+                or not 0 <= size <= analysis_job_runner.MAX_FILE_SIZE
+                or not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+            ):
+                raise LifecycleError("input_snapshot_changed", "入力source identity fieldが不正です")
+            observed_sources.add(folded_source)
+            observed_snapshot_paths.add(folded_snapshot)
+            record_source_order.append(source_relative)
+            record_bytes += size
+            source_total_bytes += size
+            source_total_files += 1
+            inventory_snapshots.append(
+                {
+                    "source_relative_path": source_relative,
+                    "snapshot_relative_path": snapshot_relative,
+                    "size": size,
+                    "sha256": digest,
+                    "selected": selected,
+                }
+            )
+            if selected:
+                record_selected += 1
+                selected_inventory.append(
+                    {
+                        "source_relative_path": source_relative,
+                        "snapshot_relative_path": snapshot_relative,
+                        "size": size,
+                        "sha256": digest,
+                    }
+                )
+            else:
+                ignored_index += 1
+        if record_source_order != sorted(record_source_order, key=str.casefold):
+            raise LifecycleError(
+                "input_snapshot_changed",
+                "入力source inventoryがcanonical順ではありません",
+            )
+        if record_bytes != record["total_bytes"] or record_selected != record["analyzer_file_count"]:
+            raise LifecycleError(
+                "input_snapshot_changed",
+                "入力source inventoryとrequest単位集計が一致しません",
+            )
+    selected_inventory.sort(key=lambda item: item["source_relative_path"].casefold())
+    if (
+        source_total_files > analysis_job_runner.MAX_DISCOVERED_FILES
+        or source_total_bytes > analysis_job_runner.MAX_TOTAL_INPUT_BYTES
+        or len(selected_inventory) != file_count
+    ):
+        raise LifecycleError("input_snapshot_changed", "入力source inventory全体集計が不正です")
     samples_root = job_dir / "contract-inputs" / "samples"
+    inventory_root = job_dir / "contract-inputs" / "inventory"
     _reject_existing_reparse_components(samples_root, label="input snapshot root")
-    if not samples_root.is_dir() or _is_reparse(samples_root):
+    _reject_existing_reparse_components(inventory_root, label="input inventory snapshot root")
+    if (
+        not samples_root.is_dir()
+        or _is_reparse(samples_root)
+        or not inventory_root.is_dir()
+        or _is_reparse(inventory_root)
+    ):
         raise LifecycleError("input_snapshot_changed", "入力snapshot rootが不正です")
-    expected_entries: set[str] = set()
+    expected_entries_by_root: dict[Path, set[str]] = {
+        samples_root: set(),
+        inventory_root: set(),
+    }
+    for inventory_snapshot in inventory_snapshots:
+        snapshot_relative = inventory_snapshot["snapshot_relative_path"]
+        path = _resolve_job_artifact(job_dir, snapshot_relative, label="input inventory snapshot")
+        size = inventory_snapshot["size"]
+        digest = inventory_snapshot["sha256"]
+        information = path.stat()
+        if information.st_size != size or _sha256_file(path) != digest:
+            raise LifecycleError(
+                "input_snapshot_changed",
+                "入力inventory snapshotのsizeまたはSHA-256が変化しました",
+            )
+        root = samples_root if inventory_snapshot["selected"] else inventory_root
+        try:
+            relative = path.relative_to(root)
+        except ValueError as exc:
+            raise LifecycleError(
+                "input_snapshot_changed",
+                "入力inventory snapshot pathが契約外です",
+            ) from exc
+        expected_entries = expected_entries_by_root[root]
+        expected_entries.add(relative.as_posix())
+        expected_entries.update(parent.as_posix() for parent in relative.parents if parent != Path("."))
     observed_bytes = 0
     for index, item in enumerate(files):
         if not isinstance(item, dict) or set(item) != {
@@ -1038,18 +1181,23 @@ def _verify_input_snapshot_manifest(job_dir: Path, manifest_path: Path) -> None:
             item.get("snapshot_relative_path"),
             label="input snapshot path",
         )
-        _normalize_relative_path(item.get("source_relative_path"), label="input source path")
+        source_relative = _normalize_relative_path(item.get("source_relative_path"), label="input source path")
+        expected_source = selected_inventory[index]
         pure = PurePosixPath(snapshot_relative)
         if (
             item.get("index") != index
             or len(pure.parts) < 4
             or pure.parts[:2] != ("contract-inputs", "samples")
             or item.get("source_name") != pure.name
+            or source_relative != expected_source["source_relative_path"]
+            or snapshot_relative != expected_source["snapshot_relative_path"]
             or isinstance(size, bool)
             or not isinstance(size, int)
             or not 0 <= size <= analysis_job_runner.MAX_TOTAL_INPUT_BYTES
             or not isinstance(digest, str)
             or SHA256_RE.fullmatch(digest) is None
+            or size != expected_source["size"]
+            or digest != expected_source["sha256"]
         ):
             raise LifecycleError("input_snapshot_changed", "入力snapshot record fieldが不正です")
         path = _resolve_job_artifact(job_dir, snapshot_relative, label="input snapshot")
@@ -1057,69 +1205,61 @@ def _verify_input_snapshot_manifest(job_dir: Path, manifest_path: Path) -> None:
         if information.st_size != size or _sha256_file(path) != digest:
             raise LifecycleError("input_snapshot_changed", "入力snapshotのsizeまたはSHA-256が変化しました")
         relative = path.relative_to(samples_root)
+        expected_entries = expected_entries_by_root[samples_root]
         expected_entries.add(relative.as_posix())
         expected_entries.update(parent.as_posix() for parent in relative.parents if parent != Path("."))
         observed_bytes += size
     if observed_bytes != total_bytes:
         raise LifecycleError("input_snapshot_changed", "入力snapshot合計sizeが一致しません")
-    actual_entries: set[str] = set()
-    try:
-        for count, path in enumerate(samples_root.rglob("*"), start=1):
-            if count > analysis_job_runner.MAX_TREE_ENTRIES:
-                raise LifecycleError("input_snapshot_changed", "入力snapshot entry上限を超えています")
-            information = path.lstat()
-            if _is_reparse(path):
-                raise LifecycleError("input_snapshot_changed", "入力snapshotにreparse pointがあります")
-            if path.is_file() and (not stat.S_ISREG(information.st_mode) or information.st_nlink != 1):
-                raise LifecycleError("input_snapshot_changed", "入力snapshotに不正なfileがあります")
-            if not path.is_dir() and not path.is_file():
-                raise LifecycleError("input_snapshot_changed", "入力snapshotに通常file以外があります")
-            actual_entries.add(path.relative_to(samples_root).as_posix())
-    except OSError as exc:
-        raise LifecycleError("input_snapshot_changed", "入力snapshot treeを再列挙できません") from exc
-    if actual_entries != expected_entries:
-        raise LifecycleError("input_snapshot_changed", "入力snapshot treeのentry集合が変化しました")
+    for root, expected_entries in expected_entries_by_root.items():
+        actual_entries: set[str] = set()
+        try:
+            for count, path in enumerate(root.rglob("*"), start=1):
+                if count > analysis_job_runner.MAX_TREE_ENTRIES:
+                    raise LifecycleError("input_snapshot_changed", "入力snapshot entry上限を超えています")
+                information = path.lstat()
+                if _is_reparse(path):
+                    raise LifecycleError("input_snapshot_changed", "入力snapshotにreparse pointがあります")
+                if path.is_file() and (not stat.S_ISREG(information.st_mode) or information.st_nlink != 1):
+                    raise LifecycleError("input_snapshot_changed", "入力snapshotに不正なfileがあります")
+                if not path.is_dir() and not path.is_file():
+                    raise LifecycleError("input_snapshot_changed", "入力snapshotに通常file以外があります")
+                actual_entries.add(path.relative_to(root).as_posix())
+        except OSError as exc:
+            raise LifecycleError("input_snapshot_changed", "入力snapshot treeを再列挙できません") from exc
+        if actual_entries != expected_entries:
+            raise LifecycleError("input_snapshot_changed", "入力snapshot treeのentry集合が変化しました")
 
 
 def _analysis_tree_sha256(path: Path) -> str:
     """解析treeの全通常file内容と既存quota集計を決定的にsealする。"""
 
-    before = analysis_job_runner.validate_analysis_output_tree(path)
-    digest = hashlib.sha256()
-    digest.update(_canonical_bytes({"schema_version": SCHEMA_VERSION, "tree": before}))
-    digest.update(b"\n")
-    for item in sorted(path.rglob("*"), key=lambda value: value.relative_to(path).as_posix().casefold()):
-        if not item.is_file():
-            continue
-        relative = item.relative_to(path).as_posix()
-        information = item.lstat()
-        digest.update(
-            _canonical_bytes(
-                {
-                    "path": relative,
-                    "size": information.st_size,
-                    "sha256": _sha256_file(item),
-                }
-            )
-        )
-        digest.update(b"\n")
-    if analysis_job_runner.validate_analysis_output_tree(path) != before:
-        raise LifecycleError("static_output_tree_changed", "解析treeがseal計算中に変化しました")
-    return digest.hexdigest()
+    try:
+        manifest = analysis_job_runner.analysis_output_content_manifest(path)
+    except analysis_job_runner.JobContractError as exc:
+        raise LifecycleError(
+            "static_output_tree_changed",
+            "解析treeをexact content manifestへ固定できません",
+        ) from exc
+    return analysis_job_runner.analysis_output_content_sha256(manifest)
 
 
 def _static_artifact_errors(context: LifecycleContext, record: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     try:
-        result = _verified_static_result(context)
-        if result is None:
+        validation = _revalidated_static_bundle(context)
+        if validation is None:
             return ["static_result_missing"]
+        result = validation["result"]
         job_dir = context.jobs_root / context.request.job.job_id
         result_path = job_dir / "result.json"
         summary_path = job_dir / "analysis" / "summary.json"
         stored = record.get("result")
         if not isinstance(stored, Mapping):
             return ["static_state_invalid"]
+        expected_stage_result = _static_stage_result(context, validation)
+        if dict(stored) != expected_stage_result:
+            errors.append("static_state_mismatch")
         if stored.get("result_sha256") != _sha256_file(result_path):
             errors.append("static_result_hash_mismatch")
         if not summary_path.is_file() or stored.get("summary_sha256") != _sha256_file(summary_path):
@@ -1172,8 +1312,8 @@ def _static_artifact_errors(context: LifecycleContext, record: Mapping[str, Any]
 
 
 def _production_static(context: LifecycleContext, _: Mapping[str, Any]) -> StageOutcome:
-    result = _verified_static_result(context)
-    if result is None:
+    validation = _revalidated_static_bundle(context)
+    if validation is None:
         exit_code = analysis_job_runner.run_job(
             context.request.job,
             input_root=context.input_root,
@@ -1182,26 +1322,12 @@ def _production_static(context: LifecycleContext, _: Mapping[str, Any]) -> Stage
         )
         if exit_code not in {0, 20}:
             raise LifecycleError("static_analysis_failed", "静的解析jobが受理可能な終了状態ではありません")
-        result = _verified_static_result(context)
-    if result is None:
+        validation = _revalidated_static_bundle(context)
+    if validation is None:
         raise LifecycleError("static_result_missing", "静的解析結果がありません")
-    result_path = context.jobs_root / context.request.job.job_id / "result.json"
-    summary_path = context.jobs_root / context.request.job.job_id / "analysis" / "summary.json"
     return StageOutcome(
         "succeeded",
-        {
-            "analysis_state": result["analysis_state"],
-            "counts": result["counts"],
-            "derived_counts": result["derived_counts"],
-            "follow_on_analysis": result["follow_on_analysis"],
-            "result_sha256": _sha256_file(result_path),
-            "summary_sha256": _sha256_file(summary_path),
-            "analysis_tree_sha256": _analysis_tree_sha256(summary_path.parent),
-            "job_relative_path": f"jobs/{context.request.job.job_id}",
-            "executed_sample": False,
-            "network_contacted": False,
-            "ai_used": False,
-        },
+        _static_stage_result(context, validation),
     )
 
 
@@ -1212,12 +1338,37 @@ def _analysis_summary(context: LifecycleContext) -> dict[str, Any]:
     )
 
 
+def _revalidated_current_static_stage(
+    context: LifecycleContext,
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    """保存済みstatic stageを現在の全成果物再検証へexactに再結合する。"""
+
+    stages = state.get("stages")
+    static_record = stages.get("static_analysis") if isinstance(stages, Mapping) else None
+    stored = static_record.get("result") if isinstance(static_record, Mapping) else None
+    if not isinstance(stored, Mapping):
+        raise LifecycleError("static_state_invalid", "保存済みstatic stage状態が不正です")
+    validation = _revalidated_static_bundle(context)
+    if validation is None:
+        raise LifecycleError("static_result_missing", "再検証できる静的解析結果がありません")
+    if dict(stored) != _static_stage_result(context, validation):
+        raise LifecycleError(
+            "static_state_mismatch",
+            "保存済みstatic stageと現在の再検証済み成果物が一致しません",
+        )
+    return validation
+
+
 def _production_publication(context: LifecycleContext, state: Mapping[str, Any]) -> StageOutcome:
     static = state["stages"]["static_analysis"]["result"]
     if static.get("analysis_state") == "partial" and not context.request.publication["allow_partial_staging"]:
         blocker = "publication_requires_complete_or_partial_staging_opt_in"
         return StageOutcome("blocked", {"published": 0}, (blocker,))
-    summary = _analysis_summary(context)
+    validation = _revalidated_current_static_stage(context, state)
+    summary = validation.get("summary")
+    if not isinstance(summary, dict):
+        raise LifecycleError("static_result_invalid", "再検証済みsummaryがありません")
     contract = summary.get("analysis_contract")
     observed_contract = contract.get("sha256") if isinstance(contract, dict) else None
     if not isinstance(observed_contract, str) or SHA256_RE.fullmatch(observed_contract) is None:
@@ -1225,14 +1376,63 @@ def _production_publication(context: LifecycleContext, state: Mapping[str, Any])
     requested_contract = context.request.publication["expected_contract_sha256"]
     if requested_contract is not None and requested_contract != observed_contract:
         raise LifecycleError("analysis_contract_mismatch", "request pinとone-shot contractが一致しません")
-    result = publish_one_shot_collection.publish(
-        context.repository,
-        _resolve_repository_file(context.repository, context.request.publication["manifest"]),
-        [context.jobs_root / context.request.job.job_id / "analysis"],
-        context.request.publication["collection_id"],
-        allow_function_staging=context.request.publication["allow_partial_staging"],
-        expected_contract_sha256=observed_contract,
-    )
+    source = context.jobs_root / context.request.job.job_id / "analysis"
+    with tempfile.TemporaryDirectory(
+        prefix=f"{context.request.workflow_id}-publication-snapshot-",
+        dir=context.work_root,
+    ) as temporary:
+        snapshot = Path(temporary) / "analysis"
+        try:
+            shutil.copytree(source, snapshot, symlinks=True)
+        except OSError as exc:
+            raise LifecycleError(
+                "publication_snapshot_failed",
+                "公開用解析snapshotを安全に作成できません",
+            ) from exc
+        try:
+            snapshot_manifest = analysis_job_runner.analysis_output_content_manifest(snapshot)
+        except analysis_job_runner.JobContractError as exc:
+            raise LifecycleError(
+                "publication_snapshot_invalid",
+                "公開用解析snapshotのexact contentを検証できません",
+            ) from exc
+        snapshot_sha256 = analysis_job_runner.analysis_output_content_sha256(snapshot_manifest)
+        if snapshot_sha256 != static.get("analysis_tree_sha256"):
+            raise LifecycleError(
+                "publication_snapshot_mismatch",
+                "公開用解析snapshotがstatic stageのsealと一致しません",
+            )
+        current = _revalidated_current_static_stage(context, state)
+        current_summary = current.get("summary")
+        if not isinstance(current_summary, dict) or current_summary.get("analysis_contract") != contract:
+            raise LifecycleError(
+                "static_state_mismatch",
+                "公開snapshot作成中にstatic成果物が変更されました",
+            )
+        try:
+            final_snapshot_manifest = analysis_job_runner.analysis_output_content_manifest(snapshot)
+        except analysis_job_runner.JobContractError as exc:
+            raise LifecycleError(
+                "publication_snapshot_invalid",
+                "公開用解析snapshotをpublisher呼出直前に再検証できません",
+            ) from exc
+        if (
+            final_snapshot_manifest != snapshot_manifest
+            or analysis_job_runner.analysis_output_content_sha256(final_snapshot_manifest)
+            != snapshot_sha256
+        ):
+            raise LifecycleError(
+                "publication_snapshot_mismatch",
+                "公開用解析snapshotがpublisher呼出前に変更されました",
+            )
+        result = publish_one_shot_collection.publish(
+            context.repository,
+            _resolve_repository_file(context.repository, context.request.publication["manifest"]),
+            [snapshot],
+            context.request.publication["collection_id"],
+            allow_function_staging=context.request.publication["allow_partial_staging"],
+            expected_contract_sha256=observed_contract,
+        )
     collection = Path(result["collection"]).resolve()
     try:
         collection_relative = collection.relative_to(context.repository).as_posix()
@@ -1277,13 +1477,291 @@ def _production_function_validation(context: LifecycleContext, state: Mapping[st
     return StageOutcome("blocked", public, ("representative_function_analysis_required",))
 
 
-def _case_blockers(context: LifecycleContext) -> tuple[list[dict[str, Any]], list[str]]:
+def _validated_terminal_acquisition(
+    context: LifecycleContext,
+    summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    """runnerが封印した終端frontierをfollow-on graphから再計算する。"""
+
+    reference = summary.get("terminal_payload_acquisition")
+    expected_keys = {
+        "artifact",
+        "sha256",
+        "status",
+        "frontier_count",
+        "selected_count",
+        "pending_count",
+    }
+    if not isinstance(reference, Mapping) or set(reference) != expected_keys:
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳のsummary参照が不正です",
+        )
+    job_dir = context.jobs_root / context.request.job.job_id
+    acquisition_path = _resolve_job_artifact(
+        job_dir,
+        "analysis/terminal-payload-acquisition.json",
+        label="terminal payload acquisition",
+    )
+    follow_on_path = _resolve_job_artifact(
+        job_dir,
+        "analysis/follow-on-analysis.json",
+        label="follow-on analysis",
+    )
+    try:
+        acquisition_payload, acquisition = analysis_job_runner.load_json_object_snapshot(
+            acquisition_path,
+            max_bytes=analysis_job_runner.MAX_SUMMARY_BYTES,
+        )
+        follow_on_payload, follow_on = analysis_job_runner.load_json_object_snapshot(
+            follow_on_path,
+            max_bytes=analysis_job_runner.MAX_SUMMARY_BYTES,
+        )
+    except (analysis_job_runner.JobContractError, OSError) as exc:
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳またはfollow-on graphを安全に固定できません",
+        ) from exc
+    follow_on_reference = summary.get("follow_on_analysis")
+    follow_on_keys = {
+        "artifact",
+        "sha256",
+        "status",
+        "node_count",
+        "edge_count",
+        "error_count",
+    }
+    if (
+        reference.get("artifact") != "terminal-payload-acquisition.json"
+        or reference.get("sha256") != hashlib.sha256(acquisition_payload).hexdigest()
+        or not isinstance(follow_on_reference, Mapping)
+        or set(follow_on_reference) != follow_on_keys
+        or follow_on_reference.get("artifact") != "follow-on-analysis.json"
+        or follow_on_reference.get("sha256") != hashlib.sha256(follow_on_payload).hexdigest()
+    ):
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳またはfollow-on graphの参照／SHA-256が一致しません",
+        )
+    root_case_states: dict[str, str] | None = None
+    if follow_on.get("status") in terminal_payload_acquisition.OPERATIONAL_STATUSES:
+        roots = follow_on.get("roots")
+        cases = summary.get("cases")
+        if not isinstance(roots, list) or not isinstance(cases, list):
+            raise LifecycleError(
+                "terminal_acquisition_invalid",
+                "終端payload root case一覧が不正です",
+            )
+        root_set = set(roots)
+        root_case_states = {}
+        for case in cases:
+            if not isinstance(case, Mapping):
+                raise LifecycleError(
+                    "terminal_acquisition_invalid",
+                    "終端payload root case schemaが不正です",
+                )
+            digest = case.get("sha256")
+            case_state = case.get("case_state")
+            if digest not in root_set:
+                continue
+            if (
+                not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+                or digest in root_case_states
+                or case_state not in terminal_payload_acquisition.NODE_CASE_STATES
+            ):
+                raise LifecycleError(
+                    "terminal_acquisition_invalid",
+                    "終端payload root case fieldが不正です",
+                )
+            root_case_states[digest] = case_state
+        if set(root_case_states) != root_set:
+            raise LifecycleError(
+                "terminal_acquisition_invalid",
+                "終端payload rootsとroot case一覧が一致しません",
+            )
+    try:
+        expected = terminal_payload_acquisition.build_terminal_payload_acquisition(
+            follow_on,
+            root_case_states=root_case_states,
+        )
+    except terminal_payload_acquisition.TerminalPayloadAcquisitionError as exc:
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "follow-on graphから終端payload取得台帳を再計算できません",
+        ) from exc
+    if acquisition != expected:
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳がfollow-on graphと一致しません",
+        )
+    follow_on_counts = {
+        "status": follow_on.get("status"),
+        "node_count": len(follow_on.get("nodes") or []),
+        "edge_count": len(follow_on.get("edges") or []),
+        "error_count": len(follow_on.get("errors") or []),
+    }
+    if any(follow_on_reference.get(key) != value for key, value in follow_on_counts.items()):
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "follow-on graphの状態または件数がsummaryと一致しません",
+        )
+    counts = {
+        "status": acquisition.get("status"),
+        "frontier_count": len(acquisition.get("frontier") or []),
+        "selected_count": len(acquisition.get("selected_sha256") or []),
+        "pending_count": len(acquisition.get("pending_sha256") or []),
+    }
+    if any(reference.get(key) != value for key, value in counts.items()):
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳の状態または件数が一致しません",
+        )
+    if (
+        acquisition.get("external_retrieval_attempted") is not False
+        or acquisition.get("executed_sample") is not False
+        or acquisition.get("network_contacted") is not False
+    ):
+        raise LifecycleError(
+            "terminal_acquisition_invalid",
+            "終端payload取得台帳の安全flagが不正です",
+        )
+    return acquisition
+
+
+def _terminal_acquisition_blockers(
+    acquisition: Mapping[str, Any],
+) -> tuple[dict[str, list[str]], list[str]]:
+    """終端frontierの理由をcase別blockerとworkflow blockerへ分離する。"""
+
+    by_case: dict[str, set[str]] = {}
+    attributed: set[str] = set()
+    frontier = acquisition.get("frontier")
+    if not isinstance(frontier, list):
+        raise LifecycleError("terminal_acquisition_invalid", "終端frontierが配列ではありません")
+    for item in frontier:
+        if not isinstance(item, Mapping) or item.get("disposition") != "pending_terminal":
+            continue
+        reason = item.get("reason")
+        digest = item.get("sha256")
+        parents = item.get("parent_sha256")
+        if (
+            reason not in _TERMINAL_ACQUISITION_REASONS
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+            or not isinstance(parents, list)
+            or any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in parents)
+        ):
+            raise LifecycleError("terminal_acquisition_invalid", "終端frontierのfieldが不正です")
+        blocker = f"terminal_acquisition:{reason}"
+        case_blockers = {blocker}
+        edge_statuses = item.get("edge_statuses")
+        if isinstance(edge_statuses, list):
+            case_blockers.update(
+                f"terminal_acquisition:{mapped}"
+                for status in edge_statuses
+                if isinstance(status, str)
+                and (mapped := _TERMINAL_EDGE_BLOCKER_BY_STATUS.get(status)) is not None
+            )
+        for target in sorted({digest, *parents}):
+            by_case.setdefault(target, set()).update(case_blockers)
+        attributed.update(value.removeprefix("terminal_acquisition:") for value in case_blockers)
+    raw_blockers = acquisition.get("blockers")
+    if (
+        not isinstance(raw_blockers, list)
+        or raw_blockers != sorted(set(raw_blockers))
+        or any(value not in _TERMINAL_ACQUISITION_REASONS for value in raw_blockers)
+    ):
+        raise LifecycleError("terminal_acquisition_invalid", "終端payload blocker集合が不正です")
+    workflow = [
+        f"terminal_acquisition:{value}"
+        for value in raw_blockers
+        if value not in attributed
+    ]
+    return (
+        {digest: sorted(values) for digest, values in sorted(by_case.items())},
+        workflow,
+    )
+
+
+def _validated_case_c2(
+    context: LifecycleContext,
+    case_dir: Path,
+    digest: str,
+    orchestration: Mapping[str, Any],
+) -> tuple[str, str, list[str]]:
+    """caseのC2契約を厳格検証し、未解決だけを再解析blockerへ変換する。"""
+
+    c2_path = case_dir / "c2-analysis.json"
+    _reject_existing_reparse_components(c2_path, label="c2 analysis")
+    c2_document = _load_json(
+        c2_path,
+        maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES,
+    )
+    validation = c2_analysis_contract.validate_contract(
+        c2_document,
+        digest,
+        repository=context.repository,
+    )
+    if (
+        validation.get("daily_ready") is not True
+        or isinstance(validation.get("daily_blocking_finding_count"), bool)
+        or not isinstance(validation.get("daily_blocking_finding_count"), int)
+        or validation["daily_blocking_finding_count"] != 0
+    ):
+        raise LifecycleError("c2_contract_invalid", "C2解析契約の必須証拠または安全契約が不正です")
+    outcome = validation.get("outcome")
+    if outcome not in c2_analysis_contract.C2_OUTCOMES:
+        raise LifecycleError("c2_contract_invalid", "C2解析結果の状態が不正です")
+    quality_gates = orchestration.get("quality_gates")
+    network_gate = quality_gates.get("network") if isinstance(quality_gates, Mapping) else None
+    if not isinstance(network_gate, Mapping) or type(network_gate.get("required")) is not bool:
+        raise LifecycleError("c2_contract_invalid", "orchestrationのnetwork要件を確認できません")
+    if network_gate["required"] and outcome == "no_c2_capability_verified":
+        raise LifecycleError(
+            "c2_contract_invalid",
+            "network必須familyとC2機能なし判定が矛盾しています",
+        )
+    blockers = ["c2_analysis_unresolved"] if outcome == "unresolved" else []
+    status = "complete" if validation.get("complete") is True else "deferred"
+    return status, str(outcome), blockers
+
+
+def _validated_batch_errors(summary: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """非機密の固定schemaだけをcompletion gateへ渡す。"""
+
+    values = summary.get("errors")
+    if not isinstance(values, list):
+        raise LifecycleError("batch_error_contract_invalid", "batch error一覧がありません")
+    validated: list[dict[str, Any]] = []
+    for value in values:
+        try:
+            validated.append(batch_error_contract.validate_record(value))
+        except batch_error_contract.BatchErrorContractError as exc:
+            raise LifecycleError(
+                "batch_error_contract_invalid",
+                "batch errorの固定schemaが不正です",
+            ) from exc
+    return validated
+
+
+def _case_blockers(
+    context: LifecycleContext,
+    *,
+    summary: Mapping[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
     """case別の根拠を保持したまま公開可能blockerを集約する。"""
 
-    summary = _analysis_summary(context)
+    summary = summary if summary is not None else _analysis_summary(context)
     analysis_root = context.jobs_root / context.request.job.job_id / "analysis"
+    acquisition = _validated_terminal_acquisition(context, summary)
+    terminal_by_case, terminal_workflow_blockers = _terminal_acquisition_blockers(acquisition)
     cases: list[dict[str, Any]] = []
-    blockers: list[str] = []
+    blockers: list[str] = list(terminal_workflow_blockers)
+    blockers.extend(
+        f"batch_error:{value['error_code']}"
+        for value in _validated_batch_errors(summary)
+    )
     items: list[Any] = []
     for field in ("cases", "derived_cases"):
         values = summary.get(field)
@@ -1309,28 +1787,48 @@ def _case_blockers(context: LifecycleContext) -> tuple[list[dict[str, Any]], lis
         }:
             status = "invalid"
             blockers.append("analysis_blocked")
-        report_path = analysis_root / "cases" / digest / "report.json"
-        orchestration_path = analysis_root / "cases" / digest / "orchestration.json"
+        case_dir = analysis_root / "cases" / digest
+        report_path = case_dir / "report.json"
+        orchestration_path = case_dir / "orchestration.json"
         report_blockers: list[str] = []
         orchestration_blockers: list[str] = []
+        c2_blockers: list[str] = []
+        c2_status = "invalid"
+        c2_outcome = "invalid"
+        terminal_blockers = terminal_by_case.get(digest, [])
         if report_path.is_file():
             report = _load_json(report_path, maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES)
             state = report.get("case_state")
             if isinstance(state, dict):
                 report_blockers = _bounded_blockers(state.get("blockers") or [])
-        if orchestration_path.is_file():
-            orchestration = _load_json(orchestration_path, maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES)
-            orchestration_blockers = _bounded_blockers(orchestration.get("blockers") or [])
+        if status in {"failed", "partial", "triaged_unknown"}:
+            report_blockers = _bounded_blockers([*report_blockers, "analysis_partial"])
+        if not orchestration_path.is_file():
+            raise LifecycleError("static_artifact_missing", "orchestration.jsonがありません")
+        orchestration = _load_json(orchestration_path, maximum_bytes=analysis_job_runner.MAX_SUMMARY_BYTES)
+        orchestration_blockers = _bounded_blockers(orchestration.get("blockers") or [])
+        c2_status, c2_outcome, c2_blockers = _validated_case_c2(
+            context,
+            case_dir,
+            digest,
+            orchestration,
+        )
         cases.append(
             {
                 "sha256": digest,
                 "status": status,
                 "report_blockers": report_blockers,
                 "orchestration_blockers": orchestration_blockers,
+                "c2_status": c2_status,
+                "c2_outcome": c2_outcome,
+                "c2_blockers": c2_blockers,
+                "terminal_acquisition_blockers": terminal_blockers,
             }
         )
         blockers.extend(report_blockers)
         blockers.extend(orchestration_blockers)
+        blockers.extend(c2_blockers)
+        blockers.extend(terminal_blockers)
     return cases, _bounded_blockers(blockers)
 
 
@@ -1338,12 +1836,7 @@ def _remediation_action(blocker: str, *, case_sha256: str | None) -> dict[str, A
     """厳格なblocker registryから1件のfail-closed actionを返す。"""
 
     normalized = _safe_blocker(blocker)
-    key = _BLOCKER_ACTION_KEYS.get(normalized)
-    if normalized.startswith("orchestration:"):
-        gate = normalized.removeprefix("orchestration:")
-        key = _ORCHESTRATION_GATE_ACTION_KEYS.get(gate)
-    elif _HANDLER_EVIDENCE_BLOCKER_RE.fullmatch(normalized):
-        key = "handler"
+    key = remediation_registry.action_key_for_blocker(normalized)
     if key is None:
         key = "manual"
     action_id, target_phase, executor, automatic, changed, prerequisites = _ACTION_SPECS[key]
@@ -1371,7 +1864,12 @@ def _remediation_actions(
         digest = case.get("sha256")
         if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
             continue
-        for field in ("report_blockers", "orchestration_blockers"):
+        for field in (
+            "report_blockers",
+            "orchestration_blockers",
+            "c2_blockers",
+            "terminal_acquisition_blockers",
+        ):
             values = case.get(field)
             if not isinstance(values, list):
                 continue
@@ -1415,7 +1913,32 @@ def _public_remediation_plan(
 
 def _production_completion(context: LifecycleContext, state: Mapping[str, Any]) -> StageOutcome:
     static = state["stages"]["static_analysis"]["result"]
-    cases, blockers = _case_blockers(context)
+    validation = _revalidated_current_static_stage(context, state)
+    expected_tree = validation.get("analysis_output_sha256")
+    analysis_root = context.jobs_root / context.request.job.job_id / "analysis"
+    if (
+        not isinstance(expected_tree, str)
+        or SHA256_RE.fullmatch(expected_tree) is None
+        or _analysis_tree_sha256(analysis_root) != expected_tree
+    ):
+        raise LifecycleError(
+            "static_output_tree_changed",
+            "completion開始時の解析treeがstatic stageのsealと一致しません",
+        )
+    summary = validation.get("summary")
+    if not isinstance(summary, dict):
+        raise LifecycleError("static_result_invalid", "再検証済みsummaryがありません")
+    if (
+        static.get("counts") != summary.get("counts")
+        or static.get("derived_counts") != summary.get("derived_counts")
+        or static.get("follow_on_analysis") != summary.get("follow_on_analysis")
+    ):
+        raise LifecycleError(
+            "static_state_mismatch",
+            "static stageの件数またはfollow-on参照がsummaryと一致しません",
+        )
+    cases, blockers = _case_blockers(context, summary=summary)
+    analysis_errors = _validated_batch_errors(summary)
     if static.get("analysis_state") != "complete" and not blockers:
         blockers.append("analysis_partial")
     for stage in ("publication", "function_validation"):
@@ -1424,10 +1947,18 @@ def _production_completion(context: LifecycleContext, state: Mapping[str, Any]) 
             blockers.extend(record.get("blockers") or [f"{stage}_incomplete"])
     blockers = _bounded_blockers(blockers)
     public_cases, actions = _public_remediation_plan(cases, blockers)
+    if _analysis_tree_sha256(analysis_root) != expected_tree:
+        raise LifecycleError(
+            "static_output_tree_changed",
+            "completion検証中に解析treeが変更されました",
+        )
+    _revalidated_current_static_stage(context, state)
     result = {
         "complete": not blockers and static.get("analysis_state") == "complete",
         "case_count": len(cases),
         "cases": public_cases,
+        "analysis_error_count": len(analysis_errors),
+        "analysis_errors": analysis_errors,
         "blockers": blockers,
         "next_actions": _next_actions(actions),
         "remediation_actions": actions,

@@ -601,3 +601,35 @@ def test_clickfix_command_analysis_layout_is_allowed_but_unknown_file_is_rejecte
         "code": "unplanned_result_root_artifact",
         "path": "analysis-results/clickfix/collections/clickfix-command-analysis-20260825/response.txt",
     } in rejected["errors"]
+
+
+def test_clickfix_payload_delivery_case_id_is_allowed(tmp_path: Path) -> None:
+    """取得済みpayloadだけを起点にしたClickFix配信caseも正規名で保持できる。"""
+
+    repository = _base_repository(tmp_path)
+    case = (
+        repository
+        / "analysis-results"
+        / "clickfix"
+        / "landing.example"
+        / "cases"
+        / "20260901-payload-wmisave"
+    )
+    case.mkdir(parents=True)
+    for name in (
+        "FEATURES.md",
+        "INFECTION-CHAIN.md",
+        "INFRASTRUCTURE.md",
+        "IOC-LIST.md",
+        "OVERALL-LOGIC.md",
+        "README.md",
+        "TRIAGE.md",
+        "analysis.json",
+        "infrastructure.json",
+        "iocs.json",
+        "triage-evidence.json",
+    ):
+        (case / name).write_text("{}\n" if name.endswith(".json") else "# test\n", encoding="utf-8")
+
+    accepted = layout.build_layout_plan(repository, maximum_path_length=320)
+    assert not any(finding["code"] == "unplanned_result_root_artifact" for finding in accepted["errors"])

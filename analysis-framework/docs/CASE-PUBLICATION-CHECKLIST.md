@@ -36,7 +36,7 @@
 py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write
 ```
 
-LinuxまたはGitHub Actionsでは`python3`を使用できます。一括反映は、metadata identity、catalog、README件数、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexの順で更新し、同じ範囲を自動で再検証します。検体の読込み、実行、外部通信は行いません。
+LinuxまたはGitHub Actionsでは`python3`を使用できます。一括反映は、metadata identity、catalog、README件数、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexの順で更新し、同じ範囲を自動で再検証します。類似pairはendpoint別の有界候補として保持し、checksumはfile全体をメモリへ載せず逐次hashします。検体の読込み、実行、外部通信は行いません。
 
 5. 独立したcheckを再実行します。
 

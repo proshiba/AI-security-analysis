@@ -64,6 +64,7 @@
     "purelogs": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "putita_v3": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "quasarrat": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
+    "redc2": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "redlinestealer": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "remcosrat": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "remusstealer": {"category": "stealer", "config_required": true, "network_required": true, "terminal_payload_required": false},

@@ -5,10 +5,10 @@
 検体本体、復号済みpayload、memory dump、PCAP、Ghidra project、非公開の復元profileなど、Gitリポジトリへ格納しない解析データは、解析対象ごとに暗号化ZIPへまとめて次のS3 bucketへ保管します。
 
 - bucket: `malware-analysis-datastore-720232834682`
-- object key: `analysis-targets/<target>/<YYYY>/<MM>/<target>-<UTC timestamp>-<manifest hash>.zip`
-- ZIP password: `infected`
-- ZIP encryption: WinZip AES-256
-- S3 server-side encryption: SSE-S3 (`AES256`)
+- オブジェクトキー: `analysis-targets/<target>/<YYYY>/<MM>/<target>-<UTC timestamp>-<manifest hash>.zip`
+- ZIPパスワード: `infected`
+- ZIP暗号化: WinZip AES-256
+- S3サーバー側暗号化: SSE-S3 (`AES256`)
 
 異なる解析対象を1つのZIPへ混在させません。同一キャンペーン内でも親検体またはcaseが異なる場合は、親子関係をmanifestや公開メタデータに記録した上で別targetとします。
 
@@ -38,9 +38,9 @@ py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
 
 処理は次の順序でfail-closedに実行します。
 
-1. source配下のsymlink、junction、reparse point、特殊file、資格情報名を拒否する。
-2. 各fileのSHA-256とsizeを計算し、絶対pathを含まないmanifestを生成する。
-3. 全memberをpassword `infected`のWinZip AES-256で暗号化する。
+1. source配下のsymlink、junction、reparse point、hardlink、特殊file、資格情報名を拒否する。
+2. 各fileを単一handleへ固定し、open前後と読取後のdevice／inode、link数、size、mtimeを照合しながらSHA-256を計算して、絶対pathを含まないmanifestを生成する。
+3. ZIP格納時にも列挙時のfile identityを再照合し、同じ単一handleから全memberをpassword `infected`のWinZip AES-256で暗号化する。列挙後のpath差替えやhardlink追加は拒否する。
 4. ZIPを復号して全memberを再ハッシュする。
 5. `aws sts get-caller-identity`と`HeadBucket`でroleとbucketを確認する。
 6. 同一object keyがないことを確認し、SSE-S3とSHA-256 metadata付きでuploadする。

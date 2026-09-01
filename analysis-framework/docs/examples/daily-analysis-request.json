@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "run_id": "daily-20260829",
+  "analysis_date": "2026-08-29",
+  "news_source_date": "2026-08-29",
+  "source_manifest_sha256": "ac38014f36378adc6343436e7a339b8ce69d48241e91fb4f588a71fe00691af7",
+  "malwarebazaar_count": 50,
+  "tech_memo": "tech-memo",
+  "stages": {
+    "news_intake": true,
+    "malwarebazaar_acquisition": true,
+    "static_analysis": true,
+    "publication": true,
+    "ghidra": true,
+    "c2_monitoring": true,
+    "validation": true,
+    "private_archive": true
+  },
+  "network": {
+    "provider_lookups": true,
+    "sample_download": true,
+    "c2_monitoring": true,
+    "datastore_upload": true
+  },
+  "limits": {
+    "query_limit": 200,
+    "static_timeout_seconds": 14400,
+    "ghidra_minimum_free_bytes": 8589934592,
+    "ghidra_max_new_programs": 4
+  }
+}

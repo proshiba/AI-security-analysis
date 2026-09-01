@@ -1106,6 +1106,7 @@ def _storage_guard_paths(
     repository: Path,
     sample_root: Path,
     private_output: Path,
+    prepared_input_root: Path | None = None,
 ) -> list[tuple[str, Path]]:
     """全書込み先を空き容量監視対象へ固定する。"""
 
@@ -1114,6 +1115,8 @@ def _storage_guard_paths(
         ("sample_root", sample_root),
         ("private_output", private_output),
     ]
+    if prepared_input_root is not None and prepared_input_root != sample_root:
+        paths.append(("prepared_input_root", prepared_input_root))
     for index, raw_path in enumerate(args.disk_guard_path, start=1):
         path = Path(os.path.abspath(os.fspath(raw_path)))
         ensure_no_reparse_components(path)
@@ -1146,12 +1149,18 @@ def _validate_run_roots(
     collection_dir: Path,
     sample_root: Path,
     private_output: Path,
+    prepared_input_root: Path | None = None,
 ) -> None:
     """collectionだけをrepository内に許し、全write rootの包含を拒否する。"""
 
     _require_existing_regular_directory(repository, role="repository")
     _require_existing_regular_directory(collection_dir, role="collection")
     _require_existing_regular_directory(sample_root, role="sample root")
+    if prepared_input_root is not None and prepared_input_root != sample_root:
+        _require_existing_regular_directory(
+            prepared_input_root,
+            role="prepared input root",
+        )
     try:
         private_exists = private_output.exists()
     except OSError as exc:
@@ -1167,6 +1176,8 @@ def _validate_run_roots(
         "sample root": sample_root,
         "private output": private_output,
     }
+    if prepared_input_root is not None and prepared_input_root != sample_root:
+        roots["prepared input root"] = prepared_input_root
     names = list(roots)
     for index, first_name in enumerate(names):
         for second_name in names[index + 1 :]:
@@ -1701,6 +1712,7 @@ def prepare_inputs(
     sevenzip: Path | None = None,
     diec: Path | None = None,
     storage_guard: Callable[[str, str, int], None] | None = None,
+    prepared_input_root: Path | None = None,
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。"""
 
@@ -1737,6 +1749,10 @@ def prepare_inputs(
     objects: dict[str, ProgramObject] = {}
     non_pe: dict[str, list[dict[str, Any]]] = defaultdict(list)
     relationships: list[dict[str, Any]] = []
+    cache_root = prepared_input_root or sample_root
+    cache_storage_role = (
+        "prepared_input_root" if cache_root != sample_root else "sample_root"
+    )
 
     for case_number, case_sha in enumerate(requested, start=1):
         archive_entry = archive_by_sha.get(case_sha)
@@ -1797,9 +1813,9 @@ def prepare_inputs(
 
         for layer in layers:
             if layer.depth == 0:
-                destination = sample_root / case_sha / "ghidra-input" / f"{layer.sha256}.quarantine.bin"
+                destination = cache_root / case_sha / "ghidra-input" / f"{layer.sha256}.quarantine.bin"
             else:
-                destination = sample_root / case_sha / "ghidra-input" / "layers" / f"{layer.sha256}.quarantine.bin"
+                destination = cache_root / case_sha / "ghidra-input" / "layers" / f"{layer.sha256}.quarantine.bin"
             try:
                 destination.lstat()
                 destination_present = True
@@ -1811,7 +1827,7 @@ def prepare_inputs(
             if storage_guard is not None:
                 storage_guard(
                     "before_input_copy",
-                    "sample_root",
+                    cache_storage_role,
                     planned_write_bytes,
                 )
             if not destination_present:
@@ -1830,7 +1846,7 @@ def prepare_inputs(
                     f"既存の隔離input sizeまたはhashが一致しません: {layer.sha256}"
                 )
             if storage_guard is not None:
-                storage_guard("after_input_copy", "sample_root", 0)
+                storage_guard("after_input_copy", cache_storage_role, 0)
             layer_public = layer.public() if callable(getattr(layer, "public", None)) else {}
             relation = {
                 "case_sha256": case_sha,
@@ -1959,6 +1975,7 @@ def load_prepared_inputs(
     *,
     inventory_snapshot: _JsonFileSnapshot | None = None,
     expected_inventory_sha256: str | None = None,
+    prepared_input_root: Path | None = None,
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """SHA-256検証済みcacheから再展開せずprogram inventoryを復元する。"""
 
@@ -1980,6 +1997,7 @@ def load_prepared_inputs(
         raise TypeError("input relationship一覧が不正です")
     objects: dict[str, ProgramObject] = {}
     non_pe: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    cache_root = prepared_input_root or sample_root
     for raw in relationships:
         if not isinstance(raw, Mapping):
             raise TypeError("input relationshipがJSON objectではありません")
@@ -2004,7 +2022,7 @@ def load_prepared_inputs(
             or expected_size > MAX_PREPARED_INPUT_BYTES
         ):
             raise ValueError("input relationshipのsizeが不正です")
-        input_root = sample_root / case_sha / "ghidra-input"
+        input_root = cache_root / case_sha / "ghidra-input"
         input_path = (
             input_root / f"{digest}.quarantine.bin"
             if depth == 0
@@ -6363,6 +6381,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     collection_dir = _resolve_without_reparse(args.collection)
     sample_root = _resolve_without_reparse(args.sample_root)
     private_output = _resolve_without_reparse(args.private_output)
+    raw_prepared_input_root = getattr(args, "prepared_input_root", None)
+    prepared_input_root = (
+        _resolve_without_reparse(raw_prepared_input_root)
+        if raw_prepared_input_root is not None
+        else sample_root
+    )
     if (
         isinstance(args.minimum_free_bytes, bool)
         or not isinstance(args.minimum_free_bytes, int)
@@ -6374,6 +6398,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         collection_dir,
         sample_root,
         private_output,
+        prepared_input_root,
     )
     if os.environ.get("GHIDRA_MCP_ALLOW_SCRIPTS", "").strip().casefold() in {
         "1",
@@ -6412,6 +6437,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         repository,
         sample_root,
         private_output,
+        prepared_input_root,
     )
     storage_observation = _storage_budget_observation(
         storage_paths,
@@ -6468,6 +6494,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             private_output,
             inventory_snapshot=inventory_snapshot,
             expected_inventory_sha256=checkpoint_inventory_sha256,
+            prepared_input_root=prepared_input_root,
         )
     else:
         def preparation_storage_guard(
@@ -6517,6 +6544,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 sevenzip=args.sevenzip,
                 diec=args.diec,
                 storage_guard=preparation_storage_guard,
+                prepared_input_root=prepared_input_root,
             )
         except _InputPreparationStopped as exc:
             return exc.progress
@@ -6804,6 +6832,14 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         type=Path,
         help="暗号化archiveを保持するrepository外directoryを指定します",
+    )
+    parser.add_argument(
+        "--prepared-input-root",
+        type=Path,
+        help=(
+            "Ghidra用に復元した隔離inputを保持するrepository外directoryを指定します。"
+            "省略時は後方互換のためsample rootを使用します"
+        ),
     )
     parser.add_argument(
         "--private-output",

@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
 import json
-from pathlib import Path
+import os
 import re
+import shutil
+import stat
 import sys
+import tempfile
+from collections import Counter, defaultdict
+from pathlib import Path
 from typing import Any
 
 COMMON = Path(__file__).resolve().parent
@@ -16,6 +20,7 @@ REPOSITORY = COMMON.parents[1]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
+import analysis_job_runner  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
     case_integrity_errors,
@@ -26,11 +31,13 @@ from analysis_contract import (  # noqa: E402
     resolve_case_artifact,
     seal_report,
 )
-from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from c2_analysis_contract import (  # noqa: E402
     build_unresolved_contract,
+)
+from c2_analysis_contract import (  # noqa: E402
     validate_contract as validate_c2_contract,
 )
+from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from handler_evidence import (  # noqa: E402
     confirmed_static_handler_iocs,
     static_config_recovered,
@@ -935,7 +942,7 @@ def _validate_acquisition_manifest_count(manifest: dict[str, Any]) -> tuple[int,
     return requested, items
 
 
-def publish(
+def _publish_from_snapshots(
     repository: Path,
     manifest_path: Path,
     one_shots: list[Path],
@@ -1154,6 +1161,90 @@ def publish(
         "families": dict(counts),
         "collection": str(collection),
     }
+
+
+def _set_snapshot_tree_read_only(root: Path, *, read_only: bool) -> None:
+    """publisher専用snapshotを読取専用化し、cleanup時だけ書込権限を戻す。"""
+
+    entries = sorted(root.rglob("*"), key=lambda path: len(path.parts), reverse=not read_only)
+    entries.append(root)
+    for path in entries:
+        information = path.lstat()
+        if stat.S_ISDIR(information.st_mode):
+            mode = stat.S_IRUSR | stat.S_IXUSR
+            if not read_only:
+                mode |= stat.S_IWUSR
+        elif stat.S_ISREG(information.st_mode):
+            mode = stat.S_IRUSR
+            if not read_only:
+                mode |= stat.S_IWUSR
+        else:
+            raise ValueError("公開用snapshotに通常file／directory以外があります")
+        os.chmod(path, mode)
+
+
+def _snapshot_publication_sources(
+    one_shots: list[Path],
+    temporary_root: Path,
+) -> list[tuple[Path, dict[str, Any]]]:
+    """全one-shot treeをexact manifestへ固定したpublisher専用copyへ変換する。"""
+
+    if not one_shots:
+        raise ValueError("one-shot sourceがありません")
+    snapshots: list[tuple[Path, dict[str, Any]]] = []
+    observed_sources: set[str] = set()
+    for index, source in enumerate(one_shots):
+        source_key = str(source.resolve(strict=True)).casefold()
+        if source_key in observed_sources:
+            raise ValueError("one-shot sourceが重複しています")
+        observed_sources.add(source_key)
+        before = analysis_job_runner.analysis_output_content_manifest(source)
+        snapshot = temporary_root / f"{index:06d}"
+        shutil.copytree(source, snapshot, symlinks=True)
+        copied = analysis_job_runner.analysis_output_content_manifest(snapshot)
+        after = analysis_job_runner.analysis_output_content_manifest(source)
+        if before != after or copied != before:
+            raise ValueError("one-shot sourceが公開用snapshot作成中に変更されました")
+        snapshots.append((snapshot, copied))
+    return snapshots
+
+
+def publish(
+    repository: Path,
+    manifest_path: Path,
+    one_shots: list[Path],
+    collection_id: str,
+    *,
+    allow_function_staging: bool = False,
+    expected_contract_sha256: str | None = None,
+    post_analysis_resource_scan_observations: int | None = None,
+    post_analysis_resource_failures: int = 0,
+) -> dict[str, Any]:
+    """検証と消費を同じ読取専用private snapshotへ固定して公開する。"""
+
+    with tempfile.TemporaryDirectory(prefix="one-shot-publication-") as temporary:
+        temporary_root = Path(temporary)
+        snapshot_records = _snapshot_publication_sources(one_shots, temporary_root)
+        snapshots = [snapshot for snapshot, _manifest in snapshot_records]
+        try:
+            for snapshot, expected_manifest in snapshot_records:
+                _set_snapshot_tree_read_only(snapshot, read_only=True)
+                if analysis_job_runner.analysis_output_content_manifest(snapshot) != expected_manifest:
+                    raise ValueError("公開用private snapshotが読取専用固定前に変更されました")
+            return _publish_from_snapshots(
+                repository,
+                manifest_path,
+                snapshots,
+                collection_id,
+                allow_function_staging=allow_function_staging,
+                expected_contract_sha256=expected_contract_sha256,
+                post_analysis_resource_scan_observations=post_analysis_resource_scan_observations,
+                post_analysis_resource_failures=post_analysis_resource_failures,
+            )
+        finally:
+            for snapshot in snapshots:
+                if snapshot.exists():
+                    _set_snapshot_tree_read_only(snapshot, read_only=False)
 
 
 class JapaneseArgumentParser(argparse.ArgumentParser):

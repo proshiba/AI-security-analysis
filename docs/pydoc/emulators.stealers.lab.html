@@ -8,8 +8,8 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="emulators.html" class="white">emulators</a>.<a href="emulators.stealers.html" class="white">stealers</a>.lab</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cemulators%5Cstealers%5Clab.py">c:\users\administrator\ai-security-analysis\emulators\stealers\lab.py</a></td></tr></table>
-    <p><span class="code">Loopback-only&nbsp;synthetic&nbsp;HTTP&nbsp;lab&nbsp;for&nbsp;reviewed&nbsp;stealer&nbsp;request&nbsp;shapes.</span></p>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Cemulators%5Cstealers%5Clab.py">c:\users\administrator\w\a26\emulators\stealers\lab.py</a></td></tr></table>
+    <p><span class="code">6系統のstealer&nbsp;C2を安全に検証するloopback限定HTTP&nbsp;lab。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -17,10 +17,12 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="urllib.request.html">urllib.request</a><br>
-</td></tr></table></td></tr></table><p>
+<a href="base64.html">base64</a><br>
+</td><td class="multicolumn"><a href="urllib.error.html">urllib.error</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="urllib.parse.html">urllib.parse</a><br>
+<a href="urllib.request.html">urllib.request</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -42,7 +44,7 @@
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#Handler">Handler</a>(request,&nbsp;client_address,&nbsp;server)<br>
 &nbsp;<br>
-Accept&nbsp;only&nbsp;synthetic&nbsp;lab&nbsp;requests&nbsp;and&nbsp;return&nbsp;no&nbsp;commands.<br>&nbsp;</span></td></tr>
+厳格な合成requestだけを受理し、taskを返さない。<br>&nbsp;</span></td></tr>
 <tr><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt>Method resolution order:</dt>
 <dd><a href="emulators.stealers.lab.html#Handler">Handler</a></dd>
@@ -53,15 +55,19 @@ Accept&nbsp;only&nbsp;synthetic&nbsp;lab&nbsp;requests&nbsp;and&nbsp;return&nbsp
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="Handler-do_GET"><strong>do_GET</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Return&nbsp;an&nbsp;empty&nbsp;synthetic&nbsp;bootstrap&nbsp;response.</span></dd></dl>
+<dl><dt><a name="Handler-do_GET"><strong>do_GET</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Vidarのprofile一致後に使うpassive&nbsp;sinkだけを提供する。</span></dd></dl>
 
-<dl><dt><a name="Handler-do_POST"><strong>do_POST</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">Accept&nbsp;a&nbsp;bounded&nbsp;lab-marked&nbsp;JSON&nbsp;payload&nbsp;and&nbsp;never&nbsp;return&nbsp;commands.</span></dd></dl>
+<dl><dt><a name="Handler-do_POST"><strong>do_POST</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">family別の合成登録またはpassive&nbsp;sink&nbsp;requestを処理する。</span></dd></dl>
 
-<dl><dt><a name="Handler-log_message"><strong>log_message</strong></a>(self, format: 'str', *args) -&gt; 'None'</dt><dd><span class="code">Suppress&nbsp;default&nbsp;request&nbsp;logging&nbsp;to&nbsp;avoid&nbsp;retaining&nbsp;fixture&nbsp;content.</span></dd></dl>
+<dl><dt><a name="Handler-log_message"><strong>log_message</strong></a>(self, format: 'str', *args: 'object') -&gt; 'None'</dt><dd><span class="code">fixture内容を保持しないよう標準request&nbsp;logを無効化する。</span></dd></dl>
+
+<dl><dt><a name="Handler-setup"><strong>setup</strong></a>(self) -&gt; 'None'</dt><dd><span class="code">headerとbodyのslow送信を有界時間で打ち切る。</span></dd></dl>
 
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>server_version</strong> = 'ASA-Stealer-Lab/1'</dl>
+<dl><dt><strong>protocol_version</strong> = 'HTTP/1.1'</dl>
+
+<dl><dt><strong>server_version</strong> = 'ASA-Stealer-Lab/2'</dl>
 
 <hr>
 Methods inherited from <a href="http.server.html#BaseHTTPRequestHandler">http.server.BaseHTTPRequestHandler</a>:<br>
@@ -156,19 +162,15 @@ Data and other attributes inherited from <a href="http.server.html#BaseHTTPReque
 
 <dl><dt><strong>monthname</strong> = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']</dl>
 
-<dl><dt><strong>protocol_version</strong> = 'HTTP/1.0'</dl>
-
 <dl><dt><strong>responses</strong> = {&lt;HTTPStatus.CONTINUE: 100&gt;: ('Continue', 'Request received, please continue'), &lt;HTTPStatus.SWITCHING_PROTOCOLS: 101&gt;: ('Switching Protocols', 'Switching to new protocol; obey Upgrade header'), &lt;HTTPStatus.PROCESSING: 102&gt;: ('Processing', ''), &lt;HTTPStatus.EARLY_HINTS: 103&gt;: ('Early Hints', ''), &lt;HTTPStatus.OK: 200&gt;: ('OK', 'Request fulfilled, document follows'), &lt;HTTPStatus.CREATED: 201&gt;: ('Created', 'Document created, URL follows'), &lt;HTTPStatus.ACCEPTED: 202&gt;: ('Accepted', 'Request accepted, processing continues off-line'), &lt;HTTPStatus.NON_AUTHORITATIVE_INFORMATION: 203&gt;: ('Non-Authoritative Information', 'Request fulfilled from cache'), &lt;HTTPStatus.NO_CONTENT: 204&gt;: ('No Content', 'Request fulfilled, nothing follows'), &lt;HTTPStatus.RESET_CONTENT: 205&gt;: ('Reset Content', 'Clear input form for further input'), ...}</dl>
 
-<dl><dt><strong>sys_version</strong> = 'Python/3.12.13'</dl>
+<dl><dt><strong>sys_version</strong> = 'Python/3.13.14'</dl>
 
 <dl><dt><strong>weekdayname</strong> = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']</dl>
 
 <hr>
 Methods inherited from <a href="socketserver.html#StreamRequestHandler">socketserver.StreamRequestHandler</a>:<br>
 <dl><dt><a name="Handler-finish"><strong>finish</strong></a>(self)</dt></dl>
-
-<dl><dt><a name="Handler-setup"><strong>setup</strong></a>(self)</dt></dl>
 
 <hr>
 Data and other attributes inherited from <a href="socketserver.html#StreamRequestHandler">socketserver.StreamRequestHandler</a>:<br>
@@ -198,18 +200,25 @@ Data descriptors inherited from <a href="socketserver.html#BaseRequestHandler">s
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">Build&nbsp;server/client&nbsp;subcommand&nbsp;parsers.</span></dd></dl>
- <dl><dt><a name="-build_server"><strong>build_server</strong></a>(host: 'str', port: 'int') -&gt; 'ThreadingHTTPServer'</dt><dd><span class="code">Build&nbsp;a&nbsp;loopback-only&nbsp;threaded&nbsp;lab&nbsp;server.</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">Run&nbsp;the&nbsp;loopback&nbsp;lab&nbsp;server&nbsp;or&nbsp;one&nbsp;synthetic&nbsp;client&nbsp;request.</span></dd></dl>
- <dl><dt><a name="-profile_for"><strong>profile_for</strong></a>(family: 'str') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;a&nbsp;reviewed&nbsp;synthetic&nbsp;lab&nbsp;profile.</span></dd></dl>
- <dl><dt><a name="-require_loopback"><strong>require_loopback</strong></a>(host: 'str') -&gt; 'str'</dt><dd><span class="code">Reject&nbsp;every&nbsp;non-loopback&nbsp;emulator&nbsp;bind&nbsp;or&nbsp;target&nbsp;host.</span></dd></dl>
- <dl><dt><a name="-send"><strong>send</strong></a>(family: 'str', base_url: 'str', timeout: 'float' = 5.0) -&gt; 'dict'</dt><dd><span class="code">Send&nbsp;one&nbsp;synthetic&nbsp;request&nbsp;to&nbsp;a&nbsp;loopback-only&nbsp;lab&nbsp;server.</span></dd></dl>
- <dl><dt><a name="-synthetic_body"><strong>synthetic_body</strong></a>(family: 'str') -&gt; 'bytes'</dt><dd><span class="code">Build&nbsp;a&nbsp;non-sensitive&nbsp;lab&nbsp;check-in&nbsp;containing&nbsp;no&nbsp;host&nbsp;or&nbsp;victim&nbsp;identity.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">server/client&nbsp;subcommandを定義する。</span></dd></dl>
+ <dl><dt><a name="-build_server"><strong>build_server</strong></a>(host: 'str', port: 'int') -&gt; 'ThreadingHTTPServer'</dt><dd><span class="code">loopbackだけへbindするthreaded&nbsp;lab&nbsp;serverを作る。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">loopback&nbsp;lab&nbsp;serverまたは合成clientを実行する。</span></dd></dl>
+ <dl><dt><a name="-profile_for"><strong>profile_for</strong></a>(family: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">family名を正規化し、安全なlab&nbsp;profileを返す。</span></dd></dl>
+ <dl><dt><a name="-require_loopback"><strong>require_loopback</strong></a>(host: 'str') -&gt; 'str'</dt><dd><span class="code">loopback以外のbind先または接続先を拒否する。</span></dd></dl>
+ <dl><dt><a name="-send"><strong>send</strong></a>(family: 'str', base_url: 'str', timeout: 'float' = 5.0) -&gt; 'dict[str, object]'</dt><dd><span class="code">loopback&nbsp;labへfamily別の合成requestだけを送る。</span></dd></dl>
+ <dl><dt><a name="-synthetic_body"><strong>synthetic_body</strong></a>(family: 'str') -&gt; 'tuple[str, bytes | None]'</dt><dd><span class="code">被害端末情報を含まないfamily別の合成request&nbsp;bodyを作る。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>PROFILES</strong> = {'amosstealer': {'method': 'POST', 'path': '/ledger/lab-fixture'}, 'formbook': {'method': 'POST', 'path': '/lab/formbook/submit'}, 'lummastealer': {'method': 'POST', 'path': '/lab/lumma/api'}, 'remusstealer': {'method': 'POST', 'path': '/lab/remus/submit'}, 'vidar': {'method': 'GET', 'path': '/lab/vidar/bootstrap'}}</td></tr></table>
+<td class="singlecolumn"><strong>AMOS_CAMPAIGN_ID</strong> = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'<br>
+<strong>IO_TIMEOUT_SECONDS</strong> = 5.0<br>
+<strong>LAB_HEX_ID</strong> = '00000000000000000000000000000000'<br>
+<strong>LAB_STEALC_KEY</strong> = b'loopback-stealc-key'<br>
+<strong>LAB_UUID</strong> = '00000000-0000-4000-8000-000000000000'<br>
+<strong>MAX_REQUEST_BYTES</strong> = 65536<br>
+<strong>MAX_RESPONSE_BYTES</strong> = 65536<br>
+<strong>PROFILES</strong> = {'amosstealer': {'emulation_scope': 'paired_passive_sink', 'method': 'POST', 'path': '/ledger/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wire_compatibility': 'route_shape_only'}, 'formbook': {'emulation_scope': 'passive_sink', 'method': 'POST', 'path': '/lab/formbook/passive-sink', 'wire_compatibility': 'none'}, 'lummastealer': {'emulation_scope': 'reviewed_registration_subset', 'method': 'POST', 'path': '/lab/lumma/v6', 'wire_compatibility': 'registration_request_shape_only'}, 'remusstealer': {'emulation_scope': 'reviewed_registration_subset', 'method': 'POST', 'path': '/lab/remus/register', 'wire_compatibility': 'registration_request_and_opaque_envelope_shape'}, 'stealc': {'emulation_scope': 'reviewed_registration_subset', 'method': 'POST', 'path': '/lab/stealc/v2', 'wire_compatibility': 'registration_request_and_token_response'}, 'vidar': {'emulation_scope': 'profile_matched_passive_sink', 'method': 'GET', 'path': '/lab/vidar/profile-sink', 'wire_compatibility': 'none'}}</td></tr></table>
 </body></html>

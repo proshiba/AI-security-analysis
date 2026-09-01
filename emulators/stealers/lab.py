@@ -5,14 +5,23 @@ from __future__ import annotations
 
 import argparse
 import base64
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, parse, request
-from urllib.parse import urlsplit
 
-from emulators.common import require_loopback as validate_loopback
+from emulators.common import (
+    build_loopback_http_server,
+    load_strict_json_object,
+    require_loopback_http_base_url,
+    require_timeout,
+)
+from emulators.common import (
+    require_loopback as validate_loopback,
+)
 
 MAX_REQUEST_BYTES = 64 * 1024
+MAX_RESPONSE_BYTES = 64 * 1024
+IO_TIMEOUT_SECONDS = 5.0
 LAB_STEALC_KEY = b"loopback-stealc-key"
 LAB_UUID = "00000000-0000-4000-8000-000000000000"
 LAB_HEX_ID = "0" * 32
@@ -105,7 +114,9 @@ def synthetic_body(family: str) -> tuple[str, bytes | None]:
         ).encode()
         return "application/json", base64.b64encode(_rc4(plain, LAB_STEALC_KEY))
     if family == "lummastealer":
-        return "application/x-www-form-urlencoded", parse.urlencode({"uid": LAB_HEX_ID, "cid": "LAB"}).encode()
+        return "application/x-www-form-urlencoded", parse.urlencode(
+            {"uid": LAB_HEX_ID, "cid": "LAB"}
+        ).encode()
     if family == "remusstealer":
         return "application/x-www-form-urlencoded", parse.urlencode(
             {"tag": LAB_HEX_ID, "exp": "2000000000", "hwid": LAB_HEX_ID}
@@ -123,6 +134,11 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "ASA-Stealer-Lab/2"
     protocol_version = "HTTP/1.1"
 
+    def setup(self) -> None:
+        """headerとbodyのslow送信を有界時間で打ち切る。"""
+        super().setup()
+        self.connection.settimeout(IO_TIMEOUT_SECONDS)
+
     def _send(self, status: int, content_type: str, body: bytes = b"") -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -133,7 +149,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _json_error(self, status: int, reason: str) -> None:
-        body = json.dumps({"lab_emulator": True, "error": reason}, separators=(",", ":")).encode()
+        body = json.dumps(
+            {"lab_emulator": True, "error": reason}, separators=(",", ":")
+        ).encode()
         self._send(status, "application/json", body)
 
     def _body(self) -> bytes | None:
@@ -142,10 +160,16 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             self._json_error(411, "content_length_required")
             return None
-        if not 0 <= length <= MAX_REQUEST_BYTES:
+        if length < 0:
+            self._json_error(400, "invalid_content_length")
+            return None
+        if length > MAX_REQUEST_BYTES:
             self._json_error(413, "request_too_large")
             return None
-        body = self.rfile.read(length)
+        try:
+            body = self.rfile.read(length)
+        except OSError:
+            return None
         if len(body) != length:
             self._json_error(400, "truncated_request")
             return None
@@ -187,7 +211,8 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == PROFILES["formbook"]["path"]:
             self._passive_json("formbook", content_type, body)
         elif self.path in {
-            PROFILES["amosstealer"]["path"], f"/ledger/live/{AMOS_CAMPAIGN_ID}"
+            PROFILES["amosstealer"]["path"],
+            f"/ledger/live/{AMOS_CAMPAIGN_ID}",
         }:
             self._passive_json("amosstealer", content_type, body)
         else:
@@ -196,20 +221,39 @@ class Handler(BaseHTTPRequestHandler):
     def _stealc(self, content_type: str, body: bytes) -> None:
         try:
             plain = _rc4(base64.b64decode(body, validate=True), LAB_STEALC_KEY)
-            value = json.loads(plain)
-        except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+            value = load_strict_json_object(
+                plain, label="StealC lab registration", maximum_bytes=MAX_REQUEST_BYTES
+            )
+        except (ValueError, UnicodeDecodeError):
             self._json_error(400, "invalid_stealc_registration")
             return
         if content_type != "application/json" or value != {
-            "build": "LAB-FIXTURE", "hwid": LAB_UUID, "type": "create"
+            "build": "LAB-FIXTURE",
+            "hwid": LAB_UUID,
+            "type": "create",
         }:
             self._json_error(403, "stealc_lab_profile_mismatch")
             return
-        response = json.dumps({"access_token": "0" * 64}, separators=(",", ":")).encode()
-        self._send(200, "application/json", base64.b64encode(_rc4(response, LAB_STEALC_KEY)))
+        response = json.dumps(
+            {"access_token": "0" * 64}, separators=(",", ":")
+        ).encode()
+        self._send(
+            200, "application/json", base64.b64encode(_rc4(response, LAB_STEALC_KEY))
+        )
 
     def _lumma(self, content_type: str, body: bytes) -> None:
-        values = parse.parse_qs(body.decode("ascii", errors="ignore"), keep_blank_values=True)
+        try:
+            rendered = body.decode("ascii", errors="strict")
+        except UnicodeDecodeError:
+            self._json_error(400, "invalid_lumma_registration_encoding")
+            return
+        try:
+            values = parse.parse_qs(
+                rendered, keep_blank_values=True, strict_parsing=True, max_num_fields=8
+            )
+        except ValueError:
+            self._json_error(400, "invalid_lumma_registration_form")
+            return
         expected = {"uid": [LAB_HEX_ID], "cid": ["LAB"]}
         if content_type != "application/x-www-form-urlencoded" or values != expected:
             self._json_error(403, "lumma_lab_profile_mismatch")
@@ -217,21 +261,40 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, "application/json", b"[]")
 
     def _remus(self, content_type: str, body: bytes) -> None:
-        values = parse.parse_qs(body.decode("ascii", errors="ignore"), keep_blank_values=True)
+        try:
+            rendered = body.decode("ascii", errors="strict")
+        except UnicodeDecodeError:
+            self._json_error(400, "invalid_remus_registration_encoding")
+            return
+        try:
+            values = parse.parse_qs(
+                rendered, keep_blank_values=True, strict_parsing=True, max_num_fields=8
+            )
+        except ValueError:
+            self._json_error(400, "invalid_remus_registration_form")
+            return
         expected = {"tag": [LAB_HEX_ID], "exp": ["2000000000"], "hwid": [LAB_HEX_ID]}
         if content_type != "application/x-www-form-urlencoded" or values != expected:
             self._json_error(403, "remus_lab_profile_mismatch")
             return
-        self._send(201, "application/octet-stream", b"LAB-OPAQUE-NON-TASK-ENVELOPE".ljust(41, b"."))
+        self._send(
+            201,
+            "application/octet-stream",
+            b"LAB-OPAQUE-NON-TASK-ENVELOPE".ljust(41, b"."),
+        )
 
     def _passive_json(self, family: str, content_type: str, body: bytes) -> None:
         try:
-            value = json.loads(body)
-        except (UnicodeDecodeError, json.JSONDecodeError):
+            value = load_strict_json_object(
+                body, label=f"{family} passive sink", maximum_bytes=MAX_REQUEST_BYTES
+            )
+        except ValueError:
             self._json_error(400, "invalid_json")
             return
         if content_type != "application/json" or value != {
-            "lab_emulator": True, "family": family, "items": []
+            "lab_emulator": True,
+            "family": family,
+            "items": [],
         }:
             self._json_error(403, "lab_marker_required")
             return
@@ -248,55 +311,107 @@ class _NoRedirect(request.HTTPRedirectHandler):
 
 def build_server(host: str, port: int) -> ThreadingHTTPServer:
     """loopbackだけへbindするthreaded lab serverを作る。"""
+    return build_loopback_http_server(host, port, Handler, label="stealer emulator")
 
-    return ThreadingHTTPServer((require_loopback(host), port), Handler)
 
-
-def _exchange(method: str, target: str, content_type: str, body: bytes | None, timeout: float) -> tuple[int, bytes]:
+def _exchange(
+    method: str, target: str, content_type: str, body: bytes | None, timeout: float
+) -> tuple[int, str, bytes]:
+    """redirectせず、応答をsize上限付きで1件取得する。"""
     req = request.Request(
-        target, data=body, method=method,
+        target,
+        data=body,
+        method=method,
         headers={"Content-Type": content_type, "Connection": "close"},
     )
-    opener = request.build_opener(_NoRedirect)
+    opener = request.build_opener(request.ProxyHandler({}), _NoRedirect)
     try:
         with opener.open(req, timeout=timeout) as response:
-            return response.status, response.read(MAX_REQUEST_BYTES + 1)
+            status = response.status
+            response_type = (
+                response.headers.get("Content-Type", "").split(";", 1)[0].lower()
+            )
+            response_body = response.read(MAX_RESPONSE_BYTES + 1)
     except error.HTTPError as exc:
-        return exc.code, exc.read(MAX_REQUEST_BYTES + 1)
+        status = exc.code
+        response_type = exc.headers.get("Content-Type", "").split(";", 1)[0].lower()
+        response_body = exc.read(MAX_RESPONSE_BYTES + 1)
+    if len(response_body) > MAX_RESPONSE_BYTES:
+        raise ValueError("stealer lab responseがsize上限を超えています")
+    return status, response_type, response_body
 
 
 def send(family: str, base_url: str, timeout: float = 5.0) -> dict[str, object]:
     """loopback labへfamily別の合成requestだけを送る。"""
-
-    parsed = urlsplit(base_url)
-    require_loopback(parsed.hostname or "")
-    if parsed.scheme != "http" or parsed.username is not None or parsed.password is not None:
-        raise ValueError("lab接続先はcredentialなしのHTTP loopbackである必要があります")
+    base_url = require_loopback_http_base_url(base_url, "stealer emulator")
+    timeout = require_timeout(timeout, label="stealer emulator timeout")
     profile = profile_for(family)
     content_type, body = synthetic_body(family)
     targets = [str(profile["path"])]
     if profile["family"] == "amosstealer":
         targets.append(f"/ledger/live/{AMOS_CAMPAIGN_ID}")
     statuses: list[int] = []
+    content_types: list[str] = []
     responses: list[bytes] = []
     for path in targets:
-        status, response_body = _exchange(
-            str(profile["method"]), base_url.rstrip("/") + path, content_type, body, timeout
+        status, response_type, response_body = _exchange(
+            str(profile["method"]), base_url + path, content_type, body, timeout
         )
         statuses.append(status)
+        content_types.append(response_type)
         responses.append(response_body)
     token_shape = False
     if profile["family"] == "stealc" and responses:
-        decoded = json.loads(_rc4(base64.b64decode(responses[0], validate=True), LAB_STEALC_KEY))
-        token_shape = isinstance(decoded.get("access_token"), str) and len(decoded["access_token"]) == 64
+        decoded = load_strict_json_object(
+            _rc4(base64.b64decode(responses[0], validate=True), LAB_STEALC_KEY),
+            label="StealC lab response",
+            maximum_bytes=MAX_RESPONSE_BYTES,
+        )
+        token = decoded.get("access_token")
+        token_shape = (
+            set(decoded) == {"access_token"}
+            and isinstance(token, str)
+            and token == "0" * 64
+        )
+        response_validated = (
+            statuses == [200] and content_types == ["application/json"] and token_shape
+        )
+    elif profile["family"] == "lummastealer":
+        response_validated = (
+            statuses == [200]
+            and content_types == ["application/json"]
+            and responses == [b"[]"]
+        )
+    elif profile["family"] == "remusstealer":
+        expected = b"LAB-OPAQUE-NON-TASK-ENVELOPE".ljust(41, b".")
+        response_validated = (
+            statuses == [201]
+            and content_types == ["application/octet-stream"]
+            and responses == [expected]
+        )
+    else:
+        response_validated = (
+            statuses == [204] * len(targets)
+            and content_types == ["application/octet-stream"] * len(targets)
+            and all(not value for value in responses)
+        )
+    if not response_validated:
+        raise ValueError("stealer lab response contractが一致しません")
     return {
-        "family": profile["family"], "statuses": statuses,
-        "request_count": len(targets), "accepted": all(status in {200, 201, 204} for status in statuses),
+        "family": profile["family"],
+        "statuses": statuses,
+        "request_count": len(targets),
+        "accepted": True,
+        "responses_validated": True,
+        "response_bytes": [len(value) for value in responses],
         "registration_token_shape_matched": token_shape,
-        "commands_returned": False, "c2_confirmed": False,
+        "commands_returned": False,
+        "c2_confirmed": False,
         "emulation_scope": profile["emulation_scope"],
         "wire_compatibility": profile["wire_compatibility"],
-        "network_scope": "loopback_only", "redirect_followed": False,
+        "network_scope": "loopback_only",
+        "redirect_followed": False,
+        "proxy_used": False,
         "victim_metadata_sent": False,
     }
 
@@ -312,6 +427,7 @@ def build_parser() -> argparse.ArgumentParser:
     client = commands.add_parser("client", help="合成requestを1 sequence送信します")
     client.add_argument("--family", required=True, choices=sorted(PROFILES))
     client.add_argument("--base-url", default="http://127.0.0.1:18080")
+    client.add_argument("--timeout", type=float, default=5.0)
     return parser
 
 
@@ -326,7 +442,13 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             server.server_close()
         return 0
-    print(json.dumps(send(args.family, args.base_url), ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            send(args.family, args.base_url, timeout=args.timeout),
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

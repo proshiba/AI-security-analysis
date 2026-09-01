@@ -69,6 +69,7 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT, CLASSIFIERS_ROOT):
 
 import analyze_family_sample  # noqa: E402
 import automated_case_analysis  # noqa: E402
+import batch_error_contract  # noqa: E402
 import classify_sample  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
@@ -2011,6 +2012,20 @@ def analyze_unit(
         assessment_only=assessment_only,
         artifact_directory=recovered_payload_directory,
     )
+    if recovered_payload_directory is not None:
+        ensure_no_reparse_components(recovered_payload_directory)
+        retained_directory_information = recovered_payload_directory.lstat()
+        if (
+            not stat.S_ISDIR(retained_directory_information.st_mode)
+            or int(getattr(retained_directory_information, "st_file_attributes", 0))
+            & int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+        ):
+            raise ValueError("保持payload directoryが通常directoryではありません")
+        with os.scandir(recovered_payload_directory) as retained_entries:
+            retained_entry = next(retained_entries, None)
+        if retained_entry is None:
+            recovered_payload_directory.rmdir()
+            recovered_payload_directory = None
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
 
 
@@ -4420,7 +4435,7 @@ def run_batch(
     errors = []
     duplicates = []
     seen: set[str] = set()
-    for path in paths:
+    for input_index, path in enumerate(paths):
         try:
             unit = read_input_unit(
                 path,
@@ -4428,12 +4443,22 @@ def run_batch(
                 archive_mode=archive_mode,
                 max_file_size=max_file_size,
             )
-            digest = hashlib.sha256(unit.data).hexdigest()
-            if digest in seen:
-                duplicates.append({"source_name": path.name, "sha256": digest})
-                continue
-            seen.add(digest)
-            if resume:
+        except Exception as exc:  # noqa: BLE001 - 入力単位で後続解析を継続する
+            errors.append(
+                batch_error_contract.build_record(
+                    input_index=input_index,
+                    stage="input_read",
+                    error=exc,
+                )
+            )
+            continue
+        digest = hashlib.sha256(unit.data).hexdigest()
+        if digest in seen:
+            duplicates.append({"source_name": path.name, "sha256": digest})
+            continue
+        seen.add(digest)
+        if resume:
+            try:
                 resumed = load_resumable_case(
                     output,
                     digest,
@@ -4441,9 +4466,20 @@ def run_batch(
                     expected_contract=analysis_contract,
                     unit=unit,
                 )
-                if resumed is not None:
-                    cases.append(resumed)
-                    continue
+            except Exception as exc:  # noqa: BLE001 - resume不整合を新規解析と混同しない
+                errors.append(
+                    batch_error_contract.build_record(
+                        input_index=input_index,
+                        sha256=digest,
+                        stage="resume_validation",
+                        error=exc,
+                    )
+                )
+                continue
+            if resumed is not None:
+                cases.append(resumed)
+                continue
+        try:
             cases.append(
                 analyze_unit(
                     unit,
@@ -4467,12 +4503,14 @@ def run_batch(
                     family_requirements_policy=family_requirements_policy,
                 )
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - root検体単位で後続解析を継続する
             errors.append(
-                {
-                    "source_name": path.name,
-                    "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
-                }
+                batch_error_contract.build_record(
+                    input_index=input_index,
+                    sha256=digest,
+                    stage="root_static_analysis",
+                    error=exc,
+                )
             )
     if assessment_only:
         follow_on = {
@@ -4600,7 +4638,15 @@ def run_batch(
         "failed": sum(item["case_state"] == "failed" for item in derived_cases),
         "resumed": sum(bool(item.get("resumed")) for item in derived_cases),
     }
-    acquisition = terminal_payload_acquisition.build_terminal_payload_acquisition(follow_on)
+    root_case_states = (
+        {item["sha256"]: item["case_state"] for item in cases}
+        if follow_on["status"] in terminal_payload_acquisition.OPERATIONAL_STATUSES
+        else None
+    )
+    acquisition = terminal_payload_acquisition.build_terminal_payload_acquisition(
+        follow_on,
+        root_case_states=root_case_states,
+    )
     _atomic_replace_json(output / "terminal-payload-acquisition.json", acquisition)
     acquisition_digest = hashlib.sha256(
         (output / "terminal-payload-acquisition.json").read_bytes()

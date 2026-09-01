@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import inspect
 import json
@@ -74,6 +75,140 @@ def make_roots(tmp_path: Path, *, publication: bool = False) -> tuple[Path, Path
     work_root = tmp_path / "work"
     work_root.mkdir()
     return repository, input_root, work_root
+
+
+def write_completion_contract_artifacts(
+    repository: Path,
+    analysis: Path,
+    digest: str,
+    *,
+    follow_on: dict[str, Any] | None = None,
+) -> None:
+    """completion gate用のC2契約と終端payload台帳を同一graphから保存する。"""
+
+    graph = follow_on or {
+        "status": "no_retained_payloads",
+        "roots": [digest],
+        "nodes": [{"sha256": digest, "depth": 0, "state": "root"}],
+        "edges": [],
+        "omitted_metadata": [],
+        "omitted_metadata_commitments": [],
+        "errors": [],
+        "wall_clock_exhausted": False,
+    }
+    follow_on_path = analysis / "follow-on-analysis.json"
+    follow_on_path.write_text(
+        json.dumps(graph, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    summary_path = analysis / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    root_case_states = (
+        {
+            item["sha256"]: item["case_state"]
+            for item in summary.get("cases", [])
+            if item.get("sha256") in set(graph["roots"])
+        }
+        if graph["status"] in lifecycle.terminal_payload_acquisition.OPERATIONAL_STATUSES
+        else None
+    )
+    acquisition = lifecycle.terminal_payload_acquisition.build_terminal_payload_acquisition(
+        graph,
+        root_case_states=root_case_states,
+    )
+    acquisition_path = analysis / "terminal-payload-acquisition.json"
+    acquisition_path.write_text(
+        json.dumps(acquisition, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    summary["follow_on_analysis"] = {
+        "artifact": "follow-on-analysis.json",
+        "sha256": lifecycle._sha256_file(follow_on_path),
+        "status": graph["status"],
+        "node_count": len(graph["nodes"]),
+        "edge_count": len(graph["edges"]),
+        "error_count": len(graph["errors"]),
+    }
+    summary["terminal_payload_acquisition"] = {
+        "artifact": "terminal-payload-acquisition.json",
+        "sha256": lifecycle._sha256_file(acquisition_path),
+        "status": acquisition["status"],
+        "frontier_count": len(acquisition["frontier"]),
+        "selected_count": len(acquisition["selected_sha256"]),
+        "pending_count": len(acquisition["pending_sha256"]),
+    }
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False), encoding="utf-8")
+
+    c2_document = lifecycle.c2_analysis_contract.build_unresolved_contract(digest, "fixture")
+    existing_automation = "analysis-framework/common/publish_one_shot_collection.py"
+    c2_document["automation"]["handlers"] = [existing_automation]
+    c2_document["automation"]["tests"] = [existing_automation]
+    assert (repository / existing_automation).is_file()
+    case_dir = analysis / "cases" / digest
+    (case_dir / "c2-analysis.json").write_text(
+        json.dumps(c2_document, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def test_lifecycle_rebinds_shared_root_case_state(tmp_path: Path) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("shared-root-lifecycle-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    left = "a" * 64
+    right = "b" * 64
+    analysis = context.jobs_root / request.job.job_id / "analysis"
+    (analysis / "cases" / left).mkdir(parents=True)
+    (analysis / "summary.json").write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {"sha256": left, "case_state": "complete"},
+                    {"sha256": right, "case_state": "complete"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    graph = {
+        "status": "complete",
+        "roots": [left, right],
+        "nodes": [
+            {"sha256": left, "depth": 0, "state": "root"},
+            {"sha256": right, "depth": 0, "state": "root"},
+        ],
+        "edges": [
+            {
+                "parent_sha256": left,
+                "child_sha256": right,
+                "depth": 1,
+                "path": "retained/shared.bin",
+                "role": "payload",
+                "kind": "binary",
+                "size": 7,
+                "status": "shared_sha256_reused_complete",
+            }
+        ],
+        "omitted_metadata": [],
+        "omitted_metadata_commitments": [],
+        "errors": [],
+        "wall_clock_exhausted": False,
+    }
+    write_completion_contract_artifacts(repository, analysis, left, follow_on=graph)
+    summary = json.loads((analysis / "summary.json").read_text(encoding="utf-8"))
+
+    validated = lifecycle._validated_terminal_acquisition(context, summary)
+
+    assert validated["status"] == "verified"
+    assert validated["selected_sha256"] == [right]
+    assert validated["pending_sha256"] == []
 
 
 def fake_actions(
@@ -430,15 +565,43 @@ def test_static_artifact_hash_change_is_detected_before_resume(
     contract_inputs = job_dir / "contract-inputs"
     samples = contract_inputs / "samples"
     samples.mkdir(parents=True)
+    inventory = contract_inputs / "inventory" / "000000"
+    inventory.mkdir(parents=True)
+    (inventory / "sample.bin").write_bytes(b"")
     bundle_path = contract_inputs / "analysis-contract-bundle.json"
     snapshot_manifest_path = contract_inputs / "input-snapshot-manifest.json"
     bundle_path.write_text("{}\n", encoding="utf-8")
     snapshot_manifest_path.write_text(
         json.dumps(
-            {
-                "schema_version": 1,
-                "archive_mode": "raw",
-                "file_count": 0,
+                {
+                    "schema_version": 1,
+                    "archive_mode": "malwarebazaar",
+                    "input_records": [
+                        {
+                            "relative_path": "set/sample.bin",
+                            "kind": "file",
+                            "file_count": 1,
+                            "analyzer_file_count": 0,
+                            "total_bytes": 0,
+                        }
+                    ],
+                    "source_inventory": [
+                        {
+                            "input_index": 0,
+                            "relative_path": "set/sample.bin",
+                            "files": [
+                                {
+                                    "source_relative_path": "set/sample.bin",
+                                    "snapshot_relative_path": (
+                                        "contract-inputs/inventory/000000/sample.bin"
+                                    ),
+                                    "size": 0,
+                                    "sha256": hashlib.sha256(b"").hexdigest(),
+                                }
+                            ],
+                        }
+                    ],
+                    "file_count": 0,
                 "total_bytes": 0,
                 "files": [],
             }
@@ -450,6 +613,10 @@ def test_static_artifact_hash_change_is_detected_before_resume(
     result_path.write_text("{}\n", encoding="utf-8")
     summary_path.write_text('{"state":"before"}\n', encoding="utf-8")
     fake_result = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
         "artifacts": {
             "analysis_output": lifecycle.analysis_job_runner.validate_analysis_output_tree(analysis),
             "analysis_contract_bundle": "contract-inputs/analysis-contract-bundle.json",
@@ -462,14 +629,14 @@ def test_static_artifact_hash_change_is_detected_before_resume(
             "trusted_static_tools_manifest_sha256": None,
         }
     }
-    monkeypatch.setattr(lifecycle, "_verified_static_result", lambda _context: fake_result)
-    record = {
-        "result": {
-            "result_sha256": lifecycle._sha256_file(result_path),
-            "summary_sha256": lifecycle._sha256_file(summary_path),
-            "analysis_tree_sha256": lifecycle._analysis_tree_sha256(analysis),
-        }
+    validation = {
+        "result": fake_result,
+        "result_sha256": lifecycle._sha256_file(result_path),
+        "summary_sha256": lifecycle._sha256_file(summary_path),
+        "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
     }
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", lambda _context: validation)
+    record = {"result": lifecycle._static_stage_result(context, validation)}
 
     assert lifecycle._static_artifact_errors(context, record) == []
     summary_path.write_text('{"state":"after"}\n', encoding="utf-8")
@@ -576,7 +743,502 @@ def test_partial_publication_is_blocked_before_publisher_without_opt_in(
     assert outcome.blockers == ("publication_requires_complete_or_partial_staging_opt_in",)
 
 
-def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path) -> None:
+def test_publication_revalidates_static_seal_before_publisher(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path, publication=True)
+    request = lifecycle.validate_request_object(request_value("publication-seal-001", publication=True))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_path = job_dir / "result.json"
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary_path = analysis / "summary.json"
+    summary_path.write_text(
+        json.dumps({"analysis_contract": {"sha256": "a" * 64}}),
+        encoding="utf-8",
+    )
+
+    def current_validation(_context: lifecycle.LifecycleContext) -> dict[str, Any]:
+        return {
+            "result": result_document,
+            "summary": json.loads(summary_path.read_text(encoding="utf-8")),
+            "result_sha256": lifecycle._sha256_file(result_path),
+            "summary_sha256": lifecycle._sha256_file(summary_path),
+            "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+        }
+
+    initial = current_validation(context)
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, initial),
+            }
+        }
+    }
+    (analysis / "post-static-change.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", current_validation)
+    monkeypatch.setattr(
+        lifecycle.publish_one_shot_collection,
+        "publish",
+        lambda *_args, **_kwargs: pytest.fail("publisher must not run"),
+    )
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._production_publication(context, state)
+
+    assert caught.value.code == "static_state_mismatch"
+
+
+def test_publication_passes_only_exact_temporary_snapshot_to_publisher(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path, publication=True)
+    request = lifecycle.validate_request_object(request_value("publication-snapshot-001", publication=True))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_path = job_dir / "result.json"
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary = {"analysis_contract": {"sha256": "a" * 64}}
+    summary_path = analysis / "summary.json"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    (analysis / "evidence.json").write_text('{"verified":true}\n', encoding="utf-8")
+    validation = {
+        "result": result_document,
+        "summary": summary,
+        "result_sha256": lifecycle._sha256_file(result_path),
+        "summary_sha256": lifecycle._sha256_file(summary_path),
+        "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+    }
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, validation),
+            }
+        }
+    }
+    observed: dict[str, Any] = {}
+
+    def publish(
+        _repository: Path,
+        _manifest: Path,
+        sources: list[Path],
+        _collection_id: str,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        observed["snapshot"] = sources[0]
+        observed["payload"] = (sources[0] / "evidence.json").read_text(encoding="utf-8")
+        collection = repository / "analysis-results" / "research" / "published-snapshot"
+        collection.mkdir(parents=True)
+        return {
+            "collection": str(collection),
+            "published": 1,
+            "publication_stage": "complete",
+            "analysis_contract_sha256": "a" * 64,
+            "families": [],
+        }
+
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", lambda _context: validation)
+    monkeypatch.setattr(lifecycle.publish_one_shot_collection, "publish", publish)
+
+    outcome = lifecycle._production_publication(context, state)
+
+    assert outcome.status == "succeeded"
+    assert observed["snapshot"] != analysis
+    assert observed["payload"] == '{"verified":true}\n'
+    assert not observed["snapshot"].exists()
+
+
+def test_publication_rejects_original_change_during_snapshot_before_publisher(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """snapshot copy直後に原本treeが変わればpublisherを呼ばず拒否する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path, publication=True)
+    request = lifecycle.validate_request_object(
+        request_value("publication-copy-race-001", publication=True)
+    )
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_path = job_dir / "result.json"
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary_path = analysis / "summary.json"
+    summary_path.write_text(
+        json.dumps({"analysis_contract": {"sha256": "a" * 64}}),
+        encoding="utf-8",
+    )
+    evidence_path = analysis / "evidence.json"
+    evidence_path.write_text('{"verified":true}\n', encoding="utf-8")
+
+    def current_validation(_context: lifecycle.LifecycleContext) -> dict[str, Any]:
+        return {
+            "result": result_document,
+            "summary": json.loads(summary_path.read_text(encoding="utf-8")),
+            "result_sha256": lifecycle._sha256_file(result_path),
+            "summary_sha256": lifecycle._sha256_file(summary_path),
+            "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+        }
+
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, current_validation(context)),
+            }
+        }
+    }
+    real_copytree = lifecycle.shutil.copytree
+    publisher_calls = 0
+
+    def copytree_then_mutate_source(
+        source: Path,
+        destination: Path,
+        **kwargs: Any,
+    ) -> Path:
+        copied = real_copytree(source, destination, **kwargs)
+        evidence_path.write_text('{"verified":false}\n', encoding="utf-8")
+        return copied
+
+    def publish(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        nonlocal publisher_calls
+        publisher_calls += 1
+        pytest.fail("publisher must not run after the source tree changes")
+
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", current_validation)
+    monkeypatch.setattr(lifecycle.shutil, "copytree", copytree_then_mutate_source)
+    monkeypatch.setattr(lifecycle.publish_one_shot_collection, "publish", publish)
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._production_publication(context, state)
+
+    assert caught.value.code == "static_state_mismatch"
+    assert publisher_calls == 0
+
+
+def test_publication_rejects_temporary_snapshot_change_before_publisher(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2回目のstatic再検証中に公開snapshotが変わればpublisherを呼ばず拒否する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path, publication=True)
+    request = lifecycle.validate_request_object(
+        request_value("publication-temp-race-001", publication=True)
+    )
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_path = job_dir / "result.json"
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary = {"analysis_contract": {"sha256": "a" * 64}}
+    summary_path = analysis / "summary.json"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    (analysis / "evidence.json").write_text('{"verified":true}\n', encoding="utf-8")
+    validation = {
+        "result": result_document,
+        "summary": summary,
+        "result_sha256": lifecycle._sha256_file(result_path),
+        "summary_sha256": lifecycle._sha256_file(summary_path),
+        "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+    }
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, validation),
+            }
+        }
+    }
+    real_revalidate = lifecycle._revalidated_current_static_stage
+    revalidation_calls = 0
+    publisher_calls = 0
+
+    def revalidate(
+        current_context: lifecycle.LifecycleContext,
+        current_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        nonlocal revalidation_calls
+        revalidation_calls += 1
+        if revalidation_calls == 2:
+            snapshots = list(
+                work_root.glob(
+                    "publication-temp-race-001-publication-snapshot-*/analysis/evidence.json"
+                )
+            )
+            assert len(snapshots) == 1
+            snapshots[0].write_text('{"verified":false}\n', encoding="utf-8")
+        return real_revalidate(current_context, current_state)
+
+    def publish(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        nonlocal publisher_calls
+        publisher_calls += 1
+        pytest.fail("publisher must not run after the temporary snapshot changes")
+
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", lambda _context: validation)
+    monkeypatch.setattr(lifecycle, "_revalidated_current_static_stage", revalidate)
+    monkeypatch.setattr(lifecycle.publish_one_shot_collection, "publish", publish)
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._production_publication(context, state)
+
+    assert caught.value.code == "publication_snapshot_mismatch"
+    assert revalidation_calls == 2
+    assert publisher_calls == 0
+
+
+def test_completion_revalidates_result_seal_before_case_processing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("completion-result-seal-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path = job_dir / "result.json"
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary_path = analysis / "summary.json"
+    summary_path.write_text("{}\n", encoding="utf-8")
+
+    def current_validation(_context: lifecycle.LifecycleContext) -> dict[str, Any]:
+        return {
+            "result": result_document,
+            "summary": {},
+            "result_sha256": lifecycle._sha256_file(result_path),
+            "summary_sha256": lifecycle._sha256_file(summary_path),
+            "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+        }
+
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, current_validation(context)),
+            },
+            "publication": {"enabled": False, "status": "skipped", "blockers": []},
+            "function_validation": {"enabled": False, "status": "skipped", "blockers": []},
+        }
+    }
+    result_path.write_text(json.dumps(result_document) + " \n", encoding="utf-8")
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", current_validation)
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._production_completion(context, state)
+
+    assert caught.value.code == "static_state_mismatch"
+
+
+def test_completion_revalidates_result_seal_after_case_processing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """case blocker集約中のresult raw byte改変を末尾の全再検証で拒否する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("completion-result-race-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    job_dir = context.jobs_root / request.job.job_id
+    analysis = job_dir / "analysis"
+    analysis.mkdir(parents=True)
+    result_document = {
+        "analysis_state": "complete",
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+    }
+    result_path = job_dir / "result.json"
+    result_path.write_text(json.dumps(result_document), encoding="utf-8")
+    summary_document = {
+        "counts": {},
+        "derived_counts": {},
+        "follow_on_analysis": {},
+        "errors": [],
+    }
+    summary_path = analysis / "summary.json"
+    summary_path.write_text(json.dumps(summary_document), encoding="utf-8")
+
+    def current_validation(_context: lifecycle.LifecycleContext) -> dict[str, Any]:
+        return {
+            "result": result_document,
+            "summary": summary_document,
+            "result_sha256": lifecycle._sha256_file(result_path),
+            "summary_sha256": lifecycle._sha256_file(summary_path),
+            "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+        }
+
+    state = {
+        "stages": {
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, current_validation(context)),
+            },
+            "publication": {"enabled": False, "status": "skipped", "blockers": []},
+            "function_validation": {"enabled": False, "status": "skipped", "blockers": []},
+        }
+    }
+    case_blocker_calls = 0
+
+    def case_blockers(
+        _context: lifecycle.LifecycleContext,
+        *,
+        summary: dict[str, Any] | None = None,
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        nonlocal case_blocker_calls
+        assert summary is summary_document
+        case_blocker_calls += 1
+        result_path.write_text(json.dumps(result_document) + " \n", encoding="utf-8")
+        return [], []
+
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", current_validation)
+    monkeypatch.setattr(lifecycle, "_case_blockers", case_blockers)
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._production_completion(context, state)
+
+    assert caught.value.code == "static_state_mismatch"
+    assert case_blocker_calls == 1
+
+
+def test_existing_static_job_is_fully_revalidated_before_reuse(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("existing-static-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    (context.jobs_root / request.job.job_id).mkdir()
+    observed: dict[str, Any] = {}
+
+    def revalidate(
+        jobs_root: Path,
+        job: lifecycle.analysis_job_runner.JobRequest,
+        *,
+        temporary_root: Path,
+        expected_timeout_seconds: int,
+    ) -> dict[str, Any]:
+        observed.update(
+            {
+                "jobs_root": jobs_root,
+                "job": job,
+                "temporary_root": temporary_root,
+                "temporary_exists": temporary_root.is_dir(),
+                "expected_timeout_seconds": expected_timeout_seconds,
+            }
+        )
+        return {
+            "result": {
+                "accepted": True,
+                "job_id": job.job_id,
+                "request_sha256": lifecycle._sha256_value(job.public()),
+                "safety": {
+                    "executed_sample": False,
+                    "network_contacted": False,
+                    "ai_used": False,
+                },
+            }
+        }
+
+    monkeypatch.setattr(lifecycle.analysis_job_runner, "revalidate_completed_job", revalidate)
+
+    result = lifecycle._verified_static_result(context)
+
+    assert result is not None and result["accepted"] is True
+    assert observed["jobs_root"] == context.jobs_root
+    assert observed["job"] == request.job
+    assert observed["temporary_exists"] is True
+    assert observed["expected_timeout_seconds"] == 60
+    assert not observed["temporary_root"].exists()
+
+
+def test_completion_gate_surfaces_case_blockers_and_next_actions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     repository, input_root, work_root = make_roots(tmp_path)
     request = lifecycle.validate_request_object(request_value("gate-001"))
     context = lifecycle._validate_context_roots(
@@ -593,9 +1255,20 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
     case.mkdir(parents=True)
     (analysis / "summary.json").write_text(
         json.dumps(
-            {
-                "cases": [{"sha256": digest, "case_state": "partial"}],
-                "derived_cases": [],
+                {
+                    "cases": [{"sha256": digest, "case_state": "partial"}],
+                    "derived_cases": [],
+                    "counts": {"errors": 1},
+                    "derived_counts": {"analyzed": 0},
+                "errors": [
+                    {
+                        "input_index": 0,
+                        "sha256": None,
+                        "stage": "input_read",
+                        "error_code": "input_read_failed",
+                        "message": "入力を安全に読み込めませんでした (OSError)",
+                    }
+                ],
             }
         ),
         encoding="utf-8",
@@ -612,16 +1285,39 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
         encoding="utf-8",
     )
     (case / "orchestration.json").write_text(
-        json.dumps({"blockers": ["terminal_payload_not_recovered"]}),
+        json.dumps(
+            {
+                "blockers": ["terminal_payload_not_recovered"],
+                "family_resolution": {"status": "resolved"},
+                "quality_gates": {"network": {"required": True}},
+            }
+        ),
         encoding="utf-8",
     )
+    write_completion_contract_artifacts(repository, analysis, digest)
+    sealed_summary = json.loads((analysis / "summary.json").read_text(encoding="utf-8"))
+    validation = {
+        "result": {
+            "analysis_state": "partial",
+            "counts": sealed_summary["counts"],
+            "derived_counts": sealed_summary["derived_counts"],
+            "follow_on_analysis": sealed_summary["follow_on_analysis"],
+        },
+        "summary": sealed_summary,
+        "result_sha256": "1" * 64,
+        "summary_sha256": "2" * 64,
+        "analysis_output_sha256": lifecycle._analysis_tree_sha256(analysis),
+    }
     state = {
         "stages": {
-            "static_analysis": {"result": {"analysis_state": "partial"}},
+            "static_analysis": {
+                "result": lifecycle._static_stage_result(context, validation)
+            },
             "publication": {"enabled": False, "status": "skipped", "blockers": []},
             "function_validation": {"enabled": False, "status": "skipped", "blockers": []},
         }
     }
+    monkeypatch.setattr(lifecycle, "_revalidated_static_bundle", lambda _context: validation)
 
     outcome = lifecycle._production_completion(context, state)
 
@@ -630,23 +1326,46 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
         {
             "sha256": digest,
             "status": "partial",
-            "report_blockers": ["representative_function_analysis_required"],
+            "report_blockers": [
+                "analysis_partial",
+                "representative_function_analysis_required",
+            ],
             "orchestration_blockers": ["terminal_payload_not_recovered"],
+            "c2_status": "deferred",
+            "c2_outcome": "unresolved",
+            "c2_blockers": ["c2_analysis_unresolved"],
+            "terminal_acquisition_blockers": [],
         }
     ]
     assert outcome.result["blockers"] == [
+        "analysis_partial",
+        "batch_error:input_read_failed",
+        "c2_analysis_unresolved",
         "representative_function_analysis_required",
         "terminal_payload_not_recovered",
     ]
     assert outcome.result["next_actions"] == [
+        "configuration_and_c2_static_recovery",
+        "deeper_static_layer_analysis",
         "representative_function_static_review",
+        "review_machine_readable_blocker",
         "terminal_payload_static_recovery",
     ]
     assert [item["case_sha256"] for item in outcome.result["remediation_actions"]] == [
+        None,
+        digest,
+        digest,
         digest,
         digest,
     ]
-    assert outcome.result["remediation_actions"][0] == {
+    assert outcome.result["analysis_error_count"] == 1
+    assert outcome.result["analysis_errors"][0]["error_code"] == "input_read_failed"
+    representative = next(
+        item
+        for item in outcome.result["remediation_actions"]
+        if item["blocker_code"] == "representative_function_analysis_required"
+    )
+    assert representative == {
         "case_sha256": digest,
         "blocker_code": "representative_function_analysis_required",
         "action_id": "representative_function_static_review",
@@ -658,6 +1377,250 @@ def test_completion_gate_surfaces_case_blockers_and_next_actions(tmp_path: Path)
     }
     assert lifecycle.SHA256_RE.fullmatch(outcome.result["remediation_plan_sha256"])
     assert outcome.result["same_workflow_resume_allowed"] is False
+
+
+def test_terminal_frontier_blocker_is_attributed_to_parent_case(tmp_path: Path) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("terminal-gate-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    digest = "a" * 64
+    child_digest = "b" * 64
+    analysis = context.jobs_root / request.job.job_id / "analysis"
+    case = analysis / "cases" / digest
+    case.mkdir(parents=True)
+    (analysis / "summary.json").write_text(
+        json.dumps(
+            {
+                "cases": [{"sha256": digest, "case_state": "partial"}],
+                "derived_cases": [],
+                "errors": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (case / "report.json").write_text(
+        json.dumps({"case_state": {"status": "partial", "blockers": []}}),
+        encoding="utf-8",
+    )
+    (case / "orchestration.json").write_text(
+        json.dumps(
+            {
+                "blockers": [],
+                "family_resolution": {"status": "resolved"},
+                "quality_gates": {"network": {"required": False}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    follow_on = {
+        "status": "partial",
+        "roots": [digest],
+        "nodes": [
+            {"sha256": digest, "depth": 0, "state": "root"},
+            {
+                "sha256": child_digest,
+                "depth": 1,
+                "size": 64,
+                "state": "timeout",
+                "family_hint_count": 0,
+                "family_hint_root_sha256": None,
+                "family_hint_lineage_depth": None,
+            },
+        ],
+        "edges": [
+            {
+                "parent_sha256": digest,
+                "child_sha256": child_digest,
+                "size": 64,
+                "depth": 1,
+                "path": "retained/payload.bin",
+                "role": "payload",
+                "kind": "binary",
+                "status": "child_incomplete",
+            }
+        ],
+        "omitted_metadata": [],
+        "omitted_metadata_commitments": [],
+        "errors": [],
+        "wall_clock_exhausted": False,
+    }
+    write_completion_contract_artifacts(repository, analysis, digest, follow_on=follow_on)
+
+    cases, blockers = lifecycle._case_blockers(context)
+
+    assert cases[0]["terminal_acquisition_blockers"] == [
+        "terminal_acquisition:child_analysis_incomplete",
+        "terminal_acquisition:child_timeout",
+    ]
+    assert blockers == [
+        "analysis_partial",
+        "c2_analysis_unresolved",
+        "terminal_acquisition:child_analysis_incomplete",
+        "terminal_acquisition:child_timeout",
+    ]
+    actions = lifecycle._remediation_actions(cases, blockers)
+    terminal_action = next(
+        action
+        for action in actions
+        if action["action_id"] == "terminal_payload_static_recovery"
+    )
+    assert terminal_action["case_sha256"] == digest
+
+
+def test_completion_contract_tampering_fails_closed(tmp_path: Path) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("tamper-gate-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    digest = "c" * 64
+    analysis = context.jobs_root / request.job.job_id / "analysis"
+    case = analysis / "cases" / digest
+    case.mkdir(parents=True)
+    (analysis / "summary.json").write_text(
+        json.dumps(
+            {
+                "cases": [{"sha256": digest, "case_state": "partial"}],
+                "derived_cases": [],
+                "errors": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (case / "report.json").write_text(
+        json.dumps({"case_state": {"status": "partial", "blockers": []}}),
+        encoding="utf-8",
+    )
+    (case / "orchestration.json").write_text(
+        json.dumps(
+            {
+                "blockers": [],
+                "family_resolution": {"status": "resolved"},
+                "quality_gates": {"network": {"required": False}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_completion_contract_artifacts(repository, analysis, digest)
+    c2_path = case / "c2-analysis.json"
+    c2_document = json.loads(c2_path.read_text(encoding="utf-8"))
+    c2_document["safety"]["sample_executed_locally"] = True
+    c2_path.write_text(json.dumps(c2_document), encoding="utf-8")
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._case_blockers(context)
+    assert caught.value.code == "c2_contract_invalid"
+
+
+def test_network_required_case_rejects_no_c2_outcome(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """network必須familyでC2機能なしという矛盾した完了判定を拒否する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("network-c2-gate-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    digest = "e" * 64
+    case = context.jobs_root / request.job.job_id / "analysis" / "cases" / digest
+    case.mkdir(parents=True)
+    (case / "c2-analysis.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(
+        lifecycle.c2_analysis_contract,
+        "validate_contract",
+        lambda *_args, **_kwargs: {
+            "daily_ready": True,
+            "daily_blocking_finding_count": 0,
+            "outcome": "no_c2_capability_verified",
+            "complete": True,
+        },
+    )
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._validated_case_c2(
+            context,
+            case,
+            digest,
+            {
+                "family_resolution": {"status": "resolved"},
+                "quality_gates": {"network": {"required": True}},
+            },
+        )
+    assert caught.value.code == "c2_contract_invalid"
+
+
+def test_terminal_acquisition_must_equal_recomputed_graph(tmp_path: Path) -> None:
+    repository, input_root, work_root = make_roots(tmp_path)
+    request = lifecycle.validate_request_object(request_value("terminal-tamper-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    digest = "d" * 64
+    analysis = context.jobs_root / request.job.job_id / "analysis"
+    case = analysis / "cases" / digest
+    case.mkdir(parents=True)
+    (analysis / "summary.json").write_text(
+        json.dumps(
+            {
+                "cases": [{"sha256": digest, "case_state": "partial"}],
+                "derived_cases": [],
+                "errors": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (case / "report.json").write_text(
+        json.dumps({"case_state": {"status": "partial", "blockers": []}}),
+        encoding="utf-8",
+    )
+    (case / "orchestration.json").write_text(
+        json.dumps(
+            {
+                "blockers": [],
+                "family_resolution": {"status": "resolved"},
+                "quality_gates": {"network": {"required": False}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_completion_contract_artifacts(repository, analysis, digest)
+    acquisition_path = analysis / "terminal-payload-acquisition.json"
+    acquisition = json.loads(acquisition_path.read_text(encoding="utf-8"))
+    acquisition["status"] = "verified"
+    acquisition_path.write_text(json.dumps(acquisition), encoding="utf-8")
+    summary_path = analysis / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["terminal_payload_acquisition"]["sha256"] = lifecycle._sha256_file(acquisition_path)
+    summary["terminal_payload_acquisition"]["status"] = "verified"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(lifecycle.LifecycleError) as caught:
+        lifecycle._case_blockers(context)
+    assert caught.value.code == "terminal_acquisition_invalid"
 
 
 def test_remediation_registry_is_exact_and_unknown_values_fail_closed() -> None:
