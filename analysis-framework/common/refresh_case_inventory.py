@@ -29,6 +29,26 @@ _RESULTS_TABLE_RE = re.compile(
 )
 _UNCLASSIFIED_COUNT_RE = re.compile(r"未分類[0-9,]+件は")
 _HASH_CHUNK_BYTES = 1024 * 1024
+_FORBIDDEN_PUBLICATION_FILENAMES = frozenset({"datastore-upload.json"})
+
+
+def _validate_publication_safety(repository: Path) -> dict[str, Any]:
+    """公開成果物へdatastore upload receiptが混入していないことを検証する。"""
+
+    root = repository.resolve()
+    results_root = root / "analysis-results"
+    violations = []
+    if results_root.is_dir():
+        violations = sorted(
+            candidate.relative_to(root).as_posix()
+            for candidate in results_root.rglob("*")
+            if candidate.is_file()
+            and candidate.name.casefold() in _FORBIDDEN_PUBLICATION_FILENAMES
+        )
+    return {
+        "forbidden_filenames": sorted(_FORBIDDEN_PUBLICATION_FILENAMES),
+        "violations": violations,
+    }
 
 
 def _atomic_text_write(path: Path, content: str) -> None:
@@ -227,6 +247,12 @@ def refresh(
         raise ValueError("--write and --check are mutually exclusive")
     root = repository.resolve()
     mode = "write" if write else "check" if check else "dry_run"
+    publication_safety = _validate_publication_safety(root)
+    if publication_safety["violations"]:
+        raise ValueError(
+            "公開成果物に禁止されたdatastore upload receiptがあります: "
+            + publication_safety["violations"][0]
+        )
 
     # レイアウト計画の構築は全成果物の走査を伴い、1パスの実行時間のうち最大の
     # 割合を占める。以前は metadata同期・catalog同期・ここ の3箇所がそれぞれ
@@ -313,6 +339,7 @@ def refresh(
         ),
         "check_failed": check_failed,
         "safety": {
+            "publication": publication_safety,
             "samples_opened": False,
             "samples_executed": False,
             "network_contacted": False,

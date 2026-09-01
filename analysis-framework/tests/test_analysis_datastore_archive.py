@@ -21,6 +21,29 @@ if str(COMMON) not in sys.path:
 import archive_analysis_datastore as datastore  # noqa: E402
 
 
+def test_report_path_allows_private_state_and_rejects_public_repo(
+    short_tmp: Path,
+) -> None:
+    repository = short_tmp / "repo"
+    repository.mkdir()
+    private_report = repository / ".work" / "reports" / "receipt.json"
+    external_report = short_tmp / "private-state" / "receipt.json"
+
+    assert datastore._validate_report_path(
+        private_report,
+        repository_root=repository,
+    ) == private_report.resolve()
+    assert datastore._validate_report_path(
+        external_report,
+        repository_root=repository,
+    ) == external_report.resolve()
+    with pytest.raises(datastore.DatastoreError, match="リポジトリ外または.*work配下"):
+        datastore._validate_report_path(
+            repository / "analysis-results" / "case" / "datastore-upload.json",
+            repository_root=repository,
+        )
+
+
 def test_aes256_archive_round_trip_has_no_absolute_paths(short_tmp: Path) -> None:
     source = short_tmp / "sample-target"
     source.mkdir()

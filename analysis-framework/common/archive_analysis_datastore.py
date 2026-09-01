@@ -626,6 +626,30 @@ def _write_report(path: Path, report: dict[str, Any]) -> None:
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _validate_report_path(
+    path: Path,
+    *,
+    repository_root: Path | None = None,
+) -> Path:
+    """upload検証reportが公開リポジトリへ保存されないことを確認する。"""
+
+    report = path.expanduser().resolve(strict=False)
+    repository = (
+        repository_root.resolve()
+        if repository_root is not None
+        else Path(__file__).resolve().parents[2]
+    )
+    try:
+        relative = report.relative_to(repository)
+    except ValueError:
+        return report
+    if relative.parts and relative.parts[0].casefold() == ".work":
+        return report
+    raise DatastoreError(
+        "upload検証reportはリポジトリ外または無視対象の.work配下へ保存してください"
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="解析対象別のAES-256 ZIPを作成し、AWS CLIでS3へ保管します。",
@@ -638,7 +662,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prefix", default=DEFAULT_PREFIX, help="S3 object key prefix")
     parser.add_argument("--region", default=DEFAULT_REGION, help="S3 bucketのAWS region")
     parser.add_argument("--aws-cli", type=Path, help="aws.exeの明示path")
-    parser.add_argument("--report", type=Path, help="機密情報を含まないupload reportの保存先")
+    parser.add_argument(
+        "--report",
+        type=Path,
+        help="公開しないupload検証reportの保存先（リポジトリ外または.work配下）",
+    )
     parser.add_argument("--keep-local-archive", action="store_true", help="成功後も暗号化ZIPをstagingに残す")
     return parser
 
@@ -647,6 +675,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     target = validate_target(args.target)
     prefix = validate_prefix(args.prefix)
+    report_path = _validate_report_path(args.report) if args.report else None
     created_at = datetime.now(timezone.utc)
     files = collect_source_files(args.source)
     manifest = build_manifest(target=target, created_at=created_at, files=files)
@@ -688,8 +717,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "local_source_deleted": False,
             "local_archive_retained": bool(args.keep_local_archive),
         }
-        if args.report:
-            _write_report(args.report, report)
+        if report_path:
+            _write_report(report_path, report)
         print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
         success = True
         return 0

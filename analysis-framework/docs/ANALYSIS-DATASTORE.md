@@ -36,6 +36,8 @@ py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
   --report .\.work\datastore-reports\guloader-xloader-8d96249aa92bee27.json
 ```
 
+`--report`が出力するupload検証receiptには、保管先objectや実行基盤の照合情報が含まれます。これはローカル検証専用とし、リポジトリ外またはGit管理外の`.work`配下へ保存してください。`analysis-results`や`ui`へ配置せず、`datastore-upload.json`を公開成果物としてcommitしたり、READMEからリンクしたりしません。CLIはリポジトリ内の`.work`以外を保存先に指定した場合、upload開始前に処理を拒否します。
+
 処理は次の順序でfail-closedに実行します。
 
 1. source配下のsymlink、junction、reparse point、hardlink、特殊file、資格情報名を拒否する。
