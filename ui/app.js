@@ -1045,28 +1045,68 @@
       '<div><b>新IP</b>' + ipCell(to.map(function (item) { return item.ip; }), to) + "</div>" +
       "</div>";
   }
+  // 連続する同一の解決結果を1件へ畳む。毎日observeしているので、変化のない日が
+  // そのまま並ぶと1ホストで20件以上の同じ行になり、実際の遷移が埋もれる。
+  // 畳んだ区間は「開始日 → 最終日（N回）」で表し、遷移した時点だけが行になる。
+  function collapseRuns(points) {
+    var runs = [];
+    points.forEach(function (p, i) {
+      var key = (p.ips || []).join();
+      var last = runs[runs.length - 1];
+      if (last && last.key === key) {
+        last.points.push(p);
+        return;
+      }
+      runs.push({ key: key, points: [p], index: i });
+    });
+    return runs;
+  }
+
   function timelineHtml(t) {
-    var cells = t.points.map(function (p, i) {
+    var cells = collapseRuns(t.points).map(function (run) {
+      // 区間の先頭が「その状態へ遷移した時点」で、変化のフラグを持つ。
+      var p = run.points[0];
+      var i = run.index;
       var fallbackMoved = i > 0 && t.points[i - 1].ips.join() !== p.ips.join();
       var rawMoved = typeof p.raw_ip_changed === "boolean" ? p.raw_ip_changed : fallbackMoved;
-      var infrastructureMoved = !!p.infrastructure_ip_change;
-      var cdnIgnored = p.change_classification === "shared_cdn_rotation_ignored";
+      // 念のため区間内のどこかに変化印があれば拾う（同一IPでも分類が付く場合に備える）
+      var infrastructureMoved = run.points.some(function (q) { return !!q.infrastructure_ip_change; });
+      var cdnPoint = run.points.filter(function (q) {
+        return q.change_classification === "shared_cdn_rotation_ignored";
+      })[0];
+      var cdnIgnored = !!cdnPoint;
       var flag = infrastructureMoved ? "インフラ変化" :
         (cdnIgnored ? "CDNローテーション（除外）" : (rawMoved ? "IP変化" : ""));
+      var last = run.points[run.points.length - 1];
+      var span = run.points.length > 1
+        ? esc(p.date) + " → " + esc(last.date) +
+          '<span class="tl-span">同じ結果が ' + run.points.length + " 回</span>"
+        : esc(p.date);
       return '<li class="' + (infrastructureMoved ? "moved" : (cdnIgnored ? "cdn-rotation" : "")) + '">' +
-        '<span class="tl-date mono">' + esc(p.date) + "</span>" +
+        '<span class="tl-date mono">' + span + "</span>" +
         '<div class="tl-ips">' + ipCell(p.ips, p.ip_details) + transitionHtml(p.transition) + "</div>" +
         (flag ? '<span class="tl-flag">' + esc(flag) + "</span>" : "") +
-        (cdnIgnored && p.shared_cdn_provider ?
-          '<span class="muted small">' + esc(p.shared_cdn_provider) + "</span>" : "") + "</li>";
+        (cdnIgnored && cdnPoint.shared_cdn_provider ?
+          '<span class="muted small">' + esc(cdnPoint.shared_cdn_provider) + "</span>" : "") + "</li>";
     }).join("");
-    var changeLabel = t.changes ?
-      '<span class="tl-chg">' +
-        (t.source === "c2-monitor" ? "インフラ変化 " : "IP変化 ") +
-        t.changes + " 回</span>" :
-      (t.ignored_cdn_rotations ?
-        '<span class="muted small">CDNローテーション ' + t.ignored_cdn_rotations + " 回（除外）</span>" :
-        '<span class="muted small">変化なし</span>');
+    // 生のIP変化とCDN除外後のインフラ変化は別物。infraが0でも生の変化がある
+    // ホストは一覧に出るので、「変化なし」と出すと行のフラグと矛盾する。
+    var infraChanges = t.changes || 0;
+    var rawChanges = t.raw_changes || 0;
+    var changeLabel;
+    if (infraChanges) {
+      changeLabel = '<span class="tl-chg">' +
+        (t.source === "c2-monitor" ? "インフラ変化 " : "IP変化 ") + infraChanges + " 回</span>";
+    } else if (rawChanges) {
+      changeLabel = '<span class="tl-chg">IP変化 ' + rawChanges +
+        ' 回</span><span class="muted small">インフラ変化なし</span>';
+    } else {
+      changeLabel = '<span class="muted small">変化なし</span>';
+    }
+    if (t.ignored_cdn_rotations) {
+      changeLabel += '<span class="muted small">CDNローテーション ' +
+        t.ignored_cdn_rotations + " 回（除外）</span>";
+    }
     return '<div class="tl"><div class="tl-host">' +
       portalLink(t.host, esc(t.host), "mono", "ポータルのグラフ調査で開く") +
       '<span class="tl-src">' + esc(t.source) + "</span>" + changeLabel +
@@ -1074,9 +1114,9 @@
         esc(fileUrl(t.path, true)) + "'>成果物</a>" : "") +
       "</div><ul class='tl-list'>" + cells + "</ul></div>";
   }
-  // 変化のあった系列だけ時系列を展開し、残りは絞り込める一覧に畳む。
-  // 観測が積み上がるまでは大半が「変化なし」なので、既定で全部展開すると
-  // ページが単調な繰り返しで埋まってしまう。
+  // 変化のあったホストだけを出す。毎日observeしているので、変化のないホストや
+  // 変化のない日をそのまま並べると、実際の遷移が単調な繰り返しの中に埋もれる。
+  // 変化のないホストは件数だけ要約に残し、行としては出さない。
   function ipHistoryHtml() {
     var rows = (C2.ip_history || []).filter(function (t) { return t.points && t.points.length; });
     var changed = rows.filter(function (t) { return (t.raw_changes || t.changes || 0) > 0; });
@@ -1092,36 +1132,33 @@
       '<p class="muted small">C2監視ランと ClickFix 基盤調査の日付別caseから、同一ホストの解決IPを時系列に並べています。' +
       "共有CDN内のedge IP入替は生の履歴へ残しますが、C2インフラ変化件数から除外します。</p>";
 
-    html += '<div class="ip-sum">対象 <b>' + rows.length + "</b> ホスト ／ 生IP変化 <b>" +
-      changed.length + "</b> ホスト ／ CDN除外後のインフラ変化 <b>" + infrastructureChanged +
-      "</b> ホスト ／ CDNローテーション除外 <b>" + ignoredCdnRotations +
-      "</b> 回 ／ 観測点の総数 " +
-      rows.reduce(function (n, t) { return n + t.points.length; }, 0) + "</div>";
+    var observedPoints = rows.reduce(function (n, t) { return n + t.points.length; }, 0);
+    var shownRows = changed.reduce(function (n, t) {
+      return n + collapseRuns(t.points).length;
+    }, 0);
+    html += '<div class="ip-sum">変化のあった <b>' + changed.length + "</b> ホストを表示 ／ " +
+      "変化なしのため非表示 <b>" + stable.length + "</b> ホスト ／ " +
+      "CDN除外後のインフラ変化 <b>" + infrastructureChanged + "</b> ホスト ／ " +
+      "CDNローテーション除外 <b>" + ignoredCdnRotations + "</b> 回" +
+      '<span class="fa-detail">観測点 ' + observedPoints + " 件のうち、連続する同じ結果を畳んで " +
+      shownRows + " 行にしています（対象ホスト " + rows.length + "）。</span></div>";
 
-    if (changed.length) {
-      html += changed.map(timelineHtml).join("");
-    } else {
+    if (!changed.length) {
       html += '<div class="empty">解決IPが入れ替わったホストはまだありません。' +
-        "同じホストを別日に再観測した時点で、ここに遷移が並びます。</div>";
+        "同じホストを別日に再観測した時点で、ここに遷移が並びます。</div></div>";
+      return html;
     }
 
-    html += '<div class="ip-stable"><div class="ip-stable-head">' +
-      "<h3>観測済みホスト（" + stable.length + "）</h3>" +
+    // 変化のないホストは一覧にも出さない。件数だけ上の要約に残す。
+    html += '<div class="ip-stable-head">' +
       '<input id="ip-hist-q" type="search" autocomplete="off" placeholder="ホスト名で絞り込み">' +
-      '<span id="ip-hist-count" class="muted small"></span></div>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      "<th>ホスト</th><th>取得元</th><th class='num'>観測回数</th><th>最新の解決IP</th><th>最新観測日</th>" +
-      "</tr></thead><tbody id='ip-hist-rows'>" +
-      stable.map(function (t) {
-        var last = t.points[t.points.length - 1];
-        return "<tr class='iphrow' data-host='" + esc(t.host.toLowerCase()) + "'>" +
-          "<td class='mono'>" + portalLink(t.host, esc(t.host), "mono") + "</td>" +
-          "<td class='small'>" + esc(t.source) + "</td>" +
-          "<td class='num mono'>" + t.points.length + "</td>" +
-          "<td>" + ipCell(last.ips, last.ip_details) + "</td>" +
-          "<td class='nowrap mono small'>" + esc(last.date) + "</td></tr>";
+      '<span id="ip-hist-count" class="muted small"></span></div>';
+    html += '<div id="ip-hist-rows">' +
+      changed.map(function (t) {
+        return '<div class="iphrow" data-host="' + esc(t.host.toLowerCase()) + '">' +
+          timelineHtml(t) + "</div>";
       }).join("") +
-      "</tbody></table></div></div></div>";
+      "</div></div>";
     return html;
   }
 

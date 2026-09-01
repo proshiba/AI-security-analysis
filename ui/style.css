@@ -435,9 +435,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .notes b { color: var(--text); }
 .ip-sum { font-size: 13px; color: var(--text-dim); margin: 10px 0 12px; }
 .ip-sum b { color: var(--text); font-family: var(--mono); }
-.ip-stable { margin-top: 16px; }
-.ip-stable-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-.ip-stable-head h3 { font-size: 13px; margin: 0; color: var(--text-dim); font-weight: 600; }
+/* 畳んだ区間の「同じ結果が N 回」表示 */
+.tl-span { display: block; color: var(--text-dim); font-size: 10px; }
+/* 絞り込みで隠す行。UAの [hidden] を確実に効かせる */
+.iphrow[hidden] { display: none !important; }
+.ip-stable-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 4px 0 8px;
+}
 .ip-stable-head input {
   flex: 0 1 280px;
   padding: 6px 10px;
