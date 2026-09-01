@@ -20,14 +20,16 @@ from handler_catalog import (
     HandlerSpec,
     discover_handlers,
     preflight_handler_for_assessment,
+    preflight_handler_runtime_import,
 )
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
 DEFAULT_REQUIREMENTS = FRAMEWORK_ROOT / "registry" / "family_analysis_requirements.json"
 MAX_COVERAGE_PREFLIGHTS = 2_048
 PREFLIGHT_PROBE_INPUT_SIZE = 1
+RUNTIME_IMPORT_TIMEOUT_SECONDS = 10.0
 FAMILY_ID = re.compile(r"^[a-z0-9_-]+$")
 QUALITY_POLICY_CATEGORIES = frozenset(
     {
@@ -46,6 +48,7 @@ QUALITY_POLICY_CATEGORIES = frozenset(
 )
 
 PreflightCallable = Callable[..., dict[str, Any]]
+RuntimeImportCallable = Callable[..., dict[str, Any]]
 
 
 def _is_sha256(value: object) -> bool:
@@ -164,8 +167,9 @@ def _preflight_automatic_handler(
     spec: HandlerSpec,
     *,
     preflight: PreflightCallable,
-) -> tuple[dict[str, Any], int]:
-    """宣言formatごとの安全preflightを行い、handler単位へ集約する。"""
+    runtime_import: RuntimeImportCallable,
+) -> tuple[dict[str, Any], int, int]:
+    """format別AST監査と検体なしruntime importを別々に集約する。"""
 
     declared_formats = sorted(set(spec.input_formats))
     if not declared_formats:
@@ -173,13 +177,23 @@ def _preflight_automatic_handler(
             {
                 "handler_id": spec.id,
                 "declared_formats": [],
+                "ast_eligible_formats": [],
+                "ast_preflight_eligible": False,
                 "eligible_formats": [],
                 "blocked_formats": [],
                 "eligible": False,
                 "blockers": ["handler_has_no_declared_input_format"],
+                "runtime_import": {
+                    "eligible": False,
+                    "attempted": False,
+                    "handler_imported": False,
+                    "invocation": None,
+                    "blockers": ["ast_preflight_not_eligible"],
+                },
                 "dependency_fingerprint_sha256": _dependency_fingerprint([]),
                 "dependency_file_count": 0,
             },
+            0,
             0,
         )
 
@@ -270,10 +284,119 @@ def _preflight_automatic_handler(
     )
     if len(fingerprints) > 1:
         aggregate_blockers.append("dependency_fingerprint_changed_during_audit")
-    eligible_formats = [
+    ast_eligible_formats = [
         item["format"] for item in format_results if item["eligible"]
     ]
-    handler_eligible = bool(eligible_formats) and len(fingerprints) == 1
+    ast_handler_eligible = bool(ast_eligible_formats) and len(fingerprints) == 1
+    runtime_result: dict[str, Any] = {
+        "handler_id": spec.id,
+        "eligible": False,
+        "attempted": False,
+        "handler_imported": False,
+        "invocation": None,
+        "isolated_process": False,
+        "sanitized_environment": False,
+        "sample_execution_allowed": False,
+        "network_allowed": False,
+        "filesystem_write_allowed": False,
+        "blockers": ["ast_preflight_not_eligible"],
+    }
+    runtime_import_count = 0
+    if ast_handler_eligible:
+        selected_preflight = next(
+            raw
+            for raw, normalized in zip(raw_preflights, format_results, strict=True)
+            if normalized["eligible"]
+        )
+        runtime_import_count = 1
+        try:
+            supplied_runtime_result = runtime_import(
+                spec,
+                static_preflight=selected_preflight,
+                timeout_seconds=RUNTIME_IMPORT_TIMEOUT_SECONDS,
+            )
+        except Exception as exc:  # noqa: BLE001 - runtime import失敗を監査全体から分離する
+            supplied_runtime_result = {
+                "eligible": False,
+                "blockers": [f"runtime_import_exception:{type(exc).__name__}"],
+                "attempted": True,
+                "handler_imported": False,
+                "invocation": None,
+                "isolated_process": True,
+                "sanitized_environment": True,
+                "sample_execution_allowed": False,
+                "network_allowed": False,
+                "filesystem_write_allowed": False,
+            }
+        if not isinstance(supplied_runtime_result, dict):
+            supplied_runtime_result = {
+                "eligible": False,
+                "blockers": ["runtime_import_result_not_object"],
+            }
+        raw_runtime_blockers = supplied_runtime_result.get("blockers")
+        runtime_blockers = sorted(
+            {
+                value
+                for value in (
+                    raw_runtime_blockers
+                    if isinstance(raw_runtime_blockers, list)
+                    else []
+                )
+                if isinstance(value, str) and value
+            }
+        )
+        if supplied_runtime_result.get("handler_id") != spec.id:
+            runtime_blockers.append("runtime_import_handler_id_mismatch")
+        for key in (
+            "sample_execution_allowed",
+            "network_allowed",
+            "filesystem_write_allowed",
+        ):
+            if supplied_runtime_result.get(key) is not False:
+                runtime_blockers.append(f"runtime_import_safety_contract_invalid:{key}")
+        invocation = supplied_runtime_result.get("invocation")
+        if supplied_runtime_result.get("eligible") is True:
+            for key in ("attempted", "isolated_process", "sanitized_environment"):
+                if supplied_runtime_result.get(key) is not True:
+                    runtime_blockers.append(f"runtime_import_contract_invalid:{key}")
+            if supplied_runtime_result.get("handler_imported") is not True:
+                runtime_blockers.append("runtime_import_handler_not_imported")
+            if not isinstance(invocation, str) or not invocation:
+                runtime_blockers.append("runtime_import_invocation_missing_or_invalid")
+        elif not runtime_blockers:
+            runtime_blockers.append("runtime_import_ineligible_without_blocker")
+        runtime_eligible = (
+            supplied_runtime_result.get("eligible") is True
+            and not runtime_blockers
+        )
+        runtime_result = {
+            "handler_id": spec.id,
+            "eligible": runtime_eligible,
+            "attempted": supplied_runtime_result.get("attempted") is True,
+            "handler_imported": supplied_runtime_result.get("handler_imported") is True,
+            "invocation": invocation if runtime_eligible else None,
+            "isolated_process": supplied_runtime_result.get("isolated_process") is True,
+            "sanitized_environment": supplied_runtime_result.get("sanitized_environment") is True,
+            "sample_execution_allowed": (
+                supplied_runtime_result.get("sample_execution_allowed")
+                if type(supplied_runtime_result.get("sample_execution_allowed"))
+                is bool
+                else None
+            ),
+            "network_allowed": (
+                supplied_runtime_result.get("network_allowed")
+                if type(supplied_runtime_result.get("network_allowed")) is bool
+                else None
+            ),
+            "filesystem_write_allowed": (
+                supplied_runtime_result.get("filesystem_write_allowed")
+                if type(supplied_runtime_result.get("filesystem_write_allowed"))
+                is bool
+                else None
+            ),
+            "blockers": sorted(set(runtime_blockers)) if not runtime_eligible else [],
+        }
+    handler_eligible = ast_handler_eligible and runtime_result["eligible"]
     dependency_paths = {
         item.get("path")
         for result in raw_preflights
@@ -288,16 +411,32 @@ def _preflight_automatic_handler(
         {
             "handler_id": spec.id,
             "declared_formats": declared_formats,
-            "eligible_formats": eligible_formats if handler_eligible else [],
+            "ast_eligible_formats": (
+                ast_eligible_formats if ast_handler_eligible else []
+            ),
+            "ast_preflight_eligible": ast_handler_eligible,
+            "eligible_formats": ast_eligible_formats if handler_eligible else [],
             "blocked_formats": [
                 item for item in format_results if not item["eligible"]
             ],
             "eligible": handler_eligible,
-            "blockers": sorted(set(aggregate_blockers)) if not handler_eligible else [],
+            "blockers": (
+                []
+                if handler_eligible
+                else sorted(
+                    set(
+                        aggregate_blockers
+                        if not ast_handler_eligible
+                        else runtime_result["blockers"]
+                    )
+                )
+            ),
+            "runtime_import": runtime_result,
             "dependency_fingerprint_sha256": fingerprint,
             "dependency_file_count": len(dependency_paths),
         },
         len(format_results),
+        runtime_import_count,
     )
 
 
@@ -307,6 +446,7 @@ def build_coverage(
     specs: Sequence[HandlerSpec],
     quality_policies: Mapping[str, Mapping[str, Any]] | None = None,
     preflight: PreflightCallable = preflight_handler_for_assessment,
+    runtime_import: RuntimeImportCallable = preflight_handler_runtime_import,
     maximum_preflights: int = MAX_COVERAGE_PREFLIGHTS,
 ) -> dict[str, Any]:
     """detectorとhandlerの組合せから自動化能力を決定的に集計する。"""
@@ -333,6 +473,9 @@ def build_coverage(
         for spec in ordered_specs
         if spec.automatic
     )
+    planned_runtime_imports = sum(
+        bool(set(spec.input_formats)) for spec in ordered_specs if spec.automatic
+    )
     if planned_preflights > maximum_preflights:
         raise ValueError(
             "automatic handler preflight件数上限を超えています: "
@@ -342,12 +485,18 @@ def build_coverage(
     by_family: dict[str, list[HandlerSpec]] = defaultdict(list)
     handler_preflights: dict[str, dict[str, Any]] = {}
     executed_preflights = 0
+    executed_runtime_imports = 0
     for spec in ordered_specs:
         by_family[spec.family].append(spec)
         if spec.automatic:
-            assessment, count = _preflight_automatic_handler(spec, preflight=preflight)
+            assessment, count, runtime_count = _preflight_automatic_handler(
+                spec,
+                preflight=preflight,
+                runtime_import=runtime_import,
+            )
             handler_preflights[spec.id] = assessment
             executed_preflights += count
+            executed_runtime_imports += runtime_count
     rows = []
     for family in sorted(
         registered_families | set(by_family) | set(normalized_policies)
@@ -388,10 +537,10 @@ def build_coverage(
             status = "automatic_handler_blocked"
             if detector:
                 blocker = "automatic_handler_preflight_blocked"
-                next_action = "安全preflightの阻害理由を解消し、静的handlerを再監査する。"
+                next_action = "AST監査または隔離runtime importの阻害理由を解消する。"
             else:
                 blocker = "detector_and_automatic_handler_preflight_blocked"
-                next_action = "detectorを追加し、安全preflightの阻害理由を解消する。"
+                next_action = "detectorを追加し、AST監査または隔離runtime importの阻害理由を解消する。"
         elif detector and family_specs:
             status = "manual_handler_only"
             blocker = "automatic_handler_missing"
@@ -408,7 +557,7 @@ def build_coverage(
             status = "unsupported"
             blocker = "detector_and_handler_missing"
             next_action = "detectorと静的handlerを追加する。"
-        structurally_routable = bool(
+        runtime_import_verified_structure = bool(
             detector and safe_automatic and quality_policy_declared
         )
         completion_verification_blockers = (
@@ -416,7 +565,7 @@ def build_coverage(
                 "representative_fixture_completion_not_verified",
                 "required_output_contract_not_exercised",
             ]
-            if structurally_routable
+            if runtime_import_verified_structure
             else [blocker or "structural_routing_requirements_not_met"]
         )
         rows.append(
@@ -428,8 +577,9 @@ def build_coverage(
                 "candidate_verification_possible": bool(safe_automatic),
                 "quality_policy_declared": quality_policy_declared,
                 "quality_policy": quality_policy,
-                "structurally_routable": structurally_routable,
-                "automated_analysis_completion_possible": structurally_routable,
+                "runtime_import_verified_structure": runtime_import_verified_structure,
+                "structurally_routable": runtime_import_verified_structure,
+                "automated_analysis_completion_possible": runtime_import_verified_structure,
                 "automated_analysis_completion_verified": False,
                 "completion_verification": {
                     "status": "not_verified",
@@ -499,6 +649,11 @@ def build_coverage(
     blocked_handler_count = sum(
         len(item["blocked_automatic_handlers"]) for item in rows
     )
+    ast_eligible_handler_count = sum(
+        preflight["ast_preflight_eligible"]
+        for item in rows
+        for preflight in item["automatic_handler_preflights"]
+    )
     quality_gated_script_only = sum(
         item["script_only_handler_available"] and item["quality_policy_declared"]
         for item in rows
@@ -513,6 +668,8 @@ def build_coverage(
             "script_only_handler_available": safe_script_only,
             "declared_automatic_handlers": declared_handler_count,
             "safe_automatic_handlers": safe_handler_count,
+            "ast_preflight_eligible_handlers": ast_eligible_handler_count,
+            "runtime_import_verified_handlers": safe_handler_count,
             "blocked_automatic_handlers": blocked_handler_count,
             "quality_policy_declared": sum(
                 item["quality_policy_declared"] for item in rows
@@ -526,6 +683,9 @@ def build_coverage(
             ),
             "structurally_routable": sum(
                 item["structurally_routable"] for item in rows
+            ),
+            "runtime_import_verified_structure": sum(
+                item["runtime_import_verified_structure"] for item in rows
             ),
             "automated_analysis_completion_verified": sum(
                 item["automated_analysis_completion_verified"] for item in rows
@@ -543,27 +703,38 @@ def build_coverage(
             ),
             "planned_preflight_count": planned_preflights,
             "executed_preflight_count": executed_preflights,
+            "planned_runtime_import_count": planned_runtime_imports,
+            "executed_runtime_import_count": executed_runtime_imports,
             "preflight_limit": maximum_preflights,
             "by_status": status_counts,
         },
         "families": rows,
         "metric_semantics": {
+            "runtime_import_verified_structure": (
+                "detector、AST監査済みかつ隔離runtime import確認済みhandler、family別品質policyが揃う構造。handlerへ検体を渡した実績や必須出力の完了実績は含まない"
+            ),
             "structurally_routable": (
-                "detector、安全preflight済みhandler、family別品質policyが揃う構造上の経路"
+                "runtime_import_verified_structureと同値の構造指標。実検体の実行可能性や完了実績を表さない"
             ),
             "automated_analysis_completion_possible": (
-                "後方互換用のdeprecated alias。structurally_routableと同値で、実検体の完了実績を表さない"
+                "後方互換用のdeprecated alias。runtime_import_verified_structureと同値の構造指標であり、名前に反して実検体の完了可能性や完了実績を表さない"
             ),
             "automated_analysis_completion_verified": (
                 "代表fixtureで必須出力と全品質gateを検証したfamily数"
             ),
         },
         "preflight_policy": {
-            "scope": "each_declared_format",
-            "probe_input_size": PREFLIGHT_PROBE_INPUT_SIZE,
+            "ast_scope": "each_declared_format",
+            "runtime_import_scope": "each_ast_eligible_handler",
+            "declared_input_size_metadata": PREFLIGHT_PROBE_INPUT_SIZE,
+            "runtime_import_sample_input_size": 0,
+            "runtime_import_timeout_seconds": RUNTIME_IMPORT_TIMEOUT_SECONDS,
             "maximum_input_size": DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
             "maximum_preflight_count": maximum_preflights,
-            "handler_imported": False,
+            "handler_imported_during_ast_preflight": False,
+            "handler_imported_during_runtime_preflight": True,
+            "runtime_import_isolated_process": True,
+            "runtime_import_sanitized_environment": True,
             "sample_execution_allowed": False,
             "network_allowed": False,
             "filesystem_write_allowed": False,
@@ -581,21 +752,22 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# 既知マルウェア自動解析カバレッジ",
         "",
-        "本表はdetector、静的handler、品質policyの実装構造と、無害なprobe入力によるformat別preflightから自動生成しています。検体実行、外部通信、生成AIは使用しません。",
+        "本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。",
         "この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。",
         "",
         f"- 対象family: {counts['families']}件",
-        f"- detector＋安全handler＋品質policyで構造上ルーティング可能: {counts['structurally_routable']}件（{counts['fully_routable_percent']}%）",
+        f"- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: {counts['runtime_import_verified_structure']}件（{counts['fully_routable_percent']}%）",
         f"- 代表fixtureで自動解析完了を実証済み: {counts['automated_analysis_completion_verified']}件",
         f"- detector＋安全handlerでfamily自動選択可能: {counts['automatic_family_selection_possible']}件",
         f"- automatic宣言済みfamily: {counts['declared_script_only_handler_available']}件（{counts['declared_script_only_handler_percent']}%）",
-        f"- 安全preflight済みscript-only handler利用可能: {counts['script_only_handler_available']}件（{counts['script_only_handler_percent']}%）",
+        f"- AST監査＋runtime import確認済みscript-only handler: {counts['script_only_handler_available']}件（{counts['script_only_handler_percent']}%）",
         f"- 品質policy宣言済み: {counts['quality_policy_declared']}件 / 安全handler＋品質policy: {counts['quality_gated_script_only_handler_available']}件",
         f"- 安全handlerはあるが品質policy未宣言: {counts['quality_policy_missing']}件",
-        f"- handler実装: 宣言{counts['declared_automatic_handlers']}件 / 安全{counts['safe_automatic_handlers']}件 / 停止{counts['blocked_automatic_handlers']}件",
-        f"- automatic handlerが安全preflightで停止: {counts['automatic_handler_blocked']}件",
+        f"- handler実装: 宣言{counts['declared_automatic_handlers']}件 / AST監査通過{counts['ast_preflight_eligible_handlers']}件 / runtime import確認済み{counts['runtime_import_verified_handlers']}件 / 停止{counts['blocked_automatic_handlers']}件",
+        f"- automatic handlerがAST監査またはruntime importで停止: {counts['automatic_handler_blocked']}件",
         f"- handlerによる候補検証のみ: {counts['candidate_verification_only']}件",
         f"- 実行したformat別preflight: {counts['executed_preflight_count']}件（上限{counts['preflight_limit']}件）",
+        f"- 実行した検体なしruntime import確認: {counts['executed_runtime_import_count']}件（計画{counts['planned_runtime_import_count']}件）",
         "",
         "| family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |",
         "|---|---|---:|---:|---:|---:|---|",
@@ -617,16 +789,16 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "## 判定の意味",
             "",
-            "- `fully_routable`: detectorで候補を選び、安全な静的handlerを実行でき、family別品質policyも宣言済みです。構造上の到達可能性であり、自動完了の実測値ではありません。",
+            "- `fully_routable`: detector、AST監査と検体なしruntime importを通過した静的handler、family別品質policyが揃っています。構造指標であり、handlerへ検体を渡した実績や自動完了の実測値ではありません。",
             "- `candidate_verification_only`: 外部metadataなどから候補化できますが、family確定には強いhandler証拠が必要です。",
             "- `quality_policy_missing`: 安全handlerはありますが、解析完結に必要な成果物条件が未宣言です。",
-            "- `automatic_handler_blocked`: automatic宣言はありますが、安全preflightを通過するformatがありません。",
+            "- `automatic_handler_blocked`: automatic宣言はありますが、AST監査を通過するformatがないか、隔離runtime importに失敗しています。",
             "- `classification_only`: family判定後のconfig・C2・ロジック抽出が未自動化です。",
             "- `manual_handler_only`: handlerは存在しますが共通の安全契約へ未適合です。",
             "",
             "blocked handlerのID、format別阻害理由、sourceとlocal dependencyから算出したSHA-256指紋はJSON正本に記録します。",
-            "`automated_analysis_completion_possible`は後方互換用のdeprecated aliasで、`structurally_routable`と同値です。名前に反して実検体の完了実績を表しません。",
-            "この表は構造・preflight上で経路と品質gateを構成できるかを示し、実検体での完了を保証しません。",
+            "`automated_analysis_completion_possible`は後方互換用のdeprecated aliasで、`runtime_import_verified_structure`と同値の構造指標です。名前に反して実検体の完了可能性や完了実績を表しません。",
+            "この表はAST監査と検体なしruntime import上で経路と品質gateを構成できるかを示し、実検体での実行・完了を保証しません。",
             "安全handlerがあることだけでは解析完結とは判定せず、caseごとにfamily別品質policyと全品質gateの充足を検証します。",
             "",
         ]

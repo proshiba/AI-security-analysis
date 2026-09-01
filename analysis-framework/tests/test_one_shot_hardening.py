@@ -7,13 +7,12 @@ import hashlib
 import io
 import json
 import os
-from pathlib import Path
 import sys
 import zipfile
+from pathlib import Path
 
-import pyzipper
 import pytest
-
+import pyzipper
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / "common"
@@ -32,7 +31,6 @@ from analysis_contract import (  # noqa: E402
 )
 from extractors import profiled_family  # noqa: E402
 from handler_catalog import HandlerSpec, discover_handlers, sanitize_public_value  # noqa: E402
-
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
 
@@ -1206,7 +1204,17 @@ def test_unexpected_case_exception_is_isolated_from_later_samples(
     )
     assert summary["counts"]["errors"] == 1
     assert summary["counts"]["analyzed"] == 1
-    assert summary["errors"][0]["source_name"] == broken.name
+    assert summary["errors"][0] == {
+        "input_index": 0,
+        "sha256": hashlib.sha256(broken.read_bytes()).hexdigest(),
+        "stage": "root_static_analysis",
+        "error_code": "root_static_analysis_failed",
+        "message": "root静的解析を完了できませんでした (TypeError)",
+    }
+    assert "合成した予期しないcase例外" not in json.dumps(
+        summary["errors"],
+        ensure_ascii=False,
+    )
     assert summary["cases"][0]["source_name"] == healthy.name
 
 
@@ -1673,6 +1681,9 @@ def test_resume_fails_closed_for_symlinked_manifest_artifact(tmp_path: Path) -> 
     assert rerun["counts"]["resumed"] == 0
     assert rerun["counts"]["analyzed"] == 0
     assert rerun["counts"]["errors"] == 1
+    assert rerun["errors"][0]["stage"] == "resume_validation"
+    assert rerun["errors"][0]["error_code"] == "resume_validation_failed"
+    assert rerun["errors"][0]["sha256"] == hashlib.sha256(sample.read_bytes()).hexdigest()
     assert external.read_bytes() == original
     assert target.is_symlink()
 

@@ -92,6 +92,7 @@ ALLOWED_METHODS = {
     "darkcomet_server_first_idtype",
     "redline_checkconnect_soap11",
     "xloader_v8_get_registration",
+    "formbook_reviewed_route_head",
 }
 ACTIVE_PROFILE_METHODS = {
     "winos_heartbeat",
@@ -133,6 +134,9 @@ METHOD_CEILINGS = {
     "darkcomet_server_first_idtype": 0.98,
     "redline_checkconnect_soap11": 0.98,
     "xloader_v8_get_registration": 0.98,
+    # FormBookの既知routeへHEADだけを送り、対照routeとの差分を観測する。
+    # family固有のcommand／task取得は行わず、NSE側でもC2確定を禁止する。
+    "formbook_reviewed_route_head": 0.60,
 }
 METHOD_LABELS = {
     "dns_resolve": "DNS解決のみ（接続先port不明、C2 serviceへの接続なし）",
@@ -155,6 +159,7 @@ METHOD_LABELS = {
     "darkcomet_server_first_idtype": "完全一致・DarkComet RC4 server-first IDTYPE復号（application data送信なし）",
     "redline_checkconnect_soap11": "完全一致・RedLine SOAP 1.1 CheckConnect 1要求＋4 KiB限定応答",
     "xloader_v8_get_registration": "完全一致・XLoader v8合成PKT2登録GET 1要求＋暗号応答検証（command非公開・非実行）",
+    "formbook_reviewed_route_head": "review済みFormBook routeへのHEAD 1要求＋対照route比較（C2確定なし）",
 }
 SAFE_HTTP_HEADERS = {"server", "content-type", "content-length", "date", "connection"}
 MAX_MONITORING_TARGETS = 512

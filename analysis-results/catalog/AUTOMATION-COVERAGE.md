@@ -1,20 +1,21 @@
 # 既知マルウェア自動解析カバレッジ
 
-本表はdetector、静的handler、品質policyの実装構造と、無害なprobe入力によるformat別preflightから自動生成しています。検体実行、外部通信、生成AIは使用しません。
+本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
-- 対象family: 86件
-- detector＋安全handler＋品質policyで構造上ルーティング可能: 76件（88.37%）
+- 対象family: 87件
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 77件（88.51%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 76件
-- automatic宣言済みfamily: 84件（97.67%）
-- 安全preflight済みscript-only handler利用可能: 84件（97.67%）
-- 品質policy宣言済み: 84件 / 安全handler＋品質policy: 84件
+- detector＋安全handlerでfamily自動選択可能: 77件
+- automatic宣言済みfamily: 85件（97.7%）
+- AST監査＋runtime import確認済みscript-only handler: 85件（97.7%）
+- 品質policy宣言済み: 85件 / 安全handler＋品質policy: 85件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言96件 / 安全96件 / 停止0件
-- automatic handlerが安全preflightで停止: 0件
+- handler実装: 宣言97件 / AST監査通過97件 / runtime import確認済み97件 / 停止0件
+- automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1043件（上限2048件）
+- 実行したformat別preflight: 1041件（上限2048件）
+- 実行した検体なしruntime import確認: 97件（計画97件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -81,6 +82,7 @@
 | purelogs | fully_routable | あり | あり | 1 | 1 | なし |
 | putita_v3 | fully_routable | あり | あり | 1 | 1 | なし |
 | quasarrat | fully_routable | あり | あり | 1 | 1 | なし |
+| redc2 | fully_routable | あり | あり | 1 | 1 | なし |
 | redlinestealer | fully_routable | あり | あり | 1 | 1 | なし |
 | remcosrat | fully_routable | あり | あり | 1 | 1 | なし |
 | remusstealer | fully_routable | あり | あり | 1 | 1 | なし |
@@ -107,14 +109,14 @@
 
 ## 判定の意味
 
-- `fully_routable`: detectorで候補を選び、安全な静的handlerを実行でき、family別品質policyも宣言済みです。構造上の到達可能性であり、自動完了の実測値ではありません。
+- `fully_routable`: detector、AST監査と検体なしruntime importを通過した静的handler、family別品質policyが揃っています。構造指標であり、handlerへ検体を渡した実績や自動完了の実測値ではありません。
 - `candidate_verification_only`: 外部metadataなどから候補化できますが、family確定には強いhandler証拠が必要です。
 - `quality_policy_missing`: 安全handlerはありますが、解析完結に必要な成果物条件が未宣言です。
-- `automatic_handler_blocked`: automatic宣言はありますが、安全preflightを通過するformatがありません。
+- `automatic_handler_blocked`: automatic宣言はありますが、AST監査を通過するformatがないか、隔離runtime importに失敗しています。
 - `classification_only`: family判定後のconfig・C2・ロジック抽出が未自動化です。
 - `manual_handler_only`: handlerは存在しますが共通の安全契約へ未適合です。
 
 blocked handlerのID、format別阻害理由、sourceとlocal dependencyから算出したSHA-256指紋はJSON正本に記録します。
-`automated_analysis_completion_possible`は後方互換用のdeprecated aliasで、`structurally_routable`と同値です。名前に反して実検体の完了実績を表しません。
-この表は構造・preflight上で経路と品質gateを構成できるかを示し、実検体での完了を保証しません。
+`automated_analysis_completion_possible`は後方互換用のdeprecated aliasで、`runtime_import_verified_structure`と同値の構造指標です。名前に反して実検体の完了可能性や完了実績を表しません。
+この表はAST監査と検体なしruntime import上で経路と品質gateを構成できるかを示し、実検体での実行・完了を保証しません。
 安全handlerがあることだけでは解析完結とは判定せず、caseごとにfamily別品質policyと全品質gateの充足を検証します。

@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">handler_catalog</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Chandler_catalog.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\handler_catalog.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Canalysis-framework%5Ccommon%5Chandler_catalog.py">c:\users\administrator\w\a26\analysis-framework\common\handler_catalog.py</a></td></tr></table>
     <p><span class="code">既存の静的解析関数を棚卸しし、安全な共通インターフェースで実行する。</span></p>
 <p>
 <table class="section">
@@ -311,6 +311,12 @@ Data and other attributes defined here:<br>
     input_size: 'int',
     maximum_input_size: 'int' = 134217728
 ) -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補試行前に契約、形式、容量、外部副作用をimportせず検証する。</span></dd></dl>
+ <dl><dt><a name="-preflight_handler_runtime_import"><strong>preflight_handler_runtime_import</strong></a>(
+    spec: 'HandlerSpec',
+    *,
+    static_preflight: 'Mapping[str, Any]',
+    timeout_seconds: 'float' = 30.0
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">AST監査済みhandlerを、検体なしの隔離processでimport確認する。</span></dd></dl>
  <dl><dt><a name="-sanitize_public_value"><strong>sanitize_public_value</strong></a>(
     value: 'Any',
     *,
@@ -331,13 +337,13 @@ Data and other attributes defined here:<br>
 <strong>DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE</strong> = 134217728<br>
 <strong>DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE</strong> = 268435456<br>
 <strong>EMAIL</strong> = re.compile('(?&lt;![\\w.+-])[\\w.+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(?![\\w.-])')<br>
-<strong>EXTRACTORS_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/extractors')<br>
+<strong>EXTRACTORS_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/extractors')<br>
 <strong>FAMILY_ID</strong> = re.compile('^[a-z0-9_-]+$')<br>
-<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework')<br>
 <strong>HANDLER_CONTRACT_NAME</strong> = 'HANDLER_CONTRACT'<br>
 <strong>HIGH_CONFIDENCE_CREDENTIAL</strong> = re.compile('(?i)(?&lt;![A-Za-z0-9_-])(?:xox[baprs]-...a-z0-9_-]{20,})(?![A-Za-z0-9_-])', re.IGNORECASE)<br>
 <strong>KNOWN_INPUT_FORMATS</strong> = frozenset({'7z', 'any', 'apple-disk-image', 'asar', 'autoit-a3x', 'cab', ...})<br>
-<strong>MALWARE_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727/analysis-framework/malware')<br>
+<strong>MALWARE_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/malware')<br>
 <strong>MAX_ASSESSMENT_ATTEMPTS</strong> = 64<br>
 <strong>MAX_ASSESSMENT_CANDIDATES</strong> = 64<br>
 <strong>MAX_ASSESSMENT_IMPORT_DEPTH</strong> = 12<br>
@@ -362,8 +368,8 @@ Data and other attributes defined here:<br>
 <strong>MAX_VERIFIED_BINARY_TOTAL_SIZE</strong> = 268435456<br>
 <strong>OPAQUE_CREDENTIAL</strong> = re.compile('(?i)\\b(?:github_pat_[A-Za-z0-9_]{20...9_-]{8,}\\.[A-Za-z0-9_-]{8,})\\b', re.IGNORECASE)<br>
 <strong>PEM_PRIVATE_KEY</strong> = re.compile('-----BEGIN (?:RSA |EC |OPENSSH |DSA ...H |DSA |ENCRYPTED )?PRIVATE KEY-----', re.DOTALL)<br>
-<strong>PROFILE_PATH</strong> = WindowsPath('C:/Users/Administrator/AI-security-...xtractors/profiles/windows_family_profiles.json')<br>
-<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis-daily-20260727')<br>
+<strong>PROFILE_PATH</strong> = WindowsPath('C:/Users/Administrator/w/a26/extractors/profiles/windows_family_profiles.json')<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26')<br>
 <strong>SECRET_ASSIGNMENT</strong> = re.compile('(?i)(?P&lt;prefix&gt;[\\"\']?(?:password|p...\\s*[:=]\\s*)(?P&lt;secret&gt;\\"[^\\"], re.IGNORECASE)<br>
 <strong>SECRET_KEY</strong> = re.compile('(?i)^(?:password|passwd|secret|token...ies?|session[_-]?(?:id|token)|cli, re.IGNORECASE)<br>
 <strong>SENSITIVE_URL_ASSIGNMENT</strong> = re.compile('(?i)([/;])((?:access[_-]?)?token|api...-]?secret|secret)(?:=|:)[^/?#;]+', re.IGNORECASE)<br>

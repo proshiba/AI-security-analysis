@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import pytest
 import yaml
 
-import audit_analysis_coverage as audit
+
+COMMON = Path(__file__).resolve().parents[1] / "common"
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
+
+import audit_analysis_coverage as audit  # noqa: E402
 
 
 SHA = "a" * 64
@@ -135,6 +141,24 @@ def test_ioc_provider_and_output_boundary_checks(tmp_path: Path) -> None:
     assert report["finding_counts"]["provider_boundary_violations"] == 1
     with pytest.raises(ValueError, match="within the repository"):
         audit._validate_output_paths(repository, (repository.parent / "outside.json",))
+
+
+def test_oversized_public_document_is_reported_without_unbounded_read(
+    monkeypatch, tmp_path: Path
+) -> None:
+    repository = _repository(tmp_path)
+    case = repository / "analysis-results" / "family" / "cases" / SHA
+    oversized = case / "large.md"
+    oversized.write_text("未解決の記録です。\n" * 64, encoding="utf-8")
+    monkeypatch.setattr(audit, "MAX_PUBLIC_DOCUMENT_BYTES", 256)
+
+    report = audit.audit_repository(repository)
+
+    assert (
+        f"analysis-results/family/cases/{SHA}/large.md"
+        in report["findings"]["oversized_public_documents"]
+    )
+    assert report["safety"]["maximum_public_document_bytes"] == 256
 
 
 def test_hard_case_summary_uses_canonical_research_path(tmp_path: Path) -> None:

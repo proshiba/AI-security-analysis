@@ -5,18 +5,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from itertools import combinations
 from pathlib import Path
+import tempfile
 from typing import Any
+
+from bounded_pair_selection import BoundedPairSelector
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 SIMHASH64_RE = re.compile(r"^[0-9a-f]{16}$", re.IGNORECASE)
 MARKDOWN_PAIR_LIMIT = 1000
 JSON_PAIR_LIMIT = 100_000
 PAIR_LIMIT_PER_FUNCTION = 32
+PAIR_CANDIDATE_MULTIPLIER = 1
+TEXT_COMPARE_CHARS = 1024 * 1024
 
 
 def _function_records(results_root: Path) -> list[dict[str, Any]]:
@@ -109,6 +115,18 @@ def _bands(simhash: str) -> Iterable[str]:
         yield f"{index // 4}:{simhash[index : index + 4]}"
 
 
+def _similarity_pair_rank(item: Mapping[str, Any]) -> tuple[Any, ...]:
+    """小さい値ほど優先される決定的な候補順位を返す。"""
+
+    return (
+        -float(item["similarity"]),
+        bool(item["same_family"]),
+        -len(item["shared_api_calls"]),
+        str(item["left_id"]),
+        str(item["right_id"]),
+    )
+
+
 def _retain_similarity_pairs(
     pairs: list[dict[str, Any]],
     *,
@@ -121,16 +139,7 @@ def _retain_similarity_pairs(
         raise ValueError("pair limits must be non-negative")
     if pair_limit == 0 or per_function_limit == 0:
         return []
-    ranked = sorted(
-        pairs,
-        key=lambda item: (
-            -float(item["similarity"]),
-            bool(item["same_family"]),
-            -len(item["shared_api_calls"]),
-            str(item["left_id"]),
-            str(item["right_id"]),
-        ),
-    )
+    ranked = sorted(pairs, key=_similarity_pair_rank)
     degree: dict[str, int] = defaultdict(int)
     retained = []
     for pair in ranked:
@@ -203,7 +212,10 @@ def build_index(
                 "members": [record_ids[index] for index in members],
             }
         )
-    pairs = []
+    candidate_limit_per_function = per_function_limit * PAIR_CANDIDATE_MULTIPLIER
+    pair_selector: BoundedPairSelector[dict[str, Any]] = BoundedPairSelector(
+        candidate_limit_per_endpoint=candidate_limit_per_function
+    )
     evaluated = 0
     for bucket_name, members in sorted(buckets.items()):
         by_simhash: dict[str, list[int]] = defaultdict(list)
@@ -229,20 +241,25 @@ def build_index(
                     maximum_distance = 8 if same_family else 3
                     if distance > maximum_distance:
                         continue
-                    pairs.append(
-                        {
-                            "left_id": record_ids[left_index],
-                            "right_id": record_ids[right_index],
-                            "similarity": 1.0 - (distance / 64.0),
-                            "exact_semantic_sequence": False,
-                            "same_family": same_family,
-                            "shared_api_calls": shared_api,
-                            "assessment": "code_similarity_candidate",
-                        }
+                    pair = {
+                        "left_id": record_ids[left_index],
+                        "right_id": record_ids[right_index],
+                        "similarity": 1.0 - (distance / 64.0),
+                        "exact_semantic_sequence": False,
+                        "same_family": same_family,
+                        "shared_api_calls": shared_api,
+                        "assessment": "code_similarity_candidate",
+                    }
+                    pair_selector.offer(
+                        left=pair["left_id"],
+                        right=pair["right_id"],
+                        rank_key=_similarity_pair_rank(pair),
+                        value=pair,
                     )
-    total_pairs = len(pairs)
+    total_pairs = pair_selector.offered_count
+    ranking_pairs = pair_selector.ordered_values()
     retained_pairs = _retain_similarity_pairs(
-        pairs,
+        ranking_pairs,
         pair_limit=pair_limit,
         per_function_limit=per_function_limit,
     )
@@ -257,8 +274,12 @@ def build_index(
             "similarity_pairs": len(retained_pairs),
             "similarity_pairs_total": total_pairs,
             "similarity_pairs_omitted": total_pairs - len(retained_pairs),
+            "similarity_pairs_retained_for_ranking": len(ranking_pairs),
+            "similarity_pairs_omitted_before_ranking": total_pairs
+            - len(ranking_pairs),
             "similarity_pair_limit": pair_limit,
             "similarity_pair_limit_per_function": per_function_limit,
+            "similarity_pair_candidate_limit_per_function": candidate_limit_per_function,
             "candidate_pairs_evaluated": evaluated,
             "ghidra_function_hashes": len(ghidra_records),
             "ghidra_exact_groups": len(ghidra_exact_groups),
@@ -277,8 +298,9 @@ def build_index(
             "JSONでは関数recordを一度だけ保持し、groupとpairからrecord IDで参照します。",
             (
                 "近似pairは類似度、異なるfamily間の候補、共有API数の順に優先し、"
+                f"最終選択前は各関数{candidate_limit_per_function:,}件、"
                 f"全体{pair_limit:,}件、各関数{per_function_limit:,}件を上限として公開します。"
-                "省略数と評価総数は集計へ保持します。"
+                "各段階の省略数と評価総数は集計へ保持します。"
             ),
         ],
         "safety": {
@@ -323,6 +345,10 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         f"| SimHash完全一致group | {report['counts']['simhash_groups']} |",
         f"| 評価した非一致候補pair | {report['counts']['candidate_pairs_evaluated']} |",
         f"| 条件に一致した類似候補pair | {report['counts']['similarity_pairs_total']} |",
+        (
+            "| 最終順位付けへ保持した類似候補pair | "
+            f"{report['counts']['similarity_pairs_retained_for_ranking']} |"
+        ),
         f"| JSONへ保持した類似候補pair | {report['counts']['similarity_pairs']} |",
         f"| 上限により省略した類似候補pair | {report['counts']['similarity_pairs_omitted']} |",
         f"| Ghidra関数hash | {report['counts']['ghidra_function_hashes']} |",
@@ -372,6 +398,43 @@ def render_markdown(report: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _text_matches(path: Path, expected: str) -> bool:
+    """既存fileを全件保持せず、生成予定textと逐次比較する。"""
+
+    if not path.is_file():
+        return False
+    offset = 0
+    try:
+        with path.open("r", encoding="utf-8-sig") as handle:
+            while chunk := handle.read(TEXT_COMPARE_CHARS):
+                if expected[offset : offset + len(chunk)] != chunk:
+                    return False
+                offset += len(chunk)
+    except (OSError, UnicodeDecodeError):
+        return False
+    return offset == len(expected)
+
+
+def _atomic_text_write(path: Path, content: str) -> None:
+    """同じdirectoryの一時fileを置換し、部分的な公開成果物を残さない。"""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except (OSError, UnicodeError):
+        Path(temporary).unlink(missing_ok=True)
+        raise
+
+
 def generate(
     repository: Path,
     *,
@@ -399,12 +462,10 @@ def generate(
     }
     mismatches = []
     for path, content in expected.items():
-        current = path.read_text(encoding="utf-8-sig") if path.is_file() else None
-        if current != content:
+        if not _text_matches(path, content):
             mismatches.append(path.relative_to(repository).as_posix())
             if write:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content, encoding="utf-8")
+                _atomic_text_write(path, content)
     return {
         **report["counts"],
         "mismatches": mismatches,

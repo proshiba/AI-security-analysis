@@ -28,7 +28,7 @@ flowchart LR
 | `derived_refresh` | catalog、IOC、類似性、checksum、UI、終端payload台帳を公式generatorで更新・再検証 | 無効 | あり | なし |
 | `private_archive` | 入力／job成果物を対象別AES-256 ZIPにし、S3側size・SSE・SHA-256を検証 | 無効 | なし | S3のみ |
 
-`static_analysis`は分類、復元層評価、適用可能handlerの設定抽出に加え、`communication-patterns.json`と`c2-analysis.json`を自動生成します。前者は静的設定endpointと未確定候補を分離し、後者は10 phaseの進捗とblockerを固定します。候補の存在だけでprotocol確認や稼働確認へ昇格しないため、`completion_gate`は自動化できた範囲と追加解析が必要な範囲を同じ証拠から判断できます。
+`static_analysis`は分類、復元層評価、適用可能handlerの設定抽出に加え、`communication-patterns.json`と`c2-analysis.json`を自動生成します。前者は静的設定endpointと未確定候補を分離し、後者は10 phaseの進捗とblockerを固定します。`completion_gate`はC2契約を公式validatorで再検証し、検証済みfollow-on graphから`terminal-payload-acquisition.json`を再計算します。候補の存在だけでprotocol確認、稼働確認、終端payload取得済みへ昇格しないため、自動化できた範囲と追加解析が必要な範囲を同じ証拠から判断できます。
 
 `publication`、`derived_refresh`、`private_archive`はrequestで明示した場合だけ有効になります。通常解析にlive C2、外部sandbox、VirusTotal、MalwareBazaar downloadなどを混在させません。
 
@@ -162,6 +162,8 @@ C:\analysis-work\jobs\
 - UI用data、case詳細、portal索引
 - 終端payload未取得台帳
 
+family checksum manifestはcross-platformで決定的にするため、`.md`、`.json`、`.yaml`等のportable textだけCRLFをLFへ正規化したbytesをSHA-256へ入力します。binaryと対象外拡張子はraw bytesをhashします。このためWindows上の`Get-FileHash`によるportable textのraw hashとは一致しない場合があり、検証には`refresh_case_inventory.py --check`を使用します。
+
 `partial` caseを正規公開へ混ぜる操作は既定で拒否します。レビュー済み追加解析stagingとして公開する場合だけ`allow_partial_staging=true`を使います。publisher側のblocker allowlist、case integrity、semantic seal、artifact manifest検証は省略されません。
 
 ## 非公開dataをS3へ保管する
@@ -189,7 +191,9 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py status `
   --workflow-id daily-20260815-sample-001
 ```
 
-`verify`はstateを書き換えず、保存request、全stage fingerprint、job安全契約、result／summary、入力snapshot、解析tree全体、公開report、S3 reportを再検証します。
+`verify`はstateを書き換えず、保存request、全stage fingerprint、job安全契約、result／summary、入力snapshot、解析tree全体、公開report、S3 reportを再検証します。完了済み静的jobを再利用するときは、job-private入力snapshot、全source inventory、family hint、信頼済みtool snapshot、現在の解析コードとoptionからroot／follow-on解析契約を隔離workerで再構成し、保存契約、case seal、終端payload台帳、全相対pathと全file内容を含むexact解析tree seal、ログ、`status.json`、`progress.json`、`result.json`が現在の生成規則と完全一致した場合だけ受理します。終端stateを読んだ後にも入力、tool、hint、契約bundle、request、log、解析treeを返却直前に再検証します。未参照成果物、古い契約、一部だけ更新されたjobを、成功済みstageとして流用しません。publication開始直前にも同じ完全再検証を行い、解析treeをworkflow外の一時directoryへ複製してexact sealを確認します。元treeの再検証後に一時snapshotをもう一度hashし、publisher自身も全sourceを別のprivate snapshotへcopyしてcopy前後のexact manifestを照合し、読取専用化した同じsnapshotだけを検証・消費します。completion gateは開始時と結果確定直前の両方でstatic stageを完全再検証します。
+
+完了job全体をexact manifestへ固定して別の読取専用private snapshotへcopyし、検証にはそのcopyだけを使います。copy前後と返却直前に元jobとprivate snapshotの全path・全file内容を再照合するため、個別成果物を順に検証する間の交差改変もfail-closedです。
 
 ```powershell
 py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py verify `
@@ -216,7 +220,7 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py resume `
 
 ## partialから解析完了へ進める
 
-`completion_gate`はcaseごとのblockerを集約し、次のような`next_actions`を返します。
+`completion_gate`はcaseごとのreport、orchestration、C2、終端payload blockerを集約し、次のような`next_actions`を返します。入力読込み、resume検証、root静的解析の例外は自由文やファイル名を公開せず、受付順を表す`input_index`、任意のSHA-256、固定`stage`、固定`error_code`、例外型だけを含む日本語messageへ正規化します。これらは`batch_error:<error_code>`として同じ修復計画へ入り、completion結果の`analysis_errors`にも保持されます。
 
 | next action | 必要な作業 |
 |---|---|
@@ -226,6 +230,8 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py resume `
 | `family_attribution_review` | exact hash、構造、config、protocolの複数証拠でfamilyを再評価 |
 | `complete_case_or_enable_reviewed_partial_staging` | caseを完了するか、レビュー済みpartial stagingとして明示公開 |
 | `review_machine_readable_blocker` | family固有blockerと既存証拠を確認 |
+
+blocker、終端取得理由、lifecycle action、再開planner policyは`analysis-framework/common/remediation_registry.py`を単一の正本とします。完全一致した登録値だけを自動分類し、未知値や類似したsuffixは推測せずmanual reviewへfail-closedにします。入力読込み失敗は入力境界の確認へ、resume検証失敗とroot静的解析失敗は新しい静的解析workflowへ決定論的に振り分けます。
 
 Ghidraによる追加解析は[AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)の証拠形式へ従います。Ghidra MCPではprogram selectorを明示し、取得したロジックをcaseだけへ手入力して終わらせず、可能な範囲でdetector、unpacker、handler、function analyzer、fixtureへ戻します。更新した解析器で新しいworkflowを実行し、blockerが機械的に解除されることを完了条件とします。
 

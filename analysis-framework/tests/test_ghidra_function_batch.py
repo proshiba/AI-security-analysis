@@ -3234,6 +3234,7 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
     ]
 
     defaults = parser.parse_args(common)
+    assert defaults.prepared_input_root is None
     assert defaults.upx is None
     assert defaults.sevenzip is None
     assert defaults.diec is None
@@ -3244,6 +3245,8 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
     selected = parser.parse_args(
         common
         + [
+            "--prepared-input-root",
+            str(tmp_path / "prepared"),
             "--upx",
             str(tmp_path / "upx.exe"),
             "--sevenzip",
@@ -3261,6 +3264,7 @@ def test_static_tool_cli_arguments_remain_optional(tmp_path: Path) -> None:
         ]
     )
     assert selected.upx == tmp_path / "upx.exe"
+    assert selected.prepared_input_root == tmp_path / "prepared"
     assert selected.sevenzip == tmp_path / "7z.exe"
     assert selected.diec == tmp_path / "diec.exe"
     assert selected.skip_auto_analysis_sha256 == ["a" * 64, "b" * 64]
@@ -3411,11 +3415,13 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
         return [root_layer, child_layer], {}
 
     monkeypatch.setattr(target, "recover_static_layers", replay_layers)
+    prepared_input_root = short_root / "g"
     objects, non_pe = target.prepare_inputs(
         repository,
         collection,
         sample_root,
         short_root / "p",
+        prepared_input_root=prepared_input_root,
         storage_guard=lambda phase, role, planned: storage_checks.append(
             (phase, role, planned)
         ),
@@ -3424,13 +3430,27 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     assert set(objects) == {digest, child_digest}
     assert not non_pe
     assert observed == [identities]
+    assert not (sample_root / digest / "ghidra-input").exists()
+    assert (
+        prepared_input_root
+        / digest
+        / "ghidra-input"
+        / f"{digest}.quarantine.bin"
+    ).is_file()
+    assert (
+        prepared_input_root
+        / digest
+        / "ghidra-input"
+        / "layers"
+        / f"{child_digest}.quarantine.bin"
+    ).is_file()
     assert storage_checks[:8] == [
-        ("before_input_copy", "sample_root", len(root_data)),
-        ("after_input_copy", "sample_root", 0),
+        ("before_input_copy", "prepared_input_root", len(root_data)),
+        ("after_input_copy", "prepared_input_root", 0),
         ("before_ghidra_staging_write", "private_output", len(root_data)),
         ("after_ghidra_staging_write", "private_output", 0),
-        ("before_input_copy", "sample_root", len(child_data)),
-        ("after_input_copy", "sample_root", 0),
+        ("before_input_copy", "prepared_input_root", len(child_data)),
+        ("after_input_copy", "prepared_input_root", 0),
         ("before_ghidra_staging_write", "private_output", len(child_data)),
         ("after_ghidra_staging_write", "private_output", 0),
     ]
@@ -3441,6 +3461,13 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
     assert storage_checks[8][2] > 0
     relationships = target.load_json_object_strict(short_root / "p" / "input-relationships.json")
     assert {item["reconstruction_mode"] for item in relationships["relationships"]} == {"full_static_layer_replay"}
+    resumed, resumed_non_pe = target.load_prepared_inputs(
+        sample_root,
+        short_root / "p",
+        prepared_input_root=prepared_input_root,
+    )
+    assert set(resumed) == {digest, child_digest}
+    assert not resumed_non_pe
 
     monkeypatch.setattr(
         target,
@@ -3805,20 +3832,24 @@ def test_storage_budget_deduplicates_roles_on_the_same_filesystem(
     ]
 
 
-def test_storage_guard_includes_input_copy_destination(tmp_path: Path) -> None:
-    """repository外のsample_rootも入力copy前のguard対象に含める。"""
+def test_storage_guard_includes_prepared_input_destination(tmp_path: Path) -> None:
+    """取得元と分離したGhidra input copy先もguard対象に含める。"""
 
     repository = tmp_path / "repository"
     sample_root = tmp_path / "samples"
     private_output = tmp_path / "private"
+    prepared_input_root = tmp_path / "prepared"
     repository.mkdir()
     sample_root.mkdir()
+    prepared_input_root.mkdir()
     arguments = target.build_parser().parse_args(
         [
             "--repository",
             str(repository),
             "--sample-root",
             str(sample_root),
+            "--prepared-input-root",
+            str(prepared_input_root),
             "--private-output",
             str(private_output),
         ]
@@ -3829,13 +3860,43 @@ def test_storage_guard_includes_input_copy_destination(tmp_path: Path) -> None:
         repository,
         sample_root,
         private_output,
+        prepared_input_root,
     )
 
-    assert observed[:3] == [
+    assert observed[:4] == [
         ("repository", repository),
         ("sample_root", sample_root),
         ("private_output", private_output),
+        ("prepared_input_root", prepared_input_root),
     ]
+
+
+def test_run_rejects_prepared_input_root_nested_in_sample_root(tmp_path: Path) -> None:
+    """復元cacheを不変の取得元root内へ戻す構成を拒否する。"""
+
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    prepared_input_root = sample_root / "prepared"
+    collection.mkdir(parents=True)
+    prepared_input_root.mkdir(parents=True)
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--prepared-input-root",
+            str(prepared_input_root),
+            "--private-output",
+            str(tmp_path / "private"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="相互に包含"):
+        target.run(arguments)
 
 
 def test_planned_write_reserve_accounts_for_copy_size() -> None:

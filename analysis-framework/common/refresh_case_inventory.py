@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 from generate_code_similarity_index import generate as generate_code_similarity
@@ -26,13 +28,25 @@ _RESULTS_TABLE_RE = re.compile(
     r"(?:<!-- case-inventory:end -->\s*)?(?=版名は)"
 )
 _UNCLASSIFIED_COUNT_RE = re.compile(r"未分類[0-9,]+件は")
+_HASH_CHUNK_BYTES = 1024 * 1024
 
 
 def _atomic_text_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(content, encoding="utf-8", newline="\n")
-    temporary.replace(path)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except (OSError, UnicodeError):
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def _render_results_inventory_table(counts: dict[str, Any]) -> str:
@@ -128,14 +142,35 @@ def _checksum_manifest_content(path: Path) -> str:
         ),
         key=lambda candidate: candidate.relative_to(path.parent).as_posix().casefold(),
     ):
-        content = item.read_bytes()
-        if item.suffix.casefold() in portable_text_suffixes:
-            content = content.replace(b"\r\n", b"\n")
         rows.append(
-            f"{hashlib.sha256(content).hexdigest()}  "
+            f"{_streaming_sha256(item, normalize_crlf=item.suffix.casefold() in portable_text_suffixes)}  "
             f"{item.relative_to(path.parent).as_posix()}"
         )
     return "\n".join(rows) + ("\n" if rows else "")
+
+
+def _streaming_sha256(
+    path: Path,
+    *,
+    normalize_crlf: bool,
+    chunk_bytes: int = _HASH_CHUNK_BYTES,
+) -> str:
+    """ファイル全体を保持せず、必要ならCRLFをLFへ正規化してSHA-256を返す。"""
+
+    if chunk_bytes < 1:
+        raise ValueError("chunk_bytes must be positive")
+    digest = hashlib.sha256()
+    trailing_cr = b""
+    with path.open("rb") as handle:
+        while chunk := handle.read(chunk_bytes):
+            content = trailing_cr + chunk
+            trailing_cr = b""
+            if normalize_crlf and content.endswith(b"\r"):
+                content, trailing_cr = content[:-1], b"\r"
+            digest.update(content.replace(b"\r\n", b"\n") if normalize_crlf else content)
+    if trailing_cr:
+        digest.update(trailing_cr)
+    return digest.hexdigest()
 
 
 def sync_checksum_manifests(

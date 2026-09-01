@@ -7,13 +7,13 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
+from typing import Any
 
-
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
-SCHEMA_ID_ROOT = "https://schemas.ai-security-analysis.local/analysis-job/v1"
+SCHEMA_ID_ROOT = "https://schemas.ai-security-analysis.local/analysis-job/v2"
 
 MAX_REQUEST_INPUTS = 64
 MAX_DISCOVERED_FILES = 1_000
@@ -23,6 +23,8 @@ MAX_FOLLOW_ON_NODES = MAX_DISCOVERED_FILES + MAX_FOLLOW_ON_ARTIFACTS
 MAX_FOLLOW_ON_EDGES = 128
 MAX_ANALYSIS_OUTPUT_ENTRIES = 100_000
 MAX_ANALYSIS_OUTPUT_BYTES = 1024 * 1024 * 1024
+MAX_LOG_BYTES = 1024 * 1024
+MAX_LOG_OBSERVED_BYTES = (1 << 63) - 1
 MAX_TRUSTED_TOOL_BINARY_BYTES = 128 * 1024 * 1024
 MAX_TIMEOUT_SECONDS = 24 * 60 * 60
 MAX_HANDLER_EVENTS = MAX_DISCOVERED_FILES * 64
@@ -428,6 +430,8 @@ def _artifact_branch(
         {
             "analysis_summary": {"const": "analysis/summary.json"},
             "follow_on_analysis": {"const": "analysis/follow-on-analysis.json"},
+            "terminal_payload_acquisition": {"const": "analysis/terminal-payload-acquisition.json"},
+            "terminal_payload_acquisition_sha256": {"$ref": "#/$defs/sha256"},
             "family_hint_manifest": (
                 {"const": "contract-inputs/family-hint-manifest.json"} if family_manifest else nullable
             ),
@@ -446,9 +450,24 @@ def _artifact_branch(
             "trusted_static_tools_manifest_sha256": ({"$ref": "#/$defs/sha256"} if trusted_tools else nullable),
             "stdout": {"const": "stdout.log"},
             "stderr": {"const": "stderr.log"},
+            "stdout_sha256": {"$ref": "#/$defs/sha256"},
+            "stderr_sha256": {"$ref": "#/$defs/sha256"},
+            "stdout_size": {"type": "integer", "minimum": 0, "maximum": MAX_LOG_BYTES},
+            "stderr_size": {"type": "integer", "minimum": 0, "maximum": MAX_LOG_BYTES},
+            "stdout_observed_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": MAX_LOG_OBSERVED_BYTES,
+            },
+            "stderr_observed_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": MAX_LOG_OBSERVED_BYTES,
+            },
             "stdout_truncated": {"type": "boolean"},
             "stderr_truncated": {"type": "boolean"},
             "analysis_output": _analysis_output_schema(),
+            "analysis_output_sha256": {"$ref": "#/$defs/sha256"},
         }
     )
 
@@ -760,7 +779,7 @@ def _validate_schema_instance(
             raise _validation_error(path, "文字列patternに一致しません")
         if schema.get("format") == "date-time":
             try:
-                datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+                datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
             except ValueError as exc:
                 raise _validation_error(path, "UTC日時が不正です") from exc
 
@@ -872,6 +891,21 @@ def _validate_result_semantics(value: Mapping[str, Any]) -> None:
     artifacts = value.get("artifacts")
     if not isinstance(artifacts, Mapping):  # schema検証後の防御的確認
         raise _validation_error("$.artifacts", "artifactsが不正です")
+    for name in ("stdout", "stderr"):
+        size = artifacts.get(f"{name}_size")
+        observed = artifacts.get(f"{name}_observed_bytes")
+        truncated = artifacts.get(f"{name}_truncated")
+        if (
+            type(size) is not int
+            or type(observed) is not int
+            or type(truncated) is not bool
+            or not size <= observed
+            or truncated is not (observed > size)
+        ):
+            raise _validation_error(
+                f"$.artifacts.{name}_observed_bytes",
+                "保持量・観測量・切詰め状態が一致しません",
+            )
     artifact_digest = artifacts.get("trusted_static_tools_manifest_sha256")
     if provenance is None:
         if artifact_digest is not None:

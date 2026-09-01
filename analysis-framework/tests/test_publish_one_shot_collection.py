@@ -1325,6 +1325,94 @@ def test_publish_rejects_unexpected_analysis_contract_sha256_before_writing(tmp_
     assert not (repository / "analysis-results").exists()
 
 
+def test_publish_rejects_source_change_during_private_snapshot_before_repository_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """copy直後に原本treeが変わればprivate publisherとrepository書込へ進まない。"""
+
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    one_shot = tmp_path / "one-shot"
+    one_shot.mkdir()
+    evidence = one_shot / "evidence.json"
+    evidence.write_text('{"verified":true}\n', encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}\n", encoding="utf-8")
+    real_copytree = publisher.shutil.copytree
+    private_publish_calls = 0
+
+    def copytree_then_mutate_source(
+        source: Path,
+        destination: Path,
+        **kwargs: object,
+    ) -> Path:
+        copied = real_copytree(source, destination, **kwargs)
+        evidence.write_text('{"verified":false}\n', encoding="utf-8")
+        return copied
+
+    def publish_from_snapshots(*_args: object, **_kwargs: object) -> dict[str, object]:
+        nonlocal private_publish_calls
+        private_publish_calls += 1
+        pytest.fail("private publisher must not run after the source tree changes")
+
+    monkeypatch.setattr(publisher.shutil, "copytree", copytree_then_mutate_source)
+    monkeypatch.setattr(publisher, "_publish_from_snapshots", publish_from_snapshots)
+
+    with pytest.raises(ValueError, match="snapshot作成中に変更"):
+        publisher.publish(repository, manifest, [one_shot], "source-race-test")
+
+    assert private_publish_calls == 0
+    assert not (repository / "analysis-results").exists()
+
+
+def test_publish_uses_private_snapshot_and_removes_it_after_return(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """内部publisherは原本と分離したprivate copyだけを読み、return後にcopyを消す。"""
+
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    one_shot = tmp_path / "one-shot"
+    one_shot.mkdir()
+    evidence = one_shot / "evidence.json"
+    evidence.write_text('{"verified":true}\n', encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}\n", encoding="utf-8")
+    observed: dict[str, object] = {}
+
+    def publish_from_snapshots(
+        current_repository: Path,
+        current_manifest: Path,
+        sources: list[Path],
+        collection_id: str,
+        **_kwargs: object,
+    ) -> dict[str, object]:
+        assert current_repository == repository
+        assert current_manifest == manifest
+        assert collection_id == "private-snapshot-test"
+        assert len(sources) == 1
+        snapshot = sources[0]
+        observed["snapshot"] = snapshot
+        observed["before"] = (snapshot / "evidence.json").read_text(encoding="utf-8")
+        assert snapshot != one_shot
+        evidence.write_text('{"verified":false}\n', encoding="utf-8")
+        observed["after"] = (snapshot / "evidence.json").read_text(encoding="utf-8")
+        return {"published": 1}
+
+    monkeypatch.setattr(publisher, "_publish_from_snapshots", publish_from_snapshots)
+
+    result = publisher.publish(repository, manifest, [one_shot], "private-snapshot-test")
+
+    assert result == {"published": 1}
+    assert observed["before"] == '{"verified":true}\n'
+    assert observed["after"] == '{"verified":true}\n'
+    snapshot = observed["snapshot"]
+    assert isinstance(snapshot, Path)
+    assert not snapshot.exists()
+
+
 def test_partial_staging_preserves_all_original_blockers(
     tmp_path: Path,
 ) -> None:

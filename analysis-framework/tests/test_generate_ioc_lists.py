@@ -13,7 +13,7 @@ COMMON = REPOSITORY / "analysis-framework" / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from generate_ioc_lists import (
+from generate_ioc_lists import (  # noqa: E402
     Indicator,
     generate,
     indicator_type,
@@ -416,6 +416,52 @@ def test_generate_discovers_clickfix_case_and_excludes_context_only(
     assert "landing.example" in rendered
     assert "203.0.113.10" not in rendered
     assert "t.me" not in rendered
+
+
+def test_generate_discovers_clickfix_collection_aggregate(tmp_path: Path) -> None:
+    """ClickFix collection集約も構造化IOCから標準表と索引を生成する。"""
+
+    collection = (
+        tmp_path
+        / "analysis-results"
+        / "clickfix"
+        / "collections"
+        / "clickfix-command-analysis"
+    )
+    collection.mkdir(parents=True)
+    (collection / "README.md").write_text("# ClickFix collection\n", encoding="utf-8")
+    (collection / "iocs.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "indicators": [
+                    {
+                        "type": "domain",
+                        "value": "delivery.example",
+                        "role": "clickfix_stage_delivery",
+                        "confidence": "confirmed_in_captured_command",
+                        "source": "fixture",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "analysis_history.yaml").write_text(
+        "analyses: []\n",
+        encoding="utf-8",
+    )
+
+    result = generate(tmp_path, write=True)
+    rendered = (collection / "IOC-LIST.md").read_text(encoding="utf-8")
+    index = (tmp_path / "analysis-results" / "IOC-INDEX.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert result["analyses"] == 1
+    assert "delivery.example" in rendered
+    assert "| 種別 (Type) | 値 (Value) |" in rendered
+    assert "clickfix/collections/clickfix-command-analysis" in index
 
 
 def test_generate_indexes_reclassified_profile_run_aggregate(tmp_path: Path) -> None:

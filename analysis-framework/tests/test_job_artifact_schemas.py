@@ -10,14 +10,12 @@ from typing import Any
 
 import pytest
 
-
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
 import analysis_job_runner as runner  # noqa: E402
 import job_artifact_schemas as schemas  # noqa: E402
-
 
 NOW = "2026-08-10T01:02:03Z"
 DIGEST = "a" * 64
@@ -63,7 +61,7 @@ def _derived_counts() -> dict[str, int]:
 
 def _success_result(*, partial: bool) -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": schemas.SCHEMA_VERSION,
         "job_id": "job-001",
         "request_sha256": DIGEST,
         "accepted": True,
@@ -84,6 +82,8 @@ def _success_result(*, partial: bool) -> dict[str, Any]:
         "artifacts": {
             "analysis_summary": "analysis/summary.json",
             "follow_on_analysis": "analysis/follow-on-analysis.json",
+            "terminal_payload_acquisition": "analysis/terminal-payload-acquisition.json",
+            "terminal_payload_acquisition_sha256": "e" * 64,
             "family_hint_manifest": None,
             "family_hint_manifest_sha256": None,
             "analysis_contract_bundle": "contract-inputs/analysis-contract-bundle.json",
@@ -94,6 +94,12 @@ def _success_result(*, partial: bool) -> dict[str, Any]:
             "trusted_static_tools_manifest_sha256": None,
             "stdout": "stdout.log",
             "stderr": "stderr.log",
+            "stdout_sha256": "1" * 64,
+            "stderr_sha256": "2" * 64,
+            "stdout_size": 0,
+            "stderr_size": 0,
+            "stdout_observed_bytes": 0,
+            "stderr_observed_bytes": 0,
             "stdout_truncated": False,
             "stderr_truncated": False,
             "analysis_output": {
@@ -102,6 +108,7 @@ def _success_result(*, partial: bool) -> dict[str, Any]:
                 "directories": 1,
                 "total_bytes": 4096,
             },
+            "analysis_output_sha256": "3" * 64,
         },
         "process": {
             "exit_code": 20 if partial else 0,
@@ -123,7 +130,7 @@ def _success_result(*, partial: bool) -> dict[str, Any]:
 
 def _failure_result(state: str = "failed") -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": schemas.SCHEMA_VERSION,
         "job_id": "job-001",
         "request_sha256": DIGEST,
         "accepted": False,
@@ -159,7 +166,7 @@ def test_all_schemas_are_valid_draft_2020_12() -> None:
 
 
 def test_schema_constants_follow_runner_contract() -> None:
-    assert schemas.SCHEMA_VERSION == runner.SCHEMA_VERSION
+    assert schemas.SCHEMA_VERSION == runner.JOB_ARTIFACT_SCHEMA_VERSION
     assert schemas.MAX_REQUEST_INPUTS == runner.MAX_REQUEST_INPUTS
     assert schemas.MAX_DISCOVERED_FILES == runner.MAX_DISCOVERED_FILES
     assert schemas.MAX_TOTAL_INPUT_BYTES == runner.MAX_TOTAL_INPUT_BYTES
@@ -263,6 +270,45 @@ def test_representative_success_and_partial_result_validate(partial: bool) -> No
     schemas.validate_job_artifact_document("result", payload, expected_job_id="job-001")
 
 
+@pytest.mark.parametrize(
+    ("size", "observed", "truncated"),
+    [
+        (1, 0, False),
+        (1, 1, True),
+        (1, 2, False),
+    ],
+)
+def test_result_rejects_inconsistent_log_observation_contract(
+    size: int,
+    observed: int,
+    truncated: bool,
+) -> None:
+    payload = _success_result(partial=False)
+    payload["artifacts"]["stdout_size"] = size
+    payload["artifacts"]["stdout_observed_bytes"] = observed
+    payload["artifacts"]["stdout_truncated"] = truncated
+
+    with pytest.raises(schemas.JobArtifactValidationError):
+        schemas.validate_job_artifact_document("result", payload)
+
+
+def test_result_accepts_consistent_truncated_log_observation_contract() -> None:
+    payload = _success_result(partial=False)
+    payload["artifacts"]["stdout_size"] = 1
+    payload["artifacts"]["stdout_observed_bytes"] = 2
+    payload["artifacts"]["stdout_truncated"] = True
+
+    schemas.validate_job_artifact_document("result", payload)
+
+
+def test_legacy_job_artifact_version_is_rejected() -> None:
+    payload = _success_result(partial=False)
+    payload["schema_version"] = 1
+
+    with pytest.raises(schemas.JobArtifactValidationError):
+        schemas.validate_job_artifact_document("result", payload, expected_job_id="job-001")
+
+
 def test_trusted_tool_provenance_requires_matching_manifest_artifact() -> None:
     """tool provenanceとjob-private manifest参照を常に同時に要求する。"""
 
@@ -302,8 +348,12 @@ def test_unknown_or_cross_state_fields_are_rejected() -> None:
     payload["process"]["exit_code"] = 20
     assert list(validator.iter_errors(payload))
 
+    payload = _success_result(partial=False)
+    payload["artifacts"].pop("terminal_payload_acquisition_sha256")
+    assert list(validator.iter_errors(payload))
+
     progress = {
-        "schema_version": 1,
+        "schema_version": schemas.SCHEMA_VERSION,
         "job_id": "job-001",
         "phase": "queued",
         "percent": 0,
@@ -394,9 +444,10 @@ def test_read_job_snapshot_maps_duplicate_key_to_stable_code(
     job_dir.mkdir(parents=True)
     _write_queued_snapshot(job_dir)
     original = (job_dir / "status.json").read_text(encoding="utf-8")
+    version_field = f'"schema_version": {schemas.SCHEMA_VERSION},'
     duplicated = original.replace(
-        '"schema_version": 1,',
-        '"schema_version": 1,\n  "schema_version": 1,',
+        version_field,
+        f'{version_field}\n  {version_field}',
         1,
     )
     (job_dir / "status.json").write_text(duplicated, encoding="utf-8")

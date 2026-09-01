@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む2,905件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,056件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -353,7 +353,7 @@ JPCERT/CCが報告した2026年の配布チェーンについて、リポジト�
 
 ## プロファイル定義によるファミリー拡張（2026-07-17）
 
-AsyncRAT、XWorm、QuasarRAT、njRAT、DarkComet、DCRat、RedLine Stealer、Snake Keylogger、GuLoader、HijackLoaderは現在、プロファイル駆動の検出、設定抽出、受動的C2計画、宣言型YAML、合成データ用ループバック限定エミュレーターを共有しています。各ファミリーについてMalwareBazaarの最新10検体を静的解析し、計100件が最終的な完全性／安全性検証に合格しました。取得処理は再試行キューを永続化するため、時間制限または回数制限に達したハッシュをほかの解析後に再開できます。[関係とワークフロー文書](analysis-framework/docs/PROFILED-FAMILY-EXPANSION.md)を参照してください。
+AsyncRAT、XWorm、QuasarRAT、njRAT、DarkComet、DCRat、RedLine Stealer、Snake Keylogger、GuLoader、HijackLoaderは現在、プロファイル駆動の検出、設定抽出、受動的C2計画、宣言型YAML、合成データ用ループバック限定エミュレーターを共有しています。各ファミリーについてMalwareBazaarの最新10検体を静的解析し、計100件が最終的な完全性／安全性検証に合格しました。取得処理は再試行キューを永続化するため、時間制限または回数制限に達したハッシュをほかの解析後に再開できます。[関係とワークフロー文書](analysis-framework/docs/PROFILED-FAMILY-EXPANSION.md)と[loopback labの安全契約](emulators/families/README.md)を参照してください。
 
 ## MalwareBazaar 1000検体解析（batch-0001～0010、2026-07-18～20）
 

@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">analysis_job_runner</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/analysis_job_runner.py">analysis-framework/common/analysis_job_runner.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Canalysis-framework%5Ccommon%5Canalysis_job_runner.py">c:\users\administrator\w\a26\analysis-framework\common\analysis_job_runner.py</a></td></tr></table>
     <p><span class="code">WebUI／ローカルAPIから安全に呼び出せる静的解析ジョブrunner。</span></p>
 <p>
 <table class="section">
@@ -17,21 +17,22 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="batch_error_contract.html">batch_error_contract</a><br>
 <a href="hashlib.html">hashlib</a><br>
 <a href="hmac.html">hmac</a><br>
 <a href="job_artifact_schemas.html">job_artifact_schemas</a><br>
-<a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="math.html">math</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="math.html">math</a><br>
 <a href="orchestration_outcome.html">orchestration_outcome</a><br>
 <a href="os.html">os</a><br>
 <a href="platform.html">platform</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="runtime_contract.html">runtime_contract</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="runtime_contract.html">runtime_contract</a><br>
 <a href="shutil.html">shutil</a><br>
 <a href="stat.html">stat</a><br>
 <a href="subprocess.html">subprocess</a><br>
-<a href="sys.html">sys</a><br>
-</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="tempfile.html">tempfile</a><br>
 <a href="terminal_payload_acquisition.html">terminal_payload_acquisition</a><br>
 <a href="threading.html">threading</a><br>
 <a href="time.html">time</a><br>
@@ -200,6 +201,7 @@ Data and other attributes defined here:<br>
 <tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
 <td class="decor title-decor" colspan=2><span class="code"><a href="#InputSnapshotBundle">InputSnapshotBundle</a>(<br>
 &nbsp;&nbsp;&nbsp;&nbsp;inputs:&nbsp;'tuple[<a href="#SnapshotInput">SnapshotInput</a>,&nbsp;...]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;inventory_snapshots:&nbsp;'tuple[<a href="#SnapshotInput">SnapshotInput</a>,&nbsp;...]',<br>
 &nbsp;&nbsp;&nbsp;&nbsp;manifest_path:&nbsp;'Path',<br>
 &nbsp;&nbsp;&nbsp;&nbsp;manifest_relative_path:&nbsp;'str',<br>
 &nbsp;&nbsp;&nbsp;&nbsp;manifest_sha256:&nbsp;'str',<br>
@@ -218,6 +220,7 @@ snapshot群と、改ざん検知に使う固定manifest。<br>&nbsp;</span></td>
 <dl><dt><a name="InputSnapshotBundle-__init__"><strong>__init__</strong></a>(
     self,
     inputs: 'tuple[SnapshotInput, ...]',
+    inventory_snapshots: 'tuple[SnapshotInput, ...]',
     manifest_path: 'Path',
     manifest_relative_path: 'str',
     manifest_sha256: 'str',
@@ -240,13 +243,13 @@ Data descriptors defined here:<br>
 </dl>
 <hr>
 Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'inputs': 'tuple[SnapshotInput, ...]', 'manifest_document': 'Mapping[str, Any]', 'manifest_path': 'Path', 'manifest_relative_path': 'str', 'manifest_sha256': 'str'}</dl>
+<dl><dt><strong>__annotations__</strong> = {'inputs': 'tuple[SnapshotInput, ...]', 'inventory_snapshots': 'tuple[SnapshotInput, ...]', 'manifest_document': 'Mapping[str, Any]', 'manifest_path': 'Path', 'manifest_relative_path': 'str', 'manifest_sha256': 'str'}</dl>
 
-<dl><dt><strong>__dataclass_fields__</strong> = {'inputs': Field(name='inputs',type='tuple[SnapshotInput, ....appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_document': Field(name='manifest_document',type='Mapping[str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_path': Field(name='manifest_path',type='Path',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_relative_path': Field(name='manifest_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_sha256': Field(name='manifest_sha256',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+<dl><dt><strong>__dataclass_fields__</strong> = {'inputs': Field(name='inputs',type='tuple[SnapshotInput, ....appingproxy({}),kw_only=False,_field_type=_FIELD), 'inventory_snapshots': Field(name='inventory_snapshots',type='tuple[Sna...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_document': Field(name='manifest_document',type='Mapping[str...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_path': Field(name='manifest_path',type='Path',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_relative_path': Field(name='manifest_relative_path',type='str',d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'manifest_sha256': Field(name='manifest_sha256',type='str',default=...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
 
 <dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
 
-<dl><dt><strong>__match_args__</strong> = ('inputs', 'manifest_path', 'manifest_relative_path', 'manifest_sha256', 'manifest_document')</dl>
+<dl><dt><strong>__match_args__</strong> = ('inputs', 'inventory_snapshots', 'manifest_path', 'manifest_relative_path', 'manifest_sha256', 'manifest_document')</dl>
 
 </td></tr></table> <p>
 <table class="section">
@@ -1016,7 +1019,9 @@ Data and other attributes defined here:<br>
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-atomic_json"><strong>atomic_json</strong></a>(path: 'Path', value: 'Any') -&gt; 'None'</dt><dd><span class="code">同一directory内の一時fileからJSONをatomicに置換する。</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-analysis_output_content_manifest"><strong>analysis_output_content_manifest</strong></a>(path: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">解析treeのexact&nbsp;path集合と全file&nbsp;contentを決定的manifestへ固定する。</span></dd></dl>
+ <dl><dt><a name="-analysis_output_content_sha256"><strong>analysis_output_content_sha256</strong></a>(manifest: 'Mapping[str, Any]') -&gt; 'str'</dt><dd><span class="code">exact&nbsp;content&nbsp;manifestのcanonical&nbsp;SHA-256を返す。</span></dd></dl>
+ <dl><dt><a name="-atomic_json"><strong>atomic_json</strong></a>(path: 'Path', value: 'Any') -&gt; 'None'</dt><dd><span class="code">同一directory内の一時fileからJSONをatomicに置換する。</span></dd></dl>
  <dl><dt><a name="-build_analyzer_argv"><strong>build_analyzer_argv</strong></a>(
     request: 'JobRequest',
     inputs: 'Sequence[Path]',
@@ -1055,6 +1060,7 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-job_request_json_schema"><strong>job_request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">WebUIとAPI&nbsp;adapterが共有するrequest用JSON&nbsp;Schemaを返す。</span></dd></dl>
  <dl><dt><a name="-load_job_request"><strong>load_job_request</strong></a>(path: 'Path') -&gt; 'JobRequest'</dt><dd><span class="code">fileから厳格なジョブ要求を読む。</span></dd></dl>
  <dl><dt><a name="-load_job_request_from_stdin"><strong>load_job_request_from_stdin</strong></a>(stream: 'Any | None' = None) -&gt; 'JobRequest'</dt><dd><span class="code">WebUI&nbsp;adapter向けにrequest&nbsp;JSONを有界stdinから厳格に読む。</span></dd></dl>
+ <dl><dt><a name="-load_json_object_snapshot"><strong>load_json_object_snapshot</strong></a>(path: 'Path', *, max_bytes: 'int') -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">単一handleで固定したraw&nbsp;bytesとstrict&nbsp;JSON&nbsp;objectを同時に返す。</span></dd></dl>
  <dl><dt><a name="-load_json_object_strict"><strong>load_json_object_strict</strong></a>(path: 'Path', *, max_bytes: 'int') -&gt; 'dict[str, Any]'</dt><dd><span class="code">UTF-8、重複key禁止、size上限付きでJSON&nbsp;objectを単一handleから読む。</span></dd></dl>
  <dl><dt><a name="-load_trusted_tool_policy"><strong>load_trusted_tool_policy</strong></a>(
     configuration: 'TrustedToolConfiguration',
@@ -1071,6 +1077,13 @@ Data and other attributes defined here:<br>
 ) -&gt; 'tuple[str, str]'</dt><dd><span class="code">実行前に固定した入力とroot／child契約を監査用に保存する。</span></dd></dl>
  <dl><dt><a name="-prepare_job_private_temp"><strong>prepare_job_private_temp</strong></a>(analysis_output: 'Path') -&gt; 'JobPrivateTempBinding'</dt><dd><span class="code">解析output内に所有者限定の一時directoryを排他的に作成する。</span></dd></dl>
  <dl><dt><a name="-read_job_snapshot"><strong>read_job_snapshot</strong></a>(jobs_root: 'Path', job_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">atomic&nbsp;JSONだけを読み、WebUI／API向けsnapshotを返す。</span></dd></dl>
+ <dl><dt><a name="-revalidate_completed_job"><strong>revalidate_completed_job</strong></a>(
+    jobs_root: 'Path',
+    request: 'JobRequest',
+    *,
+    temporary_root: 'Path',
+    expected_timeout_seconds: 'int'
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">既存完了job全体をprivate&nbsp;snapshotへ固定してから再構築・再検証する。</span></dd></dl>
  <dl><dt><a name="-run_job"><strong>run_job</strong></a>(
     request: 'JobRequest',
     *,
@@ -1142,9 +1155,8 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><strong>ACTIVE_FOLLOW_ON_EDGE_STATUSES</strong> = frozenset({'child_complete', 'child_incomplete'})<br>
 <strong>ALLOWED_OPTION_KEYS</strong> = frozenset({'archive_mode', 'assessment_only', 'family', 'force_container_probe', 'max_file_size', 'max_files', ...})<br>
 <strong>ALLOWED_TOP_LEVEL_KEYS</strong> = frozenset({'family_hint_manifest', 'inputs', 'job_id', 'options', 'schema_version'})<br>
-<strong>ANALYZER</strong> = WindowsPath('&lt;repository&gt;/analysis-framework/common/analyze_sample.py')<br>
-<strong>COMMON_ROOT</strong> = WindowsPath('&lt;repository&gt;/analysis-framework/common')<br>
-<strong>Callable</strong> = typing.Callable<br>
+<strong>ANALYZER</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common/analyze_sample.py')<br>
+<strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common')<br>
 <strong>DEFAULT_OPTIONS</strong> = {'archive_mode': 'auto', 'assessment_only': False, 'family': None, 'force_container_probe': False, 'max_file_size': 536870912, 'max_files': 1000, 'max_static_layers': 64, 'minimum_confidence': 'medium', 'retry_max_static_layers': None, 'string_scan_limit': 1000000}<br>
 <strong>DEFAULT_TIMEOUT_SECONDS</strong> = 21600<br>
 <strong>DERIVED_COUNT_KEYS</strong> = ('analyzed', 'identified', 'unknown_or_ambiguous', 'complete', 'triaged_unknown', 'partial', 'failed', 'resumed')<br>
@@ -1160,16 +1172,20 @@ Data and other attributes defined here:<br>
 <strong>FOLLOW_ON_SEALED_DOCUMENT_KEYS</strong> = frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...})<br>
 <strong>FOLLOW_ON_STATUSES</strong> = frozenset({'complete', 'disabled_assessment_only', 'disabled_repository_output', 'failed', 'no_retained_payloads', 'partial'})<br>
 <strong>FORBIDDEN_OPTION_KEYS</strong> = frozenset({'allow_authentication', 'allow_live_c2_check', 'allow_live_c2_emulation', 'allow_malware_registration_tasking', 'allow_network', 'allow_reviewed_application_probes', ...})<br>
-<strong>FRAMEWORK_ROOT</strong> = WindowsPath('&lt;repository&gt;/analysis-framework')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework')<br>
 <strong>INPUT_MANIFEST_TIMEOUT_SECONDS</strong> = 300<br>
 <strong>INPUT_MANIFEST_WORKER</strong> = "<span class="repr">\n</span>import hashlib<span class="repr">\n</span>import json<span class="repr">\n</span>import sys<span class="repr">\n</span>from path...   separators=(',', ':'),<span class="repr">\n</span>    allow_nan=False,<span class="repr">\n</span>)<span class="repr">\n</span>"<br>
 <strong>INPUT_SNAPSHOT_CHUNK_BYTES</strong> = 1048576<br>
+<strong>JOB_ARTIFACT_SCHEMA_VERSION</strong> = 2<br>
 <strong>JOB_ID_RE</strong> = re.compile('^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$')<br>
+<strong>LIVE_OUTPUT_TRANSIENT_SCAN_CODES</strong> = frozenset({'analysis_output_reparse_forbidden', 'analysis_output_unreadable'})<br>
 <strong>MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES</strong> = 16777216<br>
 <strong>MAX_ANALYSIS_OUTPUT_BYTES</strong> = 1073741824<br>
 <strong>MAX_ANALYSIS_OUTPUT_ENTRIES</strong> = 100000<br>
 <strong>MAX_ANALYZER_ACTIVE_PROCESSES</strong> = 32<br>
 <strong>MAX_ANALYZER_MEMORY_BYTES</strong> = 4294967296<br>
+<strong>MAX_COMPLETED_JOB_BYTES</strong> = 3800039424<br>
+<strong>MAX_COMPLETED_JOB_ENTRIES</strong> = 124096<br>
 <strong>MAX_DAILY_STATIC_CAPTURE_FILE_BYTES</strong> = 8388608<br>
 <strong>MAX_DAILY_STATIC_CAPTURE_TOTAL_BYTES</strong> = 134217728<br>
 <strong>MAX_DISCOVERED_FILES</strong> = 1000<br>
@@ -1189,7 +1205,9 @@ Data and other attributes defined here:<br>
 <strong>MAX_INPUT_MANIFEST_MEMORY_BYTES</strong> = 1073741824<br>
 <strong>MAX_INPUT_MANIFEST_RESPONSE_BYTES</strong> = 4194304<br>
 <strong>MAX_INPUT_SNAPSHOT_MANIFEST_BYTES</strong> = 16777216<br>
+<strong>MAX_LIVE_OUTPUT_SCAN_ATTEMPTS</strong> = 3<br>
 <strong>MAX_LOG_BYTES</strong> = 1048576<br>
+<strong>MAX_LOG_OBSERVED_BYTES</strong> = 9223372036854775807<br>
 <strong>MAX_REGISTRY_BYTES</strong> = 8388608<br>
 <strong>MAX_REQUEST_BYTES</strong> = 65536<br>
 <strong>MAX_REQUEST_INPUTS</strong> = 64<br>
@@ -1205,12 +1223,11 @@ Data and other attributes defined here:<br>
 <strong>MAX_TRUSTED_TOOL_BINARY_BYTES</strong> = 134217728<br>
 <strong>MAX_TRUSTED_TOOL_MANIFEST_BYTES</strong> = 1048576<br>
 <strong>MIN_FREE_DISK_RESERVE_BYTES</strong> = 268435456<br>
-<strong>Mapping</strong> = typing.Mapping<br>
 <strong>OUTPUT_MONITOR_INTERVAL_SECONDS</strong> = 0.5<br>
 <strong>PIPE_DRAIN_CHUNK_BYTES</strong> = 65536<br>
 <strong>PRIVATE_TEMP_DIRECTORY_NAME</strong> = '.private-temp'<br>
-<strong>REGISTRY</strong> = WindowsPath('&lt;repository&gt;/analysis-framework/registry/malware_types.json')<br>
-<strong>REPOSITORY_ROOT</strong> = WindowsPath('&lt;repository&gt;')<br>
+<strong>REGISTRY</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/registry/malware_types.json')<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26')<br>
 <strong>REQUIRED_TOP_LEVEL_KEYS</strong> = frozenset({'inputs', 'job_id', 'schema_version'})<br>
 <strong>RESERVED_WINDOWS_NAMES</strong> = {'aux', 'clock$', 'com1', 'com2', 'com3', 'com4', ...}<br>
 <strong>ROOT_CASE_KEYS</strong> = frozenset({'ai_used', 'analysis_stage_failed', 'analysis_stage_partial', 'automation_family', 'automation_state', 'campaign', ...})<br>
@@ -1220,9 +1237,7 @@ Data and other attributes defined here:<br>
 <strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>
 <strong>SUMMARY_COUNT_KEYS</strong> = ('input_files', 'analyzed', 'duplicates', 'errors', 'identified', 'unknown_or_ambiguous', 'automation_resolved', 'automation_partial', 'automation_unknown', 'candidate_handler_attempts', 'handler_successes', 'handler_failures', 'handler_no_evidence', 'handler_ambiguous', 'handler_incompatible', 'analysis_stage_failures', 'analysis_stage_partial', 'complete', 'triaged_unknown', 'partial', ...)<br>
 <strong>SUMMARY_KEYS</strong> = frozenset({'ai_used', 'analysis_contract', 'cases', 'catalog', 'counts', 'derived_cases', ...})<br>
-<strong>SUMMARY_OPTIONAL_KEYS</strong> = frozenset({'terminal_payload_acquisition'})<br>
 <strong>SUMMARY_SETTINGS_KEYS</strong> = frozenset({'archive_mode', 'assessment_only', 'family_hint_manifest', 'follow_on_fixed_point', 'force_container_probe', 'forced_family', ...})<br>
-<strong>Sequence</strong> = typing.Sequence<br>
 <strong>TERMINATION_WAIT_SECONDS</strong> = 5.0<br>
 <strong>TOOL_PROFILE_RE</strong> = re.compile('^[a-z0-9][a-z0-9._-]{0,63}$')<br>
 <strong>TRUSTED_STATIC_TOOL_IDS</strong> = ('upx', 'sevenzip')<br>

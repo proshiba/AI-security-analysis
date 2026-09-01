@@ -14,7 +14,7 @@ import sys
 import threading
 import time
 from copy import deepcopy
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from typing import Any
 
@@ -25,6 +25,13 @@ if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
 import analysis_job_runner as runner  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _use_test_disk_reserve(monkeypatch: pytest.MonkeyPatch) -> None:
+    """hostの空き容量に依存せず、容量異常系はmock値だけで検証する。"""
+
+    monkeypatch.setattr(runner, "MIN_FREE_DISK_RESERVE_BYTES", 1)
 
 
 def request_value(job_id: str = "job-001", **options: Any) -> dict[str, Any]:
@@ -103,6 +110,25 @@ def make_trusted_tool_configuration(
     return configuration, manifest, upx
 
 
+def write_terminal_payload_acquisition(
+    output: Path,
+    follow_on: dict[str, Any],
+) -> dict[str, Any]:
+    """follow-on graphと一致する必須の終端payload台帳を保存する。"""
+
+    document = runner.terminal_payload_acquisition.build_terminal_payload_acquisition(follow_on)
+    raw = (json.dumps(document, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+    (output / "terminal-payload-acquisition.json").write_bytes(raw)
+    return {
+        "artifact": "terminal-payload-acquisition.json",
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "status": document["status"],
+        "frontier_count": len(document["frontier"]),
+        "selected_count": len(document["selected_sha256"]),
+        "pending_count": len(document["pending_sha256"]),
+    }
+
+
 def write_summary(
     output: Path,
     *,
@@ -172,6 +198,7 @@ def write_summary(
     }
     follow_on_raw = (json.dumps(follow_on, sort_keys=True) + "\n").encode("utf-8")
     (output / "follow-on-analysis.json").write_bytes(follow_on_raw)
+    terminal_payload_reference = write_terminal_payload_acquisition(output, follow_on)
     (output / "summary.json").write_text(
         json.dumps(
             {
@@ -181,7 +208,9 @@ def write_summary(
                 "analysis_contract": {},
                 "requirements_policy": {},
                 "settings": {},
-                "cases": [{"sha256": root_sha256}] * counts["analyzed"],
+                "cases": [
+                    {"sha256": root_sha256, "case_state": "complete"}
+                ] * counts["analyzed"],
                 "duplicates": [
                     {
                         "source_name": f"duplicate-{index}.bin",
@@ -191,8 +220,11 @@ def write_summary(
                 ],
                 "errors": [
                     {
-                        "source_name": f"error-{index}.bin",
-                        "error": "ValueError: synthetic input error",
+                        "input_index": index,
+                        "sha256": None,
+                        "stage": "input_read",
+                        "error_code": "input_read_failed",
+                        "message": "入力を安全に読み込めませんでした (ValueError)",
                     }
                     for index in range(counts["errors"])
                 ],
@@ -219,6 +251,7 @@ def write_summary(
                     "edge_count": 0,
                     "error_count": 0,
                 },
+                "terminal_payload_acquisition": terminal_payload_reference,
                 "executed_sample": False,
                 "network_contacted": network_contacted,
                 "ai_used": ai_used,
@@ -314,8 +347,13 @@ def test_validated_daily_static_bundle_rejects_capture_aggregate_over_limit(
     assert caught.value.code == "summary_invalid"
 
 
-def replace_follow_on(output: Path, value: dict[str, Any]) -> None:
-    """follow-on graphとsummary参照を同じbytesへ更新する。"""
+def replace_follow_on(
+    output: Path,
+    value: dict[str, Any],
+    *,
+    rebuild_terminal_payload: bool = True,
+) -> None:
+    """follow-on graphを更新し、正常graphの場合だけ終端payload台帳も再構築する。"""
 
     raw = (json.dumps(value, sort_keys=True) + "\n").encode("utf-8")
     (output / "follow-on-analysis.json").write_bytes(raw)
@@ -327,6 +365,25 @@ def replace_follow_on(output: Path, value: dict[str, Any]) -> None:
         "node_count": len(value["nodes"]),
         "edge_count": len(value["edges"]),
         "error_count": len(value["errors"]),
+    }
+    if rebuild_terminal_payload:
+        summary["terminal_payload_acquisition"] = write_terminal_payload_acquisition(output, value)
+    (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+
+
+def replace_terminal_payload_acquisition(output: Path, document: dict[str, Any]) -> None:
+    """改変検知test用に台帳本体とsummary参照のhash・件数を同期する。"""
+
+    raw = (json.dumps(document, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+    (output / "terminal-payload-acquisition.json").write_bytes(raw)
+    summary = load_json(output / "summary.json")
+    summary["terminal_payload_acquisition"] = {
+        "artifact": "terminal-payload-acquisition.json",
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "status": document["status"],
+        "frontier_count": len(document["frontier"]),
+        "selected_count": len(document["selected_sha256"]),
+        "pending_count": len(document["pending_sha256"]),
     }
     (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
@@ -476,6 +533,7 @@ def test_derived_summary_is_validated_separately(
     )
     monkeypatch.setattr(runner, "case_integrity_errors", lambda *_args, **_kwargs: [])
     (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    replace_follow_on(output, follow_on)
 
     validated, counts = runner._validated_summary(
         output / "summary.json",
@@ -505,7 +563,7 @@ def test_derived_summary_is_validated_separately(
     ):
         forged_hint = deepcopy(hinted)
         forged_hint["nodes"][1][field] = invalid
-        replace_follow_on(output, forged_hint)
+        replace_follow_on(output, forged_hint, rebuild_terminal_payload=False)
         with pytest.raises(runner.JobContractError) as caught:
             runner._validated_summary(output / "summary.json", expected_input_files=1)
         assert caught.value.code == "summary_invalid"
@@ -614,6 +672,69 @@ def test_root_contract_is_anchored_to_current_request_and_code(tmp_path: Path) -
     assert caught.value.code == "summary_invalid"
 
 
+def test_terminal_payload_acquisition_reference_and_file_are_required(tmp_path: Path) -> None:
+    output = tmp_path / "output"
+    write_summary(output)
+    summary = load_json(output / "summary.json")
+    summary.pop("terminal_payload_acquisition")
+    (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_invalid"
+
+    write_summary(output)
+    (output / "terminal-payload-acquisition.json").unlink()
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "json_unreadable"
+
+
+def test_terminal_payload_acquisition_hash_graph_and_counts_are_bound(tmp_path: Path) -> None:
+    output = tmp_path / "output"
+    write_summary(output)
+    with (output / "terminal-payload-acquisition.json").open("ab") as handle:
+        handle.write(b" ")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_invalid"
+
+    write_summary(output)
+    document = load_json(output / "terminal-payload-acquisition.json")
+    document["status"] = "verified"
+    replace_terminal_payload_acquisition(output, document)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_invalid"
+
+    write_summary(output)
+    summary = load_json(output / "summary.json")
+    summary["terminal_payload_acquisition"]["pending_count"] += 1
+    (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_count_mismatch"
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["external_retrieval_attempted", "executed_sample", "network_contacted"],
+)
+def test_terminal_payload_acquisition_safety_flags_are_recomputed(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    output = tmp_path / "output"
+    write_summary(output)
+    document = load_json(output / "terminal-payload-acquisition.json")
+    document[field] = True
+    replace_terminal_payload_acquisition(output, document)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_invalid"
+
+
 def test_summary_count_key_sets_are_exact(tmp_path: Path) -> None:
     output = tmp_path / "output"
     write_summary(output)
@@ -656,7 +777,7 @@ def test_summary_follow_on_and_node_key_sets_are_exact(tmp_path: Path) -> None:
     write_summary(output)
     follow_on = load_json(output / "follow-on-analysis.json")
     follow_on["unexpected"] = "must-fail"
-    replace_follow_on(output, follow_on)
+    replace_follow_on(output, follow_on, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError) as caught:
         runner._validated_summary(output / "summary.json", expected_input_files=1)
     assert caught.value.code == "summary_invalid"
@@ -664,7 +785,7 @@ def test_summary_follow_on_and_node_key_sets_are_exact(tmp_path: Path) -> None:
     write_summary(output)
     follow_on = load_json(output / "follow-on-analysis.json")
     follow_on["nodes"][0]["unexpected"] = "must-fail"
-    replace_follow_on(output, follow_on)
+    replace_follow_on(output, follow_on, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError) as caught:
         runner._validated_summary(output / "summary.json", expected_input_files=1)
     assert caught.value.code == "summary_invalid"
@@ -792,7 +913,15 @@ def test_duplicate_error_schema_and_input_manifest_are_exact() -> None:
     unsafe_error = {
         "cases": [],
         "duplicates": [],
-        "errors": [{"source_name": "bad\nname.bin", "error": "failure"}],
+        "errors": [
+            {
+                "input_index": -1,
+                "sha256": None,
+                "stage": "input_read",
+                "error_code": "input_read_failed",
+                "message": "入力を安全に読み込めませんでした (OSError)",
+            }
+        ],
     }
     with pytest.raises(runner.JobContractError):
         runner._validate_summary_input_records(
@@ -800,6 +929,50 @@ def test_duplicate_error_schema_and_input_manifest_are_exact() -> None:
             root_hashes=set(),
             expected_input_manifest=None,
         )
+
+    failed_read = {
+        "cases": [],
+        "duplicates": [],
+        "errors": [
+            {
+                "input_index": 0,
+                "sha256": None,
+                "stage": "input_read",
+                "error_code": "input_read_failed",
+                "message": "入力を安全に読み込めませんでした (OSError)",
+            }
+        ],
+    }
+    failed_manifest = [runner.ExpectedInputUnit("unreadable.bin", None, None, False)]
+    runner._validate_summary_input_records(
+        failed_read,
+        root_hashes=set(),
+        expected_input_manifest=failed_manifest,
+    )
+
+    wrong_failure_stage = deepcopy(failed_read)
+    wrong_failure_stage["errors"][0].update(
+        {
+            "sha256": root,
+            "stage": "root_static_analysis",
+            "error_code": "root_static_analysis_failed",
+            "message": "root静的解析を完了できませんでした (OSError)",
+        }
+    )
+    with pytest.raises(runner.JobContractError):
+        runner._validate_summary_input_records(
+            wrong_failure_stage,
+            root_hashes={root},
+            expected_input_manifest=failed_manifest,
+        )
+
+    analysis_failure = deepcopy(wrong_failure_stage)
+    analysis_manifest = [runner.ExpectedInputUnit("unreadable.bin", "unreadable.bin", root, True)]
+    runner._validate_summary_input_records(
+        analysis_failure,
+        root_hashes=set(),
+        expected_input_manifest=analysis_manifest,
+    )
 
     all_duplicate = {
         "cases": [],
@@ -845,13 +1018,13 @@ def test_follow_on_omission_requires_exact_partial_marker_and_deadline(
 
     missing_marker = deepcopy(graph)
     missing_marker["errors"] = []
-    replace_follow_on(output, missing_marker)
+    replace_follow_on(output, missing_marker, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError):
         runner._validated_summary(output / "summary.json", expected_input_files=1)
 
     wrong_status = deepcopy(graph)
     wrong_status["status"] = "complete"
-    replace_follow_on(output, wrong_status)
+    replace_follow_on(output, wrong_status, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError):
         runner._validated_summary(output / "summary.json", expected_input_files=1)
 
@@ -860,13 +1033,13 @@ def test_follow_on_omission_requires_exact_partial_marker_and_deadline(
     deadline["errors"] = [f"{root}:{reason}"]
     deadline["omitted_metadata"][0]["reason"] = reason
     deadline["wall_clock_exhausted"] = False
-    replace_follow_on(output, deadline)
+    replace_follow_on(output, deadline, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError):
         runner._validated_summary(output / "summary.json", expected_input_files=1)
 
     extra_key = deepcopy(graph)
     extra_key["omitted_metadata"][0]["extra"] = True
-    replace_follow_on(output, extra_key)
+    replace_follow_on(output, extra_key, rebuild_terminal_payload=False)
     with pytest.raises(runner.JobContractError):
         runner._validated_summary(output / "summary.json", expected_input_files=1)
 
@@ -962,7 +1135,7 @@ def test_complete_edge_cannot_point_to_failed_node(tmp_path: Path) -> None:
             "verified_read_bytes": 10,
         }
     )
-    replace_follow_on(output, graph)
+    replace_follow_on(output, graph, rebuild_terminal_payload=False)
 
     with pytest.raises(runner.JobContractError) as caught:
         runner._validated_summary(output / "summary.json", expected_input_files=1)
@@ -1356,10 +1529,13 @@ def test_production_root_counts_and_follow_on_status_are_bound_to_contract(
     summary["settings"] = runner._expected_summary_settings(options, contract)
     summary["cases"] = [root_case]
     (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    case_root = output / "cases" / root
+    case_root.mkdir(parents=True)
+    (case_root / "report.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(
         runner,
         "_validated_derived_case_report",
-        lambda *_args, **_kwargs: {},
+        lambda *_args, **_kwargs: {"artifact_sha256": {}},
     )
     monkeypatch.setattr(runner, "_validate_follow_on_edge_provenance", lambda *_args, **_kwargs: None)
 
@@ -1510,6 +1686,8 @@ def test_analysis_bundle_worker_is_isolated_bounded_and_private(
             stderr=b"",
             stdout_truncated=False,
             stderr_truncated=False,
+            stdout_observed_bytes=len(json.dumps(response).encode("utf-8")),
+            stderr_observed_bytes=0,
         )
 
     monkeypatch.setattr(runner, "_run_process_with_bounded_output", fake_bounded)
@@ -2221,6 +2399,12 @@ def test_complete_job_writes_atomic_machine_readable_artifacts(
     assert result["derived_counts"]["analyzed"] == 0
     assert result["follow_on_analysis"]["status"] == "no_retained_payloads"
     assert result["artifacts"]["follow_on_analysis"] == "analysis/follow-on-analysis.json"
+    assert result["artifacts"]["terminal_payload_acquisition"] == (
+        "analysis/terminal-payload-acquisition.json"
+    )
+    assert result["artifacts"]["terminal_payload_acquisition_sha256"] == hashlib.sha256(
+        (job_dir / "analysis" / "terminal-payload-acquisition.json").read_bytes()
+    ).hexdigest()
     assert load_json(job_dir / "progress.json")["percent"] == 100
     assert not (job_dir / "analysis" / runner.PRIVATE_TEMP_DIRECTORY_NAME).exists()
     assert not list(job_dir.rglob("*.tmp"))
@@ -2537,6 +2721,28 @@ def test_default_process_runner_drains_and_truncates_both_streams() -> None:
     assert completed.stderr == b"B" * runner.MAX_LOG_BYTES
     assert completed.stdout_truncated is True
     assert completed.stderr_truncated is True
+    assert completed.stdout_observed_bytes == size
+    assert completed.stderr_observed_bytes == size
+
+
+def test_bounded_log_exact_capacity_is_not_truncated() -> None:
+    payload = b"A" * runner.MAX_LOG_BYTES
+
+    retained, truncated, observed = runner._bounded_log(payload)
+
+    assert retained == payload
+    assert truncated is False
+    assert observed == runner.MAX_LOG_BYTES
+
+
+def test_bounded_log_over_capacity_records_observed_bytes() -> None:
+    payload = b"A" * (runner.MAX_LOG_BYTES + 1)
+
+    retained, truncated, observed = runner._bounded_log(payload)
+
+    assert retained == b"A" * runner.MAX_LOG_BYTES
+    assert truncated is True
+    assert observed == runner.MAX_LOG_BYTES + 1
 
 
 def test_default_process_runner_closes_containment_after_normal_parent_exit(
@@ -2861,6 +3067,62 @@ def test_nonaccepted_exit_code_is_a_terminal_failure(tmp_path: Path) -> None:
     assert result["process"]["exit_code"] == 9
 
 
+def test_analysis_output_reference_closure_rejects_unreferenced_file(
+    tmp_path: Path,
+) -> None:
+    analysis = tmp_path / "analysis"
+    case_digest = "a" * 64
+    case_root = analysis / "cases" / case_digest
+    case_root.mkdir(parents=True)
+    for relative in (
+        "summary.json",
+        "follow-on-analysis.json",
+        "terminal-payload-acquisition.json",
+    ):
+        (analysis / relative).write_text("{}", encoding="utf-8")
+    (case_root / "report.json").write_text("{}", encoding="utf-8")
+    artifact = case_root / "static.json"
+    artifact.write_text("{}", encoding="utf-8")
+    reports = {
+        case_digest: {
+            "artifact_sha256": {
+                "static.json": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+            }
+        }
+    }
+
+    runner._validate_analysis_output_reference_closure(
+        analysis / "summary.json",
+        reports,
+    )
+
+    (analysis / "unreferenced.bin").write_bytes(b"not part of the sealed result")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_analysis_output_reference_closure(
+            analysis / "summary.json",
+            reports,
+        )
+
+    assert caught.value.code == "analysis_output_reference_mismatch"
+
+
+def test_analysis_output_content_manifest_binds_same_size_content(
+    tmp_path: Path,
+) -> None:
+    analysis = tmp_path / "analysis"
+    analysis.mkdir()
+    target = analysis / "result.bin"
+    target.write_bytes(b"before")
+
+    before = runner.analysis_output_content_manifest(analysis)
+    target.write_bytes(b"after!")
+    after = runner.analysis_output_content_manifest(analysis)
+
+    assert before["tree"] == after["tree"]
+    assert before != after
+    assert runner.analysis_output_content_sha256(before) != runner.analysis_output_content_sha256(after)
+
+
 def test_timeout_is_recorded_without_retry(tmp_path: Path) -> None:
     input_root, jobs_root = make_roots(tmp_path)
     request = runner.validate_request_object(request_value("job-timeout"))
@@ -2924,7 +3186,10 @@ def test_validate_job_performs_runtime_probe_without_job_write(
     assert not (jobs_root / "job-validate").exists()
 
 
-def test_real_analyzer_runs_with_sanitized_environment(tmp_path: Path) -> None:
+def test_real_analyzer_runs_with_sanitized_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     runner.validate_analyzer_runtime.cache_clear()
     try:
         runner.validate_analyzer_runtime()
@@ -2956,6 +3221,223 @@ def test_real_analyzer_runs_with_sanitized_environment(tmp_path: Path) -> None:
     assert result["safety"]["summary_safety_contract_verified"] is True
     assert result["safety"]["ai_used"] is False
     assert (jobs_root / "job-real-smoke" / "analysis" / "summary.json").is_file()
+
+    validation_temp = tmp_path / "existing-job-validation"
+    validation_temp.mkdir()
+    revalidated = runner.revalidate_completed_job(
+        jobs_root,
+        request,
+        temporary_root=validation_temp,
+        expected_timeout_seconds=60,
+    )
+    assert revalidated["result"] == result
+    assert revalidated["counts"] == result["counts"]
+
+    job_dir = jobs_root / "job-real-smoke"
+    status_path = job_dir / "status.json"
+    progress_path = job_dir / "progress.json"
+    result_path = job_dir / "result.json"
+    original_status = load_json(status_path)
+    original_progress = load_json(progress_path)
+    original_result = load_json(result_path)
+
+    transitional_status = deepcopy(original_status)
+    transitional_status.update(
+        {
+            "state": "running",
+            "terminal": False,
+            "finished_at_utc": None,
+            "result_path": None,
+        }
+    )
+    transitional_progress = {
+        "schema_version": original_progress["schema_version"],
+        "job_id": original_progress["job_id"],
+        "phase": "static_analysis",
+        "percent": 30,
+        "message": "オフライン静的解析を実行しています",
+        "updated_at_utc": original_progress["updated_at_utc"],
+        "total_files": 1,
+        "total_bytes": original_result["inputs"][0]["total_bytes"],
+    }
+    runner.atomic_json(status_path, transitional_status)
+    runner.atomic_json(progress_path, transitional_progress)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_incomplete"
+    runner.atomic_json(status_path, original_status)
+    runner.atomic_json(progress_path, original_progress)
+
+    forged_state = "partial" if original_result["analysis_state"] == "complete" else "complete"
+    forged_terminal = "completed_partial" if forged_state == "partial" else "completed"
+    forged_exit_code = 20 if forged_state == "partial" else 0
+    forged_status = deepcopy(original_status)
+    forged_status["state"] = forged_terminal
+    forged_progress = deepcopy(original_progress)
+    forged_progress["phase"] = forged_terminal
+    forged_result = deepcopy(original_result)
+    forged_result["analysis_state"] = forged_state
+    forged_result["process"]["exit_code"] = forged_exit_code
+    runner.atomic_json(status_path, forged_status)
+    runner.atomic_json(progress_path, forged_progress)
+    runner.atomic_json(result_path, forged_result)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_result_mismatch"
+    runner.atomic_json(status_path, original_status)
+    runner.atomic_json(progress_path, original_progress)
+    runner.atomic_json(result_path, original_result)
+
+    forged_progress = deepcopy(original_progress)
+    forged_progress["message"] = "改ざんされた完了メッセージ"
+    runner.atomic_json(progress_path, forged_progress)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+    )
+    assert caught.value.code == "existing_job_result_mismatch"
+    runner.atomic_json(progress_path, original_progress)
+
+    forged_result = deepcopy(original_result)
+    forged_result["inputs"][0]["total_bytes"] += 1
+    runner.atomic_json(result_path, forged_result)
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_result_mismatch"
+    runner.atomic_json(result_path, original_result)
+
+    stdout_path = job_dir / "stdout.log"
+    original_stdout = stdout_path.read_bytes()
+    stdout_path.write_bytes(original_stdout + b"tampered")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_result_mismatch"
+    stdout_path.write_bytes(original_stdout)
+
+    original_snapshot_reader = runner.read_job_snapshot
+    snapshot_reads = 0
+
+    def mutate_log_during_final_snapshot_read(
+        root: Path,
+        job_id: str,
+    ) -> dict[str, Any]:
+        nonlocal snapshot_reads
+        current = original_snapshot_reader(root, job_id)
+        snapshot_reads += 1
+        if snapshot_reads == 2:
+            private_stdout = Path(root) / job_id / "stdout.log"
+            os.chmod(private_stdout, stat.S_IREAD | stat.S_IWRITE)
+            private_stdout.write_bytes(original_stdout + b"changed-during-final-read")
+        return current
+
+    monkeypatch.setattr(
+        runner,
+        "read_job_snapshot",
+        mutate_log_during_final_snapshot_read,
+    )
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_state_changed"
+    assert snapshot_reads == 2
+    stdout_path.write_bytes(original_stdout)
+    monkeypatch.setattr(runner, "read_job_snapshot", original_snapshot_reader)
+
+    original_hash_file = runner._hash_analysis_output_file_once
+    private_stdout_hashes = 0
+    mutation_hash_index: int | None = None
+
+    def mutate_input_after_final_input_check(
+        path: Path,
+        *,
+        expected_size: int,
+    ) -> str:
+        nonlocal mutation_hash_index, private_stdout_hashes
+        digest = original_hash_file(path, expected_size=expected_size)
+        if (
+            path.name == "stdout.log"
+            and not runner._is_within(path, jobs_root.resolve())
+        ):
+            private_stdout_hashes += 1
+            if private_stdout_hashes == 4:
+                mutation_hash_index = private_stdout_hashes
+                sample_snapshot = next(
+                    item
+                    for item in (path.parent / "contract-inputs" / "samples").rglob("*")
+                    if item.is_file()
+                )
+                sample_payload = sample_snapshot.read_bytes()
+                os.chmod(sample_snapshot, stat.S_IREAD | stat.S_IWRITE)
+                sample_snapshot.write_bytes(sample_payload + b"cross-artifact-change")
+        return digest
+
+    monkeypatch.setattr(
+        runner,
+        "_hash_analysis_output_file_once",
+        mutate_input_after_final_input_check,
+    )
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+    )
+    assert caught.value.code == "existing_job_state_changed"
+    assert mutation_hash_index == 4
+    assert private_stdout_hashes >= 5
+    monkeypatch.setattr(
+        runner,
+        "_hash_analysis_output_file_once",
+        original_hash_file,
+    )
+
+    contract_path = job_dir / "contract-inputs" / "analysis-contract-bundle.json"
+    contract = load_json(contract_path)
+    contract["root_analysis_contract"]["sha256"] = "f" * 64
+    runner.atomic_json(contract_path, contract)
+    changed_result = load_json(job_dir / "result.json")
+    changed_result["artifacts"]["analysis_contract_bundle_sha256"] = hashlib.sha256(
+        contract_path.read_bytes()
+    ).hexdigest()
+    runner.atomic_json(job_dir / "result.json", changed_result)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner.revalidate_completed_job(
+            jobs_root,
+            request,
+            temporary_root=validation_temp,
+            expected_timeout_seconds=60,
+        )
+    assert caught.value.code == "existing_job_contract_invalid"
+    assert not any(validation_temp.iterdir())
 
 
 def test_input_snapshot_rejects_original_hardlink(tmp_path: Path) -> None:
@@ -3025,6 +3507,60 @@ def test_input_snapshot_detects_snapshot_mutation(tmp_path: Path) -> None:
     assert caught.value.code == "input_snapshot_changed"
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_input_snapshot_supports_windows_extended_length_destination(tmp_path: Path) -> None:
+    input_root = tmp_path / "inputs"
+    source = input_root / "set" / ("a" * 64 + ".zip")
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"long-path-snapshot")
+    value = request_value("j" * 64, archive_mode="malwarebazaar")
+    value["inputs"] = ["set"]
+    request = runner.validate_request_object(value)
+    job_dir = tmp_path / "jobs" / request.job_id
+    job_dir.mkdir(parents=True)
+    _, records = runner.validate_inputs(request, input_root.resolve())
+    expected_destination = (
+        job_dir / "contract-inputs" / "samples" / "000000" / source.name
+    )
+    assert len(os.fspath(expected_destination)) > 260
+
+    bundle = runner.stage_input_snapshots(
+        request,
+        records,
+        input_root=input_root.resolve(),
+        job_dir=job_dir,
+    )
+
+    assert bundle.inputs[0].path == expected_destination
+    assert runner._extended_length_path(bundle.inputs[0].path).read_bytes() == b"long-path-snapshot"
+    runner.verify_input_snapshot_bundle(bundle, job_dir=job_dir)
+    root_contract, follow_on_contract, manifest = runner.build_expected_analysis_bundle(
+        request,
+        [bundle.inputs[0].path],
+        job_dir / "analysis",
+        family_hint_manifest=None,
+    )
+    assert root_contract["schema_version"] == 1
+    assert follow_on_contract["schema_version"] == 1
+    assert [item.source_name for item in manifest] == [source.name]
+    argv = runner.build_analyzer_argv(request, [bundle.inputs[0].path], job_dir / "analysis")
+    assert Path(argv[argv.index("--input") + 1]) == runner._extended_length_path(
+        bundle.inputs[0].path
+    )
+    expected_output = runner._analysis_output_io_path(job_dir / "analysis")
+    assert Path(argv[argv.index("--output") + 1]) == expected_output
+    assert os.fspath(expected_output).startswith("\\\\?\\")
+    long_case = expected_output / "cases" / ("b" * 64)
+    long_case.mkdir(parents=True)
+    (long_case / "static-layers.json").write_text("{}\n", encoding="utf-8")
+    assert runner.validate_analysis_output_tree(expected_output) == {
+        "entries": 3,
+        "files": 1,
+        "directories": 2,
+        "total_bytes": 4,
+    }
+
+
 def test_input_snapshot_checks_required_capacity_before_copy(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3080,6 +3616,7 @@ def test_input_snapshot_flattens_same_names_without_collision(tmp_path: Path) ->
     assert [item.path.name for item in bundle.inputs] == ["same.bin", "same.bin"]
     assert bundle.inputs[0].path.parent != bundle.inputs[1].path.parent
     assert [item.path.parent.name for item in bundle.inputs] == ["000000", "000001"]
+    assert bundle.manifest_document["input_records"] == [item.public() for item in records]
     runner.verify_input_snapshot_bundle(bundle, job_dir=job_dir)
 
 
@@ -3118,6 +3655,174 @@ def test_malwarebazaar_snapshot_filters_zip_and_preserves_collect_order(
     ]
     assert [item.path.parent.name for item in bundle.inputs] == ["000000", "000001"]
     assert bundle.manifest_document["file_count"] == 2
+    assert bundle.manifest_document["input_records"] == [item.public() for item in records]
+    inventory = bundle.manifest_document["source_inventory"][0]
+    assert inventory["input_index"] == 0
+    assert inventory["relative_path"] == "set"
+    assert len(inventory["files"]) == 3
+    ignored = next(
+        item for item in inventory["files"] if item["source_relative_path"] == "set/a/ignored.txt"
+    )
+    assert ignored["size"] == len(fixtures["set/a/ignored.txt"])
+    assert ignored["sha256"] == hashlib.sha256(fixtures["set/a/ignored.txt"]).hexdigest()
+    ignored_snapshot = job_dir.joinpath(*PurePosixPath(ignored["snapshot_relative_path"]).parts)
+    assert ignored_snapshot.read_bytes() == fixtures["set/a/ignored.txt"]
+    noncanonical = deepcopy(bundle.manifest_document)
+    noncanonical["source_inventory"][0]["files"].reverse()
+    runner.atomic_json(bundle.manifest_path, noncanonical)
+    artifacts = {
+        "input_snapshot_manifest": bundle.manifest_relative_path,
+        "input_snapshot_manifest_sha256": hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest(),
+    }
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+    assert caught.value.code == "input_snapshot_changed"
+
+
+def test_rehydrate_rejects_coherent_ignored_inventory_manifest_rewrite(
+    tmp_path: Path,
+) -> None:
+    input_root = tmp_path / "inputs"
+    fixtures = {
+        "set/selected.zip": b"selected",
+        "set/ignored.txt": b"ignored",
+    }
+    for relative, payload in fixtures.items():
+        path = input_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    value = request_value("job-ignored-inventory-rewrite", archive_mode="malwarebazaar")
+    value["inputs"] = ["set"]
+    request = runner.validate_request_object(value)
+    _, records = runner.validate_inputs(request, input_root.resolve())
+    job_dir = tmp_path / "jobs" / request.job_id
+    job_dir.mkdir(parents=True)
+    bundle = runner.stage_input_snapshots(
+        request,
+        records,
+        input_root=input_root.resolve(),
+        job_dir=job_dir,
+    )
+    forged = deepcopy(bundle.manifest_document)
+    ignored = next(
+        item
+        for item in forged["source_inventory"][0]["files"]
+        if item["source_relative_path"] == "set/ignored.txt"
+    )
+    forged_payload = b"coherently-forged-ignored-input"
+    size_delta = len(forged_payload) - ignored["size"]
+    ignored["size"] = len(forged_payload)
+    ignored["sha256"] = hashlib.sha256(forged_payload).hexdigest()
+    forged["input_records"][0]["total_bytes"] += size_delta
+    runner.atomic_json(bundle.manifest_path, forged)
+    artifacts = {
+        "input_snapshot_manifest": bundle.manifest_relative_path,
+        "input_snapshot_manifest_sha256": hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest(),
+    }
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+
+    assert caught.value.code == "input_snapshot_changed"
+
+
+def test_rehydrate_input_snapshot_rejects_input_record_not_bound_to_inventory(
+    tmp_path: Path,
+) -> None:
+    input_root, _ = make_roots(tmp_path, data=b"inventory")
+    request = runner.validate_request_object(request_value("job-inventory-rehydrate"))
+    _, records = runner.validate_inputs(request, input_root.resolve())
+    job_dir = tmp_path / "jobs" / request.job_id
+    job_dir.mkdir(parents=True)
+    bundle = runner.stage_input_snapshots(
+        request,
+        records,
+        input_root=input_root.resolve(),
+        job_dir=job_dir,
+    )
+    forged = deepcopy(bundle.manifest_document)
+    forged["input_records"][0]["total_bytes"] += 1
+    runner.atomic_json(bundle.manifest_path, forged)
+    artifacts = {
+        "input_snapshot_manifest": bundle.manifest_relative_path,
+        "input_snapshot_manifest_sha256": hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest(),
+    }
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+
+    assert caught.value.code == "input_snapshot_changed"
+
+
+def test_rehydrate_input_snapshot_accepts_windows_case_equivalent_owner(
+    tmp_path: Path,
+) -> None:
+    input_root, _ = make_roots(tmp_path, data=b"case-equivalent")
+    request = runner.validate_request_object(request_value("job-case-equivalent"))
+    _, records = runner.validate_inputs(request, input_root.resolve())
+    job_dir = tmp_path / "jobs" / request.job_id
+    job_dir.mkdir(parents=True)
+    bundle = runner.stage_input_snapshots(
+        request,
+        records,
+        input_root=input_root.resolve(),
+        job_dir=job_dir,
+    )
+    case_equivalent = deepcopy(bundle.manifest_document)
+    case_equivalent["source_inventory"][0]["files"][0]["source_relative_path"] = (
+        "SET/sample.bin"
+    )
+    case_equivalent["files"][0]["source_relative_path"] = "SET/sample.bin"
+    runner.atomic_json(bundle.manifest_path, case_equivalent)
+    artifacts = {
+        "input_snapshot_manifest": bundle.manifest_relative_path,
+        "input_snapshot_manifest_sha256": hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest(),
+    }
+
+    rehydrated = runner._rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+
+    assert rehydrated.inputs[0].source_relative_path == "SET/sample.bin"
+
+
+def test_rehydrate_input_snapshot_rejects_casefold_duplicate_source_inventory(
+    tmp_path: Path,
+) -> None:
+    """大文字小文字だけが異なるsource identityの重複を拒否する。"""
+
+    input_root, _ = make_roots(tmp_path, data=b"first")
+    (input_root / "set" / "second.bin").write_bytes(b"second")
+    value = request_value("job-casefold-duplicate")
+    value["inputs"] = ["set"]
+    request = runner.validate_request_object(value)
+    _, records = runner.validate_inputs(request, input_root.resolve())
+    job_dir = tmp_path / "jobs" / request.job_id
+    job_dir.mkdir(parents=True)
+    bundle = runner.stage_input_snapshots(
+        request,
+        records,
+        input_root=input_root.resolve(),
+        job_dir=job_dir,
+    )
+    forged = deepcopy(bundle.manifest_document)
+    inventory_files = forged["source_inventory"][0]["files"]
+    inventory_files[1]["source_relative_path"] = inventory_files[0][
+        "source_relative_path"
+    ].upper()
+    assert (
+        inventory_files[0]["source_relative_path"].casefold()
+        == inventory_files[1]["source_relative_path"].casefold()
+    )
+    runner.atomic_json(bundle.manifest_path, forged)
+    artifacts = {
+        "input_snapshot_manifest": bundle.manifest_relative_path,
+        "input_snapshot_manifest_sha256": hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest(),
+    }
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
+
+    assert caught.value.code == "input_snapshot_changed"
+    assert "入力source identity fieldが不正です" in str(caught.value)
 
 
 def test_production_workers_receive_only_job_private_snapshots(
@@ -3175,7 +3880,9 @@ def test_production_workers_receive_only_job_private_snapshots(
 
     expected_root = jobs_root / request.job_id / "contract-inputs" / "samples"
     assert exit_code == 2
-    assert captured["bundle"] == captured["analyzer"]
+    assert captured["analyzer"] == [
+        runner._extended_length_path(path) for path in captured["bundle"]
+    ]
     assert all(path.is_relative_to(expected_root) for path in captured["bundle"])
     assert (input_root / "set" / "sample.bin").resolve() not in captured["bundle"]
     result = load_json(jobs_root / request.job_id / "result.json")

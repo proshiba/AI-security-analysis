@@ -13,7 +13,7 @@ COMMON = FRAMEWORK / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from automation_coverage import (
+from automation_coverage import (  # noqa: E402
     QUALITY_POLICY_CATEGORIES,
     _load_quality_policies,
     _registered_families,
@@ -137,20 +137,49 @@ def test_audit_is_complete_and_matches_loaded_policies() -> None:
             assert (REPOSITORY / relative).is_file(), relative
 
 
-def test_every_safe_automatic_family_has_a_quality_policy() -> None:
-    """既存の安全preflight済み82 familyにpolicy漏れがないことを検証する。"""
+def test_registry_policy_and_generated_coverage_sets_are_consistent() -> None:
+    """registry・品質policy・生成済みcoverageの集合契約を検証する。"""
 
     policies = _load_quality_policies(POLICY)
-    coverage = _load_coverage()
-    safe_families = {
-        item["family"]
-        for item in coverage["families"]
-        if item["script_only_handler_available"] is True
-    }
-    assert len(safe_families) == 82
-    assert len(policies) == 84
-    # Efimer/Prometeiは既存preflight blockerがあるため安全対象から除外し、再有効化用policyだけ保持する。
-    assert set(policies) - {"efimer", "prometei"} == safe_families
-
     registered = _registered_families(REGISTRY)
-    assert safe_families & registered <= set(policies)
+    coverage = _load_coverage()
+    rows = coverage.get("families")
+    assert isinstance(rows, list)
+    assert all(isinstance(item, dict) for item in rows)
+
+    family_names = [item.get("family") for item in rows]
+    assert all(isinstance(family, str) and family for family in family_names)
+    assert len(family_names) == len(set(family_names))
+    coverage_families = set(family_names)
+
+    # detectorまたは品質policyを追加したのに生成物を更新し忘れた場合はfail-closedにする。
+    assert registered <= coverage_families
+    assert set(policies) <= coverage_families
+
+    safe_families: set[str] = set()
+    for item in rows:
+        family = item["family"]
+        detector_registered = item.get("detector_registered")
+        policy_declared = item.get("quality_policy_declared")
+        safe_handler = item.get("script_only_handler_available")
+        structurally_routable = item.get("structurally_routable")
+        assert type(detector_registered) is bool
+        assert type(policy_declared) is bool
+        assert type(safe_handler) is bool
+        assert type(structurally_routable) is bool
+        assert detector_registered is (family in registered)
+        assert policy_declared is (family in policies)
+        assert item.get("quality_policy") == policies.get(family)
+        assert structurally_routable is (detector_registered and policy_declared and safe_handler)
+        if safe_handler:
+            safe_families.add(family)
+
+    # 安全handlerへ昇格したfamilyは、解析完結条件が未定義のままになってはならない。
+    assert safe_families <= set(policies)
+
+    counts = coverage.get("counts")
+    assert isinstance(counts, dict)
+    assert counts.get("families") == len(rows)
+    assert counts.get("detector_registered") == len(registered)
+    assert counts.get("quality_policy_declared") == len(policies)
+    assert counts.get("script_only_handler_available") == len(safe_families)

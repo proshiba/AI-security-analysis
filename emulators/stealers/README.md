@@ -18,9 +18,12 @@ FormBookのterminal wire protocolは一般化していません。review済みXL
 ## 安全境界
 
 - bind先、client接続先、accepted peerをloopbackへ限定します。
-- redirectを追跡しません。
+- IPv4／IPv6のliteral loopbackだけを許可し、credential、追加path、query、fragment付きbase URLを拒否します。
+- redirectを追跡せず、環境変数のHTTP proxyも使用しません。
 - 1 connectionにつき1 requestだけを処理します。
 - request bodyは64 KiB以下に限定し、宣言長と実長を検証します。
+- responseも64 KiB以下に限定し、familyごとにstatus、Content-Type、固定合成bodyを完全照合します。
+- JSONの重複key、非標準数値、formの非ASCII byte、未知fieldを拒否します。
 - hostname、username、file、tokenなどの実被害端末情報を送信しません。
 - task、command、payload、plugin、configを返しません。
 - request logと本文を保存しません。
@@ -29,8 +32,8 @@ FormBookのterminal wire protocolは一般化していません。review済みXL
 
 ```powershell
 py -3.13 .\emulators\stealers\lab.py server --host 127.0.0.1 --port 18080
-py -3.13 .\emulators\stealers\lab.py client --family stealc --base-url http://127.0.0.1:18080
+py -3.13 .\emulators\stealers\lab.py client --family stealc --base-url http://127.0.0.1:18080 --timeout 5
 py -3.13 .\emulators\stealers\lab.py client --family amosstealer --base-url http://127.0.0.1:18080
 ```
 
-clientのJSON結果では`c2_confirmed=false`、`commands_returned=false`、`network_scope=loopback_only`を常に確認できます。
+clientのJSON結果では`c2_confirmed=false`、`commands_returned=false`、`network_scope=loopback_only`、`proxy_used=false`を常に確認できます。`responses_validated=true`はlocal fixtureがfamily別の固定応答契約と一致したことだけを示し、実C2確認ではありません。`response_bytes`には本文を残さず応答sizeだけを記録します。
