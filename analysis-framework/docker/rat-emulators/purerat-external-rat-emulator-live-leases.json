@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "profile_registry": {
+    "source": "analysis-framework/common/rat_emulator_profiles.json",
+    "sha256": "02427b609d0021febc1b5448951c485967180ac8de50eec6ab7abbe7fc3b83a6"
+  },
+  "leases": [
+    {
+      "profile_id": "purerat-441-d025a296-direct-tls10-empty-gclass4",
+      "reviewed_at_utc": "2026-08-26T08:29:00Z",
+      "expires_at_utc": "2026-08-27T08:29:00Z",
+      "review_owner": "security-analysis-review"
+    }
+  ]
+}

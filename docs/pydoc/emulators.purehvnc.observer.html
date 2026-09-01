@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module emulators.purehvnc.observer</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="emulators.html" class="white">emulators</a>.<a href="emulators.purehvnc.html" class="white">purehvnc</a>.observer</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/home/operator/lab-workspace/AI-security-analysis/emulators/purehvnc/observer.py">/home/operator/lab-workspace/AI-security-analysis/emulators/purehvnc/observer.py</a></td></tr></table>
+    <p><span class="code">PureRATのapplication&nbsp;frameを長時間待ち受けるloopback限定observer。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="gzip.html">gzip</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
+<a href="socket.html">socket</a><br>
+</td><td class="multicolumn"><a href="stat.html">stat</a><br>
+<a href="struct.html">struct</a><br>
+<a href="time.html">time</a><br>
+</td><td class="multicolumn"><a href="zlib.html">zlib</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="emulators.purehvnc.observer.html#ObserverError">ObserverError</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="emulators.purehvnc.observer.html#FrameObservation">FrameObservation</a>
+</dt><dt class="heading-text"><a href="emulators.purehvnc.observer.html#KillSwitch">KillSwitch</a>
+</dt><dt class="heading-text"><a href="emulators.purehvnc.observer.html#ObservationPolicy">ObservationPolicy</a>
+</dt><dt class="heading-text"><a href="emulators.purehvnc.observer.html#ObservationResult">ObservationResult</a>
+</dt><dt class="heading-text"><a href="emulators.purehvnc.observer.html#RotatingJsonlLogger">RotatingJsonlLogger</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="emulators.purehvnc.observer.html#ObserverStream">ObserverStream</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="FrameObservation">class <strong>FrameObservation</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#FrameObservation">FrameObservation</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;discriminator:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;message_type:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;classification:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;action:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;frame_size:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;frame_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;decoded_size:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;decoded_sha256:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;terminate_session:&nbsp;'bool'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+raw&nbsp;command本文を保持しない1&nbsp;frameの観測結果。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="FrameObservation-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-__init__"><strong>__init__</strong></a>(
+    self,
+    discriminator: 'int',
+    message_type: 'str',
+    classification: 'str',
+    action: 'str',
+    frame_size: 'int',
+    frame_sha256: 'str',
+    decoded_size: 'int',
+    decoded_sha256: 'str',
+    terminate_session: 'bool'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="FrameObservation-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="FrameObservation-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'action': 'str', 'classification': 'str', 'decoded_sha256': 'str', 'decoded_size': 'int', 'discriminator': 'int', 'frame_sha256': 'str', 'frame_size': 'int', 'message_type': 'str', 'terminate_session': 'bool'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'action': Field(name='action',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'classification': Field(name='classification',type='str',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'decoded_sha256': Field(name='decoded_sha256',type='str',default=&lt;...appingproxy({}),kw_only=False,_field_type=_FIELD), 'decoded_size': Field(name='decoded_size',type='int',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'discriminator': Field(name='discriminator',type='int',default=&lt;d...appingproxy({}),kw_only=False,_field_type=_FIELD), 'frame_sha256': Field(name='frame_sha256',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'frame_size': Field(name='frame_size',type='int',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'message_type': Field(name='message_type',type='str',default=&lt;da...appingproxy({}),kw_only=False,_field_type=_FIELD), 'terminate_session': Field(name='terminate_session',type='bool',defau...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('discriminator', 'message_type', 'classification', 'action', 'frame_size', 'frame_sha256', 'decoded_size', 'decoded_sha256', 'terminate_session')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KillSwitch">class <strong>KillSwitch</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KillSwitch">KillSwitch</a>(path:&nbsp;'Path')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+同一の通常fileが存在する間だけ観測を継続する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="KillSwitch-__init__"><strong>__init__</strong></a>(self, path: 'Path') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="KillSwitch-released"><strong>released</strong></a>(self) -&gt; 'bool'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObservationPolicy">class <strong>ObservationPolicy</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ObservationPolicy">ObservationPolicy</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;duration_seconds:&nbsp;'float'&nbsp;=&nbsp;3600.0,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maximum_frames:&nbsp;'int'&nbsp;=&nbsp;1024,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maximum_frame_bytes:&nbsp;'int'&nbsp;=&nbsp;65536,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maximum_total_bytes:&nbsp;'int'&nbsp;=&nbsp;16777216,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;poll_seconds:&nbsp;'float'&nbsp;=&nbsp;1.0<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+長時間観測を無限稼働にしないための固定上限。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ObservationPolicy-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ObservationPolicy-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ObservationPolicy-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ObservationPolicy-__init__"><strong>__init__</strong></a>(
+    self,
+    duration_seconds: 'float' = 3600.0,
+    maximum_frames: 'int' = 1024,
+    maximum_frame_bytes: 'int' = 65536,
+    maximum_total_bytes: 'int' = 16777216,
+    poll_seconds: 'float' = 1.0
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ObservationPolicy-__post_init__"><strong>__post_init__</strong></a>(self) -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="ObservationPolicy-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="ObservationPolicy-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ObservationPolicy-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'duration_seconds': 'float', 'maximum_frame_bytes': 'int', 'maximum_frames': 'int', 'maximum_total_bytes': 'int', 'poll_seconds': 'float'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'duration_seconds': Field(name='duration_seconds',type='float',defau...appingproxy({}),kw_only=False,_field_type=_FIELD), 'maximum_frame_bytes': Field(name='maximum_frame_bytes',type='int',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'maximum_frames': Field(name='maximum_frames',type='int',default=1...appingproxy({}),kw_only=False,_field_type=_FIELD), 'maximum_total_bytes': Field(name='maximum_total_bytes',type='int',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'poll_seconds': Field(name='poll_seconds',type='float',default=1...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('duration_seconds', 'maximum_frames', 'maximum_frame_bytes', 'maximum_total_bytes', 'poll_seconds')</dl>
+
+<dl><dt><strong>duration_seconds</strong> = 3600.0</dl>
+
+<dl><dt><strong>maximum_frame_bytes</strong> = 65536</dl>
+
+<dl><dt><strong>maximum_frames</strong> = 1024</dl>
+
+<dl><dt><strong>maximum_total_bytes</strong> = 16777216</dl>
+
+<dl><dt><strong>poll_seconds</strong> = 1.0</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObservationResult">class <strong>ObservationResult</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ObservationResult">ObservationResult</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;status:&nbsp;'str',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;started_monotonic:&nbsp;'float',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ended_monotonic:&nbsp;'float',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;registration_frame:&nbsp;'bytes',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observations:&nbsp;'tuple[<a href="#FrameObservation">FrameObservation</a>,&nbsp;...]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;total_inbound_bytes:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;read_calls:&nbsp;'int',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;idle_polls:&nbsp;'int'<br>
+)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+長時間loopback&nbsp;sessionの公開可能な要約。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ObservationResult-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-__init__"><strong>__init__</strong></a>(
+    self,
+    status: 'str',
+    started_monotonic: 'float',
+    ended_monotonic: 'float',
+    registration_frame: 'bytes',
+    observations: 'tuple[FrameObservation, ...]',
+    total_inbound_bytes: 'int',
+    read_calls: 'int',
+    idle_polls: 'int'
+) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
+
+<dl><dt><a name="ObservationResult-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
+
+<dl><dt><a name="ObservationResult-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__annotations__</strong> = {'ended_monotonic': 'float', 'idle_polls': 'int', 'observations': 'tuple[FrameObservation, ...]', 'read_calls': 'int', 'registration_frame': 'bytes', 'started_monotonic': 'float', 'status': 'str', 'total_inbound_bytes': 'int'}</dl>
+
+<dl><dt><strong>__dataclass_fields__</strong> = {'ended_monotonic': Field(name='ended_monotonic',type='float',defaul...appingproxy({}),kw_only=False,_field_type=_FIELD), 'idle_polls': Field(name='idle_polls',type='int',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'observations': Field(name='observations',type='tuple[FrameObser...appingproxy({}),kw_only=False,_field_type=_FIELD), 'read_calls': Field(name='read_calls',type='int',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'registration_frame': Field(name='registration_frame',type='bytes',def...appingproxy({}),kw_only=False,_field_type=_FIELD), 'started_monotonic': Field(name='started_monotonic',type='float',defa...appingproxy({}),kw_only=False,_field_type=_FIELD), 'status': Field(name='status',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'total_inbound_bytes': Field(name='total_inbound_bytes',type='int',defa...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
+
+<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
+
+<dl><dt><strong>__match_args__</strong> = ('status', 'started_monotonic', 'ended_monotonic', 'registration_frame', 'observations', 'total_inbound_bytes', 'read_calls', 'idle_polls')</dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObserverError">class <strong>ObserverError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">observerが契約外frameまたは安全上限で停止したことを表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="emulators.purehvnc.observer.html#ObserverError">ObserverError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="ObserverError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="ObserverError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ObserverError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ObserverError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ObserverError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ObserverError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="ObserverError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ObserverError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ObserverError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ObserverError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ObserverError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObserverStream">class <strong>ObserverStream</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ObserverStream">ObserverStream</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+socketとtest&nbsp;fixtureが実装する最小stream契約。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="emulators.purehvnc.observer.html#ObserverStream">ObserverStream</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="ObserverStream-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="ObserverStream-recv"><strong>recv</strong></a>(self, maximum_bytes: 'int') -&gt; 'bytes'</dt></dl>
+
+<dl><dt><a name="ObserverStream-sendall"><strong>sendall</strong></a>(self, data: 'bytes') -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="ObserverStream-settimeout"><strong>settimeout</strong></a>(self, timeout_seconds: 'float') -&gt; 'None'</dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="ObserverStream-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'recv', 'sendall', 'settimeout'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="ObserverStream-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="ObserverStream-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is&nbsp;called<br>
+when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and&nbsp;`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RotatingJsonlLogger">class <strong>RotatingJsonlLogger</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RotatingJsonlLogger">RotatingJsonlLogger</a>(path:&nbsp;'Path',&nbsp;*,&nbsp;maximum_bytes:&nbsp;'int',&nbsp;backups:&nbsp;'int'&nbsp;=&nbsp;3)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+raw&nbsp;payloadを受け取らない小容量JSONL&nbsp;logger。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RotatingJsonlLogger-__call__"><strong>__call__</strong></a>(self, event: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">Call&nbsp;self&nbsp;as&nbsp;a&nbsp;function.</span></dd></dl>
+
+<dl><dt><a name="RotatingJsonlLogger-__init__"><strong>__init__</strong></a>(self, path: 'Path', *, maximum_bytes: 'int', backups: 'int' = 3) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_empty_registration_frame"><strong>build_empty_registration_frame</strong></a>() -&gt; 'bytes'</dt><dd><span class="code">匿名の空GClass4をLE32／GZip&nbsp;frameへ変換する。</span></dd></dl>
+ <dl><dt><a name="-build_fixture_frame"><strong>build_fixture_frame</strong></a>(payload: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">offline／loopback&nbsp;test専用のLE32／GZip&nbsp;frameを構築する。</span></dd></dl>
+ <dl><dt><a name="-classify_frame"><strong>classify_frame</strong></a>(raw_frame: 'bytes', *, maximum_frame_bytes: 'int') -&gt; 'FrameObservation'</dt><dd><span class="code">frame本文を返さず、最初のprotobuf&nbsp;fieldだけを分類する。</span></dd></dl>
+ <dl><dt><a name="-connect_loopback"><strong>connect_loopback</strong></a>(host: 'str', port: 'int', *, timeout: 'float') -&gt; 'socket.socket'</dt><dd><span class="code">DNSを使わずnumeric&nbsp;loopbackへ1回だけ接続する。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">loopback&nbsp;observer&nbsp;CLIを起動し、終了時に公開要約を表示する。</span></dd></dl>
+ <dl><dt><a name="-observe_connected_stream"><strong>observe_connected_stream</strong></a>(
+    stream: 'ObserverStream',
+    *,
+    policy: 'ObservationPolicy | None' = None,
+    stop_requested: 'Callable[[], bool] | None' = None,
+    event_callback: 'Callable[[dict[str, Any]], None] | None' = None,
+    monotonic: 'Callable[[], float]' = &lt;built-in function monotonic&gt;
+) -&gt; 'ObservationResult'</dt><dd><span class="code">既にloopbackへ接続済みのstreamを単一sessionだけ観測する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ABSOLUTE_MAXIMUM_FRAMES</strong> = 4096<br>
+<strong>ABSOLUTE_MAXIMUM_FRAME_BYTES</strong> = 1048576<br>
+<strong>ABSOLUTE_MAXIMUM_TOTAL_BYTES</strong> = 67108864<br>
+<strong>DEFAULT_DURATION_SECONDS</strong> = 3600.0<br>
+<strong>DEFAULT_MAXIMUM_FRAMES</strong> = 1024<br>
+<strong>DEFAULT_MAXIMUM_FRAME_BYTES</strong> = 65536<br>
+<strong>DEFAULT_MAXIMUM_TOTAL_BYTES</strong> = 16777216<br>
+<strong>DEFAULT_POLL_SECONDS</strong> = 1.0<br>
+<strong>EMPTY_GCLASS4_PROTOBUF</strong> = b'\n\x00'<br>
+<strong>MAXIMUM_DURATION_SECONDS</strong> = 86400<br>
+<strong>MAXIMUM_READ_CALLS</strong> = 1000000</td></tr></table>
+</body></html>

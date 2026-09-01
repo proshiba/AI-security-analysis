@@ -35,6 +35,7 @@ ALLOWED_ADAPTERS = frozenset(
         "purerat_direct_tls_v1",
         "tls_messagepack_rat_host",
         "valleyrat_n520_v1",
+        "valleyrat_winos_external_v1",
         "valleyrat_winos_v1",
     }
 )
@@ -42,7 +43,7 @@ ALLOWED_LIVE_SCOPES = frozenset(
     {"leased_external", "offline_or_loopback_only"}
 )
 OFFLINE_ONLY_ADAPTERS = frozenset(
-    {"purerat_direct_tls_v1", "valleyrat_winos_v1"}
+    {"valleyrat_winos_v1"}
 )
 
 PROFILE_KEYS = {
@@ -172,11 +173,11 @@ def _validate_limits(value: object) -> dict[str, int | float]:
         "maximum_connections": (1, 1),
         "maximum_outbound_frames": (1, 16),
         "maximum_outbound_bytes": (1, 64 * 1024),
-        "maximum_inbound_frames": (1, 64),
-        "maximum_inbound_read_calls": (2, 4096),
+        "maximum_inbound_frames": (1, 256),
+        "maximum_inbound_read_calls": (2, 65_536),
         "maximum_inbound_bytes": (1, 1024 * 1024),
         "maximum_frame_bytes": (1, 64 * 1024),
-        "maximum_commands": (1, 16),
+        "maximum_commands": (1, 256),
     }
     normalized: dict[str, int | float] = {}
     for name, (minimum, maximum) in integer_bounds.items():
@@ -186,8 +187,8 @@ def _validate_limits(value: object) -> dict[str, int | float]:
         normalized[name] = item
     duration = value.get("duration_seconds")
     interval = value.get("minimum_send_interval_seconds")
-    if type(duration) is not float or not 1.0 <= duration <= 300.0:
-        raise RatEmulatorProfileError("duration_secondsは1.0～300.0秒に限定します")
+    if type(duration) is not float or not 1.0 <= duration <= 28_800.0:
+        raise RatEmulatorProfileError("duration_secondsは1.0秒～8時間に限定します")
     if type(interval) is not float or not 0.0 <= interval <= 60.0:
         raise RatEmulatorProfileError("minimum_send_interval_secondsは1.0秒以上に限定します")
     if normalized["maximum_frame_bytes"] > normalized["maximum_inbound_bytes"]:
@@ -326,7 +327,7 @@ def _validate_winos_evidence(
     protocol_profile: Mapping[str, Any],
     raw: bytes,
 ) -> None:
-    """control-only C9 heartbeatの公開証拠を完全一致で検証する。"""
+    """C9 heartbeatのendpoint固定公開証拠を完全一致で検証する。"""
 
     try:
         document = decode_strict_json(raw)
@@ -334,13 +335,74 @@ def _validate_winos_evidence(
         raise RatEmulatorProfileError(f"Winos evidence JSONが不正です: {exc}") from exc
     if not isinstance(document, dict):
         raise RatEmulatorProfileError("Winos evidenceはobjectである必要があります")
+    safety = document.get("safety")
+    if not isinstance(safety, dict):
+        raise RatEmulatorProfileError("Winos evidenceの必須sectionがありません")
+    endpoint = f"{profile['host']}:{profile['port']}"
+    if profile.get("adapter_id") == "valleyrat_winos_external_v1":
+        endpoints = document.get("endpoints")
+        sandbox = document.get("sandbox_evidence")
+        matched = [
+            item
+            for item in endpoints or []
+            if isinstance(item, dict) and item.get("value") == endpoint
+        ]
+        item = matched[0] if len(matched) == 1 else {}
+        live_check = item.get("live_check")
+        if (
+            document.get("schema_version") != 1
+            or document.get("case_id")
+            != "sha256:6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+            or document.get("observed_at") != "2026-08-10"
+            or not isinstance(sandbox, dict)
+            or sandbox.get("protocol") != "Winos custom TCP"
+            or protocol_profile.get("profile_id")
+            != "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666"
+            or protocol_profile.get("protocol") != "winos"
+            or protocol_profile.get("method") != "winos_heartbeat"
+            or protocol_profile.get("handler") != "valleyrat_winos_reviewed"
+            or protocol_profile.get("channel_role") != "stage_and_control"
+            or protocol_profile.get("pinned_ips") != profile["pinned_ips"]
+            or protocol_profile.get("maximum_response_bytes") != 64
+            or len(matched) != 1
+            or item.get("host") != profile["host"]
+            or item.get("port") != profile["port"]
+            or item.get("observed_role") != "control_failover"
+            or item.get("pcap_observed") is not True
+            or not isinstance(live_check, dict)
+            or live_check.get("tool")
+            != "analysis-framework/nmap/scripts/valleyrat-c2.nse"
+            or live_check.get("mode") != "winos"
+            or live_check.get("request") != "15-byte minimal heartbeat"
+            or live_check.get("response_length") != 16
+            or live_check.get("declared_length") != 16
+            or live_check.get("decrypted_command") != "0xc9"
+            or live_check.get("tcp_open") is not True
+            or live_check.get("c2_confirmed") is not True
+            or live_check.get("confidence") != 0.95
+            or any(
+                live_check.get(key) is not False
+                for key in (
+                    "stage_requested",
+                    "victim_metadata_sent",
+                    "operation_command_sent",
+                )
+            )
+            or safety.get("sample_executed_locally") is not False
+            or safety.get("pcap_replayed_to_live_host") is not False
+            or safety.get("raw_victim_metadata_published") is not False
+            or safety.get("live_check_was_minimal") is not True
+        ):
+            raise RatEmulatorProfileError(
+                "Winos external evidenceとemulator profileが一致しません"
+            )
+        return
+
     stage = document.get("stage_flow")
     control = document.get("control_flow")
     live = document.get("live")
-    safety = document.get("safety")
-    if not all(isinstance(value, dict) for value in (stage, control, live, safety)):
+    if not all(isinstance(value, dict) for value in (stage, control, live)):
         raise RatEmulatorProfileError("Winos evidenceの必須sectionがありません")
-    endpoint = f"{profile['host']}:{profile['port']}"
     if (
         document.get("schema_version") != 1
         or document.get("protocol") != "winos_custom_tcp"
@@ -432,7 +494,12 @@ def _validate_purerat_evidence(
             "0x06000090": "69e69fa120d5e6f2c0d20bcd5268f1346d0ce818c83c012d5a9e300359181e5d",
             "0x060000b3": "0248e2025ac399ebb40d7205a414a9394c4fd9d998c5ceb6b2a1abf38e4cc743",
         }
-        or synthetic.get("scope") != "offline_or_loopback_only"
+        or synthetic.get("scope")
+        != (
+            "leased_external_exact_profile"
+            if profile.get("live_scope") == "leased_external"
+            else "offline_or_loopback_only"
+        )
         or synthetic.get("real_identity_fields_populated") != 0
         or synthetic.get("protobuf_hex") != "0a00"
         or synthetic.get("protobuf_size") != 2
@@ -442,6 +509,8 @@ def _validate_purerat_evidence(
         or synthetic.get("deterministic_frame_sha256")
         != "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
         or safety.get("loopback_registration_supported") is not True
+        or safety.get("live_registration_allowed")
+        is not (profile.get("live_scope") == "leased_external")
         or any(
             safety.get(key) is not False
             for key in (
@@ -452,7 +521,6 @@ def _validate_purerat_evidence(
                 "pfx_published",
                 "private_key_published",
                 "client_certificate_used",
-                "live_registration_allowed",
             )
         )
     ):
@@ -508,15 +576,19 @@ def _validate_profile(
     if type(live_scope) is not str or live_scope not in ALLOWED_LIVE_SCOPES:
         raise RatEmulatorProfileError("live_scopeが欠落または未レビューです")
     expected_live_scope = (
-        "offline_or_loopback_only"
-        if adapter_id in OFFLINE_ONLY_ADAPTERS
-        else "leased_external"
+        {"offline_or_loopback_only", "leased_external"}
+        if adapter_id == "purerat_direct_tls_v1"
+        else {
+            "offline_or_loopback_only"
+            if adapter_id in OFFLINE_ONLY_ADAPTERS
+            else "leased_external"
+        }
     )
-    if live_scope != expected_live_scope:
+    if live_scope not in expected_live_scope:
         raise RatEmulatorProfileError("adapterとlive_scopeの安全境界が一致しません")
 
     certificate = profile.get("expected_certificate_sha256")
-    if adapter_id == "valleyrat_winos_v1":
+    if adapter_id in {"valleyrat_winos_external_v1", "valleyrat_winos_v1"}:
         transport_valid = (
             profile.get("transport") == "raw_tcp"
             and profile.get("tls_version") is None
@@ -547,12 +619,14 @@ def _validate_profile(
     registration_modes = {
         "purerat_direct_tls_v1": "fixed_empty_gclass4",
         "valleyrat_n520_v1": "empty_command_1",
+        "valleyrat_winos_external_v1": "fixed_c9_heartbeat",
         "valleyrat_winos_v1": "fixed_c9_heartbeat",
         "tls_messagepack_rat_host": "synthetic_client_info",
     }
     fake_result_scopes = {
         "purerat_direct_tls_v1": "loopback_or_offline_only",
         "valleyrat_n520_v1": "loopback_or_offline_only",
+        "valleyrat_winos_external_v1": "loopback_or_offline_only",
         "valleyrat_winos_v1": "loopback_or_offline_only",
         "tls_messagepack_rat_host": "reviewed_heartbeat_request_only",
     }
@@ -572,6 +646,7 @@ def _validate_profile(
         adapter_id in {
             "purerat_direct_tls_v1",
             "valleyrat_n520_v1",
+            "valleyrat_winos_external_v1",
             "valleyrat_winos_v1",
         }
         and limits["maximum_outbound_frames"] != 1
@@ -611,6 +686,13 @@ def _validate_profile(
             raise RatEmulatorProfileError("TLS MessagePack limits exceed the reviewed session")
         _validate_tls_messagepack_evidence(profile, protocol_profile, evidence)
     elif adapter_id == "purerat_direct_tls_v1":
+        expected_evidence_source = (
+            "analysis-framework/malware/purehvnc/"
+            "purerat_441_external_observer_evidence.json"
+            if live_scope == "leased_external"
+            else "analysis-framework/malware/purehvnc/"
+            "purerat_441_emulator_evidence.json"
+        )
         if (
             profile["profile_id"]
             != "purerat-441-d025a296-direct-tls10-empty-gclass4"
@@ -623,10 +705,12 @@ def _validate_profile(
             or protocol_profile.get("sni") is not None
             or protocol_profile.get("maximum_request_bytes") != 0
             or protocol_profile.get("maximum_response_bytes") != 0
+            or profile.get("evidence_source") != expected_evidence_source
         ):
             raise RatEmulatorProfileError("PureRAT direct-TLS profile bindingが不正です")
         if (
-            float(limits["duration_seconds"]) != 3.0
+            float(limits["duration_seconds"])
+            != (30.0 if live_scope == "leased_external" else 3.0)
             or limits["maximum_outbound_frames"] != 1
             or limits["maximum_outbound_bytes"] != 26
             or limits["maximum_inbound_frames"] != 1
@@ -637,28 +721,61 @@ def _validate_profile(
             or limits["minimum_send_interval_seconds"] != 0.0
         ):
             raise RatEmulatorProfileError(
-                "PureRAT limitsがreview済みloopback sessionと一致しません"
+                "PureRAT limitsがreview済みsessionと一致しません"
             )
         _validate_purerat_evidence(profile, protocol_profile, evidence)
-    elif adapter_id == "valleyrat_winos_v1":
+    elif adapter_id in {"valleyrat_winos_external_v1", "valleyrat_winos_v1"}:
+        expected_channel_role = (
+            "stage_and_control"
+            if adapter_id == "valleyrat_winos_external_v1"
+            else "control"
+        )
         if (
             profile["profile_id"] != profile["protocol_profile_id"]
             or protocol_profile.get("method") != "winos_heartbeat"
             or protocol_profile.get("handler") != "valleyrat_winos_reviewed"
-            or protocol_profile.get("channel_role") != "control"
+            or protocol_profile.get("channel_role") != expected_channel_role
         ):
-            raise RatEmulatorProfileError("Winos control-only profile bindingが不正です")
-        if (
-            float(limits["duration_seconds"]) != 3.0
-            or limits["maximum_outbound_frames"] != 1
-            or limits["maximum_outbound_bytes"] != 15
-            or limits["maximum_inbound_frames"] != 1
-            or limits["maximum_inbound_read_calls"] != 16
-            or limits["maximum_inbound_bytes"] != 64
-            or limits["maximum_frame_bytes"] != 64
-            or limits["maximum_commands"] != 1
-            or limits["minimum_send_interval_seconds"] != 0.0
+            raise RatEmulatorProfileError("Winos profile bindingが不正です")
+        if adapter_id == "valleyrat_winos_external_v1" and (
+            profile["profile_id"]
+            != "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666"
+            or profile["host"] != "64.81.30.192"
+            or profile["port"] != 6666
+            or profile["pinned_ips"] != ["64.81.30.192"]
+            or profile["sample_sha256s"]
+            != ["6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"]
+            or live_scope != "leased_external"
         ):
+            raise RatEmulatorProfileError(
+                "Winos external profileがreview済み完全一致値と異なります"
+            )
+        expected_winos_limits = (
+            {
+                "duration_seconds": 28_800.0,
+                "maximum_outbound_frames": 1,
+                "maximum_outbound_bytes": 15,
+                "maximum_inbound_frames": 256,
+                "maximum_inbound_read_calls": 65_536,
+                "maximum_inbound_bytes": 16_384,
+                "maximum_frame_bytes": 64,
+                "maximum_commands": 256,
+                "minimum_send_interval_seconds": 0.0,
+            }
+            if adapter_id == "valleyrat_winos_external_v1"
+            else {
+                "duration_seconds": 3.0,
+                "maximum_outbound_frames": 1,
+                "maximum_outbound_bytes": 15,
+                "maximum_inbound_frames": 1,
+                "maximum_inbound_read_calls": 16,
+                "maximum_inbound_bytes": 64,
+                "maximum_frame_bytes": 64,
+                "maximum_commands": 1,
+                "minimum_send_interval_seconds": 0.0,
+            }
+        )
+        if any(limits[key] != value for key, value in expected_winos_limits.items()):
             raise RatEmulatorProfileError("Winos limitsがreview済みsessionと一致しません")
         _validate_winos_evidence(profile, protocol_profile, evidence)
     else:

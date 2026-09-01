@@ -105,6 +105,35 @@ def test_observes_one_fragmented_heartbeat_frame_without_reply() -> None:
     assert "payload_hex" not in repr(events)
 
 
+def test_c9_flag_one_is_recorded_as_registration_request_but_not_answered() -> None:
+    stream = LoopbackStream(_frame(0xC9, b"\x01"), finish="closed")
+    events: list[dict] = []
+    result = WINOS.run_bounded_host_session(
+        stream,
+        allow_c9_heartbeat=True,
+        heartbeat_header=HEADER,
+        transcript_callback=events.append,
+    ).to_dict()
+
+    assert len(stream.sent) == 1
+    assert result["status"] == "registration_requested_but_not_sent"
+    assert result["registration"] == {
+        "sent": False,
+        "supported": False,
+        "requested": True,
+        "offline_reference_available": True,
+        "reference_layout_id": "winos-public-logininfo-wide-reference-v1",
+        "sample_bound": False,
+        "external_send_allowed": False,
+        "login_token_status": "unresolved_requires_exact_sample_review",
+    }
+    assert result["decisions"][0]["classification"] == "registration_challenge_observed"
+    assert result["decisions"][0]["action"] == "registration_not_sent_and_terminate"
+    assert result["decisions"][0]["registration_requested"] is True
+    assert result["safety"]["registration_sent"] is False
+    assert all(event.get("registration_sent") is not True for event in events)
+
+
 @pytest.mark.parametrize(
     ("command", "role"),
     [
@@ -211,6 +240,33 @@ def test_only_first_of_two_frames_is_consumed() -> None:
     assert result["decisions"][0]["command"] == 0xC9
     assert bytes(stream.incoming) == second
     assert len(stream.sent) == 1
+
+
+def test_passive_observer_keeps_connection_and_discards_multiple_frames() -> None:
+    first = _frame(0xC9)
+    second = _frame(0x99, b"operator-arguments")
+    stream = LoopbackStream(first + second, finish="closed")
+    result = WINOS.run_passive_observation_session(
+        stream,
+        policy=WINOS.PassiveObservationPolicy(
+            duration_seconds=30.0,
+            maximum_frames=4,
+        ),
+        allow_c9_heartbeat=True,
+        heartbeat_header=HEADER,
+    ).to_dict()
+
+    assert result["status"] == "peer_closed"
+    assert len(stream.sent) == 1
+    assert result["collection"]["frame_count"] == 2
+    assert [item["command"] for item in result["decisions"]] == [0xC9, 0x99]
+    assert all(item["action"] == "record_and_discard" for item in result["decisions"])
+    assert all(item["should_respond"] is False for item in result["decisions"])
+    assert all(item["terminate_session"] is False for item in result["decisions"])
+    assert result["safety"]["received_frame_executed"] is False
+    assert result["safety"]["received_frame_reply_sent"] is False
+    assert result["safety"]["received_frame_discarded_count"] == 2
+    assert "operator-arguments" not in repr(result)
 
 
 def test_idle_timeout_is_not_a_stopped_c2_conclusion() -> None:

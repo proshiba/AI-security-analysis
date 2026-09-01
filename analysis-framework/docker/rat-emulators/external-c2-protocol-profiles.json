@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "valleyrat-n520-d11e793-9999",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
+      ],
+      "host": "118.107.21.88",
+      "port": 9999,
+      "protocol": "n520",
+      "method": "n520_server_first",
+      "handler": "c2_detector_n520_server_first",
+      "sni": "update.microsoft.com",
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 44,
+      "role": "N520 interactive C2",
+      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/n520-live-summary.json:c2"
+    }
+  ]
+}

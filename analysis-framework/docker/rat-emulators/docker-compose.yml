@@ -1,0 +1,36 @@
+services:
+  purerat-loopback:
+    image: local/defensive-purerat-emulator:20260824
+    build:
+      context: /home/kali/purerat-emulator-20260824
+      dockerfile: /home/kali/rat-emulator-docker-20260824/purerat.Dockerfile
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.50
+    restart: "no"
+
+  valleyrat-n520-loopback:
+    image: local/defensive-valleyrat-n520-emulator:20260824
+    build:
+      context: /home/kali/valleyrat-n520-emulator-20260824
+      dockerfile: /home/kali/rat-emulator-docker-20260824/valleyrat-n520.Dockerfile
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"

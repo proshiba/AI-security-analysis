@@ -21,7 +21,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-from immutable_snapshot import ensure_new_output, read_bounded_snapshot, write_new_json
+from immutable_snapshot import (
+    decode_strict_json,
+    ensure_new_output,
+    read_bounded_snapshot,
+    write_new_json,
+)
 from purerat_public_result import (
     PureRatPublicResultError,
     build_public_purerat_result,
@@ -46,6 +51,8 @@ from rat_emulator_transcript import (
 from safe_private_output import reject_existing_reparse_components
 
 MAXMIND_MAXIMUM_BUILD_AGE_HOURS = 24.0
+MAXMIND_MAXIMUM_DATABASE_BYTES = 256 * 1024 * 1024
+MAXMIND_MAXIMUM_ACQUISITION_JSON_BYTES = 64 * 1024
 KILL_SWITCH_MAXIMUM_BYTES = 256
 FILE_ATTRIBUTE_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 ADAPTER_PATHS = {
@@ -61,6 +68,12 @@ ADAPTER_PATHS = {
         "n520_host_emulator.py",
     ),
     "valleyrat_winos_v1": (
+        "analysis-framework",
+        "malware",
+        "valleyrat",
+        "winos_host_emulator.py",
+    ),
+    "valleyrat_winos_external_v1": (
         "analysis-framework",
         "malware",
         "valleyrat",
@@ -243,26 +256,102 @@ def resolve_single_pinned_ip(
     return pinned_ip, [pinned_ip]
 
 
+def _load_pre_refreshed_maxmind(
+    cache_directory: Path,
+) -> dict[str, tuple[Path, dict[str, Any]]]:
+    """license keyやnetworkなしで取得済みCity／ASN cacheを完全性検証する。"""
+
+    editions = ("GeoLite2-City", "GeoLite2-ASN")
+    acquired: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for edition in editions:
+        database_path = cache_directory / f"{edition}.mmdb"
+        metadata_path = cache_directory / f"{edition}.acquisition.json"
+        for path, maximum_bytes in (
+            (database_path, MAXMIND_MAXIMUM_DATABASE_BYTES),
+            (metadata_path, MAXMIND_MAXIMUM_ACQUISITION_JSON_BYTES),
+        ):
+            reject_existing_reparse_components(path)
+            metadata = path.lstat()
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or path.is_symlink()
+                or metadata.st_nlink != 1
+                or not 0 < metadata.st_size <= maximum_bytes
+            ):
+                raise RatEmulatorRunError(
+                    f"MaxMind cacheは上限内の単一通常fileにしてください: {edition}"
+                )
+        try:
+            acquisition = decode_strict_json(
+                read_bounded_snapshot(
+                    metadata_path,
+                    MAXMIND_MAXIMUM_ACQUISITION_JSON_BYTES,
+                ).data
+            )
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            raise RatEmulatorRunError(
+                f"MaxMind cache metadataを検証できません: {edition}"
+            ) from exc
+        if not isinstance(acquisition, dict):
+            raise RatEmulatorRunError("MaxMind cache metadataはobjectにしてください")
+        digest = hashlib.sha256()
+        with database_path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if (
+            acquisition.get("edition") != edition
+            or acquisition.get("mmdb_bytes") != database_path.stat().st_size
+            or acquisition.get("mmdb_sha256") != digest.hexdigest()
+        ):
+            raise RatEmulatorRunError("MaxMind cacheのsize／SHA-256 pinが一致しません")
+        acquired[edition] = (database_path, acquisition)
+    return acquired
+
+
 def prepare_maxmind(cache_directory: Path, pinned_ip: str) -> dict[str, Any]:
-    """接続前にCity/ASN DBを24時間基準で確認・更新し、対象IPを照合する。"""
+    """直前に公式更新したCity／ASN cacheをread-only検証して対象IPを照合する。"""
 
     if not cache_directory.is_absolute():
         raise RatEmulatorRunError("MaxMind cache directoryは絶対pathで指定してください")
     try:
         from run_c2_monitoring_pipeline import (
-            acquire_private_databases,
             enrich_with_acquired_databases,
         )
 
-        acquired, freshness = acquire_private_databases(
-            _absolute(cache_directory),
-            max_build_age_hours=MAXMIND_MAXIMUM_BUILD_AGE_HOURS,
-        )
-        if not freshness.get("checked_before_live_check"):
-            raise RatEmulatorRunError("MaxMind DB鮮度を接続前に確認できませんでした")
-        for _path, acquisition in acquired.values():
+        acquired = _load_pre_refreshed_maxmind(_absolute(cache_directory))
+        checked_at = datetime.now(UTC)
+        acquired_at: dict[str, str] = {}
+        for edition, (_path, acquisition) in acquired.items():
             if acquisition.get("official_checksum_verified") is not True:
                 raise RatEmulatorRunError("MaxMind DBの公式checksum検証を確認できません")
+            if (
+                acquisition.get("license_key_stored") is not False
+                or acquisition.get("download_url_stored") is not False
+            ):
+                raise RatEmulatorRunError("MaxMind cache metadataへ秘密情報が保存されています")
+            acquired_text = acquisition.get("acquired_at_utc")
+            if not isinstance(acquired_text, str):
+                raise RatEmulatorRunError("MaxMind DBの取得時刻がありません")
+            try:
+                acquired_time = datetime.fromisoformat(acquired_text)
+            except ValueError as exc:
+                raise RatEmulatorRunError("MaxMind DBの取得時刻が不正です") from exc
+            if acquired_time.tzinfo is None or acquired_time.utcoffset() is None:
+                raise RatEmulatorRunError("MaxMind DBの取得時刻にtimezoneがありません")
+            age_seconds = (
+                checked_at - acquired_time.astimezone(UTC)
+            ).total_seconds()
+            if not 0.0 <= age_seconds < MAXMIND_MAXIMUM_BUILD_AGE_HOURS * 3600:
+                raise RatEmulatorRunError("MaxMind DBの公式再取得から24時間以上経過しています")
+            acquired_at[edition] = acquired_text
+        freshness = {
+            "schema_version": 1,
+            "checked_at_utc": checked_at.isoformat(),
+            "checked_before_live_check": True,
+            "maximum_acquisition_age_hours": MAXMIND_MAXIMUM_BUILD_AGE_HOURS,
+            "official_refresh_acquired_at_utc": acquired_at,
+            "cache_mode": "pre_refreshed_read_only",
+        }
         monitoring = {"results": [{"observation": {"resolved_ips": [pinned_ip]}}]}
         enriched, summary = enrich_with_acquired_databases(monitoring, acquired, freshness)
         records = enriched["results"][0]["maxmind"]["records"]
@@ -288,17 +377,27 @@ def open_pinned_tls_stream(
     *,
     connector: Callable[..., socket.socket] = socket.create_connection,
 ) -> tuple[Any, str]:
-    """単一pinへTLS 1.2で1回だけ接続し、leaf certificate hashを固定する。"""
+    """単一pinへprofile固定TLSで1回だけ接続し、leaf certificate hashを固定する。"""
 
     timeout = min(float(profile["limits"]["duration_seconds"]), 30.0)
-    raw = connector((pinned_ip, int(profile["port"])), timeout=timeout)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
-    context.minimum_version = ssl.TLSVersion.TLSv1_2
-    context.maximum_version = ssl.TLSVersion.TLSv1_2
+    tls_version = profile.get("tls_version")
+    if tls_version == "TLSv1.0":
+        context.minimum_version = ssl.TLSVersion.TLSv1
+        context.maximum_version = ssl.TLSVersion.TLSv1
+        context.set_ciphers("DEFAULT:@SECLEVEL=0")
+    elif tls_version == "TLSv1.2":
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.maximum_version = ssl.TLSVersion.TLSv1_2
+    else:
+        raise RatEmulatorRunError("未レビューのTLS versionです")
+    raw = connector((pinned_ip, int(profile["port"])), timeout=timeout)
+    sni = profile.get("sni")
+    server_hostname = str(sni) if isinstance(sni, str) and sni else None
     try:
-        stream = context.wrap_socket(raw, server_hostname=str(profile["sni"]))
+        stream = context.wrap_socket(raw, server_hostname=server_hostname)
         certificate = stream.getpeercert(binary_form=True)
         digest = hashlib.sha256(certificate or b"").hexdigest()
         if digest != profile["expected_certificate_sha256"]:
@@ -315,6 +414,35 @@ def open_pinned_tls_stream(
         raise
 
 
+def open_reviewed_stream(
+    profile: Mapping[str, Any],
+    pinned_ip: str,
+    *,
+    connector: Callable[..., socket.socket] = socket.create_connection,
+) -> tuple[Any, str | None]:
+    """TLSまたは唯一のreview済みWinos raw TCPへ単1接続する。"""
+
+    if profile.get("transport") == "tls":
+        return open_pinned_tls_stream(profile, pinned_ip, connector=connector)
+    if (
+        profile.get("transport") != "raw_tcp"
+        or profile.get("adapter_id") != "valleyrat_winos_external_v1"
+        or profile.get("profile_id")
+        != "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666"
+        or profile.get("host") != "64.81.30.192"
+        or profile.get("port") != 6666
+        or profile.get("pinned_ips") != ["64.81.30.192"]
+        or pinned_ip != "64.81.30.192"
+        or profile.get("tls_version") is not None
+        or profile.get("sni") is not None
+        or profile.get("expected_certificate_sha256") is not None
+        or profile.get("certificate_mismatch_is_negative_evidence") is not False
+    ):
+        raise RatEmulatorRunError("未reviewのraw TCP transportです")
+    timeout = min(float(profile["limits"]["duration_seconds"]), 3.0)
+    return connector((pinned_ip, int(profile["port"])), timeout=timeout), None
+
+
 class GuardedStream:
     """adapterの全send/recvへduration、kill-switch、byte/frame上限を強制する。"""
 
@@ -325,6 +453,7 @@ class GuardedStream:
         limits: Mapping[str, int | float],
         kill_switch: KillSwitch,
         transcript: SessionTranscriptWriter,
+        retain_private_inbound_frames: bool = False,
         monotonic: Callable[[], float] = time.monotonic,
         lease_deadline_monotonic: float | None = None,
     ) -> None:
@@ -332,6 +461,7 @@ class GuardedStream:
         self.limits = dict(limits)
         self.kill_switch = kill_switch
         self.transcript = transcript
+        self.retain_private_inbound_frames = retain_private_inbound_frames
         self.monotonic = monotonic
         self.started = monotonic()
         session_deadline = self.started + float(self.limits["duration_seconds"])
@@ -384,6 +514,12 @@ class GuardedStream:
         self.requested_timeout_seconds = requested
         self._refresh_timeout()
 
+    def remaining_seconds(self) -> float:
+        """kill-switchを再確認し、session期限までの残秒を返す。"""
+
+        self.kill_switch.require_armed()
+        return max(0.0, self.deadline - self.monotonic())
+
     def recv(self, maximum_bytes: int) -> bytes:
         self._refresh_timeout()
         if self.inbound_read_calls >= int(self.limits["maximum_inbound_read_calls"]):
@@ -413,11 +549,15 @@ class GuardedStream:
                 public_fields={"size": len(chunk), "sha256": digest},
             )
         else:
-            # command-16/18等のfile-transferを保持しないため、登録後はhashだけを残す。
             self.transcript.append_event(
                 "inbound",
                 "transport_post_registration_chunk",
-                public_fields={"size": len(chunk), "sha256": digest, "raw_retained": False},
+                raw_frame=(chunk if self.retain_private_inbound_frames else None),
+                public_fields={
+                    "size": len(chunk),
+                    "sha256": digest,
+                    "raw_retained_private": self.retain_private_inbound_frames,
+                },
             )
         return chunk
 
@@ -488,7 +628,11 @@ class GuardedStream:
             self.transcript.append_event(
                 "inbound",
                 "transport_post_registration_frame",
-                public_fields={**public_fields, "raw_retained": False},
+                raw_frame=(wire if self.retain_private_inbound_frames else None),
+                public_fields={
+                    **public_fields,
+                    "raw_retained_private": self.retain_private_inbound_frames,
+                },
             )
         return wire
 
@@ -567,7 +711,11 @@ class GuardedStream:
             self.transcript.append_event(
                 "inbound",
                 "transport_post_registration_frame",
-                public_fields={**public_fields, "raw_retained": False},
+                raw_frame=(wire if self.retain_private_inbound_frames else None),
+                public_fields={
+                    **public_fields,
+                    "raw_retained_private": self.retain_private_inbound_frames,
+                },
             )
         return wire
 
@@ -675,6 +823,7 @@ def _adapter_event_callback(
         "synthetic_request_sent",
         "stage_requested",
         "registration_sent",
+        "registration_requested",
         "unknown_command_reply_sent",
     }
 
@@ -766,11 +915,35 @@ def _run_adapter(
             allow_heartbeat_request=False,
             transcript_callback=callback,
         )
-    if adapter_id == "valleyrat_winos_v1":
+    if adapter_id in {"valleyrat_winos_external_v1", "valleyrat_winos_v1"}:
         # total-length readerがtransport readとapplication frameを分離する。
         stream.set_first_outbound_event_type(
             "reviewed_fixed_heartbeat_request_frame"
         )
+        if adapter_id == "valleyrat_winos_external_v1":
+            return adapter.run_passive_observation_session(
+                stream,
+                policy=adapter.PassiveObservationPolicy.from_mapping(
+                    {
+                        "duration_seconds": float(limits["duration_seconds"]),
+                        "timeout_seconds": min(
+                            3.0,
+                            float(limits["duration_seconds"]),
+                        ),
+                        "maximum_response_bytes": int(
+                            limits["maximum_frame_bytes"]
+                        ),
+                        "maximum_frames": int(limits["maximum_inbound_frames"]),
+                        "maximum_read_calls": min(
+                            64,
+                            int(limits["maximum_inbound_read_calls"]),
+                        ),
+                        "read_chunk_bytes": int(limits["maximum_frame_bytes"]),
+                    }
+                ),
+                allow_c9_heartbeat=True,
+                transcript_callback=callback,
+            ).to_dict()
         return adapter.run_host_session(
             stream,
             session_limits={
@@ -787,7 +960,7 @@ def _run_adapter(
         return adapter.run_host_session(
             stream,
             session_limits={
-                "timeout_seconds": min(5.0, float(limits["duration_seconds"])),
+                "timeout_seconds": min(30.0, float(limits["duration_seconds"])),
                 "maximum_response_bytes": int(limits["maximum_inbound_bytes"]),
                 "maximum_frames": int(limits["maximum_commands"]),
                 "maximum_read_calls": int(limits["maximum_inbound_read_calls"]),
@@ -832,6 +1005,7 @@ def _public_winos_adapter_result(
                     "action",
                     "should_respond",
                     "terminate_session",
+                    "registration_requested",
                 )
             }
             | {
@@ -866,7 +1040,17 @@ def _public_winos_adapter_result(
             )
         },
         "registration": {
-            key: registration.get(key) for key in ("sent", "supported")
+            key: registration.get(key)
+            for key in (
+                "sent",
+                "supported",
+                "requested",
+                "offline_reference_available",
+                "reference_layout_id",
+                "sample_bound",
+                "external_send_allowed",
+                "login_token_status",
+            )
         },
         "collection": {
             key: collection.get(key)
@@ -874,6 +1058,8 @@ def _public_winos_adapter_result(
                 "response_size",
                 "response_sha256",
                 "frame_count",
+                "total_inbound_bytes",
+                "idle_timeouts",
                 "timed_out",
                 "peer_closed",
             )
@@ -893,6 +1079,9 @@ def _public_winos_adapter_result(
                 "fake_result_sent",
                 "application_send_count",
                 "session_continues",
+                "received_frame_executed",
+                "received_frame_reply_sent",
+                "received_frame_discarded_count",
             )
         },
     }
@@ -920,7 +1109,8 @@ def _public_adapter_result(
         return _public_purerat_adapter_result(result, profile)
     if (
         isinstance(profile, Mapping)
-        and profile.get("adapter_id") == "valleyrat_winos_v1"
+        and profile.get("adapter_id")
+        in {"valleyrat_winos_external_v1", "valleyrat_winos_v1"}
     ):
         return _public_winos_adapter_result(result, profile)
     registration = result.get("registration") if isinstance(result.get("registration"), dict) else {}
@@ -1134,8 +1324,8 @@ def _open_stream_with_certificate_record(
     profile: Mapping[str, Any],
     resolved_ip: str,
     transcript: SessionTranscriptWriter,
-    stream_opener: Callable[[Mapping[str, Any], str], tuple[Any, str]],
-) -> tuple[Any, str]:
+    stream_opener: Callable[[Mapping[str, Any], str], tuple[Any, str | None]],
+) -> tuple[Any, str | None]:
     try:
         return stream_opener(profile, resolved_ip)
     except TlsCertificatePinMismatch as exc:
@@ -1167,8 +1357,8 @@ def run_live_session(
     public_output: Path | None = None,
     resolver: Callable[..., list[tuple[Any, ...]]] = socket.getaddrinfo,
     maxmind_preparer: Callable[[Path, str], dict[str, Any]] = prepare_maxmind,
-    stream_opener: Callable[[Mapping[str, Any], str], tuple[Any, str]] = (
-        open_pinned_tls_stream
+    stream_opener: Callable[[Mapping[str, Any], str], tuple[Any, str | None]] = (
+        open_reviewed_stream
     ),
     adapter_runner: Callable[
         [Mapping[str, Any], GuardedStream, Callable[[dict[str, Any]], None]],
@@ -1176,6 +1366,7 @@ def run_live_session(
     ] = _run_adapter,
     lease_now_utc: datetime | None = None,
     monotonic: Callable[[], float] = time.monotonic,
+    session_duration_seconds: float | None = None,
 ) -> dict[str, Any]:
     """全gate通過後だけ単一のreview済みsessionを実行する。"""
 
@@ -1202,6 +1393,19 @@ def run_live_session(
         raise RatEmulatorRunError(str(exc)) from exc
     lease_remaining = (lease.expires_at - effective_lease_time.astimezone(UTC)).total_seconds()
     lease_deadline_monotonic = monotonic() + lease_remaining
+    profile_duration = float(profile["limits"]["duration_seconds"])
+    if session_duration_seconds is None:
+        active_duration = min(profile_duration, lease_remaining)
+    else:
+        if (
+            type(session_duration_seconds) is not float
+            or not 1.0 <= session_duration_seconds <= profile_duration
+            or session_duration_seconds > lease_remaining
+        ):
+            raise RatEmulatorRunError(
+                "session durationはprofile上限と短期live lease内に限定します"
+            )
+        active_duration = session_duration_seconds
     live_lease = _public_live_lease(lease_registry, lease)
     kill_switch = require_live_gates(
         profile,
@@ -1241,6 +1445,11 @@ def run_live_session(
             "dns_answers": dns_answers,
             "maxmind": maxmind,
             "sample_executed": False,
+            "private_inbound_frame_retention": (
+                profile["adapter_id"]
+                in {"purerat_direct_tls_v1", "valleyrat_winos_external_v1"}
+                and profile["live_scope"] == "leased_external"
+            ),
         },
         repository_root=repository_root(),
     )
@@ -1266,60 +1475,84 @@ def run_live_session(
             lease_deadline_monotonic, monotonic
         )
         connection_profile = dict(profile)
-        connection_profile["limits"] = {
+        active_limits = {
             **profile["limits"],
-            "duration_seconds": min(
-                float(profile["limits"]["duration_seconds"]),
-                connection_remaining,
-            ),
+            "duration_seconds": min(active_duration, connection_remaining),
         }
+        connection_profile["limits"] = active_limits
         stream, certificate_sha256 = _open_stream_with_certificate_record(
             connection_profile, resolved_ip, transcript, stream_opener
         )
         _require_live_lease_deadline(lease_deadline_monotonic, monotonic)
-        if certificate_sha256 != profile["expected_certificate_sha256"]:
-            mismatch = TlsCertificatePinMismatch(
-                str(profile["expected_certificate_sha256"]), certificate_sha256
-            )
+        if profile["transport"] == "tls":
+            if certificate_sha256 != profile["expected_certificate_sha256"]:
+                mismatch = TlsCertificatePinMismatch(
+                    str(profile["expected_certificate_sha256"]),
+                    str(certificate_sha256),
+                )
+                transcript.append_event(
+                    "internal",
+                    "tls_certificate_mismatch",
+                    public_fields={
+                        "expected_certificate_sha256": mismatch.expected_sha256,
+                        "observed_certificate_sha256": mismatch.observed_sha256,
+                        "application_frame_sent": False,
+                        "certificate_mismatch_is_negative_evidence": profile[
+                            "certificate_mismatch_is_negative_evidence"
+                        ],
+                        "c2_exclusion_supported": False,
+                    },
+                )
+                raise mismatch
             transcript.append_event(
                 "internal",
-                "tls_certificate_mismatch",
+                "tls_certificate_pinned",
                 public_fields={
-                    "expected_certificate_sha256": mismatch.expected_sha256,
-                    "observed_certificate_sha256": mismatch.observed_sha256,
-                    "application_frame_sent": False,
-                    "certificate_mismatch_is_negative_evidence": profile[
-                        "certificate_mismatch_is_negative_evidence"
-                    ],
-                    "c2_exclusion_supported": False,
+                    "tls_version": profile["tls_version"],
+                    "certificate_sha256": certificate_sha256,
                 },
             )
-            raise mismatch
-        transcript.append_event(
-            "internal",
-            "tls_certificate_pinned",
-            public_fields={
-                "tls_version": profile["tls_version"],
-                "certificate_sha256": certificate_sha256,
-            },
-        )
+        elif (
+            profile["transport"] == "raw_tcp"
+            and profile["adapter_id"] == "valleyrat_winos_external_v1"
+            and certificate_sha256 is None
+            and profile["expected_certificate_sha256"] is None
+        ):
+            transcript.append_event(
+                "internal",
+                "reviewed_raw_tcp_transport_established",
+                public_fields={
+                    "single_pinned_ip": True,
+                    "tls_used": False,
+                    "certificate_expected": False,
+                },
+            )
+        else:
+            raise RatEmulatorRunError("接続transport契約がprofileと一致しません")
         guarded = GuardedStream(
             stream,
-            limits=profile["limits"],
+            limits=active_limits,
             kill_switch=kill_switch,
             transcript=transcript,
+            retain_private_inbound_frames=(
+                profile["adapter_id"]
+                in {"purerat_direct_tls_v1", "valleyrat_winos_external_v1"}
+                and profile["live_scope"] == "leased_external"
+            ),
             monotonic=monotonic,
             lease_deadline_monotonic=lease_deadline_monotonic,
         )
+        active_profile = dict(profile)
+        active_profile["limits"] = active_limits
         result = adapter_runner(
-            profile,
+            active_profile,
             guarded,
             _adapter_event_callback(
                 transcript,
                 adapter_id=str(profile["adapter_id"]),
             ),
         )
-        public_adapter = _public_adapter_result(result, profile)
+        public_adapter = _public_adapter_result(result, active_profile)
         transcript.finalize(
             status="completed",
             stop_reason=str(result.get("status") or "completed"),
@@ -1331,6 +1564,18 @@ def run_live_session(
         return public
     except BaseException as exc:
         if not finalized:
+            if isinstance(exc, ConnectionResetError):
+                transcript.append_event(
+                    "inbound",
+                    "transport_peer_reset_received",
+                    public_fields={
+                        "error_type": type(exc).__name__,
+                        "error_number": exc.errno,
+                        "reset_direction": "peer_to_observer",
+                        "task_executed": False,
+                        "operation_executed": False,
+                    },
+                )
             transcript.append_event(
                 "internal",
                 "session_failed",

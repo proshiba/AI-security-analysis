@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "protocol_profile_registry": {
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+    "sha256": "3b6236afb6127f0404f3684dec1e83fabae7199f1146d4828fd88763764d89b6"
+  },
+  "profiles": [
+    {
+      "profile_id": "valleyrat-n520-host-d11e793-9999",
+      "protocol_profile_id": "valleyrat-n520-d11e793-9999",
+      "protocol_profile_object_sha256": "31f8615bdc76624d3db6138bd14b443390fd5b55f2f90a1871431d2c8e03752b",
+      "family": "valleyrat",
+      "adapter_id": "valleyrat_n520_v1",
+      "host": "118.107.21.88",
+      "port": 9999,
+      "pinned_ips": [
+        "118.107.21.88"
+      ],
+      "transport": "tls",
+      "tls_version": "TLSv1.2",
+      "sni": "update.microsoft.com",
+      "expected_certificate_sha256": "263540c848347505671f444a551c087d94483d10a95672317b5bad99c5a4e184",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae"
+      ],
+      "evidence_source": "analysis-results/malware/valleyrat/versions/unknown/cases/d11e793159f0da3c88a9ecebb8e5df88919843a1eeaaf71117377db58224a1ae/n520-live-summary.json",
+      "evidence_sha256": "2c91c9d80e685244b9b984cc511b24d48f9c4afc5ba76c1b8df31108f72531bc",
+      "registration_mode": "empty_command_1",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "limits": {
+        "duration_seconds": 60.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 4096,
+        "maximum_inbound_frames": 16,
+        "maximum_inbound_read_calls": 16,
+        "maximum_inbound_bytes": 262144,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 16,
+        "minimum_send_interval_seconds": 1.0
+      },
+      "live_scope": "leased_external"
+    }
+  ]
+}

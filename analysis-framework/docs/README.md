@@ -25,6 +25,7 @@
 - [検体特徴、解析充足度、攻撃キャンペーン相関](CASE-KNOWLEDGE-CAMPAIGNS.md)
 - [安全な提出物I/Oと一括処理ワークフロー](SAFE-SUBMISSION-IO.md)
 - [ValleyRAT感染チェーンのパターン設計](../malware/valleyrat/docs/PATTERN-DESIGN.md)
+- [ValleyRAT通信プロトコル解析とコード根拠](../malware/valleyrat/docs/COMMUNICATION-PROTOCOL-ANALYSIS.md)
 - [プロファイル定義による10ファミリー拡張と構成要素の関係](PROFILED-FAMILY-EXPANSION.md)
 - [難解析検体の静的深掘り解析](DEEP-STATIC-ANALYSIS.md)
 - [ValleyRATワークフロー](../malware/valleyrat/docs/VALLEYRAT-WORKFLOW.md)
@@ -32,3 +33,4 @@
 - [Nmap C2 adapter、method対応、loopback検証](../nmap/README.md)
 - [Stealer 6系統のC2 detectorとloopback emulator](STEALER-C2-DETECTION-EMULATION.md)
 - [ValleyRAT／PureRATエミュレーターの実装状況](VALLEYRAT-PURERAT-EMULATOR-STATUS.md)
+- [マルウェア外部通信の初期data要件](EXTERNAL-COMMUNICATION-DATA-REQUIREMENTS.md)

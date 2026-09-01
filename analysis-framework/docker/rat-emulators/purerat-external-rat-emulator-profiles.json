@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "protocol_profile_registry": {
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+    "sha256": "028f77729fc638137eccd7079de3284a49ba3fa9f8f0fbedc45723a1474152e9"
+  },
+  "profiles": [
+    {
+      "profile_id": "purerat-441-d025a296-direct-tls10-empty-gclass4",
+      "protocol_profile_id": "purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "protocol_profile_object_sha256": "5c8adebae47c9567f33e949a40128767ed57f5354ed2933bd584f32d7259e287",
+      "family": "purehvnc",
+      "adapter_id": "purerat_direct_tls_v1",
+      "host": "45.192.211.77",
+      "port": 56001,
+      "pinned_ips": ["45.192.211.77"],
+      "transport": "tls",
+      "tls_version": "TLSv1.0",
+      "sni": null,
+      "expected_certificate_sha256": "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57",
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
+        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+      ],
+      "evidence_source": "analysis-framework/malware/purehvnc/purerat_441_external_observer_evidence.json",
+      "evidence_sha256": "a405d4d6ffda53a7b6b38c584e5fad9e439568e3a83ed435686a83163aac3667",
+      "registration_mode": "fixed_empty_gclass4",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "live_scope": "leased_external",
+      "limits": {
+        "duration_seconds": 30.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 26,
+        "maximum_inbound_frames": 1,
+        "maximum_inbound_read_calls": 64,
+        "maximum_inbound_bytes": 65536,
+        "maximum_frame_bytes": 65536,
+        "maximum_commands": 1,
+        "minimum_send_interval_seconds": 0.0
+      }
+    }
+  ]
+}

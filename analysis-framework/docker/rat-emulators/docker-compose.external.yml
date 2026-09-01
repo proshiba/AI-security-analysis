@@ -1,0 +1,79 @@
+services:
+  maxmind-refresh:
+    profiles:
+      - external-setup
+    image: local/defensive-rat-external-observer:20260824
+    build:
+      context: /home/kali/rat-external-observer-source-20260824
+      dockerfile: /home/kali/rat-emulator-docker-20260824/external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/rat-external-observer/external_observer_entrypoint.py
+      - maxmind-refresh
+      - --profile-id
+      - valleyrat-n520-host-d11e793-9999
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:rw
+    secrets:
+      - maxmind_license_key
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"
+
+  valleyrat-n520-external-observer:
+    profiles:
+      - external-observer
+    image: local/defensive-rat-external-observer:20260824
+    build:
+      context: /home/kali/rat-external-observer-source-20260824
+      dockerfile: /home/kali/rat-emulator-docker-20260824/external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/rat-external-observer/external_observer_entrypoint.py
+      - live
+      - --profile-id
+      - valleyrat-n520-host-d11e793-9999
+      - --acknowledge-profile
+      - valleyrat-n520-host-d11e793-9999
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - /home/kali/rat-emulator-external-20260824/transcripts:/var/lib/rat-emulator/transcripts:rw
+      - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:ro
+      - /home/kali/rat-emulator-external-20260824/arm/valleyrat-n520.arm:/run/rat-emulator/armed:ro
+    secrets:
+      - maxmind_license_key
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"
+    networks:
+      rat-external:
+        ipv4_address: 172.30.52.10
+
+networks:
+  rat-external:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.30.52.0/28
+
+secrets:
+  maxmind_license_key:
+    file: /run/rat-emulator-secrets/maxmind-license-key

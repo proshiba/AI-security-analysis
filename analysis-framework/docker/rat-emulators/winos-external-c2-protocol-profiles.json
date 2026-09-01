@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "family": "valleyrat",
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "host": "64.81.30.192",
+      "port": 6666,
+      "protocol": "winos",
+      "method": "winos_heartbeat",
+      "handler": "valleyrat_winos_reviewed",
+      "channel_role": "stage_and_control",
+      "pinned_ips": [
+        "64.81.30.192"
+      ],
+      "timeout_seconds": 3.0,
+      "maximum_response_bytes": 64,
+      "role": "Winos stage/control共用channel",
+      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json:live_check"
+    }
+  ]
+}

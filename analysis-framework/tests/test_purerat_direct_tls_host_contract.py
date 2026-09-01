@@ -16,6 +16,10 @@ import pytest
 FRAMEWORK = Path(__file__).resolve().parents[1]
 MODULE = FRAMEWORK / "malware" / "purehvnc" / "purerat_host_emulator.py"
 COMMON_RUNNER = FRAMEWORK / "common" / "run_defensive_rat_emulator.py"
+SYNTHETIC_RESULT = (
+    FRAMEWORK / "malware" / "purehvnc" / "purerat_synthetic_result.py"
+)
+LOOPBACK_OBSERVER = FRAMEWORK.parent / "emulators" / "purehvnc" / "observer.py"
 
 
 def _load():
@@ -282,3 +286,70 @@ def test_adapter_and_common_runner_do_not_load_pfx_or_private_key() -> None:
         "payload_hex",
     ):
         assert forbidden not in public_repr
+
+
+def test_receive_only_path_has_no_command_execution_primitives() -> None:
+    """受信frameからprocess起動や動的code評価へ到達する実装を拒否する。"""
+
+    forbidden_import_roots = {
+        "ctypes",
+        "multiprocessing",
+        "subprocess",
+        "winreg",
+    }
+    forbidden_builtin_calls = {"compile", "eval", "exec"}
+    forbidden_generic_attributes = {
+        "CreateProcess",
+        "Popen",
+        "ShellExecute",
+        "WinExec",
+        "check_call",
+        "check_output",
+    }
+    reviewed = (MODULE, SYNTHETIC_RESULT, LOOPBACK_OBSERVER, COMMON_RUNNER)
+    for source_path in reviewed:
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        imported_roots: set[str] = set()
+        os_aliases: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    root = alias.name.split(".", 1)[0]
+                    imported_roots.add(root)
+                    if root == "os":
+                        os_aliases.add(alias.asname or alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported_roots.add(node.module.split(".", 1)[0])
+        assert imported_roots.isdisjoint(forbidden_import_roots), source_path
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                assert node.func.id not in forbidden_builtin_calls, source_path
+                continue
+            if not isinstance(node.func, ast.Attribute):
+                continue
+            assert node.func.attr not in forbidden_generic_attributes, source_path
+            if isinstance(node.func.value, ast.Name) and node.func.value.id in os_aliases:
+                assert node.func.attr not in {"popen", "startfile", "system"}, source_path
+                assert not node.func.attr.startswith("spawn"), source_path
+                assert not node.func.attr.startswith("exec"), source_path
+
+
+def test_production_sendall_is_limited_to_fixed_registration() -> None:
+    """PureRAT production adapterとobserverの送信元を固定registrationに限定する。"""
+
+    for source_path in (MODULE, LOOPBACK_OBSERVER):
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        send_calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "sendall"
+        ]
+        assert len(send_calls) == 1, source_path
+        assert len(send_calls[0].args) == 1, source_path
+        assert isinstance(send_calls[0].args[0], ast.Name), source_path
+        assert send_calls[0].args[0].id == "registration", source_path
