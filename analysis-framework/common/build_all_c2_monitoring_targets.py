@@ -20,7 +20,11 @@ from c2_protocol_probe_profiles import (
     profile_registry_metadata,
     remus_review_registry_metadata,
 )
-from daily_news_malware_intake import _daily_infrastructure_target_commitment
+from daily_news_malware_intake import (
+    SHARED_SERVICE_HOSTS,
+    _daily_infrastructure_target_commitment,
+    is_shared_service_host,
+)
 from immutable_snapshot import decode_strict_json, read_bounded_snapshot
 
 MAX_IOC_JSON_BYTES = 16 * 1024 * 1024
@@ -147,6 +151,10 @@ def _host_classification(host: str) -> tuple[bool, str]:
         return False, "onion_excluded_by_policy"
     if host.endswith(NON_DNS_SUFFIXES[1:]):
         return False, "non_dns_name_excluded"
+    # 利用者の区別がpath側にある共有ホストは、能動監視の対象にしない。
+    # 判定は daily_news_malware_intake 側の定義に一本化する。
+    if is_shared_service_host(host):
+        return False, "shared_service_tenant_in_path_excluded"
     try:
         address = ipaddress.ip_address(host)
     except ValueError:
@@ -317,6 +325,13 @@ def _daily_ioc_entries(payload: dict[str, Any], source_date: str | None):
         if item.get("valid") is not True or str(item.get("category") or "") != "c2":
             continue
         if str(item.get("ioc_type") or "") not in {"domain", "ip", "url"}:
+            continue
+        # 共有ホストは daily infrastructure target の集合からも外れている
+        # (daily_news_malware_intake 側で同じ判定をしている)。ここで拾うと
+        # 「daily sourceのhostが実効targetへ結合されていない」ゲートに引っ掛かる
+        # ので、両者の集合を一致させる。
+        host, _port, _protocol = _split_endpoint({"value": item.get("ioc_value")})
+        if host and is_shared_service_host(host):
             continue
         evidence = {
             "value": item.get("ioc_value"),
@@ -619,6 +634,7 @@ def build_inventory(
             "known_port_check": "単一endpointへの限定probeを1回。レビュー済み完全一致profileはmalware固有protocolで確認",
             "unknown_port_check": "DNS解決のみ（C2稼働確認とは扱わない）",
             "distribution_only_and_explicit_non_c2_excluded": True,
+            "shared_service_tenant_in_path_excluded": sorted(SHARED_SERVICE_HOSTS),
         },
         "scanned_ioc_file_count": scanned,
         "scanned_iocs_json_file_count": scanned_by_name["iocs.json"],
