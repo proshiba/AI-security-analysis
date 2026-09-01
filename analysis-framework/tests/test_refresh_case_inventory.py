@@ -6,10 +6,33 @@ import hashlib
 from pathlib import Path
 import sys
 
+import pytest
+
 COMMON = Path(__file__).resolve().parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
 import refresh_case_inventory as inventory  # noqa: E402
+
+
+def test_publication_safety_rejects_datastore_upload_receipt(tmp_path: Path) -> None:
+    case = tmp_path / "analysis-results" / "case"
+    case.mkdir(parents=True)
+    receipt = case / "datastore-upload.json"
+    receipt.write_text("{}\n", encoding="utf-8")
+
+    result = inventory._validate_publication_safety(tmp_path)
+
+    assert result["violations"] == ["analysis-results/case/datastore-upload.json"]
+    with pytest.raises(ValueError, match="datastore upload receipt"):
+        inventory.refresh(tmp_path, check=True)
+
+
+def test_publication_safety_allows_private_work_receipt(tmp_path: Path) -> None:
+    receipt = tmp_path / ".work" / "datastore-reports" / "datastore-upload.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("{}\n", encoding="utf-8")
+
+    assert inventory._validate_publication_safety(tmp_path)["violations"] == []
 
 
 def _counts() -> dict[str, int]:

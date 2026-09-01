@@ -219,6 +219,8 @@ __marimo__/
 
 # Malware analysis safety
 .work/
+# Datastore upload検証receiptは非公開local stateとして扱い、commitしない
+**/datastore-upload.json
 samples/
 quarantine/
 **/payload/
